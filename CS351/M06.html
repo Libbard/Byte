@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS351" data-module="6">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الفصل الثامن: حالات الجمود (Deadlocks) · CS351 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M05.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-microchip"></i></div>
+      <span class="module-badge font-display">MOD 6</span>
+      <span class="subject-name">CS351</span>
+    </div>
+    <div class="header-actions">
+      <a href="M07.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#deadlock-characterization" class="toc-link" data-bilingual>
+        <template class="content-ar">توصيف حالة الجمود (Deadlock Characterization)</template>
+        <template class="content-en">Deadlock Characterization</template>
+        <span class="content-target">توصيف حالة الجمود (Deadlock Characterization)</span>
+      </a>
+      <a href="#resource-allocation-graph" class="toc-link" data-bilingual>
+        <template class="content-ar">مخطط تخصيص الموارد (Resource-Allocation Graph)</template>
+        <template class="content-en">Resource-Allocation Graph</template>
+        <span class="content-target">مخطط تخصيص الموارد (Resource-Allocation Graph)</span>
+      </a>
+      <a href="#deadlock-prevention" class="toc-link" data-bilingual>
+        <template class="content-ar">الوقاية من الجمود (Deadlock Prevention)</template>
+        <template class="content-en">Deadlock Prevention</template>
+        <span class="content-target">الوقاية من الجمود (Deadlock Prevention)</span>
+      </a>
+      <a href="#deadlock-avoidance-safe-state" class="toc-link" data-bilingual>
+        <template class="content-ar">تجنب الجمود والحالة الآمنة (Deadlock Avoidance & Safe State)</template>
+        <template class="content-en">Deadlock Avoidance & Safe State</template>
+        <span class="content-target">تجنب الجمود والحالة الآمنة (Deadlock Avoidance & Safe State)</span>
+      </a>
+      <a href="#bankers-algorithm" class="toc-link" data-bilingual>
+        <template class="content-ar">خوارزمية المصرفي (Banker's Algorithm)</template>
+        <template class="content-en">Banker's Algorithm</template>
+        <span class="content-target">خوارزمية المصرفي (Banker's Algorithm)</span>
+      </a>
+      <a href="#deadlock-detection" class="toc-link" data-bilingual>
+        <template class="content-ar">اكتشاف الجمود (Deadlock Detection)</template>
+        <template class="content-en">Deadlock Detection</template>
+        <span class="content-target">اكتشاف الجمود (Deadlock Detection)</span>
+      </a>
+      <a href="#recovery-from-deadlock" class="toc-link" data-bilingual>
+        <template class="content-ar">التعافي من الجمود (Recovery from Deadlock)</template>
+        <template class="content-en">Recovery from Deadlock</template>
+        <span class="content-target">التعافي من الجمود (Recovery from Deadlock)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS351
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الفصل الثامن: حالات الجمود (Deadlocks)</h1>
+      <p class="hero-description">دراسة شاملة لحالات الجمود في أنظمة التشغيل، تشمل التوصيف، الرسوم البيانية لتخصيص الموارد، وطرق التعامل معها مثل الوقاية، التجنب، الاكتشاف، والتعافي.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Chapter 8: Deadlocks</h1>
+      <p class="hero-description">Comprehensive study of deadlocks in operating systems, including characterization, resource-allocation graphs, and handling methods like prevention, avoidance, detection, and recovery.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">أنظمة التشغيل</span>
+      <span class="tag">حالات الجمود</span>
+      <span class="tag">تخصيص الموارد</span>
+      <span class="tag">خوارزمية المصرفي</span>
+      <span class="tag">التزامن</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Operating Systems</span>
+      <span class="tag">Deadlocks</span>
+      <span class="tag">Resource Allocation</span>
+      <span class="tag">Banker's Algorithm</span>
+      <span class="tag">Concurrency</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>توضيح كيف يمكن أن يحدث الجمود عند استخدام أقفال الاستبعاد المتبادل (mutex locks).</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد الشروط الأربعة الضرورية التي تصف حالة الجمود.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد حالة الجمود في مخطط تخصيص الموارد (Resource Allocation Graph).</span></li>
+      <li><span class="obj-icon">✦</span><span>تقييم المناهج الأربعة المختلفة لمنع حالات الجمود.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Illustrate how deadlock can occur when mutex locks are used.</span></li>
+      <li><span class="obj-icon">✦</span><span>Define the four necessary conditions that characterize deadlock.</span></li>
+      <li><span class="obj-icon">✦</span><span>Identify a deadlock situation in a resource allocation graph.</span></li>
+      <li><span class="obj-icon">✦</span><span>Evaluate the four different approaches for preventing deadlocks.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="deadlock-characterization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> توصيف حالة الجمود (Deadlock Characterization)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Deadlock Characterization</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الجمود هو حالة تتوقف فيها مجموعة من العمليات لأن كل عملية تحتفظ بمورد وتنتظر مورداً آخر تحتفظ به عملية أخرى في نفس المجموعة.</p></template>
+    <template class="content-en"><p>A deadlock is a situation where a set of processes are blocked because each process is holding a resource and waiting for another resource acquired by some other process.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لكي يحدث الجمود، يجب أن تتحقق أربعة شروط في وقت واحد: 1. <b><span class="smart-term" data-term-en="Mutual Exclusion" data-ar="الاستبعاد المتبادل" data-en-def="Only one process at a time can use a resource.">الاستبعاد المتبادل<span class="smart-term-tooltip"></span></span> (Mutual Exclusion):</b> يمكن لعملية واحدة فقط استخدام المورد في وقت واحد. 2. <b>الاحتفاظ والانتظار (Hold and Wait):</b> عملية تحتفظ بمورد واحد على الأقل وتنتظر الحصول على موارد إضافية تحتفظ بها عمليات أخرى. 3. <b>عدم المقاطعة (No Preemption):</b> لا يمكن سحب المورد إلا طواعية من قبل العملية التي تحتفظ به بعد إكمال مهمتها. 4. <b><span class="smart-term" data-term-en="Circular Wait" data-ar="الانتظار الدائري" data-en-def="A closed chain of processes exists, where each process holds at least one resource needed by the next process in the chain.">الانتظار الدائري<span class="smart-term-tooltip"></span></span> (Circular Wait):</b> توجد مجموعة من العمليات المنتظرة بحيث تنتظر كل عملية مورداً تحتفظ به العملية التالية في الدائرة.</p></template>
+    <template class="content-en"><p>Deadlock can arise if four conditions hold simultaneously: 1. <b><span class="smart-term" data-term-en="Mutual Exclusion" data-ar="الاستبعاد المتبادل" data-en-def="Only one process at a time can use a resource.">Mutual exclusion<span class="smart-term-tooltip"></span></span>:</b> only one process at a time can use a resource. 2. <b>Hold and wait:</b> a process holding at least one resource is waiting to acquire additional resources held by other processes. 3. <b>No preemption:</b> a resource can be released only voluntarily by the process holding it, after that process has completed its task. 4. <b><span class="smart-term" data-term-en="Circular Wait" data-ar="الانتظار الدائري" data-en-def="A closed chain of processes exists, where each process holds at least one resource needed by the next process in the chain.">Circular wait<span class="smart-term-tooltip"></span></span>:</b> there exists a set {P0, P1, ..., Pn} of waiting processes such that P0 is waiting for a resource held by P1, P1 is waiting for P2, ..., and Pn is waiting for P0.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه الشروط الأربعة هي شروط <i>ضرورية</i> (Necessary) وليست كافية بمفردها في الأنظمة ذات النسخ المتعددة من الموارد، ولكن في الأنظمة ذات النسخة الواحدة لكل مورد، تصبح ضرورية وكافية. كسر أي شرط من هذه الشروط الأربعة يضمن استحالة حدوث الجمود، وهو أساس استراتيجيات 'الوقاية من الجمود' (Deadlock Prevention).</p></template>
+    <template class="content-en"><p>These four conditions are <i>necessary</i>. If any one of them is broken, a deadlock cannot occur. This is the foundational principle behind 'Deadlock Prevention' strategies. Note that while they are necessary, in systems with multiple instances of resources, they might not be strictly sufficient to guarantee a deadlock (a cycle doesn't always mean deadlock there), but they must all be present for a deadlock to exist.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكننا ببساطة إلغاء شرط 'الاستبعاد المتبادل' لمنع الجمود تماماً؟</template>
+      <template class="content-en">Why can't we simply invalidate the 'Mutual Exclusion' condition to prevent deadlocks entirely?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>بعض الموارد بطبيعتها غير قابلة للمشاركة (مثل الطابعات أو المتغيرات المشتركة التي يتم تعديلها). إلغاء الاستبعاد المتبادل سيؤدي إلى تلف البيانات أو تداخل المخرجات.</p></template>
+      <template class="content-en"><p>Some resources are inherently non-sharable (e.g., printers, or shared variables being written to). Invalidating mutual exclusion for these would lead to data corruption or interleaved, incorrect outputs.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="resource-allocation-graph" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> مخطط تخصيص الموارد (Resource-Allocation Graph)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Resource-Allocation Graph</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>رسم بياني موجه يوضح حالة تخصيص الموارد والطلبات الحالية للعمليات في النظام.</p></template>
+    <template class="content-en"><p>A directed graph that illustrates the current resource allocation and requests of processes in the system.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتكون المخطط من مجموعة من العقد (Vertices) مقسمة إلى نوعين: العمليات (P) والموارد (R). يحتوي المورد على نقاط تمثل عدد النسخ (Instances) المتاحة منه. هناك نوعان من الحواف (Edges): <b><span class="smart-term" data-term-en="Request Edge" data-ar="حافة الطلب" data-en-def="A directed edge from a process to a resource indicating the process is waiting for that resource.">حافة الطلب<span class="smart-term-tooltip"></span></span> (Request Edge):</b> تتجه من العملية إلى المورد (Pi -> Rj)، وتعني أن العملية تطلب المورد. <b><span class="smart-term" data-term-en="Assignment Edge" data-ar="حافة التخصيص" data-en-def="A directed edge from a resource to a process indicating the resource is currently held by that process.">حافة التخصيص<span class="smart-term-tooltip"></span></span> (Assignment Edge):</b> تتجه من المورد إلى العملية (Rj -> Pi)، وتعني أن المورد مخصص حالياً للعملية.</p></template>
+    <template class="content-en"><p>The graph consists of a set of vertices V partitioned into two types: Processes P = {P1, P2, ..., Pn} and Resources R = {R1, R2, ..., Rm}. Resource nodes contain dots representing the number of instances. There are two types of directed edges: <b><span class="smart-term" data-term-en="Request Edge" data-ar="حافة الطلب" data-en-def="A directed edge from a process to a resource indicating the process is waiting for that resource.">Request edge<span class="smart-term-tooltip"></span></span>:</b> directed from process Pi to resource Rj (Pi -> Rj). <b><span class="smart-term" data-term-en="Assignment Edge" data-ar="حافة التخصيص" data-en-def="A directed edge from a resource to a process indicating the resource is currently held by that process.">Assignment edge<span class="smart-term-tooltip"></span></span>:</b> directed from resource Rj to process Pi (Rj -> Pi).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحليل المخطط: إذا لم يحتوي المخطط على دورات (Cycles)، فلا يوجد جمود. إذا احتوى على دورة: أ) إذا كان لكل مورد نسخة واحدة فقط، فإن الدورة تعني حتماً وجود جمود. ب) إذا كان للموارد نسخ متعددة، فإن الدورة تعني <i>احتمالية</i> وجود جمود (قد تقوم عملية خارج الدورة بتحرير مورد يكسر الدورة).</p></template>
+    <template class="content-en"><p>Graph analysis: If the graph contains no cycles, there is NO deadlock. If the graph contains a cycle: a) if there is only one instance per resource type, then a deadlock exists. b) if there are several instances per resource type, there is a POSSIBILITY of deadlock (it is not guaranteed, as a process outside the cycle might release a needed resource).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Create a directed graph showing a Resource-Allocation Graph with a Deadlock. Use circles for Processes (T1, T2, T3) and rectangles for Resources (R1, R2, R3, R4). R1 and R3 have 1 dot (instance). R2 has 2 dots. R4 has 3 dots. Edges: T1 -> R1 (request), R1 -> T2 (assignment), T2 -> R3 (request), R3 -> T3 (assignment), T3 -> R2 (request), R2 -> T1 (assignment), R2 -> T2 (assignment). Dark background #0d1117, processes in light blue, resources in grey. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Title -->
+    <text x="400" y="35" text-anchor="middle" fill="currentColor" font-size="20" font-weight="bold">Resource-Allocation Graph: Deadlock State</text>
+    <text x="400" y="60" text-anchor="middle" fill="var(--text-secondary)" font-size="16">مخطط تخصيص الموارد: حالة الجمود</text>
+
+    <!-- Deadlock Cycle Highlight Text -->
+    <text x="400" y="180" text-anchor="middle" fill="var(--brand-500)" font-size="16" font-weight="bold">Deadlock Cycle</text>
+    <text x="400" y="200" text-anchor="middle" fill="var(--brand-500)" font-size="14">حلقة الجمود</text>
+
+    <!-- Resources (Rectangles) -->
+    <!-- R1 -->
+    <rect x="370" y="100" width="60" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="400" y="90" text-anchor="middle" fill="var(--text-secondary)" font-size="14" font-weight="bold">R1</text>
+    
+    <!-- R2 -->
+    <rect x="220" y="260" width="60" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="250" y="250" text-anchor="middle" fill="var(--text-secondary)" font-size="14" font-weight="bold">R2</text>
+    
+    <!-- R3 -->
+    <rect x="520" y="260" width="60" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="550" y="250" text-anchor="middle" fill="var(--text-secondary)" font-size="14" font-weight="bold">R3</text>
+    
+    <!-- R4 -->
+    <rect x="70" y="180" width="60" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="100" y="170" text-anchor="middle" fill="var(--text-secondary)" font-size="14" font-weight="bold">R4</text>
+
+    <!-- Processes (Circles) -->
+    <!-- T1 -->
+    <circle cx="250" cy="130" r="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="250" y="135" text-anchor="middle" fill="currentColor" font-size="16" font-weight="bold">T1</text>
+    
+    <!-- T2 -->
+    <circle cx="550" cy="130" r="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="550" y="135" text-anchor="middle" fill="currentColor" font-size="16" font-weight="bold">T2</text>
+    
+    <!-- T3 -->
+    <circle cx="400" cy="290" r="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="400" y="295" text-anchor="middle" fill="currentColor" font-size="16" font-weight="bold">T3</text>
+
+    <!-- Edges (Lines) -->
+    <!-- T1 -> R1 (Request) -->
+    <line x1="280" y1="130" x2="370" y2="130" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- R1 -> T2 (Assignment) -->
+    <line x1="400" y1="130" x2="520" y2="130" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- T2 -> R3 (Request) -->
+    <line x1="550" y1="160" x2="550" y2="260" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- R3 -> T3 (Assignment) -->
+    <line x1="550" y1="290" x2="430" y2="290" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- T3 -> R2 (Request) -->
+    <line x1="370" y1="290" x2="280" y2="290" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- R2 -> T1 (Assignment) -->
+    <line x1="235" y1="290" x2="247.2" y2="159.8" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- R2 -> T2 (Assignment) -->
+    <line x1="265" y1="290" x2="523.8" y2="144.7" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Resource Instances (Dots) -->
+    <!-- R1 Instances -->
+    <circle cx="400" cy="130" r="5" fill="currentColor"/>
+    
+    <!-- R2 Instances -->
+    <circle cx="235" cy="290" r="5" fill="currentColor"/>
+    <circle cx="265" cy="290" r="5" fill="currentColor"/>
+    
+    <!-- R3 Instances -->
+    <circle cx="550" cy="290" r="5" fill="currentColor"/>
+    
+    <!-- R4 Instances -->
+    <circle cx="85" cy="210" r="5" fill="currentColor"/>
+    <circle cx="100" cy="210" r="5" fill="currentColor"/>
+    <circle cx="115" cy="210" r="5" fill="currentColor"/>
+
+    <!-- Legend -->
+    <g transform="translate(60, 365)">
+        <!-- Process -->
+        <circle cx="0" cy="0" r="10" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="15" y="4" fill="var(--text-secondary)" font-size="14">Process (عملية)</text>
+        
+        <!-- Resource -->
+        <rect x="130" y="-10" width="20" height="20" rx="2" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="160" y="4" fill="var(--text-secondary)" font-size="14">Resource (مورد)</text>
+        
+        <!-- Instance -->
+        <circle cx="280" cy="0" r="4" fill="currentColor"/>
+        <text x="295" y="4" fill="var(--text-secondary)" font-size="14">Instance (نسخة)</text>
+        
+        <!-- Request Edge -->
+        <line x1="400" y1="0" x2="430" y2="0" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="440" y="4" fill="var(--text-secondary)" font-size="14">Request (طلب)</text>
+        
+        <!-- Assignment Edge -->
+        <circle cx="540" cy="0" r="3" fill="currentColor"/>
+        <line x1="540" y1="0" x2="570" y2="0" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="580" y="4" fill="var(--text-secondary)" font-size="14">Assignment (تخصيص)</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لدينا مخطط تخصيص موارد يحتوي على دورة، ولكن أحد الموارد في الدورة يمتلك 3 نسخ، هل النظام بالضرورة في حالة جمود؟</template>
+      <template class="content-en">If we have a resource-allocation graph with a cycle, but one of the resources in the cycle has 3 instances, is the system necessarily in a deadlock?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، ليس بالضرورة. وجود نسخ متعددة يعني أن الدورة هي شرط ضروري ولكن غير كافٍ للجمود. قد تقوم عملية أخرى تمتلك إحدى النسخ بتحريرها، مما يكسر الدورة.</p></template>
+      <template class="content-en"><p>No, not necessarily. With multiple instances, a cycle is a necessary but not sufficient condition for deadlock. Another process holding one of the instances might release it, breaking the cycle.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="deadlock-prevention" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الوقاية من الجمود (Deadlock Prevention)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Deadlock Prevention</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تصميم النظام بطريقة تضمن عدم تحقق واحد على الأقل من الشروط الأربعة الضرورية للجمود.</p></template>
+    <template class="content-en"><p>Designing the system to ensure that at least one of the four necessary conditions for deadlock cannot hold.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>طرق إبطال الشروط: <b>1. الاستبعاد المتبادل:</b> لا يُطلب للموارد القابلة للمشاركة (مثل الملفات للقراءة فقط)، ولكن يجب أن يظل للموارد غير القابلة للمشاركة. <b>2. الاحتفاظ والانتظار:</b> نطلب من العملية طلب جميع مواردها وتخصيصها قبل بدء التنفيذ، أو السماح لها بطلب موارد فقط عندما لا تحتفظ بأي مورد آخر. <b>3. عدم المقاطعة:</b> إذا طلبت عملية تحتفظ بموارد مورداً لا يمكن تخصيصه فوراً، يتم تحرير جميع الموارد التي تحتفظ بها حالياً وتضاف لقائمة الانتظار. <b>4. الانتظار الدائري:</b> فرض ترتيب كلي (Total Ordering) لجميع أنواع الموارد، واشتراط أن تطلب كل عملية الموارد بترتيب تصاعدي.</p></template>
+    <template class="content-en"><p>Invalidating conditions: <b>1. Mutual Exclusion:</b> not required for sharable resources (e.g., read-only files); must hold for non-sharable. <b>2. Hold and Wait:</b> guarantee that whenever a process requests a resource, it does not hold any other resources (request all before execution). <b>3. No Preemption:</b> if a process holding resources requests another that cannot be immediately allocated, all currently held resources are released and preempted. <b>4. Circular Wait:</b> impose a total ordering of all resource types, and require that each process requests resources in an increasing order of enumeration.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الوقاية من الجمود غالباً ما تؤدي إلى انخفاض في استخدام الموارد (Resource Utilization) وانخفاض في إنتاجية النظام (Throughput). على سبيل المثال، طلب جميع الموارد مسبقاً يربط الموارد لفترة طويلة حتى لو لم تكن مستخدمة إلا في نهاية العملية. إبطال 'الانتظار الدائري' هو الأكثر شيوعاً وعملية (مثل إعطاء أرقام فريدة لأقفال mutex وطلبها بالترتيب).</p></template>
+    <template class="content-en"><p>Deadlock prevention often leads to low device utilization and reduced system throughput. For instance, requesting all resources upfront ties up resources that might only be needed at the very end of execution. Invalidating the 'Circular Wait' condition is the most practical and common approach in software development (e.g., assigning a unique number to each mutex lock and enforcing that threads acquire locks in strictly increasing order).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>/* Preventing Circular Wait by acquiring locks in order */
+void *do_work_one(void *param) {
+    pthread_mutex_lock(&first_mutex); // 1
+    pthread_mutex_lock(&second_mutex); // 5
+    /* Do work */
+    pthread_mutex_unlock(&second_mutex);
+    pthread_mutex_unlock(&first_mutex);
+    pthread_exit(0);
+}
+
+void *do_work_two(void *param) {
+    /* MUST acquire in the same order (1 then 5) to prevent deadlock */
+    pthread_mutex_lock(&first_mutex); // 1
+    pthread_mutex_lock(&second_mutex); // 5
+    /* Do work */
+    pthread_mutex_unlock(&second_mutex);
+    pthread_mutex_unlock(&first_mutex);
+    pthread_exit(0);
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو العيب الرئيسي لسياسة 'الاحتفاظ والانتظار' التي تتطلب من العملية طلب جميع مواردها في البداية؟</template>
+      <template class="content-en">What is the main drawback of the 'Hold and Wait' prevention policy that requires a process to request all its resources at the beginning?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يؤدي إلى استغلال سيء للموارد (Low Resource Utilization) لأن العملية قد تحتفظ بمورد لفترة طويلة دون استخدامه فعلياً، مما يحرم العمليات الأخرى منه.</p></template>
+      <template class="content-en"><p>It leads to low resource utilization because a process might hold a resource for a long time without actually using it, depriving other processes of its use.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="deadlock-avoidance-safe-state" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> تجنب الجمود والحالة الآمنة (Deadlock Avoidance & Safe State)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Deadlock Avoidance & Safe State</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التجنب يتطلب معلومات مسبقة عن أقصى احتياجات كل عملية، لضمان عدم دخول النظام أبداً في 'حالة غير آمنة' قد تؤدي للجمود.</p></template>
+    <template class="content-en"><p>Avoidance requires a priori information about the maximum needs of each process to dynamically ensure the system never enters an 'unsafe state' that could lead to deadlock.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b><span class="smart-term" data-term-en="Safe State" data-ar="الحالة الآمنة" data-en-def="A state where the system can allocate resources to each process in some order and still avoid a deadlock.">الحالة الآمنة<span class="smart-term-tooltip"></span></span> (Safe State):</b> يكون النظام في حالة آمنة إذا كان هناك تسلسل &lt;P1, P2, ..., Pn&gt; لجميع العمليات بحيث يمكن تلبية طلبات كل عملية Pi باستخدام الموارد المتاحة حالياً بالإضافة إلى الموارد التي تحتفظ بها جميع العمليات Pj (حيث j &lt; i). إذا لم تكن الموارد متاحة، تنتظر Pi حتى تنتهي Pj. <b>الحقائق الأساسية:</b> إذا كان النظام في حالة آمنة -&gt; لا يوجد جمود. إذا كان في حالة غير آمنة -&gt; هناك <i>احتمالية</i> للجمود. التجنب يضمن بقاء النظام دائماً في الحالة الآمنة.</p></template>
+    <template class="content-en"><p><b><span class="smart-term" data-term-en="Safe State" data-ar="الحالة الآمنة" data-en-def="A state where the system can allocate resources to each process in some order and still avoid a deadlock.">Safe State<span class="smart-term-tooltip"></span></span>:</b> A system is in a safe state if there exists a sequence &lt;P1, P2, ..., Pn&gt; of ALL processes such that for each Pi, the resources Pi can still request can be satisfied by currently available resources + resources held by all Pj (where j &lt; i). If Pi's needs are not immediately available, Pi waits until all Pj finish. <b>Basic Facts:</b> Safe state -&gt; no deadlocks. Unsafe state -&gt; possibility of deadlock. Avoidance ensures the system never enters an unsafe state.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لتحقيق التجنب، نستخدم خوارزميات مختلفة بناءً على نوع الموارد: إذا كان لدينا <b>نسخة واحدة</b> من كل نوع مورد، نستخدم <b>مخطط تخصيص الموارد</b> مع إضافة '<span class="smart-term" data-term-en="Claim Edge" data-ar="حافة المطالبة" data-en-def="A dashed edge in a resource-allocation graph indicating that a process may request a resource in the future.">حافة المطالبة<span class="smart-term-tooltip"></span></span>' (Claim Edge) المتقطعة التي تشير إلى أن العملية قد تطلب المورد مستقبلاً. لا يُمنح الطلب إلا إذا كان تحويل حافة الطلب إلى حافة تخصيص لا يكوّن دورة. إذا كان لدينا <b>نسخ متعددة</b>، نستخدم <b>خوارزمية المصرفي (Banker's Algorithm)</b>.</p></template>
+    <template class="content-en"><p>To achieve avoidance, different algorithms are used based on resource instances: For a <b>single instance</b> of a resource type, we use a <b>Resource-Allocation Graph</b> with a '<span class="smart-term" data-term-en="Claim Edge" data-ar="حافة المطالبة" data-en-def="A dashed edge in a resource-allocation graph indicating that a process may request a resource in the future.">Claim edge<span class="smart-term-tooltip"></span></span>' (dashed line indicating a process may request the resource in the future). A request is granted only if converting the request edge to an assignment edge does not result in a cycle. For <b>multiple instances</b>, we use the <b>Banker’s Algorithm</b>.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Create a diagram showing the relationship between Safe, Unsafe, and Deadlock states. A large square representing all states. Inside, a diagonal line divides it into 'Safe' (bottom right, grey) and 'Unsafe' (top left, light blue). Inside the 'Unsafe' area, draw a smaller rectangle labeled 'Deadlock'. This visually shows that all deadlocks are in the unsafe state, but not all unsafe states are deadlocks. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 400" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" fill="currentColor">
+    System State Space / فضاء حالات النظام
+  </text>
+
+  <!-- Main Square (All States) -->
+  <rect x="240" y="40" width="320" height="320" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="4" />
+
+  <!-- Unsafe State Triangle (Top Left) -->
+  <polygon points="240,40 240,360 560,40" fill="var(--brand-500)" fill-opacity="0.1" />
+
+  <!-- Diagonal Divider Line -->
+  <line x1="240" y1="360" x2="560" y2="40" stroke="var(--border-color)" stroke-width="2" />
+
+  <!-- Deadlock Rectangle (Inside Unsafe) -->
+  <rect x="260" y="60" width="130" height="80" rx="6" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4" />
+
+  <!-- Labels inside shapes -->
+  <!-- Deadlock Label -->
+  <text x="325" y="95" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Deadlock</text>
+  <text x="325" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-secondary)">حالة الجمود</text>
+
+  <!-- Unsafe State Label -->
+  <text x="370" y="195" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Unsafe State</text>
+  <text x="370" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-secondary)">حالة غير آمنة</text>
+
+  <!-- Safe State Label -->
+  <text x="460" y="255" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Safe State</text>
+  <text x="460" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-secondary)">حالة آمنة</text>
+
+  <!-- Callouts & Annotations -->
+  
+  <!-- Deadlock Callout -->
+  <g>
+    <text x="120" y="80" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="currentColor">All deadlocks are unsafe</text>
+    <text x="120" y="100" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">كل حالات الجمود غير آمنة</text>
+    <circle cx="120" cy="115" r="3" fill="var(--brand-500)" />
+    <path d="M 120 115 C 120 140, 200 100, 252 100" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)" />
+  </g>
+
+  <!-- Unsafe Callout -->
+  <g>
+    <text x="120" y="220" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="currentColor">May or may not deadlock</text>
+    <text x="120" y="240" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">قد تؤدي أو لا تؤدي لجمود</text>
+    <circle cx="120" cy="255" r="3" fill="var(--brand-500)" />
+    <path d="M 120 255 C 120 285, 250 285, 305 225" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)" />
+  </g>
+
+  <!-- Safe Callout -->
+  <g>
+    <text x="680" y="220" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="currentColor">No deadlock possible</text>
+    <text x="680" y="240" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">يستحيل حدوث حالة جمود</text>
+    <circle cx="680" cy="255" r="3" fill="var(--brand-500)" />
+    <path d="M 680 255 C 680 285, 600 285, 515 285" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)" />
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل الحالة غير الآمنة تعني بالضرورة أن النظام في حالة جمود الآن؟</template>
+      <template class="content-en">Does an unsafe state necessarily mean the system is currently in a deadlock?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، الحالة غير الآمنة تعني فقط أن النظام فقد السيطرة على ضمان عدم حدوث جمود. الجمود قد يحدث أو لا يحدث بناءً على الطلبات الفعلية للعمليات.</p></template>
+      <template class="content-en"><p>No, an unsafe state only means the system cannot guarantee that a deadlock will be avoided. A deadlock might or might not occur depending on the actual future requests of the processes.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="bankers-algorithm" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> خوارزمية المصرفي (Banker's Algorithm)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Banker's Algorithm</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>خوارزمية لتجنب الجمود في الأنظمة ذات النسخ المتعددة للموارد، تحاكي تخصيص الموارد للتحقق مما إذا كان الطلب سيترك النظام في حالة آمنة.</p></template>
+    <template class="content-en"><p>A deadlock avoidance algorithm for systems with multiple instances of resources, which simulates allocation to check if a request leaves the system in a safe state.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتطلب الخوارزمية من كل عملية الإعلان مسبقاً عن الحد الأقصى لاستخدامها (Max). تستخدم هياكل البيانات التالية (حيث n=العمليات، m=الموارد): <b><span class="smart-term" data-term-en="Available Vector" data-ar="متجه المتاح" data-en-def="A vector indicating the number of available resources of each type.">Available<span class="smart-term-tooltip"></span></span>:</b> متجه يمثل الموارد المتاحة. <b>Max:</b> مصفوفة تمثل أقصى طلب لكل عملية. <b>Allocation:</b> مصفوفة تمثل الموارد المخصصة حالياً. <b><span class="smart-term" data-term-en="Need Matrix" data-ar="مصفوفة الاحتياج" data-en-def="A matrix indicating the remaining resource needs of each process.">Need<span class="smart-term-tooltip"></span></span>:</b> مصفوفة تمثل الموارد الإضافية المطلوبة (Need = Max - Allocation). تتكون من جزأين: <b>خوارزمية الأمان (Safety Algorithm):</b> تبحث عن تسلسل آمن. <b>خوارزمية طلب الموارد (Resource-Request Algorithm):</b> تتظاهر بتخصيص المورد وتتحقق من الأمان؛ إذا كان آمناً يتم التخصيص، وإلا تنتظر العملية.</p></template>
+    <template class="content-en"><p>The algorithm requires each process to a priori claim maximum use. Data structures (n=processes, m=resources): <b><span class="smart-term" data-term-en="Available Vector" data-ar="متجه المتاح" data-en-def="A vector indicating the number of available resources of each type.">Available<span class="smart-term-tooltip"></span></span>:</b> vector of available resources. <b>Max:</b> matrix of maximum demand. <b>Allocation:</b> matrix of currently allocated resources. <b><span class="smart-term" data-term-en="Need Matrix" data-ar="مصفوفة الاحتياج" data-en-def="A matrix indicating the remaining resource needs of each process.">Need<span class="smart-term-tooltip"></span></span>:</b> matrix of remaining needs (Need = Max - Allocation). It consists of two parts: <b>Safety Algorithm:</b> checks if a safe sequence exists using 'Work' and 'Finish' vectors. <b>Resource-Request Algorithm:</b> pretends to allocate requested resources (Available = Available - Request; Allocation = Allocation + Request; Need = Need - Request) and runs the Safety Algorithm. If safe, allocate; if not, process waits.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>خوارزمية الأمان تعمل بتعقيد زمني O(m * n^2). تبدأ بتعيين Work = Available و Finish[i] = false. تبحث عن عملية i حيث Finish[i] == false و Need_i &lt;= Work. إذا وجدتها، تضيف Allocation_i إلى Work وتجعل Finish[i] = true، وتكرر. إذا أصبحت كل Finish[i] == true، فالنظام آمن. هذه الخوارزمية متحفظة جداً وقد ترفض طلبات آمنة فعلياً لأنها تفترض أن العمليات ستطلب الحد الأقصى (Max) دفعة واحدة.</p></template>
+    <template class="content-en"><p>The Safety Algorithm runs in O(m * n^2) time. It initializes Work = Available and Finish[i] = false. It finds an index i where Finish[i] == false and Need_i &lt;= Work. If found, it simulates completion: Work = Work + Allocation_i, Finish[i] = true, and repeats. If all Finish[i] == true, the state is safe. The algorithm is highly conservative; it assumes processes might request their maximum declared needs all at once, potentially delaying requests unnecessarily.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حساب المصفوفة Need التي تمثل الموارد الإضافية التي قد تطلبها العملية لإكمال مهمتها.</strong></template>
+      <template class="content-en"><strong>Calculation of the Need matrix, representing the remaining resources a process might request to complete its task.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Need[i,j] = Max[i,j] - Allocation[i,j]$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في خوارزمية طلب الموارد، لماذا نقوم بـ 'التظاهر' (Pretend) بتخصيص الموارد بدلاً من تخصيصها مباشرة؟</template>
+      <template class="content-en">In the Resource-Request algorithm, why do we 'pretend' to allocate resources instead of allocating them directly?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا نحتاج إلى اختبار ما إذا كان هذا التخصيص سيؤدي إلى حالة غير آمنة. إذا أدى لحالة غير آمنة، يمكننا التراجع عن 'التظاهر' وإجبار العملية على الانتظار دون إحداث ضرر فعلي للنظام.</p></template>
+      <template class="content-en"><p>Because we need to test if the allocation leads to an unsafe state. If it does, we can easily revert the 'pretend' state and force the process to wait, without having actually committed the resources and risked a deadlock.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="deadlock-detection" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> اكتشاف الجمود (Deadlock Detection)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Deadlock Detection</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>السماح للنظام بالدخول في حالة جمود، ثم تشغيل خوارزمية لاكتشافه، وتطبيق آلية للتعافي منه.</p></template>
+    <template class="content-en"><p>Allowing the system to enter a deadlock state, running an algorithm to detect it, and then applying a recovery scheme.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتمد طريقة الاكتشاف على عدد نسخ الموارد: <b>نسخة واحدة لكل مورد:</b> يتم الحفاظ على <b><span class="smart-term" data-term-en="Wait-for Graph" data-ar="مخطط الانتظار" data-en-def="A graph used for deadlock detection in single-instance resource systems, consisting only of process nodes.">مخطط الانتظار<span class="smart-term-tooltip"></span></span> (Wait-for graph)</b>، وهو نسخة مبسطة من مخطط تخصيص الموارد يحتوي على العمليات فقط (Pi -&gt; Pj يعني Pi تنتظر Pj). يتم استدعاء خوارزمية للبحث عن دورة (Cycle) بشكل دوري (تتطلب عمليات O(n^2)). <b>نسخ متعددة:</b> تستخدم خوارزمية مشابهة لخوارزمية المصرفي، تعتمد على مصفوفات Available و Allocation و Request (الطلب الحالي وليس الأقصى). إذا كانت Finish[i] == false لبعض العمليات، فهذه العمليات في حالة جمود.</p></template>
+    <template class="content-en"><p>Detection methods depend on resource instances: <b>Single instance:</b> Maintain a <b><span class="smart-term" data-term-en="Wait-for Graph" data-ar="مخطط الانتظار" data-en-def="A graph used for deadlock detection in single-instance resource systems, consisting only of process nodes.">Wait-for graph<span class="smart-term-tooltip"></span></span></b> (nodes are processes, Pi -&gt; Pj means Pi is waiting for Pj). Periodically invoke an algorithm to search for a cycle (requires O(n^2) operations). <b>Multiple instances:</b> Uses an algorithm similar to Banker's, utilizing Available, Allocation, and Request (current request, not max) matrices. If Finish[i] == false for some i, the system is in a deadlock state, and Pi is deadlocked.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>متى يتم استدعاء خوارزمية الاكتشاف؟ يعتمد ذلك على مدى تكرار حدوث الجمود وعدد العمليات التي ستتأثر. إذا تم استدعاؤها بشكل عشوائي أو متباعد جداً، قد تتراكم دورات عديدة في المخطط، مما يجعل من المستحيل تحديد العملية التي 'تسببت' في الجمود الأصلي. الاكتشاف المستمر يستهلك موارد المعالج (CPU overhead).</p></template>
+    <template class="content-en"><p>When and how often to invoke the detection algorithm depends on how often a deadlock is likely to occur and how many processes will need to be rolled back. If invoked arbitrarily or too infrequently, there may be many cycles in the resource graph, making it impossible to tell which of the deadlocked processes 'caused' the deadlock. Frequent detection causes significant CPU overhead.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Show a side-by-side comparison of a Resource-Allocation Graph (left) and its corresponding Wait-for Graph (right). Left: T1 -> R1 -> T2 -> R3 -> T3 -> R2 -> T1 (cycle with resources). Right: T1 -> T2 -> T3 -> T1 (same cycle, but resources are removed, showing only processes waiting for processes). Dark background, processes in blue circles, resources in grey squares. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto">
+    <defs>
+        <!-- Primary Arrowhead for Graph Edges -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+        <!-- Muted Arrowhead for Transformation Arrow -->
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    <!-- Global Styles -->
+    <style>
+        .title { font-family: system-ui, sans-serif; font-size: 18px; font-weight: 600; fill: currentColor; text-anchor: middle; }
+        .subtitle { font-family: system-ui, sans-serif; font-size: 14px; fill: var(--text-secondary); text-anchor: middle; }
+        .node-text { font-family: system-ui, sans-serif; font-size: 16px; font-weight: 600; fill: currentColor; text-anchor: middle; dominant-baseline: central; }
+        .label-text { font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; fill: currentColor; text-anchor: middle; dominant-baseline: central; }
+        .legend-text { font-family: system-ui, sans-serif; font-size: 13px; fill: var(--text-secondary); dominant-baseline: central; }
+        
+        .process { fill: var(--bg-elevated); stroke: var(--brand-500); stroke-width: 3; }
+        .resource { fill: var(--bg-elevated); stroke: var(--border-color); stroke-width: 3; }
+        .edge { stroke: var(--brand-500); stroke-width: 2.5; fill: none; }
+        .divider { stroke: var(--border-color); stroke-width: 2; stroke-dasharray: 6 6; }
+    </style>
+
+    <!-- Titles -->
+    <g id="titles">
+        <text x="200" y="35" class="title">Resource-Allocation Graph</text>
+        <text x="200" y="58" class="subtitle">رسم بياني لتخصيص الموارد</text>
+        
+        <text x="600" y="35" class="title">Wait-for Graph</text>
+        <text x="600" y="58" class="subtitle">رسم بياني للانتظار</text>
+    </g>
+
+    <!-- Center Divider & Transformation Arrow -->
+    <g id="divider">
+        <line x1="400" y1="80" x2="400" y2="330" class="divider" />
+        <rect x="375" y="190" width="50" height="20" fill="var(--bg-elevated)" />
+        <path d="M 370 200 L 420 200" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" stroke-dasharray="4 4" />
+    </g>
+
+    <!-- LEFT GRAPH: Resource-Allocation Graph (RAG) -->
+    <g id="rag-edges">
+        <!-- T1 -> R1 (Request) -->
+        <line x1="200" y1="100" x2="258" y2="133.7" class="edge" marker-end="url(#arrow)" />
+        <!-- R1 -> T2 (Assignment) -->
+        <line x1="286" y1="150" x2="286" y2="222" class="edge" marker-end="url(#arrow)" />
+        <!-- T2 -> R3 (Request) -->
+        <line x1="286" y1="250" x2="248.2" y2="272" class="edge" marker-end="url(#arrow)" />
+        <!-- R3 -> T3 (Assignment) -->
+        <line x1="200" y1="300" x2="138.2" y2="264.1" class="edge" marker-end="url(#arrow)" />
+        <!-- T3 -> R2 (Request) -->
+        <line x1="114" y1="250" x2="114" y2="178" class="edge" marker-end="url(#arrow)" />
+        <!-- R2 -> T1 (Assignment) -->
+        <line x1="114" y1="150" x2="175.8" y2="114.1" class="edge" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="rag-nodes">
+        <!-- Process T1 -->
+        <circle cx="200" cy="100" r="28" class="process" />
+        <text x="200" y="100" class="node-text">T1</text>
+
+        <!-- Resource R1 -->
+        <rect x="258" y="122" width="56" height="56" rx="6" class="resource" />
+        <circle cx="286" cy="150" r="4" fill="currentColor" />
+        <text x="335" y="150" class="label-text">R1</text>
+
+        <!-- Process T2 -->
+        <circle cx="286" cy="250" r="28" class="process" />
+        <text x="286" y="250" class="node-text">T2</text>
+
+        <!-- Resource R3 -->
+        <rect x="172" y="272" width="56" height="56" rx="6" class="resource" />
+        <circle cx="200" cy="300" r="4" fill="currentColor" />
+        <text x="200" y="345" class="label-text">R3</text>
+
+        <!-- Process T3 -->
+        <circle cx="114" cy="250" r="28" class="process" />
+        <text x="114" y="250" class="node-text">T3</text>
+
+        <!-- Resource R2 -->
+        <rect x="86" y="122" width="56" height="56" rx="6" class="resource" />
+        <circle cx="114" cy="150" r="4" fill="currentColor" />
+        <text x="65" y="150" class="label-text">R2</text>
+    </g>
+
+    <!-- RIGHT GRAPH: Wait-for Graph (WFG) -->
+    <g id="wfg-edges">
+        <!-- T1 -> T2 -->
+        <line x1="600" y1="100" x2="672.1" y2="225.7" class="edge" marker-end="url(#arrow)" />
+        <!-- T2 -> T3 -->
+        <line x1="686" y1="250" x2="542" y2="250" class="edge" marker-end="url(#arrow)" />
+        <!-- T3 -> T1 -->
+        <line x1="514" y1="250" x2="586.1" y2="124.3" class="edge" marker-end="url(#arrow)" />
+    </g>
+
+    <g id="wfg-nodes">
+        <!-- Process T1 -->
+        <circle cx="600" cy="100" r="28" class="process" />
+        <text x="600" y="100" class="node-text">T1</text>
+
+        <!-- Process T2 -->
+        <circle cx="686" cy="250" r="28" class="process" />
+        <text x="686" y="250" class="node-text">T2</text>
+
+        <!-- Process T3 -->
+        <circle cx="514" cy="250" r="28" class="process" />
+        <text x="514" y="250" class="node-text">T3</text>
+    </g>
+
+    <!-- Legend -->
+    <g id="legend" transform="translate(0, 370)">
+        <!-- Process Legend -->
+        <circle cx="140" cy="0" r="12" class="process" stroke-width="2" />
+        <text x="160" y="0" class="legend-text">Process (عملية)</text>
+
+        <!-- Resource Legend -->
+        <rect x="330" y="-12" width="24" height="24" rx="4" class="resource" stroke-width="2" />
+        <circle cx="342" cy="0" r="2" fill="currentColor" />
+        <text x="365" y="0" class="legend-text">Resource (مورد)</text>
+
+        <!-- Edge Legend -->
+        <line x1="540" y1="0" x2="570" y2="0" class="edge" stroke-width="2" marker-end="url(#arrow)" />
+        <text x="585" y="0" class="legend-text">Dependency / Wait (اعتماد / انتظار)</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Single Instance (نسخة واحدة)</th>
+        <th>Multiple Instances (نسخ متعددة)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">معنى الدورة في المخطط (Cycle Meaning)</template>
+          <template class="content-en">Cycle Meaning in Graph</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">جمود مؤكد</template>
+          <template class="content-en">Definite Deadlock</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">احتمالية جمود فقط</template>
+          <template class="content-en">Possibility of Deadlock only</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">خوارزمية التجنب (Avoidance Algorithm)</template>
+          <template class="content-en">Avoidance Algorithm</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مخطط تخصيص الموارد (مع حواف المطالبة)</template>
+          <template class="content-en">Resource-Allocation Graph (with claim edges)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">خوارزمية المصرفي</template>
+          <template class="content-en">Banker's Algorithm</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">خوارزمية الاكتشاف (Detection Algorithm)</template>
+          <template class="content-en">Detection Algorithm</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مخطط الانتظار (Wait-for Graph)</template>
+          <template class="content-en">Wait-for Graph</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">خوارزمية اكتشاف مشابهة للمصرفي</template>
+          <template class="content-en">Detection algorithm similar to Banker's</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تستخدم خوارزمية الاكتشاف مصفوفة 'Request' الحالية بدلاً من مصفوفة 'Max' المستخدمة في خوارزمية المصرفي؟</template>
+      <template class="content-en">Why does the detection algorithm use the current 'Request' matrix instead of the 'Max' matrix used in Banker's algorithm?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الاكتشاف يتعامل مع الحالة الحالية الفعلية للنظام لمعرفة ما إذا كان هناك جمود *الآن*، بينما خوارزمية المصرفي تحاول التنبؤ بأسوأ سيناريو مستقبلي (Max) لتجنب الجمود.</p></template>
+      <template class="content-en"><p>Because detection deals with the actual current state of the system to see if a deadlock exists *right now*, whereas Banker's algorithm tries to predict the worst-case future scenario (Max) to avoid deadlocks.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 7 -->
+<section id="recovery-from-deadlock" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> التعافي من الجمود (Recovery from Deadlock)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Recovery from Deadlock</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>بمجرد اكتشاف الجمود، يجب كسر الدورة إما بإنهاء العمليات أو سحب الموارد منها.</p></template>
+    <template class="content-en"><p>Once a deadlock is detected, the cycle must be broken either by terminating processes or preempting resources.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك طريقتان رئيسيتان للتعافي: <b>1. إنهاء العمليات (Process Termination):</b> إما إحباط (Abort) جميع العمليات المتورطة في الجمود (مكلف جداً)، أو إحباط عملية واحدة في كل مرة حتى يتم القضاء على دورة الجمود. يتم اختيار العملية بناءً على الأولوية، وقت التنفيذ، الموارد المستخدمة، ونوع العملية (تفاعلية أم دفعية). <b>2. سحب الموارد (Resource Preemption):</b> اختيار 'ضحية' (Victim) لتقليل التكلفة، ثم <span class="smart-term" data-term-en="Rollback" data-ar="التراجع" data-en-def="Returning a process to a previously saved safe state after its resources have been preempted.">التراجع<span class="smart-term-tooltip"></span></span> (Rollback) بالعملية إلى حالة آمنة سابقة وإعادة تشغيلها. يجب الحذر من <b><span class="smart-term" data-term-en="Starvation" data-ar="المجاعة (الحرمان)" data-en-def="A situation where a process is perpetually denied necessary resources (e.g., always chosen as the victim for preemption).">المجاعة<span class="smart-term-tooltip"></span></span> (Starvation)</b> حيث قد يتم اختيار نفس العملية كضحية دائماً.</p></template>
+    <template class="content-en"><p>There are two main approaches to recovery: <b>1. Process Termination:</b> Abort all deadlocked processes (very costly), or abort one process at a time until the deadlock cycle is eliminated. The choice of which to abort depends on priority, computed time, resources used, and if it's interactive/batch. <b>2. Resource Preemption:</b> Select a victim to minimize cost, <span class="smart-term" data-term-en="Rollback" data-ar="التراجع" data-en-def="Returning a process to a previously saved safe state after its resources have been preempted.">rollback<span class="smart-term-tooltip"></span></span> the process to some safe state, and restart it. Must handle <b><span class="smart-term" data-term-en="Starvation" data-ar="المجاعة (الحرمان)" data-en-def="A situation where a process is perpetually denied necessary resources (e.g., always chosen as the victim for preemption).">Starvation<span class="smart-term-tooltip"></span></span></b>, ensuring the same process isn't always picked as the victim (e.g., by including the number of rollbacks in the cost factor).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التراجع (Rollback) معقد جداً في أنظمة التشغيل الحقيقية لأنه يتطلب حفظ حالة النظام (Check-pointing) بشكل دوري. لتجنب المجاعة عند سحب الموارد، يجب أن يتضمن عامل التكلفة (Cost factor) عدد المرات التي تم فيها التراجع عن العملية، بحيث تزداد تكلفة اختيارها كضحية في كل مرة.</p></template>
+    <template class="content-en"><p>Rollback is highly complex in real OS implementations because it requires periodic state saving (check-pointing). To prevent starvation during resource preemption, the cost factor for selecting a victim must include the number of times a process has been rolled back, ensuring its cost increases and it eventually completes.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Prevention (الوقاية)</th>
+        <th>Avoidance (التجنب)</th>
+        <th>Detection & Recovery (الاكتشاف والتعافي)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">النهج الأساسي</template>
+          <template class="content-en">Basic Approach</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">إبطال أحد الشروط الأربعة</template>
+          <template class="content-en">Invalidate one of the 4 conditions</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تجنب الحالات غير الآمنة ديناميكياً</template>
+          <template class="content-en">Dynamically avoid unsafe states</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">السماح بالجمود ثم حله</template>
+          <template class="content-en">Allow deadlock, then resolve it</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استغلال الموارد (Resource Utilization)</template>
+          <template class="content-en">Resource Utilization</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">منخفض (متحفظ جداً)</template>
+          <template class="content-en">Low (very conservative)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متوسط</template>
+          <template class="content-en">Medium</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عالي (حتى يحدث الجمود)</template>
+          <template class="content-en">High (until deadlock occurs)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكننا منع المجاعة (Starvation) عند استخدام سياسة سحب الموارد للتعافي من الجمود؟</template>
+      <template class="content-en">How can we prevent starvation when using resource preemption to recover from deadlocks?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال تضمين عدد مرات التراجع (Rollbacks) في دالة التكلفة عند اختيار الضحية. العملية التي تم التراجع عنها عدة مرات تصبح تكلفتها عالية ولن يتم اختيارها كضحية مرة أخرى.</p></template>
+      <template class="content-en"><p>By including the number of rollbacks in the cost function when selecting a victim. A process that has been rolled back multiple times will have a higher cost and won't be picked as a victim again.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذا الفصل الحاسم عن 'حالات الجمود' (Deadlocks). تخيلوا تقاطع طرق مزدحم حيث ترفض كل سيارة التراجع؛ هذا بالضبط ما يحدث في نظام التشغيل عندما تتوقف العمليات بانتظار بعضها البعض. للامتحان، ركزوا بشدة على الشروط الأربعة الضرورية؛ يجب أن تحفظوها كأسمائكم. تذكروا دائماً أن كسر شرط واحد يكفي للوقاية (Prevention). ثم ننتقل إلى التجنب (Avoidance)، وهنا تبرز 'خوارزمية المصرفي' كنجم ساطع؛ تأكدوا من فهم كيفية حساب مصفوفة Need وكيفية تتبع خوارزمية الأمان خطوة بخطوة. الفخ الأكبر في الامتحان هو الخلط بين الحالة غير الآمنة والجمود؛ الحالة غير الآمنة هي مجرد 'منطقة خطر' وليست حادثاً مؤكداً. أخيراً، افهموا الفرق بين مخطط تخصيص الموارد ومخطط الانتظار، وكيف نتعافى من الجمود دون التسبب في 'مجاعة' للعمليات. راجعوا الأمثلة الرقمية لخوارزمية المصرفي جيداً، فهي سؤال كلاسيكي في الاختبارات!</template>
+    <template class="content-en">Welcome, my friends, to this critical chapter on Deadlocks. Imagine a busy intersection where every car refuses to back up; that's exactly what happens in an OS when processes block each other. For the exam, focus heavily on the 4 necessary conditions; know them by heart. Remember that breaking just one is enough for Prevention. Then we move to Avoidance, where the 'Banker's Algorithm' is the star. Make sure you know how to calculate the Need matrix and trace the Safety algorithm step-by-step. The biggest exam trap is confusing an Unsafe State with a Deadlock; an unsafe state is just a 'danger zone', not a guaranteed crash. Finally, understand the difference between a Resource-Allocation Graph and a Wait-for Graph, and how we recover from deadlocks without causing 'Starvation'. Practice the numerical Banker's algorithm examples—they are classic exam questions!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الشروط الأربعة الضرورية لحدوث الجمود؟</template>
+          <template class="content-en">What are the four necessary conditions for a deadlock to occur?</template>
+          <span class="content-target">ما هي الشروط الأربعة الضرورية لحدوث الجمود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الاستبعاد المتبادل، الاحتفاظ والانتظار، عدم المقاطعة، والانتظار الدائري. يجب أن تتحقق جميعها في نفس الوقت.</template>
+          <template class="content-en">Mutual exclusion, Hold and wait, No preemption, and Circular wait. They must all hold simultaneously.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا الوقاية من شرط 'الانتظار الدائري' عملياً في البرمجة؟</template>
+          <template class="content-en">How can we practically prevent the 'Circular Wait' condition in programming?</template>
+          <span class="content-target">كيف يمكننا الوقاية من شرط 'الانتظار الدائري' عملياً في البرمجة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بفرض ترتيب كلي (Total Ordering) لجميع الموارد، وإجبار جميع العمليات (أو الخيوط) على طلب الأقفال بترتيب تصاعدي صارم.</template>
+          <template class="content-en">By imposing a total ordering of all resources and forcing all processes (or threads) to request locks in a strictly increasing order.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل الدورة (Cycle) في مخطط تخصيص الموارد تعني دائماً وجود جمود؟</template>
+          <template class="content-en">Does a cycle in a Resource-Allocation Graph always mean a deadlock exists?</template>
+          <span class="content-target">هل الدورة (Cycle) في مخطط تخصيص الموارد تعني دائماً وجود جمود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا. إذا كان لكل مورد نسخة واحدة، فالدورة تعني جمود. أما إذا كان للموارد نسخ متعددة، فالدورة تعني احتمالية جمود فقط.</template>
+          <template class="content-en">No. If there is a single instance per resource, a cycle means deadlock. If there are multiple instances, a cycle only means a possibility of deadlock.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين الوقاية من الجمود (Prevention) وتجنب الجمود (Avoidance)؟</template>
+          <template class="content-en">What is the main difference between Deadlock Prevention and Deadlock Avoidance?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين الوقاية من الجمود (Prevention) وتجنب الجمود (Avoidance)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الوقاية تصمم النظام لكسر أحد الشروط الأربعة مسبقاً (مما يقلل الكفاءة). التجنب يستخدم معلومات مسبقة (Max) لفحص الطلبات ديناميكياً ورفض الطلبات التي تؤدي لحالة غير آمنة.</template>
+          <template class="content-en">Prevention designs the system to break one of the 4 conditions upfront (reducing efficiency). Avoidance uses a priori info (Max) to dynamically check requests and deny those leading to an unsafe state.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في خوارزمية المصرفي، ماذا تمثل مصفوفة Need وكيف تُحسب؟</template>
+          <template class="content-en">In Banker's Algorithm, what does the Need matrix represent and how is it calculated?</template>
+          <span class="content-target">في خوارزمية المصرفي، ماذا تمثل مصفوفة Need وكيف تُحسب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تمثل الحد الأقصى للموارد الإضافية التي قد تطلبها العملية مستقبلاً. تُحسب بالمعادلة: Need = Max - Allocation.</template>
+          <template class="content-en">It represents the maximum additional resources a process might request in the future. It is calculated as: Need = Max - Allocation.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي 'الحالة الآمنة' (Safe State)؟</template>
+          <template class="content-en">What is a 'Safe State'?</template>
+          <span class="content-target">ما هي 'الحالة الآمنة' (Safe State)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي حالة يوجد فيها تسلسل معين لجميع العمليات بحيث يمكن لكل عملية الحصول على مواردها القصوى، إنهاء عملها، وتحرير الموارد للعملية التي تليها دون حدوث جمود.</template>
+          <template class="content-en">A state where there is a specific sequence of all processes such that each process can get its max resources, finish, and release resources for the next process without deadlocking.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو 'مخطط الانتظار' (Wait-for Graph) ومتى يُستخدم؟</template>
+          <template class="content-en">What is a 'Wait-for Graph' and when is it used?</template>
+          <span class="content-target">ما هو 'مخطط الانتظار' (Wait-for Graph) ومتى يُستخدم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو مخطط مبسط يحتوي على العمليات فقط (بدون عقد الموارد)، يُستخدم لاكتشاف الجمود في الأنظمة التي تحتوي على نسخة واحدة فقط من كل مورد.</template>
+          <template class="content-en">A simplified graph containing only processes (no resource nodes), used for deadlock detection in systems with only a single instance of each resource.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">عند التعافي من الجمود بسحب الموارد، ما هي مشكلة 'المجاعة' (Starvation)؟</template>
+          <template class="content-en">When recovering from deadlock via resource preemption, what is the 'Starvation' problem?</template>
+          <span class="content-target">عند التعافي من الجمود بسحب الموارد، ما هي مشكلة 'المجاعة' (Starvation)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحدث المجاعة عندما يتم اختيار نفس العملية دائماً كـ 'ضحية' لسحب مواردها، مما يمنعها من إكمال عملها أبداً.</template>
+          <template class="content-en">Starvation occurs when the same process is consistently chosen as the 'victim' to have its resources preempted, preventing it from ever finishing.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نحل مشكلة المجاعة عند التعافي من الجمود؟</template>
+          <template class="content-en">How do we solve the starvation problem during deadlock recovery?</template>
+          <span class="content-target">كيف نحل مشكلة المجاعة عند التعافي من الجمود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بتضمين عدد مرات التراجع (Rollbacks) في دالة التكلفة عند اختيار الضحية، بحيث تزداد تكلفة العملية كلما تم التراجع عنها.</template>
+          <template class="content-en">By including the number of rollbacks in the cost function when selecting a victim, so a process becomes too 'expensive' to preempt after a few times.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تتجاهل معظم أنظمة التشغيل مشكلة الجمود تماماً؟</template>
+          <template class="content-en">Why do most operating systems completely ignore the deadlock problem?</template>
+          <span class="content-target">لماذا تتجاهل معظم أنظمة التشغيل مشكلة الجمود تماماً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الجمود نادر الحدوث في الاستخدام العادي، وتكلفة تشغيل خوارزميات الوقاية أو التجنب (مثل المصرفي) عالية جداً وتبطئ النظام بشكل كبير.</template>
+          <template class="content-en">Because deadlocks are rare in normal use, and the performance cost of running prevention or avoidance algorithms (like Banker's) is too high and slows down the system significantly.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "الجمود (Deadlock)",
+      "en": "Deadlock"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة تتوقف فيها العمليات لأن كل منها ينتظر مورداً تحتفظ به عملية أخرى.",
+        "en": "A state where processes are blocked because each is waiting for a resource held by another."
+      },
+      "example": {
+        "ar": "عملية 1 تحتفظ بالطابعة وتنتظر الماسح الضوئي، وعملية 2 تحتفظ بالماسح وتنتظر الطابعة.",
+        "en": "Process 1 holds printer and waits for scanner; Process 2 holds scanner and waits for printer."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "الاستبعاد المتبادل (Mutual Exclusion)",
+      "en": "Mutual Exclusion"
+    },
+    "back": {
+      "definition": {
+        "ar": "شرط ينص على أن عملية واحدة فقط يمكنها استخدام المورد في وقت واحد.",
+        "en": "Condition stating only one process at a time can use a resource."
+      },
+      "example": {
+        "ar": "لا يمكن لعمليتين الكتابة على نفس الملف في نفس اللحظة.",
+        "en": "Two processes cannot write to the same file simultaneously."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "الاحتفاظ والانتظار (Hold and Wait)",
+      "en": "Hold and Wait"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية تحتفظ بمورد واحد على الأقل وتنتظر الحصول على موارد أخرى.",
+        "en": "A process holding at least one resource is waiting to acquire additional resources."
+      },
+      "example": {
+        "ar": "برنامج يمسك بالذاكرة وينتظر وصول بيانات من الشبكة.",
+        "en": "A program holds memory while waiting for network data."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "عدم المقاطعة (No Preemption)",
+      "en": "No Preemption"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا يمكن سحب المورد من العملية إلا إذا قامت هي بتحريره طواعية.",
+        "en": "A resource can be released only voluntarily by the process holding it."
+      },
+      "example": {
+        "ar": "نظام التشغيل لا يمكنه إيقاف عملية حرق قرص مضغوط في المنتصف لسحب محرك الأقراص.",
+        "en": "OS cannot stop a CD burning process midway to take back the drive."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "الانتظار الدائري (Circular Wait)",
+      "en": "Circular Wait"
+    },
+    "back": {
+      "definition": {
+        "ar": "وجود سلسلة مغلقة من العمليات، كل منها ينتظر مورداً تحتفظ به العملية التالية.",
+        "en": "A closed chain of processes exists, each waiting for a resource held by the next."
+      },
+      "example": {
+        "ar": "P0 تنتظر P1، و P1 تنتظر P2، و P2 تنتظر P0.",
+        "en": "P0 waits for P1, P1 waits for P2, P2 waits for P0."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "مخطط تخصيص الموارد (Resource-Allocation Graph)",
+      "en": "Resource-Allocation Graph"
+    },
+    "back": {
+      "definition": {
+        "ar": "رسم بياني موجه يوضح العمليات والموارد وحالة التخصيص والطلبات.",
+        "en": "A directed graph showing processes, resources, allocations, and requests."
+      },
+      "example": {
+        "ar": "عقد دائرية للعمليات ومربعة للموارد مع أسهم توضح من يمتلك ماذا.",
+        "en": "Circle nodes for processes, square nodes for resources, arrows showing who holds what."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "حافة الطلب (Request Edge)",
+      "en": "Request Edge"
+    },
+    "back": {
+      "definition": {
+        "ar": "سهم يتجه من العملية إلى المورد، يعني أن العملية تطلب المورد.",
+        "en": "Directed edge from process to resource, meaning process requests the resource."
+      },
+      "example": {
+        "ar": "Pi -> Rj",
+        "en": "Pi -> Rj"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "حافة التخصيص (Assignment Edge)",
+      "en": "Assignment Edge"
+    },
+    "back": {
+      "definition": {
+        "ar": "سهم يتجه من المورد إلى العملية، يعني أن المورد مخصص للعملية.",
+        "en": "Directed edge from resource to process, meaning resource is allocated to process."
+      },
+      "example": {
+        "ar": "Rj -> Pi",
+        "en": "Rj -> Pi"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "حافة المطالبة (Claim Edge)",
+      "en": "Claim Edge"
+    },
+    "back": {
+      "definition": {
+        "ar": "خط متقطع من عملية إلى مورد يشير إلى أن العملية قد تطلبه مستقبلاً.",
+        "en": "Dashed line from process to resource indicating future potential request."
+      },
+      "example": {
+        "ar": "تستخدم في خوارزمية التجنب للموارد ذات النسخة الواحدة.",
+        "en": "Used in avoidance algorithm for single-instance resources."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "الحالة الآمنة (Safe State)",
+      "en": "Safe State"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة يوجد فيها تسلسل لتنفيذ جميع العمليات دون حدوث جمود.",
+        "en": "A state where a sequence exists to finish all processes without deadlock."
+      },
+      "example": {
+        "ar": "النظام يمتلك موارد كافية لتلبية الحد الأقصى لطلبات عملية واحدة على الأقل، ثم التي تليها.",
+        "en": "System has enough resources to satisfy max needs of at least one process, then the next."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "الحالة غير الآمنة (Unsafe State)",
+      "en": "Unsafe State"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة لا يمكن فيها ضمان عدم حدوث جمود (احتمالية جمود).",
+        "en": "A state where deadlock avoidance cannot be guaranteed (possibility of deadlock)."
+      },
+      "example": {
+        "ar": "الموارد المتاحة لا تكفي لتلبية الحد الأقصى لأي عملية حالية.",
+        "en": "Available resources are not enough to satisfy the max need of any current process."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "خوارزمية المصرفي (Banker's Algorithm)",
+      "en": "Banker's Algorithm"
+    },
+    "back": {
+      "definition": {
+        "ar": "خوارزمية لتجنب الجمود تتعامل مع الموارد ذات النسخ المتعددة.",
+        "en": "Deadlock avoidance algorithm for multiple instances of resources."
+      },
+      "example": {
+        "ar": "تستخدم مصفوفات Max و Allocation و Need للتحقق من الأمان قبل التخصيص.",
+        "en": "Uses Max, Allocation, and Need matrices to check safety before allocation."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "مخطط الانتظار (Wait-for Graph)",
+      "en": "Wait-for Graph"
+    },
+    "back": {
+      "definition": {
+        "ar": "مخطط يستخدم لاكتشاف الجمود، يحتوي على العمليات فقط كعقد.",
+        "en": "Graph used for deadlock detection, containing only processes as nodes."
+      },
+      "example": {
+        "ar": "Pi -> Pj تعني أن العملية i تنتظر العملية j.",
+        "en": "Pi -> Pj means process i is waiting for process j."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "إنهاء العملية (Process Termination)",
+      "en": "Process Termination"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة للتعافي من الجمود بإحباط العمليات المتورطة.",
+        "en": "Recovery method by aborting deadlocked processes."
+      },
+      "example": {
+        "ar": "إحباط عملية واحدة في كل مرة حتى تنكسر دورة الجمود.",
+        "en": "Aborting one process at a time until the deadlock cycle breaks."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "سحب المورد (Resource Preemption)",
+      "en": "Resource Preemption"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة للتعافي بأخذ الموارد من عملية وتخصيصها لأخرى.",
+        "en": "Recovery method by taking resources from one process for another."
+      },
+      "example": {
+        "ar": "اختيار ضحية، سحب مواردها، والتراجع بها لحالة سابقة.",
+        "en": "Selecting a victim, preempting its resources, and rolling it back."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "التراجع (Rollback)",
+      "en": "Rollback"
+    },
+    "back": {
+      "definition": {
+        "ar": "إعادة العملية إلى حالة آمنة سابقة بعد سحب مواردها.",
+        "en": "Returning a process to a previous safe state after resource preemption."
+      },
+      "example": {
+        "ar": "إعادة تشغيل العملية من نقطة حفظ (Checkpoint) سابقة.",
+        "en": "Restarting the process from a previous checkpoint."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "المجاعة (Starvation)",
+      "en": "Starvation"
+    },
+    "back": {
+      "definition": {
+        "ar": "حرمان عملية من الموارد بشكل دائم لأنها تُختار دائماً كضحية.",
+        "en": "A process is perpetually denied resources because it's always picked as a victim."
+      },
+      "example": {
+        "ar": "عملية ذات أولوية منخفضة يتم سحب مواردها باستمرار لصالح عمليات أخرى.",
+        "en": "A low-priority process constantly has its resources preempted."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من الشروط التالية ينص على أن المورد لا يمكن تحريره إلا طواعية من قبل العملية؟",
+      "en": "Which condition states that a resource can be released only voluntarily by the process holding it?"
+    },
+    "options": {
+      "ar": [
+        "الاستبعاد المتبادل (Mutual exclusion)",
+        "الاحتفاظ والانتظار (Hold and wait)",
+        "عدم المقاطعة (No preemption)",
+        "الانتظار الدائري (Circular wait)"
+      ],
+      "en": [
+        "Mutual exclusion",
+        "Hold and wait",
+        "No preemption",
+        "Circular wait"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "عدم المقاطعة يعني أن نظام التشغيل لا يمكنه سحب المورد بالقوة من العملية.",
+      "en": "No preemption means the OS cannot forcefully take the resource away from the process."
+    },
+    "hint": {
+      "ar": "تذكر كلمة 'Preemption' التي تعني السحب أو المقاطعة.",
+      "en": "Think about the word 'Preempt' which means to take action in order to prevent an anticipated event."
+    },
+    "difficulty": "easy",
+    "conceptId": "deadlock-characterization"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في مخطط تخصيص الموارد، ماذا يمثل السهم المتجه من المورد إلى العملية (Rj -> Pi)؟",
+      "en": "In a Resource-Allocation Graph, what does a directed edge from a resource to a process (Rj -> Pi) represent?"
+    },
+    "options": {
+      "ar": [
+        "حافة طلب (Request edge)",
+        "حافة تخصيص (Assignment edge)",
+        "حافة مطالبة (Claim edge)",
+        "حافة انتظار (Wait edge)"
+      ],
+      "en": [
+        "Request edge",
+        "Assignment edge",
+        "Claim edge",
+        "Wait edge"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "السهم من المورد للعملية يعني أن المورد قد تم تخصيصه (إعطاؤه) لهذه العملية.",
+      "en": "An edge from a resource to a process means the resource is currently assigned to that process."
+    },
+    "hint": {
+      "ar": "المورد يذهب إلى العملية.",
+      "en": "The resource is going TO the process."
+    },
+    "difficulty": "easy",
+    "conceptId": "resource-allocation-graph"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "إذا كان مخطط تخصيص الموارد يحتوي على دورة (Cycle) وكان لكل مورد نسخة واحدة فقط، فما هي حالة النظام؟",
+      "en": "If a resource-allocation graph contains a cycle and there is only one instance per resource type, what is the state of the system?"
+    },
+    "options": {
+      "ar": [
+        "حالة آمنة",
+        "لا يوجد جمود",
+        "احتمالية وجود جمود",
+        "جمود مؤكد"
+      ],
+      "en": [
+        "Safe state",
+        "No deadlock",
+        "Possibility of deadlock",
+        "Definite deadlock"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "في حالة وجود نسخة واحدة لكل مورد، الدورة تعني حتماً وجود جمود.",
+      "en": "With single instances of resources, a cycle is a necessary and sufficient condition for deadlock."
+    },
+    "hint": {
+      "ar": "نسخة واحدة + دورة = ؟",
+      "en": "Single instance + cycle = ?"
+    },
+    "difficulty": "medium",
+    "conceptId": "resource-allocation-graph"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من الطرق التالية تضمن عدم دخول النظام أبداً في حالة جمود من خلال طلب معلومات مسبقة عن أقصى احتياجات العمليات؟",
+      "en": "Which of the following methods ensures the system will never enter a deadlock state by requiring a priori information about maximum process needs?"
+    },
+    "options": {
+      "ar": [
+        "الوقاية من الجمود (Deadlock Prevention)",
+        "تجنب الجمود (Deadlock Avoidance)",
+        "اكتشاف الجمود (Deadlock Detection)",
+        "تجاهل الجمود (Ignore Deadlocks)"
+      ],
+      "en": [
+        "Deadlock Prevention",
+        "Deadlock Avoidance",
+        "Deadlock Detection",
+        "Ignore Deadlocks"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التجنب (Avoidance) هو الذي يتطلب معلومات مسبقة (Max) لضمان بقاء النظام في حالة آمنة.",
+      "en": "Avoidance requires a priori information (Max needs) to dynamically ensure the system stays in a safe state."
+    },
+    "hint": {
+      "ar": "خوارزمية المصرفي هي مثال على هذه الطريقة.",
+      "en": "Banker's algorithm is an example of this approach."
+    },
+    "difficulty": "medium",
+    "conceptId": "deadlock-avoidance-safe-state"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في خوارزمية المصرفي، كيف يتم حساب مصفوفة الاحتياج (Need)؟",
+      "en": "In Banker's Algorithm, how is the Need matrix calculated?"
+    },
+    "options": {
+      "ar": [
+        "Need = Available - Allocation",
+        "Need = Max + Allocation",
+        "Need = Max - Allocation",
+        "Need = Available + Max"
+      ],
+      "en": [
+        "Need = Available - Allocation",
+        "Need = Max + Allocation",
+        "Need = Max - Allocation",
+        "Need = Available + Max"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الاحتياج المتبقي هو الحد الأقصى المطلوب ناقص ما تم تخصيصه بالفعل.",
+      "en": "The remaining need is the maximum demand minus what is currently allocated."
+    },
+    "hint": {
+      "ar": "ما تحتاجه هو أقصى ما تريده ناقص ما تملكه الآن.",
+      "en": "What you need is the max you want minus what you already have."
+    },
+    "difficulty": "easy",
+    "conceptId": "bankers-algorithm"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو المخطط المستخدم لاكتشاف الجمود في الأنظمة التي تحتوي على نسخة واحدة من كل مورد؟",
+      "en": "What graph is used for deadlock detection in systems with a single instance of each resource type?"
+    },
+    "options": {
+      "ar": [
+        "مخطط تخصيص الموارد (Resource-Allocation Graph)",
+        "مخطط الانتظار (Wait-for Graph)",
+        "مخطط الأمان (Safety Graph)",
+        "مخطط المطالبة (Claim Graph)"
+      ],
+      "en": [
+        "Resource-Allocation Graph",
+        "Wait-for Graph",
+        "Safety Graph",
+        "Claim Graph"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مخطط الانتظار هو نسخة مبسطة من مخطط تخصيص الموارد، يحتوي على العمليات فقط لتسهيل اكتشاف الدورات.",
+      "en": "The Wait-for graph is a simplified version of the RAG containing only processes, making cycle detection easier."
+    },
+    "hint": {
+      "ar": "يحتوي على عقد للعمليات فقط.",
+      "en": "It contains nodes for processes only."
+    },
+    "difficulty": "medium",
+    "conceptId": "deadlock-detection"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "كيف يتم عادةً إبطال شرط 'الانتظار الدائري' للوقاية من الجمود؟",
+      "en": "How is the 'Circular Wait' condition usually invalidated for deadlock prevention?"
+    },
+    "options": {
+      "ar": [
+        "بطلب جميع الموارد في البداية",
+        "بسحب الموارد بالقوة",
+        "بفرض ترتيب كلي لجميع أنواع الموارد",
+        "بجعل جميع الموارد قابلة للمشاركة"
+      ],
+      "en": [
+        "By requesting all resources at the beginning",
+        "By forcefully preempting resources",
+        "By imposing a total ordering of all resource types",
+        "By making all resources sharable"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "فرض ترتيب تصاعدي لطلب الموارد يمنع تشكل دورة انتظار.",
+      "en": "Imposing a total ordering and requiring processes to request resources in increasing order prevents a cycle from forming."
+    },
+    "hint": {
+      "ar": "إعطاء أرقام للموارد وطلبها بالترتيب.",
+      "en": "Assigning numbers to resources and requesting them in order."
+    },
+    "difficulty": "hard",
+    "conceptId": "deadlock-prevention"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "عند التعافي من الجمود باستخدام 'سحب الموارد'، ما هي المشكلة التي يجب الحذر منها إذا تم اختيار نفس العملية كضحية مراراً وتكراراً؟",
+      "en": "When recovering from deadlock using 'Resource Preemption', what problem must be avoided if the same process is repeatedly chosen as a victim?"
+    },
+    "options": {
+      "ar": [
+        "الاستبعاد المتبادل (Mutual Exclusion)",
+        "المجاعة (Starvation)",
+        "التراجع (Rollback)",
+        "الحالة غير الآمنة (Unsafe State)"
+      ],
+      "en": [
+        "Mutual Exclusion",
+        "Starvation",
+        "Rollback",
+        "Unsafe State"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المجاعة تحدث عندما تُحرم عملية معينة من إكمال عملها لأنها تُختار دائماً كضحية لسحب الموارد.",
+      "en": "Starvation occurs when a process is perpetually denied resources because it is always picked as the victim for preemption."
+    },
+    "hint": {
+      "ar": "العملية 'تتضور جوعاً' للموارد.",
+      "en": "The process is 'starving' for resources."
+    },
+    "difficulty": "medium",
+    "conceptId": "recovery-from-deadlock"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "إذا كان النظام في 'حالة غير آمنة' (Unsafe State)، فهذا يعني:",
+      "en": "If a system is in an 'Unsafe State', this means:"
+    },
+    "options": {
+      "ar": [
+        "النظام في حالة جمود حالياً",
+        "النظام سيتعطل فوراً",
+        "هناك احتمالية لحدوث جمود",
+        "لا يمكن حدوث جمود أبداً"
+      ],
+      "en": [
+        "The system is currently deadlocked",
+        "The system will crash immediately",
+        "There is a possibility of deadlock",
+        "Deadlock can never occur"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الحالة غير الآمنة لا تعني الجمود المؤكد، بل تعني أن النظام فقد القدرة على ضمان تجنب الجمود إذا طلبت العمليات الحد الأقصى لمواردها.",
+      "en": "An unsafe state does not mean a deadlock exists, only that the system cannot guarantee avoidance if processes request their maximum needs."
+    },
+    "hint": {
+      "ar": "إنها مجرد 'احتمالية'.",
+      "en": "It's just a 'possibility'."
+    },
+    "difficulty": "medium",
+    "conceptId": "deadlock-avoidance-safe-state"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في خوارزمية اكتشاف الجمود (Detection Algorithm)، ما هو التعقيد الزمني لاكتشاف ما إذا كان النظام في حالة جمود (حيث m الموارد و n العمليات)؟",
+      "en": "In the Deadlock Detection Algorithm, what is the time complexity to detect whether the system is in a deadlocked state (where m is resources and n is processes)?"
+    },
+    "options": {
+      "ar": [
+        "O(m + n)",
+        "O(m * n)",
+        "O(m * n^2)",
+        "O(n^3)"
+      ],
+      "en": [
+        "O(m + n)",
+        "O(m * n)",
+        "O(m * n^2)",
+        "O(n^3)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الخوارزمية تتطلب عمليات بترتيب O(m * n^2) للبحث عن العمليات التي يمكنها إنهاء عملها.",
+      "en": "The algorithm requires an order of O(m * n^2) operations to detect whether the system is in a deadlocked state."
+    },
+    "hint": {
+      "ar": "نفس تعقيد خوارزمية الأمان في المصرفي.",
+      "en": "Same complexity as the Safety Algorithm in Banker's."
+    },
+    "difficulty": "hard",
+    "conceptId": "deadlock-detection"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي | Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">الشروط الأربعة للجمود (الاستبعاد المتبادل، الاحتفاظ والانتظار، عدم المقاطعة، الانتظار الدائري) يجب أن تحدث **في نفس الوقت** لكي يحدث الجمود. كسر شرط واحد فقط يكفي لمنع الجمود تماماً.</template>
+      <template class="content-en">The 4 conditions for deadlock (Mutual exclusion, Hold and wait, No preemption, Circular wait) must hold **simultaneously**. Breaking just ONE condition is enough to prevent deadlocks entirely.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ امتحاني | Exam Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">احذر من الخلط بين 'الحالة غير الآمنة' و 'الجمود'. الحالة غير الآمنة تعني فقط أن الجمود **ممكن**، وليس أنه حدث بالفعل. النظام قد يكمل عمله بسلام إذا لم تطلب العمليات الحد الأقصى لمواردها.</template>
+      <template class="content-en">Do not confuse an 'Unsafe State' with a 'Deadlock'. An unsafe state only means a deadlock is **possible**, not that it has occurred. The system might still finish successfully if processes don't request their maximum needs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر البروفيسور | Professor's Secret</div>
+    <div data-bilingual>
+      <template class="content-ar">رغم كل هذه الخوارزميات المعقدة (مثل المصرفي)، فإن معظم أنظمة التشغيل الحديثة (مثل Windows و Linux) تستخدم طريقة 'تجاهل المشكلة' (Ostrich Algorithm) لأن الجمود نادر الحدوث وتكلفة منعه أو تجنبه عالية جداً على الأداء.</template>
+      <template class="content-en">Despite all these complex algorithms (like Banker's), most modern OS (Windows, Linux) use the 'Ignore the problem' approach (Ostrich Algorithm) because deadlocks are rare and the performance overhead of prevention/avoidance is too high.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ امتحاني | Exam Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">في مخطط تخصيص الموارد، وجود دورة (Cycle) لا يعني دائماً جمود! إذا كان هناك **نسخ متعددة** من المورد، فالدورة تعني احتمالية جمود فقط. الدورة تعني جمود مؤكد فقط إذا كان لكل مورد **نسخة واحدة**.</template>
+      <template class="content-en">In a Resource-Allocation Graph, a cycle does NOT always mean deadlock! If there are **multiple instances** of a resource, a cycle only means a possibility of deadlock. A cycle is a definite deadlock ONLY if there is a **single instance** per resource.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي | Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق بين خوارزمية المصرفي (للتجنب) وخوارزمية الاكتشاف: المصرفي تستخدم مصفوفة Max (أسوأ سيناريو مستقبلي)، بينما الاكتشاف تستخدم مصفوفة Request (الطلبات الحالية الفعلية).</template>
+      <template class="content-en">Difference between Banker's (Avoidance) and Detection algorithms: Banker's uses the Max matrix (worst-case future scenario), while Detection uses the Request matrix (actual current requests).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M05.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M07.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+</body>
+</html>

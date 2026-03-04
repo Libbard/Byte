@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS353" data-module="6">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التحويل والحل (Transform-and-Conquer) · CS353 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M05.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-sitemap"></i></div>
+      <span class="module-badge font-display">MOD 6</span>
+      <span class="subject-name">CS353</span>
+    </div>
+    <div class="header-actions">
+      <a href="M07.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#transform-and-conquer-strategy" class="toc-link" data-bilingual>
+        <template class="content-ar">استراتيجية التحويل والحل</template>
+        <template class="content-en">Transform-and-Conquer Strategy</template>
+        <span class="content-target">استراتيجية التحويل والحل</span>
+      </a>
+      <a href="#presorting" class="toc-link" data-bilingual>
+        <template class="content-ar">الفرز المسبق (Presorting)</template>
+        <template class="content-en">Presorting</template>
+        <span class="content-target">الفرز المسبق (Presorting)</span>
+      </a>
+      <a href="#gaussian-elimination" class="toc-link" data-bilingual>
+        <template class="content-ar">الحذف الغاوسي (Gaussian Elimination)</template>
+        <template class="content-en">Gaussian Elimination</template>
+        <span class="content-target">الحذف الغاوسي (Gaussian Elimination)</span>
+      </a>
+      <a href="#binary-search-trees" class="toc-link" data-bilingual>
+        <template class="content-ar">أشجار البحث الثنائية (BST)</template>
+        <template class="content-en">Binary Search Trees (BST)</template>
+        <span class="content-target">أشجار البحث الثنائية (BST)</span>
+      </a>
+      <a href="#avl-trees" class="toc-link" data-bilingual>
+        <template class="content-ar">أشجار AVL (AVL Trees)</template>
+        <template class="content-en">AVL Trees</template>
+        <span class="content-target">أشجار AVL (AVL Trees)</span>
+      </a>
+      <a href="#avl-rotations" class="toc-link" data-bilingual>
+        <template class="content-ar">دورانات شجرة AVL</template>
+        <template class="content-en">AVL Tree Rotations</template>
+        <span class="content-target">دورانات شجرة AVL</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS353
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">التحويل والحل (Transform-and-Conquer)</h1>
+      <p class="hero-description">تغطي هذه الوحدة استراتيجية التحويل والحل في تصميم الخوارزميات، بما في ذلك الفرز المسبق، الحذف الغاوسي، وأشجار البحث المتوازنة (AVL).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Transform-and-Conquer</h1>
+      <p class="hero-description">This module covers the Transform-and-Conquer algorithm design strategy, including presorting, Gaussian Elimination, and Balanced Search Trees (AVL).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">تصميم الخوارزميات</span>
+      <span class="tag">الفرز المسبق</span>
+      <span class="tag">الحذف الغاوسي</span>
+      <span class="tag">أشجار AVL</span>
+      <span class="tag">هياكل البيانات</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Algorithm Design</span>
+      <span class="tag">Presorting</span>
+      <span class="tag">Gaussian Elimination</span>
+      <span class="tag">AVL Trees</span>
+      <span class="tag">Data Structures</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف استراتيجية التحويل والحل (Transform-and-Conquer) وأنواعها المختلفة.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعبير عن الفرز المسبق (Presorting) وعملية الحذف الغاوسي (Gaussian Elimination).</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على أشجار البحث المتوازنة (AVL) وخصائصها.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe Transform-and-Conquer and their various types.</span></li>
+      <li><span class="obj-icon">✦</span><span>Express the presorting and Gaussian Elimination.</span></li>
+      <li><span class="obj-icon">✦</span><span>Recognize Balanced Search Trees (AVL) tree & its properties.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1: Transform-and-Conquer Strategy -->
+<section id="transform-and-conquer-strategy" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> استراتيجية التحويل والحل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Transform-and-Conquer Strategy</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تقنية تعتمد على تحويل المشكلة إلى شكل أسهل قبل حلها، مثل ترتيب الأوراق قبل البحث عن اسم معين.</p></template>
+    <template class="content-en"><p>A technique based on transforming a problem into an easier-to-solve instance before conquering it.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعمل هذه الاستراتيجية كإجراء من مرحلتين: <strong>المرحلة الأولى (التحويل):</strong> يتم تعديل نسخة المشكلة لتصبح أكثر قابلية للحل. <strong>المرحلة الثانية (الحل):</strong> يتم حل المشكلة في شكلها الجديد. هناك ثلاثة أنواع رئيسية: 1. <span class="smart-term" data-term-en="Instance Simplification" data-ar="تبسيط النسخة" data-en-def="Transforming to a simpler/more convenient instance of the same problem.">تبسيط النسخة<span class="smart-term-tooltip"></span></span> مثل الفرز المسبق. 2. <span class="smart-term" data-term-en="Representation Change" data-ar="تغيير التمثيل" data-en-def="Changing to a different representation of the same instance (e.g., different data structure).">تغيير التمثيل<span class="smart-term-tooltip"></span></span> مثل استخدام هياكل بيانات مختلفة كأشجار AVL. 3. اختزال المشكلة (Problem Reduction) بتحويلها لمشكلة يوجد لها خوارزمية جاهزة.</p></template>
+    <template class="content-en"><p>This strategy works as a two-stage procedure: <strong>First Stage (Transformation):</strong> the problem's instance is modified to be more amenable to a solution. <strong>Second Stage (Conquering):</strong> the problem is solved. There are three main variations: 1. <span class="smart-term" data-term-en="Instance Simplification" data-ar="تبسيط النسخة" data-en-def="Transforming to a simpler/more convenient instance of the same problem.">Instance Simplification<span class="smart-term-tooltip"></span></span> (e.g., presorting). 2. <span class="smart-term" data-term-en="Representation Change" data-ar="تغيير التمثيل" data-en-def="Changing to a different representation of the same instance (e.g., different data structure).">Representation Change<span class="smart-term-tooltip"></span></span> (e.g., using a different data structure like AVL trees). 3. Problem Reduction (transforming into a different problem for which an algorithm is already available).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تكمن قوة هذه الاستراتيجية في أن تكلفة التحويل (مثل الفرز في وقت O(n log n)) غالباً ما يتم تعويضها بشكل كبير من خلال التخفيض الهائل في وقت مرحلة الحل (مثلاً من O(n^2) إلى O(n)). هذا يغير عنق الزجاجة في الأداء من المشكلة الأصلية إلى عملية التحويل نفسها.</p></template>
+    <template class="content-en"><p>The power of this strategy lies in the fact that the cost of transformation (e.g., sorting in O(n log n) time) is often heavily outweighed by the massive reduction in the conquering stage's time (e.g., from O(n^2) to O(n)). This shifts the performance bottleneck from the original problem to the transformation process itself.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: Show a flow diagram with three steps. Step 1: 'problem's instance' (icon of a confused person). Arrow pointing right to Step 2: 'simpler instance OR another representation OR another problem's instance' (icon of geometric shapes transforming). Arrow pointing right to Step 3: 'solution' (icon of a glowing lightbulb with a checkmark). Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <!-- Arrowhead for main flow -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+    
+    <!-- Smaller arrowhead for icons -->
+    <marker id="small-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+
+    <!-- Subtle shadow for nodes -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="var(--text-primary)" flood-opacity="0.05"/>
+    </filter>
+
+    <!-- Background Grid Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="0.5" opacity="0.3"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+  <rect width="100%" height="100%" fill="url(#grid)"/>
+
+  <!-- Diagram Title -->
+  <text x="400" y="40" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Problem Reduction (Transform &amp; Conquer)</text>
+  <text x="400" y="65" font-size="14" fill="var(--text-secondary)" text-anchor="middle">تقليل المشكلة (التحويل والقهر)</text>
+
+  <!-- Step 1: Problem's Instance -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="90" width="200" height="250" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    
+    <!-- Icon: Confused Person -->
+    <g transform="translate(0, 5)">
+      <circle cx="120" cy="135" r="16" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5"/>
+      <path d="M 95 180 C 95 160, 145 160, 145 180" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 155 120 C 155 110, 170 110, 170 120 C 170 130, 162.5 132, 162.5 140 M 162.5 148 L 162.5 151" fill="none" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <!-- Text Labels -->
+    <text x="140" y="230" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Problem's Instance</text>
+    <text x="140" y="255" font-size="14" fill="var(--text-secondary)" text-anchor="middle">حالة المشكلة</text>
+    <text x="140" y="290" font-size="12" fill="var(--text-muted)" text-anchor="middle">Original complex</text>
+    <text x="140" y="310" font-size="12" fill="var(--text-muted)" text-anchor="middle">problem state</text>
+  </g>
+
+  <!-- Arrow 1: Transform -->
+  <g>
+    <line x1="245" y1="215" x2="280" y2="215" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+    <text x="265" y="190" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Transform</text>
+    <text x="265" y="205" font-size="11" fill="var(--text-muted)" text-anchor="middle">تحويل</text>
+  </g>
+
+  <!-- Step 2: Simpler Instance / Another Representation -->
+  <g filter="url(#shadow)">
+    <rect x="290" y="90" width="220" height="250" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Icon: Geometric Shapes Transforming -->
+    <g transform="translate(0, 5)">
+      <!-- Row 1: Complex to Simple -->
+      <polygon points="365,120 378,128 375,145 355,145 352,128" fill="var(--bg-surface)" stroke="var(--text-secondary)" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M 390 135 L 410 135" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#small-arrow)"/>
+      <circle cx="435" cy="135" r="12" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5"/>
+      
+      <!-- Row 2: Representation Change -->
+      <rect x="353" y="158" width="24" height="24" rx="4" fill="var(--bg-surface)" stroke="var(--text-secondary)" stroke-width="2.5"/>
+      <path d="M 390 170 L 410 170" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#small-arrow)"/>
+      <polygon points="435,158 447,180 423,180" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Text Labels -->
+    <text x="400" y="220" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Simpler Instance</text>
+    <text x="400" y="240" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">or Another Rep.</text>
+    <text x="400" y="265" font-size="14" fill="var(--text-secondary)" text-anchor="middle">حالة أبسط / تمثيل آخر</text>
+    <text x="400" y="295" font-size="12" fill="var(--text-muted)" text-anchor="middle">Transform to an easier</text>
+    <text x="400" y="310" font-size="12" fill="var(--text-muted)" text-anchor="middle">domain or sub-problem</text>
+  </g>
+
+  <!-- Arrow 2: Solve -->
+  <g>
+    <line x1="515" y1="215" x2="550" y2="215" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+    <text x="535" y="190" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Solve</text>
+    <text x="535" y="205" font-size="11" fill="var(--text-muted)" text-anchor="middle">حل</text>
+  </g>
+
+  <!-- Step 3: Solution -->
+  <g filter="url(#shadow)">
+    <rect x="560" y="90" width="200" height="250" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    
+    <!-- Icon: Glowing Lightbulb with Checkmark -->
+    <g transform="translate(0, 5)">
+      <!-- Glow Rays -->
+      <line x1="660" y1="105" x2="660" y2="95" stroke="var(--brand-400)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="640" y1="115" x2="632" y2="107" stroke="var(--brand-400)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="680" y1="115" x2="688" y2="107" stroke="var(--brand-400)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="630" y1="135" x2="620" y2="135" stroke="var(--brand-400)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="690" y1="135" x2="700" y2="135" stroke="var(--brand-400)" stroke-width="2.5" stroke-linecap="round"/>
+      
+      <!-- Bulb -->
+      <path d="M 660 115 C 645 115, 645 135, 650 145 C 654 153, 654 158, 654 165 L 666 165 C 666 158, 666 153, 670 145 C 675 135, 675 115, 660 115 Z" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5"/>
+      <path d="M 655 165 L 665 165 L 663 175 L 657 175 Z" fill="var(--brand-500)"/>
+      <circle cx="660" cy="175" r="3" fill="var(--brand-500)"/>
+      
+      <!-- Checkmark -->
+      <path d="M 653 138 L 658 143 L 668 128" fill="none" stroke="var(--text-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Text Labels -->
+    <text x="660" y="230" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Solution</text>
+    <text x="660" y="255" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الحل</text>
+    <text x="660" y="290" font-size="12" fill="var(--text-muted)" text-anchor="middle">Result mapped back</text>
+    <text x="660" y="310" font-size="12" fill="var(--text-muted)" text-anchor="middle">to original problem</text>
+  </g>
+
+  <!-- Optional: Map Back Arrow (Bottom) -->
+  <g>
+    <path d="M 660 340 L 660 375 L 140 375 L 140 345" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,6" marker-end="url(#arrow)"/>
+    <rect x="280" y="365" width="240" height="20" fill="var(--bg-surface)" rx="4"/>
+    <text x="400" y="380" font-size="12" fill="var(--text-secondary)" text-anchor="middle">Map solution back to original instance (تعيين الحل)</text>
+  </g>
+
+</svg>
+</div>
+  
+  <!--قمت بتغييرها الى رسم svg بدل الخوارزمية وذلك بحذف id="algo-widget-1"  قبل class="svg-placeholder"--!>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم التحويل والحل في جميع المشاكل الخوارزمية؟</template>
+      <template class="content-en">Why don't we use Transform-and-Conquer for all algorithmic problems?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن تكلفة مرحلة التحويل (مثل الفرز) قد تكون أعلى من تكلفة حل المشكلة مباشرة بالطرق التقليدية في بعض الحالات.</p></template>
+      <template class="content-en"><p>Because the cost of the transformation stage (like sorting) might be higher than solving the problem directly using traditional methods in some cases.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2: Presorting -->
+<section id="presorting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الفرز المسبق (Presorting)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Presorting</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>ترتيب البيانات أولاً لجعل العمليات اللاحقة (مثل البحث أو إيجاد العناصر المكررة) أسرع بكثير.</p></template>
+    <template class="content-en"><p>Sorting data first to make subsequent operations (like searching or finding duplicates) much faster.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الفرز المسبق هو تطبيق لمبدأ 'تبسيط النسخة'. العديد من المشاكل التي تتضمن قوائم تصبح أسهل إذا كانت القائمة مرتبة. أمثلة: 1. <strong>البحث:</strong> فرز ثم بحث ثنائي بكفاءة O(n log n). 2. <strong><span class="smart-term" data-term-en="Element Uniqueness" data-ar="تفرد العناصر" data-en-def="Checking if all elements in a given list are distinct.">تفرد العناصر<span class="smart-term-tooltip"></span></span>:</strong> بدلاً من مقارنة كل زوج بكفاءة O(n^2)، نقوم بالفرز O(n log n) ثم فحص العناصر المتجاورة O(n)، لتصبح الكفاءة الكلية O(n log n).</p></template>
+    <template class="content-en"><p>Presorting is an application of 'Instance Simplification'. Many problems involving lists are easier when the list is sorted. Examples: 1. <strong>Searching:</strong> Sort then apply binary search with efficiency O(n log n). 2. <strong><span class="smart-term" data-term-en="Element Uniqueness" data-ar="تفرد العناصر" data-en-def="Checking if all elements in a given list are distinct.">Element Uniqueness<span class="smart-term-tooltip"></span></span>:</strong> Instead of brute-force comparing all pairs in O(n^2), we sort in O(n log n) and scan adjacent elements in O(n), yielding an overall efficiency of O(n log n).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>كفاءة الخوارزميات التي تعتمد على الفرز المسبق تعتمد بشكل أساسي على كفاءة خوارزمية الفرز نفسها. تنص النظرية على أن أي خوارزمية فرز تعتمد على المقارنة تتطلب على الأقل n log_2 n مقارنات في أسوأ حالة. لذلك، الفرز المسبق مفيد فقط إذا كانت المشكلة الأصلية تتطلب وقتاً أسوأ من O(n log n).</p></template>
+    <template class="content-en"><p>The efficiency of algorithms involving presorting depends heavily on the sorting algorithm's efficiency. A theorem states that any comparison-based sorting algorithm requires at least n log_2 n comparisons in the worst case. Thus, presorting is only beneficial if the original problem takes worse than O(n log n) time to solve directly.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الكفاءة الزمنية لمشكلة تفرد العناصر باستخدام الفرز المسبق.</strong></template>
+      <template class="content-en"><strong>Time efficiency of the Element Uniqueness problem using presorting.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\Theta(n \log n) + O(n) = \Theta(n \log n)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>ALGORITHM PresortElementUniqueness(A[0..n-1])
+  // Sorts the array first, then checks for uniqueness
+  sort the array A
+  for i <- 0 to n - 2 do
+    if A[i] == A[i + 1] return false
+  return true</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Brute Force</th><th>Presorting</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">الكفاءة الزمنية</template><template class="content-en">Time Efficiency</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">O(n^2)</template><template class="content-en">O(n^2)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">O(n log n)</template><template class="content-en">O(n log n)</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">النهج</template><template class="content-en">Approach</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">مقارنة كل زوج من العناصر</template><template class="content-en">Compare all pairs of elements</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">الفرز أولاً ثم فحص العناصر المتجاورة</template><template class="content-en">Sort first, then scan adjacent elements</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل هناك طريقة أسرع من الفرز المسبق لحل مشكلة تفرد العناصر؟</template>
+      <template class="content-en">Is there a faster way than presorting to solve the Element Uniqueness problem?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، باستخدام التجزئة (Hashing) يمكن تحقيق كفاءة متوسطة تقارب O(n)، رغم أن أسوأ حالة قد تكون أسوأ.</p></template>
+      <template class="content-en"><p>Yes, using Hashing can achieve an average-case efficiency of O(n), though the worst-case might be worse.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3: Gaussian Elimination -->
+<section id="gaussian-elimination" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الحذف الغاوسي (Gaussian Elimination)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Gaussian Elimination</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحويل نظام من المعادلات الخطية المعقدة إلى مصفوفة مثلثية عليا يسهل حلها من الأسفل للأعلى.</p></template>
+    <template class="content-en"><p>Transforming a complex system of linear equations into an upper triangular matrix that is easy to solve from bottom to top.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الحذف الغاوسي هو مثال على 'تبسيط النسخة'. لحل نظام من n معادلة خطية، نقوم بتحويل مصفوفة المعاملات إلى نظام مكافئ بمصفوفة <span class="smart-term" data-term-en="Upper Triangular Matrix" data-ar="مصفوفة مثلثية عليا" data-en-def="A square matrix where all entries below the main diagonal are zero.">مثلثية عليا<span class="smart-term-tooltip"></span></span> (المرحلة 1: الحذف الأمامي). بعد ذلك، نقوم بحل النظام باستخدام <span class="smart-term" data-term-en="Back Substitution" data-ar="التعويض العكسي" data-en-def="The process of solving an upper triangular system of linear equations from the bottom up.">التعويض العكسي<span class="smart-term-tooltip"></span></span> (المرحلة 2: Back substitution) بدءاً من المعادلة الأخيرة صعوداً إلى الأولى.</p></template>
+    <template class="content-en"><p>Gaussian Elimination is an example of 'Instance Simplification'. To solve a system of n linear equations, we transform the coefficient matrix into an equivalent system with an <span class="smart-term" data-term-en="Upper Triangular Matrix" data-ar="مصفوفة مثلثية عليا" data-en-def="A square matrix where all entries below the main diagonal are zero.">upper triangular matrix<span class="smart-term-tooltip"></span></span> (Stage 1: Forward Elimination). Then, we solve the system using <span class="smart-term" data-term-en="Back Substitution" data-ar="التعويض العكسي" data-en-def="The process of solving an upper triangular system of linear equations from the bottom up.">back substitution<span class="smart-term-tooltip"></span></span> (Stage 2) starting from the last equation and moving up to the first.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الكفاءة الزمنية للحذف الغاوسي يهيمن عليها مرحلة الحذف الأمامي التي تحتوي على ثلاث حلقات متداخلة، مما يعطي كفاءة O(n^3). مرحلة التعويض العكسي تتطلب حلقتين متداخلتين بكفاءة O(n^2). الكفاءة الإجمالية هي O(n^3).</p></template>
+    <template class="content-en"><p>The time efficiency of Gaussian Elimination is dominated by the forward elimination stage, which has three nested loops, yielding O(n^3) efficiency. The back substitution stage requires two nested loops, yielding O(n^2). The overall efficiency is O(n^3).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الكفاءة الزمنية الكلية لخوارزمية الحذف الغاوسي.</strong></template>
+      <template class="content-en"><strong>Overall time efficiency of the Gaussian Elimination algorithm.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\Theta(n^3) + \Theta(n^2) = \Theta(n^3)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>// Stage 1: Reduction to upper-triangular matrix
+for i <- 1 to n-1 do
+  for j <- i+1 to n do
+    for k <- i to n+1 do
+      A[j, k] <- A[j, k] - A[i, k] * A[j, i] / A[i, i]
+
+// Stage 2: Back substitutions
+for j <- n down to 1 do
+  t <- 0
+  for k <- j+1 to n do
+    t <- t + A[j, k] * x[k]
+  x[j] <- (A[j, n+1] - t) / A[j, j]</code></pre>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: Show a matrix transformation. On the left, a full 3x4 matrix with arbitrary numbers. An arrow pointing right labeled 'Gaussian Elimination (Row Operations)'. On the right, an upper triangular matrix where all elements below the main diagonal are 0. Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels. -->
+<div id="algo-widget-2" class="svg-placeholder" data-diagram-prompt="Detailed SVG generation prompt: Show a matrix transformation. On the left, a full 3x4 matrix with arbitrary numbers. An arrow pointing right labeled 'Gaussian Elimination (Row Operations)'. On the right, an upper triangular matrix where all elements below the main diagonal are 0. Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels.">
+    🗺️ Gaussian Elimination
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر مرحلة التعويض العكسي أسرع بكثير من مرحلة الحذف الأمامي؟</template>
+      <template class="content-en">Why is the back substitution stage much faster than the forward elimination stage?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن التعويض العكسي يتطلب فقط حساب قيمة متغير واحد في كل خطوة باستخدام القيم المحسوبة مسبقاً (حلقتين متداخلتين O(n^2))، بينما الحذف الأمامي يتطلب تحديث صفوف كاملة في المصفوفة (ثلاث حلقات متداخلة O(n^3)).</p></template>
+      <template class="content-en"><p>Because back substitution only requires calculating one variable per step using previously computed values (two nested loops O(n^2)), while forward elimination requires updating entire rows in the matrix (three nested loops O(n^3)).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4: Binary Search Trees (BST) -->
+<section id="binary-search-trees" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> أشجار البحث الثنائية (BST)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Binary Search Trees (BST)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>شجرة يكون فيها كل عقدة يسارية أصغر من الجذر، وكل عقدة يمينية أكبر منه، لتسهيل البحث.</p></template>
+    <template class="content-en"><p>A tree where every left child is smaller than the parent, and every right child is larger, facilitating fast search.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>شجرة البحث الثنائية ترتب المفاتيح بحيث تحقق 'خاصية شجرة البحث الثنائية'. تدعم <span class="smart-term" data-term-en="Dictionary Operations" data-ar="عمليات القاموس" data-en-def="Operations that manage dynamic data: find (search), insert, and delete.">عمليات القاموس<span class="smart-term-tooltip"></span></span>: البحث (مباشر)، الإدراج (البحث عن المفتاح وإدراجه كعقدة ورقية)، والحذف (3 حالات: ورقة، عقدة بطفل واحد، عقدة بطفلين). تعتمد كفاءة هذه العمليات على ارتفاع الشجرة h، حيث log_2(n) <= h <= n-1.</p></template>
+    <template class="content-en"><p>A Binary Search Tree arranges keys to satisfy the 'binary search tree property'. It supports <span class="smart-term" data-term-en="Dictionary Operations" data-ar="عمليات القاموس" data-en-def="Operations that manage dynamic data: find (search), insert, and delete.">dictionary operations<span class="smart-term-tooltip"></span></span>: Search (straightforward), Insertion (search for key, insert at leaf), and Deletion (3 cases: leaf, node with one child, node with two children). Efficiency depends on the tree's height h, where log_2(n) <= h <= n-1.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المشكلة الرئيسية في BST هي أن أسوأ حالة للكفاءة هي O(n) عندما تكون الشجرة غير متوازنة (مثلاً عند إدراج عناصر مرتبة مسبقاً، فتتحول الشجرة إلى قائمة مرتبطة). متوسط الكفاءة للملفات العشوائية هو O(log n). هذا العيب أدى إلى ابتكار أشجار البحث المتوازنة مثل AVL.</p></template>
+    <template class="content-en"><p>The main flaw of a standard BST is that its worst-case efficiency is O(n) when the tree becomes unbalanced (e.g., inserting already sorted elements turns it into a linked list). The average case for random files is O(log n). This linear worst-case efficiency necessitated the invention of balanced search trees like AVL.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حدود ارتفاع شجرة البحث الثنائية.</strong></template>
+      <template class="content-en"><strong>Bounds for the height of a Binary Search Tree.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\lfloor \log_2 n \rfloor \le h \le n-1$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Show a simple Binary Search Tree node 'K'. Left child points to a subtree labeled '<K'. Right child points to a subtree labeled '>K'. Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels. -->
+<div id="algo-widget-3" class="svg-placeholder" data-diagram-prompt="Detailed SVG generation prompt: Show a simple Binary Search Tree node 'K'. Left child points to a subtree labeled '<K'. Right child points to a subtree labeled '>K'. Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels.">
+    🗺️ Binary Search Trees (BST)
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا قمنا بإدراج الأرقام 1، 2، 3، 4، 5 بالترتيب في شجرة بحث ثنائية فارغة؟</template>
+      <template class="content-en">What happens if we insert the numbers 1, 2, 3, 4, 5 in order into an empty BST?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستصبح الشجرة غير متوازنة تماماً (منحرفة لليمين) وتشبه القائمة المرتبطة، مما يجعل وقت البحث O(n).</p></template>
+      <template class="content-en"><p>The tree will become completely unbalanced (right-skewed) and resemble a linked list, making search time O(n).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5: AVL Trees -->
+<section id="avl-trees" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> أشجار AVL (AVL Trees)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> AVL Trees</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>شجرة بحث ثنائية ذاتية التوازن تضمن ألا يزيد فرق الارتفاع بين الفرع الأيمن والأيسر لأي عقدة عن 1.</p></template>
+    <template class="content-en"><p>A self-balancing BST that ensures the height difference between the left and right subtrees of any node is at most 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>شجرة AVL هي شجرة بحث ثنائية حيث يكون '<span class="smart-term" data-term-en="Balance Factor" data-ar="عامل التوازن" data-en-def="The difference between the heights of the left and right subtrees of a node.">عامل التوازن<span class="smart-term-tooltip"></span></span>' (Balance Factor) لكل عقدة هو إما -1، 0، أو 1. عامل التوازن يُحسب كـ (ارتفاع الشجرة الفرعية اليسرى - ارتفاع الشجرة الفرعية اليمنى). ارتفاع الشجرة الفارغة يُعرّف بأنه -1. هذا التوازن الصارم يضمن أن عمليات البحث والإدراج والحذف تتم في وقت O(log n) في أسوأ الحالات.</p></template>
+    <template class="content-en"><p>An AVL tree is a BST in which the '<span class="smart-term" data-term-en="Balance Factor" data-ar="عامل التوازن" data-en-def="The difference between the heights of the left and right subtrees of a node.">balance factor<span class="smart-term-tooltip"></span></span>' for every node is either -1, 0, or 1. The balance factor is calculated as (height of left subtree - height of right subtree). The height of an empty tree is defined as -1. This strict balancing guarantees that search, insertion, and deletion operations take O(log n) time in the worst case.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>للحفاظ على هذا التوازن، تقوم شجرة AVL بإعادة هيكلة نفسها باستخدام 'الدورانات' (Rotations) كلما أدى إدراج أو حذف إلى الإخلال بعامل التوازن. العيب الرئيسي لأشجار AVL هو كثرة الدورانات المطلوبة والتعقيد البرمجي، مما يجعل أشجار Red-Black (التي تسمح باختلاف الارتفاع حتى الضعف) مفضلة في بعض التطبيقات العملية.</p></template>
+    <template class="content-en"><p>To maintain this balance, an AVL tree restructures itself using 'rotations' whenever an insertion or deletion violates the balance factor. The main disadvantage of AVL trees is the frequency of rotations and implementation complexity, which makes Red-Black trees (allowing height differences up to a factor of 2) preferable in some practical applications.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الحد الأقصى لارتفاع شجرة AVL، مما يثبت كفاءتها اللوغاريتمية.</strong></template>
+      <template class="content-en"><strong>The maximum height of an AVL tree, proving its logarithmic efficiency.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$h \le 1.4404 \log_2(n + 2) - 1.3277$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Show two binary trees side by side. Tree (a) is an AVL tree with balance factors (0, 1, -1) labeled next to nodes. Tree (b) is NOT an AVL tree, showing a node with a balance factor of 2 (highlighted in red). Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels. -->
+<div id="algo-widget-4" class="svg-placeholder" data-diagram-prompt="Detailed SVG generation prompt: Show two binary trees side by side. Tree (a) is an AVL tree with balance factors (0, 1, -1) labeled next to nodes. Tree (b) is NOT an AVL tree, showing a node with a balance factor of 2 (highlighted in red). Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels.">
+    🗺️ AVL Trees
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Standard BST</th><th>AVL Tree</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">كفاءة البحث في أسوأ حالة</template><template class="content-en">Worst-case Search Efficiency</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">O(n)</template><template class="content-en">O(n)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">O(log n)</template><template class="content-en">O(log n)</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">التوازن</template><template class="content-en">Balancing</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">غير مضمون (قد تصبح كقائمة مرتبطة)</template><template class="content-en">Not guaranteed (can become skewed)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">مضمون بصرامة (فرق الارتفاع <= 1)</template><template class="content-en">Strictly guaranteed (height diff <= 1)</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">تعقيد الإدراج/الحذف</template><template class="content-en">Insertion/Deletion Complexity</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">بسيط</template><template class="content-en">Simple</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">معقد (يتطلب دورانات متكررة)</template><template class="content-en">Complex (requires frequent rotations)</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نعرّف ارتفاع الشجرة الفارغة بأنه -1 في سياق أشجار AVL؟</template>
+      <template class="content-en">Why do we define the height of an empty tree as -1 in the context of AVL trees?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لجعل الحسابات الرياضية لعامل التوازن متسقة. فعقدة الورقة (Leaf) لها أشجار فرعية فارغة، وإذا كان ارتفاعها -1، فإن ارتفاع الورقة يصبح max(-1, -1) + 1 = 0.</p></template>
+      <template class="content-en"><p>To make the mathematical calculations of the balance factor consistent. A leaf node has empty subtrees; if their height is -1, the leaf's height becomes max(-1, -1) + 1 = 0.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6: AVL Tree Rotations -->
+<section id="avl-rotations" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> دورانات شجرة AVL</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> AVL Tree Rotations</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>حركات هيكلية (يمين، يسار، أو مزدوجة) تُستخدم لإصلاح الخلل في توازن شجرة AVL بعد إضافة عنصر جديد.</p></template>
+    <template class="content-en"><p>Structural movements (Right, Left, or Double) used to fix the balance of an AVL tree after a new element is added.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>إذا أدى إدراج مفتاح إلى الإخلال بشرط التوازن، يتم تحويل الشجرة الفرعية باستخدام أحد الدورانات الأربعة: 1. <strong><span class="smart-term" data-term-en="R-rotation" data-ar="دوران لليمين" data-en-def="A single right rotation to fix a left-heavy unbalanced node.">دوران أحادي لليمين<span class="smart-term-tooltip"></span></span> (R-rotation):</strong> يُنفذ عند الإدراج في الشجرة الفرعية اليسرى للابن الأيسر. 2. <strong>دوران أحادي لليسار (L-rotation):</strong> يُنفذ عند الإدراج في الشجرة الفرعية اليمنى للابن الأيمن. 3. <strong><span class="smart-term" data-term-en="LR-rotation" data-ar="دوران يسار-يمين" data-en-def="A double rotation (Left then Right) to fix a left-child's right-heavy imbalance.">دوران مزدوج يسار-يمين<span class="smart-term-tooltip"></span></span> (LR-rotation):</strong> يُنفذ عند الإدراج في الشجرة الفرعية اليمنى للابن الأيسر. 4. <strong>دوران مزدوج يمين-يسار (RL-rotation):</strong> يُنفذ عند الإدراج في الشجرة الفرعية اليسرى للابن الأيمن.</p></template>
+    <template class="content-en"><p>If a key insertion violates the balance requirement, the subtree is transformed via one of four rotations: 1. <strong>Single <span class="smart-term" data-term-en="R-rotation" data-ar="دوران لليمين" data-en-def="A single right rotation to fix a left-heavy unbalanced node.">Right<span class="smart-term-tooltip"></span></span> (R-rotation):</strong> Performed after insertion into the left subtree of the left child. 2. <strong>Single Left (L-rotation):</strong> Performed after insertion into the right subtree of the right child. 3. <strong>Double <span class="smart-term" data-term-en="LR-rotation" data-ar="دوران يسار-يمين" data-en-def="A double rotation (Left then Right) to fix a left-child's right-heavy imbalance.">Left-Right<span class="smart-term-tooltip"></span></span> (LR-rotation):</strong> Performed after insertion into the right subtree of the left child. 4. <strong>Double Right-Left (RL-rotation):</strong> Performed after insertion into the left subtree of the right child.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الدوران يُنفذ دائماً على الشجرة الفرعية التي جذرها هو العقدة 'غير المتوازنة' الأقرب إلى الورقة الجديدة المضافة. الدورانات المزدوجة هي ببساطة مزيج من دورانين أحاديين متتاليين. هذه العمليات تتم في وقت ثابت O(1) لأنها تتطلب فقط إعادة توجيه عدد قليل من المؤشرات (Pointers).</p></template>
+    <template class="content-en"><p>The rotation is always performed for a subtree rooted at an 'unbalanced' node closest to the new leaf. Double rotations are simply a combination of two consecutive single rotations. These operations take O(1) constant time because they only involve reassigning a few pointers.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show a Single R-rotation. Left side: Node 'r' with left child 'c'. 'c' has a left child. Arrow labeled 'R' pointing right. Right side: Node 'c' is now the root, with 'r' as its right child. Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels. -->
+<div id="algo-widget-5" class="svg-placeholder" data-diagram-prompt="Detailed SVG generation prompt: Show a Single R-rotation. Left side: Node 'r' with left child 'c'. 'c' has a left child. Arrow labeled 'R' pointing right. Right side: Node 'c' is now the root, with 'r' as its right child. Style: educational, dark background #0d1117, accent color #8a2be2, viewBox 0 0 800 400, Arabic + English labels.">
+    🗺️ AVL Tree Rotations
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يكفي الدوران الأحادي (R-rotation) لحل مشكلة الإدراج في الشجرة الفرعية اليمنى للابن الأيسر؟</template>
+      <template class="content-en">Why is a single R-rotation not enough to fix an insertion into the right subtree of the left child?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الدوران الأحادي لليمين في هذه الحالة لن يحل مشكلة الارتفاع الزائد في المنتصف، بل سينقله فقط إلى الجهة الأخرى. لذلك نحتاج لدوران لليسار أولاً لتبسيط الشكل، ثم دوران لليمين.</p></template>
+      <template class="content-en"><p>Because a single right rotation in this case won't resolve the excess height in the middle; it will just shift it to the other side. Thus, we need a left rotation first to straighten the path, followed by a right rotation.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في الوحدة السادسة. اليوم نغير طريقة تفكيرنا تماماً. بدلاً من الهجوم المباشر على المشكلة، ماذا لو قمنا بتحويلها إلى مشكلة أسهل أولاً؟ هذه هي استراتيجية 'التحويل والحل'. تخيل أنك تبحث عن اسم في كومة أوراق مبعثرة؛ سيكون الأمر مرهقاً (O(n^2)). لكن إذا قمت بفرزها أولاً (الفرز المسبق)، سيصبح البحث والتحقق من التكرار أمراً في غاية السهولة (O(n log n)). في الامتحان، ركزوا جيداً على كيفية حساب الكفاءة الزمنية قبل وبعد الفرز. ثم ننتقل إلى تغيير التمثيل، حيث نأخذ البيانات ونضعها في هيكل أذكى. شجرة البحث الثنائية (BST) رائعة، لكنها قد تخدعنا وتتحول إلى قائمة خطية بطيئة O(n). الحل؟ أشجار AVL التي تفرض توازناً صارماً باستخدام 'الدورانات'. تأكدوا من فهمكم لمتى نستخدم الدوران الأحادي (R أو L) ومتى نحتاج للدوران المزدوج (LR أو RL). وأخيراً، الحذف الغاوسي هو مثال كلاسيكي لتبسيط النسخة في الرياضيات، تذكروا أن مرحلته الأولى هي التي تستهلك الوقت O(n^3). بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome to Module 6. Today we completely shift our mindset. Instead of attacking a problem directly, what if we transform it into an easier one first? This is the 'Transform-and-Conquer' strategy. Imagine searching for a name in a scattered pile of papers; it's exhausting (O(n^2)). But if you sort them first (Presorting), searching and finding duplicates becomes a breeze (O(n log n)). For the exam, focus heavily on calculating time efficiency before and after sorting. Next, we look at Representation Change, putting data into a smarter structure. A standard BST is great, but it can trick us and degrade into a slow linear list O(n). The solution? AVL trees, which enforce strict balance using 'rotations'. Make sure you understand exactly when to use a single rotation (R or L) versus a double rotation (LR or RL). Finally, Gaussian Elimination is a classic math example of instance simplification; remember that its first stage is the heavy lifter at O(n^3). Good luck studying!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الجوهر الأساسي لاستراتيجية التحويل والحل؟</template>
+          <template class="content-en">What is the core essence of the Transform-and-Conquer strategy?</template>
+          <span class="content-target">ما هو الجوهر الأساسي لاستراتيجية التحويل والحل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي عملية من مرحلتين: أولاً تحويل المشكلة إلى شكل أسهل أو هيكل بيانات أنسب، وثانياً حل المشكلة في شكلها الجديد بكفاءة أعلى.</template>
+          <template class="content-en">It is a two-stage process: first transforming the problem into an easier form or a more suitable data structure, and second, solving the problem in its new form with higher efficiency.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم الفرز المسبق (Presorting) رغم أنه يستهلك وقتاً؟</template>
+          <template class="content-en">Why do we use Presorting even though it consumes time?</template>
+          <span class="content-target">لماذا نستخدم الفرز المسبق (Presorting) رغم أنه يستهلك وقتاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن تكلفة الفرز O(n log n) غالباً ما تكون أقل بكثير من تكلفة حل المشكلة الأصلية بالطرق التقليدية (مثل O(n^2) في مشكلة تفرد العناصر).</template>
+          <template class="content-en">Because the cost of sorting O(n log n) is often much less than the cost of solving the original problem using traditional methods (like O(n^2) in the Element Uniqueness problem).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل الفرز المسبق مشكلة تفرد العناصر (Element Uniqueness)؟</template>
+          <template class="content-en">How does presorting solve the Element Uniqueness problem?</template>
+          <span class="content-target">كيف يحل الفرز المسبق مشكلة تفرد العناصر (Element Uniqueness)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نقوم بفرز المصفوفة أولاً، مما يجعل العناصر المتطابقة متجاورة. ثم نمر على المصفوفة مرة واحدة O(n) لمقارنة كل عنصر بالذي يليه فقط.</template>
+          <template class="content-en">We sort the array first, which makes identical elements adjacent. Then we scan the array once O(n) to compare each element only with its immediate neighbor.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف من الحذف الغاوسي؟</template>
+          <template class="content-en">What is the purpose of Gaussian Elimination?</template>
+          <span class="content-target">ما هو الهدف من الحذف الغاوسي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحويل نظام معقد من المعادلات الخطية إلى مصفوفة مثلثية عليا، مما يسمح بحل المتغيرات بسهولة من الأسفل إلى الأعلى (التعويض العكسي).</template>
+          <template class="content-en">To transform a complex system of linear equations into an upper triangular matrix, allowing variables to be easily solved from bottom to top (back substitution).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا الكفاءة الزمنية للحذف الغاوسي هي O(n^3)؟</template>
+          <template class="content-en">Why is the time efficiency of Gaussian Elimination O(n^3)?</template>
+          <span class="content-target">لماذا الكفاءة الزمنية للحذف الغاوسي هي O(n^3)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن المرحلة الأولى (تحويل المصفوفة) تتطلب ثلاث حلقات متداخلة للمرور على الصفوف والأعمدة وإجراء العمليات الحسابية.</template>
+          <template class="content-en">Because the first stage (matrix transformation) requires three nested loops to iterate through rows and columns and perform arithmetic operations.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المشكلة القاتلة في أشجار البحث الثنائية (BST) العادية؟</template>
+          <template class="content-en">What is the fatal flaw in standard Binary Search Trees (BST)?</template>
+          <span class="content-target">ما هي المشكلة القاتلة في أشجار البحث الثنائية (BST) العادية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا تم إدراج العناصر بترتيب تصاعدي أو تنازلي، فلن تتفرع الشجرة وستصبح خطية، مما يجعل وقت البحث O(n) بدلاً من O(log n).</template>
+          <template class="content-en">If elements are inserted in ascending or descending order, the tree won't branch and becomes linear, making search time O(n) instead of O(log n).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تحل شجرة AVL مشكلة الـ BST العادية؟</template>
+          <template class="content-en">How does an AVL tree solve the problem of a standard BST?</template>
+          <span class="content-target">كيف تحل شجرة AVL مشكلة الـ BST العادية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تفرض شرطاً صارماً بأن فرق الارتفاع بين الفرع الأيمن والأيسر لأي عقدة لا يتجاوز 1، وتستخدم الدورانات للحفاظ على هذا التوازن.</template>
+          <template class="content-en">It enforces a strict condition that the height difference between the left and right subtrees of any node does not exceed 1, and uses rotations to maintain this balance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نحتاج إلى دوران مزدوج (Double Rotation) في شجرة AVL؟</template>
+          <template class="content-en">When do we need a Double Rotation in an AVL tree?</template>
+          <span class="content-target">متى نحتاج إلى دوران مزدوج (Double Rotation) في شجرة AVL؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عندما يكون مسار الإدراج متعرجاً (مثلاً: إدراج في الشجرة اليمنى للابن الأيسر LR، أو الشجرة اليسرى للابن الأيمن RL).</template>
+          <template class="content-en">When the insertion path is zigzag (e.g., insertion into the right subtree of the left child LR, or the left subtree of the right child RL).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو عامل التوازن (Balance Factor) وكيف يُحسب؟</template>
+          <template class="content-en">What is the Balance Factor and how is it calculated?</template>
+          <span class="content-target">ما هو عامل التوازن (Balance Factor) وكيف يُحسب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو مؤشر لتوازن العقدة، ويُحسب بطرح ارتفاع الشجرة الفرعية اليمنى من ارتفاع الشجرة الفرعية اليسرى. القيم المقبولة هي -1، 0، 1.</template>
+          <template class="content-en">It is an indicator of a node's balance, calculated by subtracting the height of the right subtree from the height of the left subtree. Acceptable values are -1, 0, 1.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا قد نفضل أشجار Red-Black على أشجار AVL في بعض الأحيان؟</template>
+          <template class="content-en">Why might we sometimes prefer Red-Black trees over AVL trees?</template>
+          <span class="content-target">لماذا قد نفضل أشجار Red-Black على أشجار AVL في بعض الأحيان؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن أشجار AVL تتطلب دورانات متكررة جداً للحفاظ على توازنها الصارم، بينما أشجار Red-Black تتساهل قليلاً في التوازن مما يقلل من تكلفة عمليات الإدراج والحذف.</template>
+          <template class="content-en">Because AVL trees require very frequent rotations to maintain their strict balance, whereas Red-Black trees are slightly more relaxed about balance, reducing the overhead of insertion and deletion operations.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي استراتيجية التحويل والحل (Transform-and-Conquer)؟",
+      "en": "What is the Transform-and-Conquer strategy?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من التقنيات تعتمد على فكرة تحويل المشكلة إلى شكل أسهل للحل.",
+        "en": "A group of techniques based on the idea of transformation to a problem that is easier to solve."
+      },
+      "example": {
+        "ar": "الفرز المسبق لقائمة قبل البحث فيها.",
+        "en": "Presorting a list before searching."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي الأنواع الثلاثة الرئيسية لاستراتيجية التحويل والحل؟",
+      "en": "What are the three principal varieties of Transform-and-Conquer?"
+    },
+    "back": {
+      "definition": {
+        "ar": "1. تبسيط النسخة 2. تغيير التمثيل 3. اختزال المشكلة.",
+        "en": "1. Instance Simplification 2. Representation Change 3. Problem Reduction."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو تبسيط النسخة (Instance Simplification)؟",
+      "en": "What is Instance Simplification?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل نسخة المشكلة إلى نسخة أبسط أو أكثر ملاءمة من نفس المشكلة.",
+        "en": "Transforming an instance of a problem to a simpler/more convenient instance of the same problem."
+      },
+      "example": {
+        "ar": "فرز مصفوفة (Presorting) قبل إيجاد العناصر المكررة.",
+        "en": "Sorting an array (Presorting) before finding duplicates."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو تغيير التمثيل (Representation Change)؟",
+      "en": "What is Representation Change?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تغيير تمثيل المشكلة إلى هيكل بيانات مختلف لنفس النسخة.",
+        "en": "Changing one representation of a problem's instance to another representation (e.g., different data structure)."
+      },
+      "example": {
+        "ar": "استخدام أشجار AVL بدلاً من القوائم المرتبطة.",
+        "en": "Using AVL trees instead of linked lists."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو الفرز المسبق (Presorting)؟",
+      "en": "What is Presorting?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فرز القائمة أولاً لتسهيل حل المشاكل المتعلقة بها.",
+        "en": "Sorting a list first because many problems involving lists are easier when the list is sorted."
+      },
+      "example": {
+        "ar": "حساب الوسيط (Median) أو البحث الثنائي.",
+        "en": "Computing the median or binary searching."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي الكفاءة الزمنية لحل مشكلة تفرد العناصر باستخدام القوة الغاشمة؟",
+      "en": "What is the time efficiency of solving Element Uniqueness using Brute Force?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n^2)",
+        "en": "O(n^2)"
+      },
+      "example": {
+        "ar": "مقارنة كل عنصر بجميع العناصر الأخرى.",
+        "en": "Comparing every element with every other element."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي الكفاءة الزمنية لحل مشكلة تفرد العناصر باستخدام الفرز المسبق؟",
+      "en": "What is the time efficiency of solving Element Uniqueness using Presorting?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n log n)",
+        "en": "O(n log n)"
+      },
+      "example": {
+        "ar": "الفرز يأخذ O(n log n) والفحص يأخذ O(n).",
+        "en": "Sorting takes O(n log n) and scanning takes O(n)."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو الهدف من الحذف الغاوسي (Gaussian Elimination)؟",
+      "en": "What is the goal of Gaussian Elimination?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل نظام من المعادلات الخطية إلى مصفوفة مثلثية عليا لتسهيل حله.",
+        "en": "Transforming a system of linear equations into an upper triangular coefficient matrix to easily solve it."
+      },
+      "example": {
+        "ar": "حل معادلات 3x3 عن طريق تصفير العناصر تحت القطر الرئيسي.",
+        "en": "Solving 3x3 equations by zeroing elements below the main diagonal."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي الكفاءة الزمنية للحذف الغاوسي؟",
+      "en": "What is the time efficiency of Gaussian Elimination?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n^3)",
+        "en": "O(n^3)"
+      },
+      "example": {
+        "ar": "مرحلة الحذف الأمامي تتطلب 3 حلقات متداخلة.",
+        "en": "The forward elimination stage requires 3 nested loops."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي خاصية شجرة البحث الثنائية (BST property)؟",
+      "en": "What is the Binary Search Tree property?"
+    },
+    "back": {
+      "definition": {
+        "ar": "كل عقدة في الشجرة الفرعية اليسرى أصغر من الجذر، وكل عقدة في اليمنى أكبر منه.",
+        "en": "Every key in the left subtree is smaller than the root, and every key in the right subtree is larger."
+      },
+      "example": {
+        "ar": "الجذر 10، الابن الأيسر 5، الابن الأيمن 15.",
+        "en": "Root 10, left child 5, right child 15."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي كفاءة البحث في أسوأ حالة لشجرة بحث ثنائية (BST) عادية؟",
+      "en": "What is the worst-case search efficiency for a standard BST?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n)",
+        "en": "O(n)"
+      },
+      "example": {
+        "ar": "عندما يتم إدراج عناصر مرتبة مسبقاً، تصبح الشجرة كقائمة مرتبطة.",
+        "en": "When elements are inserted already sorted, the tree becomes like a linked list."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي شجرة AVL؟",
+      "en": "What is an AVL tree?"
+    },
+    "back": {
+      "definition": {
+        "ar": "شجرة بحث ثنائية يكون فيها فرق الارتفاع بين الشجرة الفرعية اليسرى واليمنى لأي عقدة لا يتجاوز 1.",
+        "en": "A binary search tree in which the difference between the heights of left and right subtrees of every node is at most 1."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف يتم حساب عامل التوازن (Balance Factor) في شجرة AVL؟",
+      "en": "How is the Balance Factor calculated in an AVL tree?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ارتفاع الشجرة الفرعية اليسرى ناقص ارتفاع الشجرة الفرعية اليمنى.",
+        "en": "Height of left subtree minus height of right subtree."
+      },
+      "example": {
+        "ar": "إذا كان اليسار بارتفاع 2 واليمين بارتفاع 1، فالعامل هو +1.",
+        "en": "If left height is 2 and right height is 1, the factor is +1."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "متى نستخدم الدوران الأحادي لليمين (R-rotation) في شجرة AVL؟",
+      "en": "When do we use a Single R-rotation in an AVL tree?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما يتم إدراج مفتاح جديد في الشجرة الفرعية اليسرى للابن الأيسر.",
+        "en": "After a new key is inserted into the left subtree of the left child."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "متى نستخدم الدوران المزدوج يسار-يمين (LR-rotation)؟",
+      "en": "When do we use a Double LR-rotation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما يتم إدراج مفتاح جديد في الشجرة الفرعية اليمنى للابن الأيسر.",
+        "en": "After a new key is inserted into the right subtree of the left child."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو العيب الرئيسي لأشجار AVL؟",
+      "en": "What is the main disadvantage of AVL trees?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الدورانات المتكررة والتعقيد البرمجي.",
+        "en": "Frequent rotations and complexity."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي مما يلي ليس من أنواع استراتيجية التحويل والحل (Transform-and-Conquer)؟",
+      "en": "Which of the following is NOT a variety of the Transform-and-Conquer strategy?"
+    },
+    "options": {
+      "ar": [
+        "تبسيط النسخة (Instance Simplification)",
+        "تغيير التمثيل (Representation Change)",
+        "اختزال المشكلة (Problem Reduction)",
+        "فرق تسد (Divide and Conquer)"
+      ],
+      "en": [
+        "Instance Simplification",
+        "Representation Change",
+        "Problem Reduction",
+        "Divide and Conquer"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "فرق تسد هي استراتيجية تصميم خوارزميات منفصلة تماماً عن التحويل والحل.",
+      "en": "Divide and Conquer is a completely separate algorithm design strategy from Transform-and-Conquer."
+    },
+    "hint": {
+      "ar": "تذكر الأنواع الثلاثة المذكورة في الوحدة.",
+      "en": "Recall the three principal varieties mentioned in the module."
+    },
+    "difficulty": "easy",
+    "conceptId": "transform-and-conquer-strategy"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هي الكفاءة الزمنية لحل مشكلة تفرد العناصر (Element Uniqueness) باستخدام الفرز المسبق؟",
+      "en": "What is the time efficiency of solving the Element Uniqueness problem using presorting?"
+    },
+    "options": {
+      "ar": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(log n)"
+      ],
+      "en": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(log n)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الفرز يأخذ O(n log n) والفحص يأخذ O(n)، لذا الكفاءة الكلية هي O(n log n).",
+      "en": "Sorting takes O(n log n) and scanning takes O(n), so the overall efficiency is O(n log n)."
+    },
+    "hint": {
+      "ar": "الكفاءة تعتمد بشكل أساسي على خوارزمية الفرز.",
+      "en": "The efficiency depends heavily on the sorting algorithm."
+    },
+    "difficulty": "medium",
+    "conceptId": "presorting"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "إلى أي شكل يحول الحذف الغاوسي (Gaussian Elimination) مصفوفة المعاملات؟",
+      "en": "To what form does Gaussian Elimination transform the coefficient matrix?"
+    },
+    "options": {
+      "ar": [
+        "مصفوفة قطرية",
+        "مصفوفة مثلثية سفلى",
+        "مصفوفة مثلثية عليا",
+        "مصفوفة متماثلة"
+      ],
+      "en": [
+        "Diagonal matrix",
+        "Lower triangular matrix",
+        "Upper triangular matrix",
+        "Symmetric matrix"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يحولها إلى مصفوفة مثلثية عليا لتسهيل التعويض العكسي.",
+      "en": "It transforms it into an upper triangular matrix to facilitate back substitution."
+    },
+    "hint": {
+      "ar": "العناصر تحت القطر الرئيسي تصبح أصفاراً.",
+      "en": "Elements below the main diagonal become zeros."
+    },
+    "difficulty": "easy",
+    "conceptId": "gaussian-elimination"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي الكفاءة الزمنية الكلية لخوارزمية الحذف الغاوسي؟",
+      "en": "What is the overall time efficiency of the Gaussian Elimination algorithm?"
+    },
+    "options": {
+      "ar": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(n^3)"
+      ],
+      "en": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(n^3)"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "مرحلة الحذف الأمامي تتطلب ثلاث حلقات متداخلة، مما يجعل الكفاءة O(n^3).",
+      "en": "The forward elimination stage requires three nested loops, making the efficiency O(n^3)."
+    },
+    "hint": {
+      "ar": "تذكر عدد الحلقات المتداخلة في المرحلة الأولى.",
+      "en": "Remember the number of nested loops in the first stage."
+    },
+    "difficulty": "medium",
+    "conceptId": "gaussian-elimination"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي كفاءة البحث في أسوأ حالة لشجرة بحث ثنائية (BST) غير متوازنة؟",
+      "en": "What is the worst-case search efficiency for an unbalanced Binary Search Tree (BST)?"
+    },
+    "options": {
+      "ar": [
+        "O(1)",
+        "O(log n)",
+        "O(n)",
+        "O(n log n)"
+      ],
+      "en": [
+        "O(1)",
+        "O(log n)",
+        "O(n)",
+        "O(n log n)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في أسوأ الحالات، تصبح الشجرة خطية (مثل القائمة المرتبطة)، مما يتطلب وقتاً خطياً O(n).",
+      "en": "In the worst case, the tree becomes linear (like a linked list), requiring O(n) linear time."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا أدخلت عناصر مرتبة بالفعل؟",
+      "en": "What happens if you insert already sorted elements?"
+    },
+    "difficulty": "medium",
+    "conceptId": "binary-search-trees"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي القيم المسموحة لعامل التوازن (Balance Factor) في شجرة AVL؟",
+      "en": "What are the allowed values for the balance factor in an AVL tree?"
+    },
+    "options": {
+      "ar": [
+        "0 فقط",
+        "-1, 0, 1",
+        "-2, -1, 0, 1, 2",
+        "أي قيمة موجبة"
+      ],
+      "en": [
+        "0 only",
+        "-1, 0, 1",
+        "-2, -1, 0, 1, 2",
+        "Any positive value"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "شجرة AVL تضمن أن فرق الارتفاع لا يتجاوز 1، لذا القيم المسموحة هي -1، 0، و 1.",
+      "en": "An AVL tree ensures the height difference is at most 1, so allowed values are -1, 0, and 1."
+    },
+    "hint": {
+      "ar": "الفرق الأقصى المسموح به هو 1.",
+      "en": "The maximum allowed difference is 1."
+    },
+    "difficulty": "easy",
+    "conceptId": "avl-trees"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي دوران يُستخدم في شجرة AVL عندما يتم إدراج مفتاح جديد في الشجرة الفرعية اليسرى للابن الأيسر؟",
+      "en": "Which rotation is used in an AVL tree when a new key is inserted into the left subtree of the left child?"
+    },
+    "options": {
+      "ar": [
+        "دوران أحادي لليمين (R-rotation)",
+        "دوران أحادي لليسار (L-rotation)",
+        "دوران مزدوج يسار-يمين (LR-rotation)",
+        "دوران مزدوج يمين-يسار (RL-rotation)"
+      ],
+      "en": [
+        "Single Right rotation (R-rotation)",
+        "Single Left rotation (L-rotation)",
+        "Double Left-Right rotation (LR-rotation)",
+        "Double Right-Left rotation (RL-rotation)"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الإدراج في يسار-اليسار يتطلب دوراناً أحادياً لليمين لإعادة التوازن.",
+      "en": "Left-Left insertion requires a single right rotation to restore balance."
+    },
+    "hint": {
+      "ar": "الشجرة ثقيلة من جهة اليسار بشكل مستقيم.",
+      "en": "The tree is heavy on the left in a straight line."
+    },
+    "difficulty": "hard",
+    "conceptId": "avl-rotations"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي دوران يُستخدم في شجرة AVL عندما يتم إدراج مفتاح جديد في الشجرة الفرعية اليمنى للابن الأيسر؟",
+      "en": "Which rotation is used in an AVL tree when a new key is inserted into the right subtree of the left child?"
+    },
+    "options": {
+      "ar": [
+        "دوران أحادي لليمين (R-rotation)",
+        "دوران أحادي لليسار (L-rotation)",
+        "دوران مزدوج يسار-يمين (LR-rotation)",
+        "دوران مزدوج يمين-يسار (RL-rotation)"
+      ],
+      "en": [
+        "Single Right rotation (R-rotation)",
+        "Single Left rotation (L-rotation)",
+        "Double Left-Right rotation (LR-rotation)",
+        "Double Right-Left rotation (RL-rotation)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الإدراج في يمين-اليسار يتطلب دوراناً مزدوجاً (يسار ثم يمين) لإعادة التوازن.",
+      "en": "Left-Right insertion requires a double rotation (Left then Right) to restore balance."
+    },
+    "hint": {
+      "ar": "المسار متعرج (يسار ثم يمين).",
+      "en": "The path is zigzag (left then right)."
+    },
+    "difficulty": "hard",
+    "conceptId": "avl-rotations"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الحد الأقصى التقريبي لارتفاع شجرة AVL تحتوي على n من العقد؟",
+      "en": "What is the approximate maximum height of an AVL tree with n nodes?"
+    },
+    "options": {
+      "ar": [
+        "n",
+        "1.44 log_2 n",
+        "2 log_2 n",
+        "n log_2 n"
+      ],
+      "en": [
+        "n",
+        "1.44 log_2 n",
+        "2 log_2 n",
+        "n log_2 n"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الحد الأقصى لارتفاع شجرة AVL هو تقريباً 1.4404 log_2(n + 2).",
+      "en": "The maximum height of an AVL tree is approximately 1.4404 log_2(n + 2)."
+    },
+    "hint": {
+      "ar": "تذكر الثابت 1.44.",
+      "en": "Remember the constant 1.44."
+    },
+    "difficulty": "medium",
+    "conceptId": "avl-trees"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هو العيب الرئيسي لأشجار AVL مقارنة بأشجار Red-Black؟",
+      "en": "What is the main disadvantage of AVL trees compared to Red-Black trees?"
+    },
+    "options": {
+      "ar": [
+        "وقت البحث أبطأ",
+        "تتطلب مساحة ذاكرة أكبر بكثير",
+        "الدورانات المتكررة عند الإدراج والحذف",
+        "لا تدعم عمليات الحذف"
+      ],
+      "en": [
+        "Slower search time",
+        "Requires much more memory space",
+        "Frequent rotations during insertion and deletion",
+        "Does not support deletion operations"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بسبب التوازن الصارم، تتطلب أشجار AVL دورانات أكثر من أشجار Red-Black عند تعديل الشجرة.",
+      "en": "Because of strict balancing, AVL trees require more rotations than Red-Black trees when modifying the tree."
+    },
+    "hint": {
+      "ar": "التوازن الصارم له ثمن عند التعديل.",
+      "en": "Strict balancing comes at a cost during modification."
+    },
+    "difficulty": "medium",
+    "conceptId": "avl-trees"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ</div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن شجرة البحث الثنائية (BST) تضمن دائماً وقت بحث O(log n). هذا فخ! في أسوأ الحالات (مثل إدراج عناصر مرتبة)، تصبح الشجرة خطية ويكون وقت البحث O(n).</template>
+      <template class="content-en">Believing that a standard BST always guarantees O(log n) search time. This is a trap! In the worst case (e.g., inserting sorted elements), the tree becomes linear and search time is O(n).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي</div>
+    <div data-bilingual>
+      <template class="content-ar">الفرز المسبق (Presorting) يغير عنق الزجاجة في الخوارزمية. بدلاً من حل المشكلة بطريقة القوة الغاشمة البطيئة O(n^2)، نقوم بالفرز O(n log n) ثم نحل المشكلة في وقت خطي O(n).</template>
+      <template class="content-en">Presorting shifts the algorithm's bottleneck. Instead of solving the problem with a slow O(n^2) brute force, we sort in O(n log n) and then solve the problem in linear O(n) time.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر</div>
+    <div data-bilingual>
+      <template class="content-ar">في الحذف الغاوسي، التعقيد الزمني O(n^3) يأتي بالكامل من مرحلة الحذف الأمامي (بسبب الحلقات الثلاث المتداخلة). مرحلة التعويض العكسي سريعة جداً وتستغرق O(n^2) فقط.</template>
+      <template class="content-en">In Gaussian Elimination, the O(n^3) time complexity comes entirely from the forward elimination stage (due to 3 nested loops). The back substitution stage is very fast, taking only O(n^2).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ</div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين اتجاه الدوران ومكان الإدراج. الدوران لليمين (R-rotation) يُستخدم لإصلاح شجرة ثقيلة من جهة اليسار (إدراج في يسار-اليسار)، وليس العكس!</template>
+      <template class="content-en">Confusing the rotation direction with the insertion location. A Right rotation (R-rotation) is used to fix a left-heavy tree (Left-Left insertion), not the other way around!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي</div>
+    <div data-bilingual>
+      <template class="content-ar">عامل التوازن في شجرة AVL يُحسب دائماً كـ (ارتفاع اليسار - ارتفاع اليمين). إذا تجاوزت هذه القيمة 1 أو قلت عن -1، فالشجرة تحتاج إلى دوران.</template>
+      <template class="content-en">The balance factor in an AVL tree is always calculated as (Height of Left - Height of Right). If this value exceeds 1 or drops below -1, the tree requires a rotation.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M05.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M07.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+
+<!-- Algorithm Widget Loader -->
+<script>
+(function(){
+  var m = document.documentElement.dataset.module;
+  if (!m) return;
+  var s = document.createElement('script');
+  s.src = 'M' + String(m).padStart(2,'0') + '_algo.js';
+  s.onerror = function(){}; // silently ignore if file doesn't exist
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

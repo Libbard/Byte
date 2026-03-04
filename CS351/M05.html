@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS351" data-module="5">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أمثلة على المزامنة · CS351 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M04.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-microchip"></i></div>
+      <span class="module-badge font-display">MOD 5</span>
+      <span class="subject-name">CS351</span>
+    </div>
+    <div class="header-actions">
+      <a href="M06.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#bounded-buffer-problem" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة المخزن المؤقت المحدود</template>
+        <template class="content-en">Bounded-Buffer Problem</template>
+        <span class="content-target">مشكلة المخزن المؤقت المحدود</span>
+      </a>
+      <a href="#readers-writers-problem" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة القراء والكتاب</template>
+        <template class="content-en">Readers-Writers Problem</template>
+        <span class="content-target">مشكلة القراء والكتاب</span>
+      </a>
+      <a href="#dining-philosophers-problem" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة الفلاسفة المتناولين للطعام</template>
+        <template class="content-en">Dining-Philosophers Problem</template>
+        <span class="content-target">مشكلة الفلاسفة المتناولين للطعام</span>
+      </a>
+      <a href="#windows-kernel-synchronization" class="toc-link" data-bilingual>
+        <template class="content-ar">مزامنة النواة في نظام ويندوز</template>
+        <template class="content-en">Kernel Synchronization - Windows</template>
+        <span class="content-target">مزامنة النواة في نظام ويندوز</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 5</template>
+      <template class="content-en">Module 5</template>
+      <span class="content-target">الوحدة 5</span>
+    </span> · CS351
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">أمثلة على المزامنة</h1>
+      <p class="hero-description">تغطية المشاكل الكلاسيكية للمزامنة مثل المخزن المؤقت المحدود، القراء والكتاب، والفلاسفة المتناولين للطعام، بالإضافة إلى آليات المزامنة في نواة نظام التشغيل ويندوز.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Synchronization Examples</h1>
+      <p class="hero-description">Coverage of classic synchronization problems such as Bounded-Buffer, Readers-Writers, and Dining-Philosophers, along with Windows kernel synchronization mechanisms.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المزامنة</span>
+      <span class="tag">السيمافور</span>
+      <span class="tag">مشكلة القراء والكتاب</span>
+      <span class="tag">مشكلة الفلاسفة</span>
+      <span class="tag">نظام ويندوز</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Synchronization</span>
+      <span class="tag">Semaphores</span>
+      <span class="tag">Readers-Writers Problem</span>
+      <span class="tag">Dining Philosophers</span>
+      <span class="tag">Windows OS</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف مشكلة القسم الحرج وتوضيح حالة السباق (Race Condition).</span></li>
+      <li><span class="obj-icon">✦</span><span>توضيح الحلول العتادية لمشكلة القسم الحرج باستخدام حواجز الذاكرة، عمليات المقارنة والتبديل، والمتغيرات الذرية.</span></li>
+      <li><span class="obj-icon">✦</span><span>إثبات كيفية استخدام أقفال Mutex والسيمافورات لحل مشكلة القسم الحرج.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح مشاكل المزامنة الكلاسيكية: المخزن المؤقت المحدود، القراء والكتاب، والفلاسفة المتناولين للطعام.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe the critical-section problem and illustrate a race condition.</span></li>
+      <li><span class="obj-icon">✦</span><span>Illustrate hardware solutions to the critical-section problem using memory barriers, compare-and-swap operations, and atomic variables.</span></li>
+      <li><span class="obj-icon">✦</span><span>Demonstrate how Mutex locks and semaphores can be used to solve the critical section problem.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain the bounded-buffer, readers-writers and dining-philosophers synchronization problem.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1: Bounded-Buffer Problem -->
+<section id="bounded-buffer-problem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مشكلة المخزن المؤقت المحدود</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Bounded-Buffer Problem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مشكلة مزامنة تتضمن منتجاً يضيف بيانات إلى طابور محدود ومستهلكاً يسحب منه، مع ضمان عدم الإضافة لطابور ممتلئ أو السحب من طابور فارغ.</p></template>
+    <template class="content-en"><p>A synchronization problem involving a producer adding to a finite queue and a consumer removing from it, ensuring no addition to a full queue or removal from an empty one.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتكون المشكلة من $n$ من المخازن المؤقتة (Buffers)، كل منها يستوعب عنصراً واحداً. تُستخدم ثلاثة <span class="smart-term" data-term-en="Semaphore" data-ar="السيمافور" data-en-def="A synchronization tool used to control access to a common resource by multiple processes.">سيمافورات<span class="smart-term-tooltip"></span></span> للتحكم: <code>mutex</code> (بتهيئة 1) لضمان الاستبعاد المتبادل، <code>full</code> (بتهيئة 0) لعد العناصر الموجودة، و <code>empty</code> (بتهيئة n) لعد الأماكن الفارغة. يقوم المنتج بعمل <code>wait(empty)</code> ثم <code>wait(mutex)</code> قبل الإضافة، بينما يقوم المستهلك بعمل <code>wait(full)</code> ثم <code>wait(mutex)</code> قبل السحب.</p></template>
+    <template class="content-en"><p>The problem consists of $n$ buffers, each holding one item. Three <span class="smart-term" data-term-en="Semaphore" data-ar="السيمافور" data-en-def="A synchronization tool used to control access to a common resource by multiple processes.">semaphores<span class="smart-term-tooltip"></span></span> are used: <code>mutex</code> (initialized to 1) for mutual exclusion, <code>full</code> (initialized to 0) to count filled slots, and <code>empty</code> (initialized to n) to count empty slots. The producer calls <code>wait(empty)</code> then <code>wait(mutex)</code> before adding, while the consumer calls <code>wait(full)</code> then <code>wait(mutex)</code> before removing.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>ترتيب عمليات <code>wait</code> بالغ الأهمية. إذا قام المنتج بتنفيذ <code>wait(mutex)</code> قبل <code>wait(empty)</code> وكان المخزن ممتلئاً، فسيحتفظ بقفل الـ mutex وينام منتظراً مكاناً فارغاً. في نفس الوقت، لن يتمكن المستهلك من سحب أي عنصر لأنه يحتاج إلى قفل الـ mutex، مما يؤدي إلى حالة الجمود (Deadlock).</p></template>
+    <template class="content-en"><p>The order of <code>wait</code> operations is critical. If a producer executes <code>wait(mutex)</code> before <code>wait(empty)</code> and the buffer is full, it will hold the mutex lock and sleep waiting for an empty slot. Meanwhile, the consumer cannot remove an item because it needs the mutex lock, resulting in a Deadlock.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: A horizontal array of boxes representing the bounded buffer. Arrows pointing to specific boxes labeled 'Producer1', 'Producer2' (adding items) and 'Cons 1', 'Cons 2' (removing items). Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <style>
+            .text-primary { font-family: system-ui, sans-serif; fill: currentColor; }
+            .text-secondary { font-family: system-ui, sans-serif; fill: var(--text-secondary); }
+            .text-muted { font-family: system-ui, sans-serif; fill: var(--text-muted); }
+            .text-badge { font-family: system-ui, sans-serif; fill: #ffffff; font-weight: bold; }
+            .box { fill: var(--bg-elevated); stroke: var(--border-color); stroke-width: 2; }
+            .box-active { fill: var(--bg-elevated); stroke: var(--brand-500); stroke-width: 2; stroke-dasharray: 4 4; }
+            .arrow-line { stroke: var(--brand-500); stroke-width: 3; fill: none; marker-end: url(#arrow); }
+            .data-item { fill: var(--brand-500); }
+            .data-item-ghost { fill: transparent; stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 4 4; }
+        </style>
+    </defs>
+
+    <!-- Title -->
+    <text x="400" y="35" class="text-primary" font-size="22" font-weight="bold" text-anchor="middle">Bounded Buffer (Producer-Consumer) / المخزن المؤقت المحدود</text>
+
+    <!-- Producers (Top) -->
+    <g transform="translate(270, 60)">
+        <rect x="0" y="0" width="140" height="50" rx="8" class="box" />
+        <text x="70" y="20" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">Producer 1</text>
+        <text x="70" y="40" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">المنتج ١</text>
+    </g>
+
+    <g transform="translate(470, 60)">
+        <rect x="0" y="0" width="140" height="50" rx="8" class="box" />
+        <text x="70" y="20" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">Producer 2</text>
+        <text x="70" y="40" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">المنتج ٢</text>
+    </g>
+
+    <!-- Consumers (Bottom) -->
+    <g transform="translate(120, 290)">
+        <rect x="0" y="0" width="140" height="50" rx="8" class="box" />
+        <text x="70" y="20" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">Consumer 1</text>
+        <text x="70" y="40" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">المستهلك ١</text>
+    </g>
+
+    <g transform="translate(320, 290)">
+        <rect x="0" y="0" width="140" height="50" rx="8" class="box" />
+        <text x="70" y="20" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">Consumer 2</text>
+        <text x="70" y="40" class="text-primary" font-size="14" font-weight="bold" text-anchor="middle">المستهلك ٢</text>
+    </g>
+
+    <!-- Buffer Array -->
+    <text x="140" y="195" class="text-primary" font-size="14" font-weight="bold" text-anchor="end">Buffer</text>
+    <text x="140" y="215" class="text-primary" font-size="14" font-weight="bold" text-anchor="end">المخزن</text>
+
+    <text x="660" y="195" class="text-muted" font-size="14" text-anchor="start">Capacity = 8</text>
+    <text x="660" y="215" class="text-muted" font-size="14" text-anchor="start">السعة</text>
+
+    <g transform="translate(160, 170)">
+        <!-- Slot 0 (Being Consumed) -->
+        <rect x="0" y="0" width="60" height="60" rx="4" class="box-active" />
+        <circle cx="30" cy="30" r="16" class="data-item-ghost" />
+        <text x="30" y="80" class="text-muted" font-size="14" text-anchor="middle">0</text>
+
+        <!-- Slot 1 (Full) -->
+        <rect x="60" y="0" width="60" height="60" rx="4" class="box" />
+        <circle cx="90" cy="30" r="16" class="data-item" />
+        <text x="90" y="30" class="text-badge" font-size="14" text-anchor="middle" dominant-baseline="central">2</text>
+        <text x="90" y="80" class="text-muted" font-size="14" text-anchor="middle">1</text>
+
+        <!-- Slot 2 (Being Consumed) -->
+        <rect x="120" y="0" width="60" height="60" rx="4" class="box-active" />
+        <circle cx="150" cy="30" r="16" class="data-item-ghost" />
+        <text x="150" y="80" class="text-muted" font-size="14" text-anchor="middle">2</text>
+
+        <!-- Slot 3 (Full) -->
+        <rect x="180" y="0" width="60" height="60" rx="4" class="box" />
+        <circle cx="210" cy="30" r="16" class="data-item" />
+        <text x="210" y="30" class="text-badge" font-size="14" text-anchor="middle" dominant-baseline="central">4</text>
+        <text x="210" y="80" class="text-muted" font-size="14" text-anchor="middle">3</text>
+
+        <!-- Slot 4 (Being Produced) -->
+        <rect x="240" y="0" width="60" height="60" rx="4" class="box-active" />
+        <circle cx="270" cy="30" r="16" class="data-item-ghost" />
+        <text x="270" y="80" class="text-muted" font-size="14" text-anchor="middle">4</text>
+
+        <!-- Slot 5 (Being Produced) -->
+        <rect x="300" y="0" width="60" height="60" rx="4" class="box-active" />
+        <circle cx="330" cy="30" r="16" class="data-item-ghost" />
+        <text x="330" y="80" class="text-muted" font-size="14" text-anchor="middle">5</text>
+
+        <!-- Slot 6 (Empty) -->
+        <rect x="360" y="0" width="60" height="60" rx="4" class="box" />
+        <text x="390" y="80" class="text-muted" font-size="14" text-anchor="middle">6</text>
+
+        <!-- Slot 7 (Empty) -->
+        <rect x="420" y="0" width="60" height="60" rx="4" class="box" />
+        <text x="450" y="80" class="text-muted" font-size="14" text-anchor="middle">7</text>
+    </g>
+
+    <!-- Arrows & Transit Data -->
+    
+    <!-- Producer 1 to Slot 4 -->
+    <path d="M 340 110 L 422 165" class="arrow-line" />
+    <text x="310" y="135" class="text-muted" font-size="12" text-anchor="end">Adding / إضافة</text>
+    <circle cx="381" cy="137" r="16" class="data-item" />
+    <text x="381" y="137" class="text-badge" font-size="14" text-anchor="middle" dominant-baseline="central">5</text>
+
+    <!-- Producer 2 to Slot 5 -->
+    <path d="M 540 110 L 498 165" class="arrow-line" />
+    <text x="570" y="135" class="text-muted" font-size="12" text-anchor="start">Adding / إضافة</text>
+    <circle cx="519" cy="137" r="16" class="data-item" />
+    <text x="519" y="137" class="text-badge" font-size="14" text-anchor="middle" dominant-baseline="central">6</text>
+
+    <!-- Slot 0 to Consumer 1 -->
+    <path d="M 190 230 L 190 285" class="arrow-line" />
+    <text x="160" y="260" class="text-muted" font-size="12" text-anchor="end">Removing / إزالة</text>
+    <circle cx="190" cy="257" r="16" class="data-item" />
+    <text x="190" y="257" class="text-badge" font-size="14" text-anchor="middle" dominant-baseline="central">1</text>
+
+    <!-- Slot 2 to Consumer 2 -->
+    <path d="M 310 230 L 383 285" class="arrow-line" />
+    <text x="400" y="260" class="text-muted" font-size="12" text-anchor="start">Removing / إزالة</text>
+    <circle cx="346" cy="257" r="16" class="data-item" />
+    <text x="346" y="257" class="text-badge" font-size="14" text-anchor="middle" dominant-baseline="central">3</text>
+
+    <!-- Legend -->
+    <g transform="translate(600, 320)">
+        <circle cx="10" cy="10" r="10" class="data-item" />
+        <text x="30" y="15" class="text-secondary" font-size="12" text-anchor="start">Data Item / عنصر بيانات</text>
+        
+        <circle cx="10" cy="35" r="10" class="data-item-ghost" />
+        <text x="30" y="40" class="text-secondary" font-size="12" text-anchor="start">Target Slot / خانة الهدف</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا قمنا بتهيئة السيمافور `mutex` بالقيمة 0 بدلاً من 1 في مشكلة المخزن المؤقت المحدود؟</template>
+      <template class="content-en">What happens if we initialize the `mutex` semaphore to 0 instead of 1 in the bounded-buffer problem?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لن يتمكن أي من المنتج أو المستهلك من الدخول إلى القسم الحرج، مما يؤدي إلى توقف النظام فوراً (Deadlock).</p></template>
+      <template class="content-en"><p>Neither the producer nor the consumer will be able to enter the critical section, leading to an immediate system deadlock.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2: Readers-Writers Problem -->
+<section id="readers-writers-problem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> مشكلة القراء والكتاب</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Readers-Writers Problem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مشكلة مزامنة تسمح لعدة قراء بالوصول إلى البيانات المشتركة في نفس الوقت، ولكنها تتطلب وصولاً حصرياً للكاتب لمنع تعارض البيانات.</p></template>
+    <template class="content-en"><p>A synchronization problem that allows multiple readers to access shared data simultaneously but requires exclusive access for a writer to prevent data inconsistency.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم هذه المشكلة لإدارة الوصول إلى قاعدة بيانات مشتركة. القراء (Readers) يقرأون فقط ولا يقومون بأي تحديثات، بينما الكتاب (Writers) يمكنهم القراءة والكتابة. المتغيرات المشتركة هي: سيمافور <code>rw_mutex</code> (بتهيئة 1) لحماية وصول الكاتب أو أول قارئ، سيمافور <code>mutex</code> (بتهيئة 1) لحماية المتغير <code>read_count</code>، والمتغير الصحيح <code>read_count</code> (بتهيئة 0) لتتبع عدد القراء النشطين.</p></template>
+    <template class="content-en"><p>This problem manages access to a shared database. Readers only read and perform no updates, while Writers can both read and write. Shared variables include: semaphore <code>rw_mutex</code> (initialized to 1) to protect access for the writer or the first reader, semaphore <code>mutex</code> (initialized to 1) to protect the <code>read_count</code> variable, and integer <code>read_count</code> (initialized to 0) to track active readers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هناك اختلافات للمشكلة: مشكلة 'القارئ-الكاتب الأولى' تعطي الأولوية للقراء، مما قد يؤدي إلى <span class="smart-term" data-term-en="Starvation" data-ar="المجاعة" data-en-def="A situation where a process is perpetually denied necessary resources to process its work.">مجاعة<span class="smart-term-tooltip"></span></span> (Starvation) للكتاب إذا استمر القراء في التوافد. مشكلة 'القارئ-الكاتب الثانية' تنص على أنه بمجرد أن يكون الكاتب جاهزاً، لا يُسمح لأي قارئ جديد بالبدء، مما قد يؤدي إلى مجاعة القراء. تُحل هذه المشاكل في بعض الأنظمة عبر توفير أقفال القارئ-الكاتب (Reader-Writer Locks) من قبل النواة.</p></template>
+    <template class="content-en"><p>There are variations: The 'First reader-writer' problem prioritizes readers, which can lead to writer <span class="smart-term" data-term-en="Starvation" data-ar="المجاعة" data-en-def="A situation where a process is perpetually denied necessary resources to process its work.">starvation<span class="smart-term-tooltip"></span></span> if readers keep arriving. The 'Second reader-writer' problem states that once a writer is ready, no newly arrived reader is allowed to read, potentially starving readers. These issues are solved in some systems by kernel-provided reader-writer locks.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A central box labeled 'Shared Data'. Arrows from multiple 'Reader' nodes pointing towards the data simultaneously. A single 'Writer' node with an exclusive bidirectional arrow to the data, indicating exclusive access. Style: educational, dark background #0d1117, accent color #10b981, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, sans-serif">
+    <defs>
+        <!-- Arrowhead pointing right -->
+        <marker id="arrow-right" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Arrowhead pointing left -->
+        <marker id="arrow-left" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 10 0 L 0 5 L 10 10 z" fill="var(--brand-500)"/>
+        </marker>
+
+        <!-- Drop shadow for central element -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.15" flood-color="#000"/>
+        </filter>
+    </defs>
+
+    <!-- ========================================== -->
+    <!-- CENTRAL NODE: SHARED DATA                  -->
+    <!-- ========================================== -->
+    <g transform="translate(0, 0)">
+        <!-- Main Box -->
+        <rect x="310" y="140" width="180" height="120" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+        
+        <!-- Database Cylinder Icon -->
+        <g stroke="var(--brand-500)" stroke-width="2" fill="none">
+            <path d="M 365 160 C 365 153, 435 153, 435 160 C 435 167, 365 167, 365 160 Z" />
+            <path d="M 365 160 L 365 185 C 365 192, 435 192, 435 185 L 435 160" />
+            <path d="M 365 172.5 C 365 179.5, 435 179.5, 435 172.5" />
+        </g>
+
+        <!-- Labels -->
+        <text x="400" y="220" text-anchor="middle" font-weight="700" font-size="16" fill="currentColor">Shared Data</text>
+        <text x="400" y="240" text-anchor="middle" font-size="14" fill="var(--text-secondary)">البيانات المشتركة</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: READERS (SIMULTANEOUS ACCESS)   -->
+    <!-- ========================================== -->
+    
+    <!-- Reader 1 -->
+    <g transform="translate(0, 0)">
+        <rect x="40" y="55" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+        <text x="100" y="75" text-anchor="middle" font-weight="600" font-size="14" fill="currentColor">Reader 1</text>
+        <text x="100" y="93" text-anchor="middle" font-size="12" fill="var(--text-secondary)">قارئ ١</text>
+    </g>
+
+    <!-- Reader 2 -->
+    <g transform="translate(0, 0)">
+        <rect x="40" y="175" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+        <text x="100" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="currentColor">Reader 2</text>
+        <text x="100" y="213" text-anchor="middle" font-size="12" fill="var(--text-secondary)">قارئ ٢</text>
+    </g>
+
+    <!-- Reader 3 -->
+    <g transform="translate(0, 0)">
+        <rect x="40" y="295" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+        <text x="100" y="315" text-anchor="middle" font-weight="600" font-size="14" fill="currentColor">Reader 3</text>
+        <text x="100" y="333" text-anchor="middle" font-size="12" fill="var(--text-secondary)">قارئ ٣</text>
+    </g>
+
+    <!-- Ellipsis indicating multiple readers -->
+    <circle cx="100" cy="365" r="2.5" fill="var(--text-muted)"/>
+    <circle cx="100" cy="375" r="2.5" fill="var(--text-muted)"/>
+    <circle cx="100" cy="385" r="2.5" fill="var(--text-muted)"/>
+
+    <!-- Reader Arrows -->
+    <path d="M 170 80 C 240 80, 240 160, 298 160" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-right)"/>
+    <path d="M 170 200 L 298 200" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-right)"/>
+    <path d="M 170 320 C 240 320, 240 240, 298 240" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-right)"/>
+
+    <!-- Readers Annotation -->
+    <text x="235" y="45" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--brand-500)">Simultaneous Read</text>
+    <text x="235" y="62" text-anchor="middle" font-size="12" fill="var(--text-muted)">قراءة متزامنة</text>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: WRITER (EXCLUSIVE ACCESS)      -->
+    <!-- ========================================== -->
+    
+    <!-- Writer Node -->
+    <g transform="translate(0, 0)">
+        <rect x="640" y="175" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+        <text x="700" y="195" text-anchor="middle" font-weight="600" font-size="14" fill="currentColor">Writer</text>
+        <text x="700" y="213" text-anchor="middle" font-size="12" fill="var(--text-secondary)">كاتب</text>
+    </g>
+
+    <!-- Writer Bidirectional Arrow -->
+    <path d="M 502 200 L 628 200" fill="none" stroke="var(--brand-500)" stroke-width="2.5" marker-start="url(#arrow-left)" marker-end="url(#arrow-right)"/>
+
+    <!-- Writer Annotation -->
+    <text x="565" y="155" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--brand-500)">Exclusive Write</text>
+    <text x="565" y="172" text-anchor="middle" font-size="12" fill="var(--text-muted)">كتابة حصرية</text>
+
+    <!-- Lock Icon for Exclusive Access -->
+    <g transform="translate(558, 212)" fill="none" stroke="var(--brand-500)" stroke-width="1.5">
+        <rect x="0" y="6" width="14" height="10" rx="2" fill="var(--bg-elevated)"/>
+        <path d="M 3 6 V 4 C 3 1.5, 11 1.5, 11 4 V 6" />
+        <circle cx="7" cy="11" r="1.5" fill="var(--brand-500)"/>
+    </g>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Readers</th>
+        <th>Writers</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">نوع الوصول</template><template class="content-en">Access Type</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">قراءة فقط (بدون تحديثات)</template><template class="content-en">Read only (no updates)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">قراءة وكتابة</template><template class="content-en">Read and write</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">التزامن المسموح</template><template class="content-en">Allowed Concurrency</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">متعدد (عدة قراء في نفس الوقت)</template><template class="content-en">Multiple (simultaneous readers allowed)</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">حصري (كاتب واحد فقط)</template><template class="content-en">Exclusive (only one writer)</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يحتاج القارئ الأول فقط إلى قفل `rw_mutex`؟</template>
+      <template class="content-en">Why does only the first reader need to lock `rw_mutex`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن القارئ الأول هو من يمنع الكتاب من الدخول. بمجرد دخوله، يمكن للقراء الآخرين الدخول بحرية لأنهم لا يتعارضون مع بعضهم. القارئ الأخير هو من يحرر القفل للسماح للكتاب بالدخول.</p></template>
+      <template class="content-en"><p>Because the first reader is the one that blocks writers. Once inside, other readers can enter freely as they don't conflict. The last reader releases the lock to allow writers in.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3: Dining-Philosophers Problem -->
+<section id="dining-philosophers-problem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> مشكلة الفلاسفة المتناولين للطعام</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Dining-Philosophers Problem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نموذج كلاسيكي لتوضيح مشاكل تخصيص الموارد المتعددة (مثل <span class="smart-term" data-term-en="Deadlock" data-ar="الجمود / الاختناق" data-en-def="A state where each process in a set is waiting for an event that only another process in the set can cause.">الجمود<span class="smart-term-tooltip"></span></span> والمجاعة) بين عمليات متنافسة دون تفاعل مباشر بينها.</p></template>
+    <template class="content-en"><p>A classic model illustrating the problems of allocating multiple resources (like <span class="smart-term" data-term-en="Deadlock" data-ar="الجمود / الاختناق" data-en-def="A state where each process in a set is waiting for an event that only another process in the set can cause.">deadlock<span class="smart-term-tooltip"></span></span> and starvation) among competing processes without direct interaction.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يجلس $N$ من الفلاسفة (عادة 5) حول طاولة مستديرة مع وعاء أرز في المنتصف. يقضون وقتهم في التفكير والأكل بالتناوب. للأكل، يحتاج الفيلسوف إلى عودي طعام (Chopsticks) - واحد من اليمين وواحد من اليسار. البيانات المشتركة هي مصفوفة سيمافورات <code>chopstick[5]</code> مهيأة بـ 1. الخوارزمية الأساسية تجعل الفيلسوف $i$ ينتظر العود $i$ ثم العود $(i+1)\%5$.</p></template>
+    <template class="content-en"><p>$N$ philosophers (usually 5) sit at a round table with a bowl of rice in the middle. They alternate between thinking and eating. To eat, a philosopher needs two chopsticks - one from the left and one from the right. Shared data is an array of semaphores <code>chopstick[5]</code> initialized to 1. The basic algorithm makes philosopher $i$ wait for chopstick $i$ then chopstick $(i+1)\%5$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الخوارزمية المباشرة تعاني من مشكلة قاتلة: إذا جاع جميع الفلاسفة الخمسة في نفس اللحظة والتقط كل منهم العود الموجود على يساره <code>wait(chopstick[i])</code>، فإن جميع السيمافورات ستصبح 0. عندما يحاولون التقاط العود الأيمن، سينتظرون إلى الأبد، مما يسبب حالة جمود (Deadlock) تامة.</p></template>
+    <template class="content-en"><p>The straightforward algorithm has a fatal flaw: if all 5 philosophers become hungry at the exact same time and each picks up their left chopstick <code>wait(chopstick[i])</code>, all semaphores become 0. When they try to pick up the right chopstick, they will wait forever, causing a complete Deadlock.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A top-down view of a round table. 5 plates/philosophers arranged in a circle. 5 chopsticks placed between the plates. A central bowl of rice. Style: educational, dark background #0d1117, accent color #f59e0b, viewBox 0 0 800 600, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, sans-serif">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+  </defs>
+
+  <!-- Title Section -->
+  <g transform="translate(30, 40)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="currentColor">Dining Philosophers Problem</text>
+    <text x="0" y="25" font-size="18" font-weight="bold" fill="var(--text-secondary)">مشكلة الفلاسفة المتناولين</text>
+  </g>
+
+  <!-- Legend Section -->
+  <rect x="30" y="100" width="220" height="160" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="45" y="125" font-size="14" font-weight="bold" fill="currentColor">Key / المفتاح</text>
+  
+  <circle cx="55" cy="150" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="75" y="150" font-size="12" font-weight="bold" fill="currentColor">Philosopher (Thread)</text>
+  <text x="75" y="165" font-size="11" fill="var(--text-secondary)">فيلسوف (خيط معالجة)</text>
+  
+  <rect x="47" y="188" width="16" height="4" rx="2" fill="var(--brand-500)"/>
+  <text x="75" y="190" font-size="12" font-weight="bold" fill="currentColor">Chopstick (Mutex)</text>
+  <text x="75" y="205" font-size="11" fill="var(--text-secondary)">عود أكل (قفل)</text>
+  
+  <circle cx="55" cy="230" r="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="75" y="230" font-size="12" font-weight="bold" fill="currentColor">Rice (Shared Data)</text>
+  <text x="75" y="245" font-size="11" fill="var(--text-secondary)">أرز (بيانات مشتركة)</text>
+
+  <!-- Deadlock Warning Box -->
+  <rect x="610" y="250" width="170" height="110" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="625" y="275" font-size="13" font-weight="bold" fill="var(--brand-500)">⚠️ Deadlock Risk</text>
+  <text x="625" y="295" font-size="11" fill="var(--text-secondary)">If all philosophers</text>
+  <text x="625" y="310" font-size="11" fill="var(--text-secondary)">pick up their right</text>
+  <text x="625" y="325" font-size="11" fill="var(--text-secondary)">chopstick at once.</text>
+  <text x="765" y="345" font-size="11" font-weight="bold" fill="var(--text-secondary)" text-anchor="end">خطر الجمود (Deadlock)</text>
+
+  <!-- Main Diagram Area -->
+  <g id="dining-table">
+    <!-- Circular Dependency Line -->
+    <circle cx="440" cy="220" r="165" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" opacity="0.4"/>
+
+    <!-- The Table -->
+    <circle cx="440" cy="220" r="140" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="3" filter="url(#shadow)"/>
+    <circle cx="440" cy="220" r="130" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" opacity="0.3"/>
+
+    <!-- Plates -->
+    <g stroke="var(--border-color)" stroke-width="2" fill="var(--bg-elevated)">
+      <!-- P0 -->
+      <circle cx="440" cy="135" r="24"/>
+      <circle cx="440" cy="135" r="16" stroke-width="1" opacity="0.5"/>
+      <!-- P1 -->
+      <circle cx="520.8" cy="193.7" r="24"/>
+      <circle cx="520.8" cy="193.7" r="16" stroke-width="1" opacity="0.5"/>
+      <!-- P2 -->
+      <circle cx="490.0" cy="288.8" r="24"/>
+      <circle cx="490.0" cy="288.8" r="16" stroke-width="1" opacity="0.5"/>
+      <!-- P3 -->
+      <circle cx="390.0" cy="288.8" r="24"/>
+      <circle cx="390.0" cy="288.8" r="16" stroke-width="1" opacity="0.5"/>
+      <!-- P4 -->
+      <circle cx="359.2" cy="193.7" r="24"/>
+      <circle cx="359.2" cy="193.7" r="16" stroke-width="1" opacity="0.5"/>
+    </g>
+
+    <!-- Chopsticks -->
+    <g fill="var(--brand-500)" stroke="var(--bg-elevated)" stroke-width="1">
+      <!-- C0 -->
+      <g transform="translate(484.1, 159.3) rotate(-54)">
+        <rect x="-20" y="-3" width="40" height="6" rx="3" filter="url(#shadow)"/>
+      </g>
+      <!-- C1 -->
+      <g transform="translate(511.3, 243.2) rotate(18)">
+        <rect x="-20" y="-3" width="40" height="6" rx="3" filter="url(#shadow)"/>
+      </g>
+      <!-- C2 -->
+      <g transform="translate(440, 295) rotate(90)">
+        <rect x="-20" y="-3" width="40" height="6" rx="3" filter="url(#shadow)"/>
+      </g>
+      <!-- C3 -->
+      <g transform="translate(368.7, 243.2) rotate(162)">
+        <rect x="-20" y="-3" width="40" height="6" rx="3" filter="url(#shadow)"/>
+      </g>
+      <!-- C4 -->
+      <g transform="translate(395.9, 159.3) rotate(234)">
+        <rect x="-20" y="-3" width="40" height="6" rx="3" filter="url(#shadow)"/>
+      </g>
+    </g>
+
+    <!-- Chopstick Labels -->
+    <g font-size="11" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">
+      <text x="484" y="145">C0</text>
+      <text x="530" y="255">C1</text>
+      <text x="440" y="315">C2</text>
+      <text x="350" y="255">C3</text>
+      <text x="396" y="145">C4</text>
+    </g>
+
+    <!-- Central Rice Bowl -->
+    <circle cx="440" cy="220" r="28" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="440" cy="220" r="22" fill="none" stroke="var(--border-color)" stroke-width="1" opacity="0.3"/>
+    <!-- Rice Grains -->
+    <g fill="var(--text-secondary)" opacity="0.7">
+      <rect x="435" y="215" width="8" height="3" rx="1.5" transform="rotate(45 439 216)"/>
+      <rect x="442" y="212" width="8" height="3" rx="1.5" transform="rotate(-20 446 213)"/>
+      <rect x="438" y="222" width="8" height="3" rx="1.5" transform="rotate(10 442 223)"/>
+      <rect x="430" y="220" width="8" height="3" rx="1.5" transform="rotate(-60 434 221)"/>
+      <rect x="445" y="220" width="8" height="3" rx="1.5" transform="rotate(70 449 221)"/>
+      <rect x="435" y="226" width="8" height="3" rx="1.5" transform="rotate(-30 439 227)"/>
+    </g>
+
+    <!-- Philosophers (Threads) -->
+    <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2.5">
+      <!-- S0 -->
+      <g transform="translate(440, 55)">
+        <circle cx="0" cy="0" r="22" filter="url(#shadow)"/>
+        <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor" stroke="none">P0</text>
+      </g>
+      <!-- S1 -->
+      <g transform="translate(596.9, 169.0)">
+        <circle cx="0" cy="0" r="22" filter="url(#shadow)"/>
+        <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor" stroke="none">P1</text>
+      </g>
+      <!-- S2 -->
+      <g transform="translate(537.0, 353.5)">
+        <circle cx="0" cy="0" r="22" filter="url(#shadow)"/>
+        <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor" stroke="none">P2</text>
+      </g>
+      <!-- S3 -->
+      <g transform="translate(343.0, 353.5)">
+        <circle cx="0" cy="0" r="22" filter="url(#shadow)"/>
+        <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor" stroke="none">P3</text>
+      </g>
+      <!-- S4 -->
+      <g transform="translate(283.1, 169.0)">
+        <circle cx="0" cy="0" r="22" filter="url(#shadow)"/>
+        <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor" stroke="none">P4</text>
+      </g>
+    </g>
+
+    <!-- Educational Annotations (Arrows for Resource Request) -->
+    <!-- P1 requesting C0 and C1 -->
+    <path d="M 580 155 Q 540 130 495 150" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+    <path d="M 585 185 Q 560 230 525 240" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+    
+    <text x="596.9" y="115" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--brand-500)">Needs both chopsticks</text>
+    <text x="596.9" y="130" text-anchor="middle" font-size="11" fill="var(--brand-500)">يحتاج كلا العودين</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكننا تعديل خوارزمية الفلاسفة لتجنب حالة الجمود (Deadlock)؟</template>
+      <template class="content-en">How can we modify the philosophers' algorithm to avoid Deadlock?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يمكننا السماح لأربعة فلاسفة فقط بالجلوس على الطاولة، أو جعل الفيلسوف يلتقط العودين معاً في قسم حرج واحد، أو استخدام استراتيجية غير متماثلة (فيلسوف فردي يلتقط اليسار أولاً، وزوجي يلتقط اليمين أولاً).</p></template>
+      <template class="content-en"><p>We could allow only 4 philosophers at the table, make a philosopher pick up both chopsticks in a critical section, or use an asymmetric strategy (odd philosopher picks left first, even picks right first).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4: Kernel Synchronization - Windows -->
+<section id="windows-kernel-synchronization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> مزامنة النواة في نظام ويندوز</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Kernel Synchronization - Windows</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يستخدم ويندوز أقنعة المقاطعة للأنظمة أحادية المعالج، وأقفال الدوران للأنظمة متعددة المعالجات، وكائنات الموزع لمزامنة مساحة المستخدم.</p></template>
+    <template class="content-en"><p>Windows uses interrupt masks for uniprocessor systems, spinlocks for multiprocessor systems, and dispatcher objects for user-land synchronization.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لحماية الموارد العالمية، يستخدم ويندوز أقنعة المقاطعة (Interrupt Masks) في الأنظمة أحادية المعالج لمنع المقاطعات. في الأنظمة متعددة المعالجات، يستخدم <span class="smart-term" data-term-en="Spinlock" data-ar="قفل الدوران" data-en-def="A lock which causes a thread trying to acquire it to simply wait in a loop ('spin') while repeatedly checking if the lock is available.">أقفال الدوران<span class="smart-term-tooltip"></span></span> (Spinlocks)، حيث لا يتم مقاطعة الخيط (Thread) الذي يمتلك القفل أبداً. كما يوفر <span class="smart-term" data-term-en="Dispatcher Object" data-ar="كائن الموزع" data-en-def="Windows kernel objects used for synchronization, including mutexes, semaphores, events, and timers.">كائنات الموزع<span class="smart-term-tooltip"></span></span> (Dispatcher Objects) التي تعمل كـ Mutexes، Semaphores، Events، و Timers. الأحداث (Events) تعمل كمتغيرات شرطية، والمؤقتات (Timers) تنبه الخيوط عند انتهاء الوقت.</p></template>
+    <template class="content-en"><p>To protect global resources, Windows uses interrupt masks on uniprocessor systems to disable interrupts. On multiprocessor systems, it uses <span class="smart-term" data-term-en="Spinlock" data-ar="قفل الدوران" data-en-def="A lock which causes a thread trying to acquire it to simply wait in a loop ('spin') while repeatedly checking if the lock is available.">spinlocks<span class="smart-term-tooltip"></span></span>, where a spinlocking-thread is never preempted. It also provides <span class="smart-term" data-term-en="Dispatcher Object" data-ar="كائن الموزع" data-en-def="Windows kernel objects used for synchronization, including mutexes, semaphores, events, and timers.">dispatcher objects<span class="smart-term-tooltip"></span></span> for user-land, acting as mutexes, semaphores, events, and timers. Events act much like condition variables, and timers notify threads when time expires.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>كائنات الموزع لها حالتان: حالة الإشارة (Signaled State) وتعني أن الكائن متاح ولن يتم حظر الخيط عند طلبه، وحالة عدم الإشارة (Nonsignaled State) وتعني أن الكائن غير متاح وسيتم حظر الخيط (Thread will block) حتى تتغير الحالة. عندما يحرر المالك قفل الـ Mutex، ينتقل من حالة عدم الإشارة إلى حالة الإشارة.</p></template>
+    <template class="content-en"><p>Dispatcher objects have two states: Signaled state (object available, thread will not block) and Nonsignaled state (object unavailable, thread will block). When an owner thread releases a mutex lock, it transitions from nonsignaled to signaled state.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A state machine diagram for a Mutex dispatcher object. Two circular states: 'nonsignaled' (left) and 'signaled' (right). Top arrow from nonsignaled to signaled labeled 'owner thread releases mutex lock'. Bottom arrow from signaled to nonsignaled labeled 'thread acquires mutex lock'. Style: educational, dark background #0d1117, accent color #8b5cf6, viewBox 0 0 600 300, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <g id="title">
+        <text x="400" y="35" text-anchor="middle" font-size="22" font-weight="bold" fill="currentColor">Mutex Dispatcher Object State Machine</text>
+        <text x="400" y="60" text-anchor="middle" font-size="16" fill="var(--text-secondary)">آلة حالة كائن الموزع (Mutex)</text>
+    </g>
+
+    <g id="transitions">
+        <!-- Top Arrow: Nonsignaled to Signaled -->
+        <path d="M 256.5 143.5 Q 400 10 533.5 143.5" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <text x="400" y="90" text-anchor="middle" font-size="14" font-weight="500" fill="currentColor">Owner thread releases mutex lock</text>
+        <text x="400" y="110" text-anchor="middle" font-size="14" fill="var(--text-secondary)">الخيط المالك يحرر قفل الكائن</text>
+
+        <!-- Bottom Arrow: Signaled to Nonsignaled -->
+        <path d="M 543.5 256.5 Q 400 390 266.5 256.5" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <text x="400" y="295" text-anchor="middle" font-size="14" font-weight="500" fill="currentColor">Thread acquires mutex lock</text>
+        <text x="400" y="315" text-anchor="middle" font-size="14" fill="var(--text-secondary)">الخيط يستحوذ على قفل الكائن</text>
+    </g>
+
+    <g id="states">
+        <!-- Left State: Nonsignaled -->
+        <circle cx="200" cy="200" r="80" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="4"/>
+        
+        <!-- Lock Icon -->
+        <g transform="translate(188, 135)" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </g>
+        
+        <text x="200" y="190" text-anchor="middle" font-size="18" font-weight="bold" fill="currentColor">Nonsignaled</text>
+        <text x="200" y="215" text-anchor="middle" font-size="16" fill="var(--text-secondary)">غير مُرسَل</text>
+        <text x="200" y="240" text-anchor="middle" font-size="14" fill="var(--text-muted)">(Owned / مملوك)</text>
+
+        <!-- Right State: Signaled -->
+        <circle cx="600" cy="200" r="80" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="4"/>
+        
+        <!-- Unlock Icon -->
+        <g transform="translate(588, 135)" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+        </g>
+        
+        <text x="600" y="190" text-anchor="middle" font-size="18" font-weight="bold" fill="currentColor">Signaled</text>
+        <text x="600" y="215" text-anchor="middle" font-size="16" fill="var(--text-secondary)">مُرسَل</text>
+        <text x="600" y="240" text-anchor="middle" font-size="14" fill="var(--text-muted)">(Available / متاح)</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Uniprocessor Systems</th>
+        <th>Multiprocessor Systems</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">آلية الحماية الأساسية</template><template class="content-en">Primary Protection Mechanism</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">أقنعة المقاطعة (Interrupt Masks)</template><template class="content-en">Interrupt Masks</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">أقفال الدوران (Spinlocks)</template><template class="content-en">Spinlocks</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">سلوك الخيط (Thread Behavior)</template><template class="content-en">Thread Behavior</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">يمنع المقاطعات محلياً</template><template class="content-en">Disables local interrupts</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">لا يتم مقاطعته أبداً أثناء امتلاك القفل</template><template class="content-en">Never preempted while holding lock</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يستخدم ويندوز أقنعة المقاطعة (Interrupt Masks) في الأنظمة متعددة المعالجات؟</template>
+      <template class="content-en">Why doesn't Windows use interrupt masks on multiprocessor systems?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن تعطيل المقاطعات على معالج واحد لا يمنع المعالجات الأخرى من الوصول إلى الذاكرة المشتركة، كما أن تعطيلها على جميع المعالجات يستهلك وقتاً طويلاً ويقلل من كفاءة النظام.</p></template>
+      <template class="content-en"><p>Because disabling interrupts on one processor does not prevent other processors from accessing shared memory, and disabling them across all processors is time-consuming and degrades system performance.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذا الفصل الحاسم. إذا كنتم تستعدون للامتحان، فهذه الوحدة هي قلب أنظمة التشغيل النابض. لقد انتقلنا من النظريات إلى التطبيق العملي لمشاكل المزامنة. ركزوا بشدة على 'المشاكل الكلاسيكية الثلاث': المخزن المؤقت المحدود (كيف نمنع المنتج من الكتابة فوق بيانات لم تُقرأ؟)، القراء والكتاب (كيف نوازن بين الأداء العالي للقراء والوصول الحصري للكتاب دون التسبب في مجاعة؟)، والفلاسفة المتناولين للطعام (المثال الأبرز لحالة الجمود Deadlock). في الامتحان، غالباً ما أسأل عن ترتيب عمليات wait و signal، وماذا يحدث إذا عكسناها. أخيراً، لا تتجاهلوا شريحة 'ويندوز'؛ معرفة متى يستخدم النظام أقنعة المقاطعة (للمعالج الأحادي) ومتى يستخدم أقفال الدوران (للمعالجات المتعددة) هي معلومة ذهبية لأسئلة الاختيار من متعدد. بالتوفيق!</template>
+    <template class="content-en">Welcome, my friends, to a crucial chapter. If you're prepping for the exam, this module is the beating heart of Operating Systems. We've moved from theory to the practical application of synchronization. Focus heavily on the 'Big Three Classic Problems': Bounded-Buffer (preventing overwrites), Readers-Writers (balancing reader concurrency with writer exclusivity without causing starvation), and Dining Philosophers (the ultimate Deadlock scenario). In exams, I frequently ask about the exact order of wait and signal operations, and what happens if you swap them. Finally, do not ignore the Windows slide; knowing when the OS uses interrupt masks (uniprocessor) versus spinlocks (multiprocessor) is pure gold for MCQ questions. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى سيمافورين منفصلين (`empty` و `full`) في مشكلة المخزن المؤقت المحدود؟</template>
+          <template class="content-en">Why do we need two separate semaphores (`empty` and `full`) in the bounded-buffer problem?</template>
+          <span class="content-target">لماذا نحتاج إلى سيمافورين منفصلين (`empty` و `full`) في مشكلة المخزن المؤقت المحدود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأننا نحتاج إلى تتبع شرطين مختلفين: `empty` يمنع المنتج من الإضافة إلى مخزن ممتلئ، و `full` يمنع المستهلك من السحب من مخزن فارغ.</template>
+          <template class="content-en">Because we need to track two different conditions: `empty` prevents the producer from adding to a full buffer, and `full` prevents the consumer from removing from an empty buffer.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الدور الدقيق للمتغير `read_count` في مشكلة القراء والكتاب؟</template>
+          <template class="content-en">What is the exact role of the `read_count` variable in the readers-writers problem?</template>
+          <span class="content-target">ما هو الدور الدقيق للمتغير `read_count` في مشكلة القراء والكتاب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إنه يتتبع عدد القراء الموجودين حالياً في القسم الحرج. القارئ الأول (عندما يصبح read_count == 1) هو المسؤول عن قفل `rw_mutex` لمنع الكتاب، والقارئ الأخير (عندما يعود read_count == 0) هو المسؤول عن تحريره.</template>
+          <template class="content-en">It tracks the number of readers currently in the critical section. The first reader (when read_count == 1) is responsible for locking `rw_mutex` to block writers, and the last reader (when read_count == 0) is responsible for releasing it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تسبب مشكلة 'القارئ-الكاتب الأولى' مجاعة (Starvation) للكتاب؟</template>
+          <template class="content-en">Why does the 'First reader-writer' problem cause writer starvation?</template>
+          <span class="content-target">لماذا تسبب مشكلة 'القارئ-الكاتب الأولى' مجاعة (Starvation) للكتاب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه طالما يوجد قارئ واحد على الأقل يقرأ، يمكن للقراء الجدد الدخول دون انتظار. إذا استمر القراء في التوافد، فلن يصل `read_count` إلى الصفر أبداً، وسيظل الكاتب منتظراً إلى الأبد.</template>
+          <template class="content-en">Because as long as at least one reader is reading, new readers can enter without waiting. If readers keep arriving, `read_count` will never reach zero, and the writer will wait forever.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تمثل مشكلة الفلاسفة المتناولين للطعام أنظمة التشغيل الحقيقية؟</template>
+          <template class="content-en">How does the dining philosophers problem represent real operating systems?</template>
+          <span class="content-target">كيف تمثل مشكلة الفلاسفة المتناولين للطعام أنظمة التشغيل الحقيقية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الفلاسفة يمثلون العمليات (Processes)، وأعواد الطعام يمثلون الموارد المحدودة (مثل الطابعات أو الملفات). المشكلة توضح تحديات تخصيص الموارد المتعددة دون التسبب في جمود (Deadlock).</template>
+          <template class="content-en">Philosophers represent processes, and chopsticks represent limited resources (like printers or files). The problem illustrates the challenges of allocating multiple resources without causing a deadlock.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو العيب القاتل في الخوارزمية المقدمة للفلاسفة؟</template>
+          <template class="content-en">What is the fatal flaw in the provided philosophers' algorithm?</template>
+          <span class="content-target">ما هو العيب القاتل في الخوارزمية المقدمة للفلاسفة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا التقط جميع الفلاسفة العود الأيسر في نفس الوقت، ستصبح جميع السيمافورات 0. عندما يحاولون التقاط العود الأيمن، سيعلقون جميعاً في حالة انتظار أبدي (Deadlock).</template>
+          <template class="content-en">If all philosophers pick up their left chopstick at the same time, all semaphores become 0. When they try to pick up the right chopstick, they will all be stuck in eternal waiting (Deadlock).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يستخدم ويندوز أقنعة المقاطعة (Interrupt Masks) فقط في الأنظمة أحادية المعالج؟</template>
+          <template class="content-en">Why does Windows use interrupt masks only on uniprocessor systems?</template>
+          <span class="content-target">لماذا يستخدم ويندوز أقنعة المقاطعة (Interrupt Masks) فقط في الأنظمة أحادية المعالج؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن تعطيل المقاطعات على معالج واحد يمنع التبديل بين السياقات محلياً، وهو كافٍ. أما في الأنظمة متعددة المعالجات، فتعطيل المقاطعات لا يمنع المعالجات الأخرى من الوصول للذاكرة المشتركة.</template>
+          <template class="content-en">Because disabling interrupts on one processor prevents local context switching, which is sufficient. On multiprocessor systems, disabling interrupts doesn't stop other processors from accessing shared memory.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو قفل الدوران (Spinlock) ولماذا لا يتم مقاطعة الخيط الذي يمتلكه؟</template>
+          <template class="content-en">What is a spinlock and why is the thread holding it never preempted?</template>
+          <span class="content-target">ما هو قفل الدوران (Spinlock) ولماذا لا يتم مقاطعة الخيط الذي يمتلكه؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">قفل الدوران يجعل الخيط يدور في حلقة مفرغة منتظراً القفل. لا يتم مقاطعة المالك لمنع حدوث تأخيرات طويلة؛ فإذا تمت مقاطعة المالك، ستظل الخيوط الأخرى تدور وتضيع وقت المعالج بلا فائدة.</template>
+          <template class="content-en">A spinlock makes a thread spin in a loop waiting for the lock. The owner is never preempted to prevent long delays; if the owner were preempted, other threads would keep spinning and wasting CPU cycles uselessly.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين حالة الإشارة (Signaled) وحالة عدم الإشارة (Nonsignaled) في كائنات الموزع؟</template>
+          <template class="content-en">What is the difference between Signaled and Nonsignaled states in dispatcher objects?</template>
+          <span class="content-target">ما الفرق بين حالة الإشارة (Signaled) وحالة عدم الإشارة (Nonsignaled) في كائنات الموزع؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">حالة الإشارة تعني أن الكائن متاح (الخيط لن يُحظر). حالة عدم الإشارة تعني أن الكائن قيد الاستخدام (الخيط سيُحظر وينام حتى يتوفر).</template>
+          <template class="content-en">Signaled state means the object is available (thread will not block). Nonsignaled state means the object is in use (thread will block and sleep until it's available).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل الأحداث (Events) في مزامنة ويندوز؟</template>
+          <template class="content-en">How do Events work in Windows synchronization?</template>
+          <span class="content-target">كيف تعمل الأحداث (Events) في مزامنة ويندوز؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعمل بشكل مشابه للمتغيرات الشرطية (Condition Variables). تُستخدم لإرسال إشارة (Notify) لخيط واحد أو عدة خيوط منتظرة بأن حدثاً معيناً قد وقع أو أن شرطاً قد تحقق.</template>
+          <template class="content-en">They act much like condition variables. They are used to notify one or more waiting threads that a specific event has occurred or a condition has been met.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في كود القارئ، لماذا نضع `read_count++` بين `wait(mutex)` و `signal(mutex)`؟</template>
+          <template class="content-en">In the reader code, why do we put `read_count++` between `wait(mutex)` and `signal(mutex)`?</template>
+          <span class="content-target">في كود القارئ، لماذا نضع `read_count++` بين `wait(mutex)` و `signal(mutex)`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن `read_count` هو متغير مشترك بين جميع القراء. إذا حاول قارئان زيادته في نفس الوقت دون حماية (حالة سباق)، فقد تضيع إحدى الزيادات، مما يؤدي إلى فشل النظام في تحرير الكاتب لاحقاً.</template>
+          <template class="content-en">Because `read_count` is a shared variable among all readers. If two readers try to increment it simultaneously without protection (race condition), one increment might be lost, causing the system to fail to release the writer later.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي القيمة الابتدائية للسيمافور `mutex` في مشكلة المخزن المؤقت المحدود؟",
+      "en": "What is the initial value of the `mutex` semaphore in the Bounded-Buffer problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "1",
+        "en": "1"
+      },
+      "example": {
+        "ar": "يُستخدم لضمان الاستبعاد المتبادل عند الوصول للمخزن.",
+        "en": "Used to ensure mutual exclusion when accessing the buffer."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي القيمة الابتدائية للسيمافور `full` في مشكلة المخزن المؤقت المحدود؟",
+      "en": "What is the initial value of the `full` semaphore in the Bounded-Buffer problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "0",
+        "en": "0"
+      },
+      "example": {
+        "ar": "لأنه في البداية لا توجد أي عناصر في المخزن.",
+        "en": "Because initially, there are no items in the buffer."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي القيمة الابتدائية للسيمافور `empty` في مشكلة المخزن المؤقت المحدود؟",
+      "en": "What is the initial value of the `empty` semaphore in the Bounded-Buffer problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "n (حجم المخزن)",
+        "en": "n (the size of the buffer)"
+      },
+      "example": {
+        "ar": "يمثل عدد الأماكن الفارغة المتاحة للمنتج.",
+        "en": "Represents the number of empty slots available for the producer."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو دور القارئ (Reader) في مشكلة القراء والكتاب؟",
+      "en": "What is the role of a Reader in the Readers-Writers problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقرأ مجموعة البيانات فقط ولا يقوم بأي تحديثات.",
+        "en": "Only reads the data set; does not perform any updates."
+      },
+      "example": {
+        "ar": "يمكن لعدة قراء الوصول للبيانات في نفس الوقت.",
+        "en": "Multiple readers can access the data at the same time."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو دور الكاتب (Writer) في مشكلة القراء والكتاب؟",
+      "en": "What is the role of a Writer in the Readers-Writers problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يمكنه القراءة والكتابة، ويحتاج إلى وصول حصري.",
+        "en": "Can both read and write, and requires exclusive access."
+      },
+      "example": {
+        "ar": "لا يُسمح لأي عملية أخرى (قارئ أو كاتب) بالوصول أثناء عمله.",
+        "en": "No other process (reader or writer) is allowed access while it works."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي وظيفة السيمافور `rw_mutex`؟",
+      "en": "What is the function of the `rw_mutex` semaphore?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يضمن الاستبعاد المتبادل للكتاب والقارئ الأول.",
+        "en": "Ensures mutual exclusion for writers and the first reader."
+      },
+      "example": {
+        "ar": "يتم تهيئته بالقيمة 1.",
+        "en": "It is initialized to 1."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي وظيفة المتغير `read_count`؟",
+      "en": "What is the function of the `read_count` variable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتتبع عدد القراء النشطين حالياً.",
+        "en": "Tracks the number of currently active readers."
+      },
+      "example": {
+        "ar": "يتم حمايته بواسطة السيمافور `mutex`.",
+        "en": "It is protected by the `mutex` semaphore."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي مشكلة 'القارئ-الكاتب الأولى' (First reader-writer problem)؟",
+      "en": "What is the 'First reader-writer' problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعطي الأولوية للقراء، مما قد يؤدي إلى مجاعة (Starvation) للكتاب.",
+        "en": "Prioritizes readers, which can result in starvation for writers."
+      },
+      "example": {
+        "ar": "الكاتب قد لا يكتب أبداً إذا استمر القراء في الوصول.",
+        "en": "A writer may never write if readers keep arriving."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي مشكلة 'القارئ-الكاتب الثانية' (Second reader-writer problem)؟",
+      "en": "What is the 'Second reader-writer' problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بمجرد أن يكون الكاتب جاهزاً، لا يُسمح للقراء الجدد بالبدء.",
+        "en": "Once a writer is ready, no newly arrived reader is allowed to read."
+      },
+      "example": {
+        "ar": "هذا قد يؤدي إلى مجاعة القراء.",
+        "en": "This may result in starvation for readers."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "كيف يتم تمثيل أعواد الطعام في مشكلة الفلاسفة؟",
+      "en": "How are chopsticks represented in the Dining-Philosophers problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "كمصفوفة من السيمافورات `chopstick[5]` مهيأة بالقيمة 1.",
+        "en": "As an array of semaphores `chopstick[5]` initialized to 1."
+      },
+      "example": {
+        "ar": "كل عود يمثل مورداً مشتركاً.",
+        "en": "Each chopstick represents a shared resource."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو الخطر الرئيسي في الخوارزمية الأساسية لمشكلة الفلاسفة؟",
+      "en": "What is the main risk in the basic algorithm for the Dining-Philosophers problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة الجمود (Deadlock).",
+        "en": "Deadlock."
+      },
+      "example": {
+        "ar": "يحدث إذا التقط جميع الفلاسفة العود الأيسر في نفس الوقت.",
+        "en": "Occurs if all philosophers pick up their left chopstick simultaneously."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "كيف يحمي ويندوز الموارد العالمية في الأنظمة أحادية المعالج؟",
+      "en": "How does Windows protect global resources on uniprocessor systems?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام أقنعة المقاطعة (Interrupt masks).",
+        "en": "By using interrupt masks."
+      },
+      "example": {
+        "ar": "يمنع المقاطعات أثناء الوصول للمورد.",
+        "en": "Disables interrupts while accessing the resource."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف يحمي ويندوز الموارد العالمية في الأنظمة متعددة المعالجات؟",
+      "en": "How does Windows protect global resources on multiprocessor systems?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام أقفال الدوران (Spinlocks).",
+        "en": "By using spinlocks."
+      },
+      "example": {
+        "ar": "الخيط الذي يمتلك القفل لا يتم مقاطعته أبداً.",
+        "en": "The thread holding the spinlock is never preempted."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ماذا تعني حالة الإشارة (Signaled state) لكائن الموزع في ويندوز؟",
+      "en": "What does the Signaled state mean for a Windows dispatcher object?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الكائن متاح، ولن يتم حظر الخيط الذي يطلبه.",
+        "en": "The object is available, and a thread requesting it will not block."
+      },
+      "example": {
+        "ar": "يحدث عندما يحرر المالك قفل الـ Mutex.",
+        "en": "Occurs when the owner thread releases the mutex lock."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ماذا تعني حالة عدم الإشارة (Nonsignaled state) لكائن الموزع في ويندوز؟",
+      "en": "What does the Nonsignaled state mean for a Windows dispatcher object?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الكائن غير متاح، وسيتم حظر الخيط الذي يطلبه.",
+        "en": "The object is unavailable, and a thread requesting it will block."
+      },
+      "example": {
+        "ar": "يحدث عندما يستحوذ خيط على قفل الـ Mutex.",
+        "en": "Occurs when a thread acquires the mutex lock."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو كائن الموزع في ويندوز الذي يعمل كمتغير شرطي (Condition Variable)؟",
+      "en": "Which Windows dispatcher object acts much like a condition variable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الأحداث (Events).",
+        "en": "Events."
+      },
+      "example": {
+        "ar": "تُستخدم لإشعار الخيوط بحدوث تغيير معين.",
+        "en": "Used to notify threads that a specific change has occurred."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "في مشكلة المخزن المؤقت المحدود، ما هي القيمة الابتدائية للسيمافور 'empty'؟",
+      "en": "In the bounded-buffer problem, what is the initial value of the 'empty' semaphore?"
+    },
+    "options": {
+      "ar": [
+        "0",
+        "1",
+        "n",
+        "-1"
+      ],
+      "en": [
+        "0",
+        "1",
+        "n",
+        "-1"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يتم تهيئة 'empty' بالقيمة n لتمثيل عدد الأماكن الفارغة المتاحة في البداية.",
+      "en": "'empty' is initialized to n to represent the number of available empty slots initially."
+    },
+    "hint": {
+      "ar": "تذكر أن المخزن يكون فارغاً تماماً في البداية.",
+      "en": "Remember that the buffer is completely empty at the start."
+    },
+    "difficulty": "easy",
+    "conceptId": "bounded-buffer-problem"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي سيمافور يُستخدم لحماية المتغير 'read_count' في مشكلة القراء والكتاب؟",
+      "en": "Which semaphore is used to protect the 'read_count' variable in the readers-writers problem?"
+    },
+    "options": {
+      "ar": [
+        "rw_mutex",
+        "mutex",
+        "empty",
+        "full"
+      ],
+      "en": [
+        "rw_mutex",
+        "mutex",
+        "empty",
+        "full"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "السيمافور 'mutex' يُستخدم لضمان الاستبعاد المتبادل عند تحديث المتغير المشترك 'read_count'.",
+      "en": "The 'mutex' semaphore is used to ensure mutual exclusion when updating the shared 'read_count' variable."
+    },
+    "hint": {
+      "ar": "إنه السيمافور العام المستخدم للاستبعاد المتبادل البسيط.",
+      "en": "It's the general semaphore used for simple mutual exclusion."
+    },
+    "difficulty": "medium",
+    "conceptId": "readers-writers-problem"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في مشكلة 'القارئ-الكاتب الأولى'، أي عملية معرضة لخطر المجاعة (Starvation)؟",
+      "en": "In the 'First reader-writer' problem, which process is at risk of starvation?"
+    },
+    "options": {
+      "ar": [
+        "القراء (Readers)",
+        "الكتاب (Writers)",
+        "كلاهما",
+        "لا أحد"
+      ],
+      "en": [
+        "Readers",
+        "Writers",
+        "Both",
+        "Neither"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لأن المشكلة الأولى تعطي الأولوية للقراء، فقد لا يحصل الكاتب على فرصة أبداً إذا استمر القراء الجدد في الوصول.",
+      "en": "Because the first problem prioritizes readers, a writer may never get a chance if new readers keep arriving."
+    },
+    "hint": {
+      "ar": "من الذي يجب أن ينتظر حتى يغادر الجميع؟",
+      "en": "Who has to wait until absolutely everyone leaves?"
+    },
+    "difficulty": "medium",
+    "conceptId": "readers-writers-problem"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كم عدد أعواد الطعام التي يحتاجها الفيلسوف ليأكل في مشكلة الفلاسفة المتناولين للطعام؟",
+      "en": "How many chopsticks does a philosopher need to eat in the dining-philosophers problem?"
+    },
+    "options": {
+      "ar": [
+        "1",
+        "2",
+        "3",
+        "5"
+      ],
+      "en": [
+        "1",
+        "2",
+        "3",
+        "5"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يحتاج الفيلسوف إلى عودين (واحد من اليمين وواحد من اليسار) ليتمكن من الأكل.",
+      "en": "A philosopher needs two chopsticks (one from the right and one from the left) to be able to eat."
+    },
+    "hint": {
+      "ar": "فكر في كيفية تناول الأرز بالأعواد الصينية.",
+      "en": "Think about how rice is eaten with chopsticks."
+    },
+    "difficulty": "easy",
+    "conceptId": "dining-philosophers-problem"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي الآلية التي يستخدمها نظام ويندوز لحماية الموارد العالمية في الأنظمة أحادية المعالج؟",
+      "en": "What mechanism does Windows use to protect global resources on uniprocessor systems?"
+    },
+    "options": {
+      "ar": [
+        "أقفال الدوران (Spinlocks)",
+        "أقنعة المقاطعة (Interrupt masks)",
+        "كائنات الموزع (Dispatcher objects)",
+        "الأحداث (Events)"
+      ],
+      "en": [
+        "Spinlocks",
+        "Interrupt masks",
+        "Dispatcher objects",
+        "Events"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في الأنظمة أحادية المعالج، يكفي تعطيل المقاطعات (باستخدام أقنعة المقاطعة) لمنع التداخل.",
+      "en": "On uniprocessor systems, disabling interrupts (using interrupt masks) is sufficient to prevent interference."
+    },
+    "hint": {
+      "ar": "تتعلق بإيقاف الإشارات الخارجية مؤقتاً.",
+      "en": "It relates to temporarily stopping external signals."
+    },
+    "difficulty": "medium",
+    "conceptId": "windows-kernel-synchronization"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ماذا يحدث للخيط (Thread) الذي يمتلك قفل دوران (Spinlock) في نظام ويندوز؟",
+      "en": "What happens to a thread holding a spinlock in Windows?"
+    },
+    "options": {
+      "ar": [
+        "يتم مقاطعته فوراً",
+        "ينام حتى يتوفر المورد",
+        "لا يتم مقاطعته أبداً",
+        "يتحول إلى حالة عدم الإشارة"
+      ],
+      "en": [
+        "It is preempted immediately",
+        "It sleeps until the resource is available",
+        "It is never preempted",
+        "It transitions to nonsignaled state"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لضمان عدم حدوث تأخيرات طويلة أو جمود، الخيط الذي يمتلك قفل الدوران لا يتم مقاطعته (Never preempted).",
+      "en": "To ensure no long delays or deadlocks occur, a thread holding a spinlock is never preempted."
+    },
+    "hint": {
+      "ar": "يحتفظ بالسيطرة الكاملة على المعالج.",
+      "en": "It retains full control of the processor."
+    },
+    "difficulty": "hard",
+    "conceptId": "windows-kernel-synchronization"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ماذا تعني حالة 'الإشارة' (Signaled state) لكائن الموزع في ويندوز؟",
+      "en": "What does the 'Signaled state' mean for a dispatcher object in Windows?"
+    },
+    "options": {
+      "ar": [
+        "الكائن غير متاح والخيط سيتم حظره",
+        "الكائن متاح والخيط لن يتم حظره",
+        "الخيط يطلب مقاطعة",
+        "النظام في حالة جمود"
+      ],
+      "en": [
+        "Object is unavailable and thread will block",
+        "Object is available and thread will not block",
+        "Thread is requesting an interrupt",
+        "System is in a deadlock"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "حالة الإشارة تعني أن المورد متاح للاستخدام، وبالتالي الخيط الذي يطلبه يمكنه المتابعة دون حظر.",
+      "en": "Signaled state means the resource is available for use, so a requesting thread can proceed without blocking."
+    },
+    "hint": {
+      "ar": "فكر فيها كإشارة مرور خضراء.",
+      "en": "Think of it as a green traffic light."
+    },
+    "difficulty": "medium",
+    "conceptId": "windows-kernel-synchronization"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "في مشكلة المخزن المؤقت المحدود، ماذا يفعل المنتج (Producer) بعد إضافة عنصر إلى المخزن؟",
+      "en": "In the bounded-buffer problem, what does the producer do after adding an item to the buffer?"
+    },
+    "options": {
+      "ar": [
+        "signal(empty) ثم signal(mutex)",
+        "wait(full) ثم wait(mutex)",
+        "signal(mutex) ثم signal(full)",
+        "wait(empty) ثم signal(full)"
+      ],
+      "en": [
+        "signal(empty) then signal(mutex)",
+        "wait(full) then wait(mutex)",
+        "signal(mutex) then signal(full)",
+        "wait(empty) then signal(full)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بعد الإضافة، يحرر المنتج قفل الاستبعاد المتبادل signal(mutex) ويزيد عدد العناصر الممتلئة signal(full).",
+      "en": "After adding, the producer releases the mutual exclusion lock signal(mutex) and increments the count of full slots signal(full)."
+    },
+    "hint": {
+      "ar": "يجب أن يخبر المستهلكين أن هناك عنصراً جديداً متاحاً.",
+      "en": "It must tell consumers that a new item is available."
+    },
+    "difficulty": "hard",
+    "conceptId": "bounded-buffer-problem"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في خوارزمية الفلاسفة، ما هو مؤشر العود الثاني (الأيمن) الذي ينتظره الفيلسوف 'i'؟",
+      "en": "In the philosophers' algorithm, what is the index of the second (right) chopstick that philosopher 'i' waits for?"
+    },
+    "options": {
+      "ar": [
+        "i - 1",
+        "i + 1",
+        "(i + 1) % 5",
+        "(i - 1) % 5"
+      ],
+      "en": [
+        "i - 1",
+        "i + 1",
+        "(i + 1) % 5",
+        "(i - 1) % 5"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "نظراً لأن الطاولة دائرية، يُستخدم باقي القسمة (Modulo 5) للالتفاف حول المصفوفة: (i + 1) % 5.",
+      "en": "Because the table is circular, modulo 5 is used to wrap around the array: (i + 1) % 5."
+    },
+    "hint": {
+      "ar": "تذكر أن الطاولة دائرية وهناك 5 فلاسفة.",
+      "en": "Remember the table is circular and there are 5 philosophers."
+    },
+    "difficulty": "medium",
+    "conceptId": "dining-philosophers-problem"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من كائنات الموزع في ويندوز يعمل بشكل مشابه للمتغير الشرطي (Condition Variable)؟",
+      "en": "Which of the Windows dispatcher objects acts much like a condition variable?"
+    },
+    "options": {
+      "ar": [
+        "Mutexes",
+        "Semaphores",
+        "Events",
+        "Timers"
+      ],
+      "en": [
+        "Mutexes",
+        "Semaphores",
+        "Events",
+        "Timers"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الأحداث (Events) تُستخدم لإشعار خيط أو أكثر بحدوث تغيير معين، تماماً كالمتغيرات الشرطية.",
+      "en": "Events are used to notify one or more threads that a specific change has occurred, just like condition variables."
+    },
+    "hint": {
+      "ar": "تُستخدم للإشعار بحدوث 'حدث' معين.",
+      "en": "Used to notify that a specific 'event' has occurred."
+    },
+    "difficulty": "easy",
+    "conceptId": "windows-kernel-synchronization"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ (Trap)</div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن ترتيب عمليات `wait` في المنتج (Producer) غير مهم. إذا قمت بتنفيذ `wait(mutex)` قبل `wait(empty)`، سيحدث جمود (Deadlock) إذا كان المخزن ممتلئاً.</template>
+      <template class="content-en">Thinking the order of `wait` operations in the Producer doesn't matter. If you execute `wait(mutex)` before `wait(empty)`, a deadlock will occur if the buffer is full.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي (Key Concept)</div>
+    <div data-bilingual>
+      <template class="content-ar">في مشكلة القراء والكتاب، يُسمح لعدد غير محدود من القراء بالوصول المتزامن، ولكن الكاتب يتطلب وصولاً حصرياً تاماً (لا قراء ولا كتاب آخرين).</template>
+      <template class="content-en">In the Readers-Writers problem, an unlimited number of readers are allowed concurrent access, but a writer requires absolute exclusive access (no readers, no other writers).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر (Secret)</div>
+    <div data-bilingual>
+      <template class="content-ar">الخوارزمية الأساسية للفلاسفة المتناولين للطعام معيبة تصميماً؛ فهي تضمن حدوث حالة جمود (Deadlock) إذا قرر جميع الفلاسفة الأكل في نفس اللحظة الدقيقة.</template>
+      <template class="content-en">The basic Dining Philosophers algorithm is flawed by design; it guarantees a deadlock if all philosophers decide to eat at the exact same microsecond.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ (Trap)</div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين حالات كائنات الموزع في ويندوز. تذكر: Signaled = متاح (أخضر/انطلق)، Nonsignaled = غير متاح (أحمر/توقف).</template>
+      <template class="content-en">Confusing Windows dispatcher object states. Remember: Signaled = Available (Green/Go), Nonsignaled = Unavailable (Red/Stop).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M04.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M06.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+</body>
+</html>

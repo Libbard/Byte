@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS350" data-module="7">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أساسيات SQL - الجزء الأول: تعريف البيانات والقيود · CS350 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M06.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-database"></i></div>
+      <span class="module-badge font-display">MOD 7</span>
+      <span class="subject-name">CS350</span>
+    </div>
+    <div class="header-actions">
+      <a href="M08.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#sql-overview-history" class="toc-link" data-bilingual>
+        <template class="content-ar">نظرة عامة وتاريخ SQL</template>
+        <template class="content-en">Overview and History of SQL</template>
+        <span class="content-target">نظرة عامة وتاريخ SQL</span>
+      </a>
+      <a href="#create-schema-table" class="toc-link" data-bilingual>
+        <template class="content-ar">إنشاء المخططات والجداول (CREATE SCHEMA & TABLE)</template>
+        <template class="content-en">Creating Schemas and Tables (CREATE SCHEMA & TABLE)</template>
+        <span class="content-target">إنشاء المخططات والجداول (CREATE SCHEMA & TABLE)</span>
+      </a>
+      <a href="#circular-reference-problem" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة المرجع الدائري</template>
+        <template class="content-en">Circular Reference Problem</template>
+        <span class="content-target">مشكلة المرجع الدائري</span>
+      </a>
+      <a href="#sql-data-types" class="toc-link" data-bilingual>
+        <template class="content-ar">أنواع البيانات في SQL</template>
+        <template class="content-en">SQL Data Types</template>
+        <span class="content-target">أنواع البيانات في SQL</span>
+      </a>
+      <a href="#referential-integrity-options" class="toc-link" data-bilingual>
+        <template class="content-ar">خيارات التكامل المرجعي وتسمية القيود</template>
+        <template class="content-en">Referential Integrity Options and Naming Constraints</template>
+        <span class="content-target">خيارات التكامل المرجعي وتسمية القيود</span>
+      </a>
+      <a href="#domain-constraints-check" class="toc-link" data-bilingual>
+        <template class="content-ar">قيود المجال باستخدام CHECK و CREATE DOMAIN</template>
+        <template class="content-en">Specifying DOMAIN Constraints Using CHECK and CREATE DOMAIN</template>
+        <span class="content-target">قيود المجال باستخدام CHECK و CREATE DOMAIN</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 7</template>
+      <template class="content-en">Module 7</template>
+      <span class="content-target">الوحدة 7</span>
+    </span> · CS350
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">أساسيات SQL - الجزء الأول: تعريف البيانات والقيود</h1>
+      <p class="hero-description">مقدمة إلى لغة الاستعلام المهيكلة (SQL)، مع التركيز على لغة تعريف البيانات (DDL)، أنواع البيانات، وإنشاء الجداول مع تحديد قيود التكامل المرجعي والمجال.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Basic SQL-1: Data Definition and Constraints</h1>
+      <p class="hero-description">Introduction to Structured Query Language (SQL), focusing on Data Definition Language (DDL), data types, and creating tables with referential integrity and domain constraints.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">قواعد البيانات</span>
+      <span class="tag">SQL</span>
+      <span class="tag">تعريف البيانات</span>
+      <span class="tag">القيود</span>
+      <span class="tag">أنواع البيانات</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Database</span>
+      <span class="tag">SQL</span>
+      <span class="tag">DDL</span>
+      <span class="tag">Constraints</span>
+      <span class="tag">Data Types</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح مفاهيم تعريف البيانات والقيود في لغة SQL.</span></li>
+      <li><span class="obj-icon">✦</span><span>استخدام أوامر CREATE لإنشاء المخططات والجداول.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد أنواع البيانات المناسبة للسمات المختلفة (رقمية، نصية، كائنات كبيرة، وتاريخ/وقت).</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق قيود التكامل المرجعي (Referential Integrity) وحل مشكلة المراجع الدائرية.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain data definition and constraints in SQL.</span></li>
+      <li><span class="obj-icon">✦</span><span>Use CREATE statements to define schemas and tables.</span></li>
+      <li><span class="obj-icon">✦</span><span>Select appropriate data types for various attributes (numeric, string, LOBs, and date/time).</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply referential integrity constraints and resolve the circular reference problem.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="sql-overview-history" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> نظرة عامة وتاريخ SQL</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Overview and History of SQL</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>لغة SQL هي اللغة القياسية الشاملة للتعامل مع قواعد البيانات العلائقية، بدأت باسم SEQUEL في شركة IBM.</p></template>
+    <template class="content-en"><p>SQL is the standard comprehensive language for relational databases, originally developed as SEQUEL at IBM.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لغة SQL (Structured Query Language) هي لغة قياسية تعتمد على النموذج العلائقي. تتضمن قدرات متعددة مثل: <span class="smart-term" data-term-en="DDL" data-ar="لغة تعريف البيانات" data-en-def="Data Definition Language used for creating schemas and specifying data types and constraints.">لغة تعريف البيانات (DDL)<span class="smart-term-tooltip"></span></span> لإنشاء المخططات وتحديد أنواع البيانات والقيود، أوامر استرجاع البيانات (SELECT)، أوامر تعديل البيانات (INSERT, DELETE, UPDATE)، وأوامر لإنشاء العروض (Views) والمشغلات (Triggers). تطورت اللغة من SEQUEL في مشروع System-R التابع لـ IBM في السبعينيات، ومرت بعدة معايير مثل SQL-89، SQL-92، و SQL-99.</p></template>
+    <template class="content-en"><p>SQL is a standard, comprehensive language based on the relational model. It includes capabilities for <span class="smart-term" data-term-en="DDL" data-ar="لغة تعريف البيانات" data-en-def="Data Definition Language used for creating schemas and specifying data types and constraints.">Data Definition Language (DDL)<span class="smart-term-tooltip"></span></span> to create schemas and specify constraints, retrieval queries (SELECT), database modification (INSERT, DELETE, UPDATE), and specifying views, triggers, and assertions. It was originally called SEQUEL, developed at IBM Research for the System-R relational DBMS in the 1970s, and evolved through standards like SQL-89, SQL-92, and SQL-99.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تطور معايير SQL يعكس الحاجة المتزايدة لدعم ميزات متقدمة مثل التوجه الكائني (Object-Oriented) في SQL-99 (المعروف أيضاً بـ SQL3). تقسيم اللغة إلى DDL و DML يسمح بفصل هيكلة البيانات عن معالجتها، مما يعزز الأمان وإدارة الصلاحيات.</p></template>
+    <template class="content-en"><p>The evolution of SQL standards reflects the growing need to support advanced features, such as object-oriented concepts in SQL-99 (SQL3). Separating the language into DDL and DML allows for the decoupling of database structure from data manipulation, enhancing security and access control.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تم تغيير اسم اللغة من SEQUEL إلى SQL؟</template>
+      <template class="content-en">Why was the language renamed from SEQUEL to SQL?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تم تغييره لأسباب تتعلق بالعلامات التجارية، حيث كان اسم SEQUEL مسجلاً كعلامة تجارية لشركة أخرى.</p></template>
+      <template class="content-en"><p>It was changed due to trademark issues, as SEQUEL was already a trademark of another company.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="create-schema-table" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> إنشاء المخططات والجداول (CREATE SCHEMA & TABLE)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Creating Schemas and Tables (CREATE SCHEMA & TABLE)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أمر CREATE TABLE يبني هيكل الجدول ويحدد أسماء الأعمدة، أنواع بياناتها، والقيود الأساسية مثل <span class="smart-term" data-term-en="Primary Key" data-ar="المفتاح الأساسي" data-en-def="An attribute or set of attributes that uniquely identifies each tuple in a relation.">المفتاح الأساسي<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>The CREATE TABLE statement builds the table structure, defining column names, data types, and constraints like the <span class="smart-term" data-term-en="Primary Key" data-ar="المفتاح الأساسي" data-en-def="An attribute or set of attributes that uniquely identifies each tuple in a relation.">Primary Key<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُستخدم أمر <code>CREATE SCHEMA</code> لإنشاء قاعدة بيانات متميزة (مثال: <code>CREATE SCHEMA COMPANY AUTHORIZATION 'Smith';</code>). بينما يُستخدم <code>CREATE TABLE</code> لتعريف علاقة أساسية جديدة من خلال تحديد اسمها، وسماتها، وأنواع بياناتها. يمكن أيضاً تحديد قيود مثل <code>NOT NULL</code>، <code>PRIMARY KEY</code>، <code>UNIQUE</code>، و <span class="smart-term" data-term-en="Foreign Key" data-ar="المفتاح الأجنبي" data-en-def="An attribute in one table that refers to the primary key in another table, enforcing referential integrity."><code>FOREIGN KEY</code><span class="smart-term-tooltip"></span></span> داخل هذا الأمر. إذا كانت هناك جداول متعددة، يمكن إضافة اسم المخطط كبادئة لاسم الجدول (مثال: <code>COMPANY.EMPLOYEE</code>).</p></template>
+    <template class="content-en"><p>The <code>CREATE SCHEMA</code> statement is used to create a distinct database (e.g., <code>CREATE SCHEMA COMPANY AUTHORIZATION 'Smith';</code>). The <code>CREATE TABLE</code> statement specifies a new base relation by giving it a name and specifying its attributes and data types. Constraints such as <code>NOT NULL</code>, <code>PRIMARY KEY</code>, <code>UNIQUE</code>, and <span class="smart-term" data-term-en="Foreign Key" data-ar="المفتاح الأجنبي" data-en-def="An attribute in one table that refers to the primary key in another table, enforcing referential integrity."><code>FOREIGN KEY</code><span class="smart-term-tooltip"></span></span> can also be defined here. Table names can be prefixed by the schema name if multiple schemas exist (e.g., <code>COMPANY.EMPLOYEE</code>).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحديد القيود أثناء إنشاء الجدول يضمن سلامة البيانات (Data Integrity) على مستوى محرك قاعدة البيانات (DBMS) بدلاً من الاعتماد على طبقة التطبيق. استخدام <code>AUTHORIZATION</code> يربط المخطط بمالك محدد، مما يسهل إدارة الصلاحيات.</p></template>
+    <template class="content-en"><p>Defining constraints during table creation ensures data integrity at the DBMS level rather than relying on the application layer. Using <code>AUTHORIZATION</code> binds the schema to a specific owner, facilitating access control management.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>CREATE TABLE DEPARTMENT (
+ DNAME VARCHAR(15) NOT NULL,
+ DNUMBER INT NOT NULL,
+ MGRSSN CHAR(9) NOT NULL,
+ MGRSTARTDATE DATE,
+ PRIMARY KEY (DNUMBER),
+ UNIQUE (DNAME),
+ FOREIGN KEY(MGRSSN) REFERENCES EMPLOYEE);
+</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a relational database schema diagram for the COMPANY database. Show tables: EMPLOYEE, DEPARTMENT, DEPT_LOCATIONS, PROJECT, WORKS_ON, DEPENDENT. Use rectangular boxes for tables, list attributes inside. Underline primary keys (e.g., Ssn in EMPLOYEE, Dnumber in DEPARTMENT). Draw directed arrows representing foreign keys (e.g., from Dno in EMPLOYEE to Dnumber in DEPARTMENT). Style: educational, dark background #0d1117, accent color #58a6ff, viewBox 0 0 1000 600, English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="circle" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4">
+            <circle cx="5" cy="5" r="4" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <style>
+        .table-box {
+            fill: var(--bg-elevated);
+            stroke: var(--border-color);
+            stroke-width: 2px;
+            rx: 6px;
+        }
+        .table-header {
+            font-family: system-ui, sans-serif;
+            font-weight: bold;
+            font-size: 12px;
+            fill: currentColor;
+            text-anchor: middle;
+        }
+        .table-header-ar {
+            font-family: system-ui, sans-serif;
+            font-size: 10px;
+            fill: var(--text-muted);
+            text-anchor: middle;
+        }
+        .attr-text {
+            font-family: system-ui, sans-serif;
+            font-size: 11px;
+            fill: var(--text-secondary);
+        }
+        .attr-pk {
+            font-family: system-ui, sans-serif;
+            font-size: 11px;
+            fill: currentColor;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .attr-fk {
+            fill: var(--text-muted);
+            font-size: 9px;
+            font-weight: normal;
+            text-decoration: none;
+        }
+        .fk-line {
+            fill: none;
+            stroke: var(--brand-500);
+            stroke-width: 1.5px;
+            stroke-linejoin: round;
+        }
+        .legend-text {
+            font-family: system-ui, sans-serif;
+            font-size: 11px;
+            fill: var(--text-muted);
+        }
+    </style>
+
+    <!-- EMPLOYEE Table -->
+    <rect x="30" y="30" width="160" height="225" class="table-box" />
+    <line x1="30" y1="65" x2="190" y2="65" stroke="var(--border-color)" stroke-width="2" />
+    <text x="110" y="46" class="table-header">EMPLOYEE</text>
+    <text x="110" y="58" class="table-header-ar">الموظف</text>
+    <text x="40" y="84" class="attr-pk">Ssn</text>
+    <text x="40" y="102" class="attr-text">Fname</text>
+    <text x="40" y="120" class="attr-text">Minit</text>
+    <text x="40" y="138" class="attr-text">Lname</text>
+    <text x="40" y="156" class="attr-text">Bdate</text>
+    <text x="40" y="174" class="attr-text">Address</text>
+    <text x="40" y="192" class="attr-text">Sex</text>
+    <text x="40" y="210" class="attr-text">Salary</text>
+    <text x="40" y="228" class="attr-text">Super_ssn <tspan class="attr-fk">(FK)</tspan></text>
+    <text x="40" y="246" class="attr-text">Dno <tspan class="attr-fk">(FK)</tspan></text>
+
+    <!-- DEPARTMENT Table -->
+    <rect x="320" y="30" width="160" height="115" class="table-box" />
+    <line x1="320" y1="65" x2="480" y2="65" stroke="var(--border-color)" stroke-width="2" />
+    <text x="400" y="46" class="table-header">DEPARTMENT</text>
+    <text x="400" y="58" class="table-header-ar">القسم</text>
+    <text x="330" y="84" class="attr-pk">Dnumber</text>
+    <text x="330" y="102" class="attr-text">Dname</text>
+    <text x="330" y="120" class="attr-text">Mgr_ssn <tspan class="attr-fk">(FK)</tspan></text>
+    <text x="330" y="138" class="attr-text">Mgr_start_date</text>
+
+    <!-- DEPT_LOCATIONS Table -->
+    <rect x="610" y="30" width="160" height="80" class="table-box" />
+    <line x1="610" y1="65" x2="770" y2="65" stroke="var(--border-color)" stroke-width="2" />
+    <text x="690" y="46" class="table-header">DEPT_LOCATIONS</text>
+    <text x="690" y="58" class="table-header-ar">مواقع_القسم</text>
+    <text x="620" y="84" class="attr-pk">Dnumber <tspan class="attr-fk">(FK)</tspan></text>
+    <text x="620" y="102" class="attr-pk">Dlocation</text>
+
+    <!-- PROJECT Table -->
+    <rect x="610" y="170" width="160" height="115" class="table-box" />
+    <line x1="610" y1="205" x2="770" y2="205" stroke="var(--border-color)" stroke-width="2" />
+    <text x="690" y="186" class="table-header">PROJECT</text>
+    <text x="690" y="198" class="table-header-ar">المشروع</text>
+    <text x="620" y="224" class="attr-pk">Pnumber</text>
+    <text x="620" y="242" class="attr-text">Pname</text>
+    <text x="620" y="260" class="attr-text">Plocation</text>
+    <text x="620" y="278" class="attr-text">Dnum <tspan class="attr-fk">(FK)</tspan></text>
+
+    <!-- WORKS_ON Table -->
+    <rect x="320" y="265" width="160" height="95" class="table-box" />
+    <line x1="320" y1="300" x2="480" y2="300" stroke="var(--border-color)" stroke-width="2" />
+    <text x="400" y="281" class="table-header">WORKS_ON</text>
+    <text x="400" y="293" class="table-header-ar">يعمل_على</text>
+    <text x="330" y="319" class="attr-pk">Essn <tspan class="attr-fk">(FK)</tspan></text>
+    <text x="330" y="337" class="attr-pk">Pno <tspan class="attr-fk">(FK)</tspan></text>
+    <text x="330" y="355" class="attr-text">Hours</text>
+
+    <!-- DEPENDENT Table -->
+    <rect x="30" y="265" width="160" height="130" class="table-box" />
+    <line x1="30" y1="300" x2="190" y2="300" stroke="var(--border-color)" stroke-width="2" />
+    <text x="110" y="281" class="table-header">DEPENDENT</text>
+    <text x="110" y="293" class="table-header-ar">المعال</text>
+    <text x="40" y="319" class="attr-pk">Essn <tspan class="attr-fk">(FK)</tspan></text>
+    <text x="40" y="337" class="attr-pk">Dependent_name</text>
+    <text x="40" y="355" class="attr-text">Sex</text>
+    <text x="40" y="373" class="attr-text">Bdate</text>
+    <text x="40" y="391" class="attr-text">Relationship</text>
+
+    <!-- Foreign Key Relationships (Arrows) -->
+    
+    <!-- EMPLOYEE.Dno -> DEPARTMENT.Dnumber -->
+    <path d="M 190,242 L 240,242 L 240,88 L 315,88" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- DEPARTMENT.Mgr_ssn -> EMPLOYEE.Ssn -->
+    <path d="M 320,116 L 280,116 L 280,88 L 195,88" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- DEPENDENT.Essn -> EMPLOYEE.Ssn -->
+    <path d="M 190,315 L 210,315 L 210,96 L 195,96" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- WORKS_ON.Essn -> EMPLOYEE.Ssn -->
+    <path d="M 320,315 L 260,315 L 260,80 L 195,80" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- EMPLOYEE.Super_ssn -> EMPLOYEE.Ssn -->
+    <path d="M 190,224 L 220,224 L 220,15 L 15,15 L 15,80 L 25,80" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- DEPT_LOCATIONS.Dnumber -> DEPARTMENT.Dnumber -->
+    <path d="M 610,80 L 485,80" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- PROJECT.Dnum -> DEPARTMENT.Dnumber -->
+    <path d="M 610,274 L 520,274 L 520,88 L 485,88" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    
+    <!-- WORKS_ON.Pno -> PROJECT.Pnumber -->
+    <path d="M 480,333 L 540,333 L 540,220 L 605,220" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+
+    <!-- Legend -->
+    <rect x="610" y="325" width="160" height="70" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4" />
+    <text x="690" y="343" class="table-header">Legend (مفتاح)</text>
+    <text x="620" y="363" class="attr-pk">Underlined</text>
+    <text x="685" y="363" class="legend-text">: Primary Key</text>
+    <path d="M 620,379 L 650,379" class="fk-line" marker-start="url(#circle)" marker-end="url(#arrow)" />
+    <text x="660" y="383" class="legend-text">: Foreign Key</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا حاولنا إدخال قيمة فارغة (NULL) في عمود تم تعريفه كـ PRIMARY KEY؟</template>
+      <template class="content-en">What happens if we try to insert a NULL value into a column defined as PRIMARY KEY?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيرفض نظام إدارة قواعد البيانات العملية، لأن المفتاح الأساسي يتضمن ضمنياً قيد NOT NULL ويجب أن يكون فريداً.</p></template>
+      <template class="content-en"><p>The DBMS will reject the operation because a PRIMARY KEY implicitly includes a NOT NULL constraint and must be unique.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="circular-reference-problem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> مشكلة المرجع الدائري</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Circular Reference Problem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحدث عندما يشير جدول (أ) إلى جدول (ب) بمفتاح أجنبي، وفي نفس الوقت يشير جدول (ب) إلى جدول (أ).</p></template>
+    <template class="content-en"><p>Occurs when Table A references Table B with a foreign key, and Table B simultaneously references Table A.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في مخطط قاعدة بيانات COMPANY، نجد أن جدول <code>EMPLOYEE</code> يحتوي على مفتاح أجنبي <code>Dno</code> يشير إلى <code>DEPARTMENT.Dnumber</code>، بينما يحتوي جدول <code>DEPARTMENT</code> على مفتاح أجنبي <code>Mgr_ssn</code> يشير إلى <code>EMPLOYEE.Ssn</code>. هذا يخلق مشكلة عند إنشاء الجداول باستخدام <code>CREATE TABLE</code>، حيث لا يمكن إنشاء أي من الجدولين أولاً لأن كلاهما يعتمد على الآخر. الحل هو إنشاء أحد الجدولين أولاً بدون قيد المفتاح الأجنبي (FOREIGN KEY)، ثم إضافة القيد المفقود لاحقاً باستخدام أمر <span class="smart-term" data-term-en="ALTER TABLE" data-ar="تعديل الجدول" data-en-def="A DDL command used to modify the structure of an existing table, such as adding a missing foreign key."><code>ALTER TABLE</code><span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>In the COMPANY database schema, the <code>EMPLOYEE</code> table has a foreign key <code>Dno</code> referencing <code>DEPARTMENT.Dnumber</code>, while the <code>DEPARTMENT</code> table has a foreign key <code>Mgr_ssn</code> referencing <code>EMPLOYEE.Ssn</code>. This creates a circular reference problem during table creation. The solution is to create one of the tables first without the FOREIGN KEY constraint, and then add the missing FOREIGN KEY later using the <span class="smart-term" data-term-en="ALTER TABLE" data-ar="تعديل الجدول" data-en-def="A DDL command used to modify the structure of an existing table, such as adding a missing foreign key."><code>ALTER TABLE</code><span class="smart-term-tooltip"></span></span> statement.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه المشكلة تبرز أهمية فصل تعريف الهيكل (Table Definition) عن تعريف القيود (Constraint Definition). في الأنظمة المعقدة، يُفضل غالباً إنشاء جميع الجداول الأساسية أولاً، ثم تشغيل سكريبت منفصل يضيف جميع قيود المفاتيح الأجنبية باستخدام <code>ALTER TABLE</code> لتجنب أي تعارضات في التبعية.</p></template>
+    <template class="content-en"><p>This problem highlights the importance of separating table definition from constraint definition. In complex systems, it is often best practice to create all base tables first, and then run a separate script to add all foreign key constraints using <code>ALTER TABLE</code> to avoid any dependency conflicts.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكن حل مشكلة المرجع الدائري عن طريق إيقاف التحقق من المفاتيح الأجنبية مؤقتاً؟</template>
+      <template class="content-en">Can the circular reference problem be solved by temporarily disabling foreign key checks?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، في بعض أنظمة إدارة قواعد البيانات (مثل MySQL)، يمكن استخدام SET FOREIGN_KEY_CHECKS=0 قبل إنشاء الجداول، ثم إعادتها إلى 1.</p></template>
+      <template class="content-en"><p>Yes, in some DBMS (like MySQL), you can use SET FOREIGN_KEY_CHECKS=0 before creating tables, and then set it back to 1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="sql-data-types" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> أنواع البيانات في SQL</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> SQL Data Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>توفر SQL أنواع بيانات متنوعة لتخزين الأرقام، النصوص، التواريخ، والكائنات الكبيرة (مثل الصور).</p></template>
+    <template class="content-en"><p>SQL provides various data types to store numbers, strings, dates, and large objects (like images).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تشمل أنواع البيانات الأساسية في SQL:<br>1. <b>الرقمية:</b> الأعداد الصحيحة (<code>INTEGER</code>, <code>SMALLINT</code>)، الأعداد الحقيقية (<code>FLOAT</code>, <code>DOUBLE PRECISION</code>)، والأرقام المنسقة <code>DECIMAL(i, j)</code> حيث i هي <span class="smart-term" data-term-en="Precision" data-ar="الدقة" data-en-def="In DECIMAL(i,j), 'i' represents the total number of decimal digits.">الدقة<span class="smart-term-tooltip"></span></span> (إجمالي الخانات) و j هو <span class="smart-term" data-term-en="Scale" data-ar="المقياس" data-en-def="In DECIMAL(i,j), 'j' represents the number of digits after the decimal point.">المقياس<span class="smart-term-tooltip"></span></span> (الخانات بعد الفاصلة).<br>2. <b>النصية:</b> ثابتة الطول <code>CHAR(n)</code> ومتغيرة الطول <code>VARCHAR(n)</code>.<br>3. <b>المنطقية:</b> <code>BIT(n)</code>.<br>4. <b>الكائنات الكبيرة (LOBs):</b> <code>BLOB(n)</code> للبيانات الثنائية كالصور والفيديو، و <code>CLOB(n)</code> للنصوص الطويلة كالمقالات.<br>5. <b>التاريخ والوقت:</b> <code>DATE</code> (yyyy-mm-dd)، <code>TIME</code> (hh:mm:ss)، <code>TIMESTAMP</code> (يجمع بين التاريخ والوقت)، و <code>INTERVAL</code> (لتمثيل فترة زمنية نسبية مثل 'سنتين و5 أشهر').</p></template>
+    <template class="content-en"><p>Basic SQL data types include:<br>1. <b>Numeric:</b> Integers (<code>INTEGER</code>, <code>SMALLINT</code>), Real/floating point (<code>FLOAT</code>, <code>DOUBLE PRECISION</code>), and Formatted <code>DECIMAL(i, j)</code> where i is <span class="smart-term" data-term-en="Precision" data-ar="الدقة" data-en-def="In DECIMAL(i,j), 'i' represents the total number of decimal digits.">precision<span class="smart-term-tooltip"></span></span> (total digits) and j is <span class="smart-term" data-term-en="Scale" data-ar="المقياس" data-en-def="In DECIMAL(i,j), 'j' represents the number of digits after the decimal point.">scale<span class="smart-term-tooltip"></span></span> (digits after decimal).<br>2. <b>String:</b> Fixed-length <code>CHAR(n)</code> and Variable-length <code>VARCHAR(n)</code>.<br>3. <b>Boolean:</b> <code>BIT(n)</code>.<br>4. <b>Large Objects:</b> <code>BLOB(n)</code> for binary data like images/audio, and <code>CLOB(n)</code> for character data like articles.<br>5. <b>Date/Time:</b> <code>DATE</code> (yyyy-mm-dd), <code>TIME</code> (hh:mm:ss), <code>TIMESTAMP</code> (combines date and time), and <code>INTERVAL</code> (represents a relative time period like '2 years and 5 months').</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفرق بين <code>CHAR</code> و <code>VARCHAR</code> مهم جداً لتحسين الأداء والمساحة. <code>CHAR</code> يحجز المساحة كاملة حتى لو كان النص أقصر، مما يسرع البحث ولكنه يهدر المساحة. <code>VARCHAR</code> يحجز فقط المساحة المطلوبة زائد بايت لتخزين الطول. بالنسبة لـ <code>TIMESTAMP</code>، القيمة الافتراضية للكسور الثواني هي i=7.</p></template>
+    <template class="content-en"><p>The difference between <code>CHAR</code> and <code>VARCHAR</code> is crucial for performance and storage optimization. <code>CHAR</code> pads the string with spaces to fill the length, which can speed up lookups but wastes space. <code>VARCHAR</code> only uses the space needed plus a byte for length. For <code>TIMESTAMP</code>, the default precision for fractional seconds is i=7.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>CHAR(n)</th>
+        <th>VARCHAR(n)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">استهلاك المساحة</template><template class="content-en">Space Consumption</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">يحجز n بايت دائماً (يهدر المساحة)</template><template class="content-en">Always reserves n bytes (wastes space)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">يحجز فقط المساحة المطلوبة + بايت للطول</template><template class="content-en">Reserves only needed space + length byte</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">أفضل استخدام</template><template class="content-en">Best Use Case</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">البيانات ذات الطول الثابت (مثل رقم الهوية)</template><template class="content-en">Fixed-length data (e.g., SSN, Phone)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">البيانات ذات الطول المتغير (مثل الأسماء)</template><template class="content-en">Variable-length data (e.g., Names, Addresses)</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا قمنا بتعريف حقل كـ DECIMAL(5,2)، ما هي أكبر قيمة يمكن تخزينها فيه؟</template>
+      <template class="content-en">If we define a field as DECIMAL(5,2), what is the maximum value it can store?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>أكبر قيمة هي 999.99 (5 خانات إجمالاً، منها 2 بعد الفاصلة).</p></template>
+      <template class="content-en"><p>The maximum value is 999.99 (5 total digits, 2 of which are after the decimal point).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="referential-integrity-options" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> خيارات التكامل المرجعي وتسمية القيود</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Referential Integrity Options and Naming Constraints</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحدد خيارات التكامل المرجعي ما يحدث للسجلات المرتبطة عند حذف أو تحديث السجل الأساسي (مثل CASCADE لحذف السجلات المرتبطة تلقائياً).</p></template>
+    <template class="content-en"><p>Referential integrity options define what happens to related records when a parent record is deleted or updated (e.g., CASCADE to automatically delete related records).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند تعريف مفتاح أجنبي، يمكننا تحديد الإجراء الذي يجب اتخاذه عند حذف (<code>ON DELETE</code>) أو تحديث (<code>ON UPDATE</code>) السجل المرجعي. الخيارات المتاحة هي:<br>1. <b><span class="smart-term" data-term-en="RESTRICT" data-ar="تقييد" data-en-def="The default referential integrity action that rejects the delete or update operation if related rows exist.">RESTRICT<span class="smart-term-tooltip"></span></span>:</b> (الافتراضي) يمنع الحذف/التحديث إذا كانت هناك سجلات مرتبطة.<br>2. <b>CASCADE:</b> ينقل التغيير (حذف أو تحديث) تلقائياً إلى السجلات المرتبطة.<br>3. <b>SET NULL:</b> يغير قيمة المفتاح الأجنبي في السجلات المرتبطة إلى NULL.<br>4. <b>SET DEFAULT:</b> يغير قيمة المفتاح الأجنبي إلى القيمة الافتراضية المحددة.<br>كما يمكن إعطاء اسم للقيد باستخدام الكلمة المفتاحية <code>CONSTRAINT</code> (مثال: <code>CONSTRAINT EMPPK PRIMARY KEY (Ssn)</code>)، مما يسهل حذفه لاحقاً باستخدام <code>DROP CONSTRAINT</code>.</p></template>
+    <template class="content-en"><p>When defining a foreign key, we can specify the action to take upon deletion (<code>ON DELETE</code>) or update (<code>ON UPDATE</code>) of the referenced record. The options are:<br>1. <b><span class="smart-term" data-term-en="RESTRICT" data-ar="تقييد" data-en-def="The default referential integrity action that rejects the delete or update operation if related rows exist.">RESTRICT<span class="smart-term-tooltip"></span></span>:</b> (The default) Prevents the delete/update if related records exist.<br>2. <b>CASCADE:</b> Automatically propagates the change (delete or update) to related records.<br>3. <b>SET NULL:</b> Sets the foreign key value in related records to NULL.<br>4. <b>SET DEFAULT:</b> Sets the foreign key value to its specified default.<br>Constraints can also be named using the <code>CONSTRAINT</code> keyword (e.g., <code>CONSTRAINT EMPPK PRIMARY KEY (Ssn)</code>), which allows the constraint to be easily dropped later using <code>DROP CONSTRAINT</code>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام <code>CASCADE</code> خطير في قواعد البيانات الكبيرة لأنه قد يؤدي إلى حذف متسلسل غير مقصود لآلاف السجلات. يُفضل استخدام <code>RESTRICT</code> أو <code>SET NULL</code> في الأنظمة المالية لتجنب فقدان البيانات التاريخية.</p></template>
+    <template class="content-en"><p>Using <code>CASCADE</code> can be dangerous in large databases as it might lead to unintended cascading deletions of thousands of records. It is often safer to use <code>RESTRICT</code> or <code>SET NULL</code> in financial or critical systems to prevent loss of historical data.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>CONSTRAINT EMPSUPERFK
+ FOREIGN KEY (Super_ssn) REFERENCES EMPLOYEE(Ssn)
+ ON DELETE SET NULL ON UPDATE CASCADE;</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>RESTRICT</th>
+        <th>CASCADE</th>
+        <th>SET NULL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">السلوك عند الحذف</template><template class="content-en">Behavior on Delete</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">يمنع الحذف</template><template class="content-en">Prevents deletion</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">يحذف السجلات المرتبطة</template><template class="content-en">Deletes related records</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">يضع القيمة فارغة</template><template class="content-en">Sets value to NULL</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون استخدام ON DELETE SET NULL غير مسموح به؟</template>
+      <template class="content-en">When is using ON DELETE SET NULL not allowed?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا يُسمح به إذا كان عمود المفتاح الأجنبي معرفاً بقيد NOT NULL.</p></template>
+      <template class="content-en"><p>It is not allowed if the foreign key column is defined with a NOT NULL constraint.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="domain-constraints-check" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> قيود المجال باستخدام CHECK و CREATE DOMAIN</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Specifying DOMAIN Constraints Using CHECK and CREATE DOMAIN</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُستخدم CHECK لضمان أن القيم المدخلة في عمود معين تقع ضمن نطاق أو شرط محدد.</p></template>
+    <template class="content-en"><p>CHECK is used to ensure that values entered into a specific column fall within a defined range or condition.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن تحديد قيود إضافية على البيانات باستخدام جملة <code>CHECK</code>. على سبيل المثال، لضمان أن رقم القسم بين 1 و 20: <code>CHECK (Dnumber > 0 AND Dnumber < 21)</code>. بدلاً من تكرار هذا القيد في عدة جداول، يمكن إنشاء مجال مخصص باستخدام <span class="smart-term" data-term-en="CREATE DOMAIN" data-ar="إنشاء مجال" data-en-def="A statement used to create a user-defined data type with optional constraints."><code>CREATE DOMAIN</code><span class="smart-term-tooltip"></span></span>. مثال: <code>CREATE DOMAIN D_NUM AS INTEGER CHECK (Dnumber > 0 AND Dnumber < 21);</code>. بعد ذلك، يمكن استخدام <code>D_NUM</code> كنوع بيانات لسمة <code>Dnumber</code> في جدول <code>DEPARTMENT</code>، ولسمة <code>Dnum</code> في جدول <code>PROJECT</code>، مما يسهل إعادة الاستخدام ويحافظ على اتساق البيانات.</p></template>
+    <template class="content-en"><p>Additional constraints on data can be specified using the <code>CHECK</code> clause. For example, to ensure a department number is between 1 and 20: <code>CHECK (Dnumber > 0 AND Dnumber < 21)</code>. Instead of repeating this constraint across multiple tables, a custom domain can be created using <span class="smart-term" data-term-en="CREATE DOMAIN" data-ar="إنشاء مجال" data-en-def="A statement used to create a user-defined data type with optional constraints."><code>CREATE DOMAIN</code><span class="smart-term-tooltip"></span></span>. Example: <code>CREATE DOMAIN D_NUM AS INTEGER CHECK (Dnumber > 0 AND Dnumber < 21);</code>. <code>D_NUM</code> can then be used as the data type for the <code>Dnumber</code> attribute in the <code>DEPARTMENT</code> table, and for <code>Dnum</code> in the <code>PROJECT</code> table, promoting reusability and consistency.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>قيود <code>CHECK</code> توفر طريقة قوية لتطبيق قواعد العمل (Business Rules) مباشرة في قاعدة البيانات. ومع ذلك، يجب الحذر من استخدام استعلامات فرعية (Subqueries) داخل <code>CHECK</code> لأن بعض أنظمة إدارة قواعد البيانات لا تدعمها أو قد تسبب بطئاً في الأداء.</p></template>
+    <template class="content-en"><p><code>CHECK</code> constraints provide a powerful way to enforce business rules directly within the database. However, one must be cautious about using subqueries inside a <code>CHECK</code> clause, as many DBMS do not support them or they can cause significant performance overhead.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>CREATE DOMAIN D_NUM AS INTEGER CHECK (Dnumber > 0 AND Dnumber < 21);</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هي الميزة الرئيسية لاستخدام CREATE DOMAIN بدلاً من كتابة CHECK في كل جدول؟</template>
+      <template class="content-en">What is the main advantage of using CREATE DOMAIN instead of writing CHECK in every table?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>إعادة الاستخدام وسهولة الصيانة؛ إذا تغيرت قاعدة العمل، نقوم بتحديث المجال مرة واحدة فقط بدلاً من تعديل كل جدول.</p></template>
+      <template class="content-en"><p>Reusability and maintainability; if the business rule changes, you only update the domain once instead of modifying every table.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في عالم SQL! تخيلوا أن قاعدة البيانات هي مدينة ضخمة، ولغة DDL هي المهندس المعماري الذي يرسم المخططات (CREATE SCHEMA) ويبني العمارات (CREATE TABLE). في هذه الوحدة، تعلمنا كيف نضع القواعد الصارمة لهذه المدينة؛ لا يمكن لأحد أن يسكن في شقة غير موجودة (التكامل المرجعي - Foreign Key)، ولا يمكن أن يكون رقم القسم سالباً (قيد CHECK). ركزوا جيداً في الامتحان على مشكلة 'المرجع الدائري' وكيف نستخدم ALTER TABLE كحل سحري لها. وتذكروا دائماً الفرق بين CHAR الذي يحجز مساحة ثابتة كصندوق صلب، و VARCHAR الذي يتمدد وينكمش حسب الحاجة. الخيارات الافتراضية مثل RESTRICT هي فخاخ شائعة في الاختبارات، فاحذروها! بالتوفيق.</template>
+    <template class="content-en">Welcome to the world of SQL, my friends! Imagine the database as a massive city, and DDL is the architect drawing the blueprints (CREATE SCHEMA) and building the structures (CREATE TABLE). In this module, we learned how to set strict rules for this city; no one can live in an apartment that doesn't exist (Referential Integrity - Foreign Key), and a department number cannot be negative (CHECK constraint). For the exam, pay close attention to the 'Circular Reference' problem and how ALTER TABLE acts as our magic fix. Always remember the difference between CHAR (a rigid box) and VARCHAR (flexible space). Default options like RESTRICT are common exam traps, so watch out! Good luck.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الأساسي بين DDL و DML؟</template>
+          <template class="content-en">What is the fundamental difference between DDL and DML?</template>
+          <span class="content-target">ما هو الفرق الأساسي بين DDL و DML؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">DDL (لغة تعريف البيانات) تُستخدم لبناء الهيكل مثل الجداول والقيود (CREATE, ALTER, DROP). بينما DML (لغة معالجة البيانات) تُستخدم للتعامل مع البيانات نفسها داخل الجداول (INSERT, UPDATE, DELETE).</template>
+          <template class="content-en">DDL (Data Definition Language) is used to build the structure like tables and constraints (CREATE, ALTER, DROP). DML (Data Manipulation Language) is used to handle the actual data inside the tables (INSERT, UPDATE, DELETE).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل قيود ON DELETE CASCADE؟</template>
+          <template class="content-en">How do ON DELETE CASCADE constraints work?</template>
+          <span class="content-target">كيف تعمل قيود ON DELETE CASCADE؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عند حذف سجل في الجدول الأساسي (الأب)، يقوم النظام تلقائياً بحذف جميع السجلات المرتبطة به في الجدول الفرعي (الابن) التي تحمل نفس قيمة المفتاح الأجنبي.</template>
+          <template class="content-en">When a record in the parent table is deleted, the system automatically deletes all related records in the child table that share the same foreign key value.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم CREATE DOMAIN بدلاً من كتابة CHECK في كل جدول؟</template>
+          <template class="content-en">Why use CREATE DOMAIN instead of writing CHECK in every table?</template>
+          <span class="content-target">لماذا نستخدم CREATE DOMAIN بدلاً من كتابة CHECK في كل جدول؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لإعادة الاستخدام وتوحيد المعايير. إذا كان لدينا شرط يتكرر في عدة جداول (مثل رقم القسم بين 1 و 20)، ننشئ مجالاً واحداً ونستخدمه كنوع بيانات، مما يسهل التعديل لاحقاً في مكان واحد.</template>
+          <template class="content-en">For reusability and standardization. If a condition repeats across tables (like Dnumber between 1 and 20), we create one domain and use it as a data type, making future updates easier in a single place.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مشكلة المرجع الدائري وكيف نحلها؟</template>
+          <template class="content-en">What is the circular reference problem and how do we solve it?</template>
+          <span class="content-target">ما هي مشكلة المرجع الدائري وكيف نحلها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحدث عندما يعتمد جدولان على بعضهما البعض عبر مفاتيح أجنبية، مما يمنع إنشاء أي منهما أولاً. الحل هو إنشاء الجدول الأول بدون المفتاح الأجنبي، ثم إنشاء الثاني، وأخيراً استخدام ALTER TABLE لإضافة المفتاح للجدول الأول.</template>
+          <template class="content-en">It occurs when two tables depend on each other via foreign keys, preventing either from being created first. The solution is to create the first table without the FK, create the second, and finally use ALTER TABLE to add the FK to the first table.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نفضل استخدام CHAR على VARCHAR؟</template>
+          <template class="content-en">When do we prefer using CHAR over VARCHAR?</template>
+          <span class="content-target">متى نفضل استخدام CHAR على VARCHAR؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدم CHAR عندما تكون البيانات ذات طول ثابت دائماً (مثل رقم الهوية أو الرمز البريدي)، لأنه أسرع في المعالجة ولا يتطلب بايت إضافي لتخزين الطول كما يفعل VARCHAR.</template>
+          <template class="content-en">We use CHAR when the data is always of a fixed length (like SSN or Zip Code), because it is faster to process and doesn't require an extra byte to store the length like VARCHAR does.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني DECIMAL(7,3)؟</template>
+          <template class="content-en">What does DECIMAL(7,3) mean?</template>
+          <span class="content-target">ماذا يعني DECIMAL(7,3)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعني أن الرقم يتكون من 7 خانات إجمالاً (الدقة)، منها 3 خانات بعد الفاصلة العائمة (المقياس). أي يمكن تخزين 4 أرقام قبل الفاصلة و 3 بعدها.</template>
+          <template class="content-en">It means the number has 7 total digits (precision), with 3 of those digits after the decimal point (scale). So it can store 4 digits before the decimal and 3 after.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين DATE و TIMESTAMP؟</template>
+          <template class="content-en">What is the difference between DATE and TIMESTAMP?</template>
+          <span class="content-target">ما الفرق بين DATE و TIMESTAMP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">DATE يخزن التاريخ فقط (سنة-شهر-يوم)، بينما TIMESTAMP يخزن التاريخ والوقت معاً بدقة تصل إلى أجزاء من الثانية.</template>
+          <template class="content-en">DATE stores only the date (year-month-day), whereas TIMESTAMP stores both the date and time, with precision down to fractional seconds.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الغرض من الكلمة المفتاحية CONSTRAINT قبل تعريف المفتاح الأساسي؟</template>
+          <template class="content-en">What is the purpose of the CONSTRAINT keyword before defining a primary key?</template>
+          <span class="content-target">ما هو الغرض من الكلمة المفتاحية CONSTRAINT قبل تعريف المفتاح الأساسي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم لإعطاء اسم مخصص للقيد (مثل EMPPK). هذا الاسم ضروري إذا أردنا لاحقاً تعديل أو حذف هذا القيد باستخدام أمر DROP CONSTRAINT.</template>
+          <template class="content-en">It is used to give a custom name to the constraint (e.g., EMPPK). This name is necessary if we later want to modify or remove the constraint using the DROP CONSTRAINT command.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث إذا لم نحدد خيار ON DELETE لمفتاح أجنبي وحاولنا حذف السجل الأب؟</template>
+          <template class="content-en">What happens if we don't specify an ON DELETE option for a foreign key and try to delete the parent record?</template>
+          <span class="content-target">ماذا يحدث إذا لم نحدد خيار ON DELETE لمفتاح أجنبي وحاولنا حذف السجل الأب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">سيطابق النظام الخيار الافتراضي وهو RESTRICT، مما يعني أنه سيرفض عملية الحذف ويُظهر رسالة خطأ لحماية البيانات المرتبطة.</template>
+          <template class="content-en">The system defaults to RESTRICT, meaning it will reject the deletion and throw an error to protect the related data.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا تخزين ملف صوتي في قاعدة البيانات؟</template>
+          <template class="content-en">How can we store an audio file in the database?</template>
+          <span class="content-target">كيف يمكننا تخزين ملف صوتي في قاعدة البيانات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام نوع البيانات BLOB (Binary Large Object) المخصص لتخزين البيانات الثنائية الكبيرة مثل الصوت والصور والفيديو.</template>
+          <template class="content-en">By using the BLOB (Binary Large Object) data type, which is designed to store large binary data like audio, images, and video.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الاسم الأصلي للغة SQL؟",
+      "en": "What was the original name of SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "SEQUEL (Structured English Query Language)",
+        "en": "SEQUEL (Structured English Query Language)"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي وظيفة DDL؟",
+      "en": "What is the function of DDL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إنشاء المخططات وتحديد أنواع البيانات والقيود.",
+        "en": "Creating schemas and specifying data types and constraints."
+      },
+      "example": {
+        "ar": "CREATE TABLE, CREATE SCHEMA",
+        "en": "CREATE TABLE, CREATE SCHEMA"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو أمر SQL لإنشاء قاعدة بيانات متميزة؟",
+      "en": "What is the SQL command to create a distinct database?"
+    },
+    "back": {
+      "definition": {
+        "ar": "CREATE SCHEMA",
+        "en": "CREATE SCHEMA"
+      },
+      "example": {
+        "ar": "CREATE SCHEMA COMPANY AUTHORIZATION 'Smith';",
+        "en": "CREATE SCHEMA COMPANY AUTHORIZATION 'Smith';"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو الغرض من قيد NOT NULL؟",
+      "en": "What is the purpose of the NOT NULL constraint?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يضمن أن العمود لا يمكن أن يحتوي على قيمة فارغة.",
+        "en": "Ensures that an attribute cannot have a null value."
+      },
+      "example": {
+        "ar": "DNAME VARCHAR(15) NOT NULL",
+        "en": "DNAME VARCHAR(15) NOT NULL"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "كيف يتم تحديد المفتاح الأساسي في CREATE TABLE؟",
+      "en": "How is a primary key specified in CREATE TABLE?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام عبارة PRIMARY KEY.",
+        "en": "Using the PRIMARY KEY phrase."
+      },
+      "example": {
+        "ar": "PRIMARY KEY (DNUMBER)",
+        "en": "PRIMARY KEY (DNUMBER)"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي مشكلة المرجع الدائري (Circular Reference)؟",
+      "en": "What is the Circular Reference problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحدث عندما يحتوي جدولان على مفاتيح أجنبية تشير إلى بعضهما البعض.",
+        "en": "Occurs when two tables have foreign keys pointing to each other."
+      },
+      "example": {
+        "ar": "EMPLOYEE.Dno يشير إلى DEPARTMENT.Dnumber والعكس.",
+        "en": "EMPLOYEE.Dno references DEPARTMENT.Dnumber and vice versa."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف يتم حل مشكلة المرجع الدائري؟",
+      "en": "How is the Circular Reference problem solved?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إنشاء أحد الجداول بدون المفتاح الأجنبي، ثم إضافته لاحقاً باستخدام ALTER TABLE.",
+        "en": "Create one table without the FOREIGN KEY first, then add it later using ALTER TABLE."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ماذا يمثل الحرفان i و j في DECIMAL(i, j)؟",
+      "en": "What do i and j represent in DECIMAL(i, j)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "i هي الدقة (إجمالي الخانات)، و j هو المقياس (الخانات بعد الفاصلة).",
+        "en": "i is precision (total decimal digits), j is scale (digits after decimal point)."
+      },
+      "example": {
+        "ar": "DECIMAL(10,2)",
+        "en": "DECIMAL(10,2)"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما الفرق بين CHAR و VARCHAR؟",
+      "en": "What is the difference between CHAR and VARCHAR?"
+    },
+    "back": {
+      "definition": {
+        "ar": "CHAR ثابت الطول، بينما VARCHAR متغير الطول.",
+        "en": "CHAR is fixed-length, while VARCHAR is variable-length."
+      },
+      "example": {
+        "ar": "CHAR(9) لـ SSN، VARCHAR(15) للاسم.",
+        "en": "CHAR(9) for SSN, VARCHAR(15) for Name."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو نوع البيانات المستخدم لتخزين الصور أو الفيديو في SQL؟",
+      "en": "What data type is used to store images or video in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "BLOB (Binary Large Object)",
+        "en": "BLOB (Binary Large Object)"
+      },
+      "example": {
+        "ar": "BLOB(n)",
+        "en": "BLOB(n)"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو نوع البيانات المستخدم لتخزين المقالات النصية الطويلة؟",
+      "en": "What data type is used to store long text articles?"
+    },
+    "back": {
+      "definition": {
+        "ar": "CLOB (Character Large Object)",
+        "en": "CLOB (Character Large Object)"
+      },
+      "example": {
+        "ar": "CLOB(n)",
+        "en": "CLOB(n)"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو التنسيق القياسي لنوع البيانات DATE؟",
+      "en": "What is the standard format for the DATE data type?"
+    },
+    "back": {
+      "definition": {
+        "ar": "yyyy-mm-dd",
+        "en": "yyyy-mm-dd"
+      },
+      "example": {
+        "ar": "DATE '2010-01-22'",
+        "en": "DATE '2010-01-22'"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو نوع البيانات TIMESTAMP؟",
+      "en": "What is the TIMESTAMP data type?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجمع بين التاريخ (DATE) والوقت (TIME).",
+        "en": "A DATE combined with a TIME."
+      },
+      "example": {
+        "ar": "TIMESTAMP '2010-01-22 15:20:22.123456'",
+        "en": "TIMESTAMP '2010-01-22 15:20:22.123456'"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو نوع البيانات INTERVAL؟",
+      "en": "What is the INTERVAL data type?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يمثل فترة زمنية نسبية (سنة/شهر أو يوم/وقت).",
+        "en": "Represents a relative YEAR/MONTH or DAY/TIME."
+      },
+      "example": {
+        "ar": "2 years and 5 months",
+        "en": "2 years and 5 months"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو الخيار الافتراضي للتكامل المرجعي عند الحذف أو التحديث؟",
+      "en": "What is the default referential integrity option on delete or update?"
+    },
+    "back": {
+      "definition": {
+        "ar": "RESTRICT",
+        "en": "RESTRICT"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ماذا يفعل خيار CASCADE في المفتاح الأجنبي؟",
+      "en": "What does the CASCADE option do in a foreign key?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ينقل عملية الحذف أو التحديث تلقائياً إلى السجلات المرتبطة.",
+        "en": "Automatically propagates the delete or update operation to related records."
+      },
+      "example": {
+        "ar": "ON DELETE CASCADE",
+        "en": "ON DELETE CASCADE"
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "كيف يمكننا إعطاء اسم لقيد (Constraint)؟",
+      "en": "How can we give a name to a constraint?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الكلمة المفتاحية CONSTRAINT قبل تعريف القيد.",
+        "en": "Using the CONSTRAINT keyword before the constraint definition."
+      },
+      "example": {
+        "ar": "CONSTRAINT EMPPK PRIMARY KEY (Ssn)",
+        "en": "CONSTRAINT EMPPK PRIMARY KEY (Ssn)"
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما هي فائدة تسمية القيود؟",
+      "en": "What is the benefit of naming constraints?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح بحذف القيد لاحقاً بسهولة باستخدام DROP.",
+        "en": "Allows the constraint to be easily dropped later using DROP."
+      },
+      "example": {
+        "ar": "DROP CONSTRAINT EMPPK",
+        "en": "DROP CONSTRAINT EMPPK"
+      }
+    }
+  },
+  {
+    "id": 19,
+    "front": {
+      "ar": "ما هي وظيفة جملة CHECK؟",
+      "en": "What is the function of the CHECK clause?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحديد قيود المجال (Domain Constraints) لضمان صحة القيم المدخلة.",
+        "en": "Specifying DOMAIN constraints to ensure valid input values."
+      },
+      "example": {
+        "ar": "CHECK (Dnumber > 0 AND Dnumber < 21)",
+        "en": "CHECK (Dnumber > 0 AND Dnumber < 21)"
+      }
+    }
+  },
+  {
+    "id": 20,
+    "front": {
+      "ar": "كيف ننشئ نوع بيانات مخصص مع قيد يمكن إعادة استخدامه؟",
+      "en": "How do we create a reusable custom data type with a constraint?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام أمر CREATE DOMAIN.",
+        "en": "Using the CREATE DOMAIN statement."
+      },
+      "example": {
+        "ar": "CREATE DOMAIN D_NUM AS INTEGER CHECK (...);",
+        "en": "CREATE DOMAIN D_NUM AS INTEGER CHECK (...);"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الاسم الأصلي للغة SQL عند تطويرها في شركة IBM؟",
+      "en": "What was the original name of SQL when developed at IBM?"
+    },
+    "options": {
+      "ar": [
+        "SEQUEL",
+        "QUEL",
+        "System-R",
+        "DDL"
+      ],
+      "en": [
+        "SEQUEL",
+        "QUEL",
+        "System-R",
+        "DDL"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "تم تسميتها في البداية SEQUEL (Structured English Query Language) قبل تغييرها إلى SQL.",
+      "en": "It was originally called SEQUEL (Structured English Query Language) before being renamed to SQL."
+    },
+    "hint": {
+      "ar": "تبدأ بحرف S وتشبه كلمة Sequence.",
+      "en": "Starts with S and sounds like 'sequel'."
+    },
+    "difficulty": "easy",
+    "conceptId": "sql-overview-history"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من الأوامر التالية يُستخدم لحل مشكلة المرجع الدائري (Circular Reference) بعد إنشاء الجداول؟",
+      "en": "Which of the following commands is used to solve the circular reference problem after creating tables?"
+    },
+    "options": {
+      "ar": [
+        "ALTER TABLE",
+        "DROP TABLE",
+        "CREATE SCHEMA",
+        "UPDATE TABLE"
+      ],
+      "en": [
+        "ALTER TABLE",
+        "DROP TABLE",
+        "CREATE SCHEMA",
+        "UPDATE TABLE"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "يتم إنشاء أحد الجداول بدون المفتاح الأجنبي، ثم يُضاف لاحقاً باستخدام ALTER TABLE.",
+      "en": "One table is created without the foreign key, and it is added later using ALTER TABLE."
+    },
+    "hint": {
+      "ar": "أمر يُستخدم لتعديل هيكل جدول موجود.",
+      "en": "A command used to modify the structure of an existing table."
+    },
+    "difficulty": "medium",
+    "conceptId": "circular-reference-problem"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في نوع البيانات DECIMAL(i, j)، ماذا يمثل الحرف i؟",
+      "en": "In the DECIMAL(i, j) data type, what does 'i' represent?"
+    },
+    "options": {
+      "ar": [
+        "إجمالي عدد الخانات (الدقة)",
+        "عدد الخانات بعد الفاصلة (المقياس)",
+        "الحد الأقصى للقيمة",
+        "عدد البايتات المحجوزة"
+      ],
+      "en": [
+        "Total number of decimal digits (precision)",
+        "Number of digits after the decimal point (scale)",
+        "Maximum value",
+        "Number of bytes allocated"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الحرف i يمثل الدقة (precision) وهي إجمالي عدد الخانات، بينما j يمثل المقياس (scale).",
+      "en": "The letter 'i' represents precision (total digits), while 'j' represents scale (digits after decimal)."
+    },
+    "hint": {
+      "ar": "يمثل العدد الكلي للأرقام.",
+      "en": "It represents the overall count of digits."
+    },
+    "difficulty": "medium",
+    "conceptId": "sql-data-types"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هو نوع البيانات الأنسب لتخزين ملفات الفيديو أو الصور في قاعدة البيانات؟",
+      "en": "Which data type is most appropriate for storing video or image files in the database?"
+    },
+    "options": {
+      "ar": [
+        "BLOB",
+        "CLOB",
+        "VARCHAR",
+        "BIT"
+      ],
+      "en": [
+        "BLOB",
+        "CLOB",
+        "VARCHAR",
+        "BIT"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "BLOB (Binary Large Object) يُستخدم لتخزين البيانات الثنائية الكبيرة مثل الصور والفيديو.",
+      "en": "BLOB (Binary Large Object) is used to store large binary data like images and video."
+    },
+    "hint": {
+      "ar": "يبدأ بحرف B للبيانات الثنائية (Binary).",
+      "en": "Starts with B for Binary."
+    },
+    "difficulty": "easy",
+    "conceptId": "sql-data-types"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الخيار الافتراضي (Default) للتكامل المرجعي عند عدم تحديده صراحة؟",
+      "en": "What is the default referential integrity option if not explicitly specified?"
+    },
+    "options": {
+      "ar": [
+        "RESTRICT",
+        "CASCADE",
+        "SET NULL",
+        "SET DEFAULT"
+      ],
+      "en": [
+        "RESTRICT",
+        "CASCADE",
+        "SET NULL",
+        "SET DEFAULT"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "RESTRICT هو الخيار الافتراضي، والذي يمنع عملية الحذف أو التحديث إذا كانت هناك سجلات مرتبطة.",
+      "en": "RESTRICT is the default option, which prevents the delete or update operation if related records exist."
+    },
+    "hint": {
+      "ar": "الخيار الذي يمنع العملية.",
+      "en": "The option that prevents the operation."
+    },
+    "difficulty": "medium",
+    "conceptId": "referential-integrity-options"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي من الجمل التالية تُستخدم لإنشاء نوع بيانات مخصص مع قيود يمكن إعادة استخدامه؟",
+      "en": "Which of the following statements is used to create a reusable custom data type with constraints?"
+    },
+    "options": {
+      "ar": [
+        "CREATE DOMAIN",
+        "CREATE TYPE",
+        "CREATE SCHEMA",
+        "ALTER TABLE"
+      ],
+      "en": [
+        "CREATE DOMAIN",
+        "CREATE TYPE",
+        "CREATE SCHEMA",
+        "ALTER TABLE"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "CREATE DOMAIN يُستخدم لإنشاء مجال مخصص (مثل نوع بيانات مع قيد CHECK) يمكن استخدامه في عدة جداول.",
+      "en": "CREATE DOMAIN is used to create a custom domain (like a data type with a CHECK constraint) that can be reused across tables."
+    },
+    "hint": {
+      "ar": "يحتوي على كلمة DOMAIN.",
+      "en": "Contains the word DOMAIN."
+    },
+    "difficulty": "medium",
+    "conceptId": "domain-constraints-check"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هي الفائدة الرئيسية من استخدام الكلمة المفتاحية CONSTRAINT لتسمية القيود؟",
+      "en": "What is the main benefit of using the CONSTRAINT keyword to name constraints?"
+    },
+    "options": {
+      "ar": [
+        "تسهيل حذف القيد لاحقاً باستخدام DROP",
+        "تحسين سرعة الاستعلامات",
+        "تقليل مساحة التخزين",
+        "تشفير البيانات تلقائياً"
+      ],
+      "en": [
+        "Facilitates dropping the constraint later using DROP",
+        "Improves query speed",
+        "Reduces storage space",
+        "Encrypts data automatically"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "إعطاء اسم للقيد يسمح بالإشارة إليه بسهولة عند الحاجة إلى تعديله أو حذفه باستخدام DROP CONSTRAINT.",
+      "en": "Naming a constraint allows it to be easily referenced when it needs to be modified or dropped using DROP CONSTRAINT."
+    },
+    "hint": {
+      "ar": "فكر في كيفية التخلص من القيد إذا لم تعد بحاجة إليه.",
+      "en": "Think about how to get rid of the constraint if you no longer need it."
+    },
+    "difficulty": "medium",
+    "conceptId": "referential-integrity-options"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي نوع بيانات يُستخدم لتمثيل فترة زمنية نسبية (مثل 'سنتين و 5 أشهر')؟",
+      "en": "Which data type is used to represent a relative time period (e.g., '2 years and 5 months')?"
+    },
+    "options": {
+      "ar": [
+        "INTERVAL",
+        "TIMESTAMP",
+        "TIME",
+        "DATE"
+      ],
+      "en": [
+        "INTERVAL",
+        "TIMESTAMP",
+        "TIME",
+        "DATE"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "INTERVAL يمثل فترة زمنية نسبية، بينما TIMESTAMP يمثل نقطة زمنية محددة.",
+      "en": "INTERVAL represents a relative time period, whereas TIMESTAMP represents a specific point in time."
+    },
+    "hint": {
+      "ar": "تعني 'فترة' باللغة الإنجليزية.",
+      "en": "Means 'period' or 'gap'."
+    },
+    "difficulty": "easy",
+    "conceptId": "sql-data-types"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ماذا يحدث عند استخدام خيار ON DELETE CASCADE لمفتاح أجنبي؟",
+      "en": "What happens when using the ON DELETE CASCADE option for a foreign key?"
+    },
+    "options": {
+      "ar": [
+        "يتم حذف السجلات المرتبطة تلقائياً عند حذف السجل الأساسي",
+        "يُمنع حذف السجل الأساسي",
+        "تتحول قيم المفتاح الأجنبي إلى NULL",
+        "تتحول قيم المفتاح الأجنبي إلى القيمة الافتراضية"
+      ],
+      "en": [
+        "Related records are automatically deleted when the parent record is deleted",
+        "Deletion of the parent record is prevented",
+        "Foreign key values are set to NULL",
+        "Foreign key values are set to the default value"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "CASCADE تعني 'تتالي'، أي أن عملية الحذف تنتقل من السجل الأب إلى جميع السجلات الأبناء المرتبطة به.",
+      "en": "CASCADE means the delete operation propagates from the parent record to all related child records."
+    },
+    "hint": {
+      "ar": "تأثير الدومينو.",
+      "en": "Domino effect."
+    },
+    "difficulty": "medium",
+    "conceptId": "referential-integrity-options"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من القيود التالية يمكن استخدامه لضمان أن قيمة عمود الراتب أكبر من 0؟",
+      "en": "Which of the following constraints can be used to ensure that a salary column value is greater than 0?"
+    },
+    "options": {
+      "ar": [
+        "CHECK",
+        "UNIQUE",
+        "NOT NULL",
+        "PRIMARY KEY"
+      ],
+      "en": [
+        "CHECK",
+        "UNIQUE",
+        "NOT NULL",
+        "PRIMARY KEY"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "قيد CHECK يُستخدم لتحديد شرط منطقي يجب أن تستوفيه البيانات المدخلة (مثل CHECK (Salary > 0)).",
+      "en": "The CHECK constraint is used to specify a boolean condition that input data must satisfy (e.g., CHECK (Salary > 0))."
+    },
+    "hint": {
+      "ar": "يتحقق من صحة الشرط.",
+      "en": "Verifies the condition."
+    },
+    "difficulty": "easy",
+    "conceptId": "domain-constraints-check"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">🪤 فخ امتحاني</div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن عدم كتابة ON DELETE يعني أن السجلات المرتبطة ستُحذف تلقائياً. الصحيح أن الخيار الافتراضي هو RESTRICT، والذي سيمنع الحذف ويُظهر خطأ.</template>
+      <template class="content-en">Assuming that omitting ON DELETE means related records will be automatically deleted. The truth is the default is RESTRICT, which prevents deletion and throws an error.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر</div>
+    <div data-bilingual>
+      <template class="content-ar">لحل مشكلة المرجع الدائري (Circular Reference)، لا يمكنك إنشاء كلا الجدولين في نفس الوقت. السر يكمن في إنشاء الجدول الأول بدون المفتاح الأجنبي، إنشاء الجدول الثاني كاملاً، ثم استخدام ALTER TABLE لإضافة المفتاح الأجنبي للجدول الأول.</template>
+      <template class="content-en">To solve the Circular Reference problem, you cannot create both tables simultaneously. The secret is to create the first table without the FK, create the second table fully, then use ALTER TABLE to add the FK to the first table.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي</div>
+    <div data-bilingual>
+      <template class="content-ar">في DECIMAL(i, j)، الحرف i لا يمثل الأرقام قبل الفاصلة، بل يمثل إجمالي عدد الأرقام (الدقة). فمثلاً DECIMAL(5,2) يعني 3 أرقام قبل الفاصلة ورقمين بعدها.</template>
+      <template class="content-en">In DECIMAL(i, j), 'i' does not represent the digits before the decimal point; it represents the total number of digits (precision). For example, DECIMAL(5,2) means 3 digits before and 2 digits after the decimal.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">🪤 فخ امتحاني</div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين BLOB و CLOB. تذكر أن B تعني Binary (للصور والفيديو)، بينما C تعني Character (للنصوص الطويلة).</template>
+      <template class="content-en">Confusing BLOB and CLOB. Remember that B stands for Binary (for images/video), while C stands for Character (for long texts).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M06.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M08.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+</body>
+</html>

@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS350" data-module="8">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استعلامات الاسترجاع الأساسية وتحديث البيانات في SQL · CS350 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- MathJax: Included because concept 4 has a formula -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M07.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-database"></i></div>
+      <span class="module-badge font-display">MOD 8</span>
+      <span class="subject-name">CS350</span>
+    </div>
+    <div class="header-actions">
+      <a href="M09.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#basic-select-statement" class="toc-link" data-bilingual>
+        <template class="content-ar">جملة الاسترجاع الأساسية (SELECT)</template>
+        <template class="content-en">Basic Retrieval Queries (SELECT)</template>
+        <span class="content-target">جملة الاسترجاع الأساسية (SELECT)</span>
+      </a>
+      <a href="#bags-vs-sets" class="toc-link" data-bilingual>
+        <template class="content-ar">الحقائب (Multisets) مقابل المجموعات (Sets)</template>
+        <template class="content-en">Bags (Multisets) versus Sets</template>
+        <span class="content-target">الحقائب (Multisets) مقابل المجموعات (Sets)</span>
+      </a>
+      <a href="#aliasing-and-qualifying" class="toc-link" data-bilingual>
+        <template class="content-ar">الأسماء المستعارة وتأهيل السمات</template>
+        <template class="content-en">Aliasing and Qualifying Attributes</template>
+        <span class="content-target">الأسماء المستعارة وتأهيل السمات</span>
+      </a>
+      <a href="#missing-where-clause" class="toc-link" data-bilingual>
+        <template class="content-ar">غياب شرط WHERE (الضرب الديكارتي)</template>
+        <template class="content-en">Missing WHERE-clause (Cartesian Product)</template>
+        <span class="content-target">غياب شرط WHERE (الضرب الديكارتي)</span>
+      </a>
+      <a href="#set-and-multiset-operations" class="toc-link" data-bilingual>
+        <template class="content-ar">عمليات المجموعات والحقائب</template>
+        <template class="content-en">Set and Multiset Operations in SQL</template>
+        <span class="content-target">عمليات المجموعات والحقائب</span>
+      </a>
+      <a href="#substring-comparison-like" class="toc-link" data-bilingual>
+        <template class="content-ar">مقارنة السلاسل النصية (LIKE)</template>
+        <template class="content-en">Substring Comparison Conditions (LIKE)</template>
+        <span class="content-target">مقارنة السلاسل النصية (LIKE)</span>
+      </a>
+      <a href="#order-by-clause" class="toc-link" data-bilingual>
+        <template class="content-ar">ترتيب النتائج (ORDER BY)</template>
+        <template class="content-en">Ordering Query Results (ORDER BY)</template>
+        <span class="content-target">ترتيب النتائج (ORDER BY)</span>
+      </a>
+      <a href="#update-statements" class="toc-link" data-bilingual>
+        <template class="content-ar">أوامر تحديث البيانات (INSERT, DELETE, UPDATE)</template>
+        <template class="content-en">Data Modification Statements (INSERT, DELETE, UPDATE)</template>
+        <span class="content-target">أوامر تحديث البيانات (INSERT, DELETE, UPDATE)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 8</template>
+      <template class="content-en">Module 8</template>
+      <span class="content-target">الوحدة 8</span>
+    </span> · CS350
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">استعلامات الاسترجاع الأساسية وتحديث البيانات في SQL</h1>
+      <p class="hero-description">تغطي هذه الوحدة استعلامات الاسترجاع الأساسية في SQL، الفرق بين المجموعات (Sets) والحقائب (Bags)، عمليات الدمج، مطابقة الأنماط، بالإضافة إلى أوامر الإدراج والحذف والتحديث.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Basic Retrieval Queries and Update Statements in SQL</h1>
+      <p class="hero-description">This module covers basic SQL retrieval queries, the difference between Sets and Bags, set operations, pattern matching, and INSERT, DELETE, and UPDATE statements.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">قواعد البيانات</span>
+      <span class="tag">SQL</span>
+      <span class="tag">استعلامات</span>
+      <span class="tag">تحديث البيانات</span>
+      <span class="tag">الجبر العلائقي</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Databases</span>
+      <span class="tag">SQL</span>
+      <span class="tag">Queries</span>
+      <span class="tag">Data Manipulation</span>
+      <span class="tag">Relational Algebra</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>كتابة استعلامات SQL لاسترجاع السجلات من قاعدة البيانات.</span></li>
+      <li><span class="obj-icon">✦</span><span>كتابة استعلامات SQL لإدراج سجلات جديدة في الجداول.</span></li>
+      <li><span class="obj-icon">✦</span><span>كتابة استعلامات SQL لحذف السجلات وتحديثها بشكل آمن.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Write SQL queries for retrieval of records.</span></li>
+      <li><span class="obj-icon">✦</span><span>Write SQL queries for inserting records.</span></li>
+      <li><span class="obj-icon">✦</span><span>Write SQL queries for deleting and updating records.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="basic-select-statement" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> جملة الاسترجاع الأساسية (SELECT)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Basic Retrieval Queries (SELECT)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>اللبنة الأساسية في SQL لاستخراج البيانات، وتتكون من تحديد الأعمدة (SELECT)، الجداول (FROM)، والشروط (WHERE).</p></template>
+    <template class="content-en"><p>The core SQL statement for retrieving information, consisting of SELECT, FROM, and WHERE clauses.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>أبسط شكل لجملة SELECT في SQL يُسمى كتلة (SELECT-FROM-WHERE). تحدد قائمة الأعمدة (attribute list) في SELECT البيانات المراد استرجاعها. تحدد قائمة الجداول (table list) في FROM الجداول المطلوبة. ويحدد الشرط (condition) في WHERE التعبيرات المنطقية التي يجب أن تستوفيها السجلات (tuples) ليتم استرجاعها. يمكن أن يحتوي الشرط على <span class="smart-term" data-term-en="Selection Condition" data-ar="شرط الاختيار" data-en-def="A condition that refers to attributes from a single table to filter records.">شروط اختيار (selection conditions)<span class="smart-term-tooltip"></span></span> لجدول واحد، أو <span class="smart-term" data-term-en="Join Condition" data-ar="شرط الربط" data-en-def="A condition that refers to attributes from two tables to combine pairs of records.">شروط ربط (join conditions)<span class="smart-term-tooltip"></span></span> لربط سجلات من جداول متعددة.</p></template>
+    <template class="content-en"><p>The simplest form of the SQL SELECT statement is called a mapping or a SELECT-FROM-WHERE block. The SELECT clause specifies the attribute list to retrieve. The FROM clause specifies the table list required. The WHERE clause specifies the Boolean condition that identifies the tuples to be retrieved. Conditions can be <span class="smart-term" data-term-en="Selection Condition" data-ar="شرط الاختيار" data-en-def="A condition that refers to attributes from a single table to filter records.">selection conditions<span class="smart-term-tooltip"></span></span> (filtering a single table) or <span class="smart-term" data-term-en="Join Condition" data-ar="شرط الربط" data-en-def="A condition that refers to attributes from two tables to combine pairs of records.">join conditions<span class="smart-term-tooltip"></span></span> (combining records from multiple tables).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>ترتيب التنفيذ الفعلي في محرك قاعدة البيانات يختلف عن ترتيب الكتابة؛ حيث يتم تقييم FROM أولاً لتحديد المصادر، ثم WHERE لتصفية السجلات، وأخيراً SELECT لتحديد الأعمدة المطلوبة. هذا يفسر لماذا لا يمكن استخدام الأسماء المستعارة المحددة في SELECT داخل جملة WHERE.</p></template>
+    <template class="content-en"><p>The logical execution order differs from the written order: FROM is evaluated first, then WHERE, and finally SELECT. This explains why aliases defined in the SELECT clause cannot be used in the WHERE clause.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT FNAME, LNAME, ADDRESS FROM EMPLOYEE, DEPARTMENT WHERE DNAME='Research' AND DNUMBER=DNO;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A flowchart showing the execution of a SELECT-FROM-WHERE block. Three boxes connected by arrows. Top box: 'FROM (Table Selection)', Middle box: 'WHERE (Row Filtering)', Bottom box: 'SELECT (Column Projection)'. Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, sans-serif">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Table Icon Clip Path -->
+    <clipPath id="table-clip">
+      <rect x="0" y="0" width="60" height="45" rx="3" />
+    </clipPath>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="35" font-size="22" font-weight="bold" fill="currentColor" text-anchor="middle">
+    SQL Execution Order <tspan font-weight="normal" font-size="20" fill="var(--text-secondary)">/ ترتيب تنفيذ SQL</tspan>
+  </text>
+
+  <!-- ========================================== -->
+  <!-- STEP 1: FROM                               -->
+  <!-- ========================================== -->
+  
+  <!-- Connecting Dashed Lines -->
+  <line x1="180" y1="105" x2="214" y2="105" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1.5"/>
+  <line x1="570" y1="105" x2="585" y2="105" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1.5"/>
+
+  <!-- Table Icon 1 (FROM) -->
+  <g transform="translate(120, 82.5)">
+    <g clip-path="url(#table-clip)">
+      <rect x="0" y="0" width="60" height="45" fill="var(--bg-elevated)"/>
+      <rect x="0" y="0" width="60" height="45" fill="var(--brand-500)" opacity="0.1"/>
+      <!-- Grid Lines -->
+      <line x1="0" y1="15" x2="60" y2="15" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="0" y1="30" x2="60" y2="30" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="20" y1="0" x2="20" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="40" y1="0" x2="40" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+    </g>
+    <rect x="0" y="0" width="60" height="45" rx="3" stroke="var(--border-color)" fill="none" stroke-width="1.5"/>
+  </g>
+
+  <!-- Main Box 1 -->
+  <rect x="230" y="70" width="340" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  
+  <!-- Step Number 1 -->
+  <circle cx="230" cy="105" r="16" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="230" y="110" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">1</text>
+
+  <!-- Box 1 Text -->
+  <text x="400" y="100" font-size="18" font-weight="bold" fill="currentColor" text-anchor="middle">
+    FROM <tspan font-weight="normal" font-size="16" fill="var(--text-secondary)">(Table Selection)</tspan>
+  </text>
+  <text x="400" y="124" font-size="15" fill="var(--text-secondary)" text-anchor="middle">اختيار الجداول</text>
+
+  <!-- Right Explanatory Text 1 -->
+  <text x="595" y="100" font-size="14" font-weight="500" fill="currentColor" text-anchor="start">Identify source tables</text>
+  <text x="595" y="120" font-size="13" fill="var(--text-secondary)" text-anchor="start">تحديد الجداول المصدر</text>
+
+
+  <!-- ========================================== -->
+  <!-- ARROW 1 (FROM -> WHERE)                    -->
+  <!-- ========================================== -->
+  <circle cx="400" cy="140" r="3" fill="var(--brand-500)"/>
+  <line x1="400" y1="140" x2="400" y2="182" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+
+  <!-- ========================================== -->
+  <!-- STEP 2: WHERE                              -->
+  <!-- ========================================== -->
+  
+  <!-- Connecting Dashed Lines -->
+  <line x1="180" y1="225" x2="214" y2="225" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1.5"/>
+  <line x1="570" y1="225" x2="585" y2="225" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1.5"/>
+
+  <!-- Table Icon 2 (WHERE) -->
+  <g transform="translate(120, 202.5)">
+    <g clip-path="url(#table-clip)">
+      <rect x="0" y="0" width="60" height="45" fill="var(--bg-elevated)"/>
+      <!-- Highlighted Row -->
+      <rect x="0" y="15" width="60" height="15" fill="var(--brand-500)" opacity="0.25"/>
+      <!-- Grid Lines -->
+      <line x1="0" y1="15" x2="60" y2="15" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="0" y1="30" x2="60" y2="30" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="20" y1="0" x2="20" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="40" y1="0" x2="40" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+    </g>
+    <rect x="0" y="0" width="60" height="45" rx="3" stroke="var(--border-color)" fill="none" stroke-width="1.5"/>
+    <!-- Crossed out row -->
+    <line x1="5" y1="37.5" x2="55" y2="37.5" stroke="var(--text-muted)" stroke-width="1.5" opacity="0.8"/>
+  </g>
+
+  <!-- Main Box 2 -->
+  <rect x="230" y="190" width="340" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  
+  <!-- Step Number 2 -->
+  <circle cx="230" cy="225" r="16" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="230" y="230" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">2</text>
+
+  <!-- Box 2 Text -->
+  <text x="400" y="220" font-size="18" font-weight="bold" fill="currentColor" text-anchor="middle">
+    WHERE <tspan font-weight="normal" font-size="16" fill="var(--text-secondary)">(Row Filtering)</tspan>
+  </text>
+  <text x="400" y="244" font-size="15" fill="var(--text-secondary)" text-anchor="middle">تصفية الصفوف</text>
+
+  <!-- Right Explanatory Text 2 -->
+  <text x="595" y="220" font-size="14" font-weight="500" fill="currentColor" text-anchor="start">Filter rows by condition</text>
+  <text x="595" y="240" font-size="13" fill="var(--text-secondary)" text-anchor="start">تصفية الصفوف حسب الشرط</text>
+
+
+  <!-- ========================================== -->
+  <!-- ARROW 2 (WHERE -> SELECT)                  -->
+  <!-- ========================================== -->
+  <circle cx="400" cy="260" r="3" fill="var(--brand-500)"/>
+  <line x1="400" y1="260" x2="400" y2="302" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+
+  <!-- ========================================== -->
+  <!-- STEP 3: SELECT                             -->
+  <!-- ========================================== -->
+  
+  <!-- Connecting Dashed Lines -->
+  <line x1="180" y1="345" x2="214" y2="345" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1.5"/>
+  <line x1="570" y1="345" x2="585" y2="345" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1.5"/>
+
+  <!-- Table Icon 3 (SELECT) -->
+  <g transform="translate(120, 322.5)">
+    <g clip-path="url(#table-clip)">
+      <rect x="0" y="0" width="60" height="45" fill="var(--bg-elevated)"/>
+      <!-- Highlighted Columns -->
+      <rect x="0" y="0" width="20" height="45" fill="var(--brand-500)" opacity="0.25"/>
+      <rect x="40" y="0" width="20" height="45" fill="var(--brand-500)" opacity="0.25"/>
+      <!-- Grid Lines -->
+      <line x1="0" y1="15" x2="60" y2="15" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="0" y1="30" x2="60" y2="30" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="20" y1="0" x2="20" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="40" y1="0" x2="40" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+    </g>
+    <rect x="0" y="0" width="60" height="45" rx="3" stroke="var(--border-color)" fill="none" stroke-width="1.5"/>
+  </g>
+
+  <!-- Main Box 3 -->
+  <rect x="230" y="310" width="340" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  
+  <!-- Step Number 3 -->
+  <circle cx="230" cy="345" r="16" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="230" y="350" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">3</text>
+
+  <!-- Box 3 Text -->
+  <text x="400" y="340" font-size="18" font-weight="bold" fill="currentColor" text-anchor="middle">
+    SELECT <tspan font-weight="normal" font-size="16" fill="var(--text-secondary)">(Column Projection)</tspan>
+  </text>
+  <text x="400" y="364" font-size="15" fill="var(--text-secondary)" text-anchor="middle">إسقاط / اختيار الأعمدة</text>
+
+  <!-- Right Explanatory Text 3 -->
+  <text x="595" y="340" font-size="14" font-weight="500" fill="currentColor" text-anchor="start">Project specific columns</text>
+  <text x="595" y="360" font-size="13" fill="var(--text-secondary)" text-anchor="start">إسقاط / اختيار أعمدة محددة</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نعتبر جملة SELECT في SQL مختلفة عن عملية SELECT في الجبر العلائقي؟</template>
+      <template class="content-en">Why is the SQL SELECT statement considered different from the SELECT operation in relational algebra?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في الجبر العلائقي، عملية SELECT (سيجما) تقوم بتصفية الصفوف فقط (مثل WHERE في SQL)، بينما عملية PROJECT (باي) تحدد الأعمدة. جملة SELECT في SQL تدمج كلا العمليتين معاً.</p></template>
+      <template class="content-en"><p>In relational algebra, SELECT (sigma) filters rows (like SQL's WHERE), and PROJECT (pi) selects columns. SQL's SELECT statement combines both operations.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="bags-vs-sets" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الحقائب (Multisets) مقابل المجموعات (Sets)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Bags (Multisets) versus Sets</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>في SQL، الجداول هي حقائب (Bags) تسمح بتكرار السجلات، وليست مجموعات رياضية صارمة (Sets) تمنع التكرار.</p></template>
+    <template class="content-en"><p>In SQL, tables are bags (multisets) that allow duplicate tuples, unlike strict mathematical sets which do not.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يوجد تمييز مهم بين نموذج SQL العملي والنموذج العلائقي الرسمي. يسمح SQL للجدول (العلاقة) باحتواء سجلين أو أكثر متطابقين في جميع قيم السمات. لذلك، علاقة SQL هي <span class="smart-term" data-term-en="Multiset (Bag)" data-ar="حقيبة (مجموعة متعددة)" data-en-def="A collection of elements where an element may appear more than once, and order is irrelevant.">حقيبة (Bag أو Multiset)<span class="smart-term-tooltip"></span></span> وليست مجموعة (Set). الحقيبة تشبه المجموعة ولكن يمكن أن يظهر العنصر أكثر من مرة، والترتيب فيها غير مهم. يمكن إجبار علاقات SQL لتكون مجموعات عن طريق تحديد PRIMARY KEY أو UNIQUE، أو باستخدام <span class="smart-term" data-term-en="DISTINCT" data-ar="الكلمة المفتاحية DISTINCT" data-en-def="An SQL keyword used to eliminate duplicate tuples in a query result.">الكلمة المفتاحية DISTINCT<span class="smart-term-tooltip"></span></span> في الاستعلام.</p></template>
+    <template class="content-en"><p>There is an important distinction between the practical SQL model and the formal relational model. SQL allows a table to have two or more tuples that are identical in all their attribute values. Hence, an SQL relation is a <span class="smart-term" data-term-en="Multiset (Bag)" data-ar="حقيبة (مجموعة متعددة)" data-en-def="A collection of elements where an element may appear more than once, and order is irrelevant.">multi-set (bag)<span class="smart-term-tooltip"></span></span> of tuples, not a set. A bag is like a set, but an element may appear more than once (order is irrelevant). SQL relations can be constrained to be sets by specifying PRIMARY KEY or UNIQUE attributes, or by using the <span class="smart-term" data-term-en="DISTINCT" data-ar="الكلمة المفتاحية DISTINCT" data-en-def="An SQL keyword used to eliminate duplicate tuples in a query result.">DISTINCT<span class="smart-term-tooltip"></span></span> option in a query.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تم تصميم SQL للعمل بالحقائب بدلاً من المجموعات لأسباب تتعلق بالأداء. إزالة التكرارات (لتحويل النتيجة إلى مجموعة) تتطلب عملية فرز (Sorting) مكلفة جداً من حيث الموارد. لذلك، يترك SQL قرار إزالة التكرارات للمبرمج باستخدام DISTINCT فقط عند الحاجة.</p></template>
+    <template class="content-en"><p>SQL was designed to use bags instead of sets for performance reasons. Eliminating duplicates (to enforce set semantics) requires sorting the result, which is computationally expensive. SQL leaves the choice to the developer to use DISTINCT only when necessary.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT SALARY FROM EMPLOYEE; -- Returns a Bag (duplicates allowed)
+SELECT DISTINCT SALARY FROM EMPLOYEE; -- Returns a Set (no duplicates)</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Sets (المجموعات)</th>
+        <th>Bags / Multisets (الحقائب)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">التكرار</template><template class="content-en">Duplicates</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">غير مسموح</template><template class="content-en">Not allowed</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">مسموح</template><template class="content-en">Allowed</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">النموذج المستخدم</template><template class="content-en">Model Used In</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">النموذج العلائقي الرسمي</template><template class="content-en">Formal Relational Model</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">نموذج SQL العملي</template><template class="content-en">Practical SQL Model</template><span class="content-target"></span></td>
+      </tr>
+      <tr>
+        <td data-bilingual><template class="content-ar">الأداء (بدون فهارس)</template><template class="content-en">Performance (Unindexed)</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">بطيء (يتطلب فرز لإزالة التكرار)</template><template class="content-en">Slow (requires sorting to remove duplicates)</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">سريع</template><template class="content-en">Fast</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل {A, B, A} تساوي {B, A, A} كحقائب؟ وهل تساوي [A, B, A] كقوائم؟</template>
+      <template class="content-en">Does {A, B, A} equal {B, A, A} as bags? Does it equal [A, B, A] as lists?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، متساويتان كحقائب لأن الترتيب غير مهم. لكن كقوائم (Lists)، [A, B, A] لا تساوي [B, A, A] لأن الترتيب مهم في القوائم.</p></template>
+      <template class="content-en"><p>Yes, they are equal as bags because order is irrelevant. However, as lists, [A, B, A] is not equal to [B, A, A] because order matters in lists.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="aliasing-and-qualifying" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الأسماء المستعارة وتأهيل السمات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Aliasing and Qualifying Attributes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>استخدام اسم الجدول أو اسم مستعار (Alias) قبل اسم العمود لمنع الغموض، خاصة عند استخدام نفس اسم العمود في جداول مختلفة أو عند ربط الجدول بنفسه.</p></template>
+    <template class="content-en"><p>Prefixing attribute names with table names or aliases to resolve ambiguity, especially in self-joins or when tables share column names.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في SQL، يجب أن تكون جميع أسماء السمات في جدول معين مختلفة، ولكن يمكن استخدام نفس الاسم في جداول مختلفة. في هذه الحالة، يجب تأهيل (Qualify) اسم السمة باستخدام اسم الجدول (مثل EMPLOYEE.LNAME). لتبسيط الاستعلامات، يمكن استخدام <span class="smart-term" data-term-en="Alias (Tuple Variable)" data-ar="اسم مستعار (متغير السجل)" data-en-def="A temporary name assigned to a table in a query to simplify syntax or allow self-joins.">الأسماء المستعارة (Aliases أو Tuple Variables)<span class="smart-term-tooltip"></span></span> باستخدام الكلمة المفتاحية AS. تعتبر الأسماء المستعارة ضرورية جداً عندما يحتاج الاستعلام إلى الإشارة لنفس الجدول مرتين (Self-Join)، حيث تعمل الأسماء المستعارة كنسخ مختلفة من نفس الجدول.</p></template>
+    <template class="content-en"><p>In SQL, attribute names within a table must be unique, but the same name can be used across different tables. When this happens, attributes must be qualified with the table name (e.g., EMPLOYEE.LNAME). To simplify, <span class="smart-term" data-term-en="Alias (Tuple Variable)" data-ar="اسم مستعار (متغير السجل)" data-en-def="A temporary name assigned to a table in a query to simplify syntax or allow self-joins.">aliases (tuple variables)<span class="smart-term-tooltip"></span></span> can be used via the AS keyword. Aliases are strictly required when a query refers to the same relation twice (a self-join), acting as different copies of the table (e.g., one for supervisors, one for subordinates).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الأسماء المستعارة (Tuple Variables) ترتبط بمفهوم حساب التفاضل والتكامل العلائقي (Relational Calculus)، حيث يمثل المتغير صفاً (Tuple) يمر عبر جميع صفوف الجدول لتقييم الشروط.</p></template>
+    <template class="content-en"><p>Tuple variables (aliases) stem from Tuple Relational Calculus, where the variable iterates over all tuples in the relation to evaluate the query predicate.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT E.FNAME, S.FNAME FROM EMPLOYEE AS E, EMPLOYEE AS S WHERE E.SUPERSSN = S.SSN;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا قمنا بربط جدول EMPLOYEE بنفسه دون استخدام الأسماء المستعارة؟</template>
+      <template class="content-en">What happens if we join the EMPLOYEE table to itself without using aliases?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيرفض محرك قاعدة البيانات الاستعلام بسبب الغموض (Ambiguity)، حيث لن يتمكن من التمييز بين النسختين من نفس الجدول عند الإشارة إلى الأعمدة.</p></template>
+      <template class="content-en"><p>The database engine will reject the query due to ambiguity, as it cannot distinguish between the two instances of the table when referencing columns.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="missing-where-clause" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> غياب شرط WHERE (الضرب الديكارتي)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Missing WHERE-clause (Cartesian Product)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نسيان جملة WHERE عند الاستعلام من جداول متعددة يؤدي إلى دمج كل صف من الجدول الأول مع كل صف من الجدول الثاني (<span class="smart-term" data-term-en="Cartesian Product" data-ar="الضرب الديكارتي" data-en-def="A mathematical operation that returns a set from multiple sets, combining every element of the first with every element of the second.">الضرب الديكارتي<span class="smart-term-tooltip"></span></span>).</p></template>
+    <template class="content-en"><p>Omitting the WHERE clause when querying multiple tables joins every row of the first table with every row of the second (<span class="smart-term" data-term-en="Cartesian Product" data-ar="الضرب الديكارتي" data-en-def="A mathematical operation that returns a set from multiple sets, combining every element of the first with every element of the second.">Cartesian Product<span class="smart-term-tooltip"></span></span>).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>جملة WHERE اختيارية في SQL. إذا كانت مفقودة، فهذا يعني عدم وجود شروط (يكافئ WHERE TRUE)، ويتم تحديد جميع السجلات. إذا تم تحديد أكثر من جدول في جملة FROM ولم يكن هناك شرط WHERE (أي لا توجد شروط ربط)، فسيتم دمج جميع المجموعات الممكنة من السجلات معاً. يُعرف هذا بـ <span class="smart-term" data-term-en="Cartesian Product" data-ar="الضرب الديكارتي" data-en-def="A mathematical operation that returns a set from multiple sets, combining every element of the first with every element of the second.">الضرب الديكارتي (Cartesian Product)<span class="smart-term-tooltip"></span></span>. من المهم جداً عدم إغفال شروط الربط لتجنب نتائج استعلام غير صحيحة وضخمة جداً.</p></template>
+    <template class="content-en"><p>The WHERE clause is optional. A missing WHERE clause indicates no condition (equivalent to WHERE TRUE), selecting all tuples. If multiple relations are specified in the FROM clause without a WHERE clause (no join conditions), all possible combinations of tuples are joined together. This is known as the <span class="smart-term" data-term-en="Cartesian Product" data-ar="الضرب الديكارتي" data-en-def="A mathematical operation that returns a set from multiple sets, combining every element of the first with every element of the second.">CARTESIAN PRODUCT<span class="smart-term-tooltip"></span></span>. It is extremely important not to overlook join conditions to avoid incorrect and massive query results.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الضرب الديكارتي ينمو بشكل أسي. إذا كان الجدول الأول يحتوي على 1000 صف والثاني 1000 صف، فإن النتيجة ستكون مليون صف. هذا يمكن أن يؤدي إلى استنفاد ذاكرة الخادم (OOM) أو إبطاء الشبكة بشكل كبير.</p></template>
+    <template class="content-en"><p>Cartesian products grow exponentially. If table A has 1,000 rows and table B has 1,000 rows, the result is 1,000,000 rows. This can lead to Out-Of-Memory (OOM) errors or severe network congestion.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حجم الضرب الديكارتي يساوي عدد صفوف الجدول الأول مضروباً في عدد صفوف الجدول الثاني.</strong></template>
+      <template class="content-en"><strong>The size of the Cartesian product is the number of rows in table A multiplied by the number of rows in table B.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$|A \times B| = |A| \times |B|$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT SSN, DNAME FROM EMPLOYEE, DEPARTMENT; -- DANGER: Cartesian Product</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون الضرب الديكارتي مقصوداً ومفيداً في قواعد البيانات؟</template>
+      <template class="content-en">When is a Cartesian Product intentional and useful in databases?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نادر جداً، ولكن قد يُستخدم لإنشاء بيانات اختبارية ضخمة، أو لإنشاء جدول يمثل جميع التوافيق الممكنة (مثل جميع الألوان مع جميع الأحجام لمنتج معين).</p></template>
+      <template class="content-en"><p>Very rarely, but it can be used to generate massive test data, or to create a matrix of all possible combinations (e.g., all colors matched with all sizes for a product).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="set-and-multiset-operations" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> عمليات المجموعات والحقائب</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Set and Multiset Operations in SQL</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>عمليات تدمج نتائج استعلامين: UNION (اتحاد)، INTERSECT (تقاطع)، EXCEPT (فرق). الإصدارات العادية تزيل التكرار، وإصدارات ALL تحتفظ به.</p></template>
+    <template class="content-en"><p>Operations combining two query results: UNION, INTERSECT, EXCEPT. Standard versions remove duplicates; ALL versions keep them.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يدمج SQL عمليات المجموعات مباشرة: UNION، EXCEPT (أو MINUS)، و INTERSECT. نتائج هذه العمليات هي مجموعات (Sets) من السجلات، حيث يتم إزالة التكرارات تلقائياً. يجب أن تكون الجداول <span class="smart-term" data-term-en="Type Compatible (Union Compatible)" data-ar="متوافق نوعياً (متوافق للاتحاد)" data-en-def="Two relations that have the same number of attributes, and corresponding attributes have the same domain/type.">متوافقة نوعياً (Type Compatible أو Union Compatible)<span class="smart-term-tooltip"></span></span>، أي لها نفس أنواع السمات وبنفس الترتيب. إذا أراد المستخدم الاحتفاظ بالتكرارات (التعامل كحقائب)، يمكنه استخدام عمليات الحقائب: <span class="smart-term" data-term-en="UNION ALL" data-ar="الاتحاد الشامل (مع التكرار)" data-en-def="A multiset operation that combines two query results and retains all duplicate tuples.">UNION ALL<span class="smart-term-tooltip"></span></span>، EXCEPT ALL، و INTERSECT ALL.</p></template>
+    <template class="content-en"><p>SQL incorporates set operations: UNION, EXCEPT (or MINUS), and INTERSECT. The results of these operations are sets of tuples; duplicate tuples are eliminated. The operations apply only to <span class="smart-term" data-term-en="Type Compatible (Union Compatible)" data-ar="متوافق نوعياً (متوافق للاتحاد)" data-en-def="Two relations that have the same number of attributes, and corresponding attributes have the same domain/type.">type-compatible (union-compatible)<span class="smart-term-tooltip"></span></span> relations, meaning they must have the same attribute types in the same order. If duplicates are desired, SQL provides multiset operations: <span class="smart-term" data-term-en="UNION ALL" data-ar="الاتحاد الشامل (مع التكرار)" data-en-def="A multiset operation that combines two query results and retains all duplicate tuples.">UNION ALL<span class="smart-term-tooltip"></span></span>, EXCEPT ALL, and INTERSECT ALL.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام UNION ALL أسرع بكثير من UNION لأنه لا يتطلب خطوة الفرز (Sorting) لإزالة التكرارات. كقاعدة عامة في تحسين الأداء، استخدم UNION ALL دائماً إلا إذا كنت متأكداً من حاجتك لإزالة التكرارات.</p></template>
+    <template class="content-en"><p>UNION ALL is significantly faster than UNION because it skips the sorting step required for duplicate elimination. As a performance best practice, always use UNION ALL unless duplicate removal is strictly necessary.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>(SELECT PNAME FROM PROJECT, DEPARTMENT, EMPLOYEE WHERE DNUM=DNUMBER AND MGRSSN=SSN AND LNAME='Smith') UNION (SELECT PNAME FROM PROJECT, WORKS_ON, EMPLOYEE WHERE PNUMBER=PNO AND ESSN=SSN AND LNAME='Smith');</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Venn diagrams illustrating UNION, INTERSECT, and EXCEPT. Three separate pairs of overlapping circles. First pair shaded completely (UNION). Second pair shaded only in the intersection (INTERSECT). Third pair shaded only in the left circle excluding the intersection (EXCEPT). Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 300, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 400" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, -apple-system, sans-serif;">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+        <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+            <circle cx="5" cy="5" r="3" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Section Dividers -->
+    <g id="dividers" stroke="var(--border-color)" stroke-dasharray="4 4" opacity="0.6">
+        <line x1="266" y1="30" x2="266" y2="370" />
+        <line x1="533" y1="30" x2="533" y2="370" />
+    </g>
+
+    <!-- Titles -->
+    <g id="titles" text-anchor="middle">
+        <!-- UNION -->
+        <text x="135" y="35" font-size="20" font-weight="bold" fill="currentColor" letter-spacing="1">UNION</text>
+        <text x="135" y="60" font-size="16" fill="var(--text-secondary)" font-weight="500">اتحاد</text>
+        
+        <!-- INTERSECT -->
+        <text x="400" y="35" font-size="20" font-weight="bold" fill="currentColor" letter-spacing="1">INTERSECT</text>
+        <text x="400" y="60" font-size="16" fill="var(--text-secondary)" font-weight="500">تقاطع</text>
+        
+        <!-- EXCEPT -->
+        <text x="665" y="35" font-size="20" font-weight="bold" fill="currentColor" letter-spacing="1">EXCEPT</text>
+        <text x="665" y="60" font-size="16" fill="var(--text-secondary)" font-weight="500">استثناء</text>
+    </g>
+
+    <!-- Venn Diagrams -->
+    <g id="diagrams">
+        <!-- 1. UNION Base Circles -->
+        <circle cx="105" cy="140" r="60" fill="var(--bg-elevated)" />
+        <circle cx="165" cy="140" r="60" fill="var(--bg-elevated)" />
+        
+        <!-- 2. INTERSECT Base Circles -->
+        <circle cx="370" cy="140" r="60" fill="var(--bg-elevated)" />
+        <circle cx="430" cy="140" r="60" fill="var(--bg-elevated)" />
+        
+        <!-- 3. EXCEPT Base Circles -->
+        <circle cx="635" cy="140" r="60" fill="var(--bg-elevated)" />
+        <circle cx="695" cy="140" r="60" fill="var(--bg-elevated)" />
+
+        <!-- Shaded Regions -->
+        <g fill="var(--brand-500)" opacity="0.4">
+            <!-- UNION: Both circles combined -->
+            <path d="M 135 88.04 A 60 60 0 1 0 135 191.96 A 60 60 0 1 0 135 88.04 Z" />
+            
+            <!-- INTERSECT: Overlap only -->
+            <path d="M 400 88.04 A 60 60 0 0 1 400 191.96 A 60 60 0 0 1 400 88.04 Z" />
+            
+            <!-- EXCEPT: Left circle minus right circle -->
+            <path d="M 665 88.04 A 60 60 0 1 0 665 191.96 A 60 60 0 0 1 665 88.04 Z" />
+        </g>
+
+        <!-- Circle Strokes (Drawn over shaded regions for clean borders) -->
+        <g fill="none" stroke="var(--border-color)" stroke-width="2">
+            <circle cx="105" cy="140" r="60" />
+            <circle cx="165" cy="140" r="60" />
+            <circle cx="370" cy="140" r="60" />
+            <circle cx="430" cy="140" r="60" />
+            <circle cx="635" cy="140" r="60" />
+            <circle cx="695" cy="140" r="60" />
+        </g>
+
+        <!-- Table Labels (A and B) -->
+        <g text-anchor="middle" font-size="22" font-weight="bold" fill="currentColor">
+            <text x="90" y="147">A</text>
+            <text x="180" y="147">B</text>
+            
+            <text x="355" y="147">A</text>
+            <text x="445" y="147">B</text>
+            
+            <text x="620" y="147">A</text>
+            <text x="710" y="147">B</text>
+        </g>
+    </g>
+
+    <!-- Explanations -->
+    <g id="explanations" text-anchor="middle">
+        <!-- UNION -->
+        <text x="135" y="235" font-size="14" fill="currentColor" font-weight="500">All unique rows from both</text>
+        <text x="135" y="255" font-size="13" fill="var(--text-muted)">جميع الصفوف من كلا الجدولين</text>
+        
+        <!-- INTERSECT -->
+        <text x="400" y="235" font-size="14" fill="currentColor" font-weight="500">Common rows only</text>
+        <text x="400" y="255" font-size="13" fill="var(--text-muted)">الصفوف المشتركة فقط</text>
+        
+        <!-- EXCEPT -->
+        <text x="665" y="235" font-size="14" fill="currentColor" font-weight="500">Rows in A, but not in B</text>
+        <text x="665" y="255" font-size="13" fill="var(--text-muted)">موجودة في أ وليس في ب</text>
+    </g>
+
+    <!-- Arrows pointing to diagrams -->
+    <g id="arrows" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-start="url(#dot)" marker-end="url(#arrow)">
+        <path d="M 135 215 L 135 180" />
+        <path d="M 400 215 L 400 180" />
+        <path d="M 665 215 Q 665 185 615 175" />
+    </g>
+
+    <!-- SQL Code Blocks -->
+    <g id="code-blocks">
+        <!-- UNION Code -->
+        <text x="15" y="284" font-size="11" fill="var(--text-muted)" font-weight="bold" letter-spacing="1">SQL</text>
+        <rect x="15" y="290" width="240" height="54" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+        <text x="30" y="314" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13">
+            <tspan fill="var(--brand-500)" font-weight="bold">SELECT</tspan>
+            <tspan fill="var(--text-secondary)"> * </tspan>
+            <tspan fill="var(--brand-500)" font-weight="bold">FROM</tspan>
+            <tspan fill="currentColor"> A</tspan>
+        </text>
+        <text x="30" y="334" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13">
+            <tspan fill="var(--brand-500)" font-weight="bold">UNION SELECT</tspan>
+            <tspan fill="var(--text-secondary)"> * </tspan>
+            <tspan fill="var(--brand-500)" font-weight="bold">FROM</tspan>
+            <tspan fill="currentColor"> B</tspan>
+        </text>
+
+        <!-- INTERSECT Code -->
+        <text x="280" y="284" font-size="11" fill="var(--text-muted)" font-weight="bold" letter-spacing="1">SQL</text>
+        <rect x="280" y="290" width="240" height="54" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+        <text x="295" y="314" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13">
+            <tspan fill="var(--brand-500)" font-weight="bold">SELECT</tspan>
+            <tspan fill="var(--text-secondary)"> * </tspan>
+            <tspan fill="var(--brand-500)" font-weight="bold">FROM</tspan>
+            <tspan fill="currentColor"> A</tspan>
+        </text>
+        <text x="295" y="334" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13">
+            <tspan fill="var(--brand-500)" font-weight="bold">INTERSECT SELECT</tspan>
+            <tspan fill="var(--text-secondary)"> * </tspan>
+            <tspan fill="var(--brand-500)" font-weight="bold">FROM</tspan>
+            <tspan fill="currentColor"> B</tspan>
+        </text>
+
+        <!-- EXCEPT Code -->
+        <text x="545" y="284" font-size="11" fill="var(--text-muted)" font-weight="bold" letter-spacing="1">SQL</text>
+        <rect x="545" y="290" width="240" height="54" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+        <text x="560" y="314" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13">
+            <tspan fill="var(--brand-500)" font-weight="bold">SELECT</tspan>
+            <tspan fill="var(--text-secondary)"> * </tspan>
+            <tspan fill="var(--brand-500)" font-weight="bold">FROM</tspan>
+            <tspan fill="currentColor"> A</tspan>
+        </text>
+        <text x="560" y="334" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13">
+            <tspan fill="var(--brand-500)" font-weight="bold">EXCEPT SELECT</tspan>
+            <tspan fill="var(--text-secondary)"> * </tspan>
+            <tspan fill="var(--brand-500)" font-weight="bold">FROM</tspan>
+            <tspan fill="currentColor"> B</tspan>
+        </text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Set Operations (UNION, INTERSECT)</th>
+        <th>Multiset Operations (UNION ALL, INTERSECT ALL)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual><template class="content-ar">التعامل مع التكرار</template><template class="content-en">Handling Duplicates</template><span class="content-target"></span></td>
+        <td class="td-bad" data-bilingual><template class="content-ar">يتم إزالة التكرارات</template><template class="content-en">Duplicates are eliminated</template><span class="content-target"></span></td>
+        <td class="td-good" data-bilingual><template class="content-ar">يتم الاحتفاظ بالتكرارات</template><template class="content-en">Duplicates are retained</template><span class="content-target"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان الاستعلام الأول يرجع 5 صفوف، والثاني يرجع 3 صفوف (منها صفان مكرران مع الأول). كم عدد الصفوف الناتجة عن UNION و UNION ALL؟</template>
+      <template class="content-en">If query A returns 5 rows, and query B returns 3 rows (2 of which are duplicates of A). How many rows result from UNION and UNION ALL?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>UNION سيرجع 6 صفوف (5 + 3 - 2 مكرر). UNION ALL سيرجع 8 صفوف (5 + 3).</p></template>
+      <template class="content-en"><p>UNION returns 6 rows (5 + 3 - 2 duplicates). UNION ALL returns 8 rows (5 + 3).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="substring-comparison-like" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> مقارنة السلاسل النصية (LIKE)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Substring Comparison Conditions (LIKE)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>استخدام <span class="smart-term" data-term-en="LIKE Operator" data-ar="المعامل LIKE" data-en-def="An SQL operator used in a WHERE clause to search for a specified pattern in a column.">المعامل LIKE<span class="smart-term-tooltip"></span></span> للبحث عن نصوص جزئية باستخدام الرموز `%` (لأي عدد من الحروف) و `_` (لحرف واحد فقط).</p></template>
+    <template class="content-en"><p>Using the <span class="smart-term" data-term-en="LIKE Operator" data-ar="المعامل LIKE" data-en-def="An SQL operator used in a WHERE clause to search for a specified pattern in a column.">LIKE operator<span class="smart-term-tooltip"></span></span> to search for partial strings with <span class="smart-term" data-term-en="Wildcard" data-ar="حرف البدل (الرمز العشوائي)" data-en-def="A special character used to substitute one or more characters in a string.">wildcards<span class="smart-term-tooltip"></span></span> `%` (any number of characters) and `_` (exactly one character).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُستخدم معامل المقارنة LIKE لمقارنة السلاسل النصية الجزئية. يتم استخدام حرفين محجوزين (<span class="smart-term" data-term-en="Wildcard" data-ar="حرف البدل (الرمز العشوائي)" data-en-def="A special character used to substitute one or more characters in a string.">Wildcards<span class="smart-term-tooltip"></span></span>): الرمز `%` (أو `*` في بعض الأنظمة) يحل محل عدد عشوائي من الحروف (صفر أو أكثر)، والرمز `_` يحل محل حرف عشوائي واحد فقط. يسمح هذا المعامل للمستخدمين بتجاوز حقيقة أن كل قيمة في SQL تعتبر ذرية (Atomic) وغير قابلة للتجزئة، مما يتيح البحث داخل النصوص.</p></template>
+    <template class="content-en"><p>The LIKE comparison operator is used to compare partial strings. Two reserved characters are used: '%' (or '*' in some implementations) replaces an arbitrary number of characters, and '_' replaces a single arbitrary character. The LIKE operator allows users to get around the fact that each value is considered atomic and indivisible in SQL, enabling substring searches.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام `%` في بداية النمط (مثل `'%Smith'`) يمنع قاعدة البيانات من استخدام الفهارس (Indexes) العادية، مما يؤدي إلى فحص الجدول بالكامل (Full Table Scan) وبطء الاستعلام. يفضل دائماً تجنب الـ Wildcard في البداية إذا أمكن.</p></template>
+    <template class="content-en"><p>Using a leading wildcard (e.g., `'%Smith'`) prevents the database from using standard B-Tree indexes, resulting in a Full Table Scan and poor performance. It is best practice to avoid leading wildcards when possible.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT FNAME FROM EMPLOYEE WHERE ADDRESS LIKE '%Houston,TX%';
+SELECT FNAME FROM EMPLOYEE WHERE BDATE LIKE '__5_______';</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف تبحث عن نص يحتوي فعلياً على الرمز `%` أو `_` دون أن يعتبره SQL حرف بدل؟</template>
+      <template class="content-en">How do you search for a string that actually contains the '%' or '_' character without SQL treating it as a wildcard?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>باستخدام كلمة ESCAPE لتحديد حرف هروب، مثل: `LIKE '%100!%%' ESCAPE '!'` للبحث عن '100%'.</p></template>
+      <template class="content-en"><p>By using the ESCAPE clause to define an escape character, e.g., `LIKE '%100!%%' ESCAPE '!'` to search for '100%'.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 7 -->
+<section id="order-by-clause" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> ترتيب النتائج (ORDER BY)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Ordering Query Results (ORDER BY)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُستخدم جملة ORDER BY لفرز النتائج <span class="smart-term" data-term-en="ASC" data-ar="تصاعدي" data-en-def="Keyword for ascending order (default in ORDER BY).">تصاعدياً (ASC)<span class="smart-term-tooltip"></span></span> أو <span class="smart-term" data-term-en="DESC" data-ar="تنازلي" data-en-def="Keyword for descending order.">تنازلياً (DESC)<span class="smart-term-tooltip"></span></span> بناءً على عمود واحد أو أكثر.</p></template>
+    <template class="content-en"><p>The ORDER BY clause sorts the query results in ascending (<span class="smart-term" data-term-en="ASC" data-ar="تصاعدي" data-en-def="Keyword for ascending order (default in ORDER BY).">ASC<span class="smart-term-tooltip"></span></span>) or descending (<span class="smart-term" data-term-en="DESC" data-ar="تنازلي" data-en-def="Keyword for descending order.">DESC<span class="smart-term-tooltip"></span></span>) order based on one or more attributes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم جملة ORDER BY لفرز السجلات في نتيجة الاستعلام بناءً على قيم سمة (أو سمات) معينة. الترتيب الافتراضي هو الترتيب التصاعدي (<span class="smart-term" data-term-en="ASC" data-ar="تصاعدي" data-en-def="Keyword for ascending order (default in ORDER BY).">ASC<span class="smart-term-tooltip"></span></span>). يمكننا تحديد الكلمة المفتاحية <span class="smart-term" data-term-en="DESC" data-ar="تنازلي" data-en-def="Keyword for descending order.">DESC<span class="smart-term-tooltip"></span></span> إذا أردنا ترتيباً تنازلياً. بدون ORDER BY، تظهر الصفوف في نتيجة الاستعلام بترتيب عشوائي يحدده النظام. يمكن الترتيب بناءً على أعمدة متعددة، حيث يتم الفرز بالعمود الأول، ثم الثاني في حال التساوي.</p></template>
+    <template class="content-en"><p>The ORDER BY clause is used to sort the tuples in a query result based on the values of some attribute(s). The default order is ascending (<span class="smart-term" data-term-en="ASC" data-ar="تصاعدي" data-en-def="Keyword for ascending order (default in ORDER BY).">ASC<span class="smart-term-tooltip"></span></span>). We can specify the keyword <span class="smart-term" data-term-en="DESC" data-ar="تنازلي" data-en-def="Keyword for descending order.">DESC<span class="smart-term-tooltip"></span></span> for descending order. Without ORDER BY, the rows in a query result appear in some system-determined (random) order. Sorting can be applied to multiple columns sequentially.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>عملية الفرز (Sorting) مكلفة جداً وتستهلك الذاكرة ووقت المعالج. تعتمد قواعد البيانات بشكل كبير على الفهارس (Indexes) لتسريع عمليات ORDER BY دون الحاجة لفرز البيانات فعلياً في الذاكرة.</p></template>
+    <template class="content-en"><p>Sorting is an expensive operation consuming CPU and memory. Databases heavily rely on Indexes to optimize ORDER BY clauses, allowing them to retrieve data pre-sorted without performing an actual in-memory sort.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT DNAME, LNAME FROM DEPARTMENT, EMPLOYEE ORDER BY DNAME ASC, LNAME DESC;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكن استخدام ORDER BY لترتيب النتائج بناءً على عمود غير موجود في جملة SELECT؟</template>
+      <template class="content-en">Can you use ORDER BY to sort results based on a column that is not included in the SELECT clause?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، في معظم أنظمة قواعد البيانات العلائقية (مثل PostgreSQL و MySQL)، يمكنك الفرز بناءً على عمود موجود في الجدول حتى لو لم يتم استرجاعه في النتيجة.</p></template>
+      <template class="content-en"><p>Yes, in most RDBMS (like PostgreSQL and MySQL), you can sort by a column present in the table even if it is not projected in the SELECT clause.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 8 -->
+<section id="update-statements" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> أوامر تحديث البيانات (INSERT, DELETE, UPDATE)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Data Modification Statements (INSERT, DELETE, UPDATE)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الأوامر الثلاثة لتعديل حالة قاعدة البيانات: INSERT لإضافة صفوف، DELETE لحذفها، و UPDATE لتعديل القيم الحالية.</p></template>
+    <template class="content-en"><p>The three commands to modify database state: INSERT adds rows, DELETE removes them, and UPDATE modifies existing values.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك ثلاثة أوامر SQL لتعديل قاعدة البيانات: 1. INSERT: لإضافة سجل أو أكثر. يمكن إدراج القيم مباشرة أو استخراجها من استعلام آخر. 2. DELETE: لإزالة السجلات. يتضمن عادةً شرط WHERE؛ وبدونه يتم حذف جميع السجلات في الجدول. 3. UPDATE: لتعديل قيم السجلات الحالية باستخدام <span class="smart-term" data-term-en="SET Clause" data-ar="جملة SET" data-en-def="The clause in an UPDATE statement that specifies the attributes to be modified and their new values.">جملة SET<span class="smart-term-tooltip"></span></span> لتحديد القيم الجديدة، وجملة WHERE لتحديد السجلات المستهدفة. يتم تطبيق <span class="smart-term" data-term-en="Integrity Constraints" data-ar="قيود التكامل" data-en-def="Rules defined on the database (like foreign keys) that are automatically enforced during updates.">قيود التكامل (Integrity Constraints)<span class="smart-term-tooltip"></span></span> تلقائياً عند تنفيذ هذه الأوامر.</p></template>
+    <template class="content-en"><p>There are three SQL commands to modify the database: 1. INSERT: adds one or more records. Values can be provided explicitly or via a query result. 2. DELETE: removes records. It usually includes a WHERE clause; missing it deletes all tuples. 3. UPDATE: modifies existing records using a <span class="smart-term" data-term-en="SET Clause" data-ar="جملة SET" data-en-def="The clause in an UPDATE statement that specifies the attributes to be modified and their new values.">SET clause<span class="smart-term-tooltip"></span></span> for new values and a WHERE clause to select tuples. <span class="smart-term" data-term-en="Integrity Constraints" data-ar="قيود التكامل" data-en-def="Rules defined on the database (like foreign keys) that are automatically enforced during updates.">Integrity constraints<span class="smart-term-tooltip"></span></span> are automatically enforced during these operations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في جملة UPDATE، عند الإشارة إلى نفس العمود على جانبي علامة التساوي (مثل SALARY = SALARY * 1.1)، فإن القيمة على اليمين تمثل القيمة القديمة قبل التعديل، والقيمة على اليسار تمثل القيمة الجديدة. كما أن عمليات الحذف والتحديث قد تؤدي إلى تأثيرات متتالية (Cascading) إذا كانت هناك قيود مفاتيح أجنبية (Foreign Keys) معدة لذلك.</p></template>
+    <template class="content-en"><p>In an UPDATE statement, when referencing the same attribute on both sides of the '=' (e.g., SALARY = SALARY * 1.1), the right side refers to the old value, and the left side refers to the new value. Furthermore, DELETE and UPDATE operations can trigger cascading effects if foreign key constraints (like ON DELETE CASCADE) are defined.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>SQL</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>INSERT INTO EMPLOYEE (FNAME, LNAME, SSN) VALUES ('Richard', 'Marini', '653298653');
+DELETE FROM EMPLOYEE WHERE DNO = 5;
+UPDATE EMPLOYEE SET SALARY = SALARY * 1.1 WHERE DNO = 5;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو الخطر الأكبر عند كتابة أمر DELETE أو UPDATE؟</template>
+      <template class="content-en">What is the biggest risk when writing a DELETE or UPDATE statement?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نسيان جملة WHERE. بدونها، سيتم حذف أو تحديث جميع السجلات في الجدول بالكامل، مما قد يؤدي إلى كارثة في البيانات.</p></template>
+      <template class="content-en"><p>Forgetting the WHERE clause. Without it, the operation will delete or update every single record in the table, potentially causing a data disaster.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي البيانات. في هذه الوحدة، ننتقل من تصميم قواعد البيانات إلى التحدث معها فعلياً باستخدام SQL. تخيل أن قاعدة البيانات هي مستودع ضخم؛ جملة SELECT هي طريقتك لطلب بضاعة محددة. تذكر دائماً أن SQL يتعامل مع البيانات كـ 'حقائب' (Bags) تسمح بالتكرار لتوفير الوقت، وعليك استخدام DISTINCT إذا أردت تصفية النسخ المكررة. احذروا من الفخ الأكبر: نسيان جملة WHERE! في الاسترجاع، سيؤدي ذلك إلى ضرب ديكارتي يغرق الشاشة بالبيانات، وفي التحديث (UPDATE) أو الحذف (DELETE)، سيؤدي إلى تدمير بيانات الجدول بالكامل. ركزوا على فهم كيفية ربط الجداول باستخدام الأسماء المستعارة (Aliases)، وكيفية استخدام LIKE للبحث الذكي. هذه الأوامر هي أدواتكم اليومية، فاستخدموها بحذر وذكاء.</template>
+    <template class="content-en">Welcome, data engineers. In this module, we transition from designing databases to actually talking to them using SQL. Imagine the database as a massive warehouse; the SELECT statement is your way of requesting specific items. Always remember that SQL treats data as 'Bags' (Multisets) that allow duplicates to save processing time—you must use DISTINCT if you want to filter out copies. Beware of the biggest trap: forgetting the WHERE clause! In retrieval, it causes a Cartesian product that floods your screen; in UPDATE or DELETE, it destroys the entire table's data. Focus on understanding how to join tables using Aliases, and how to use LIKE for smart searching. These commands are your daily tools—use them with caution and precision.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا تستخدم SQL المجموعات (Sets) بشكل افتراضي كما في الجبر العلائقي؟</template>
+          <template class="content-en">Why doesn't SQL use Sets by default like in Relational Algebra?</template>
+          <span class="content-target">لماذا لا تستخدم SQL المجموعات (Sets) بشكل افتراضي كما في الجبر العلائقي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأسباب تتعلق بالأداء. تحويل البيانات إلى مجموعة يتطلب إزالة التكرارات، وهي عملية تتطلب فرز البيانات (Sorting) وتستهلك موارد كبيرة. لذا، SQL يتركها كحقائب (Bags) ويترك لك خيار استخدام DISTINCT عند الحاجة.</template>
+          <template class="content-en">For performance reasons. Converting data to a set requires removing duplicates, which involves sorting the data—a resource-intensive operation. SQL leaves them as Bags and gives you the option to use DISTINCT when needed.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نكون مجبرين تماماً على استخدام الأسماء المستعارة (Aliases)؟</template>
+          <template class="content-en">When are we absolutely forced to use Aliases?</template>
+          <span class="content-target">متى نكون مجبرين تماماً على استخدام الأسماء المستعارة (Aliases)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عندما نقوم بربط الجدول بنفسه (Self-Join). بدون الأسماء المستعارة، لن يتمكن محرك قاعدة البيانات من التمييز بين النسختين من نفس الجدول.</template>
+          <template class="content-en">When we perform a Self-Join (joining a table to itself). Without aliases, the database engine cannot distinguish between the two instances of the same table.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الضرب الديكارتي (Cartesian Product) وكيف نتجنبه؟</template>
+          <template class="content-en">What is a Cartesian Product and how do we avoid it?</template>
+          <span class="content-target">ما هو الضرب الديكارتي (Cartesian Product) وكيف نتجنبه؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو دمج كل صف من الجدول الأول مع كل صف من الجدول الثاني، ويحدث عند نسيان شرط الربط. نتجنبه بالتأكد دائماً من وجود جملة WHERE صحيحة تربط بين الجداول.</template>
+          <template class="content-en">It is the combination of every row from the first table with every row from the second, occurring when a join condition is missing. We avoid it by always ensuring a proper WHERE clause connects the tables.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين UNION و UNION ALL من حيث الأداء؟</template>
+          <template class="content-en">What is the difference between UNION and UNION ALL in terms of performance?</template>
+          <span class="content-target">ما الفرق بين UNION و UNION ALL من حيث الأداء؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">UNION ALL أسرع بكثير لأنه يدمج النتائج فقط. UNION أبطأ لأنه يدمج النتائج ثم يقوم بفرزها لإزالة السجلات المكررة.</template>
+          <template class="content-en">UNION ALL is much faster because it simply appends results. UNION is slower because it appends results and then sorts them to remove duplicate records.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا البحث عن موظف اسمه يبدأ بحرف 'A' وينتهي بحرف 'Z'؟</template>
+          <template class="content-en">How can we search for an employee whose name starts with 'A' and ends with 'Z'?</template>
+          <span class="content-target">كيف يمكننا البحث عن موظف اسمه يبدأ بحرف 'A' وينتهي بحرف 'Z'؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام المعامل LIKE مع الرمز `%` هكذا: `WHERE FNAME LIKE 'A%Z'`.</template>
+          <template class="content-en">By using the LIKE operator with the `%` wildcard like this: `WHERE FNAME LIKE 'A%Z'`.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن إجراء عمليات حسابية داخل جملة SELECT؟</template>
+          <template class="content-en">Can we perform arithmetic operations inside a SELECT clause?</template>
+          <span class="content-target">هل يمكن إجراء عمليات حسابية داخل جملة SELECT؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، يمكن استخدام المعاملات الأساسية (+، -، *، /) لإنشاء أعمدة محسوبة، مثل `SELECT SALARY * 1.1`.</template>
+          <template class="content-en">Yes, basic operators (+, -, *, /) can be used to create calculated columns, such as `SELECT SALARY * 1.1`.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">إذا لم نستخدم ORDER BY، كيف يتم ترتيب النتائج؟</template>
+          <template class="content-en">If we don't use ORDER BY, how are the results sorted?</template>
+          <span class="content-target">إذا لم نستخدم ORDER BY، كيف يتم ترتيب النتائج؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا يوجد ترتيب مضمون. تظهر النتائج بترتيب عشوائي يحدده النظام (غالباً حسب ترتيب تخزينها في القرص أو حسب الفهارس المستخدمة).</template>
+          <template class="content-en">There is no guaranteed order. Results appear in a system-determined random order (often based on disk storage order or indexes used).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن إدراج بيانات في جدول بناءً على نتيجة استعلام من جدول آخر؟</template>
+          <template class="content-en">Can we insert data into a table based on the result of a query from another table?</template>
+          <span class="content-target">هل يمكن إدراج بيانات في جدول بناءً على نتيجة استعلام من جدول آخر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، باستخدام صيغة `INSERT INTO ... SELECT ...`. هذا مفيد جداً لإنشاء جداول ملخصة أو مؤقتة.</template>
+          <template class="content-en">Yes, using the `INSERT INTO ... SELECT ...` syntax. This is very useful for creating summary or temporary tables.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث لقيود التكامل (مثل المفاتيح الأجنبية) عند تنفيذ أمر DELETE؟</template>
+          <template class="content-en">What happens to integrity constraints (like foreign keys) when executing a DELETE command?</template>
+          <span class="content-target">ماذا يحدث لقيود التكامل (مثل المفاتيح الأجنبية) عند تنفيذ أمر DELETE؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتم فرضها تلقائياً بواسطة نظام إدارة قواعد البيانات (DBMS). قد يتم رفض الحذف (REJECT)، أو قد يؤدي إلى حذف متتالي (CASCADE) أو تعيين قيم فارغة (SET NULL) بناءً على إعدادات المخطط.</template>
+          <template class="content-en">They are automatically enforced by the DBMS. The deletion might be rejected (REJECT), or it might trigger cascading deletes (CASCADE) or set nulls (SET NULL) based on the schema definition.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في أمر UPDATE، كيف يعرف النظام أي صفوف يجب تعديلها؟</template>
+          <template class="content-en">In an UPDATE command, how does the system know which rows to modify?</template>
+          <span class="content-target">في أمر UPDATE، كيف يعرف النظام أي صفوف يجب تعديلها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">من خلال جملة WHERE. إذا تم حذف جملة WHERE، سيقوم النظام بتعديل جميع الصفوف في الجدول.</template>
+          <template class="content-en">Through the WHERE clause. If the WHERE clause is omitted, the system will modify all rows in the table.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي الجملة الأساسية لاسترجاع البيانات في SQL؟",
+      "en": "What is the basic statement for retrieving information in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "جملة SELECT (تحديداً كتلة SELECT-FROM-WHERE).",
+        "en": "The SELECT statement (specifically the SELECT-FROM-WHERE block)."
+      },
+      "example": {
+        "ar": "SELECT * FROM EMPLOYEE;",
+        "en": "SELECT * FROM EMPLOYEE;"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو الفرق الرئيسي بين علاقة SQL والمجموعة الرياضية (Set)؟",
+      "en": "What is the main difference between an SQL relation and a mathematical Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "علاقة SQL هي حقيبة (Bag/Multiset) تسمح بتكرار السجلات، بينما المجموعة تمنع التكرار.",
+        "en": "An SQL relation is a Bag (Multiset) that allows duplicate tuples, whereas a Set does not."
+      },
+      "example": {
+        "ar": "{A, B, A} مسموح في SQL.",
+        "en": "{A, B, A} is allowed in SQL."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "كيف يمكن إجبار استعلام SQL على إرجاع مجموعة (Set) خالية من التكرار؟",
+      "en": "How can you force an SQL query to return a Set (no duplicates)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الكلمة المفتاحية DISTINCT.",
+        "en": "By using the DISTINCT keyword."
+      },
+      "example": {
+        "ar": "SELECT DISTINCT SALARY FROM EMPLOYEE;",
+        "en": "SELECT DISTINCT SALARY FROM EMPLOYEE;"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ماذا يحدث إذا تم حذف جملة WHERE عند الاستعلام من جدولين؟",
+      "en": "What happens if the WHERE clause is omitted when querying two tables?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ينتج عن ذلك ضرب ديكارتي (Cartesian Product)، حيث يتم دمج كل صف من الجدول الأول مع كل صف من الجدول الثاني.",
+        "en": "It results in a Cartesian Product, joining every row of the first table with every row of the second."
+      },
+      "example": {
+        "ar": "SELECT * FROM T1, T2;",
+        "en": "SELECT * FROM T1, T2;"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ماذا يمثل الرمز النجمة (*) في جملة SELECT؟",
+      "en": "What does the asterisk (*) represent in a SELECT clause?"
+    },
+    "back": {
+      "definition": {
+        "ar": "استرجاع جميع السمات (الأعمدة) للسجلات المحددة.",
+        "en": "Retrieve all attribute values (columns) of the selected tuples."
+      },
+      "example": {
+        "ar": "SELECT * FROM EMPLOYEE;",
+        "en": "SELECT * FROM EMPLOYEE;"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو الاسم المستعار (Alias) في SQL؟",
+      "en": "What is an Alias (Tuple Variable) in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اسم مؤقت يُعطى للجدول أو العمود لتسهيل كتابة الاستعلام أو لحل الغموض (خاصة في الـ Self-Join).",
+        "en": "A temporary name given to a table or column to simplify queries or resolve ambiguity (especially in self-joins)."
+      },
+      "example": {
+        "ar": "FROM EMPLOYEE AS E",
+        "en": "FROM EMPLOYEE AS E"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي عمليات المجموعات (Set Operations) المدعومة في SQL؟",
+      "en": "What Set Operations are supported in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "UNION (اتحاد)، INTERSECT (تقاطع)، و EXCEPT أو MINUS (فرق).",
+        "en": "UNION, INTERSECT, and EXCEPT (or MINUS)."
+      },
+      "example": {
+        "ar": "Q1 UNION Q2",
+        "en": "Q1 UNION Q2"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما الفرق بين UNION و UNION ALL؟",
+      "en": "What is the difference between UNION and UNION ALL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "UNION يزيل السجلات المكررة، بينما UNION ALL يحتفظ بجميع السجلات بما فيها المكررة.",
+        "en": "UNION eliminates duplicate tuples, while UNION ALL retains all duplicates."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو شرط التوافق (Union Compatible) لعمليات المجموعات؟",
+      "en": "What is the Type Compatible (Union Compatible) requirement for set operations?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجب أن يحتوي كلا الجدولين على نفس عدد السمات، وبنفس أنواع البيانات، وبنفس الترتيب.",
+        "en": "Both relations must have the same number of attributes, with the same data types, and in the same order."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو المعامل المستخدم لمقارنة السلاسل النصية الجزئية في SQL؟",
+      "en": "Which operator is used for substring comparison in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المعامل LIKE.",
+        "en": "The LIKE operator."
+      },
+      "example": {
+        "ar": "WHERE NAME LIKE 'A%'",
+        "en": "WHERE NAME LIKE 'A%'"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ماذا يمثل الرمز `%` في معامل LIKE؟",
+      "en": "What does the '%' wildcard represent in the LIKE operator?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يحل محل عدد عشوائي من الحروف (صفر أو أكثر).",
+        "en": "It replaces an arbitrary number of characters (zero or more)."
+      },
+      "example": {
+        "ar": "'%TX%' تعني أي نص يحتوي على TX.",
+        "en": "'%TX%' means any string containing TX."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ماذا يمثل الرمز `_` في معامل LIKE؟",
+      "en": "What does the '_' wildcard represent in the LIKE operator?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يحل محل حرف عشوائي واحد فقط.",
+        "en": "It replaces a single arbitrary character."
+      },
+      "example": {
+        "ar": "'__5%' تعني أن الحرف الثالث هو 5.",
+        "en": "'__5%' means the 3rd character is 5."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو الترتيب الافتراضي لجملة ORDER BY؟",
+      "en": "What is the default sort order for the ORDER BY clause?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الترتيب التصاعدي (ASC).",
+        "en": "Ascending order (ASC)."
+      },
+      "example": {
+        "ar": "ORDER BY SALARY; (يرتب من الأقل للأعلى)",
+        "en": "ORDER BY SALARY; (sorts lowest to highest)"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي الكلمة المفتاحية لترتيب النتائج تنازلياً؟",
+      "en": "What keyword is used to sort results in descending order?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الكلمة المفتاحية DESC.",
+        "en": "The DESC keyword."
+      },
+      "example": {
+        "ar": "ORDER BY SALARY DESC;",
+        "en": "ORDER BY SALARY DESC;"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ماذا يحدث إذا نفذت أمر DELETE بدون جملة WHERE؟",
+      "en": "What happens if you execute a DELETE statement without a WHERE clause?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتم حذف جميع السجلات في الجدول، ويصبح الجدول فارغاً.",
+        "en": "All tuples in the relation are deleted; the table becomes empty."
+      },
+      "example": {
+        "ar": "DELETE FROM EMPLOYEE;",
+        "en": "DELETE FROM EMPLOYEE;"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي الجملة المستخدمة لتحديد القيم الجديدة في أمر UPDATE؟",
+      "en": "Which clause is used to specify new values in an UPDATE statement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "جملة SET.",
+        "en": "The SET clause."
+      },
+      "example": {
+        "ar": "UPDATE EMPLOYEE SET SALARY = 5000;",
+        "en": "UPDATE EMPLOYEE SET SALARY = 5000;"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هي النتيجة الحتمية لنسيان جملة WHERE عند الاستعلام من جدولين في SQL؟",
+      "en": "What is the inevitable result of omitting the WHERE clause when querying two tables in SQL?"
+    },
+    "options": {
+      "ar": [
+        "خطأ في بناء الجملة (Syntax Error)",
+        "الضرب الديكارتي (Cartesian Product)",
+        "إرجاع صفوف فارغة (Null values)",
+        "حذف البيانات من الجداول"
+      ],
+      "en": [
+        "Syntax Error",
+        "Cartesian Product",
+        "Returning Null values",
+        "Deleting data from tables"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بدون شرط ربط في جملة WHERE، يقوم SQL بدمج كل صف من الجدول الأول مع كل صف من الجدول الثاني، مما ينتج عنه الضرب الديكارتي.",
+      "en": "Without a join condition in the WHERE clause, SQL combines every row from the first table with every row from the second, resulting in a Cartesian Product."
+    },
+    "hint": {
+      "ar": "تذكر ماذا يحدث عندما لا تضع قيوداً على كيفية ارتباط الجداول.",
+      "en": "Think about what happens when you don't restrict how tables relate to each other."
+    },
+    "difficulty": "medium",
+    "conceptId": "missing-where-clause"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من الكلمات المفتاحية التالية تُستخدم لإجبار نتيجة الاستعلام لتكون مجموعة (Set) بدلاً من حقيبة (Bag)؟",
+      "en": "Which of the following keywords is used to force a query result to be a Set rather than a Bag?"
+    },
+    "options": {
+      "ar": [
+        "UNIQUE",
+        "SET",
+        "DISTINCT",
+        "NO_DUPLICATES"
+      ],
+      "en": [
+        "UNIQUE",
+        "SET",
+        "DISTINCT",
+        "NO_DUPLICATES"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الكلمة المفتاحية DISTINCT تقوم بإزالة السجلات المكررة من النتيجة، مما يحولها رياضياً من حقيبة إلى مجموعة.",
+      "en": "The DISTINCT keyword removes duplicate tuples from the result, mathematically converting it from a bag to a set."
+    },
+    "hint": {
+      "ar": "تبدأ بحرف D.",
+      "en": "Starts with D."
+    },
+    "difficulty": "easy",
+    "conceptId": "bags-vs-sets"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في معامل LIKE، ما هو الرمز الذي يمثل حرفاً واحداً فقط؟",
+      "en": "In the LIKE operator, which wildcard represents exactly one character?"
+    },
+    "options": {
+      "ar": [
+        "%",
+        "*",
+        "_",
+        "?"
+      ],
+      "en": [
+        "%",
+        "*",
+        "_",
+        "?"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الرمز `_` (الشرطة السفلية) يمثل حرفاً واحداً، بينما `%` يمثل أي عدد من الحروف.",
+      "en": "The `_` (underscore) represents exactly one character, while `%` represents any number of characters."
+    },
+    "hint": {
+      "ar": "يشبه الفراغ الذي تملؤه بحرف واحد.",
+      "en": "Looks like a blank space for a single letter."
+    },
+    "difficulty": "easy",
+    "conceptId": "substring-comparison-like"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هو الترتيب الافتراضي عند استخدام جملة ORDER BY؟",
+      "en": "What is the default sorting order when using the ORDER BY clause?"
+    },
+    "options": {
+      "ar": [
+        "تنازلي (DESC)",
+        "تصاعدي (ASC)",
+        "عشوائي (Random)",
+        "حسب وقت الإدخال"
+      ],
+      "en": [
+        "Descending (DESC)",
+        "Ascending (ASC)",
+        "Random",
+        "By insertion time"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "إذا لم يتم تحديد ASC أو DESC، فإن SQL يقوم بالترتيب التصاعدي (ASC) افتراضياً.",
+      "en": "If neither ASC nor DESC is specified, SQL defaults to Ascending (ASC) order."
+    },
+    "hint": {
+      "ar": "من الأصغر للأكبر.",
+      "en": "From smallest to largest."
+    },
+    "difficulty": "easy",
+    "conceptId": "order-by-clause"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من العمليات التالية تحتفظ بالسجلات المكررة في النتيجة النهائية؟",
+      "en": "Which of the following operations retains duplicate tuples in the final result?"
+    },
+    "options": {
+      "ar": [
+        "UNION",
+        "INTERSECT",
+        "EXCEPT",
+        "UNION ALL"
+      ],
+      "en": [
+        "UNION",
+        "INTERSECT",
+        "EXCEPT",
+        "UNION ALL"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "عمليات المجموعات العادية (UNION, INTERSECT, EXCEPT) تزيل التكرار. لإبقاء التكرار نستخدم إصدارات ALL مثل UNION ALL.",
+      "en": "Standard set operations (UNION, INTERSECT, EXCEPT) eliminate duplicates. To keep duplicates, we use the ALL variants like UNION ALL."
+    },
+    "hint": {
+      "ar": "تحتوي على كلمة تعني 'الكل'.",
+      "en": "Contains a word meaning 'everything'."
+    },
+    "difficulty": "medium",
+    "conceptId": "set-and-multiset-operations"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الغرض الأساسي من استخدام الأسماء المستعارة (Aliases) في جملة FROM؟",
+      "en": "What is the primary purpose of using Aliases (Tuple Variables) in the FROM clause?"
+    },
+    "options": {
+      "ar": [
+        "تسريع تنفيذ الاستعلام",
+        "تشفير أسماء الجداول",
+        "حل الغموض عند ربط الجدول بنفسه (Self-Join)",
+        "إجبار النتيجة لتكون مجموعة (Set)"
+      ],
+      "en": [
+        "Speeding up query execution",
+        "Encrypting table names",
+        "Resolving ambiguity when joining a table to itself (Self-Join)",
+        "Forcing the result to be a Set"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الأسماء المستعارة ضرورية للتمييز بين النسخ المختلفة لنفس الجدول عند إجراء Self-Join، ولتوضيح الأعمدة ذات الأسماء المتشابهة في جداول مختلفة.",
+      "en": "Aliases are essential to distinguish between different copies of the same table during a Self-Join, and to qualify columns with the same name in different tables."
+    },
+    "hint": {
+      "ar": "فكر في حالة الموظف ومديره الموجودين في نفس الجدول.",
+      "en": "Think about the case of an employee and their manager stored in the same table."
+    },
+    "difficulty": "medium",
+    "conceptId": "aliasing-and-qualifying"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في جملة UPDATE، أي جزء يُستخدم لتحديد القيم الجديدة للأعمدة؟",
+      "en": "In an UPDATE statement, which clause is used to specify the new values for the columns?"
+    },
+    "options": {
+      "ar": [
+        "WHERE",
+        "SET",
+        "VALUES",
+        "INTO"
+      ],
+      "en": [
+        "WHERE",
+        "SET",
+        "VALUES",
+        "INTO"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم جملة SET لتعيين القيم الجديدة (مثل SET SALARY = 5000).",
+      "en": "The SET clause is used to assign new values (e.g., SET SALARY = 5000)."
+    },
+    "hint": {
+      "ar": "كلمة تعني 'تعيين' أو 'ضبط'.",
+      "en": "A word meaning 'to assign' or 'to configure'."
+    },
+    "difficulty": "easy",
+    "conceptId": "update-statements"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ماذا يحدث عند تنفيذ الأمر: DELETE FROM EMPLOYEE;",
+      "en": "What happens when you execute the command: DELETE FROM EMPLOYEE;"
+    },
+    "options": {
+      "ar": [
+        "يتم حذف الجدول بالكامل من قاعدة البيانات (Drop)",
+        "يتم حذف السجل الأول فقط",
+        "يتم حذف جميع السجلات ويصبح الجدول فارغاً",
+        "يُرفض الأمر لأنه يفتقر إلى جملة WHERE"
+      ],
+      "en": [
+        "The table is completely dropped from the database",
+        "Only the first record is deleted",
+        "All records are deleted and the table becomes empty",
+        "The command is rejected because it lacks a WHERE clause"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "أمر DELETE بدون شرط WHERE يقوم بحذف جميع الصفوف، لكنه لا يحذف هيكل الجدول نفسه (عكس DROP).",
+      "en": "A DELETE statement without a WHERE clause removes all rows, but does not drop the table structure itself."
+    },
+    "hint": {
+      "ar": "لا يوجد شرط، إذن ينطبق على الجميع.",
+      "en": "No condition means it applies to everything."
+    },
+    "difficulty": "medium",
+    "conceptId": "update-statements"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في التعبير `SALARY = SALARY * 1.1` داخل جملة UPDATE، ماذا يمثل `SALARY` على يمين علامة التساوي؟",
+      "en": "In the expression `SALARY = SALARY * 1.1` within an UPDATE statement, what does `SALARY` on the right side of the equals sign represent?"
+    },
+    "options": {
+      "ar": [
+        "القيمة الجديدة بعد التعديل",
+        "القيمة القديمة قبل التعديل",
+        "متوسط الرواتب في الجدول",
+        "قيمة عشوائية"
+      ],
+      "en": [
+        "The new value after modification",
+        "The old value before modification",
+        "The average salary in the table",
+        "A random value"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في جملة SET، الجانب الأيمن من المعادلة يقرأ القيمة الحالية (القديمة) للسجل، والجانب الأيسر يمثل القيمة الجديدة التي سيتم حفظها.",
+      "en": "In a SET clause, the right side of the equation reads the current (old) value of the tuple, and the left side represents the new value to be saved."
+    },
+    "hint": {
+      "ar": "كيف يمكنك حساب الزيادة إذا لم تكن تعرف الراتب الحالي؟",
+      "en": "How could you calculate the raise if you didn't know the current salary?"
+    },
+    "difficulty": "medium",
+    "conceptId": "update-statements"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من الشروط التالية يجب تحققه لاستخدام عمليات المجموعات (مثل UNION) بين استعلامين؟",
+      "en": "Which of the following conditions must be met to use set operations (like UNION) between two queries?"
+    },
+    "options": {
+      "ar": [
+        "يجب أن يكون كلا الجدولين لهما نفس الاسم",
+        "يجب أن تكون الجداول متوافقة نوعياً (Union Compatible)",
+        "يجب أن يحتوي كلا الجدولين على مفتاح أجنبي",
+        "يجب استخدام جملة ORDER BY في كلا الاستعلامين"
+      ],
+      "en": [
+        "Both tables must have the same name",
+        "The tables must be Type Compatible (Union Compatible)",
+        "Both tables must have a foreign key",
+        "An ORDER BY clause must be used in both queries"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يجب أن تكون الجداول متوافقة نوعياً (Union Compatible)، مما يعني نفس عدد الأعمدة ونفس أنواع البيانات بالترتيب.",
+      "en": "The tables must be Type Compatible (Union Compatible), meaning the same number of columns and matching data types in order."
+    },
+    "hint": {
+      "ar": "لا يمكنك دمج تفاح مع برتقال في نفس العمود.",
+      "en": "You can't merge apples and oranges in the same column."
+    },
+    "difficulty": "hard",
+    "conceptId": "set-and-multiset-operations"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ امتحاني</div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان جملة WHERE في استعلام يضم جداول متعددة لا يسبب خطأ برمجي (Syntax Error)، بل ينفذ الاستعلام وينتج 'ضرباً ديكارتياً' كارثياً قد يوقف النظام عن العمل بسبب حجم البيانات الهائل.</template>
+      <template class="content-en">Forgetting the WHERE clause in a multi-table query doesn't cause a syntax error. Instead, it executes and produces a catastrophic 'Cartesian Product' that can crash the system due to massive data volume.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي</div>
+    <div data-bilingual>
+      <template class="content-ar">جداول SQL هي 'حقائب' (Bags) وليست 'مجموعات' (Sets). هذا يعني أن التكرار مسموح افتراضياً لتحسين الأداء. إذا أردت سلوك المجموعات الرياضية، يجب عليك صراحة استخدام DISTINCT.</template>
+      <template class="content-en">SQL tables are 'Bags' (Multisets), not 'Sets'. This means duplicates are allowed by default for performance. If you want strict mathematical set behavior, you must explicitly use DISTINCT.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ امتحاني</div>
+    <div data-bilingual>
+      <template class="content-ar">تنفيذ أمر DELETE أو UPDATE بدون جملة WHERE. هذا الخطأ الشائع سيؤدي إلى مسح أو تعديل كل صفوف الجدول بلا استثناء. دائماً اختبر شرط WHERE باستخدام SELECT أولاً.</template>
+      <template class="content-en">Executing a DELETE or UPDATE without a WHERE clause. This common mistake will wipe or modify every single row in the table. Always test your WHERE condition with a SELECT first.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر الأداء</div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام UNION ALL أسرع بكثير من UNION. عملية UNION العادية تجبر قاعدة البيانات على فرز (Sort) النتائج للبحث عن التكرارات وإزالتها، بينما UNION ALL يدمج النتائج فوراً.</template>
+      <template class="content-en">Using UNION ALL is significantly faster than UNION. A standard UNION forces the database to sort the results to find and remove duplicates, whereas UNION ALL simply appends the results immediately.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ امتحاني</div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام حرف البدل `%` في بداية نمط البحث (مثل `LIKE '%Smith'`) يمنع قاعدة البيانات من استخدام الفهارس (Indexes)، مما يجبرها على فحص كل صف في الجدول (Full Table Scan).</template>
+      <template class="content-en">Using the `%` wildcard at the beginning of a search pattern (e.g., `LIKE '%Smith'`) prevents the database from using indexes, forcing a Full Table Scan.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M07.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M09.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+</body>
+</html>

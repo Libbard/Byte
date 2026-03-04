@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS353" data-module="4">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقليل وحل (Decrease-and-Conquer) · CS353 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M03.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-sitemap"></i></div>
+      <span class="module-badge font-display">MOD 4</span>
+      <span class="subject-name">CS353</span>
+    </div>
+    <div class="header-actions">
+      <a href="M05.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#decrease-and-conquer-intro" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة في تقليل وحل</template>
+        <template class="content-en">Introduction to Decrease-and-Conquer</template>
+        <span class="content-target">مقدمة في تقليل وحل</span>
+      </a>
+      <a href="#decrease-by-constant-insertion-sort" class="toc-link" data-bilingual>
+        <template class="content-ar">التقليل بمقدار ثابت: الترتيب بالإدراج</template>
+        <template class="content-en">Decrease by a Constant: Insertion Sort</template>
+        <span class="content-target">التقليل بمقدار ثابت: الترتيب بالإدراج</span>
+      </a>
+      <a href="#topological-sorting" class="toc-link" data-bilingual>
+        <template class="content-ar">الفرز الطوبولوجي (Topological Sorting)</template>
+        <template class="content-en">Topological Sorting</template>
+        <span class="content-target">الفرز الطوبولوجي (Topological Sorting)</span>
+      </a>
+      <a href="#dfs-forest-edges" class="toc-link" data-bilingual>
+        <template class="content-ar">أنواع الحواف في غابة البحث بالعمق (DFS Forest)</template>
+        <template class="content-en">Types of Edges in a DFS Forest</template>
+        <span class="content-target">أنواع الحواف في غابة البحث بالعمق (DFS Forest)</span>
+      </a>
+      <a href="#decrease-by-constant-factor-binary-search" class="toc-link" data-bilingual>
+        <template class="content-ar">التقليل بعامل ثابت: البحث الثنائي</template>
+        <template class="content-en">Decrease by a Constant Factor: Binary Search</template>
+        <span class="content-target">التقليل بعامل ثابت: البحث الثنائي</span>
+      </a>
+      <a href="#variable-size-decrease-euclid" class="toc-link" data-bilingual>
+        <template class="content-ar">التقليل بحجم متغير: خوارزمية إقليدس</template>
+        <template class="content-en">Variable-Size-Decrease: Euclid's Algorithm</template>
+        <span class="content-target">التقليل بحجم متغير: خوارزمية إقليدس</span>
+      </a>
+      <a href="#selection-problem-quickselect" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة الاختيار و Quick Select</template>
+        <template class="content-en">The Selection Problem and Quick Select</template>
+        <span class="content-target">مشكلة الاختيار و Quick Select</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 4</template>
+      <template class="content-en">Module 4</template>
+      <span class="content-target">الوحدة 4</span>
+    </span> · CS353
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تقليل وحل (Decrease-and-Conquer)</h1>
+      <p class="hero-description">دراسة تقنية 'تقليل وحل' في تصميم الخوارزميات، بما في ذلك التقليل بمقدار ثابت (مثل الترتيب بالإدراج)، التقليل بعامل ثابت (مثل البحث الثنائي)، والتقليل بحجم متغير (مثل خوارزمية إقليدس والفرز الطوبولوجي).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Decrease-and-Conquer</h1>
+      <p class="hero-description">Study of the 'Decrease-and-Conquer' algorithm design technique, including decrease-by-a-constant (e.g., Insertion Sort), decrease-by-a-constant-factor (e.g., Binary Search), and variable-size-decrease (e.g., Euclid's algorithm and Topological Sorting).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">تصميم الخوارزميات</span>
+      <span class="tag">الترتيب بالإدراج</span>
+      <span class="tag">الفرز الطوبولوجي</span>
+      <span class="tag">البحث الثنائي</span>
+      <span class="tag">خوارزمية إقليدس</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Algorithm Design</span>
+      <span class="tag">Insertion Sort</span>
+      <span class="tag">Topological Sorting</span>
+      <span class="tag">Binary Search</span>
+      <span class="tag">Euclid's Algorithm</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف تقنية 'تقليل وحل' وأنواعها المختلفة.</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف خوارزمية الترتيب بالإدراج والفرز الطوبولوجي وتحليل تعقيدها.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على خوارزميات التقليل بعامل ثابت وخوارزميات التقليل بحجم متغير.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe Decrease-and-Conquer and their various types.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe the insert sort, topological Sorting and analysis their complexity.</span></li>
+      <li><span class="obj-icon">✦</span><span>Recognize Constant-Factor Algorithms and variable size algorithms.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="decrease-and-conquer-intro" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مقدمة في تقليل وحل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Introduction to Decrease-and-Conquer</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تقنية تعتمد على استغلال العلاقة بين حل مشكلة بحجم معين وحلها بحجم أصغر.</p></template>
+    <template class="content-en"><p>A technique based on exploiting the relationship between a solution to a given instance of a problem and a solution to its smaller instance.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تقنية 'تقليل وحل' (Decrease-and-Conquer) تقوم على تقليل حجم المشكلة إلى مشكلة فرعية أصغر، ثم حل المشكلة الفرعية، وأخيراً توسيع الحل ليشمل المشكلة الأصلية. يمكن تنفيذها بطريقتين: <strong><span class="smart-term" data-term-en="Top-down approach" data-ar="نهج من أعلى إلى أسفل" data-en-def="Usually implemented using recursion, breaking the main problem into smaller subproblems.">من أعلى إلى أسفل</span> (Top-down)</strong> باستخدام النهج العودي (Recursive)، أو <strong><span class="smart-term" data-term-en="Bottom-up approach" data-ar="نهج من أسفل إلى أعلى" data-en-def="Usually implemented iteratively, starting with the smallest instance and building up.">من أسفل إلى أعلى</span> (Bottom-up)</strong> باستخدام النهج التكراري (Iterative) والذي يسمى أحياناً بالنهج التزايدي (Incremental approach).</p></template>
+    <template class="content-en"><p>The decrease-and-conquer technique is based on exploiting the relationship between a solution to a given instance of a problem and a solution to its smaller instance. Once established, it can be exploited either <span class="smart-term" data-term-en="Top-down approach" data-ar="نهج من أعلى إلى أسفل" data-en-def="Usually implemented using recursion, breaking the main problem into smaller subproblems.">top-down</span> (usually implemented using a recursive approach) or <span class="smart-term" data-term-en="Bottom-up approach" data-ar="نهج من أسفل إلى أعلى" data-en-def="Usually implemented iteratively, starting with the smallest instance and building up.">bottom-up</span> (usually implemented iteratively, starting with the smallest instance, sometimes called the incremental approach).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تتفرع هذه التقنية إلى ثلاثة أنواع رئيسية: 1. التقليل بمقدار ثابت (Decrease by a constant) وغالباً ما يكون 1. 2. التقليل بعامل ثابت (Decrease by a constant factor) وغالباً ما يكون النصف. 3. التقليل بحجم متغير (Variable size decrease) حيث يختلف نمط تقليل الحجم في كل تكرار.</p></template>
+    <template class="content-en"><p>There are three major variations: 1. Decrease by a constant (usually by 1). 2. Decrease by a constant factor (usually by half, i.e., factor of 2). 3. Variable size decrease, where the size reduction pattern varies at each iteration.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[0]: A flowchart showing the Decrease-and-Conquer technique. A box 'Problem (x)' points down to 'Subproblem (x')' labeled 'Step 1: Decrease'. 'Subproblem (x')' points down to 'Sub-Solution' labeled 'Step 2: Conquer'. 'Sub-Solution' points to 'Solution' labeled 'Step 3: Combine'. An arrow also goes directly from 'Problem (x)' to 'Solution'. Style: educational, dark background #0d1117, accent color #58a6ff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="4">
+  <svg viewBox="0 0 800 400" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/>
+      </marker>
+      <marker id="arrow4-dash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185"/>
+      </marker>
+      <linearGradient id="glow4" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#881337"/>
+        <stop offset="100%" stop-color="#be123c"/>
+      </linearGradient>
+    </defs>
+    
+    <rect width="800" height="400" fill="#1f2937" rx="12"/>
+
+    <!-- Arrows & Flow Lines -->
+    <!-- Step 1: Decrease (Problem -> Subproblem) -->
+    <line x1="200" y1="110" x2="200" y2="240" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrow4)"/>
+    <text x="215" y="170" text-anchor="start" font-family="system-ui, 'Cairo', sans-serif" font-size="14" font-weight="bold" fill="#fb7185">Step 1: Decrease</text>
+    <text x="215" y="190" text-anchor="start" font-family="system-ui, 'Cairo', sans-serif" font-size="12" fill="#d1d5db">الخطوة 1: تقليل</text>
+
+    <!-- Step 2: Conquer (Subproblem -> Sub-Solution) -->
+    <line x1="290" y1="280" x2="500" y2="280" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrow4)"/>
+    <text x="400" y="265" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="14" font-weight="bold" fill="#fb7185">Step 2: Conquer</text>
+    <text x="400" y="305" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="12" fill="#d1d5db">الخطوة 2: قهر (حل المشكلة الفرعية)</text>
+
+    <!-- Step 3: Combine (Sub-Solution -> Solution) -->
+    <line x1="600" y1="250" x2="600" y2="120" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrow4)"/>
+    <text x="585" y="170" text-anchor="end" font-family="system-ui, 'Cairo', sans-serif" font-size="14" font-weight="bold" fill="#fb7185">Step 3: Combine</text>
+    <text x="585" y="190" text-anchor="end" font-family="system-ui, 'Cairo', sans-serif" font-size="12" fill="#d1d5db">الخطوة 3: تجميع</text>
+
+    <!-- Direct Solution (Base Case) -->
+    <path d="M 290 80 L 500 80" fill="none" stroke="#fb7185" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow4-dash)"/>
+    <text x="400" y="65" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="14" font-weight="bold" fill="#fb7185">Direct Solution (Base Case)</text>
+    <text x="400" y="105" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="12" fill="#d1d5db">حل مباشر (حالة الأساس)</text>
+
+    <!-- Nodes -->
+    <!-- Node 1: Problem -->
+    <rect x="110" y="50" width="180" height="60" rx="8" fill="#374151" stroke="#f43f5e" stroke-width="2"/>
+    <text x="200" y="75" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="16" font-weight="bold" fill="#ffffff">Problem (x)</text>
+    <text x="200" y="95" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="13" fill="#d1d5db">المشكلة</text>
+
+    <!-- Node 2: Subproblem -->
+    <rect x="110" y="250" width="180" height="60" rx="8" fill="#374151" stroke="#f43f5e" stroke-width="2"/>
+    <text x="200" y="275" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="16" font-weight="bold" fill="#ffffff">Subproblem (x')</text>
+    <text x="200" y="295" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="13" fill="#d1d5db">المشكلة الفرعية</text>
+
+    <!-- Node 3: Sub-Solution -->
+    <rect x="510" y="250" width="180" height="60" rx="8" fill="#374151" stroke="#f43f5e" stroke-width="2"/>
+    <text x="600" y="275" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="16" font-weight="bold" fill="#ffffff">Sub-Solution</text>
+    <text x="600" y="295" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="13" fill="#d1d5db">الحل الفرعي</text>
+
+    <!-- Node 4: Solution -->
+    <rect x="510" y="50" width="180" height="60" rx="8" fill="url(#glow4)" stroke="#f43f5e" stroke-width="2"/>
+    <text x="600" y="75" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="16" font-weight="bold" fill="#ffffff">Solution</text>
+    <text x="600" y="95" text-anchor="middle" font-family="system-ui, 'Cairo', sans-serif" font-size="13" fill="#d1d5db">الحل النهائي</text>
+  </svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر النهج من أسفل إلى أعلى (التكراري) غالباً أكثر كفاءة من النهج من أعلى إلى أسفل (العودي)؟</template>
+      <template class="content-en">Why is the bottom-up (iterative) approach often considered more efficient than the top-down (recursive) approach?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يتجنب العبء الإضافي (overhead) المرتبط باستدعاء الدوال المتكرر في الذاكرة (Call Stack).</p></template>
+      <template class="content-en"><p>Because it avoids the overhead associated with recursive function calls on the call stack.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="decrease-by-constant-insertion-sort" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> التقليل بمقدار ثابت: الترتيب بالإدراج</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Decrease by a Constant: Insertion Sort</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>خوارزمية ترتيب تقوم بإدخال عنصر جديد في مكانه الصحيح ضمن مصفوفة فرعية مرتبة مسبقاً.</p></template>
+    <template class="content-en"><p>A sorting algorithm that inserts a new element into its correct position within an already sorted subarray.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الترتيب بالإدراج (Insertion Sort) هو تطبيق مباشر لتقنية التقليل بمقدار ثابت (بمقدار 1). بافتراض أن لدينا مصفوفة فرعية مرتبة A[0..n-2]، نحتاج إلى إيجاد الموضع المناسب للعنصر A[n-1] وإدراجه. يتم ذلك بمسح المصفوفة المرتبة من اليمين إلى اليسار حتى نجد أول عنصر أصغر من أو يساوي A[n-1]. التنفيذ من أسفل إلى أعلى (التكراري) أكثر كفاءة من العودي.</p></template>
+    <template class="content-en"><p>Insertion sort is a direct application of decrease-by-a-constant (by 1). Given a sorted array A[0..n-2], a new element A[n-1] needs to be inserted. We scan the sorted subarray from right to left until the first element smaller than or equal to A[n-1] is encountered, and insert it right after. The bottom-up iterative implementation is more efficient.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحليل التعقيد: العملية الأساسية هي مقارنة المفاتيح A[j] > v. في <span class="smart-term" data-term-en="Worst-case input" data-ar="مدخلات أسوأ حالة" data-en-def="An array of decreasing values, leading to maximum comparisons.">أسوأ الحالات</span> (مصفوفة مرتبة تنازلياً)، يكون التعقيد O(n^2). في <span class="smart-term" data-term-en="Best-case input" data-ar="مدخلات أفضل حالة" data-en-def="An array already sorted in non-decreasing order.">أفضل الحالات</span> (مصفوفة مرتبة تصاعدياً)، يتم تنفيذ المقارنة مرة واحدة لكل تكرار، مما يعطي تعقيداً O(n). في المتوسط، تقوم بنصف عدد المقارنات مقارنة بأسوأ حالة، مما يجعلها أسرع بمرتين من أسوأ حالة وممتازة للمصفوفات شبه المرتبة. هي أفضل من الترتيب بالاختيار (Selection Sort) والترتيب بالفقاعة (Bubble Sort).</p></template>
+    <template class="content-en"><p>Algorithm analysis: The basic operation is the key comparison A[j] > v. <span class="smart-term" data-term-en="Worst-case input" data-ar="مدخلات أسوأ حالة" data-en-def="An array of decreasing values, leading to maximum comparisons.">Worst-case</span> (decreasing array) is O(n^2). <span class="smart-term" data-term-en="Best-case input" data-ar="مدخلات أفضل حالة" data-en-def="An array already sorted in non-decreasing order.">Best-case</span> (already sorted array) is O(n). Average-case makes half as many comparisons as the worst case, making it twice as fast on average and excellent for almost-sorted arrays. It is better than selection sort and bubble sort.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد المقارنات في أسوأ حالة للترتيب بالإدراج.</strong></template>
+      <template class="content-en"><strong>Number of comparisons in the worst case for Insertion Sort.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$C_{worst}(n) = \sum_{i=1}^{n-1} i = \frac{(n-1)n}{2} \in O(n^2)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>ALGORITHM InsertionSort(A[0..n-1])
+for i &lt;- 1 to n - 1 do
+    v &lt;- A[i]
+    j &lt;- i - 1
+    while j &gt;= 0 and A[j] &gt; v do
+        A[j + 1] &lt;- A[j]
+        j &lt;- j - 1
+    A[j + 1] &lt;- v</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُفضل استخدام الترتيب بالإدراج عندما تكون المصفوفة 'شبه مرتبة'؟</template>
+      <template class="content-en">Why is Insertion Sort preferred when an array is 'almost sorted'?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الحلقة الداخلية (while) ستتوقف مبكراً جداً، مما يجعل الأداء يقترب من أفضل حالة O(n).</p></template>
+      <template class="content-en"><p>Because the inner while loop will terminate very early, making the performance approach the best-case O(n).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="topological-sorting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الفرز الطوبولوجي (Topological Sorting)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Topological Sorting</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>ترتيب رؤوس رسم بياني موجه بحيث يظهر كل رأس قبل الرؤوس التي يشير إليها.</p></template>
+    <template class="content-en"><p>Ordering vertices of a directed graph such that for every directed edge uv, vertex u comes before v.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الفرز الطوبولوجي يحل مشكلة ترتيب المهام المعتمدة على بعضها (مثل المقررات الدراسية ذات المتطلبات السابقة). يجب أن يكون الرسم البياني موجهاً وخالياً من الدورات (<span class="smart-term" data-term-en="DAG (Directed Acyclic Graph)" data-ar="رسم بياني موجه خالي من الدورات" data-en-def="A directed graph with no directed cycles, a strict requirement for topological sorting.">DAG</span> - Directed Acyclic Graph). إذا كان الرسم البياني يحتوي على دورة موجهة (Directed Cycle)، فلا يمكن إيجاد فرز طوبولوجي له.</p></template>
+    <template class="content-en"><p>Topological sorting solves the problem of ordering dependent tasks (like courses with prerequisites). The graph must be a <span class="smart-term" data-term-en="DAG (Directed Acyclic Graph)" data-ar="رسم بياني موجه خالي من الدورات" data-en-def="A directed graph with no directed cycles, a strict requirement for topological sorting.">DAG</span> (Directed Acyclic Graph). If a digraph has no directed cycles, the topological sorting problem for it has a solution.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>خوارزمية إزالة المصدر (Source-removal algorithm): تعتمد على تحديد '<span class="smart-term" data-term-en="Source" data-ar="مصدر" data-en-def="A vertex with no incoming edges (in-degree of 0).">مصدر</span>' (رأس لا توجد حواف داخلة إليه / in-degree = 0)، وحذفه مع جميع حوافه الخارجة، ثم تكرار العملية. الترتيب الذي تُحذف به الرؤوس يمثل الفرز الطوبولوجي. إذا كان هناك عدة مصادر، يمكن كسر التعادل بشكل عشوائي، مما يعني أنه قد يكون هناك أكثر من فرز طوبولوجي صحيح لنفس الرسم البياني.</p></template>
+    <template class="content-en"><p>Source-removal algorithm: Repeatedly identify a '<span class="smart-term" data-term-en="Source" data-ar="مصدر" data-en-def="A vertex with no incoming edges (in-degree of 0).">source</span>' (a vertex with no incoming edges, in-degree = 0), delete it along with all its outgoing edges. The order in which vertices are deleted yields the topological sort. Ties among multiple sources can be broken arbitrarily, meaning multiple valid topological sorts can exist.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>Algorithm Topological sort
+Mark each vertex in V as unvisited
+Find indegree[v] for each vertex v in V
+for each vertex v in V do
+    if indegree[v] = 0 then
+        Q.Enqueue(v)
+        Mark v as visited
+while Q is not empty do
+    u &lt;- Q.Dequeue()
+    T.AddLast(u)
+    for each vertex w in V adjacent to u do
+        if w is unvisited then
+            indegree[w] &lt;- indegree[w] - 1
+            if indegree[w] = 0 then
+                Q.Enqueue(w)
+                Mark w as visited
+return T</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: A sequence of directed graphs showing the source-removal algorithm. Step 1: Graph with nodes C1, C2, C3, C4, C5. C1 and C2 point to C3. C3 points to C4 and C5. C4 points to C5. Step 2: C1 is deleted. Step 3: C2 is deleted. Step 4: C3 is deleted. Step 5: C4 is deleted. Step 6: C5 is deleted. The final sequence is C1, C2, C3, C4, C5. -->
+<div id="algo-widget-1" class="svg-placeholder" data-diagram-prompt="A sequence of directed graphs showing the source-removal algorithm. Step 1: Graph with nodes C1, C2, C3, C4, C5. C1 and C2 point to C3. C3 points to C4 and C5. C4 points to C5. Step 2: C1 is deleted. Step 3: C2 is deleted. Step 4: C3 is deleted. Step 5: C4 is deleted. Step 6: C5 is deleted. The final sequence is C1, C2, C3, C4, C5.">
+    🗺️ Topological Sorting
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا حاولت تطبيق خوارزمية إزالة المصدر على رسم بياني يحتوي على دورة؟</template>
+      <template class="content-en">What happens if you try to apply the source-removal algorithm on a graph with a cycle?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستتوقف الخوارزمية قبل معالجة جميع الرؤوس لأنه لن يتبقى أي رأس بدرجة دخول (in-degree) تساوي صفراً.</p></template>
+      <template class="content-en"><p>The algorithm will halt before processing all vertices because there will be no remaining vertices with an in-degree of 0.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="dfs-forest-edges" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> أنواع الحواف في غابة البحث بالعمق (DFS Forest)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Types of Edges in a DFS Forest</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أربعة أنواع من الحواف تنتج عن اجتياز الرسم البياني الموجه باستخدام البحث بالعمق (DFS).</p></template>
+    <template class="content-en"><p>Four types of edges resulting from traversing a directed graph using Depth-First Search (DFS).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند استخدام خوارزمية البحث بالعمق (DFS) لاجتياز رسم بياني موجه، يمكن تصنيف الحواف إلى أربعة أنواع: 1. <strong>حواف الشجرة (Tree edges):</strong> الحواف التي تشكل غابة DFS. 2. <strong>الحواف الخلفية (<span class="smart-term" data-term-en="Back edge" data-ar="حافة خلفية" data-en-def="An edge from a vertex to its ancestor in a DFS tree; indicates a cycle.">Back edges</span>):</strong> تتجه من رأس إلى أحد أسلافه (تشير إلى وجود دورة). 3. <strong>الحواف الأمامية (Forward edges):</strong> تتجه من رأس إلى أحد أحفاده في الشجرة (غير أبنائه المباشرين). 4. <strong>الحواف المتقاطعة (Cross edges):</strong> حواف لا تنتمي لأي من الأنواع السابقة (تربط بين فروع مختلفة).</p></template>
+    <template class="content-en"><p>When traversing a digraph using DFS, edges are classified into four types: 1. <strong>Tree edges:</strong> edges that make up the DFS forest. 2. <strong><span class="smart-term" data-term-en="Back edge" data-ar="حافة خلفية" data-en-def="An edge from a vertex to its ancestor in a DFS tree; indicates a cycle.">Back edges</span>:</strong> from vertices to their ancestors (indicates a directed cycle). 3. <strong>Forward edges:</strong> from vertices to their descendants in the tree other than their children. 4. <strong>Cross edges:</strong> none of the aforementioned types (connecting different branches).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>وجود '<span class="smart-term" data-term-en="Back edge" data-ar="حافة خلفية" data-en-def="An edge from a vertex to its ancestor in a DFS tree; indicates a cycle.">حافة خلفية</span>' (Back edge) هو الدليل القاطع على وجود دورة موجهة (Directed Cycle) في الرسم البياني. إذا كانت غابة DFS لا تحتوي على حواف خلفية، فإن الرسم البياني هو DAG، وبالتالي يمكن إجراء فرز طوبولوجي له.</p></template>
+    <template class="content-en"><p>The presence of a '<span class="smart-term" data-term-en="Back edge" data-ar="حافة خلفية" data-en-def="An edge from a vertex to its ancestor in a DFS tree; indicates a cycle.">back edge</span>' is the definitive proof of a directed cycle in the graph. If a DFS forest of a digraph has no back edges, the digraph is a DAG, and thus topological sorting is possible.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: A diagram showing a DFS forest with nodes a, b, c, d, e. Solid lines represent tree edges (a->b, b->c, d->e). A dotted curved line from c to a represents a back edge. A dotted straight line from a to c represents a forward edge. A dashed line from d to c represents a cross edge. -->
+<div id="algo-widget-2" class="svg-placeholder" data-diagram-prompt="A diagram showing a DFS forest with nodes a, b, c, d, e. Solid lines represent tree edges (a->b, b->c, d->e). A dotted curved line from c to a represents a back edge. A dotted straight line from a to c represents a forward edge. A dashed line from d to c represents a cross edge.">
+    🗺️ Types of Edges in a DFS Forest
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكننا استخدام DFS للتحقق مما إذا كان الفرز الطوبولوجي ممكناً؟</template>
+      <template class="content-en">How can we use DFS to check if topological sorting is possible?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نقوم بتشغيل DFS؛ إذا وجدنا أي حافة خلفية (Back edge)، فهذا يعني وجود دورة والفرز الطوبولوجي غير ممكن.</p></template>
+      <template class="content-en"><p>Run DFS; if we encounter any back edge, it means there is a cycle and topological sorting is not possible.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="decrease-by-constant-factor-binary-search" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> التقليل بعامل ثابت: البحث الثنائي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Decrease by a Constant Factor: Binary Search</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>خوارزمية بحث فعالة جداً في مصفوفة مرتبة، تقوم بتقليل حجم المشكلة إلى النصف في كل خطوة.</p></template>
+    <template class="content-en"><p>A highly efficient search algorithm in a sorted array that reduces the problem size by half at each step.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>البحث الثنائي (Binary Search) هو مثال رئيسي على خوارزمية 'التقليل بعامل ثابت' (تحديداً بعامل 2). يعمل عن طريق مقارنة مفتاح البحث K مع العنصر الأوسط A[m]. إذا تطابقا، تتوقف الخوارزمية. وإلا، تتكرر العملية على النصف الأول إذا كان K < A[m]، أو على النصف الثاني إذا كان K > A[m]. يمكن تنفيذه بشكل عودي أو تكراري (وهو الأفضل).</p></template>
+    <template class="content-en"><p>Binary search is a principal example of a decrease-by-a-constant-factor algorithm (specifically by a factor of 2). It works by comparing a search key K with the array’s middle element A[m]. If they match, it stops; otherwise, it repeats recursively for the first half if K < A[m], and for the second half if K > A[m]. It can be implemented recursively or iteratively.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحليل الخوارزمية: في أسوأ الحالات، يتم تقليل حجم المصفوفة إلى النصف في كل تكرار، مما يعطي علاقة التكرار: C_worst(n) = C_worst(n/2) + 1. حل هذه العلاقة يعطي تعقيداً زمنياً قدره O(log n). التحليل الدقيق يوضح أن متوسط عدد المقارنات أصغر بقليل فقط من أسوأ حالة. يعتبر البحث الثنائي خوارزمية بحث <span class="smart-term" data-term-en="Optimal searching algorithm" data-ar="خوارزمية بحث مثالية" data-en-def="An algorithm that achieves the theoretical lower bound for a problem, like Binary Search for comparison-based search.">مثالية</span> (Optimal) إذا اقتصرنا على المقارنات بين المفاتيح.</p></template>
+    <template class="content-en"><p>Algorithm analysis: In the worst case, the array size is halved each iteration, yielding the recurrence relation: C_worst(n) = C_worst(floor(n/2)) + 1. This resolves to O(log n). Average-case analysis shows the number of comparisons is only slightly smaller than the worst case. Binary search is an <span class="smart-term" data-term-en="Optimal searching algorithm" data-ar="خوارزمية بحث مثالية" data-en-def="An algorithm that achieves the theoretical lower bound for a problem, like Binary Search for comparison-based search.">optimal</span> searching algorithm if restricted only to key comparisons.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد المقارنات في أسوأ حالة للبحث الثنائي.</strong></template>
+      <template class="content-en"><strong>Number of comparisons in the worst case for Binary Search.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$C_{worst}(n) \approx \log_2 n + 1$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>ALGORITHM BinarySearch(A[0..n-1], K)
+l &lt;- 0; r &lt;- n - 1
+while l &lt;= r do
+    m &lt;- floor((l + r) / 2)
+    if K = A[m] return m
+    else if K &lt; A[m] r &lt;- m - 1
+    else l &lt;- m + 1
+return -1</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم البحث الثنائي دائماً بدلاً من البحث الخطي؟</template>
+      <template class="content-en">Why don't we always use Binary Search instead of Linear Search?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن البحث الثنائي يتطلب أن تكون المصفوفة مرتبة مسبقاً، وعملية الترتيب نفسها مكلفة (O(n log n)).</p></template>
+      <template class="content-en"><p>Because Binary Search requires the array to be sorted beforehand, and sorting itself is an expensive operation (O(n log n)).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="variable-size-decrease-euclid" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> التقليل بحجم متغير: خوارزمية إقليدس</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Variable-Size-Decrease: Euclid's Algorithm</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>خوارزمية لحساب القاسم المشترك الأكبر (GCD) حيث يختلف مقدار تقليل المشكلة في كل خطوة.</p></template>
+    <template class="content-en"><p>An algorithm to compute the Greatest Common Divisor (GCD) where the size reduction varies at each step.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في خوارزميات '<span class="smart-term" data-term-en="Variable-size decrease" data-ar="تقليل بحجم متغير" data-en-def="A decrease-and-conquer variation where the problem size is reduced by a varying amount each iteration.">التقليل بحجم متغير</span>'، يختلف نمط تقليل الحجم في كل تكرار. مثال ممتاز على ذلك هو خوارزمية إقليدس لحساب القاسم المشترك الأكبر. تعتمد الخوارزمية على الصيغة: gcd(m, n) = gcd(n, m mod n). قيمة المعامل الثاني (m mod n) تكون دائماً أصغر من المعامل الأول، ولكن مقدار النقصان يختلف في كل خطوة.</p></template>
+    <template class="content-en"><p>In '<span class="smart-term" data-term-en="Variable-size decrease" data-ar="تقليل بحجم متغير" data-en-def="A decrease-and-conquer variation where the problem size is reduced by a varying amount each iteration.">Variable-Size-Decrease</span>' algorithms, the size reduction pattern varies at each iteration. A good example is Euclid’s algorithm for computing the greatest common divisor. It is based on the formula: gcd(m, n) = gcd(n, m mod n). The value of the second argument is always smaller, but the reduction amount varies.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على سبيل المثال، لحساب gcd(106, 16): 106 mod 16 = 10، ثم 16 mod 10 = 6، ثم 10 mod 6 = 4، ثم 6 mod 4 = 2، ثم 4 mod 2 = 0. النتيجة هي 2. نلاحظ أن الحجم يقل بشكل غير ثابت (من 16 إلى 10 إلى 6 إلى 4 إلى 2).</p></template>
+    <template class="content-en"><p>For example, computing gcd(106, 16): 106 mod 16 = 10, then 16 mod 10 = 6, then 10 mod 6 = 4, then 6 mod 4 = 2, then 4 mod 2 = 0. The GCD is 2. The size decreases variably (16 -> 10 -> 6 -> 4 -> 2).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>صيغة خوارزمية إقليدس.</strong></template>
+      <template class="content-en"><strong>Formula for Euclid's algorithm.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\gcd(m, n) = \gcd(n, m \bmod n)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى تتوقف خوارزمية إقليدس؟</template>
+      <template class="content-en">When does Euclid's algorithm terminate?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تتوقف عندما يصبح المعامل الثاني (n) صفراً، ويكون المعامل الأول (m) هو القاسم المشترك الأكبر.</p></template>
+      <template class="content-en"><p>It terminates when the second argument (n) becomes zero, and the first argument (m) is the GCD.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 7 -->
+<section id="selection-problem-quickselect" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> مشكلة الاختيار و Quick Select</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> The Selection Problem and Quick Select</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>إيجاد العنصر رقم k الأصغر في مصفوفة باستخدام تقسيم عشوائي (Partitioning) دون ترتيب المصفوفة بالكامل.</p></template>
+    <template class="content-en"><p>Finding the k-th smallest element in an array using randomized partitioning without fully sorting the array.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مشكلة الاختيار (Selection Problem) هي إيجاد العنصر رقم k الأصغر في مصفوفة A[0..n-1]. أسهل حالة هي إيجاد الحد الأدنى (k=1) أو الأقصى (k=n)، وأصعب حالة هي إيجاد <span class="smart-term" data-term-en="Median" data-ar="الوسيط" data-en-def="The middle value of a dataset, representing the hardest case of the selection problem (k = n/2).">الوسيط</span> (k=n/2). بدلاً من ترتيب المصفوفة بالكامل (مما يستغرق وقتاً أطول)، نستخدم استراتيجية التقسيم العشوائي (Randomized Partitioning) مثل <span class="smart-term" data-term-en="Lomuto partitioning" data-ar="تقسيم لوموتو" data-en-def="A partitioning scheme that chooses a pivot and rearranges the array into elements smaller than the pivot and elements greater than the pivot.">تقسيم لوموتو</span> (Lomuto partitioning).</p></template>
+    <template class="content-en"><p>The Selection Problem is finding the k-th smallest element in an array A[0..n-1]. The easiest case is finding the Min (k=1) or Max (k=n), and the hardest is the <span class="smart-term" data-term-en="Median" data-ar="الوسيط" data-en-def="The middle value of a dataset, representing the hardest case of the selection problem (k = n/2).">Median</span> (k=n/2). Instead of sorting the entire list, we use randomized partitioning (like <span class="smart-term" data-term-en="Lomuto partitioning" data-ar="تقسيم لوموتو" data-en-def="A partitioning scheme that chooses a pivot and rearranges the array into elements smaller than the pivot and elements greater than the pivot.">Lomuto partitioning</span>) around a pivot value p.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>خوارزمية Quickselect: بعد التقسيم، يكون المحور (pivot) في موقعه النهائي s. إذا كان s = k-1، فقد وجدنا العنصر. إذا كان s > k-1، نبحث في الجزء الأيسر. إذا كان s < k-1، نبحث في الجزء الأيمن عن العنصر رقم (k-s). تحليل التعقيد: في أفضل الحالات (والمتوسطة)، يتم حل المشكلة في O(n). في أسوأ الحالات (تقسيم غير متوازن تماماً في كل خطوة)، يكون التعقيد O(n^2).</p></template>
+    <template class="content-en"><p>Quickselect algorithm: After partitioning, the pivot is at its final index s. If s = k-1, the pivot is the k-th smallest. If s > k-1, search the left part. If s < k-1, search the right part for the (k-s)-th element. Analysis: Best/Average case is O(n). Worst case (extremely unbalanced partition every time) is O(n^2).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعقيد الزمني لأسوأ حالة لخوارزمية Quickselect.</strong></template>
+      <template class="content-en"><strong>Worst-case time complexity for Quickselect.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$C_{worst}(n) = (n-1) + (n-2) + \dots + 1 = \frac{(n-1)n}{2} \in O(n^2)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>ALGORITHM Quickselect(A[l..r], k)
+s &lt;- LomutoPartition(A[l..r])
+if s = k - 1 return A[s]
+else if s &gt; l + k - 1 Quickselect(A[l..s - 1], k)
+else Quickselect(A[s + 1..r], k - 1 - s)</code></pre>
+  </div>
+
+  <!-- DIAGRAM[3]: A diagram illustrating Lomuto partitioning. An array is divided into three segments: elements <= pivot, elements >= pivot, and elements yet to be compared. The pivot 'p' is placed between the <= and >= segments. -->
+<div id="algo-widget-3" class="svg-placeholder" data-diagram-prompt="A diagram illustrating Lomuto partitioning. An array is divided into three segments: elements <= pivot, elements >= pivot, and elements yet to be compared. The pivot 'p' is placed between the <= and >= segments.">
+    🗺️ The Selection Problem and Quick Select
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر إيجاد الوسيط (Median) هو الحالة الأصعب في مشكلة الاختيار؟</template>
+      <template class="content-en">Why is finding the median considered the hardest case in the selection problem?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يتطلب الغوص في عمق المصفوفة وتقسيمها عدة مرات للوصول إلى المنتصف الدقيق، عكس الحد الأدنى أو الأقصى الذي يمكن إيجاده بمسحة واحدة.</p></template>
+      <template class="content-en"><p>Because it requires diving deep into the array and partitioning multiple times to reach the exact middle, unlike min/max which can be found in a single pass.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- COMPARISONS -->
+<table class="comparison-table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Decrease by a constant</th>
+      <th>Decrease by a constant factor</th>
+      <th>Variable-size decrease</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td data-bilingual>
+        <template class="content-ar">مقدار التقليل</template>
+        <template class="content-en">Reduction Amount</template>
+        <span class="content-target"></span>
+      </td>
+      <td class="td-good" data-bilingual>
+        <template class="content-ar">ثابت (غالباً 1)</template>
+        <template class="content-en">Constant (usually 1)</template>
+        <span class="content-target"></span>
+      </td>
+      <td class="td-good" data-bilingual>
+        <template class="content-ar">عامل ثابت (غالباً النصف)</template>
+        <template class="content-en">Constant factor (usually half)</template>
+        <span class="content-target"></span>
+      </td>
+      <td class="td-good" data-bilingual>
+        <template class="content-ar">متغير في كل تكرار</template>
+        <template class="content-en">Varies at each iteration</template>
+        <span class="content-target"></span>
+      </td>
+    </tr>
+    <tr>
+      <td data-bilingual>
+        <template class="content-ar">مثال خوارزمية</template>
+        <template class="content-en">Algorithm Example</template>
+        <span class="content-target"></span>
+      </td>
+      <td class="td-good" data-bilingual>
+        <template class="content-ar">الترتيب بالإدراج (Insertion Sort)</template>
+        <template class="content-en">Insertion Sort</template>
+        <span class="content-target"></span>
+      </td>
+      <td class="td-good" data-bilingual>
+        <template class="content-ar">البحث الثنائي (Binary Search)</template>
+        <template class="content-en">Binary Search</template>
+        <span class="content-target"></span>
+      </td>
+      <td class="td-good" data-bilingual>
+        <template class="content-ar">خوارزمية إقليدس (Euclid's Algorithm)</template>
+        <template class="content-en">Euclid's Algorithm</template>
+        <span class="content-target"></span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في الوحدة الرابعة. اليوم نغوص في واحدة من أذكى تقنيات تصميم الخوارزميات: 'تقليل وحل' (Decrease-and-Conquer). الفكرة بسيطة لكنها قوية: بدلاً من حل المشكلة الكبيرة دفعة واحدة، ماذا لو قللنا حجمها قليلاً، حللنا الجزء الأصغر، ثم بنينا عليه؟ في الامتحان، ركزوا جيداً على التمييز بين الأنواع الثلاثة. الترتيب بالإدراج يقلل المشكلة بمقدار ثابت (عنصر واحد في كل مرة)، وهو بطل المصفوفات شبه المرتبة. البحث الثنائي يقلل المشكلة بعامل ثابت (النصف)، وهو ملك البحث السريع. أما خوارزمية إقليدس و Quickselect فهما أمثلة رائعة على التقليل بحجم متغير. لا تنسوا الفرز الطوبولوجي؛ تذكروا دائماً أنه يتطلب DAG (رسم بياني خالي من الدورات)، وخوارزمية إزالة المصدر هي مفتاح الحل. راجعوا تعقيدات أسوأ وأفضل حالة لكل خوارزمية، فهي موضع أسئلة مؤكدة. بالتوفيق!</template>
+    <template class="content-en">Welcome, future engineers, to Module 4. Today we dive into one of the smartest algorithm design techniques: Decrease-and-Conquer. The idea is simple yet powerful: instead of solving a massive problem at once, what if we reduce its size, solve the smaller piece, and build upon it? For the exam, focus heavily on distinguishing the three variations. Insertion Sort decreases by a constant (one element at a time) and is the champion of almost-sorted arrays. Binary Search decreases by a constant factor (half) and is the king of fast searching. Euclid's algorithm and Quickselect are brilliant examples of variable-size decrease. Don't forget Topological Sorting; always remember it strictly requires a DAG, and the source-removal algorithm is your key to solving it. Review the worst and best-case complexities for each algorithm, as they are guaranteed exam questions. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو المبدأ الأساسي لتقنية التقليل والحل؟</template>
+          <template class="content-en">What is the core principle of the Decrease-and-Conquer technique?</template>
+          <span class="content-target">ما هو المبدأ الأساسي لتقنية التقليل والحل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">استغلال العلاقة بين حل مشكلة بحجم معين وحل نفس المشكلة بحجم أصغر، إما من أعلى لأسفل (عودياً) أو من أسفل لأعلى (تكرارياً).</template>
+          <template class="content-en">Exploiting the relationship between a solution to a given problem instance and a solution to a smaller instance, either top-down (recursively) or bottom-up (iteratively).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نعتبر الترتيب بالإدراج (Insertion Sort) مثالاً على التقليل بمقدار ثابت؟</template>
+          <template class="content-en">Why is Insertion Sort considered an example of decrease-by-a-constant?</template>
+          <span class="content-target">لماذا نعتبر الترتيب بالإدراج (Insertion Sort) مثالاً على التقليل بمقدار ثابت؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه في كل تكرار، يقلل حجم الجزء غير المرتب من المصفوفة بمقدار عنصر واحد بالضبط (ثابت = 1).</template>
+          <template class="content-en">Because in each iteration, it reduces the size of the unsorted portion of the array by exactly one element (constant = 1).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يتفوق الترتيب بالإدراج على الخوارزميات الأخرى ذات التعقيد O(n^2)؟</template>
+          <template class="content-en">When does Insertion Sort outperform other O(n^2) algorithms?</template>
+          <span class="content-target">متى يتفوق الترتيب بالإدراج على الخوارزميات الأخرى ذات التعقيد O(n^2)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتفوق بشكل كبير عندما تكون المصفوفة 'شبه مرتبة'، حيث يقترب أداؤه من أفضل حالة وهي O(n).</template>
+          <template class="content-en">It heavily outperforms them when the array is 'almost sorted', as its performance approaches the best-case O(n).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الشرط الأساسي لتطبيق الفرز الطوبولوجي على رسم بياني؟</template>
+          <template class="content-en">What is the strict requirement to apply topological sorting to a graph?</template>
+          <span class="content-target">ما هو الشرط الأساسي لتطبيق الفرز الطوبولوجي على رسم بياني؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يجب أن يكون الرسم البياني موجهاً وخالياً من الدورات (DAG).</template>
+          <template class="content-en">The graph must be a Directed Acyclic Graph (DAG).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل خوارزمية إزالة المصدر (Source-removal)؟</template>
+          <template class="content-en">How does the source-removal algorithm work?</template>
+          <span class="content-target">كيف تعمل خوارزمية إزالة المصدر (Source-removal)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم بالبحث عن رأس لا توجد له حواف داخلة (in-degree=0)، تحذفه مع حوافه الخارجة، وتسجله في الترتيب، ثم تكرر العملية.</template>
+          <template class="content-en">It finds a vertex with no incoming edges (in-degree=0), deletes it along with its outgoing edges, records it in the order, and repeats.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الذي يثبته وجود 'حافة خلفية' (Back edge) أثناء اجتياز DFS؟</template>
+          <template class="content-en">What does the presence of a 'back edge' during DFS traversal prove?</template>
+          <span class="content-target">ما الذي يثبته وجود 'حافة خلفية' (Back edge) أثناء اجتياز DFS؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يثبت وجود دورة موجهة (Directed Cycle) في الرسم البياني، مما يعني استحالة إجراء فرز طوبولوجي.</template>
+          <template class="content-en">It proves the existence of a directed cycle in the graph, meaning topological sorting is impossible.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر البحث الثنائي مثالاً على التقليل بعامل ثابت؟</template>
+          <template class="content-en">Why is Binary Search an example of decrease-by-a-constant-factor?</template>
+          <span class="content-target">لماذا يعتبر البحث الثنائي مثالاً على التقليل بعامل ثابت؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه في كل خطوة، يستبعد نصف المصفوفة، مما يقلل حجم المشكلة بعامل ثابت وهو 2.</template>
+          <template class="content-en">Because at each step, it discards half of the array, reducing the problem size by a constant factor of 2.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يختلف التقليل بحجم متغير عن الأنواع الأخرى؟ أعط مثالاً.</template>
+          <template class="content-en">How does variable-size decrease differ from the other types? Give an example.</template>
+          <span class="content-target">كيف يختلف التقليل بحجم متغير عن الأنواع الأخرى؟ أعط مثالاً.</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">مقدار النقصان في حجم المشكلة ليس ثابتاً ولا نسبة ثابتة، بل يتغير في كل خطوة. مثال: خوارزمية إقليدس لحساب GCD.</template>
+          <template class="content-en">The reduction amount is neither a constant nor a constant factor; it varies at each step. Example: Euclid's algorithm for GCD.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف من خوارزمية Quickselect؟</template>
+          <template class="content-en">What is the goal of the Quickselect algorithm?</template>
+          <span class="content-target">ما هو الهدف من خوارزمية Quickselect؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إيجاد العنصر رقم k الأصغر في مصفوفة (مثل الوسيط) دون الحاجة لترتيب المصفوفة بالكامل.</template>
+          <template class="content-en">To find the k-th smallest element in an array (like the median) without needing to fully sort the array.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التعقيد الزمني لأسوأ حالة في Quickselect ولماذا يحدث؟</template>
+          <template class="content-en">What is the worst-case time complexity of Quickselect and why does it happen?</template>
+          <span class="content-target">ما هو التعقيد الزمني لأسوأ حالة في Quickselect ولماذا يحدث؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التعقيد هو O(n^2)، ويحدث عندما يكون التقسيم غير متوازن تماماً في كل خطوة (مثلاً المحور هو دائماً أكبر عنصر).</template>
+          <template class="content-en">The complexity is O(n^2), and it happens when partitioning is extremely unbalanced at every step (e.g., pivot is always the largest element).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي تقنية التقليل والحل (Decrease-and-Conquer)؟",
+      "en": "What is the Decrease-and-Conquer technique?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقنية تعتمد على استغلال العلاقة بين حل مشكلة بحجم معين وحلها بحجم أصغر.",
+        "en": "A technique based on exploiting the relationship between a solution to a given instance of a problem and a solution to its smaller instance."
+      },
+      "example": {
+        "ar": "الترتيب بالإدراج، البحث الثنائي.",
+        "en": "Insertion Sort, Binary Search."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو النهج من أعلى إلى أسفل (Top-down) في التقليل والحل؟",
+      "en": "What is the Top-down approach in Decrease-and-Conquer?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نهج يتم تنفيذه عادة باستخدام الاستدعاء الذاتي (Recursion).",
+        "en": "An approach usually implemented using recursion."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو النهج من أسفل إلى أعلى (Bottom-up)؟",
+      "en": "What is the Bottom-up approach?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نهج يتم تنفيذه بشكل تكراري (Iterative)، يبدأ بحل أصغر نسخة من المشكلة ويسمى أحياناً النهج التزايدي.",
+        "en": "An approach usually implemented iteratively, starting with a solution to the smallest instance; sometimes called the incremental approach."
+      },
+      "example": {
+        "ar": "الترتيب بالإدراج التكراري.",
+        "en": "Iterative Insertion Sort."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "اذكر الأنواع الثلاثة الرئيسية لتقنية التقليل والحل.",
+      "en": "Name the three major variations of decrease-and-conquer."
+    },
+    "back": {
+      "definition": {
+        "ar": "1. التقليل بمقدار ثابت. 2. التقليل بعامل ثابت. 3. التقليل بحجم متغير.",
+        "en": "1. Decrease by a constant. 2. Decrease by a constant factor. 3. Variable size decrease."
+      },
+      "example": {
+        "ar": "1. Insertion Sort. 2. Binary Search. 3. Euclid's Algorithm.",
+        "en": "1. Insertion Sort. 2. Binary Search. 3. Euclid's Algorithm."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لأسوأ حالة في الترتيب بالإدراج (Insertion Sort)؟",
+      "en": "What is the worst-case time complexity of Insertion Sort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n^2)",
+        "en": "O(n^2)"
+      },
+      "example": {
+        "ar": "يحدث عندما تكون المصفوفة مرتبة ترتيباً تنازلياً.",
+        "en": "Occurs when the array is sorted in decreasing order."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لأفضل حالة في الترتيب بالإدراج؟",
+      "en": "What is the best-case time complexity of Insertion Sort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n)",
+        "en": "O(n)"
+      },
+      "example": {
+        "ar": "يحدث عندما تكون المصفوفة مرتبة بالفعل.",
+        "en": "Occurs when the input array is already sorted."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو الرسم البياني الموجه (Digraph)؟",
+      "en": "What is a directed graph (digraph)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "رسم بياني تحدد فيه اتجاهات لجميع حوافه.",
+        "en": "A graph with directions specified for all its edges."
+      },
+      "example": {
+        "ar": "تمثيل المتطلبات السابقة للمقررات الدراسية.",
+        "en": "Representing course prerequisites."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو الـ DAG؟",
+      "en": "What is a DAG?"
+    },
+    "back": {
+      "definition": {
+        "ar": "رسم بياني موجه خالي من الدورات (Directed Acyclic Graph).",
+        "en": "Directed Acyclic Graph; a digraph with no directed cycles."
+      },
+      "example": {
+        "ar": "شرط أساسي لإمكانية تطبيق الفرز الطوبولوجي.",
+        "en": "A strict requirement for topological sorting."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي خوارزمية إزالة المصدر (Source-removal algorithm)؟",
+      "en": "What is the source-removal algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خوارزمية للفرز الطوبولوجي تقوم بتحديد وحذف الرؤوس التي لا توجد لها حواف داخلة (in-degree = 0) بشكل متكرر.",
+        "en": "An algorithm for topological sorting that repeatedly identifies and deletes a source (vertex with no incoming edges)."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي الحافة الخلفية (Back edge) في غابة DFS؟",
+      "en": "What is a back edge in a DFS forest?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حافة تتجه من رأس إلى أحد أسلافه، ووجودها يدل على وجود دورة موجهة.",
+        "en": "An edge from a vertex to its ancestor; its presence indicates a directed cycle."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو التعقيد الزمني للبحث الثنائي (Binary Search)؟",
+      "en": "What is the time complexity of Binary Search?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(log n) في أسوأ الحالات والمتوسطة.",
+        "en": "O(log n) in worst and average cases."
+      },
+      "example": {
+        "ar": "البحث عن رقم في دليل هاتف مرتب.",
+        "en": "Searching for a number in a sorted phone book."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "إلى أي نوع من التقليل والحل ينتمي البحث الثنائي؟",
+      "en": "Which type of decrease-and-conquer does Binary Search belong to?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التقليل بعامل ثابت (Decrease by a constant factor).",
+        "en": "Decrease by a constant factor."
+      },
+      "example": {
+        "ar": "يقلل حجم المصفوفة إلى النصف (عامل 2) في كل تكرار.",
+        "en": "Reduces array size by half (factor of 2) each iteration."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي صيغة خوارزمية إقليدس؟",
+      "en": "What is the formula for Euclid's algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "gcd(m, n) = gcd(n, m mod n)",
+        "en": "gcd(m, n) = gcd(n, m mod n)"
+      },
+      "example": {
+        "ar": "gcd(16, 10) = gcd(10, 6)",
+        "en": "gcd(16, 10) = gcd(10, 6)"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي مشكلة الاختيار (Selection Problem)؟",
+      "en": "What is the Selection Problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إيجاد العنصر رقم k الأصغر في مصفوفة معطاة.",
+        "en": "Finding the k-th smallest element (or k-th order statistic) in a given array."
+      },
+      "example": {
+        "ar": "إيجاد الوسيط (Median) عندما k = n/2.",
+        "en": "Finding the median when k = n/2."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو تقسيم لوموتو (Lomuto partitioning)؟",
+      "en": "What is Lomuto partitioning?"
+    },
+    "back": {
+      "definition": {
+        "ar": "استراتيجية تقسيم تعيد ترتيب عناصر المصفوفة حول محور (pivot) بحيث تكون العناصر الأصغر على اليسار والأكبر على اليمين.",
+        "en": "A partitioning strategy that rearranges array elements around a pivot so smaller elements are on the left and greater on the right."
+      },
+      "example": {
+        "ar": "يُستخدم في خوارزمية Quickselect.",
+        "en": "Used in the Quickselect algorithm."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لأسوأ حالة لخوارزمية Quickselect؟",
+      "en": "What is the worst-case time complexity of Quickselect?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n^2)",
+        "en": "O(n^2)"
+      },
+      "example": {
+        "ar": "يحدث عندما ينتج التقسيم جزءاً فارغاً وجزءاً يحتوي على n-1 عنصر في كل تكرار.",
+        "en": "Happens when partitioning produces an empty part and a part with n-1 elements every iteration."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من الخوارزميات التالية تعتبر مثالاً على 'التقليل بعامل ثابت'؟",
+      "en": "Which of the following algorithms is an example of 'decrease-by-a-constant-factor'?"
+    },
+    "options": {
+      "ar": [
+        "الترتيب بالإدراج (Insertion Sort)",
+        "البحث الثنائي (Binary Search)",
+        "خوارزمية إقليدس (Euclid's Algorithm)",
+        "الفرز الطوبولوجي (Topological Sorting)"
+      ],
+      "en": [
+        "Insertion Sort",
+        "Binary Search",
+        "Euclid's Algorithm",
+        "Topological Sorting"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "البحث الثنائي يقلل حجم المشكلة إلى النصف (عامل 2) في كل خطوة.",
+      "en": "Binary search reduces the problem size by half (a factor of 2) at each step."
+    },
+    "hint": {
+      "ar": "فكر في الخوارزمية التي تقسم المصفوفة إلى نصفين.",
+      "en": "Think of the algorithm that divides the array into two halves."
+    },
+    "difficulty": "easy",
+    "conceptId": "decrease-by-constant-factor-binary-search"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لأفضل حالة في خوارزمية الترتيب بالإدراج؟",
+      "en": "What is the best-case time complexity of Insertion Sort?"
+    },
+    "options": {
+      "ar": [
+        "O(n^2)",
+        "O(n log n)",
+        "O(n)",
+        "O(log n)"
+      ],
+      "en": [
+        "O(n^2)",
+        "O(n log n)",
+        "O(n)",
+        "O(log n)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في أفضل الحالات (مصفوفة مرتبة بالفعل)، تقوم الخوارزمية بمقارنة واحدة فقط لكل عنصر، مما يعطي تعقيداً خطياً O(n).",
+      "en": "In the best case (already sorted array), the algorithm makes only one comparison per element, yielding O(n)."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا كانت المصفوفة مرتبة مسبقاً؟",
+      "en": "What happens if the array is already sorted?"
+    },
+    "difficulty": "medium",
+    "conceptId": "decrease-by-constant-insertion-sort"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "الفرز الطوبولوجي ممكن فقط على أي نوع من الرسوم البيانية؟",
+      "en": "Topological sorting is only possible on which type of graph?"
+    },
+    "options": {
+      "ar": [
+        "الرسوم البيانية غير الموجهة",
+        "الرسوم البيانية الموجهة التي تحتوي على دورات",
+        "الرسوم البيانية الموجهة الخالية من الدورات (DAG)",
+        "الأشجار الثنائية فقط"
+      ],
+      "en": [
+        "Undirected graphs",
+        "Directed graphs with cycles",
+        "Directed Acyclic Graphs (DAG)",
+        "Binary trees only"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الفرز الطوبولوجي يتطلب عدم وجود دورات (Cycles) لضمان إمكانية ترتيب المهام المعتمدة على بعضها.",
+      "en": "Topological sorting requires the absence of cycles to ensure dependent tasks can be ordered."
+    },
+    "hint": {
+      "ar": "لا يمكن ترتيب المهام إذا كانت تعتمد على بعضها في حلقة مفرغة.",
+      "en": "Tasks cannot be ordered if they depend on each other in a loop."
+    },
+    "difficulty": "easy",
+    "conceptId": "topological-sorting"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "في خوارزمية إزالة المصدر (Source-removal)، أي رأس يتم حذفه في كل خطوة؟",
+      "en": "In the source-removal algorithm, which vertex is deleted at each step?"
+    },
+    "options": {
+      "ar": [
+        "الرأس الذي يحتوي على أكبر عدد من الحواف الخارجة",
+        "الرأس الذي لا توجد له حواف داخلة (in-degree = 0)",
+        "الرأس الذي لا توجد له حواف خارجة (out-degree = 0)",
+        "رأس عشوائي"
+      ],
+      "en": [
+        "The vertex with the most outgoing edges",
+        "A vertex with no incoming edges (in-degree = 0)",
+        "A vertex with no outgoing edges (out-degree = 0)",
+        "A random vertex"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المصدر هو الرأس الذي لا يعتمد على أي رأس آخر، أي أن درجة دخوله تساوي صفراً.",
+      "en": "A source is a vertex that does not depend on any other vertex, meaning its in-degree is zero."
+    },
+    "hint": {
+      "ar": "ابحث عن الرأس الذي يمثل نقطة بداية.",
+      "en": "Look for the vertex that acts as a starting point."
+    },
+    "difficulty": "medium",
+    "conceptId": "topological-sorting"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي نوع من الحواف في غابة DFS يثبت وجود دورة موجهة في الرسم البياني؟",
+      "en": "Which type of edge in a DFS forest proves the existence of a directed cycle in the graph?"
+    },
+    "options": {
+      "ar": [
+        "حواف الشجرة (Tree edges)",
+        "الحواف الأمامية (Forward edges)",
+        "الحواف المتقاطعة (Cross edges)",
+        "الحواف الخلفية (Back edges)"
+      ],
+      "en": [
+        "Tree edges",
+        "Forward edges",
+        "Cross edges",
+        "Back edges"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "الحافة الخلفية تتجه من رأس إلى أحد أسلافه، مما يكمل دورة في الرسم البياني.",
+      "en": "A back edge points from a vertex to one of its ancestors, completing a cycle in the graph."
+    },
+    "hint": {
+      "ar": "حافة تعود بك إلى نقطة زرتها سابقاً في نفس المسار.",
+      "en": "An edge that takes you back to a previously visited point in the same path."
+    },
+    "difficulty": "medium",
+    "conceptId": "dfs-forest-edges"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لأسوأ حالة في خوارزمية Quickselect؟",
+      "en": "What is the worst-case time complexity of the Quickselect algorithm?"
+    },
+    "options": {
+      "ar": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(log n)"
+      ],
+      "en": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(log n)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في أسوأ الحالات، ينتج التقسيم جزءاً فارغاً وجزءاً يحتوي على n-1 عنصر، مما يؤدي إلى تعقيد O(n^2).",
+      "en": "In the worst case, partitioning produces an empty part and a part with n-1 elements, leading to O(n^2) complexity."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا كان المحور (pivot) هو دائماً أكبر أو أصغر عنصر؟",
+      "en": "What happens if the pivot is always the largest or smallest element?"
+    },
+    "difficulty": "hard",
+    "conceptId": "selection-problem-quickselect"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "خوارزمية إقليدس هي مثال على أي نوع من تقنيات التقليل والحل؟",
+      "en": "Euclid's algorithm is an example of which decrease-and-conquer variation?"
+    },
+    "options": {
+      "ar": [
+        "التقليل بمقدار ثابت",
+        "التقليل بعامل ثابت",
+        "التقليل بحجم متغير",
+        "فرق تسد (Divide and Conquer)"
+      ],
+      "en": [
+        "Decrease by a constant",
+        "Decrease by a constant factor",
+        "Variable-size decrease",
+        "Divide and Conquer"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في خوارزمية إقليدس، يختلف مقدار تقليل حجم المشكلة في كل تكرار بناءً على عملية باقي القسمة (mod).",
+      "en": "In Euclid's algorithm, the amount by which the problem size is reduced varies each iteration based on the modulo operation."
+    },
+    "hint": {
+      "ar": "هل يقل الحجم بمقدار 1 دائماً؟ أم بالنصف؟ أم بشكل مختلف؟",
+      "en": "Does the size always decrease by 1? By half? Or differently?"
+    },
+    "difficulty": "medium",
+    "conceptId": "variable-size-decrease-euclid"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي الحالة الأصعب في مشكلة الاختيار (Selection Problem)؟",
+      "en": "What is the hardest case in the Selection Problem?"
+    },
+    "options": {
+      "ar": [
+        "إيجاد الحد الأدنى (Minimum)",
+        "إيجاد الحد الأقصى (Maximum)",
+        "إيجاد الوسيط (Median)",
+        "إيجاد العنصر الثاني الأصغر"
+      ],
+      "en": [
+        "Finding the Minimum",
+        "Finding the Maximum",
+        "Finding the Median",
+        "Finding the second smallest element"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "إيجاد الوسيط (k = n/2) هو الأصعب لأنه يتطلب الوصول إلى منتصف البيانات الموزعة عشوائياً.",
+      "en": "Finding the median (k = n/2) is the hardest because it requires reaching the exact middle of randomly distributed data."
+    },
+    "hint": {
+      "ar": "أي قيمة تتطلب أعمق مستوى من التقسيم للوصول إليها؟",
+      "en": "Which value requires the deepest level of partitioning to reach?"
+    },
+    "difficulty": "easy",
+    "conceptId": "selection-problem-quickselect"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "كيف يتم تنفيذ النهج من أسفل إلى أعلى (Bottom-up) عادةً؟",
+      "en": "How is the bottom-up approach usually implemented?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام الاستدعاء الذاتي (Recursion)",
+        "بشكل تكراري (Iteratively)",
+        "باستخدام التقسيم العشوائي",
+        "باستخدام غابة DFS"
+      ],
+      "en": [
+        "Using recursion",
+        "Iteratively",
+        "Using randomized partitioning",
+        "Using a DFS forest"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "النهج من أسفل إلى أعلى يبدأ بأصغر مشكلة ويبني الحل تدريجياً باستخدام الحلقات التكرارية.",
+      "en": "The bottom-up approach starts with the smallest instance and builds up the solution using iterative loops."
+    },
+    "hint": {
+      "ar": "عكس الاستدعاء الذاتي.",
+      "en": "The opposite of recursion."
+    },
+    "difficulty": "easy",
+    "conceptId": "decrease-and-conquer-intro"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في تقسيم لوموتو (Lomuto partitioning)، إلى كم قسم يتم تقسيم المصفوفة الفرعية؟",
+      "en": "In Lomuto partitioning, into how many segments is the subarray conceptually divided?"
+    },
+    "options": {
+      "ar": [
+        "قسمين",
+        "ثلاثة أقسام",
+        "أربعة أقسام",
+        "خمسة أقسام"
+      ],
+      "en": [
+        "Two segments",
+        "Three segments",
+        "Four segments",
+        "Five segments"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم تقسيمها إلى 3 أقسام: عناصر أصغر من المحور، عناصر أكبر من أو تساوي المحور، وعناصر لم تتم مقارنتها بعد.",
+      "en": "It is divided into 3 segments: elements smaller than pivot, elements greater than or equal to pivot, and elements yet to be compared."
+    },
+    "hint": {
+      "ar": "أصغر، أكبر/يساوي، وغير معروف.",
+      "en": "Smaller, greater/equal, and unknown."
+    },
+    "difficulty": "hard",
+    "conceptId": "selection-problem-quickselect"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ / Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الترتيب بالإدراج (Insertion Sort) دائماً بطيء (O(n^2)). في الواقع، هو سريع جداً O(n) إذا كانت المصفوفة شبه مرتبة، مما يجعله مفضلاً في بعض الحالات العملية على خوارزميات أكثر تعقيداً.</template>
+      <template class="content-en">Thinking Insertion Sort is always slow (O(n^2)). In reality, it is very fast O(n) if the array is almost sorted, making it preferable in certain practical scenarios over more complex algorithms.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر / Secret</div>
+    <div data-bilingual>
+      <template class="content-ar">في الفرز الطوبولوجي، إذا كان هناك أكثر من رأس بدرجة دخول صفر (in-degree = 0) في نفس الوقت، يمكنك اختيار أي منها. هذا يعني أن الرسم البياني الواحد قد يكون له عدة حلول صحيحة للفرز الطوبولوجي.</template>
+      <template class="content-en">In topological sorting, if there are multiple vertices with an in-degree of 0 at the same time, you can choose any of them. This means a single graph can have multiple valid topological sort orders.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي / Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق الجوهري بين 'تقليل وحل' و 'فرق تسد' هو أن 'تقليل وحل' يقلل المشكلة إلى مشكلة فرعية *واحدة* فقط، بينما 'فرق تسد' يقسمها إلى *عدة* مشاكل فرعية.</template>
+      <template class="content-en">The core difference between 'Decrease-and-Conquer' and 'Divide-and-Conquer' is that Decrease-and-Conquer reduces the problem to exactly *one* subproblem, whereas Divide-and-Conquer splits it into *multiple* subproblems.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ / Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">محاولة تطبيق الفرز الطوبولوجي على رسم بياني يحتوي على دورة (Cycle). الخوارزمية ستفشل ولن تتمكن من معالجة جميع الرؤوس. الفرز الطوبولوجي يعمل *فقط* على DAG.</template>
+      <template class="content-en">Trying to apply topological sorting to a graph with a cycle. The algorithm will fail and won't process all vertices. Topological sorting works *only* on a DAG.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي / Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">خوارزمية Quickselect لا تقوم بترتيب المصفوفة بالكامل. إنها تستخدم التقسيم (Partitioning) لتجاهل جزء كبير من المصفوفة في كل خطوة، مما يجعلها أسرع بكثير من الترتيب الكامل لإيجاد الوسيط.</template>
+      <template class="content-en">Quickselect does not sort the entire array. It uses partitioning to discard a large portion of the array at each step, making it much faster than full sorting for finding the median.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M03.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M05.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+
+<!-- Algorithm Widget Loader -->
+<script>
+(function(){
+  var m = document.documentElement.dataset.module;
+  if (!m) return;
+  var s = document.createElement('script');
+  s.src = 'M' + String(m).padStart(2,'0') + '_algo.js';
+  s.onerror = function(){}; // silently ignore if file doesn't exist
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

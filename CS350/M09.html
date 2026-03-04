@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS350" data-module="9">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مقدمة في قواعد البيانات: استعلامات SQL المتقدمة والقيود · CS350 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M08.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-database"></i></div>
+      <span class="module-badge font-display">MOD 9</span>
+      <span class="subject-name">CS350</span>
+    </div>
+    <div class="header-actions">
+      <a href="M10.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#nulls-and-3-valued-logic" class="toc-link" data-bilingual>
+        <template class="content-ar">القيم الفارغة (NULL) والمنطق ثلاثي القيم</template>
+        <template class="content-en">Handling NULLs and 3-valued Logic</template>
+        <span class="content-target">القيم الفارغة (NULL) والمنطق ثلاثي القيم</span>
+      </a>
+      <a href="#nested-queries" class="toc-link" data-bilingual>
+        <template class="content-ar">الاستعلامات المتداخلة (Nested Queries)</template>
+        <template class="content-en">Nested Queries</template>
+        <span class="content-target">الاستعلامات المتداخلة (Nested Queries)</span>
+      </a>
+      <a href="#exists-function" class="toc-link" data-bilingual>
+        <template class="content-ar">دالة EXISTS</template>
+        <template class="content-en">The EXISTS Function</template>
+        <span class="content-target">دالة EXISTS</span>
+      </a>
+      <a href="#joined-tables" class="toc-link" data-bilingual>
+        <template class="content-ar">الجداول المترابطة (Joined Tables)</template>
+        <template class="content-en">Joined Tables (Relations)</template>
+        <span class="content-target">الجداول المترابطة (Joined Tables)</span>
+      </a>
+      <a href="#aggregate-functions-and-grouping" class="toc-link" data-bilingual>
+        <template class="content-ar">دوال التجميع والتجميع (Grouping)</template>
+        <template class="content-en">Aggregate Functions and Grouping</template>
+        <span class="content-target">دوال التجميع والتجميع (Grouping)</span>
+      </a>
+      <a href="#assertions" class="toc-link" data-bilingual>
+        <template class="content-ar">التوكيدات (Assertions)</template>
+        <template class="content-en">Assertions</template>
+        <span class="content-target">التوكيدات (Assertions)</span>
+      </a>
+      <a href="#sql-triggers" class="toc-link" data-bilingual>
+        <template class="content-ar">المشغلات (SQL Triggers)</template>
+        <template class="content-en">SQL Triggers</template>
+        <span class="content-target">المشغلات (SQL Triggers)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 9</template>
+      <template class="content-en">Module 9</template>
+      <span class="content-target">الوحدة 9</span>
+    </span> · CS350
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">مقدمة في قواعد البيانات: استعلامات SQL المتقدمة والقيود</h1>
+      <p class="hero-description">تغطي هذه الوحدة استعلامات SQL المعقدة بما في ذلك التعامل مع القيم الفارغة (NULL)، المنطق ثلاثي القيم، الاستعلامات المتداخلة، أنواع الربط (Joins)، دوال التجميع، التجميع (Grouping)، بالإضافة إلى تحديد القيود كتوكيدات (Assertions) والإجراءات كمشغلات (Triggers).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Introduction to Database: More SQL-1 (Complex Queries, Triggers, Views)</h1>
+      <p class="hero-description">This module covers complex SQL retrieval queries including handling NULLs, 3-valued logic, nested queries, joins, aggregate functions, grouping, as well as specifying constraints as assertions and actions as triggers.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">قواعد البيانات</span>
+      <span class="tag">SQL</span>
+      <span class="tag">الاستعلامات المتداخلة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Databases</span>
+      <span class="tag">SQL</span>
+      <span class="tag">Nested Queries</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>كتابة استعلامات SQL معقدة لاسترجاع السجلات.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق القيود (Constraints) والمشغلات (Triggers) في SQL.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم واستخدام المنطق ثلاثي القيم للتعامل مع القيم الفارغة (NULL).</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين الاستعلامات المتداخلة المترابطة وغير المترابطة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Write complex SQL queries for retrieval of records.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply constraints and triggers in SQL.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand and utilize 3-valued logic to handle NULL values.</span></li>
+      <li><span class="obj-icon">✦</span><span>Differentiate between correlated and uncorrelated nested queries.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="nulls-and-3-valued-logic" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> القيم الفارغة (NULL) والمنطق ثلاثي القيم</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Handling NULLs and 3-valued Logic</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تستخدم SQL <span class="smart-term" data-term-en="3-valued logic" data-ar="المنطق ثلاثي القيم" data-en-def="A logic system extending standard boolean logic with an UNKNOWN state to handle NULL values.">المنطق ثلاثي القيم<span class="smart-term-tooltip"></span></span> (صحيح، خاطئ، غير معروف) للتعامل مع البيانات المفقودة، تماماً كإجابة 'لا أعلم' في استبيان.</p></template>
+    <template class="content-en"><p>SQL uses <span class="smart-term" data-term-en="3-valued logic" data-ar="المنطق ثلاثي القيم" data-en-def="A logic system extending standard boolean logic with an UNKNOWN state to handle NULL values.">3-valued logic<span class="smart-term-tooltip"></span></span> (TRUE, FALSE, UNKNOWN) to handle missing data, much like answering 'I don't know' on a survey.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تسمح SQL بالاستعلامات التي تتحقق مما إذا كانت السمة NULL (مفقودة أو غير محددة أو غير قابلة للتطبيق). تستخدم SQL المعاملات IS أو IS NOT لمقارنة سمة بـ NULL لأنها تعتبر كل قيمة NULL مميزة عن قيم NULL الأخرى، لذا فإن مقارنة المساواة (=) غير مناسبة. يؤدي وجود NULL إلى تقييم الشرط إلى UNKNOWN، مما يؤدي إلى منطق ثلاثي القيم. عند دمج الشروط باستخدام AND و OR و NOT، يجب أخذ UNKNOWN في الاعتبار.</p></template>
+    <template class="content-en"><p>SQL allows queries that check if an attribute is NULL (missing, undefined, or not applicable). SQL uses IS or IS NOT to compare an attribute to NULL because it considers each NULL value distinct from other NULL values, so equality comparison (=) is not appropriate. With NULLs, a condition can evaluate to UNKNOWN, leading to 3-valued logic. Combining individual conditions using AND, OR, NOT logical connectives must consider UNKNOWN in addition to TRUE and FALSE.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تم تصميم المنطق ثلاثي القيم للحفاظ على سلامة العمليات العلائقية عند غياب البيانات. على سبيل المثال، في جدول الحقيقة، (TRUE AND UNKNOWN) يعطي UNKNOWN، بينما (TRUE OR UNKNOWN) يعطي TRUE. هذا يمنع قاعدة البيانات من استبعاد أو تضمين سجلات بشكل خاطئ بناءً على افتراضات حول البيانات المفقودة.</p></template>
+    <template class="content-en"><p>3-valued logic is designed to maintain the integrity of relational operations when data is absent. For example, in the truth table, (TRUE AND UNKNOWN) yields UNKNOWN, while (TRUE OR UNKNOWN) yields TRUE. This prevents the database from falsely excluding or including records based on assumptions about missing data.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT FNAME, LNAME
+FROM EMPLOYEE
+WHERE SUPERSSN IS NULL;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Create a truth table for 3-valued logic (AND, OR, NOT) showing TRUE, FALSE, and UNKNOWN combinations. Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg viewBox="0 0 800 400" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Clip paths for rounded table corners -->
+    <clipPath id="clip-not">
+      <rect x="60" y="120" width="120" height="160" rx="8" />
+    </clipPath>
+    <clipPath id="clip-and">
+      <rect x="260" y="120" width="200" height="160" rx="8" />
+    </clipPath>
+    <clipPath id="clip-or">
+      <rect x="540" y="120" width="200" height="160" rx="8" />
+    </clipPath>
+  </defs>
+
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    
+    <!-- Main Titles -->
+    <text x="400" y="40" font-size="24" font-weight="bold" fill="currentColor">3-Valued Logic Truth Tables</text>
+    <text x="400" y="70" font-size="16" fill="var(--text-secondary)">جداول الحقيقة للمنطق ثلاثي القيم</text>
+
+    <!-- Table Titles -->
+    <text x="120" y="105" font-size="16" font-weight="bold" fill="var(--brand-500)">NOT / نفي</text>
+    <text x="360" y="105" font-size="16" font-weight="bold" fill="var(--brand-500)">AND / و</text>
+    <text x="640" y="105" font-size="16" font-weight="bold" fill="var(--brand-500)">OR / أو</text>
+
+    <!-- ==================== TABLE 1: NOT ==================== -->
+    <g>
+      <!-- Backgrounds -->
+      <g clip-path="url(#clip-not)">
+        <rect x="60" y="120" width="120" height="40" fill="var(--bg-elevated)" />
+        
+        <!-- Grid Lines -->
+        <line x1="60" y1="160" x2="180" y2="160" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="60" y1="200" x2="180" y2="200" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="60" y1="240" x2="180" y2="240" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="120" y1="120" x2="120" y2="280" stroke="var(--border-color)" stroke-width="1" />
+      </g>
+      
+      <!-- Outer Border -->
+      <rect x="60" y="120" width="120" height="160" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2" />
+
+      <!-- Text Elements -->
+      <g font-size="16" dy="0.35em">
+        <!-- Headers -->
+        <text x="90" y="140" font-weight="bold" fill="currentColor">A</text>
+        <text x="150" y="140" font-weight="bold" fill="currentColor">¬A</text>
+        
+        <!-- Row 1 -->
+        <text x="90" y="180" font-weight="bold" fill="currentColor">T</text>
+        <text x="150" y="180" fill="var(--text-secondary)">F</text>
+        
+        <!-- Row 2 -->
+        <text x="90" y="220" fill="var(--text-secondary)">F</text>
+        <text x="150" y="220" font-weight="bold" fill="currentColor">T</text>
+        
+        <!-- Row 3 -->
+        <text x="90" y="260" font-weight="bold" fill="var(--brand-500)">U</text>
+        <text x="150" y="260" font-weight="bold" fill="var(--brand-500)">U</text>
+      </g>
+    </g>
+
+    <!-- ==================== TABLE 2: AND ==================== -->
+    <g>
+      <!-- Backgrounds -->
+      <g clip-path="url(#clip-and)">
+        <rect x="260" y="120" width="200" height="40" fill="var(--bg-elevated)" />
+        <rect x="260" y="160" width="50" height="120" fill="var(--bg-elevated)" />
+        
+        <!-- Grid Lines -->
+        <line x1="260" y1="160" x2="460" y2="160" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="260" y1="200" x2="460" y2="200" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="260" y1="240" x2="460" y2="240" stroke="var(--border-color)" stroke-width="1" />
+        
+        <line x1="310" y1="120" x2="310" y2="280" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="360" y1="120" x2="360" y2="280" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="410" y1="120" x2="410" y2="280" stroke="var(--border-color)" stroke-width="1" />
+
+        <!-- Diagonal for A\B -->
+        <line x1="260" y1="120" x2="310" y2="160" stroke="var(--border-color)" stroke-width="1" />
+      </g>
+      
+      <!-- Outer Border -->
+      <rect x="260" y="120" width="200" height="160" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2" />
+
+      <!-- Text Elements -->
+      <text x="275" y="150" font-size="12" fill="var(--text-muted)">A</text>
+      <text x="295" y="135" font-size="12" fill="var(--text-muted)">B</text>
+
+      <g font-size="16" dy="0.35em">
+        <!-- Headers -->
+        <text x="335" y="140" font-weight="bold" fill="currentColor">T</text>
+        <text x="385" y="140" font-weight="bold" fill="currentColor">F</text>
+        <text x="435" y="140" font-weight="bold" fill="currentColor">U</text>
+        
+        <!-- Row 1 (T) -->
+        <text x="285" y="180" font-weight="bold" fill="currentColor">T</text>
+        <text x="335" y="180" font-weight="bold" fill="currentColor">T</text>
+        <text x="385" y="180" fill="var(--text-secondary)">F</text>
+        <text x="435" y="180" font-weight="bold" fill="var(--brand-500)">U</text>
+        
+        <!-- Row 2 (F) -->
+        <text x="285" y="220" font-weight="bold" fill="currentColor">F</text>
+        <text x="335" y="220" fill="var(--text-secondary)">F</text>
+        <text x="385" y="220" fill="var(--text-secondary)">F</text>
+        <text x="435" y="220" fill="var(--text-secondary)">F</text>
+        
+        <!-- Row 3 (U) -->
+        <text x="285" y="260" font-weight="bold" fill="currentColor">U</text>
+        <text x="335" y="260" font-weight="bold" fill="var(--brand-500)">U</text>
+        <text x="385" y="260" fill="var(--text-secondary)">F</text>
+        <text x="435" y="260" font-weight="bold" fill="var(--brand-500)">U</text>
+      </g>
+    </g>
+
+    <!-- ==================== TABLE 3: OR ==================== -->
+    <g>
+      <!-- Backgrounds -->
+      <g clip-path="url(#clip-or)">
+        <rect x="540" y="120" width="200" height="40" fill="var(--bg-elevated)" />
+        <rect x="540" y="160" width="50" height="120" fill="var(--bg-elevated)" />
+        
+        <!-- Grid Lines -->
+        <line x1="540" y1="160" x2="740" y2="160" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="540" y1="200" x2="740" y2="200" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="540" y1="240" x2="740" y2="240" stroke="var(--border-color)" stroke-width="1" />
+        
+        <line x1="590" y1="120" x2="590" y2="280" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="640" y1="120" x2="640" y2="280" stroke="var(--border-color)" stroke-width="1" />
+        <line x1="690" y1="120" x2="690" y2="280" stroke="var(--border-color)" stroke-width="1" />
+
+        <!-- Diagonal for A\B -->
+        <line x1="540" y1="120" x2="590" y2="160" stroke="var(--border-color)" stroke-width="1" />
+      </g>
+      
+      <!-- Outer Border -->
+      <rect x="540" y="120" width="200" height="160" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2" />
+
+      <!-- Text Elements -->
+      <text x="555" y="150" font-size="12" fill="var(--text-muted)">A</text>
+      <text x="575" y="135" font-size="12" fill="var(--text-muted)">B</text>
+
+      <g font-size="16" dy="0.35em">
+        <!-- Headers -->
+        <text x="615" y="140" font-weight="bold" fill="currentColor">T</text>
+        <text x="665" y="140" font-weight="bold" fill="currentColor">F</text>
+        <text x="715" y="140" font-weight="bold" fill="currentColor">U</text>
+        
+        <!-- Row 1 (T) -->
+        <text x="565" y="180" font-weight="bold" fill="currentColor">T</text>
+        <text x="615" y="180" font-weight="bold" fill="currentColor">T</text>
+        <text x="665" y="180" font-weight="bold" fill="currentColor">T</text>
+        <text x="715" y="180" font-weight="bold" fill="currentColor">T</text>
+        
+        <!-- Row 2 (F) -->
+        <text x="565" y="220" font-weight="bold" fill="currentColor">F</text>
+        <text x="615" y="220" font-weight="bold" fill="currentColor">T</text>
+        <text x="665" y="220" fill="var(--text-secondary)">F</text>
+        <text x="715" y="220" font-weight="bold" fill="var(--brand-500)">U</text>
+        
+        <!-- Row 3 (U) -->
+        <text x="565" y="260" font-weight="bold" fill="currentColor">U</text>
+        <text x="615" y="260" font-weight="bold" fill="currentColor">T</text>
+        <text x="665" y="260" font-weight="bold" fill="var(--brand-500)">U</text>
+        <text x="715" y="260" font-weight="bold" fill="var(--brand-500)">U</text>
+      </g>
+    </g>
+
+    <!-- ==================== LEGEND ==================== -->
+    <g transform="translate(0, 330)">
+      <rect x="100" y="0" width="600" height="44" rx="22" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+      
+      <g font-size="14" dy="27">
+        <text x="220" fill="currentColor">
+          <tspan font-weight="bold" fill="currentColor">T</tspan> = True (صحيح)
+        </text>
+        <text x="400" fill="currentColor">
+          <tspan font-weight="bold" fill="var(--text-secondary)">F</tspan> = False (خاطئ)
+        </text>
+        <text x="580" fill="currentColor">
+          <tspan font-weight="bold" fill="var(--brand-500)">U</tspan> = Unknown (مجهول)
+        </text>
+      </g>
+    </g>
+
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكننا استخدام المعامل '=' للتحقق من القيم الفارغة (NULL)؟</template>
+      <template class="content-en">Why can't we use the '=' operator to check for NULL values?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن كل قيمة NULL تعتبر مميزة وغير معروفة، فمقارنة مجهول بمجهول آخر لا تعني بالضرورة أنهما متساويان. لذلك نستخدم IS NULL.</p></template>
+      <template class="content-en"><p>Because each NULL is considered distinct and unknown. Comparing one unknown to another unknown does not guarantee they are equal. Therefore, IS NULL is used.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="nested-queries" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الاستعلامات المتداخلة (Nested Queries)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Nested Queries</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>استعلام كامل يوضع داخل استعلام آخر (عادة في جملة WHERE)، كصندوق داخل صندوق.</p></template>
+    <template class="content-en"><p>A complete query placed inside another query (usually in the WHERE clause), like a box inside a box.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن تحديد استعلام SELECT كامل، يسمى الاستعلام المتداخل (nested query)، داخل جملة WHERE لاستعلام آخر (الاستعلام الخارجي). يمكن أن يكون هناك عدة مستويات من التداخل. المعامل IN يقارن قيمة بمجموعة من القيم ويقيم إلى TRUE إذا كانت القيمة أحد عناصر المجموعة. تنقسم الاستعلامات المتداخلة إلى نوعين: غير مترابطة (تُنفذ مرة واحدة بشكل مستقل) ومترابطة (<span class="smart-term" data-term-en="Correlated Query" data-ar="الاستعلام المترابط" data-en-def="A nested query that references an attribute from a relation declared in the outer query.">Correlated<span class="smart-term-tooltip"></span></span>) حيث يشير الاستعلام الداخلي إلى سمة من الاستعلام الخارجي، مما يعني أنه يُنفذ لكل صف في الاستعلام الخارجي.</p></template>
+    <template class="content-en"><p>A complete SELECT query, called a nested query, can be specified within the WHERE-clause of another query (the outer query). There can be several levels of nested queries. The comparison operator IN compares a value with a set of values and evaluates to TRUE if the value is in the set. Nested queries are divided into uncorrelated (executed once independently) and <span class="smart-term" data-term-en="Correlated Query" data-ar="الاستعلام المترابط" data-en-def="A nested query that references an attribute from a relation declared in the outer query.">correlated<span class="smart-term-tooltip"></span></span>, where the inner query references an attribute from the outer query, meaning it executes for each tuple of the outer query.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الاستعلامات المترابطة (Correlated) مكلفة حسابياً لأن تعقيدها الزمني هو O(N*M) حيث يتم تنفيذ الاستعلام الداخلي لكل صف في الاستعلام الخارجي. في المقابل، الاستعلامات غير المترابطة تُنفذ مرة واحدة فقط. يمكن غالباً إعادة كتابة الاستعلامات المترابطة باستخدام الربط (Joins) لتحسين الأداء.</p></template>
+    <template class="content-en"><p>Correlated queries are computationally expensive because their time complexity is O(N*M), as the inner query is evaluated for every row of the outer query. Uncorrelated queries, however, are evaluated only once. Correlated queries can often be rewritten using Joins to optimize performance.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT E.FNAME, E.LNAME
+FROM EMPLOYEE AS E
+WHERE E.SSN IN 
+  (SELECT D.ESSN
+   FROM DEPENDENT AS D
+   WHERE E.FNAME=D.DEPENDENT_NAME);</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>
+          <span data-bilingual>
+            <template class="content-ar">الاستعلام المتداخل المترابط</template>
+            <template class="content-en">Correlated Nested Query</template>
+            <span class="content-target"></span>
+          </span>
+        </th>
+        <th>
+          <span data-bilingual>
+            <template class="content-ar">الاستعلام المتداخل غير المترابط</template>
+            <template class="content-en">Uncorrelated Nested Query</template>
+            <span class="content-target"></span>
+          </span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاعتمادية</template>
+          <template class="content-en">Dependency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يعتمد على الاستعلام الخارجي (يشير إلى سماته)</template>
+          <template class="content-en">Dependent on outer query (references its attributes)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مستقل تماماً عن الاستعلام الخارجي</template>
+          <template class="content-en">Completely independent of the outer query</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تكرار التنفيذ</template>
+          <template class="content-en">Execution Frequency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يُنفذ مرة واحدة لكل صف في الاستعلام الخارجي</template>
+          <template class="content-en">Executed once for each tuple in the outer query</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يُنفذ مرة واحدة فقط</template>
+          <template class="content-en">Executed only once</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكن تحويل الاستعلام المترابط السابق إلى استعلام باستخدام الربط (Join)؟</template>
+      <template class="content-en">How can the previous correlated query be converted into a Join query?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يمكن كتابته كاستعلام كتلة واحدة: SELECT E.FNAME, E.LNAME FROM EMPLOYEE E, DEPENDENT D WHERE E.SSN=D.ESSN AND E.FNAME=D.DEPENDENT_NAME;</p></template>
+      <template class="content-en"><p>It can be written as a single block query: SELECT E.FNAME, E.LNAME FROM EMPLOYEE E, DEPENDENT D WHERE E.SSN=D.ESSN AND E.FNAME=D.DEPENDENT_NAME;</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="exists-function" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> دالة EXISTS</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> The EXISTS Function</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>دالة منطقية تتحقق مما إذا كان الاستعلام الفرعي يرجع أي صفوف (ليست فارغة).</p></template>
+    <template class="content-en"><p>A boolean function that checks whether a subquery returns any rows (is not empty).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم <span class="smart-term" data-term-en="EXISTS" data-ar="دالة الوجود" data-en-def="A logical operator that evaluates to true if a subquery returns at least one row.">EXISTS<span class="smart-term-tooltip"></span></span> للتحقق مما إذا كانت نتيجة الاستعلام فارغة (لا تحتوي على صفوف) أو لا (تحتوي على صف واحد أو أكثر). تُطبق على استعلام، ولكنها تُرجع نتيجة منطقية (TRUE أو FALSE). يمكن استخدامها في جملة WHERE كشرط. تُقيم EXISTS (Q) إلى TRUE إذا كانت نتيجة Q تحتوي على صف واحد أو أكثر؛ وتُقيم إلى FALSE إذا لم تكن هناك صفوف. تُستخدم NOT EXISTS للتحقق من عدم وجود صفوف.</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="EXISTS" data-ar="دالة الوجود" data-en-def="A logical operator that evaluates to true if a subquery returns at least one row.">EXISTS<span class="smart-term-tooltip"></span></span> is used to check whether the result of a query is empty (contains no tuples) or not (contains one or more tuples). It is applied to a query but returns a boolean result (TRUE or FALSE). It can be used in the WHERE-clause as a condition. EXISTS (Q) evaluates to TRUE if the result of Q has one or more tuples; evaluates to FALSE if the result of Q has no tuples. NOT EXISTS is used to check for emptiness.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تعتبر EXISTS ضرورية للقوة التعبيرية لـ SQL، خاصة عند محاكاة عملية التقسيم (Division) في الجبر العلائقي. كما أنها فعالة جداً لأن محرك قاعدة البيانات يتوقف عن البحث بمجرد العثور على أول تطابق (Short-circuit evaluation)، بدلاً من حساب جميع السجلات كما تفعل دالة COUNT.</p></template>
+    <template class="content-en"><p>EXISTS is necessary for the expressive power of SQL, especially when simulating the relational algebra division operation. It is also highly efficient because the database engine stops searching as soon as it finds the first match (short-circuit evaluation), rather than counting all records like COUNT does.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT E.FNAME, E.LNAME
+FROM EMPLOYEE E
+WHERE NOT EXISTS (SELECT *
+                  FROM DEPENDENT D
+                  WHERE E.SSN=D.ESSN);</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">أيهما أسرع عادةً: استخدام EXISTS أم استخدام COUNT(*) &gt; 0؟ ولماذا؟</template>
+      <template class="content-en">Which is generally faster: using EXISTS or COUNT(*) &gt; 0? Why?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>EXISTS أسرع لأنها تتوقف عن البحث بمجرد العثور على أول سجل يطابق الشرط، بينما COUNT(*) تضطر للمرور على جميع السجلات لعدها.</p></template>
+      <template class="content-en"><p>EXISTS is faster because it short-circuits and stops searching as soon as it finds the first matching record, whereas COUNT(*) must scan and count all matching records.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="joined-tables" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الجداول المترابطة (Joined Tables)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Joined Tables (Relations)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>دمج أعمدة من جدولين أو أكثر بناءً على عمود مشترك بينهما.</p></template>
+    <template class="content-en"><p>Combining columns from two or more tables based on a related column between them.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن تحديد 'علاقة مترابطة' في جملة FROM. يسمح ذلك للمستخدم بتحديد أنواع مختلفة من الربط: INNER JOIN (الربط العادي حيث يجب أن تستوفي الصفوف المترابطة جميع شروط الربط)، OUTER JOIN (يسمح بتضمين السجلات التي ليس لها تطابق عن طريق حشوها بقيم NULL)، و <span class="smart-term" data-term-en="NATURAL JOIN" data-ar="الربط الطبيعي" data-en-def="A join that automatically matches columns with the same name in both tables.">NATURAL JOIN<span class="smart-term-tooltip"></span></span> (ربط ضمني حيث يتم دمج الأعمدة التي لها نفس الاسم تلقائياً). ينقسم الربط الخارجي إلى LEFT (يحتفظ بكل سجلات الجدول الأيسر)، RIGHT (يحتفظ بكل سجلات الجدول الأيمن)، و FULL (يحتفظ بكل السجلات من كلا الجدولين).</p></template>
+    <template class="content-en"><p>A 'joined relation' can be specified in the FROM-clause. It allows the user to specify different types of joins: INNER JOIN (regular join where joined tuples must satisfy all join conditions), OUTER JOIN (includes records without matches by padding them with NULLs), and <span class="smart-term" data-term-en="NATURAL JOIN" data-ar="الربط الطبيعي" data-en-def="A join that automatically matches columns with the same name in both tables.">NATURAL JOIN<span class="smart-term-tooltip"></span></span> (implicit join where attributes with the same name are automatically matched). Outer joins are divided into LEFT (keeps all left table records), RIGHT (keeps all right table records), and FULL (keeps all records from both tables).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يحل الربط الخارجي (Outer Join) مشكلة فقدان المعلومات في الربط الداخلي (Inner Join). على سبيل المثال، إذا أردنا عرض جميع الأقسام حتى تلك التي لا تحتوي على موظفين، فإن الربط الداخلي سيتجاهلها، بينما الربط الخارجي الأيسر (إذا كان جدول الأقسام على اليسار) سيحتفظ بها ويضع NULL في بيانات الموظفين.</p></template>
+    <template class="content-en"><p>Outer joins solve the information loss problem inherent in Inner Joins. For instance, if we want to display all departments, even those with no employees, an Inner Join would drop them. A Left Outer Join (with Department on the left) retains them, placing NULLs in the employee columns.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT E.FNAME, E.LNAME, D.DNAME
+FROM (DEPARTMENT AS D LEFT OUTER JOIN EMPLOYEE AS E ON D.DNUMBER=E.DNO);</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a Venn diagram showing INNER JOIN (intersection), LEFT OUTER JOIN (left circle + intersection), RIGHT OUTER JOIN (right circle + intersection), and FULL OUTER JOIN (both circles). Style: educational, dark background #0d1117, accent colors #3b82f6 and #10b981, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto">
+    <defs>
+        <clipPath id="clip-inner-right">
+            <circle cx="230" cy="110" r="50" />
+        </clipPath>
+        <clipPath id="clip-inner-left">
+            <circle cx="170" cy="110" r="50" />
+        </clipPath>
+    </defs>
+
+    <!-- Q1: INNER JOIN -->
+    <g id="q1-inner">
+        <rect x="20" y="10" width="360" height="180" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4 4" />
+        
+        <text x="200" y="35" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">INNER JOIN</text>
+        <text x="200" y="55" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-muted)">تقاطع (صلة داخلية)</text>
+
+        <circle cx="170" cy="110" r="50" fill="var(--bg-elevated)" />
+        <circle cx="230" cy="110" r="50" fill="var(--bg-elevated)" />
+        
+        <circle cx="170" cy="110" r="50" fill="var(--brand-500)" clip-path="url(#clip-inner-right)" />
+        
+        <circle cx="170" cy="110" r="50" fill="none" stroke="var(--border-color)" stroke-width="2" />
+        <circle cx="230" cy="110" r="50" fill="none" stroke="var(--border-color)" stroke-width="2" />
+        <circle cx="170" cy="110" r="50" fill="none" stroke="var(--brand-500)" stroke-width="2" clip-path="url(#clip-inner-right)" />
+        <circle cx="230" cy="110" r="50" fill="none" stroke="var(--brand-500)" stroke-width="2" clip-path="url(#clip-inner-left)" />
+
+        <text x="105" y="105" text-anchor="end" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table A</text>
+        <text x="105" y="125" text-anchor="end" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول أ</text>
+        
+        <text x="295" y="105" text-anchor="start" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table B</text>
+        <text x="295" y="125" text-anchor="start" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول ب</text>
+
+        <rect x="40" y="155" width="320" height="26" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="200" y="173" text-anchor="middle" font-family="monospace" font-size="12" fill="var(--text-secondary)">SELECT * FROM A <tspan fill="var(--brand-500)" font-weight="bold">INNER JOIN</tspan> B ON A.id = B.id</text>
+    </g>
+
+    <!-- Q2: LEFT OUTER JOIN -->
+    <g id="q2-left">
+        <rect x="420" y="10" width="360" height="180" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4 4" />
+        
+        <text x="600" y="35" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">LEFT OUTER JOIN</text>
+        <text x="600" y="55" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-muted)">صلة خارجية يسرى</text>
+
+        <circle cx="570" cy="110" r="50" fill="var(--bg-elevated)" />
+        <circle cx="630" cy="110" r="50" fill="var(--bg-elevated)" />
+        
+        <circle cx="570" cy="110" r="50" fill="var(--brand-500)" />
+        
+        <circle cx="630" cy="110" r="50" fill="none" stroke="var(--border-color)" stroke-width="2" />
+        <circle cx="570" cy="110" r="50" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+        <text x="505" y="105" text-anchor="end" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table A</text>
+        <text x="505" y="125" text-anchor="end" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول أ</text>
+        
+        <text x="695" y="105" text-anchor="start" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table B</text>
+        <text x="695" y="125" text-anchor="start" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول ب</text>
+
+        <rect x="440" y="155" width="320" height="26" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="600" y="173" text-anchor="middle" font-family="monospace" font-size="12" fill="var(--text-secondary)">SELECT * FROM A <tspan fill="var(--brand-500)" font-weight="bold">LEFT JOIN</tspan> B ON A.id = B.id</text>
+    </g>
+
+    <!-- Q3: RIGHT OUTER JOIN -->
+    <g id="q3-right">
+        <rect x="20" y="210" width="360" height="180" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4 4" />
+        
+        <text x="200" y="235" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">RIGHT OUTER JOIN</text>
+        <text x="200" y="255" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-muted)">صلة خارجية يمنى</text>
+
+        <circle cx="170" cy="310" r="50" fill="var(--bg-elevated)" />
+        <circle cx="230" cy="310" r="50" fill="var(--bg-elevated)" />
+        
+        <circle cx="230" cy="310" r="50" fill="var(--brand-500)" />
+        
+        <circle cx="170" cy="310" r="50" fill="none" stroke="var(--border-color)" stroke-width="2" />
+        <circle cx="230" cy="310" r="50" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+        <text x="105" y="305" text-anchor="end" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table A</text>
+        <text x="105" y="325" text-anchor="end" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول أ</text>
+        
+        <text x="295" y="305" text-anchor="start" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table B</text>
+        <text x="295" y="325" text-anchor="start" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول ب</text>
+
+        <rect x="40" y="355" width="320" height="26" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="200" y="373" text-anchor="middle" font-family="monospace" font-size="12" fill="var(--text-secondary)">SELECT * FROM A <tspan fill="var(--brand-500)" font-weight="bold">RIGHT JOIN</tspan> B ON A.id = B.id</text>
+    </g>
+
+    <!-- Q4: FULL OUTER JOIN -->
+    <g id="q4-full">
+        <rect x="420" y="210" width="360" height="180" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4 4" />
+        
+        <text x="600" y="235" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="currentColor">FULL OUTER JOIN</text>
+        <text x="600" y="255" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" fill="var(--text-muted)">صلة خارجية كاملة</text>
+
+        <circle cx="570" cy="310" r="50" fill="var(--brand-500)" />
+        <circle cx="630" cy="310" r="50" fill="var(--brand-500)" />
+        
+        <circle cx="570" cy="310" r="50" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+        <circle cx="630" cy="310" r="50" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+        <text x="505" y="305" text-anchor="end" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table A</text>
+        <text x="505" y="325" text-anchor="end" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول أ</text>
+        
+        <text x="695" y="305" text-anchor="start" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Table B</text>
+        <text x="695" y="325" text-anchor="start" font-family="system-ui, sans-serif" font-size="12" fill="var(--text-muted)">الجدول ب</text>
+
+        <rect x="440" y="355" width="320" height="26" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="600" y="373" text-anchor="middle" font-family="monospace" font-size="12" fill="var(--text-secondary)">SELECT * FROM A <tspan fill="var(--brand-500)" font-weight="bold">FULL JOIN</tspan> B ON A.id = B.id</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا استخدمنا NATURAL JOIN بين جدولين لا يحتويان على أي أعمدة بنفس الاسم؟</template>
+      <template class="content-en">What happens if we use a NATURAL JOIN between two tables that have no columns with the same name?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيتحول الربط إلى ضرب ديكارتي (Cross Join)، حيث سيتم دمج كل صف من الجدول الأول مع كل صف من الجدول الثاني.</p></template>
+      <template class="content-en"><p>The join degrades into a Cartesian product (Cross Join), where every row from the first table is combined with every row from the second table.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="aggregate-functions-and-grouping" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> دوال التجميع والتجميع (Grouping)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Aggregate Functions and Grouping</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>دوال تلخص بيانات عدة صفوف في قيمة واحدة (مثل المجموع أو المتوسط)، وغالباً ما تُقسم البيانات إلى مجموعات باستخدام GROUP BY.</p></template>
+    <template class="content-en"><p>Functions that summarize data from multiple rows into a single value (like sum or average), often partitioning data into groups using GROUP BY.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تشمل دوال التجميع COUNT و SUM و MAX و MIN و AVG. يمكنها تلخيص المعلومات من عدة صفوف في صف واحد. في كثير من الحالات، نريد تطبيق هذه الدوال على مجموعات فرعية من الصفوف. تتكون كل مجموعة من الصفوف التي لها نفس القيمة لسمة التجميع (مثل الموظفين في نفس القسم). تحتوي SQL على جملة GROUP BY لتحديد سمات التجميع. إذا أردنا تصفية هذه المجموعات بناءً على شرط معين، نستخدم <span class="smart-term" data-term-en="HAVING clause" data-ar="جملة HAVING" data-en-def="A clause used to specify a selection condition on groups created by GROUP BY.">جملة HAVING<span class="smart-term-tooltip"></span></span> (بدلاً من WHERE التي تصفي الصفوف الفردية).</p></template>
+    <template class="content-en"><p>Aggregate functions include COUNT, SUM, MAX, MIN, and AVG. They summarize information from multiple tuples into a single tuple. Often, we apply these functions to subgroups of tuples. Each subgroup consists of tuples that have the same value for the grouping attribute(s) (e.g., employees in the same department). SQL uses the GROUP BY clause to specify grouping attributes. To filter these groups based on a condition, the <span class="smart-term" data-term-en="HAVING clause" data-ar="جملة HAVING" data-en-def="A clause used to specify a selection condition on groups created by GROUP BY.">HAVING clause<span class="smart-term-tooltip"></span></span> is used (unlike WHERE, which filters individual tuples).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الترتيب المفاهيمي لتقييم الاستعلام هو: FROM (تحديد الجداول) -&gt; WHERE (تصفية الصفوف) -&gt; GROUP BY (تكوين المجموعات) -&gt; HAVING (تصفية المجموعات) -&gt; SELECT (استخراج الأعمدة والدوال) -&gt; ORDER BY (ترتيب النتائج). هذا يفسر لماذا لا يمكن استخدام دوال التجميع في جملة WHERE.</p></template>
+    <template class="content-en"><p>The conceptual evaluation order of a query is: FROM -&gt; WHERE -&gt; GROUP BY -&gt; HAVING -&gt; SELECT -&gt; ORDER BY. This explains why aggregate functions cannot be used in the WHERE clause, as WHERE is evaluated before groups are formed and aggregates are calculated.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>SELECT PNUMBER, PNAME, COUNT(*)
+FROM PROJECT, WORKS_ON
+WHERE PNUMBER=PNO
+GROUP BY PNUMBER, PNAME
+HAVING COUNT(*) &gt; 2;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Flowchart showing the logical execution order of SQL clauses: FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY. Style: educational, dark background #0d1117, accent color #8b5cf6, viewBox 0 0 800 200, horizontal flow, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)"/>
+    </marker>
+  </defs>
+
+  <!-- Title Section -->
+  <text x="400" y="50" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle">Logical Execution Order of SQL Clauses</text>
+  <text x="400" y="80" font-size="18" fill="var(--text-secondary)" text-anchor="middle">ترتيب التنفيذ المنطقي لجمل SQL</text>
+
+  <!-- Flowchart Nodes -->
+  
+  <!-- Step 1: FROM -->
+  <rect x="20" y="150" width="100" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+  <circle cx="70" cy="150" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="70" y="155" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">1</text>
+  <text x="70" y="182" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">FROM</text>
+  <text x="70" y="212" font-size="13" fill="currentColor" text-anchor="middle">تحديد الجداول</text>
+  
+  <line x1="70" y1="230" x2="70" y2="255" stroke="var(--border-color)" stroke-dasharray="3 3"/>
+  <rect x="22" y="255" width="96" height="50" rx="6" fill="transparent" stroke="var(--border-color)" stroke-dasharray="4 4"/>
+  <text x="70" y="276" font-size="11" fill="var(--text-secondary)" text-anchor="middle">Base Dataset</text>
+  <text x="70" y="296" font-size="12" fill="var(--text-secondary)" text-anchor="middle">البيانات الأساسية</text>
+
+  <line x1="120" y1="190" x2="146" y2="190" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: WHERE -->
+  <rect x="152" y="150" width="100" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+  <circle cx="202" cy="150" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="202" y="155" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">2</text>
+  <text x="202" y="182" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">WHERE</text>
+  <text x="202" y="212" font-size="13" fill="currentColor" text-anchor="middle">تصفية الصفوف</text>
+
+  <line x1="202" y1="230" x2="202" y2="255" stroke="var(--border-color)" stroke-dasharray="3 3"/>
+  <rect x="154" y="255" width="96" height="50" rx="6" fill="transparent" stroke="var(--border-color)" stroke-dasharray="4 4"/>
+  <text x="202" y="276" font-size="11" fill="var(--text-secondary)" text-anchor="middle">Filtered Rows</text>
+  <text x="202" y="296" font-size="12" fill="var(--text-secondary)" text-anchor="middle">الصفوف المصفاة</text>
+
+  <line x1="252" y1="190" x2="278" y2="190" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: GROUP BY -->
+  <rect x="284" y="150" width="100" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+  <circle cx="334" cy="150" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="334" y="155" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">3</text>
+  <text x="334" y="182" font-size="17" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">GROUP BY</text>
+  <text x="334" y="212" font-size="13" fill="currentColor" text-anchor="middle">تجميع البيانات</text>
+
+  <line x1="334" y1="230" x2="334" y2="255" stroke="var(--border-color)" stroke-dasharray="3 3"/>
+  <rect x="286" y="255" width="96" height="50" rx="6" fill="transparent" stroke="var(--border-color)" stroke-dasharray="4 4"/>
+  <text x="334" y="276" font-size="11" fill="var(--text-secondary)" text-anchor="middle">Grouped Rows</text>
+  <text x="334" y="296" font-size="12" fill="var(--text-secondary)" text-anchor="middle">الصفوف المجمعة</text>
+
+  <line x1="384" y1="190" x2="410" y2="190" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: HAVING -->
+  <rect x="416" y="150" width="100" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+  <circle cx="466" cy="150" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="466" y="155" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">4</text>
+  <text x="466" y="182" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">HAVING</text>
+  <text x="466" y="212" font-size="13" fill="currentColor" text-anchor="middle">تصفية المجموعات</text>
+
+  <line x1="466" y1="230" x2="466" y2="255" stroke="var(--border-color)" stroke-dasharray="3 3"/>
+  <rect x="418" y="255" width="96" height="50" rx="6" fill="transparent" stroke="var(--border-color)" stroke-dasharray="4 4"/>
+  <text x="466" y="276" font-size="11" fill="var(--text-secondary)" text-anchor="middle">Filtered Groups</text>
+  <text x="466" y="296" font-size="12" fill="var(--text-secondary)" text-anchor="middle">المجموعات المصفاة</text>
+
+  <line x1="516" y1="190" x2="542" y2="190" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 5: SELECT -->
+  <rect x="548" y="150" width="100" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+  <circle cx="598" cy="150" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="598" y="155" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">5</text>
+  <text x="598" y="182" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">SELECT</text>
+  <text x="598" y="212" font-size="13" fill="currentColor" text-anchor="middle">تحديد الأعمدة</text>
+
+  <line x1="598" y1="230" x2="598" y2="255" stroke="var(--border-color)" stroke-dasharray="3 3"/>
+  <rect x="550" y="255" width="96" height="50" rx="6" fill="transparent" stroke="var(--border-color)" stroke-dasharray="4 4"/>
+  <text x="598" y="276" font-size="11" fill="var(--text-secondary)" text-anchor="middle">Final Columns</text>
+  <text x="598" y="296" font-size="12" fill="var(--text-secondary)" text-anchor="middle">الأعمدة النهائية</text>
+
+  <line x1="648" y1="190" x2="674" y2="190" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 6: ORDER BY -->
+  <rect x="680" y="150" width="100" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5"/>
+  <circle cx="730" cy="150" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="730" y="155" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">6</text>
+  <text x="730" y="182" font-size="17" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">ORDER BY</text>
+  <text x="730" y="212" font-size="13" fill="currentColor" text-anchor="middle">ترتيب النتائج</text>
+
+  <line x1="730" y1="230" x2="730" y2="255" stroke="var(--border-color)" stroke-dasharray="3 3"/>
+  <rect x="682" y="255" width="96" height="50" rx="6" fill="transparent" stroke="var(--border-color)" stroke-dasharray="4 4"/>
+  <text x="730" y="276" font-size="11" fill="var(--text-secondary)" text-anchor="middle">Sorted Output</text>
+  <text x="730" y="296" font-size="12" fill="var(--text-secondary)" text-anchor="middle">النتائج المرتبة</text>
+
+  <!-- Footer Note -->
+  <rect x="50" y="335" width="700" height="55" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="400" y="356" font-size="13" fill="var(--text-muted)" text-anchor="middle">Note: The logical execution order differs from the syntax order (SELECT is written first but executed later).</text>
+  <text x="400" y="378" font-size="13" fill="var(--text-muted)" text-anchor="middle">ملاحظة: يختلف ترتيب التنفيذ المنطقي عن ترتيب الكتابة (تُكتب SELECT أولاً ولكن تُنفذ لاحقاً).</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>
+          <span data-bilingual>
+            <template class="content-ar">جملة WHERE</template>
+            <template class="content-en">WHERE Clause</template>
+            <span class="content-target"></span>
+          </span>
+        </th>
+        <th>
+          <span data-bilingual>
+            <template class="content-ar">جملة HAVING</template>
+            <template class="content-en">HAVING Clause</template>
+            <span class="content-target"></span>
+          </span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مستوى التصفية</template>
+          <template class="content-en">Filtering Level</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يصفي الصفوف الفردية</template>
+          <template class="content-en">Filters individual tuples (rows)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يصفي المجموعات بأكملها</template>
+          <template class="content-en">Filters entire groups</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استخدام دوال التجميع</template>
+          <template class="content-en">Use of Aggregate Functions</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا يمكن استخدام دوال التجميع داخله</template>
+          <template class="content-en">Cannot contain aggregate functions</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يُستخدم عادةً مع دوال التجميع</template>
+          <template class="content-en">Typically used with aggregate functions</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يجب أن تظهر أي سمة موجودة في جملة SELECT (وليست داخل دالة تجميع) في جملة GROUP BY؟</template>
+      <template class="content-en">Why must any attribute in the SELECT clause (that is not inside an aggregate function) also appear in the GROUP BY clause?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن التجميع يدمج عدة صفوف في صف واحد. إذا لم تكن السمة جزءاً من مفتاح التجميع، فلن تعرف قاعدة البيانات أي قيمة من الصفوف المدمجة يجب أن تعرضها.</p></template>
+      <template class="content-en"><p>Because grouping collapses multiple rows into one. If an attribute is not part of the grouping key, the database wouldn't know which specific row's value to display for that group.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="assertions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> التوكيدات (Assertions)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Assertions</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>قواعد عامة تُطبق على قاعدة البيانات بأكملها لضمان عدم انتهاك شروط معينة أبداً.</p></template>
+    <template class="content-en"><p>General rules applied to the entire database to ensure specific conditions are never violated.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Assertion" data-ar="التوكيد" data-en-def="A piece of SQL specifying a boolean expression that must always be true for the database state to be valid.">التوكيدات<span class="smart-term-tooltip"></span></span> هي قيود عامة لا تتناسب مع قيود SQL الأساسية (مثل المفاتيح الأساسية، UNIQUE، NOT NULL). يتم إنشاؤها باستخدام CREATE ASSERTION. تتكون من اسم القيد، متبوعاً بـ CHECK، ثم شرط يجب أن يكون دائماً TRUE. لاستخدامها، نحدد استعلاماً ينتهك الشرط ونضعه داخل جملة NOT EXISTS، بحيث يجب أن تكون نتيجة الاستعلام فارغة دائماً.</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="Assertion" data-ar="التوكيد" data-en-def="A piece of SQL specifying a boolean expression that must always be true for the database state to be valid.">Assertions<span class="smart-term-tooltip"></span></span> are general constraints that do not fit into basic SQL constraints (primary keys, UNIQUE, foreign keys, NOT NULL). They are created using CREATE ASSERTION. Components include a constraint name, followed by CHECK, followed by a condition that must be TRUE. To use them, specify a query that violates the condition inside a NOT EXISTS clause; the query result must be empty for the assertion to hold.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>رغم قوة التوكيدات في الحفاظ على سلامة البيانات المعقدة (مثل مقارنة رواتب الموظفين بمديريهم)، إلا أنها غير مدعومة بشكل واسع في العديد من أنظمة إدارة قواعد البيانات التجارية (RDBMS) بسبب التكلفة العالية للتحقق منها عند كل عملية تعديل. بدلاً من ذلك، تُستخدم المشغلات (Triggers) غالباً لتحقيق نفس الهدف.</p></template>
+    <template class="content-en"><p>While assertions are powerful for maintaining complex data integrity (e.g., ensuring an employee's salary doesn't exceed their manager's), they are not widely supported in many commercial RDBMS due to the high performance overhead of checking them on every modification. Triggers are often used as a practical alternative.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>CREATE ASSERTION SALARY_CONSTRAINT
+CHECK (NOT EXISTS (SELECT *
+                   FROM EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+                   WHERE E.SALARY &gt; M.SALARY AND
+                         E.DNO=D.DNUMBER AND 
+                         D.MGRSSN=M.SSN));</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم NOT EXISTS داخل جملة CHECK في التوكيدات؟</template>
+      <template class="content-en">Why do we use NOT EXISTS inside the CHECK clause of an assertion?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا نصيغ الاستعلام للبحث عن الحالات التي تنتهك القاعدة. إذا لم تكن هناك أي سجلات تنتهك القاعدة (NOT EXISTS)، فهذا يعني أن قاعدة البيانات في حالة سليمة (الشرط TRUE).</p></template>
+      <template class="content-en"><p>Because we formulate the query to find violations of the rule. If no such violating records exist (NOT EXISTS), the database is in a valid state (the condition evaluates to TRUE).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 7 -->
+<section id="sql-triggers" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> المشغلات (SQL Triggers)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> SQL Triggers</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أكواد تُنفذ تلقائياً (تُستدعى) استجابةً لحدث معين في قاعدة البيانات (مثل الإضافة أو التعديل).</p></template>
+    <template class="content-en"><p>Code that automatically executes (fires) in response to a specific event on a particular table (like INSERT or UPDATE).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم المشغلات لمراقبة قاعدة البيانات وبدء إجراء عند حدوث أحداث وشروط معينة. تتكون من ثلاثة أجزاء (<span class="smart-term" data-term-en="ECA Model" data-ar="نموذج حدث-شرط-إجراء" data-en-def="Event-Condition-Action model, the structural foundation of database triggers.">ECA<span class="smart-term-tooltip"></span></span>): الحدث (Event) مثل عملية إدراج أو حذف أو تحديث؛ الشرط (Condition) الذي يجب أن يتحقق؛ والإجراء (Action) الذي يُتخذ عند تحقق الشرط. يمكن تحديد وقت التشغيل (BEFORE أو AFTER) وما إذا كان يُنفذ لكل صف (FOR EACH ROW).</p></template>
+    <template class="content-en"><p>Triggers are used to monitor a database and initiate action when certain events and conditions occur. They follow the <span class="smart-term" data-term-en="ECA Model" data-ar="نموذج حدث-شرط-إجراء" data-en-def="Event-Condition-Action model, the structural foundation of database triggers.">ECA model<span class="smart-term-tooltip"></span></span>: Event (such as an insert, delete, or update operation), Condition (to be checked), and Action (to be taken when the condition is satisfied). They can be specified to run BEFORE or AFTER the event, and can operate FOR EACH ROW modified.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المشغلات مفيدة جداً لفرض قواعد العمل المعقدة، وتتبع التغييرات (Auditing)، وحساب القيم المشتقة. ومع ذلك، يجب استخدامها بحذر لأنها يمكن أن تسبب تأثيرات متسلسلة (Cascading triggers) حيث يقوم مشغل بتفعيل مشغل آخر، مما يؤدي إلى تعقيد تتبع الأخطاء ومشاكل في الأداء.</p></template>
+    <template class="content-en"><p>Triggers are highly useful for enforcing complex business rules, auditing changes, and calculating derived values. However, they must be used cautiously as they can cause cascading effects (one trigger firing another), leading to debugging nightmares and performance degradation.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn">📋 Copy</button>
+    </div>
+    <pre><code>CREATE TRIGGER INFORM_SUPERVISOR
+BEFORE INSERT OR UPDATE OF SALARY, SUPERVISOR_SSN ON EMPLOYEE
+FOR EACH ROW
+WHEN (NEW.SALARY &gt; (SELECT SALARY FROM EMPLOYEE WHERE SSN=NEW.SUPERVISOR_SSN))
+INFORM_SUPERVISOR (NEW.SUPERVISOR_SSN, NEW.SSN);</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما الفرق بين المشغل (Trigger) والتوكيد (Assertion)؟</template>
+      <template class="content-en">What is the difference between a Trigger and an Assertion?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>التوكيد هو قيد يمنع أي عملية تجعل الشرط خاطئاً. المشغل هو إجراء نشط يُنفذ كوداً معيناً استجابة لحدث، ويمكن استخدامه لتعديل البيانات أو إرسال تنبيهات، وليس فقط لمنع العمليات.</p></template>
+      <template class="content-en"><p>An assertion is a passive constraint that simply blocks any transaction violating its condition. A trigger is active; it executes specific code in response to an event, and can modify data or send alerts, not just block transactions.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبطال قواعد البيانات في هذه الوحدة الدسمة! اليوم ننتقل من الاستعلامات البسيطة إلى مستوى المحترفين. تخيل أنك تدير شركة ضخمة؛ ستحتاج إلى استخراج تقارير معقدة. هنا يأتي دور 'الاستعلامات المتداخلة' (Nested Queries) التي تسمح لك بطرح سؤال داخل سؤال. تذكروا جيداً الفرق بين الاستعلام المترابط (الذي يعتمد على الخارج ويُنفذ مراراً) وغير المترابط. كما تعلمنا كيف نتعامل مع البيانات المفقودة باستخدام 'المنطق ثلاثي القيم' و IS NULL (إياكم واستخدام علامة اليساوي مع NULL!). ثم انتقلنا إلى سحر دمج الجداول عبر أنواع الربط (Joins)، وتلخيص البيانات باستخدام دوال التجميع و GROUP BY. السر الأكبر للامتحان هنا هو التفرقة بين WHERE (للصفوف) و HAVING (للمجموعات). أخيراً، لحماية بياناتنا، تعرفنا على التوكيدات (Assertions) كحراس عامين، والمشغلات (Triggers) كجنود يتفاعلون فور وقوع حدث معين. ركزوا على ترتيب تنفيذ جمل SQL المفاهيمي، فهو مفتاح فهم كل شيء. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, database champions, to this content-rich module! Today we move from simple queries to the professional level. Imagine managing a massive company; you'll need complex reports. This is where 'Nested Queries' come in, allowing you to ask a question within a question. Remember the critical difference between correlated (dependent on the outer query and executed repeatedly) and uncorrelated queries. We also learned how to handle missing data using '3-valued logic' and IS NULL (never use the equals sign with NULL!). Then, we explored the magic of combining tables via Joins, and summarizing data using aggregate functions and GROUP BY. The biggest exam secret here is distinguishing between WHERE (for rows) and HAVING (for groups). Finally, to protect our data, we introduced Assertions as general guards, and Triggers as active soldiers reacting to specific events. Focus heavily on the conceptual execution order of SQL clauses; it's the key to understanding everything. Good luck with your studies!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى المنطق ثلاثي القيم في SQL؟</template>
+          <template class="content-en">Why do we need 3-valued logic in SQL?</template>
+          <span class="content-target">لماذا نحتاج إلى المنطق ثلاثي القيم في SQL؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن قواعد البيانات تحتوي غالباً على بيانات مفقودة أو غير معروفة تُمثل بـ NULL. المنطق الثنائي (صحيح/خاطئ) لا يكفي للتعامل مع المجهول، لذا أُضيفت حالة UNKNOWN لمنع استنتاجات خاطئة عند تقييم الشروط.</template>
+          <template class="content-en">Because databases often contain missing or unknown data represented by NULL. Binary logic (True/False) is insufficient to handle the unknown, so the UNKNOWN state was added to prevent false conclusions when evaluating conditions.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نستخدم الاستعلام المترابط (Correlated Query)؟</template>
+          <template class="content-en">When do we use a Correlated Query?</template>
+          <span class="content-target">متى نستخدم الاستعلام المترابط (Correlated Query)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمه عندما نحتاج إلى تقييم الاستعلام الداخلي بناءً على قيمة من الصف الحالي في الاستعلام الخارجي. على سبيل المثال، إيجاد الموظفين الذين يتقاضون راتباً أعلى من متوسط راتب 'قسمهم الخاص'.</template>
+          <template class="content-en">We use it when the inner query needs to be evaluated based on a value from the current row of the outer query. For example, finding employees who earn more than the average salary of 'their specific department'.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي ميزة استخدام EXISTS بدلاً من IN؟</template>
+          <template class="content-en">What is the advantage of using EXISTS instead of IN?</template>
+          <span class="content-target">ما هي ميزة استخدام EXISTS بدلاً من IN؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">EXISTS تتحقق فقط من وجود صف واحد على الأقل وتتوقف فوراً (Short-circuit)، مما يجعلها أسرع بكثير في الاستعلامات الفرعية الكبيرة. بينما IN تقارن القيمة بجميع العناصر في القائمة المرجعة.</template>
+          <template class="content-en">EXISTS only checks for the presence of at least one row and stops immediately (short-circuiting), making it much faster for large subqueries. IN, however, compares the value against all elements in the returned list.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين INNER JOIN و LEFT OUTER JOIN؟</template>
+          <template class="content-en">What is the difference between INNER JOIN and LEFT OUTER JOIN?</template>
+          <span class="content-target">ما الفرق بين INNER JOIN و LEFT OUTER JOIN؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">INNER JOIN يُرجع فقط الصفوف التي لها تطابق في كلا الجدولين. LEFT OUTER JOIN يُرجع جميع الصفوف من الجدول الأيسر، وإذا لم يكن هناك تطابق في الجدول الأيمن، يملأ الأعمدة بـ NULL.</template>
+          <template class="content-en">INNER JOIN returns only rows that have a match in both tables. LEFT OUTER JOIN returns all rows from the left table, and if there is no match in the right table, it fills the columns with NULLs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا يمكننا استخدام دوال التجميع في جملة WHERE؟</template>
+          <template class="content-en">Why can't we use aggregate functions in the WHERE clause?</template>
+          <span class="content-target">لماذا لا يمكننا استخدام دوال التجميع في جملة WHERE؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن جملة WHERE تُنفذ قبل تجميع البيانات (GROUP BY). دوال التجميع تحتاج إلى مجموعات لتعمل عليها، لذا يجب استخدامها في جملة SELECT أو HAVING التي تُنفذ بعد التجميع.</template>
+          <template class="content-en">Because the WHERE clause is executed before data is grouped (GROUP BY). Aggregate functions need groups to operate on, so they must be used in the SELECT or HAVING clauses, which are executed after grouping.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الغرض من جملة HAVING؟</template>
+          <template class="content-en">What is the purpose of the HAVING clause?</template>
+          <span class="content-target">ما هو الغرض من جملة HAVING؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم HAVING لتصفية المجموعات (Groups) التي تم إنشاؤها بواسطة GROUP BY بناءً على شرط معين، وغالباً ما تتضمن دوال تجميع (مثل HAVING COUNT(*) &gt; 2).</template>
+          <template class="content-en">HAVING is used to filter the groups created by GROUP BY based on a specific condition, often involving aggregate functions (e.g., HAVING COUNT(*) &gt; 2).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل التوكيدات (Assertions) على حماية قاعدة البيانات؟</template>
+          <template class="content-en">How do Assertions protect the database?</template>
+          <span class="content-target">كيف تعمل التوكيدات (Assertions) على حماية قاعدة البيانات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التوكيدات هي قيود عامة تُفحص عند كل تعديل في قاعدة البيانات. إذا أدت أي عملية (إدراج/تحديث) إلى جعل شرط التوكيد FALSE، يتم رفض العملية للحفاظ على سلامة البيانات.</template>
+          <template class="content-en">Assertions are general constraints checked upon every database modification. If any operation (insert/update) causes the assertion's condition to become FALSE, the operation is rejected to maintain data integrity.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مكونات المشغل (Trigger) الأساسية؟</template>
+          <template class="content-en">What are the core components of a Trigger?</template>
+          <span class="content-target">ما هي مكونات المشغل (Trigger) الأساسية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتكون من الحدث (Event) مثل INSERT، والشرط (Condition) الذي يحدد متى يُنفذ، والإجراء (Action) وهو الكود الذي سيتم تشغيله.</template>
+          <template class="content-en">It consists of the Event (like INSERT), the Condition (determining when it fires), and the Action (the code to be executed).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الربط الطبيعي (NATURAL JOIN) وما خطورته؟</template>
+          <template class="content-en">What is a NATURAL JOIN and what is its risk?</template>
+          <span class="content-target">ما هو الربط الطبيعي (NATURAL JOIN) وما خطورته؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو ربط يدمج تلقائياً الأعمدة التي لها نفس الاسم في الجدولين. خطورته تكمن في أنه إذا تمت إضافة عمود جديد بنفس الاسم في كلا الجدولين مستقبلاً، سيتغير سلوك الاستعلام بشكل غير متوقع.</template>
+          <template class="content-en">It is a join that automatically matches columns with the same name in both tables. Its risk is that if a new column with the same name is added to both tables in the future, the query's behavior will change unexpectedly.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الترتيب المفاهيمي لتنفيذ استعلام SQL كامل؟</template>
+          <template class="content-en">What is the conceptual execution order of a full SQL query?</template>
+          <span class="content-target">ما هو الترتيب المفاهيمي لتنفيذ استعلام SQL كامل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الترتيب هو: FROM (تحديد المصدر) -&gt; WHERE (تصفية الصفوف) -&gt; GROUP BY (تكوين المجموعات) -&gt; HAVING (تصفية المجموعات) -&gt; SELECT (استخراج البيانات) -&gt; ORDER BY (الترتيب النهائي).</template>
+          <template class="content-en">The order is: FROM (identify source) -&gt; WHERE (filter rows) -&gt; GROUP BY (form groups) -&gt; HAVING (filter groups) -&gt; SELECT (extract data) -&gt; ORDER BY (final sort).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "المنطق ثلاثي القيم (3-valued Logic)",
+      "en": "3-valued Logic"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام منطقي في SQL يضيف حالة UNKNOWN إلى TRUE و FALSE للتعامل مع القيم الفارغة (NULL).",
+        "en": "A logic system in SQL that adds an UNKNOWN state to TRUE and FALSE to handle NULL values."
+      },
+      "example": {
+        "ar": "TRUE AND UNKNOWN = UNKNOWN",
+        "en": "TRUE AND UNKNOWN = UNKNOWN"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "الاستعلام المتداخل (Nested Query)",
+      "en": "Nested Query"
+    },
+    "back": {
+      "definition": {
+        "ar": "استعلام SELECT كامل محدد داخل جملة WHERE لاستعلام آخر.",
+        "en": "A complete SELECT query specified within the WHERE-clause of another query."
+      },
+      "example": {
+        "ar": "WHERE DNO IN (SELECT DNUMBER FROM DEPARTMENT)",
+        "en": "WHERE DNO IN (SELECT DNUMBER FROM DEPARTMENT)"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "الاستعلام المترابط (Correlated Query)",
+      "en": "Correlated Query"
+    },
+    "back": {
+      "definition": {
+        "ar": "استعلام متداخل يشير إلى سمة من علاقة معلنة في الاستعلام الخارجي.",
+        "en": "A nested query that references an attribute of a relation declared in the outer query."
+      },
+      "example": {
+        "ar": "WHERE E.SSN = D.ESSN (حيث E من الاستعلام الخارجي)",
+        "en": "WHERE E.SSN = D.ESSN (where E is from the outer query)"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "دالة EXISTS",
+      "en": "EXISTS Function"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة تتحقق مما إذا كانت نتيجة الاستعلام تحتوي على صف واحد أو أكثر (ترجع TRUE أو FALSE).",
+        "en": "A function used to check whether the result of a query contains one or more tuples (returns TRUE or FALSE)."
+      },
+      "example": {
+        "ar": "WHERE EXISTS (SELECT * FROM DEPENDENT)",
+        "en": "WHERE EXISTS (SELECT * FROM DEPENDENT)"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "المعامل IN",
+      "en": "IN Operator"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقارن قيمة بمجموعة من القيم، ويقيم إلى TRUE إذا كانت القيمة أحد عناصر المجموعة.",
+        "en": "Compares a value with a set of values, evaluating to TRUE if the value is one of the elements in the set."
+      },
+      "example": {
+        "ar": "WHERE PNO IN (1, 2, 3)",
+        "en": "WHERE PNO IN (1, 2, 3)"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "الربط الداخلي (INNER JOIN)",
+      "en": "INNER JOIN"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية ربط عادية حيث يجب أن تستوفي الصفوف المدمجة جميع شروط الربط للظهور في النتيجة.",
+        "en": "A regular join operation where joined tuples must satisfy all join conditions to appear in the result."
+      },
+      "example": {
+        "ar": "DEPARTMENT JOIN EMPLOYEE ON DNUMBER=DNO",
+        "en": "DEPARTMENT JOIN EMPLOYEE ON DNUMBER=DNO"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "الربط الخارجي الأيسر (LEFT OUTER JOIN)",
+      "en": "LEFT OUTER JOIN"
+    },
+    "back": {
+      "definition": {
+        "ar": "ربط يضمن ظهور كل سجل من الجدول الأيسر في النتيجة، حتى لو لم يكن له تطابق (يُحشى بـ NULL).",
+        "en": "A join that ensures every record from the left table appears in the result, even if it has no match (padded with NULLs)."
+      },
+      "example": {
+        "ar": "DEPARTMENT LEFT OUTER JOIN EMPLOYEE",
+        "en": "DEPARTMENT LEFT OUTER JOIN EMPLOYEE"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "الربط الخارجي الكامل (FULL OUTER JOIN)",
+      "en": "FULL OUTER JOIN"
+    },
+    "back": {
+      "definition": {
+        "ar": "ربط يضمن ظهور كل سجل من كلا الجدولين في النتيجة، مع حشو السجلات غير المتطابقة بـ NULL.",
+        "en": "A join that ensures every record from both tables appears in the result, padding unmatched records with NULLs."
+      },
+      "example": {
+        "ar": "DEPARTMENT FULL OUTER JOIN EMPLOYEE",
+        "en": "DEPARTMENT FULL OUTER JOIN EMPLOYEE"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "الربط الطبيعي (NATURAL JOIN)",
+      "en": "NATURAL JOIN"
+    },
+    "back": {
+      "definition": {
+        "ar": "شكل من أشكال الربط الداخلي حيث يتم تلقائياً دمج السمات التي لها نفس الاسم في كلا الجدولين.",
+        "en": "A form of inner join where attributes with the same name in both tables are automatically matched."
+      },
+      "example": {
+        "ar": "EMPLOYEE NATURAL JOIN DEPARTMENT",
+        "en": "EMPLOYEE NATURAL JOIN DEPARTMENT"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "دوال التجميع (Aggregate Functions)",
+      "en": "Aggregate Functions"
+    },
+    "back": {
+      "definition": {
+        "ar": "دوال تلخص المعلومات من عدة صفوف في صف واحد.",
+        "en": "Functions that summarize information from multiple tuples into a single tuple."
+      },
+      "example": {
+        "ar": "COUNT, SUM, MAX, MIN, AVG",
+        "en": "COUNT, SUM, MAX, MIN, AVG"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "جملة GROUP BY",
+      "en": "GROUP BY Clause"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستخدم لتقسيم السجلات إلى مجموعات فرعية بناءً على سمة معينة لتطبيق دوال التجميع عليها.",
+        "en": "Used to partition records into subgroups based on a specific attribute to apply aggregate functions independently."
+      },
+      "example": {
+        "ar": "GROUP BY DNO",
+        "en": "GROUP BY DNO"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "جملة HAVING",
+      "en": "HAVING Clause"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستخدم لتحديد شرط تصفية على المجموعات (بدلاً من الصفوف الفردية).",
+        "en": "Used for specifying a selection condition on groups (rather than on individual tuples)."
+      },
+      "example": {
+        "ar": "HAVING COUNT(*) > 2",
+        "en": "HAVING COUNT(*) > 2"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "التوكيد (Assertion)",
+      "en": "Assertion"
+    },
+    "back": {
+      "definition": {
+        "ar": "قيد عام يُطبق على قاعدة البيانات بأكملها لضمان بقاء شرط معين صحيحاً دائماً.",
+        "en": "A general constraint applied to the entire database to ensure a specific condition remains TRUE."
+      },
+      "example": {
+        "ar": "CREATE ASSERTION ... CHECK (NOT EXISTS (...))",
+        "en": "CREATE ASSERTION ... CHECK (NOT EXISTS (...))"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "المشغل (Trigger)",
+      "en": "Trigger"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة نشطة تراقب قاعدة البيانات وتبدأ إجراءً عند حدوث أحداث وشروط معينة.",
+        "en": "An active rule used to monitor a database and initiate action when certain events and conditions occur."
+      },
+      "example": {
+        "ar": "CREATE TRIGGER ... BEFORE INSERT ...",
+        "en": "CREATE TRIGGER ... BEFORE INSERT ..."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ترتيب جمل SQL",
+      "en": "SQL Clauses Order"
+    },
+    "back": {
+      "definition": {
+        "ar": "الترتيب الإلزامي لكتابة جمل الاستعلام في SQL.",
+        "en": "The mandatory order for writing query clauses in SQL."
+      },
+      "example": {
+        "ar": "SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY",
+        "en": "SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "التحقق من القيم الفارغة",
+      "en": "Checking for NULLs"
+    },
+    "back": {
+      "definition": {
+        "ar": "الطريقة الصحيحة للتحقق مما إذا كانت السمة فارغة، حيث لا يمكن استخدام علامة المساواة.",
+        "en": "The correct way to check if an attribute is NULL, since equality comparison cannot be used."
+      },
+      "example": {
+        "ar": "IS NULL / IS NOT NULL",
+        "en": "IS NULL / IS NOT NULL"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من المعاملات التالية هو الصحيح للتحقق مما إذا كانت قيمة السمة مفقودة (NULL)؟",
+      "en": "Which of the following operators is correct for checking if an attribute's value is missing (NULL)?"
+    },
+    "options": {
+      "ar": [
+        "= NULL",
+        "IS NULL",
+        "== NULL",
+        "CONTAINS NULL"
+      ],
+      "en": [
+        "= NULL",
+        "IS NULL",
+        "== NULL",
+        "CONTAINS NULL"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تعتبر SQL كل قيمة NULL مميزة، لذا فإن مقارنة المساواة (=) غير مناسبة. يجب استخدام IS NULL.",
+      "en": "SQL considers each NULL value distinct, so equality comparison (=) is not appropriate. IS NULL must be used."
+    },
+    "hint": {
+      "ar": "تذكر أن NULL تعني 'غير معروف'، ولا يمكن أن يساوي مجهول مجهولاً آخر.",
+      "en": "Remember that NULL means 'unknown', and one unknown cannot equal another unknown."
+    },
+    "difficulty": "easy",
+    "conceptId": "nulls-and-3-valued-logic"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في المنطق ثلاثي القيم، ما هي نتيجة تقييم (FALSE AND UNKNOWN)؟",
+      "en": "In 3-valued logic, what is the result of evaluating (FALSE AND UNKNOWN)?"
+    },
+    "options": {
+      "ar": [
+        "TRUE",
+        "FALSE",
+        "UNKNOWN",
+        "NULL"
+      ],
+      "en": [
+        "TRUE",
+        "FALSE",
+        "UNKNOWN",
+        "NULL"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في عملية AND، إذا كان أحد الطرفين FALSE، فإن النتيجة تكون FALSE بغض النظر عن الطرف الآخر.",
+      "en": "In an AND operation, if one operand is FALSE, the result is FALSE regardless of the other operand."
+    },
+    "hint": {
+      "ar": "راجع جدول الحقيقة لعملية AND.",
+      "en": "Review the truth table for the AND operation."
+    },
+    "difficulty": "medium",
+    "conceptId": "nulls-and-3-valued-logic"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما الذي يميز الاستعلام المتداخل المترابط (Correlated Nested Query)؟",
+      "en": "What characterizes a Correlated Nested Query?"
+    },
+    "options": {
+      "ar": [
+        "يُنفذ مرة واحدة فقط قبل الاستعلام الخارجي.",
+        "لا يحتوي على جملة WHERE.",
+        "يشير إلى سمة من علاقة معلنة في الاستعلام الخارجي.",
+        "يُرجع دائماً قيمة منطقية (Boolean)."
+      ],
+      "en": [
+        "It is executed only once before the outer query.",
+        "It does not contain a WHERE clause.",
+        "It references an attribute of a relation declared in the outer query.",
+        "It always returns a boolean value."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الاستعلام المترابط يشير إلى الاستعلام الخارجي، مما يعني أنه يجب تقييمه لكل صف في الاستعلام الخارجي.",
+      "en": "A correlated query references the outer query, meaning it must be evaluated for each tuple in the outer query."
+    },
+    "hint": {
+      "ar": "فكر في كلمة 'مترابط' (Correlated) وكيف ترتبط المتغيرات.",
+      "en": "Think about the word 'correlated' and how variables are linked."
+    },
+    "difficulty": "medium",
+    "conceptId": "nested-queries"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ماذا تُرجع دالة EXISTS إذا كان الاستعلام الفرعي لا يحتوي على أي صفوف؟",
+      "en": "What does the EXISTS function return if the subquery contains no tuples?"
+    },
+    "options": {
+      "ar": [
+        "TRUE",
+        "FALSE",
+        "UNKNOWN",
+        "NULL"
+      ],
+      "en": [
+        "TRUE",
+        "FALSE",
+        "UNKNOWN",
+        "NULL"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُقيم EXISTS إلى TRUE إذا كان هناك صف واحد أو أكثر، وإلى FALSE إذا لم تكن هناك صفوف.",
+      "en": "EXISTS evaluates to TRUE if there is one or more tuples, and FALSE if there are no tuples."
+    },
+    "hint": {
+      "ar": "EXISTS تتحقق من 'الوجود'.",
+      "en": "EXISTS checks for 'existence'."
+    },
+    "difficulty": "easy",
+    "conceptId": "exists-function"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي نوع من أنواع الربط يضمن ظهور كل سجل من الجدول الأيسر في النتيجة، حتى لو لم يكن له تطابق في الجدول الأيمن؟",
+      "en": "Which type of join ensures every record from the left table appears in the result, even if it has no match in the right table?"
+    },
+    "options": {
+      "ar": [
+        "INNER JOIN",
+        "NATURAL JOIN",
+        "LEFT OUTER JOIN",
+        "RIGHT OUTER JOIN"
+      ],
+      "en": [
+        "INNER JOIN",
+        "NATURAL JOIN",
+        "LEFT OUTER JOIN",
+        "RIGHT OUTER JOIN"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الربط الخارجي الأيسر (LEFT OUTER JOIN) يحتفظ بجميع سجلات الجدول الأيسر ويحشو السجلات غير المتطابقة من الجدول الأيمن بـ NULL.",
+      "en": "LEFT OUTER JOIN keeps all records from the left table and pads unmatched records from the right table with NULLs."
+    },
+    "hint": {
+      "ar": "الاسم يدل على الجدول الذي سيتم الاحتفاظ بجميع سجلاته.",
+      "en": "The name indicates which table's records will be fully preserved."
+    },
+    "difficulty": "easy",
+    "conceptId": "joined-tables"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في SQL، ما هي الجملة المستخدمة لتحديد شرط تصفية على المجموعات (Groups)؟",
+      "en": "In SQL, which clause is used for specifying a selection condition on groups?"
+    },
+    "options": {
+      "ar": [
+        "WHERE",
+        "HAVING",
+        "GROUP BY",
+        "ORDER BY"
+      ],
+      "en": [
+        "WHERE",
+        "HAVING",
+        "GROUP BY",
+        "ORDER BY"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم جملة HAVING لتصفية المجموعات بعد إنشائها بواسطة GROUP BY، بينما تُستخدم WHERE لتصفية الصفوف الفردية.",
+      "en": "The HAVING clause is used to filter groups after they are created by GROUP BY, whereas WHERE filters individual rows."
+    },
+    "hint": {
+      "ar": "تأتي عادة بعد GROUP BY.",
+      "en": "It usually comes right after GROUP BY."
+    },
+    "difficulty": "medium",
+    "conceptId": "aggregate-functions-and-grouping"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو الترتيب الصحيح لتقييم جمل SQL مفاهيمياً؟",
+      "en": "What is the correct conceptual evaluation order of SQL clauses?"
+    },
+    "options": {
+      "ar": [
+        "SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY",
+        "FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY",
+        "FROM, SELECT, WHERE, GROUP BY, HAVING, ORDER BY",
+        "WHERE, FROM, GROUP BY, HAVING, SELECT, ORDER BY"
+      ],
+      "en": [
+        "SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY",
+        "FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY",
+        "FROM, SELECT, WHERE, GROUP BY, HAVING, ORDER BY",
+        "WHERE, FROM, GROUP BY, HAVING, SELECT, ORDER BY"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مفاهيمياً، يتم تحديد الجداول (FROM)، ثم تصفية الصفوف (WHERE)، ثم التجميع (GROUP BY)، ثم تصفية المجموعات (HAVING)، ثم استخراج الأعمدة (SELECT)، وأخيراً الترتيب (ORDER BY).",
+      "en": "Conceptually, tables are identified (FROM), rows filtered (WHERE), grouped (GROUP BY), groups filtered (HAVING), columns extracted (SELECT), and finally sorted (ORDER BY)."
+    },
+    "hint": {
+      "ar": "لا يمكنك اختيار (SELECT) شيء قبل أن تحدد من أين يأتي (FROM) وتصفيه.",
+      "en": "You can't SELECT something before you know where it's FROM and filter it."
+    },
+    "difficulty": "hard",
+    "conceptId": "aggregate-functions-and-grouping"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "كيف يتم صياغة شرط التوكيد (Assertion) عادةً في SQL؟",
+      "en": "How is the condition of an Assertion typically formulated in SQL?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام جملة IF-ELSE",
+        "باستخدام استعلام داخل جملة NOT EXISTS",
+        "باستخدام دالة COUNT(*) > 0",
+        "باستخدام جملة WHERE فقط"
+      ],
+      "en": [
+        "Using an IF-ELSE statement",
+        "Using a query inside a NOT EXISTS clause",
+        "Using a COUNT(*) > 0 function",
+        "Using only a WHERE clause"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم صياغة التوكيد بتحديد استعلام ينتهك الشرط، ووضعه داخل NOT EXISTS لضمان أن نتيجة هذا الاستعلام فارغة دائماً.",
+      "en": "An assertion is formulated by specifying a query that violates the condition and placing it inside NOT EXISTS to ensure the result is always empty."
+    },
+    "hint": {
+      "ar": "نحن نبحث عن 'عدم وجود' أي انتهاك للقاعدة.",
+      "en": "We are checking for the 'non-existence' of any rule violation."
+    },
+    "difficulty": "hard",
+    "conceptId": "assertions"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هي المكونات الثلاثة الرئيسية للمشغل (Trigger)؟",
+      "en": "What are the three main components of a Trigger?"
+    },
+    "options": {
+      "ar": [
+        "الجدول، العمود، القيمة",
+        "الحدث، الشرط، الإجراء",
+        "SELECT، FROM، WHERE",
+        "المفتاح الأساسي، المفتاح الأجنبي، الفهرس"
+      ],
+      "en": [
+        "Table, Column, Value",
+        "Event, Condition, Action",
+        "SELECT, FROM, WHERE",
+        "Primary Key, Foreign Key, Index"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتبع المشغل نموذج ECA: الحدث (Event) الذي يطلقه، الشرط (Condition) الذي يجب التحقق منه، والإجراء (Action) الذي سيتم تنفيذه.",
+      "en": "A trigger follows the ECA model: Event that fires it, Condition to be checked, and Action to be executed."
+    },
+    "hint": {
+      "ar": "تذكر اختصار ECA.",
+      "en": "Remember the acronym ECA."
+    },
+    "difficulty": "medium",
+    "conceptId": "sql-triggers"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هو الغرض من الربط الطبيعي (NATURAL JOIN)؟",
+      "en": "What is the purpose of a NATURAL JOIN?"
+    },
+    "options": {
+      "ar": [
+        "ربط الجداول بدون أي شروط.",
+        "الاحتفاظ بجميع السجلات غير المتطابقة.",
+        "الربط التلقائي للأعمدة التي لها نفس الاسم في كلا الجدولين.",
+        "ترتيب النتائج أبجدياً."
+      ],
+      "en": [
+        "Joining tables without any conditions.",
+        "Keeping all unmatched records.",
+        "Automatically matching columns with the same name in both tables.",
+        "Sorting the results alphabetically."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في الربط الطبيعي، إذا كانت سمات الربط في كلا الجدولين لها نفس الاسم، يتم إضافة شرط الربط تلقائياً بواسطة النظام.",
+      "en": "In a NATURAL JOIN, if the join attributes in both tables have the same name, the join condition is automatically added by the system."
+    },
+    "hint": {
+      "ar": "إنه 'طبيعي' لأنه يبحث عن الأسماء المتطابقة تلقائياً.",
+      "en": "It's 'natural' because it automatically looks for matching names."
+    },
+    "difficulty": "easy",
+    "conceptId": "joined-tables"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ / Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام المعامل '=' للتحقق من القيم الفارغة (مثال: WHERE DNO = NULL). هذا سيعيد دائماً UNKNOWN ولن يرجع أي صفوف. يجب استخدام 'IS NULL'.</template>
+      <template class="content-en">Using the '=' operator to check for NULLs (e.g., WHERE DNO = NULL). This will always evaluate to UNKNOWN and return no rows. You must use 'IS NULL'.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ / Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">محاولة استخدام دوال التجميع (مثل COUNT أو AVG) داخل جملة WHERE. جملة WHERE تُقيم قبل التجميع، لذا يجب استخدام جملة HAVING لتصفية المجموعات.</template>
+      <template class="content-en">Attempting to use aggregate functions (like COUNT or AVG) inside the WHERE clause. WHERE is evaluated before grouping, so you must use the HAVING clause to filter groups.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر / Secret</div>
+    <div data-bilingual>
+      <template class="content-ar">دالة EXISTS سريعة جداً (Short-circuiting) لأنها تتوقف عن البحث بمجرد العثور على أول سجل يطابق الشرط، مما يجعلها أفضل أداءً من استخدام COUNT(*) &gt; 0 في الاستعلامات الفرعية.</template>
+      <template class="content-en">The EXISTS function is very fast (short-circuiting) because it stops searching as soon as it finds the first matching record, making it much more performant than using COUNT(*) &gt; 0 in subqueries.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي / Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">الاستعلامات المترابطة (Correlated Queries) تُنفذ مرة واحدة لكل صف في الاستعلام الخارجي، مما يجعلها مكلفة حسابياً (O(N*M)). حاول دائماً إعادة كتابتها باستخدام الربط (Joins) إذا أمكن لتحسين الأداء.</template>
+      <template class="content-en">Correlated Queries execute once for every row in the outer query, making them computationally expensive (O(N*M)). Always try to rewrite them using Joins if possible to improve performance.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M08.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M10.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../assets/garden.js"></script>
+</body>
+</html>
