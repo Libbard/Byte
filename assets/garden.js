@@ -122,7 +122,7 @@
     const ll = document.getElementById('lang-label');
     if (ll) ll.textContent = lang === 'ar' ? 'EN' : 'AR';
 
-    if (window._gardenFC.cards) renderFlashcard();
+    if (window._gardenFC.cards) { const wasFlipped = document.getElementById('fc-card')?.classList.contains('flipped'); renderFlashcard(); if (wasFlipped) flipCard(); }
     if (window._gardenQuiz.questions) renderQuestion();
     if (typeof window._algoRefresh === 'function') window._algoRefresh();
 	
@@ -298,9 +298,17 @@
       item.state = updated;
       saveSM2(fc.sm2);
       
-      const removed = fc.queue.splice(fc.pos, 1)[0];
-      fc.queue.push(removed);
-      fc.completed++;
+      if (!item.retried) fc.completed++;
+      item.retried = true;
+      
+      item.retryCount = (item.retryCount || 0) + 1;
+      if (item.retryCount < 3) {
+        const removed = fc.queue.splice(fc.pos, 1)[0];
+        fc.queue.push(removed);
+      } else {
+        
+        fc.queue.splice(fc.pos, 1);
+      }
     }
 
     if (fc.pos >= fc.queue.length) fc.pos = 0;
@@ -1388,7 +1396,7 @@
         case ' ':if(document.getElementById('fc-card')){e.preventDefault();flipCard();}break;
         case 't':case 'T':cycleTheme();break;
         case 'l':case 'L':toggleLanguage();break;
-        case '0':gradeCard(0);break;case '2':gradeCard(2);break;case '3':gradeCard(3);break;case '5':gradeCard(5);break;
+        case '0':case '2':case '3':case '5':if(document.getElementById('fc-card')?.classList.contains('flipped')){gradeCard(Number(e.key));}break;
       }
     });
   }
