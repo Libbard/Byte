@@ -34,6 +34,8 @@
       'fc.reset':'إعادة الضبط',
       'fc.info':'البطاقات تعمل بنظام التكرار المتباعد (SM-2) — أحد أقوى تقنيات الحفظ العلمية.\n\n📊 كيف يعمل التقييم:\n• "لم أتذكر" (0): البطاقة تعود لنهاية الجلسة لمحاولة أخرى.\n• "صعب" (2): تعود لنهاية الجلسة مع تقليل معامل السهولة.\n• "جيد" (3): تختفي اليوم وتعود بعد أيام.\n• "سهل" (5): تختفي وتعود بعد أسابيع أو أكثر.\n\n🧠 النظام يتكيف معك — كلما أجبت صح، زادت الفترة قبل المراجعة التالية.\n\n↺ إعادة الضبط: يمسح كل التقدم (يطلب تأكيد أولاً).',
       'fc.reset_all':'إعادة جميع البطاقات','fc.reset_hard':'الصعبة فقط',
+      'fc.practice':'🔁 مراجعة حرة','fc.practice_badge':'وضع المراجعة الحرة — لا يؤثر على تقدمك',
+      'fc.practice_done':'انتهت المراجعة الحرة','fc.practice_next':'التالي',
       'quiz.title':'اختبر نفسك','quiz.hint':'💡 تلميح','quiz.score':'النتيجة',
       'quiz.next':'التالي','quiz.retry':'إعادة الاختبار',
       'vault.title':'🔐 خزنة الامتحان','prof.title':'🎓 حديث البروفيسور',
@@ -50,6 +52,8 @@
       'fc.reset':'Reset',
       'fc.info':'Cards use Spaced Repetition (SM-2) — one of the most powerful evidence-based memorization techniques.\n\n📊 Grading system:\n• "Blackout" (0): Card goes back to the end for another try.\n• "Hard" (2): Goes to the end with reduced ease factor.\n• "Good" (3): Disappears today, comes back in days.\n• "Easy" (5): Disappears, comes back in weeks or more.\n\n🧠 The system adapts to you — the better you know a card, the longer before you see it again.\n\n↺ Reset: Clears all progress (asks for confirmation first).',
       'fc.reset_all':'Reset All Cards','fc.reset_hard':'Hard Only',
+      'fc.practice':'🔁 Free Review','fc.practice_badge':'Practice Mode — does not affect your progress',
+      'fc.practice_done':'Practice session complete','fc.practice_next':'Next',
       'quiz.title':'Self Quiz','quiz.hint':'💡 Hint','quiz.score':'Score',
       'quiz.next':'Next','quiz.retry':'Retry Quiz',
       'vault.title':'🔐 Exam Vault','prof.title':'🎓 Professor\'s Narrative',
@@ -198,7 +202,7 @@
       n++;
     } else { n = 0; interval = 1; }
     ef = Math.max(1.3, ef + 0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
-    return { n, ef, interval, nextReview: Date.now() + interval * 86400000 };
+    return { n, ef, interval, nextReview: Date.now() + interval * 86400000, lastGrade: grade };
   }
   function newCard() { return { n: 0, ef: 2.5, interval: 0, nextReview: Date.now() }; }
   function loadSM2() { try { return JSON.parse(localStorage.getItem(fcKey())) || {}; } catch(e) { return {}; } }
@@ -226,6 +230,7 @@
     fc.pos = 0;
     fc.totalOriginal = fc.queue.length; // FIXED total for this session
     fc.completed = 0;
+
   }
 
   function renderFlashcard() {
@@ -236,11 +241,21 @@
 
     // No cards left in queue
     if (!fc.queue || fc.queue.length === 0 || fc.pos >= fc.queue.length) {
+      const fcInfoText = (i18n[L]?.['fc.info']||'').split('\n').join('<br>');
       box.innerHTML = `
+        <div class="fc-toolbar">
+          <div class="flashcard-counter" style="visibility:hidden">—</div>
+          <div class="fc-toolbar-actions">
+            <button class="fc-mini-btn" onclick="Garden.resetFC('all')" title="${i18n[L]?.['fc.reset']||'Reset'}">↺</button>
+            <button class="fc-report-btn" onclick="Garden.report()" title="${L==='ar'?'تقرير SM-2':'SM-2 Report'}">R</button>
+            <span class="fc-info-btn" tabindex="0">ⓘ<span class="fc-info-tooltip">${fcInfoText}</span></span>
+          </div>
+        </div>
         <div class="fc-empty">
           <div class="fc-empty-icon">🎉</div>
           <p>${i18n[L]?.['fc.none_due']||''}</p>
           <div class="fc-actions">
+            <button class="fc-reset-btn fc-practice-btn" onclick="Garden.practice()">${i18n[L]?.['fc.practice']||''}</button>
             <button class="fc-reset-btn" onclick="Garden.resetFC('all')">${i18n[L]?.['fc.reset_all']||''}</button>
             <button class="fc-reset-btn" onclick="Garden.resetFC('hard')">${i18n[L]?.['fc.reset_hard']||''}</button>
           </div>
@@ -258,6 +273,7 @@
         <div class="flashcard-counter">${num} / ${total}</div>
         <div class="fc-toolbar-actions">
           <button class="fc-mini-btn" onclick="Garden.resetFC('all')" title="${i18n[L]?.['fc.reset']||'Reset'}">↺</button>
+          <button class="fc-report-btn" onclick="Garden.report()" title="${L==='ar'?'تقرير SM-2':'SM-2 Report'}">R</button>
           <span class="fc-info-btn" tabindex="0">ⓘ<span class="fc-info-tooltip">${(i18n[L]?.['fc.info']||'').replace(/\n/g,'<br>')}</span></span>
         </div>
       </div>
@@ -300,36 +316,113 @@
     if (g) g.classList.toggle('hidden', !c?.classList.contains('flipped'));
   }
 
+  /* ── PRACTICE MODE (read-only, no SM-2 state change) ── */
+  function startPractice() {
+    const fc = window._gardenFC;
+    if (!fc.cards || fc.cards.length === 0) return;
+    // Build practice queue: all cards, shuffled
+    fc.practiceMode = true;
+    fc.practiceQueue = fc.cards
+      .map((card, i) => ({ card, i }))
+      .sort(() => Math.random() - 0.5);
+    fc.practicePos = 0;
+    renderPractice();
+  }
+
+  function renderPractice() {
+    const fc = window._gardenFC;
+    const box = document.getElementById('fc-container');
+    if (!box) return;
+    const L = currentLang;
+    const q = fc.practiceQueue;
+    const pos = fc.practicePos;
+
+    if (!q || pos >= q.length) {
+      fc.practiceMode = false;
+      box.innerHTML = `
+        <div class="fc-empty">
+          <div class="fc-empty-icon">✅</div>
+          <p>${i18n[L]?.['fc.practice_done']||''}</p>
+          <div class="fc-actions">
+            <button class="fc-reset-btn fc-practice-btn" onclick="Garden.practice()">${i18n[L]?.['fc.practice']||''}</button>
+            <button class="fc-reset-btn" onclick="Garden.resetFC('all')">${i18n[L]?.['fc.reset_all']||''}</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const item = q[pos];
+    const card = item.card;
+    const num  = pos + 1;
+    const total = q.length;
+
+    box.innerHTML = `
+      <div class="fc-practice-badge">${i18n[L]?.['fc.practice_badge']||''}</div>
+      <div class="fc-toolbar">
+        <div class="flashcard-counter">${num} / ${total}</div>
+        <div class="fc-toolbar-actions">
+          <button class="fc-mini-btn" onclick="window._gardenFC.practiceMode=false;Garden.renderFC()" title="${L==='ar'?'إنهاء المراجعة الحرة':'Exit Practice'}">✕</button>
+          <button class="fc-report-btn" onclick="Garden.report()" title="${L==='ar'?'تقرير SM-2':'SM-2 Report'}">R</button>
+        </div>
+      </div>
+      <div class="flashcard-scene">
+        <div class="flashcard-card" id="fc-card" onclick="this.classList.toggle('flipped');document.getElementById('fc-pnext')?.classList.toggle('hidden',!this.classList.contains('flipped'))">
+          <div class="flashcard-face flashcard-front">
+            <div class="fc-term" data-bilingual>
+              <template class="content-ar">${card.front?.ar||''}</template>
+              <template class="content-en">${card.front?.en||''}</template>
+              <div class="content-target">${card.front?.[L]||''}</div>
+            </div>
+            <div class="flashcard-hint">${i18n[L]?.['fc.flip']||''}</div>
+          </div>
+          <div class="flashcard-face flashcard-back">
+            <div class="fc-definition" data-bilingual>
+              <template class="content-ar">${card.back?.definition?.ar||''}</template>
+              <template class="content-en">${card.back?.definition?.en||''}</template>
+              <div class="content-target">${card.back?.definition?.[L]||''}</div>
+            </div>
+            ${card.back?.example?`<div class="fc-example" data-bilingual>
+              <template class="content-ar">${card.back.example.ar||''}</template>
+              <template class="content-en">${card.back.example.en||''}</template>
+              <div class="content-target">${card.back.example[L]||''}</div>
+            </div>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="sm2-grades hidden" id="fc-pnext">
+        <button class="sm2-btn" style="background:var(--brand-500);min-width:160px" onclick="window._gardenFC.practicePos++;Garden.renderPractice()">${i18n[L]?.['fc.practice_next']||'Next'} →</button>
+      </div>`;
+  }
+
   function gradeCard(grade) {
     const fc = window._gardenFC;
     if (!fc.queue || fc.pos >= fc.queue.length) return;
     const item = fc.queue[fc.pos];
 
     if (grade >= 3) {
-      // PASSED — save SM-2 state, remove from queue, count as completed
+      // PASSED — save SM-2 state, remove from queue permanently, count once
       fc.sm2[item.i] = sm2Calc(item.state, grade);
       saveSM2(fc.sm2);
       fc.queue.splice(fc.pos, 1);
-      fc.completed++;
+      fc.completed++; // card leaves queue → count exactly once
+      // Record final grade — card exits queue permanently
     } else {
-      // FAILED (0 or 2) — move card to END of queue for another try
-      // Update state but keep nextReview = now so it stays in session
+      // FAILED (0 or 2) — update SM-2 state, keep nextReview=now so it stays due
       const updated = sm2Calc(item.state, grade);
-      updated.nextReview = Date.now(); // keep it due
+      updated.nextReview = Date.now();
       fc.sm2[item.i] = updated;
       item.state = updated;
       saveSM2(fc.sm2);
-      // Only count as completed on FIRST failure — not on re-queued retries
-      if (!item.retried) fc.completed++;
-      item.retried = true;
-      // Move to end — but only if under max retry limit (prevents infinite loop)
+      // Track retry count per card — hard limit prevents infinite loops
       item.retryCount = (item.retryCount || 0) + 1;
       if (item.retryCount < 3) {
+        // Re-queue to end — do NOT record grade yet (card still active)
         const removed = fc.queue.splice(fc.pos, 1)[0];
         fc.queue.push(removed);
       } else {
-        // Max retries reached — remove card from session queue
+        // Max retries reached — remove card, record final grade (last attempt)
         fc.queue.splice(fc.pos, 1);
+        fc.completed++;
       }
     }
 
@@ -382,7 +475,11 @@
   function updateDueCount() {
     const fc = window._gardenFC;
     const el = document.getElementById('fc-due-count');
-    if (el) el.textContent = fc.queue?.length || 0;
+    // Show unique remaining cards (not duplicates from re-queued retries)
+    if (el && fc.queue) {
+      const uniqueLeft = new Set(fc.queue.map(it => it.i)).size;
+      el.textContent = uniqueLeft;
+    } else if (el) { el.textContent = 0; }
 
     // Pulse widget if cards are due
     const widget = document.querySelector('.sidebar-widget');
@@ -508,9 +605,9 @@
       // Track next review
       if (st.nextReview > now && st.nextReview < nextReviewTime) nextReviewTime = st.nextReview;
 
-      if (st.n === 0) learningCount++;
-      else if (st.ef < 2.0 || st.interval <= 3) learningCount++;
-      else masteredCount++;
+      // Consistent mastery: interval >= 21 days (Anki standard)
+      if (st.interval >= 21) masteredCount++;
+      else learningCount++;
     }
 
     // Labels
@@ -558,6 +655,196 @@
       spans[1].style.width = `${(learningCount/total)*100}%`;
       spans[2].style.width = `${(masteredCount/total)*100}%`;
     }
+  }
+
+  /* ═══ SM-2 REPORT MODAL ═══ */
+  function showSM2Report() {
+    const fc = window._gardenFC;
+    const L = currentLang;
+    const isAr = L === 'ar';
+    document.querySelector('.sm2-report-overlay')?.remove();
+
+    const now = Date.now();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const total = fc.cards?.length || 0;
+
+    // ── Categorise all cards & build forecast ──
+    let newCount = 0, learningCount = 0, masteredCount = 0;
+    let totalEF = 0, efCount = 0;
+    const forecast = {};
+
+    // SM-2 mastery standard: interval >= 21 days (Anki "mature" definition)
+    // This avoids the broken n>=3&&ef>=2.0 criterion which fails for grade=3 users
+    let needsReviews1 = 0, needsReviews2 = 0, needsReviews3plus = 0;
+    let nextDueTs = Infinity;
+    for (let i = 0; i < total; i++) {
+      const st = fc.sm2?.[i];
+      if (!st || st.n === 0) {
+        newCount++;
+        forecast[0] = (forecast[0] || 0) + 1;
+        needsReviews3plus++;
+      } else {
+        const dueDate = new Date(st.nextReview); dueDate.setHours(0,0,0,0);
+        const diff = Math.round((dueDate - today) / 86400000);
+        const key = Math.max(0, diff);
+        if (key <= 30) forecast[key] = (forecast[key] || 0) + 1;
+        if (st.nextReview > now && st.nextReview < nextDueTs) nextDueTs = st.nextReview;
+        if (st.interval >= 21) {
+          masteredCount++;
+        } else {
+          learningCount++;
+          // How many more successful reviews until interval hits 21+?
+          // n=0,1 → need 3+ (rep1→1d, rep2→6d, rep3→13d, rep4→27d≥21)
+          // n=2   → need 2 more  (rep3→13d, rep4→27d≥21)
+          // n=3+  → need 1 more  (next review crosses 21d)
+          const repsNeeded = (st.n <= 1) ? 3 : st.n === 2 ? 2 : 1;
+          if (repsNeeded === 1) needsReviews1++;
+          else if (repsNeeded === 2) needsReviews2++;
+          else needsReviews3plus++;
+        }
+        totalEF += st.ef; efCount++;
+      }
+    }
+    const nextDueDate = nextDueTs < Infinity ? new Date(nextDueTs) : null;
+    const avgEF = efCount > 0 ? (totalEF / efCount).toFixed(2) : '—';
+
+    // ── Session stats ──
+    const sessionTotal = fc.totalOriginal || 0;
+    const sessionDone  = fc.completed || 0;
+    const sessionLeft  = fc.queue ? new Set(fc.queue.map(it => it.i)).size : 0;
+    // Derive grade distribution from sm2 lastGrade — one value per card, always accurate
+    const gs = {0:0, 2:0, 3:0, 5:0};
+    for (let i = 0; i < total; i++) {
+      const st = fc.sm2?.[i];
+      if (st && st.lastGrade !== undefined) gs[st.lastGrade] = (gs[st.lastGrade] || 0) + 1;
+    }
+    const gsTot = (gs[0]||0)+(gs[2]||0)+(gs[3]||0)+(gs[5]||0);
+
+    // ── Forecast rows (next 14 days, skip empty days after day 7) ──
+    const allKeys = Object.keys(forecast).map(Number).sort((a,b)=>a-b);
+    const maxVal  = allKeys.length ? Math.max(...allKeys.map(k => forecast[k])) : 1;
+    const forecastHTML = allKeys.filter(d => d <= 14 || forecast[d] > 0).map(d => {
+      const count = forecast[d];
+      const pct   = Math.round((count / maxVal) * 100);
+      const label = d === 0 ? (isAr ? 'اليوم' : 'Today')
+                  : d === 1 ? (isAr ? 'غداً'  : 'Tomorrow')
+                  : isAr ? `بعد ${d} أيام` : `In ${d} days`;
+      return `<div class="sm2-rfc-row">
+        <span class="sm2-rfc-label">${label}</span>
+        <div class="sm2-rfc-track"><div class="sm2-rfc-bar${d===0?' sm2-rfc-today':''}" style="width:${Math.max(pct,3)}%"></div></div>
+        <span class="sm2-rfc-num${count===0?' sm2-rfc-zero':''}">${count}</span>
+      </div>`;
+    }).join('') || `<p class="sm2-report-empty">${isAr?'لا توجد بطاقات مجدولة بعد':'No cards scheduled yet'}</p>`;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sm2-report-overlay';
+    overlay.innerHTML = `
+      <div class="sm2-report-modal" dir="${isAr?'rtl':'ltr'}">
+        <div class="sm2-report-header">
+          <span class="sm2-report-header-icon">📊</span>
+          <h3 class="sm2-report-title">${isAr?'تقرير البطاقات التعليمية':'Flashcard SM-2 Report'}</h3>
+          <button class="sm2-report-close" id="sm2-report-close">✕</button>
+        </div>
+        <div class="sm2-report-body">
+
+          ${sessionTotal > 0 ? `
+          <div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>⚡</span>${isAr?'جلسة اليوم':"Today's Session"}</div>
+            <div class="sm2-rpills">
+              <div class="sm2-rpill sm2-rpill--blue"><span class="sm2-rpill-n">${sessionTotal}</span><span class="sm2-rpill-l">${isAr?'إجمالي':'Total'}</span></div>
+              <div class="sm2-rpill sm2-rpill--green"><span class="sm2-rpill-n">${sessionDone}</span><span class="sm2-rpill-l">${isAr?'أُنجز':'Done'}</span></div>
+              <div class="sm2-rpill sm2-rpill--orange"><span class="sm2-rpill-n">${sessionLeft}</span><span class="sm2-rpill-l">${isAr?'متبقي':'Left'}</span></div>
+            </div>
+          </div>` : ''}
+
+          <div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>🗂️</span>${isAr?'حالة البطاقات':'Card Status'}<span class="sm2-rtotal-badge">${total} ${isAr?'بطاقة':'cards'}</span></div>
+            <div class="sm2-rstat-bar">
+              <div class="sm2-rsb-new"      style="width:${total?((newCount/total)*100).toFixed(1):0}%"></div>
+              <div class="sm2-rsb-learning" style="width:${total?((learningCount/total)*100).toFixed(1):0}%"></div>
+              <div class="sm2-rsb-mastered" style="width:${total?((masteredCount/total)*100).toFixed(1):0}%"></div>
+            </div>
+            <div class="sm2-rstat-legend">
+              <div class="sm2-rsl"><span class="sm2-rsl-dot sm2-rsl-new"></span><span>${isAr?'جديدة':'New'}</span><strong>${newCount}</strong></div>
+              <div class="sm2-rsl"><span class="sm2-rsl-dot sm2-rsl-learning"></span><span>${isAr?'قيد التعلم':'Learning'}</span><strong>${learningCount}</strong></div>
+              <div class="sm2-rsl"><span class="sm2-rsl-dot sm2-rsl-mastered"></span><span>${isAr?'متقنة':'Mastered'}</span><strong>${masteredCount}</strong></div>
+            </div>
+            ${efCount > 0 ? `<div class="sm2-ref-row"><span>${isAr?'متوسط معامل السهولة (EF):':'Avg. Ease Factor (EF):'}</span><strong>${avgEF}</strong></div>` : ''}
+          </div>
+
+          <div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>🎯</span>${isAr?'مسار الإتقان':'Path to Mastery'}</div>
+            <div class="sm2-rmastery-note">${isAr?'البطاقة تُعتبر متقنة عند وصول الفاصل الزمني إلى <strong>21 يوماً أو أكثر</strong> (معيار Anki العالمي). يستلزم ذلك <strong>3 مراجعات ناجحة متتالية</strong> كحد أدنى.':'A card is considered <strong>mastered</strong> when its interval reaches <strong>21+ days</strong> (Anki global standard). This requires a minimum of <strong>3 consecutive successful reviews</strong>.'}</div>
+            <div class="sm2-rmastery-path">
+              <div class="sm2-rmp-step sm2-rmp-s1"><span class="sm2-rmp-day">${isAr?'اليوم':'Today'}</span><span class="sm2-rmp-icon">📖</span><span class="sm2-rmp-label">${isAr?'مراجعة ١':'Review 1'}</span></div>
+              <div class="sm2-rmp-arrow">→</div>
+              <div class="sm2-rmp-step sm2-rmp-s2"><span class="sm2-rmp-day">${isAr?'+1 يوم':'+1 day'}</span><span class="sm2-rmp-icon">📖</span><span class="sm2-rmp-label">${isAr?'مراجعة ٢':'Review 2'}</span></div>
+              <div class="sm2-rmp-arrow">→</div>
+              <div class="sm2-rmp-step sm2-rmp-s3"><span class="sm2-rmp-day">${isAr?'+6 أيام':'+6 days'}</span><span class="sm2-rmp-icon">📖</span><span class="sm2-rmp-label">${isAr?'مراجعة ٣':'Review 3'}</span></div>
+              <div class="sm2-rmp-arrow">→</div>
+              <div class="sm2-rmp-step sm2-rmp-s4"><span class="sm2-rmp-day">${isAr?'+21 يوماً':'+21 days'}</span><span class="sm2-rmp-icon">🏆</span><span class="sm2-rmp-label">${isAr?'متقنة!':'Mastered!'}</span></div>
+            </div>
+            ${(learningCount > 0) ? `<div class="sm2-rmastery-breakdown">
+              ${needsReviews1 > 0 ? `<div class="sm2-rmb-row"><span class="sm2-rmb-dot" style="background:#10b981"></span><span>${isAr?`${needsReviews1} بطاقة — مراجعة واحدة بعيدة عن الإتقان`:`${needsReviews1} card${needsReviews1>1?'s':''} — 1 more review to mastery`}</span></div>` : ''}
+              ${needsReviews2 > 0 ? `<div class="sm2-rmb-row"><span class="sm2-rmb-dot" style="background:#f59e0b"></span><span>${isAr?`${needsReviews2} بطاقة — مراجعتان متبقيتان`:`${needsReviews2} card${needsReviews2>1?'s':''} — 2 more reviews to mastery`}</span></div>` : ''}
+              ${needsReviews3plus > 0 ? `<div class="sm2-rmb-row"><span class="sm2-rmb-dot" style="background:#6b7280"></span><span>${isAr?`${needsReviews3plus} بطاقة — 3 مراجعات أو أكثر متبقية`:`${needsReviews3plus} card${needsReviews3plus>1?'s':''} — 3+ more reviews to mastery`}</span></div>` : ''}
+            </div>` : ''}
+            ${gsTot > 0 ? `<div class="sm2-rgrade-stats">
+              <div class="sm2-rgs-label">${isAr?'احصائياتك:':'Your stats:'}</div>
+              <div class="sm2-rgs-pills">
+                <span class="sm2-rgs-pill sm2-rgs-pill-0"><span class="sm2-rgs-dot"></span>${isAr?'لم أتذكر':'Blackout'}<strong>${gs[0]||0}</strong></span>
+                <span class="sm2-rgs-pill sm2-rgs-pill-2"><span class="sm2-rgs-dot"></span>${isAr?'صعب':'Hard'}<strong>${gs[2]||0}</strong></span>
+                <span class="sm2-rgs-pill sm2-rgs-pill-3"><span class="sm2-rgs-dot"></span>${isAr?'جيد':'Good'}<strong>${gs[3]||0}</strong></span>
+                <span class="sm2-rgs-pill sm2-rgs-pill-5"><span class="sm2-rgs-dot"></span>${isAr?'سهل':'Easy'}<strong>${gs[5]||0}</strong></span>
+              </div>
+            </div>` : ''}
+          </div>
+
+          ${nextDueDate ? `<div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>🔔</span>${isAr?'الزيارة القادمة المقررة':'Your Next Scheduled Visit'}</div>
+            <div class="sm2-rnext-date">
+              <div class="sm2-rnd-big">${nextDueDate.toLocaleDateString(isAr?'ar-SA':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+              <div class="sm2-rnd-sub">${(() => {
+                const diff = Math.round((nextDueDate - today) / 86400000);
+                if (diff <= 0) return isAr ? 'البطاقات متاحة الآن' : 'Cards available now';
+                if (diff === 1) return isAr ? 'غداً' : 'Tomorrow';
+                return isAr ? `بعد ${diff} أيام` : `In ${diff} days`;
+              })()}</div>
+            </div>
+          </div>` : ''}
+
+          <div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>📅</span>${isAr?'جدول المراجعات القادمة':'Upcoming Review Schedule'}</div>
+            <div class="sm2-rfc-list">${forecastHTML}</div>
+          </div>
+
+          <div class="sm2-report-section sm2-report-howto">
+            <div class="sm2-rsec-title"><span>🧠</span>${isAr?'كيف يعمل نظام SM-2؟':'How does SM-2 work?'}</div>
+            <div class="sm2-rhow-grid">
+              <div class="sm2-rhow-item sm2-rhow-0"><span class="sm2-rhow-g">0</span><div><strong>${isAr?'لم أتذكر':'Blackout'}</strong><p>${isAr?'تُعاد لنهاية الجلسة (حتى ٣ محاولات)':'Re-queued to end (up to 3 tries)'}</p></div></div>
+              <div class="sm2-rhow-item sm2-rhow-2"><span class="sm2-rhow-g">2</span><div><strong>${isAr?'صعب':'Hard'}</strong><p>${isAr?'تُعاد، يقل معامل السهولة':'Re-queued, ease factor reduced'}</p></div></div>
+              <div class="sm2-rhow-item sm2-rhow-3"><span class="sm2-rhow-g">3</span><div><strong>${isAr?'جيد':'Good'}</strong><p>${isAr?'تختفي اليوم، تعود بعد أيام':'Done today, returns in days'}</p></div></div>
+              <div class="sm2-rhow-item sm2-rhow-5"><span class="sm2-rhow-g">5</span><div><strong>${isAr?'سهل':'Easy'}</strong><p>${isAr?'تختفي، تعود بعد أسابيع أو أكثر':'Done, returns in weeks or more'}</p></div></div>
+            </div>
+            <div class="sm2-rformula">
+              <div class="sm2-rformula-title">${isAr?'معادلة EF (معامل السهولة):':'EF (Ease Factor) formula:'}</div>
+              <code class="sm2-rformula-code">EF = EF + 0.1 − (5 − grade) × (0.08 + (5 − grade) × 0.02)</code>
+              <div class="sm2-rformula-note">${isAr?'EF لا يقل عن 1.3 — يتكيف مع مستواك تلقائياً':'EF never goes below 1.3 — adapts automatically to your level'}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('open'));
+
+    const closeReport = () => { overlay.classList.remove('open'); setTimeout(() => overlay.remove(), 220); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeReport(); });
+    overlay.querySelector('#sm2-report-close').addEventListener('click', closeReport);
+    document.addEventListener('keydown', function escRpt(e) {
+      if (e.key === 'Escape') { closeReport(); document.removeEventListener('keydown', escRpt); }
+    });
   }
 
   /* ═══ ACTION LINKS HIGHLIGHTER ═══ */
@@ -1254,7 +1541,7 @@
           l.classList.toggle('active', e.isIntersecting);
           if (e.isIntersecting) {
             const scroller = document.querySelector('.toc-concepts');
-            if (scroller && l.closest('.toc-concepts')) {
+            if (scroller && l.closest('.toc-concepts-wrapper')) {
               const top = l.offsetTop - scroller.offsetTop - scroller.clientHeight / 2 + l.clientHeight / 2;
               scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
             }
@@ -1277,66 +1564,119 @@
     const sidebar = document.querySelector('.sidebar');
     const tocList = document.querySelector('.toc-list');
     if (!sidebar || !tocList) return;
-    const links = Array.from(tocList.querySelectorAll('.toc-link'));
+
     const divider = tocList.querySelector('.toc-divider');
-    if (!divider || links.length < 6) return;
-    const topLinks = [], conceptLinks = [], bottomLinks = [];
-    let afterDivider = false;
-    links.forEach(link => {
-      if (afterDivider) { bottomLinks.push(link); return; }
-      const href = link.getAttribute('href') || '';
-      if (href === '#hero' || href === '#objectives') { topLinks.push(link); return; }
-      conceptLinks.push(link);
+    if (!divider) return;
+
+    // ── Classify every direct child of tocList ──────────────────────
+    // conceptLinks : ALL toc-links before the divider (hero, objectives, topics…)
+    // bottomLinks  : ALL toc-links after the divider (professor, flashcards…)
+    const conceptLinks = [], bottomLinks = [];
+    let passedDivider = false;
+
+    Array.from(tocList.children).forEach(el => {
+      if (el === divider)                     { passedDivider = true; return; }
+      if (!el.classList.contains('toc-link')) { return; }
+      if (passedDivider) { bottomLinks.push(el); } else { conceptLinks.push(el); }
     });
-    // Find links after divider
-    let foundDiv = false;
-    links.forEach(link => {
-      if (link.previousElementSibling === divider) foundDiv = true;
-      if (foundDiv) { bottomLinks.push(link); conceptLinks.splice(conceptLinks.indexOf(link), 1); }
-    });
+
+    // Need at least 4 concept links to bother with smart layout
     if (conceptLinks.length < 4) return;
     sidebar.classList.add('smart');
-    const pinnedTop = document.createElement('div');
-    pinnedTop.className = 'toc-pinned-top';
-    topLinks.forEach(l => pinnedTop.appendChild(l));
+
+    // ── Scrollable concepts wrapper ──────────────────────────────────
     const wrapper = document.createElement('div');
-    wrapper.className = 'toc-concepts-wrapper at-top';
-    const scroller = document.createElement('div');
-    scroller.className = 'toc-concepts';
-    conceptLinks.forEach(l => scroller.appendChild(l));
-    wrapper.appendChild(scroller);
+    wrapper.className = 'toc-concepts-wrapper at-top at-bottom';
+
+    if (conceptLinks.length >= 10) {
+      // ≥10 → pin first 2 and last 2, scroll the middle
+      const innerTop = document.createElement('div');
+      innerTop.className = 'toc-inner-top';
+      conceptLinks.slice(0, 2).forEach(l => innerTop.appendChild(l));
+
+      const scroller = document.createElement('div');
+      scroller.className = 'toc-concepts';
+      conceptLinks.slice(2, -2).forEach(l => scroller.appendChild(l));
+
+      const innerBot = document.createElement('div');
+      innerBot.className = 'toc-inner-bottom';
+      conceptLinks.slice(-2).forEach(l => innerBot.appendChild(l));
+
+      wrapper.appendChild(innerTop);
+      wrapper.appendChild(scroller);
+      wrapper.appendChild(innerBot);
+
+      scroller.addEventListener('scroll', () => {
+        wrapper.classList.toggle('at-top',
+          scroller.scrollTop < 5);
+        wrapper.classList.toggle('at-bottom',
+          scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 5);
+      }, { passive: true });
+
+      // After render: if content doesn't actually overflow, switch to centered layout
+      requestAnimationFrame(() => {
+        if (scroller.scrollHeight <= scroller.clientHeight) {
+          // No real scroll needed — flatten to centered no-scroll layout
+          wrapper.style.overflow = 'visible';
+          wrapper.style.flex     = '0 0 auto';
+          // Move innerTop links to the START (in order) and innerBot to the END
+          const topFragment = document.createDocumentFragment();
+          Array.from(innerTop.children).forEach(l => topFragment.appendChild(l));
+          scroller.insertBefore(topFragment, scroller.firstChild);
+          Array.from(innerBot.children).forEach(l => scroller.appendChild(l));
+          innerTop.remove();
+          innerBot.remove();
+          scroller.style.flex   = '0 0 auto';
+          scroller.style.height = 'auto';
+          // Re-wrap in centerGroup (pinnedBottom stays in sidebar — no change needed)
+          tocList.innerHTML = '';
+          const centerGroup = document.createElement('div');
+          centerGroup.className = 'toc-center-group';
+          centerGroup.appendChild(wrapper);
+          tocList.appendChild(centerGroup);
+        }
+      });
+
+    } else {
+      // 4–9 links → no scroll, center the block vertically
+      wrapper.style.overflow = 'visible';
+      wrapper.style.flex     = '0 0 auto';
+      const scroller = document.createElement('div');
+      scroller.className = 'toc-concepts';
+      scroller.style.flex   = '0 0 auto';
+      scroller.style.height = 'auto';
+      conceptLinks.forEach(l => scroller.appendChild(l));
+      wrapper.appendChild(scroller);
+    }
+
+    // ── pinnedBottom (divider + professor + flashcards…) ────────────
+    // Inserted directly into .sidebar (NOT into toc-list) so it is
+    // always visible and never competes with the scroll zone for space.
     const pinnedBottom = document.createElement('div');
     pinnedBottom.className = 'toc-pinned-bottom';
-    if (divider) pinnedBottom.appendChild(divider);
+    pinnedBottom.appendChild(divider);
     bottomLinks.forEach(l => pinnedBottom.appendChild(l));
+
+    // ── Rebuild toc-list ─────────────────────────────────────────────
     tocList.innerHTML = '';
-    tocList.appendChild(pinnedTop);
-    tocList.appendChild(wrapper);
-    tocList.appendChild(pinnedBottom);
-    // If concept links are few (< 10), center the top section vertically
+
     if (conceptLinks.length < 10) {
-      pinnedTop.style.display = 'flex';
-      pinnedTop.style.flexDirection = 'column';
-      pinnedTop.style.alignItems = 'stretch';
-      wrapper.style.flex = '0 0 auto';
-      wrapper.style.overflow = 'visible';
-      // Wrap top + concepts in a centered flex group
+      // Center vertically when few concepts
       const centerGroup = document.createElement('div');
-      centerGroup.style.flex = '1';
-      centerGroup.style.display = 'flex';
-      centerGroup.style.flexDirection = 'column';
-      centerGroup.style.justifyContent = 'center';
-      centerGroup.style.gap = '0';
-      tocList.insertBefore(centerGroup, wrapper);
-      tocList.removeChild(pinnedTop);
-      tocList.removeChild(wrapper);
-      centerGroup.appendChild(pinnedTop);
+      centerGroup.className = 'toc-center-group';
       centerGroup.appendChild(wrapper);
+      tocList.appendChild(centerGroup);
+    } else {
+      tocList.appendChild(wrapper);
     }
-    scroller.addEventListener('scroll', () => {
-      wrapper.classList.toggle('at-top', scroller.scrollTop < 5);
-      wrapper.classList.toggle('at-bottom', scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 5);
-    }, { passive: true });
+
+    // pinnedBottom goes into sidebar, before the widget
+    const widget = sidebar.querySelector('.sidebar-widget');
+    if (widget) {
+      sidebar.insertBefore(pinnedBottom, widget);
+    } else {
+      sidebar.appendChild(pinnedBottom);
+    }
   }
 
 
@@ -1533,7 +1873,321 @@
   /* ═══ PUBLIC API ═══ */
   window.Garden = {
     cycleTheme, toggleLanguage, setLanguage, applyTheme,
-    flip: flipCard, grade: gradeCard, resetFC,
+    flip: flipCard, grade: gradeCard, resetFC, report: showSM2Report,
+    practice: startPractice, renderPractice, renderFC: renderFlashcard,
     pick: selectOption, nextQ, retryQuiz, showQuizHint: showHint
   };
+  
+  /* ═══════════════════════════════════════════════════════════════
+   CS Level 5 · Digital Garden · garden_additions.js v1.0
+   ─────────────────────────────────────────────────────────────
+   HOW TO INTEGRATE:
+   Option A (Recommended): Append this entire file to garden.js
+     before the closing `})();` of the IIFE.
+     Then expose the new public methods in the window.Garden object.
+   
+   Option B: Include as a separate script AFTER garden.js:
+     <script src="../assets/garden.js"></script>
+     <script src="../assets/garden_additions.js"></script>
+   
+   Adds:
+   - Essay Q&A Engine (reads from #essay-data JSON block)
+   - Review-page multi-quiz support
+   - Essay score tracking + persistence
+   ═══════════════════════════════════════════════════════════════ */
+
+;(function() {
+  'use strict';
+
+  /* ─── Helpers ───────────────────────────────────────────────── */
+  function getLang() {
+    return document.documentElement.getAttribute('lang') || 'ar';
+  }
+
+  function essayKey() {
+    const s = document.documentElement.getAttribute('data-subject') || 'XX';
+    const p = document.documentElement.getAttribute('data-page')    || 'review';
+    const t = document.documentElement.getAttribute('data-review-type') || 'mid';
+    return `garden_${s}_${p}_${t}_essays`;
+  }
+
+  function loadEssayProgress() {
+    try { return JSON.parse(sessionStorage.getItem(essayKey())) || {}; } catch(e) { return {}; }
+  }
+
+  function saveEssayProgress(state) {
+    try { sessionStorage.setItem(essayKey(), JSON.stringify(state)); } catch(e) {}
+  }
+
+  /* ─── i18n additions ────────────────────────────────────────── */
+  const essayI18n = {
+    ar: {
+      'essay.title':         '📝 أسئلة المقالي',
+      'essay.score':         'نقاطك:',
+      'essay.write':         'اكتب إجابتك هنا...',
+      'essay.reveal':        '👁️ أظهر الإجابة النموذجية',
+      'essay.answer_label':  '✍️ الإجابة النموذجية',
+      'essay.grade_prompt':  'قيّم إجابتك:',
+      'essay.correct':       '✅ أجبت صحيح',
+      'essay.wrong':         '❌ لم أتذكر',
+      'essay.q_num':         'سؤال',
+      'essay.module':        'وحدة',
+    },
+    en: {
+      'essay.title':         '📝 Essay Questions',
+      'essay.score':         'Score:',
+      'essay.write':         'Write your answer here...',
+      'essay.reveal':        '👁️ Show Model Answer',
+      'essay.answer_label':  '✍️ Model Answer',
+      'essay.grade_prompt':  'Rate your answer:',
+      'essay.correct':       '✅ I got it right',
+      'essay.wrong':         '❌ I missed it',
+      'essay.q_num':         'Q',
+      'essay.module':        'Module',
+    }
+  };
+
+  function t(key) {
+    const L = getLang();
+    return essayI18n[L]?.[key] || essayI18n.ar[key] || key;
+  }
+
+  /* ═══ ESSAY ENGINE ═══════════════════════════════════════════ */
+  window._gardenEssay = { questions: null, state: {}, correct: 0 };
+
+  function initEssayEngine() {
+    const el = document.getElementById('essay-data');
+    if (!el) return;
+
+    let questions;
+    try { questions = JSON.parse(el.textContent); }
+    catch(e) { console.warn('[Garden Essay] Failed to parse essay-data:', e); return; }
+
+    if (!Array.isArray(questions) || questions.length === 0) return;
+
+    window._gardenEssay.questions = questions;
+    window._gardenEssay.state     = loadEssayProgress();
+
+    // Restore correct count from saved state
+    window._gardenEssay.correct = Object.values(window._gardenEssay.state)
+      .filter(v => v === 1).length;
+
+    renderEssaySection();
+  }
+
+  function renderEssaySection() {
+    const container = document.getElementById('essay-container');
+    if (!container) return;
+
+    const questions  = window._gardenEssay.questions;
+    const state      = window._gardenEssay.state;
+    const L          = getLang();
+
+    // Update total count
+    const totalEl = document.getElementById('essay-total');
+    if (totalEl) totalEl.textContent = questions.length;
+
+    // Update score display
+    updateEssayScoreUI();
+
+    // Render each essay item
+    container.innerHTML = questions.map((q, i) => {
+      const graded     = state[i];
+      const wasRevealed = graded !== undefined;
+      const isCorrect  = graded === 1;
+      const borderColor = !wasRevealed ? 'var(--brand-500)' : isCorrect ? '#10b981' : '#ef4444';
+
+      const questionText = q.question?.[L] || q.question?.ar || '';
+      const answerText   = q.answer?.[L]   || q.answer?.ar   || '';
+      const moduleNum    = q.module || '?';
+
+      return `
+<div class="essay-item glass-card" id="essay-item-${i}"
+     data-graded="${graded !== undefined ? graded : ''}"
+     style="border-inline-start-color:${borderColor}">
+  <div class="essay-item-header">
+    <span class="module-chip">${t('essay.module')} ${moduleNum}</span>
+    <span style="font-size:0.8rem;font-weight:800;color:var(--text-muted)">#${i+1}</span>
+    ${wasRevealed ? `<span style="font-size:0.8rem;font-weight:700;color:${isCorrect?'#10b981':'#ef4444'}">
+      ${isCorrect ? '✅' : '❌'}
+    </span>` : ''}
+  </div>
+
+  <div class="essay-question-text" data-bilingual>
+    <template class="content-ar">${q.question?.ar || ''}</template>
+    <template class="content-en">${q.question?.en || ''}</template>
+    <div class="content-target">${questionText}</div>
+  </div>
+
+  <textarea class="essay-textarea" id="essay-ta-${i}"
+    placeholder="${t('essay.write')}"
+    rows="4">${state['ta_' + i] || ''}</textarea>
+
+  <button class="essay-reveal-btn ${wasRevealed ? 'hidden' : ''}"
+          id="essay-reveal-${i}" onclick="Garden.revealEssay(${i})">
+    ${t('essay.reveal')}
+  </button>
+
+  <div class="essay-answer-box ${wasRevealed ? '' : 'hidden'}" id="essay-answer-${i}">
+    <span class="essay-answer-label">${t('essay.answer_label')}</span>
+    <div data-bilingual>
+      <template class="content-ar">${q.answer?.ar || ''}</template>
+      <template class="content-en">${q.answer?.en || ''}</template>
+      <div class="content-target">${answerText}</div>
+    </div>
+
+    <div class="essay-grade-bar" id="essay-grade-bar-${i}">
+      <span class="essay-grade-label">${t('essay.grade_prompt')}</span>
+      <button class="essay-grade-btn essay-grade-btn--correct ${graded===1?'active':''}"
+              id="essay-grade-correct-${i}"
+              onclick="Garden.gradeEssay(${i}, 1)"
+              ${wasRevealed ? 'disabled' : ''}>
+        ${t('essay.correct')}
+      </button>
+      <button class="essay-grade-btn essay-grade-btn--wrong ${graded===0?'active':''}"
+              id="essay-grade-wrong-${i}"
+              onclick="Garden.gradeEssay(${i}, 0)"
+              ${wasRevealed ? 'disabled' : ''}>
+        ${t('essay.wrong')}
+      </button>
+    </div>
+  </div>
+</div>`;
+    }).join('');
+
+    // Save textarea content on blur
+    questions.forEach((_, i) => {
+      const ta = document.getElementById(`essay-ta-${i}`);
+      if (ta) {
+        ta.addEventListener('blur', () => {
+          window._gardenEssay.state['ta_' + i] = ta.value;
+          saveEssayProgress(window._gardenEssay.state);
+        });
+      }
+    });
+  }
+
+  function revealEssay(idx) {
+    const L = getLang();
+    const q = window._gardenEssay.questions?.[idx];
+    if (!q) return;
+
+    // Hide reveal button, show answer box
+    document.getElementById(`essay-reveal-${idx}`)?.classList.add('hidden');
+    document.getElementById(`essay-answer-${idx}`)?.classList.remove('hidden');
+
+    // Save textarea value before reveal
+    const ta = document.getElementById(`essay-ta-${idx}`);
+    if (ta) {
+      window._gardenEssay.state['ta_' + idx] = ta.value;
+    }
+    saveEssayProgress(window._gardenEssay.state);
+  }
+
+  function gradeEssay(idx, correct) {
+    const was = window._gardenEssay.state[idx];
+
+    // Update correct count
+    if (was === 1) window._gardenEssay.correct--;
+    if (correct)  window._gardenEssay.correct++;
+
+    // Save state
+    window._gardenEssay.state[idx] = correct;
+    saveEssayProgress(window._gardenEssay.state);
+
+    // Update item border & appearance
+    const item = document.getElementById(`essay-item-${idx}`);
+    if (item) {
+      item.style.borderInlineStartColor = correct ? '#10b981' : '#ef4444';
+      item.setAttribute('data-graded', correct);
+    }
+
+    // Disable + style grade buttons
+    const btnCorrect = document.getElementById(`essay-grade-correct-${idx}`);
+    const btnWrong   = document.getElementById(`essay-grade-wrong-${idx}`);
+    [btnCorrect, btnWrong].forEach(b => { if (b) { b.disabled = true; b.classList.remove('active'); } });
+    if (correct && btnCorrect) btnCorrect.classList.add('active');
+    if (!correct && btnWrong)  btnWrong.classList.add('active');
+
+    updateEssayScoreUI();
+  }
+
+  function updateEssayScoreUI() {
+    const scoreEl = document.getElementById('essay-score');
+    if (scoreEl) scoreEl.textContent = window._gardenEssay.correct;
+    const totalEl = document.getElementById('essay-total');
+    if (totalEl) totalEl.textContent = window._gardenEssay.questions?.length || 0;
+  }
+
+  function refreshEssayLanguage() {
+    // Re-render the whole essay section when language changes
+    if (!window._gardenEssay.questions) return;
+    const L = getLang();
+
+    // Update textareas direction
+    document.querySelectorAll('.essay-textarea').forEach(ta => {
+      ta.setAttribute('dir', L === 'ar' ? 'rtl' : 'ltr');
+      ta.style.direction  = L === 'ar' ? 'rtl' : 'ltr';
+      ta.style.textAlign  = L === 'ar' ? 'right' : 'left';
+      ta.placeholder      = t('essay.write');
+    });
+
+    // Update grade button labels
+    window._gardenEssay.questions.forEach((_, i) => {
+      const bc = document.getElementById(`essay-grade-correct-${i}`);
+      const bw = document.getElementById(`essay-grade-wrong-${i}`);
+      if (bc) bc.textContent = t('essay.correct');
+      if (bw) bw.textContent = t('essay.wrong');
+      const rb = document.getElementById(`essay-reveal-${i}`);
+      if (rb) rb.textContent = t('essay.reveal');
+    });
+
+    // Update labels
+    document.querySelectorAll('.essay-grade-label').forEach(el => {
+      el.textContent = t('essay.grade_prompt');
+    });
+    document.querySelectorAll('.essay-answer-label').forEach(el => {
+      el.textContent = t('essay.answer_label');
+    });
+    updateEssayScoreUI();
+  }
+
+  /* ─── Patch Garden.setLanguage to also update essay ─────────── */
+  function patchLanguageToggle() {
+    const orig = window.Garden?.setLanguage;
+    if (!orig) return;
+    window.Garden.setLanguage = function(lang) {
+      orig(lang);
+      setTimeout(refreshEssayLanguage, 60);
+    };
+
+    const origToggle = window.Garden?.toggleLanguage;
+    if (origToggle) {
+      window.Garden.toggleLanguage = function() {
+        origToggle();
+        setTimeout(refreshEssayLanguage, 60);
+      };
+    }
+  }
+
+  /* ─── Init ───────────────────────────────────────────────────── */
+  function initAdditions() {
+    initEssayEngine();
+    patchLanguageToggle();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdditions);
+  } else {
+    initAdditions();
+  }
+
+  /* ─── Extend Public API ──────────────────────────────────────── */
+  if (!window.Garden) window.Garden = {};
+  window.Garden.revealEssay   = revealEssay;
+  window.Garden.gradeEssay    = gradeEssay;
+  window.Garden.refreshEssays = renderEssaySection;
+
 })();
+})();
+
