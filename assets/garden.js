@@ -2267,25 +2267,34 @@ ${baseRules}`;
   async function callAI(systemPrompt, userMsg) {
     if (!GARDEN_AI_ENDPOINT) return { error: true, text: '' };
 
-    const res = await fetch(GARDEN_AI_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMsg }
-        ],
-        max_tokens: 1000
-      })
-    });
+    try {
+      const res = await fetch(GARDEN_AI_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMsg }
+          ],
+          max_tokens: 1000
+        })
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { error: true, text: '', errorData: err };
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('AI Proxy error:', res.status, err);
+        return { error: true, text: '', errorData: err };
+      }
+
+      const data = await res.json();
+      return { error: false, text: data.text || '' };
+    } catch (e) {
+      console.error('AI fetch failed:', e);
+      return { error: true, text: '', errorData: {
+        message_ar: 'فشل الاتصال بالخادم. تحقق من الرابط أو حاول لاحقاً.',
+        message_en: 'Failed to connect to server. Check URL or try later.'
+      }};
     }
-
-    const data = await res.json();
-    return { error: false, text: data.text || '' };
   }
 
   /* ── بناء النافذة ── */
