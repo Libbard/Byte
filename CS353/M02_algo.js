@@ -78,202 +78,298 @@ function _algoBindSpeed(container, getDelay, restartFn) {
 window._algoTitles = window._algoTitles || {};
 window._algoTitles[1] = { en: 'Asymptotic Notations', ar: 'الرموز التقاربية' };
 
+window._algoTitles = window._algoTitles || {};
+window._algoTitles[1] = { en: 'Asymptotic Notations', ar: 'الرموز التقاربية' };
+
 window.AlgoWidgets[1] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
       _AL.titleHTML(1) +
       _AL.toolbar(1) +
-      '<div class="algo-explanation" id="w1-exp"></div>' +
-      '<div class="algo-canvas" id="w1-canvas" style="width:100%; height:400px; overflow:hidden;"></div>' +
-      '<div class="algo-legend" style="display:flex;justify-content:center;gap:15px;margin-top:12px;font-size:0.9em;">' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-tn"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-c1gn"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-c2gn"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-n0"></span></span>' +
+      '<div class="algo-explanation" id="w1-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+      
+      // حاوية SVG المتجاوبة
+      '<div class="algo-canvas" id="w1-canvas-container" style="width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow:hidden; position:relative; display: flex; align-items: center; justify-content: center;">' +
+        '<svg id="w1-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+      '</div>' +
+      
+      // دليل الألوان
+      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.85rem;color:var(--text-secondary);">' +
+        '<span><span style="display:inline-block;width:16px;height:4px;background:var(--brand-500);margin-right:6px;vertical-align:middle; border-radius: 2px;"></span><span data-algo-text="w1-tn"></span></span>' +
+        '<span><span style="display:inline-block;width:16px;height:4px;background:var(--algo-compare);margin-right:6px;vertical-align:middle; border-radius: 2px;"></span><span data-algo-text="w1-c1gn"></span></span>' +
+        '<span><span style="display:inline-block;width:16px;height:4px;background:var(--algo-swap);margin-right:6px;vertical-align:middle; border-radius: 2px;"></span><span data-algo-text="w1-c2gn"></span></span>' +
+        '<span><span style="display:inline-block;width:4px;height:12px;background:var(--algo-active);margin-right:6px;vertical-align:middle; border-radius: 2px;"></span><span data-algo-text="w1-n0"></span></span>' +
       '</div>' +
     '</div>';
-  
-    var btnPlay  = container.querySelector('[data-algo-btn="play"]');
-    var expEl    = container.querySelector('#w1-exp');
-    var canvasEl = container.querySelector('#w1-canvas');
-    var counter  = container.querySelector('[data-algo-counter]');
+
+    var btnPlay = container.querySelector('[data-algo-btn="play"]');
+    var expEl   = container.querySelector('#w1-exp');
+    var svgEl   = container.querySelector('#w1-svg');
+    var counter = container.querySelector('[data-algo-counter]');
+
     var steps = [], cur = 0, playing = false, interval = null;
-  
-    // SVG constants
-    var SVG_WIDTH = 800;
-    var SVG_HEIGHT = 400;
-    var PADDING_LEFT = 70;
-    var PADDING_RIGHT = 30;
-    var PADDING_TOP = 40;
-    var PADDING_BOTTOM = 50;
-    var CHART_WIDTH = SVG_WIDTH - PADDING_LEFT - PADDING_RIGHT;
-    var CHART_HEIGHT = SVG_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
-  
-    var MAX_N = 50; // Max input size
-    var N0 = 15;    // Threshold for n
-  
-    // Functions for visualization
-    function t_n(n) { return 0.5 * n * n + 10 * n + 50; } // Actual running time
-    function g_n(n) { return n * n; }                    // Bounding function
-    var C1 = 1.5; // Constant for upper bound
-    var C2 = 0.2; // Constant for lower bound
+    var isInitialized = false;
+
+    // الثوابت الهندسية للرسم البياني
+    const SVG_W = 800;
+    const SVG_H = 450;
+    const PAD_L = 70;
+    const PAD_R = 100; // مساحة إضافية للنصوص في اليمين
+    const PAD_T = 40;
+    const PAD_B = 50;
+    const CHART_W = SVG_W - PAD_L - PAD_R;
+    const CHART_H = SVG_H - PAD_T - PAD_B;
+
+    const MAX_N = 50;
+    const N0 = 15;
+
+    // دوال حساب النمو
+    function t_n(n) { return 0.5 * n * n + 10 * n + 50; }
+    function g_n(n) { return n * n; }
+    const C1 = 1.5;
+    const C2 = 0.2;
     function c1_g_n(n) { return C1 * g_n(n); }
     function c2_g_n(n) { return C2 * g_n(n); }
-  
-    var MAX_Y_VALUE = Math.max(t_n(MAX_N), c1_g_n(MAX_N)) * 1.05; // Max Y value for scaling
-  
-    // Scaling functions
-    function scaleX(n) { return PADDING_LEFT + (n / MAX_N) * CHART_WIDTH; }
-    function scaleY(val) { return PADDING_TOP + CHART_HEIGHT - (val / MAX_Y_VALUE) * CHART_HEIGHT; }
-  
+
+    const MAX_Y = Math.max(t_n(MAX_N), c1_g_n(MAX_N)) * 1.05;
+
+    // دوال التحجيم
+    function scaleX(n) { return PAD_L + (n / MAX_N) * CHART_W; }
+    function scaleY(v) { return PAD_T + CHART_H - (v / MAX_Y) * CHART_H; }
+
+    // عناصر الـ UI لتحديثها برمجياً
+    var uiElements = {
+      tnPath: null, c1Path: null, c2Path: null,
+      tnLbl: null, c1Lbl: null, c2Lbl: null,
+      n0Line: null, n0Lbl: null, shadeO: null, shadeOmega: null,
+      intDot: null
+    };
+
     function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
-  
+
     function updateLabels() {
-      container.querySelector('[data-algo-text="w1-tn"]').textContent    = _AL.lang()==='ar' ? 'T(n): وقت التشغيل الفعلي' : 'T(n): Actual Running Time';
-      container.querySelector('[data-algo-text="w1-c1gn"]').textContent = _AL.lang()==='ar' ? 'c1*g(n): الحد الأعلى (O-notation)' : 'c1*g(n): Upper Bound (O-notation)';
-      container.querySelector('[data-algo-text="w1-c2gn"]').textContent = _AL.lang()==='ar' ? 'c2*g(n): الحد الأدنى (Omega-notation)' : 'c2*g(n): Lower Bound (Omega-notation)';
-      container.querySelector('[data-algo-text="w1-n0"]').textContent   = _AL.lang()==='ar' ? 'n0: نقطة البداية' : 'n0: Threshold';
+      container.querySelector('[data-algo-text="w1-tn"]').textContent   = _AL.exp('T(n): Actual Time', 'T(n): الوقت الفعلي');
+      container.querySelector('[data-algo-text="w1-c1gn"]').textContent = _AL.exp('c₁·g(n): Upper Bound (O)', 'c₁·g(n): الحد الأعلى (O)');
+      container.querySelector('[data-algo-text="w1-c2gn"]').textContent = _AL.exp('c₂·g(n): Lower Bound (Ω)', 'c₂·g(n): الحد الأدنى (Ω)');
+      container.querySelector('[data-algo-text="w1-n0"]').textContent   = _AL.exp('n₀: Threshold', 'n₀: نقطة التقاطع');
     }
-  
+
+    function makeSVG(tag, attrs) {
+      let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (let k in attrs) el.setAttribute(k, attrs[k]);
+      el.style.transition = 'all 0.5s cubic-bezier(0.4,0,0.2,1)';
+      return el;
+    }
+
+    // بناء مسارات المنحنيات
+    function buildPath(fn) {
+      let d = `M ${scaleX(0)},${scaleY(fn(0))}`;
+      for (let n = 1; n <= MAX_N; n++) {
+        d += ` L ${scaleX(n)},${scaleY(fn(n))}`;
+      }
+      return d;
+    }
+
+    // بناء مساحة التظليل بين منحنيين من n0 فصاعداً
+    function buildShadePath(topFn, bottomFn) {
+      let d = `M ${scaleX(N0)},${scaleY(topFn(N0))}`;
+      for (let n = N0 + 1; n <= MAX_N; n++) d += ` L ${scaleX(n)},${scaleY(topFn(n))}`;
+      for (let n = MAX_N; n >= N0; n--) d += ` L ${scaleX(n)},${scaleY(bottomFn(n))}`;
+      d += ' Z';
+      return d;
+    }
+
     function generateSteps() {
-      steps = [];
-      // Step 0: Initial state - only axes
-      steps.push({
-        plot_tn: false, plot_c1gn: false, plot_c2gn: false, show_n0: false,
-        en: 'The graph shows axes for input size (n) and running time.',
-        ar: 'الرسم البياني يوضح المحاور لحجم المدخلات (n) ووقت التشغيل.'
-      });
-      // Step 1: Plot T(n)
-      steps.push({
-        plot_tn: true, plot_c1gn: false, plot_c2gn: false, show_n0: false,
-        en: 'This curve represents the actual running time of an algorithm, T(n).',
-        ar: 'يمثل هذا المنحنى وقت التشغيل الفعلي للخوارزمية، T(n).'
-      });
-      // Step 2: Plot c1*g(n)
-      steps.push({
-        plot_tn: true, plot_c1gn: true, plot_c2gn: false, show_n0: false,
-        en: 'We introduce a bounding function g(n) and a constant c1. The curve c1*g(n) serves as an upper bound.',
-        ar: 'نقدم دالة تقييد g(n) وثابت c1. يعمل منحنى c1*g(n) كحد أعلى.'
-      });
-      // Step 3: Show n0 and explain Big-O
-      steps.push({
-        plot_tn: true, plot_c1gn: true, plot_c2gn: false, show_n0: true,
-        en: 'For n greater than or equal to n0, T(n) is always below c1*g(n). This is Big-O notation (O(g(n))), representing the worst-case efficiency.',
-        ar: 'بالنسبة لـ n أكبر من أو يساوي n0، يكون T(n) دائمًا أقل من c1*g(n). هذا هو رمز O الكبير (O(g(n)))، ويمثل كفاءة أسوأ حالة.'
-      });
-      // Step 4: Plot c2*g(n)
-      steps.push({
-        plot_tn: true, plot_c1gn: true, plot_c2gn: true, show_n0: true,
-        en: 'Similarly, we find a constant c2 such that c2*g(n) serves as a lower bound for T(n).',
-        ar: 'وبالمثل، نجد ثابتًا c2 بحيث يعمل c2*g(n) كحد أدنى لـ T(n).'
-      });
-      // Step 5: Explain Big-Omega
-      steps.push({
-        plot_tn: true, plot_c1gn: true, plot_c2gn: true, show_n0: true,
-        en: 'For n greater than or equal to n0, T(n) is always above c2*g(n). This is Big-Omega notation (Ω(g(n))), representing the best-case efficiency.',
-        ar: 'بالنسبة لـ n أكبر من أو يساوي n0، يكون T(n) دائمًا أعلى من c2*g(n). هذا هو رمز أوميغا الكبير (Ω(g(n)))، ويمثل كفاءة أفضل حالة.'
-      });
-      // Step 6: Explain Big-Theta
-      steps.push({
-        plot_tn: true, plot_c1gn: true, plot_c2gn: true, show_n0: true,
-        en: 'When T(n) is bounded both above and below by constant multiples of g(n), we use Big-Theta notation (Θ(g(n))).',
-        ar: 'عندما يكون T(n) مقيدًا من الأعلى والأسفل بمضاعفات ثابتة لـ g(n)، نستخدم رمز ثيتا الكبير (Θ(g(n))).'
-      });
-      // Step 7: Final state
-      steps.push({
-        plot_tn: true, plot_c1gn: true, plot_c2gn: true, show_n0: true,
-        en: 'Big-Theta notation describes the tight bound, indicating that the algorithm\'s running time grows at the same rate as g(n).',
-        ar: 'يصف رمز ثيتا الكبير الحد الضيق، مما يشير إلى أن وقت تشغيل الخوارزمية ينمو بنفس معدل g(n).'
-      });
+      steps = [
+        {
+          state: { tn: 0, c1: 0, c2: 0, n0: 0, shadeO: 0, shadeOmega: 0 },
+          en: 'This graph visualizes algorithm growth rates. The X-axis is input size (n) and the Y-axis is running time.',
+          ar: 'يوضح هذا الرسم البياني معدلات نمو الخوارزميات. المحور الأفقي يمثل حجم المدخلات (n) والمحور الرأسي يمثل وقت التشغيل.'
+        },
+        {
+          state: { tn: 1, c1: 0, c2: 0, n0: 0, shadeO: 0, shadeOmega: 0 },
+          en: 'Here is the actual running time curve of our algorithm: <strong>T(n)</strong>.',
+          ar: 'هذا هو منحنى وقت التشغيل الفعلي لخوارزميتنا: <strong dir="ltr">T(n)</strong>.'
+        },
+        {
+          state: { tn: 1, c1: 1, c2: 0, n0: 0, shadeO: 0, shadeOmega: 0 },
+          en: 'We introduce a bounding function <strong>c₁·g(n)</strong> to act as an upper bound.',
+          ar: 'نُدخل دالة قيد <strong dir="ltr">c₁·g(n)</strong> لتعمل كحد أعلى.'
+        },
+        {
+          state: { tn: 1, c1: 1, c2: 0, n0: 1, shadeO: 1, shadeOmega: 0 },
+          en: 'For all <strong>n ≥ n₀</strong>, T(n) is bounded above. This proves Big-O: <strong>T(n) ∈ O(g(n))</strong>.',
+          ar: 'لجميع قيم <strong>n ≥ n₀</strong>، يكون T(n) مقيداً من الأعلى. هذا يثبت رمز (O): <strong dir="ltr">T(n) ∈ O(g(n))</strong>.'
+        },
+        {
+          state: { tn: 1, c1: 1, c2: 1, n0: 1, shadeO: 0, shadeOmega: 0 },
+          en: 'Similarly, we find another constant to create <strong>c₂·g(n)</strong> as a lower bound.',
+          ar: 'وبالمثل، نجد ثابتاً آخر لإنشاء <strong dir="ltr">c₂·g(n)</strong> كحد أدنى.'
+        },
+        {
+          state: { tn: 1, c1: 1, c2: 1, n0: 1, shadeO: 0, shadeOmega: 1 },
+          en: 'For all <strong>n ≥ n₀</strong>, T(n) is bounded below. This proves Big-Omega: <strong>T(n) ∈ Ω(g(n))</strong>.',
+          ar: 'لجميع قيم <strong>n ≥ n₀</strong>، يكون T(n) مقيداً من الأسفل. هذا يثبت رمز (Ω): <strong dir="ltr">T(n) ∈ Ω(g(n))</strong>.'
+        },
+        {
+          state: { tn: 1, c1: 1, c2: 1, n0: 1, shadeO: 1, shadeOmega: 1 },
+          en: 'Since T(n) is squeezed tightly between both bounds, we conclude <strong>T(n) ∈ Θ(g(n))</strong> (Big-Theta).',
+          ar: 'بما أن T(n) محصور بإحكام بين كلا الحدين، يمكننا الاستنتاج أن <strong dir="ltr">T(n) ∈ Θ(g(n))</strong> (رمز ثيتا).'
+        }
+      ];
     }
-  
+
+    function buildSVG() {
+      svgEl.innerHTML = '';
+      
+      let defs = makeSVG('defs', {});
+      defs.innerHTML = `
+        <pattern id="diag-stripes-o" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--algo-compare)" stroke-width="2" opacity="0.25" />
+        </pattern>
+        <pattern id="diag-stripes-omega" width="8" height="8" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--algo-swap)" stroke-width="2" opacity="0.25" />
+        </pattern>
+      `;
+      svgEl.appendChild(defs);
+
+      // 1. بناء المحاور (Axes)
+      let axesG = makeSVG('g', {});
+      
+      // محور X
+      axesG.appendChild(makeSVG('line', { x1: PAD_L, y1: scaleY(0), x2: SVG_W - PAD_R + 30, y2: scaleY(0), stroke: 'var(--text-muted)', 'stroke-width': 2 }));
+      let xLbl = makeSVG('text', { x: SVG_W / 2, y: SVG_H - 10, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: 'var(--text-secondary)', 'font-size': '15', 'font-family': "'Cairo', 'Inter', sans-serif", 'font-weight': '800' });
+      xLbl.textContent = _AL.lang() === 'ar' ? 'حجم المدخلات (n)' : 'Input Size (n)';
+      axesG.appendChild(xLbl);
+      
+      // محور Y
+      axesG.appendChild(makeSVG('line', { x1: PAD_L, y1: PAD_T - 20, x2: PAD_L, y2: scaleY(0), stroke: 'var(--text-muted)', 'stroke-width': 2 }));
+      let yLbl = makeSVG('text', { x: PAD_L - 45, y: SVG_H / 2, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: 'var(--text-secondary)', 'font-size': '15', 'font-family': "'Cairo', 'Inter', sans-serif", 'font-weight': '800', transform: `rotate(-90 ${PAD_L - 45} ${SVG_H / 2})` });
+      yLbl.textContent = _AL.lang() === 'ar' ? 'وقت التشغيل' : 'Running Time';
+      axesG.appendChild(yLbl);
+
+      // علامات (Ticks) لمحور X
+      for (let i = 10; i <= MAX_N; i += 10) {
+        let x = scaleX(i);
+        axesG.appendChild(makeSVG('line', { x1: x, y1: scaleY(0), x2: x, y2: scaleY(0) + 6, stroke: 'var(--text-muted)', 'stroke-width': 2 }));
+        let tick = makeSVG('text', { x: x, y: scaleY(0) + 20, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: 'var(--text-muted)', 'font-size': '13', 'font-family': "'JetBrains Mono', monospace", 'font-weight': 'bold' });
+        tick.textContent = i;
+        axesG.appendChild(tick);
+      }
+
+      svgEl.appendChild(axesG);
+
+      // 2. بناء البيانات (Data Layer)
+      let dataG = makeSVG('g', {});
+
+      // مناطق التظليل
+      uiElements.shadeO = makeSVG('path', { d: buildShadePath(c1_g_n, t_n), fill: 'url(#diag-stripes-o)', opacity: '0' });
+      uiElements.shadeOmega = makeSVG('path', { d: buildShadePath(t_n, c2_g_n), fill: 'url(#diag-stripes-omega)', opacity: '0' });
+      dataG.appendChild(uiElements.shadeO);
+      dataG.appendChild(uiElements.shadeOmega);
+
+      // خط البداية n0
+      let n0X = scaleX(N0);
+      uiElements.n0Line = makeSVG('line', { x1: n0X, y1: PAD_T - 10, x2: n0X, y2: scaleY(0), stroke: 'var(--algo-active)', 'stroke-width': 2, 'stroke-dasharray': '6,4', opacity: '0' });
+      
+      // خلفية لنص n0 ليكون واضحاً
+      uiElements.n0Bg = makeSVG('rect', { x: n0X - 16, y: scaleY(0) + 12, width: 32, height: 24, rx: 4, fill: 'var(--algo-canvas-bg)', opacity: '0' });
+      uiElements.n0Lbl = makeSVG('text', { x: n0X, y: scaleY(0) + 24, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--algo-active)', 'font-size': '16', 'font-family': "'JetBrains Mono', monospace", 'font-weight': '800', opacity: '0' });
+      uiElements.n0Lbl.textContent = "n₀";
+      
+      // نقطة التقاطع
+      uiElements.intDot = makeSVG('circle', { cx: n0X, cy: scaleY(t_n(N0)), r: 6, fill: 'var(--algo-active)', stroke: 'var(--algo-canvas-bg)', 'stroke-width': 2, opacity: '0' });
+
+      dataG.appendChild(uiElements.n0Line);
+      dataG.appendChild(uiElements.n0Bg);
+      dataG.appendChild(uiElements.n0Lbl);
+      dataG.appendChild(uiElements.intDot);
+
+      // المنحنيات الرئيسية
+      uiElements.c1Path = makeSVG('path', { d: buildPath(c1_g_n), fill: 'none', stroke: 'var(--algo-compare)', 'stroke-width': 3, 'stroke-dasharray': '8,6', opacity: '0' });
+      uiElements.c2Path = makeSVG('path', { d: buildPath(c2_g_n), fill: 'none', stroke: 'var(--algo-swap)', 'stroke-width': 3, 'stroke-dasharray': '8,6', opacity: '0' });
+      uiElements.tnPath = makeSVG('path', { d: buildPath(t_n), fill: 'none', stroke: 'var(--brand-500)', 'stroke-width': 4, opacity: '0' });
+      
+      dataG.appendChild(uiElements.c1Path);
+      dataG.appendChild(uiElements.c2Path);
+      dataG.appendChild(uiElements.tnPath);
+
+      // نصوص المنحنيات في اليمين مع خلفيات
+      let lX = scaleX(MAX_N) + 12;
+      let fontStr = "'JetBrains Mono', monospace";
+      
+      function createCurveLabel(y, text, color) {
+        let bg = makeSVG('rect', { x: lX - 4, y: y - 12, width: 65, height: 24, rx: 4, fill: 'var(--algo-canvas-bg)', opacity: '0' });
+        let lbl = makeSVG('text', { x: lX, y: y, 'text-anchor': 'start', 'dominant-baseline': 'middle', dy: '.1em', fill: color, 'font-size': '16', 'font-family': fontStr, 'font-weight': '800', opacity: '0' });
+        lbl.textContent = text;
+        dataG.appendChild(bg);
+        dataG.appendChild(lbl);
+        return { bg, lbl };
+      }
+
+      let c1UIs = createCurveLabel(scaleY(c1_g_n(MAX_N)), "c₁g(n)", 'var(--algo-compare)');
+      let tnUIs = createCurveLabel(scaleY(t_n(MAX_N)), "T(n)", 'var(--brand-500)');
+      let c2UIs = createCurveLabel(scaleY(c2_g_n(MAX_N)), "c₂g(n)", 'var(--algo-swap)');
+
+      uiElements.c1Bg = c1UIs.bg; uiElements.c1Lbl = c1UIs.lbl;
+      uiElements.tnBg = tnUIs.bg; uiElements.tnLbl = tnUIs.lbl;
+      uiElements.c2Bg = c2UIs.bg; uiElements.c2Lbl = c2UIs.lbl;
+
+      svgEl.appendChild(dataG);
+      isInitialized = true;
+    }
+
     function render() {
+      if(!isInitialized) buildSVG();
       updateLabels();
       var s = steps[cur];
       counter.textContent = _AL.stepLabel(cur, steps.length - 1);
       expEl.innerHTML = _AL.exp(s.en, s.ar);
-  
-      var svgContent = '<svg viewBox="0 0 ' + SVG_WIDTH + ' ' + SVG_HEIGHT + '" style="background:var(--algo-canvas-bg);">';
-  
-      // Axes
-      svgContent += '<line x1="' + PADDING_LEFT + '" y1="' + scaleY(0) + '" x2="' + (SVG_WIDTH - PADDING_RIGHT) + '" y2="' + scaleY(0) + '" stroke="var(--algo-text)" stroke-width="2"/>'; // X-axis
-      svgContent += '<line x1="' + PADDING_LEFT + '" y1="' + PADDING_TOP + '" x2="' + PADDING_LEFT + '" y2="' + scaleY(0) + '" stroke="var(--algo-text)" stroke-width="2"/>'; // Y-axis
-  
-      // Axis labels
-      svgContent += '<text x="' + (SVG_WIDTH / 2) + '" y="' + (SVG_HEIGHT - 10) + '" text-anchor="middle" fill="var(--algo-text)" font-size="16">' + _AL.exp('n (Input Size)', 'n (حجم المدخلات)') + '</text>';
-      svgContent += '<text x="' + (PADDING_LEFT - 30) + '" y="' + (SVG_HEIGHT / 2) + '" text-anchor="middle" transform="rotate(-90 ' + (PADDING_LEFT - 30) + ' ' + (SVG_HEIGHT / 2) + ')" fill="var(--algo-text)" font-size="16">' + _AL.exp('Running Time', 'وقت التشغيل') + '</text>';
-  
-      // X-axis ticks and labels
-      for (var i = 0; i <= MAX_N; i += 10) {
-        var x = scaleX(i);
-        svgContent += '<line x1="' + x + '" y1="' + scaleY(0) + '" x2="' + x + '" y2="' + (scaleY(0) + 5) + '" stroke="var(--algo-muted)" stroke-width="1"/>';
-        svgContent += '<text x="' + x + '" y="' + (scaleY(0) + 20) + '" text-anchor="middle" fill="var(--algo-muted)" font-size="12">' + i + '</text>';
-      }
-      // Y-axis ticks and labels
-      for (var i = 0; i <= MAX_Y_VALUE; i += 500) {
-        var y = scaleY(i);
-        svgContent += '<line x1="' + PADDING_LEFT + '" y1="' + y + '" x2="' + (PADDING_LEFT - 5) + '" y2="' + y + '" stroke="var(--algo-muted)" stroke-width="1"/>';
-        svgContent += '<text x="' + (PADDING_LEFT - 10) + '" y="' + (y + 5) + '" text-anchor="end" fill="var(--algo-muted)" font-size="12">' + i + '</text>';
-      }
-  
-      // Plot T(n)
-      if (s.plot_tn) {
-        var path_tn = 'M';
-        for (var n = 0; n <= MAX_N; n++) {
-          path_tn += scaleX(n) + ',' + scaleY(t_n(n)) + ' ';
-        }
-        svgContent += '<path d="' + path_tn + '" fill="none" stroke="var(--brand-500)" stroke-width="3"/>';
-        svgContent += '<text x="' + scaleX(MAX_N) + '" y="' + (scaleY(t_n(MAX_N)) - 10) + '" fill="var(--brand-500)" font-weight="bold" font-size="14">T(n)</text>';
-      }
-  
-      // Plot c1*g(n)
-      if (s.plot_c1gn) {
-        var path_c1gn = 'M';
-        for (var n = 0; n <= MAX_N; n++) {
-          path_c1gn += scaleX(n) + ',' + scaleY(c1_g_n(n)) + ' ';
-        }
-        svgContent += '<path d="' + path_c1gn + '" fill="none" stroke="var(--algo-compare)" stroke-width="3"/>';
-        svgContent += '<text x="' + scaleX(MAX_N) + '" y="' + (scaleY(c1_g_n(MAX_N)) - 10) + '" fill="var(--algo-compare)" font-weight="bold" font-size="14">c1*g(n)</text>';
-      }
-  
-      // Plot c2*g(n)
-      if (s.plot_c2gn) {
-        var path_c2gn = 'M';
-        for (var n = 0; n <= MAX_N; n++) {
-          path_c2gn += scaleX(n) + ',' + scaleY(c2_g_n(n)) + ' ';
-        }
-        svgContent += '<path d="' + path_c2gn + '" fill="none" stroke="var(--algo-swap)" stroke-width="3"/>';
-        svgContent += '<text x="' + scaleX(MAX_N) + '" y="' + (scaleY(c2_g_n(MAX_N)) + 20) + '" fill="var(--algo-swap)" font-weight="bold" font-size="14">c2*g(n)</text>';
-      }
-  
-      // Show n0 line
-      if (s.show_n0) {
-        var x_n0 = scaleX(N0);
-        svgContent += '<line x1="' + x_n0 + '" y1="' + PADDING_TOP + '" x2="' + x_n0 + '" y2="' + scaleY(0) + '" stroke="var(--algo-active)" stroke-width="2" stroke-dasharray="5,5"/>';
-        svgContent += '<text x="' + x_n0 + '" y="' + (scaleY(0) + 35) + '" text-anchor="middle" fill="var(--algo-active)" font-weight="bold" font-size="14">n0</text>';
-      }
-  
-      svgContent += '</svg>';
-      canvasEl.innerHTML = svgContent;
+
+      // تحديث الشفافية بناءً على حالة الخطوة
+      uiElements.tnPath.style.opacity = s.state.tn;
+      uiElements.tnBg.style.opacity = s.state.tn;
+      uiElements.tnLbl.style.opacity = s.state.tn;
+      
+      uiElements.c1Path.style.opacity = s.state.c1;
+      uiElements.c1Bg.style.opacity = s.state.c1;
+      uiElements.c1Lbl.style.opacity = s.state.c1;
+      
+      uiElements.c2Path.style.opacity = s.state.c2;
+      uiElements.c2Bg.style.opacity = s.state.c2;
+      uiElements.c2Lbl.style.opacity = s.state.c2;
+      
+      uiElements.n0Line.style.opacity = s.state.n0;
+      uiElements.n0Bg.style.opacity = s.state.n0;
+      uiElements.n0Lbl.style.opacity = s.state.n0;
+      uiElements.intDot.style.opacity = s.state.n0;
+
+      uiElements.shadeO.style.opacity = s.state.shadeO ? '1' : '0';
+      uiElements.shadeOmega.style.opacity = s.state.shadeOmega ? '1' : '0';
+      
+      // إبراز خط n0 عند تفعيل التظليلين معاً كإشارة نهائية
+      uiElements.n0Line.setAttribute('stroke-width', (s.state.shadeO && s.state.shadeOmega) ? '4' : '2');
     }
-  
+
     function startPlay() {
       playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
       if (cur >= steps.length - 1) cur = 0;
       interval = setInterval(function(){ if(cur < steps.length-1){ cur++; render(); } else stopPlay(); }, getDelay());
     }
+    
     function stopPlay() {
       playing = false; clearInterval(interval); interval = null;
       btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
     }
-  
+
     container.querySelector('[data-algo-btn="prev"]').addEventListener('click',  function(){ stopPlay(); if(cur>0){ cur--; render(); } });
     container.querySelector('[data-algo-btn="step"]').addEventListener('click',  function(){ stopPlay(); if(cur<steps.length-1){ cur++; render(); } });
     container.querySelector('[data-algo-btn="play"]').addEventListener('click',  function(){ playing ? stopPlay() : startPlay(); });
-    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function(){ stopPlay(); generateSteps(); cur=0; render(); });
+    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function(){ stopPlay(); cur=0; render(); });
+    
     container.querySelector('.algo-speed input').addEventListener('input', function(){
       if(playing){ clearInterval(interval); interval = setInterval(function(){if(cur<steps.length-1){cur++;render();}else stopPlay();},getDelay()); }
     });
-  
+
     window._algoRerenders[1] = render;
     generateSteps();
     render();

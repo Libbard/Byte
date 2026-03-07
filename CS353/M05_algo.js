@@ -742,368 +742,377 @@ window.AlgoWidgets[2] = function(container) {
     render();
 };
 
+window._algoTitles = window._algoTitles || {};
+window._algoTitles[3] = { en: 'Quick Sort: Hoare Partitioning', ar: 'الترتيب السريع : تقسيم هور' };
+
 window.AlgoWidgets[3] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
-          _AL.titleHTML(3) +
-          _AL.toolbar(3) +
-          '<div class="algo-explanation" id="w3-exp"></div>' +
-          '<div class="algo-canvas" id="w3-canvas" style="width:100%; height:300px; display:flex; justify-content:center; align-items:flex-end; padding-bottom:20px;">' +
-            '<svg id="w3-svg" width="800" height="250" viewBox="0 0 800 250" style="background:var(--algo-canvas-bg);"></svg>' +
-          '</div>' +
-          '<div class="algo-legend" style="display:flex;justify-content:center;gap:15px;margin-top:12px;font-size:0.9em;flex-wrap:wrap;">' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-400);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-un"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-pi"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-co"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-sw"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-so"></span></span>' +
-          '</div>' +
-        '</div>';
+      _AL.titleHTML(3) +
+      _AL.toolbar(3) +
+      '<div class="algo-explanation" id="w3-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
       
-        var btnPlay  = container.querySelector('[data-algo-btn="play"]');
-        var expEl    = container.querySelector('#w3-exp');
-        var svgEl    = container.querySelector('#w3-svg');
-        var counter  = container.querySelector('[data-algo-counter]');
-        var steps = [], cur = 0, playing = false, interval = null;
+      // حاوية متجاوبة بأبعاد 16:9 
+      '<div class="algo-canvas" id="w3-canvas" style="position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: flex-end; justify-content: center; overflow:visible; padding-bottom: 30px;">' +
+        '<svg id="w3-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+      '</div>' +
       
-        var BAR_WIDTH = 60;
-        var BAR_GAP = 10;
-        var BAR_MAX_HEIGHT = 180;
-        var SVG_WIDTH = 800;
-        var SVG_HEIGHT = 250;
-        var TEXT_OFFSET_Y = 20; // For value inside bar
-        var POINTER_OFFSET_Y = 10; // For i/j pointers above/below bars
+      // دليل الألوان
+      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:20px;font-size:0.85rem;color:var(--text-secondary);">' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-400);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-un"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-pi"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-co"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-sw"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w3-so"></span></span>' +
+      '</div>' +
+    '</div>';
       
-        function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
+  var btnPlay  = container.querySelector('[data-algo-btn="play"]');
+  var expEl    = container.querySelector('#w3-exp');
+  var svgEl    = container.querySelector('#w3-svg');
+  var counter  = container.querySelector('[data-algo-counter]');
+  var steps = [], cur = 0, playing = false, interval = null;
+  var isInitialized = false;
       
-        function updateLabels() {
-          container.querySelector('[data-algo-text="w3-un"]').textContent = _AL.lang()==='ar' ? 'غير مرتب'  : 'Unsorted';
-          container.querySelector('[data-algo-text="w3-pi"]').textContent = _AL.lang()==='ar' ? 'المحور'    : 'Pivot';
-          container.querySelector('[data-algo-text="w3-co"]').textContent = _AL.lang()==='ar' ? 'مقارنة'    : 'Comparing';
-          container.querySelector('[data-algo-text="w3-sw"]').textContent = _AL.lang()==='ar' ? 'تبديل'     : 'Swapping';
-          container.querySelector('[data-algo-text="w3-so"]').textContent = _AL.lang()==='ar' ? 'مرتب'      : 'Sorted';
-        }
+  const NUM_ELEMENTS = 8;
+  const BAR_WIDTH = 60;
+  const BAR_GAP = 20;
+  const MAX_VAL = 100;
+  const SVG_W = 800;
+  const SVG_H = 450;
+  const MAX_BAR_H = 280;
+  
+  // إجمالي العرض للمصفوفة
+  const TOTAL_W = (NUM_ELEMENTS * BAR_WIDTH) + ((NUM_ELEMENTS - 1) * BAR_GAP);
+  const START_X = (SVG_W - TOTAL_W) / 2;
+  const BASE_Y = SVG_H - 60; // مكان ارتكاز الأعمدة من الأسفل
+
+  var uiBars = [];
+  var uiPointers = { i: { g: null, poly: null, txt: null }, j: { g: null, poly: null, txt: null } };
       
-        function generateSteps() {
-          var arr = [];
-          var numElements = 8; // Fixed number of elements for consistent visualization
-          for(var i=0; i<numElements; i++) arr.push(Math.floor(Math.random()*80)+20); // Values 20-99
+  function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
       
-          steps = [];
-          var sortedRegions = []; // Stores [start, end] ranges that are sorted
+  function updateLabels() {
+    container.querySelector('[data-algo-text="w3-un"]').textContent = _AL.exp('Unsorted', 'غير مرتب');
+    container.querySelector('[data-algo-text="w3-pi"]').textContent = _AL.exp('Pivot', 'المحور (Pivot)');
+    container.querySelector('[data-algo-text="w3-co"]').textContent = _AL.exp('Comparing', 'مقارنة');
+    container.querySelector('[data-algo-text="w3-sw"]').textContent = _AL.exp('Swapping', 'تبديل');
+    container.querySelector('[data-algo-text="w3-so"]').textContent = _AL.exp('Sorted Range', 'نطاق مرتب');
+  }
       
-          // Helper for Hoare Partitioning
-          function partition(arr, low, high, steps, sortedRegions) {
-              let pivotIdx = low; // The element at this index is the pivot for this partition
-              let pivotValue = arr[pivotIdx]; // The value we compare against
-              let activeRange = [low, high];
+  function generateSteps() {
+    var arr = [];
+    for(var i=0; i<NUM_ELEMENTS; i++) {
+      arr.push(Math.floor(Math.random() * 80) + 20); // Values 20-99
+    }
       
-              steps.push({
-                  array: arr.slice(),
-                  pivotIdx: pivotIdx,
-                  activeRange: activeRange,
-                  i: low - 1,
-                  j: high + 1,
-                  comparingI: false,
-                  comparingJ: false,
-                  swapping: false,
-                  sortedRegions: sortedRegions.slice(),
-                  explanation: { en: `Partitioning sub-array [${low}...${high}]. Pivot element: ${arr[pivotIdx]} (at index ${pivotIdx}).`, ar: `تقسيم المصفوفة الفرعية [${low}...${high}]. عنصر المحور: ${arr[pivotIdx]} (في الفهرس ${pivotIdx}).` }
-              });
+    steps = [];
+    var sortedRegions = [];
       
-              let i = low - 1;
-              let j = high + 1;
+    function partition(arr, low, high, steps, sortedRegions) {
+      let pivotIdx = low; 
+      let pivotValue = arr[pivotIdx];
+      let activeRange = [low, high];
       
-              while (true) {
-                  do {
-                      i++;
-                      steps.push({
-                          array: arr.slice(),
-                          pivotIdx: pivotIdx,
-                          activeRange: activeRange,
-                          i: i,
-                          j: j,
-                          comparingI: true,
-                          comparingJ: false,
-                          swapping: false,
-                          sortedRegions: sortedRegions.slice(),
-                          explanation: { en: `Increment 'i' to find A[i] >= pivot (${pivotValue}). Current A[${i}]=${arr[i]}.`, ar: `زيادة 'i' لإيجاد A[i] >= المحور (${pivotValue}). A[${i}]=${arr[i]} الحالي.` }
-                      });
-                  } while (arr[i] < pivotValue);
+      steps.push({
+        array: arr.slice(), pivotIdx: pivotIdx, activeRange: activeRange,
+        i: low - 1, j: high + 1, comparingI: false, comparingJ: false, swapping: false,
+        sortedRegions: sortedRegions.slice(),
+        en: `Partitioning sub-array [${low}...${high}]. Pivot is <strong>${pivotValue}</strong> (at index ${pivotIdx}).`, 
+        ar: `تقسيم المصفوفة الفرعية [${low}...${high}]. المحور هو <strong>${pivotValue}</strong> (في الفهرس ${pivotIdx}).`
+      });
       
-                  do {
-                      j--;
-                      steps.push({
-                          array: arr.slice(),
-                          pivotIdx: pivotIdx,
-                          activeRange: activeRange,
-                          i: i,
-                          j: j,
-                          comparingI: false,
-                          comparingJ: true,
-                          swapping: false,
-                          sortedRegions: sortedRegions.slice(),
-                          explanation: { en: `Decrement 'j' to find A[j] <= pivot (${pivotValue}). Current A[${j}]=${arr[j]}.`, ar: `إنقاص 'j' لإيجاد A[j] <= المحور (${pivotValue}). A[${j}]=${arr[j]} الحالي.` }
-                      });
-                  } while (arr[j] > pivotValue);
+      let i = low - 1;
+      let j = high + 1;
       
-                  if (i < j) {
-                      [arr[i], arr[j]] = [arr[j], arr[i]];
-                      steps.push({
-                          array: arr.slice(),
-                          pivotIdx: pivotIdx,
-                          activeRange: activeRange,
-                          i: i,
-                          j: j,
-                          comparingI: false,
-                          comparingJ: false,
-                          swapping: true,
-                          sortedRegions: sortedRegions.slice(),
-                          explanation: { en: `Swap A[${i}]=${arr[j]} and A[${j}]=${arr[i]} as they are on wrong sides of pivot.`, ar: `تبديل A[${i}]=${arr[j]} و A[${j}]=${arr[i]} لأنهما في الجانب الخطأ من المحور.` }
-                      });
-                  } else {
-                      steps.push({
-                          array: arr.slice(),
-                          pivotIdx: pivotIdx,
-                          activeRange: activeRange,
-                          i: i,
-                          j: j,
-                          comparingI: false,
-                          comparingJ: false,
-                          swapping: false,
-                          sortedRegions: sortedRegions.slice(),
-                          explanation: { en: `'i' (${i}) has crossed 'j' (${j}). Partition complete. Split point is ${j}.`, ar: `تجاوز 'i' (${i}) 'j' (${j}). اكتمل التقسيم. نقطة التقسيم هي ${j}.` }
-                      });
-                      return j; // Return the partition point
-                  }
-              }
-          }
-      
-          // Iterative Quick Sort using a stack to simulate recursion
-          function quickSortIterative(arr, steps, sortedRegions) {
-              let callStack = [{ low: 0, high: arr.length - 1 }];
-      
-              steps.push({
-                  array: arr.slice(),
-                  pivotIdx: -1,
-                  activeRange: [0, arr.length - 1],
-                  i: -1,
-                  j: -1,
-                  comparingI: false,
-                  comparingJ: false,
-                  swapping: false,
-                  sortedRegions: sortedRegions.slice(),
-                  explanation: { en: 'Initial array state. Starting Quick Sort.', ar: 'الحالة الأولية للمصفوفة. بدء الترتيب السريع.' }
-              });
-      
-              while (callStack.length > 0) {
-                  let { low, high } = callStack.pop();
-      
-                  if (low >= high) {
-                      // This sub-array is sorted (0 or 1 element)
-                      let isCovered = false;
-                      for (let region of sortedRegions) {
-                          if (low >= region[0] && high <= region[1]) {
-                              isCovered = true;
-                              break;
-                          }
-                      }
-                      if (!isCovered) {
-                          sortedRegions.push([low, high]);
-                          sortedRegions.sort((a, b) => a[0] - b[0]);
-                          for (let k = 0; k < sortedRegions.length - 1; k++) {
-                              if (sortedRegions[k][1] + 1 >= sortedRegions[k+1][0]) {
-                                  sortedRegions[k][1] = Math.max(sortedRegions[k][1], sortedRegions[k+1][1]);
-                                  sortedRegions.splice(k+1, 1);
-                                  k--;
-                              }
-                          }
-                      }
-      
-                      steps.push({
-                          array: arr.slice(),
-                          pivotIdx: -1,
-                          activeRange: [low, high],
-                          i: -1,
-                          j: -1,
-                          comparingI: false,
-                          comparingJ: false,
-                          swapping: false,
-                          sortedRegions: sortedRegions.slice(),
-                          explanation: { en: `Sub-array [${low}...${high}] is sorted.`, ar: `المصفوفة الفرعية [${low}...${high}] مرتبة.` }
-                      });
-                      continue;
-                  }
-      
-                  let p = partition(arr, low, high, steps, sortedRegions);
-      
-                  // Push right child first, then left child, so left is processed next (LIFO)
-                  callStack.push({ low: p + 1, high: high });
-                  callStack.push({ low: low, high: p });
-              }
-      
-              // Ensure the final state shows the entire array as sorted
-              if (sortedRegions.length === 0 || sortedRegions[0][0] !== 0 || sortedRegions[0][1] !== arr.length - 1) {
-                  sortedRegions = [[0, arr.length - 1]];
-              }
-      
-              steps.push({
-                  array: arr.slice(),
-                  pivotIdx: -1,
-                  activeRange: [0, arr.length - 1],
-                  i: -1,
-                  j: -1,
-                  comparingI: false,
-                  comparingJ: false,
-                  swapping: false,
-                  sortedRegions: sortedRegions.slice(),
-                  explanation: { en: 'Quick Sort complete! Array is fully sorted.', ar: 'اكتمل الترتيب السريع! المصفوفة مرتبة بالكامل.' }
-              });
-          }
-      
-          quickSortIterative(arr, steps, sortedRegions);
-        }
-      
-        function render() {
-          updateLabels();
-          var s = steps[cur];
-          counter.textContent = _AL.stepLabel(cur, steps.length - 1);
-          expEl.innerHTML = _AL.exp(s.en, s.ar);
-      
-          svgEl.innerHTML = ''; // Clear previous drawing
-      
-          var maxVal = Math.max(...s.array);
-          if (maxVal === 0) maxVal = 1; // Avoid division by zero
-      
-          var startX = (SVG_WIDTH - (s.array.length * (BAR_WIDTH + BAR_GAP))) / 2;
-      
-          s.array.forEach(function(val, idx) {
-            var barHeight = (val / maxVal) * BAR_MAX_HEIGHT;
-            var x = startX + idx * (BAR_WIDTH + BAR_GAP);
-            var y = SVG_HEIGHT - barHeight;
-      
-            var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', x);
-            rect.setAttribute('y', y);
-            rect.setAttribute('width', BAR_WIDTH);
-            rect.setAttribute('height', barHeight);
-            rect.setAttribute('rx', 3);
-            rect.setAttribute('ry', 3);
-            rect.style.fill = 'var(--brand-400)';
-            rect.style.stroke = 'var(--algo-border)';
-            rect.style.strokeWidth = '1';
-            rect.style.transition = 'all 0.3s ease-in-out';
-      
-            // Dim elements outside active partition
-            if (s.activeRange && (idx < s.activeRange[0] || idx > s.activeRange[1])) {
-                rect.style.opacity = '0.5';
-            }
-      
-            // Highlight sorted regions
-            for (let region of s.sortedRegions) {
-                if (idx >= region[0] && idx <= region[1]) {
-                    rect.style.fill = 'var(--algo-sorted)';
-                    rect.style.opacity = '1'; // Ensure sorted regions are fully visible
-                    break;
-                }
-            }
-      
-            // Highlight pivot
-            if (s.pivotIdx === idx && s.activeRange && idx >= s.activeRange[0] && idx <= s.activeRange[1]) {
-                rect.style.fill = 'var(--algo-active)';
-            }
-      
-            // Highlight comparing elements
-            if ((s.comparingI && s.i === idx) || (s.comparingJ && s.j === idx)) {
-                rect.style.fill = 'var(--algo-compare)';
-            }
-      
-            // Highlight swapping elements
-            if (s.swapping && (s.i === idx || s.j === idx)) {
-                rect.style.fill = 'var(--algo-swap)';
-            }
-      
-            svgEl.appendChild(rect);
-      
-            var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', x + BAR_WIDTH / 2);
-            text.setAttribute('y', y + TEXT_OFFSET_Y);
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('fill', 'var(--algo-text)');
-            text.setAttribute('font-size', '14');
-            text.textContent = val;
-            svgEl.appendChild(text);
-      
-            // Index labels
-            var indexText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            indexText.setAttribute('x', x + BAR_WIDTH / 2);
-            indexText.setAttribute('y', SVG_HEIGHT + 15); // Below the bars
-            indexText.setAttribute('text-anchor', 'middle');
-            indexText.setAttribute('fill', 'var(--algo-muted)');
-            indexText.setAttribute('font-size', '12');
-            indexText.textContent = idx;
-            svgEl.appendChild(indexText);
+      while (true) {
+        do {
+          i++;
+          steps.push({
+            array: arr.slice(), pivotIdx: pivotIdx, activeRange: activeRange,
+            i: i, j: j, comparingI: true, comparingJ: false, swapping: false,
+            sortedRegions: sortedRegions.slice(),
+            en: `Move <strong>i</strong> right while A[i] < pivot (${pivotValue}). Checking A[${i}]=${arr[i]}.`, 
+            ar: `تحريك المؤشر <strong>i</strong> لليمين طالما A[i] < المحور (${pivotValue}). نفحص A[${i}]=${arr[i]}.`
           });
+        } while (arr[i] < pivotValue);
       
-          // Draw i and j pointers
-          var pointerY_i = SVG_HEIGHT - BAR_MAX_HEIGHT - POINTER_OFFSET_Y; // Above bars
-          var pointerY_j = SVG_HEIGHT + POINTER_OFFSET_Y + 15; // Below index labels
+        do {
+          j--;
+          steps.push({
+            array: arr.slice(), pivotIdx: pivotIdx, activeRange: activeRange,
+            i: i, j: j, comparingI: false, comparingJ: true, swapping: false,
+            sortedRegions: sortedRegions.slice(),
+            en: `Move <strong>j</strong> left while A[j] > pivot (${pivotValue}). Checking A[${j}]=${arr[j]}.`, 
+            ar: `تحريك المؤشر <strong>j</strong> لليسار طالما A[j] > المحور (${pivotValue}). نفحص A[${j}]=${arr[j]}.`
+          });
+        } while (arr[j] > pivotValue);
       
-          if (s.i !== -1 && s.i < s.array.length) {
-              var i_x = startX + s.i * (BAR_WIDTH + BAR_GAP) + BAR_WIDTH / 2;
-              var i_pointer = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-              i_pointer.setAttribute('points', `${i_x},${pointerY_i} ${i_x - 5},${pointerY_i - 10} ${i_x + 5},${pointerY_i - 10}`);
-              i_pointer.setAttribute('fill', 'var(--algo-active)');
-              svgEl.appendChild(i_pointer);
+        if (i < j) {
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          steps.push({
+            array: arr.slice(), pivotIdx: pivotIdx, activeRange: activeRange,
+            i: i, j: j, comparingI: false, comparingJ: false, swapping: true,
+            sortedRegions: sortedRegions.slice(),
+            en: `Swap A[${i}] and A[${j}] as they are on the wrong sides of the pivot.`, 
+            ar: `تبديل A[${i}] و A[${j}] لأنهما في الجانب الخاطئ من المحور.`
+          });
+        } else {
+          steps.push({
+            array: arr.slice(), pivotIdx: pivotIdx, activeRange: activeRange,
+            i: i, j: j, comparingI: false, comparingJ: false, swapping: false,
+            sortedRegions: sortedRegions.slice(),
+            en: `<strong>i</strong> (${i}) has crossed <strong>j</strong> (${j}). Partitioning complete. Split point is ${j}.`, 
+            ar: `المؤشر <strong>i</strong> (${i}) تجاوز <strong>j</strong> (${j}). اكتمل التقسيم. نقطة التقسيم هي ${j}.`
+          });
+          return j;
+        }
+      }
+    }
       
-              var i_label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-              i_label.setAttribute('x', i_x);
-              i_label.setAttribute('y', pointerY_i - 15);
-              i_label.setAttribute('text-anchor', 'middle');
-              i_label.setAttribute('fill', 'var(--algo-active)');
-              i_label.setAttribute('font-weight', 'bold');
-              i_label.textContent = 'i';
-              svgEl.appendChild(i_label);
+    function quickSortIterative(arr, steps, sortedRegions) {
+      let callStack = [{ low: 0, high: arr.length - 1 }];
+      
+      steps.push({
+        array: arr.slice(), pivotIdx: -1, activeRange: [0, arr.length - 1],
+        i: -1, j: -1, comparingI: false, comparingJ: false, swapping: false,
+        sortedRegions: sortedRegions.slice(),
+        en: 'Initial array state. Starting Quick Sort.', 
+        ar: 'الحالة الأولية للمصفوفة. بدء الترتيب السريع.'
+      });
+      
+      while (callStack.length > 0) {
+        let { low, high } = callStack.pop();
+      
+        if (low >= high) {
+          let isCovered = false;
+          for (let region of sortedRegions) {
+            if (low >= region[0] && high <= region[1]) { isCovered = true; break; }
+          }
+          if (!isCovered) {
+            sortedRegions.push([low, high]);
+            sortedRegions.sort((a, b) => a[0] - b[0]);
+            for (let k = 0; k < sortedRegions.length - 1; k++) {
+              if (sortedRegions[k][1] + 1 >= sortedRegions[k+1][0]) {
+                sortedRegions[k][1] = Math.max(sortedRegions[k][1], sortedRegions[k+1][1]);
+                sortedRegions.splice(k+1, 1);
+                k--;
+              }
+            }
           }
       
-          if (s.j !== -1 && s.j >= 0) {
-              var j_x = startX + s.j * (BAR_WIDTH + BAR_GAP) + BAR_WIDTH / 2;
-              var j_pointer = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-              j_pointer.setAttribute('points', `${j_x},${pointerY_j} ${j_x - 5},${pointerY_j + 10} ${j_x + 5},${pointerY_j + 10}`);
-              j_pointer.setAttribute('fill', 'var(--algo-active)');
-              svgEl.appendChild(j_pointer);
-      
-              var j_label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-              j_label.setAttribute('x', j_x);
-              j_label.setAttribute('y', pointerY_j + 25);
-              j_label.setAttribute('text-anchor', 'middle');
-              j_label.setAttribute('fill', 'var(--algo-active)');
-              j_label.setAttribute('font-weight', 'bold');
-              j_label.textContent = 'j';
-              svgEl.appendChild(j_label);
-          }
+          steps.push({
+            array: arr.slice(), pivotIdx: -1, activeRange: [low, high],
+            i: -1, j: -1, comparingI: false, comparingJ: false, swapping: false,
+            sortedRegions: sortedRegions.slice(),
+            en: `Sub-array [${low}...${high}] is sorted.`, 
+            ar: `المصفوفة الفرعية [${low}...${high}] مرتبة.`
+          });
+          continue;
         }
       
-        function startPlay() {
-          playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
-          if (cur >= steps.length - 1) cur = 0;
-          interval = setInterval(function(){ if(cur < steps.length-1){ cur++; render(); } else stopPlay(); }, getDelay());
-        }
-        function stopPlay() {
-          playing = false; clearInterval(interval); interval = null;
-          btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
-        }
+        let p = partition(arr, low, high, steps, sortedRegions);
+        callStack.push({ low: p + 1, high: high });
+        callStack.push({ low: low, high: p });
+      }
       
-        container.querySelector('[data-algo-btn="prev"]').addEventListener('click',  function(){ stopPlay(); if(cur>0){ cur--; render(); } });
-        container.querySelector('[data-algo-btn="step"]').addEventListener('click',  function(){ stopPlay(); if(cur<steps.length-1){ cur++; render(); } });
-        container.querySelector('[data-algo-btn="play"]').addEventListener('click',  function(){ playing ? stopPlay() : startPlay(); });
-        container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function(){ stopPlay(); generateSteps(); cur=0; render(); });
-        container.querySelector('.algo-speed input').addEventListener('input', function(){
-          if(playing){ clearInterval(interval); interval = setInterval(function(){ if(cur<steps.length-1){cur++;render();}else stopPlay(); }, getDelay()); }
-        });
+      if (sortedRegions.length === 0 || sortedRegions[0][0] !== 0 || sortedRegions[0][1] !== arr.length - 1) {
+        sortedRegions = [[0, arr.length - 1]];
+      }
       
-        window._algoRerenders[3] = render;
-        generateSteps();
-        render();
+      steps.push({
+        array: arr.slice(), pivotIdx: -1, activeRange: [0, arr.length - 1],
+        i: -1, j: -1, comparingI: false, comparingJ: false, swapping: false,
+        sortedRegions: sortedRegions.slice(),
+        en: '<strong>Quick Sort complete!</strong> Array is fully sorted.', 
+        ar: '<strong>اكتمل الترتيب السريع!</strong> المصفوفة مرتبة بالكامل.'
+      });
+    }
+      
+    quickSortIterative(arr, steps, sortedRegions);
+  }
+
+  function makeSVG(tag, attrs) {
+    let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (let k in attrs) el.setAttribute(k, attrs[k]);
+    el.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    return el;
+  }
+
+  function buildSVG() {
+    svgEl.innerHTML = '';
+    uiBars = [];
+
+    // بناء الأعمدة (Bars)
+    for(let i=0; i<NUM_ELEMENTS; i++) {
+      let x = START_X + i * (BAR_WIDTH + BAR_GAP);
+      let g = makeSVG('g', {});
+      
+      // المستطيل (العمود)
+      let rect = makeSVG('rect', { x: x, y: BASE_Y, width: BAR_WIDTH, height: 0, rx: 6, ry: 6 });
+      
+      // خلفية النص لتوضيح القيمة
+      let txtBg = makeSVG('rect', { x: x + 5, width: BAR_WIDTH - 10, height: 26, rx: 4, fill: 'rgba(0,0,0,0.2)' });
+      
+      // نص القيمة داخل العمود
+      let valTxt = makeSVG('text', { x: x + BAR_WIDTH/2, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: '#ffffff', 'font-family': "'JetBrains Mono', monospace", 'font-size': '16px', 'font-weight': '800' });
+      
+      // الفهرس (Index) أسفل العمود
+      let idxTxt = makeSVG('text', { x: x + BAR_WIDTH/2, y: BASE_Y + 25, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-muted)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '14px', 'font-weight': 'bold' });
+      idxTxt.textContent = i;
+
+      g.appendChild(rect);
+      g.appendChild(txtBg);
+      g.appendChild(valTxt);
+      g.appendChild(idxTxt);
+      svgEl.appendChild(g);
+
+      uiBars.push({ g, rect, txtBg, valTxt, x });
+    }
+
+    // بناء المؤشرات (Pointers i and j)
+    function createPointer(color, labelStr, isTop) {
+      let g = makeSVG('g', { opacity: 0 });
+      let poly = makeSVG('polygon', { fill: color });
+      let txt = makeSVG('text', { 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: color, 'font-family': "'JetBrains Mono', monospace", 'font-size': '18px', 'font-weight': 'bold' });
+      txt.textContent = labelStr;
+      g.appendChild(poly);
+      g.appendChild(txt);
+      svgEl.appendChild(g);
+      return { g, poly, txt, isTop };
+    }
+
+    uiPointers.i = createPointer('var(--algo-active)', 'i', true);
+    uiPointers.j = createPointer('var(--algo-active)', 'j', false);
+
+    isInitialized = true;
+  }
+      
+  function render() {
+    if(!isInitialized) buildSVG();
+    updateLabels();
+    var s = steps[cur];
+    counter.textContent = _AL.stepLabel(cur, steps.length - 1);
+    expEl.innerHTML = _AL.exp(s.en, s.ar);
+      
+    var maxVal = Math.max(...s.array, 1); 
+      
+    // 1. تحديث الأعمدة
+    s.array.forEach(function(val, idx) {
+      var ui = uiBars[idx];
+      var barHeight = (val / maxVal) * MAX_BAR_H;
+      var currentY = BASE_Y - barHeight;
+      
+      ui.rect.setAttribute('y', currentY);
+      ui.rect.setAttribute('height', barHeight);
+      
+      ui.txtBg.setAttribute('y', currentY + 10);
+      ui.valTxt.setAttribute('y', currentY + 23);
+      ui.valTxt.textContent = val;
+
+      // الألوان والحالات
+      let fill = 'var(--brand-400)';
+      let isSorted = false;
+      
+      for (let region of s.sortedRegions) {
+        if (idx >= region[0] && idx <= region[1]) { isSorted = true; break; }
+      }
+
+      if (isSorted) {
+        fill = 'var(--algo-sorted)';
+      } else if (s.swapping && (s.i === idx || s.j === idx)) {
+        fill = 'var(--algo-swap)';
+      } else if ((s.comparingI && s.i === idx) || (s.comparingJ && s.j === idx)) {
+        fill = 'var(--algo-compare)';
+      } else if (s.pivotIdx === idx && s.activeRange && idx >= s.activeRange[0] && idx <= s.activeRange[1]) {
+        fill = 'var(--algo-active)';
+      }
+
+      ui.rect.setAttribute('fill', fill);
+      
+      // التعتيم خارج نطاق التقسيم
+      if (s.activeRange && (idx < s.activeRange[0] || idx > s.activeRange[1])) {
+        ui.g.style.opacity = '0.3';
+      } else {
+        ui.g.style.opacity = '1';
+      }
+    });
+
+    // 2. تحديث المؤشرات i و j
+    function updatePointer(ptrUi, targetIdx, isComparing, isSwapping) {
+      if (targetIdx >= 0 && targetIdx < NUM_ELEMENTS) {
+        let targetX = uiBars[targetIdx].x + BAR_WIDTH/2;
+        let targetY;
+        
+        ptrUi.g.style.opacity = '1';
+        let color = 'var(--algo-active)';
+        if (isSwapping) color = 'var(--algo-swap)';
+        else if (isComparing) color = 'var(--algo-compare)';
+
+        ptrUi.poly.setAttribute('fill', color);
+        ptrUi.txt.setAttribute('fill', color);
+
+        if (ptrUi.isTop) {
+          // السهم العلوي (i)
+          targetY = BASE_Y - MAX_BAR_H - 30; // ثابت فوق أعلى عمود محتمل
+          ptrUi.poly.setAttribute('points', `${targetX},${targetY+10} ${targetX-8},${targetY-4} ${targetX+8},${targetY-4}`);
+          ptrUi.txt.setAttribute('x', targetX);
+          ptrUi.txt.setAttribute('y', targetY - 18);
+        } else {
+          // السهم السفلي (j)
+          targetY = BASE_Y + 50; 
+          ptrUi.poly.setAttribute('points', `${targetX},${targetY-10} ${targetX-8},${targetY+4} ${targetX+8},${targetY+4}`);
+          ptrUi.txt.setAttribute('x', targetX);
+          ptrUi.txt.setAttribute('y', targetY + 18);
+        }
+        
+        // تأثير تكبير إذا كان يقارن
+        ptrUi.g.style.transform = isComparing ? 'scale(1.2)' : 'scale(1)';
+        ptrUi.g.style.transformOrigin = `${targetX}px ${targetY}px`;
+      } else {
+        ptrUi.g.style.opacity = '0';
+      }
+    }
+
+    // إظهار المؤشرات فقط إذا لم نكن في الحالة النهائية المكتملة
+    let isDone = (s.sortedRegions.length === 1 && s.sortedRegions[0][0] === 0 && s.sortedRegions[0][1] === NUM_ELEMENTS - 1);
+    
+    if (isDone) {
+      uiPointers.i.g.style.opacity = '0';
+      uiPointers.j.g.style.opacity = '0';
+    } else {
+      updatePointer(uiPointers.i, s.i, s.comparingI, s.swapping && s.i !== -1);
+      updatePointer(uiPointers.j, s.j, s.comparingJ, s.swapping && s.j !== -1);
+    }
+  }
+      
+  function startPlay() {
+    playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
+    if (cur >= steps.length - 1) cur = 0;
+    interval = setInterval(function(){ if(cur < steps.length-1){ cur++; render(); } else stopPlay(); }, getDelay());
+  }
+  function stopPlay() {
+    playing = false; clearInterval(interval); interval = null;
+    btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
+  }
+      
+  container.querySelector('[data-algo-btn="prev"]').addEventListener('click',  function(){ stopPlay(); if(cur>0){ cur--; render(); } });
+  container.querySelector('[data-algo-btn="step"]').addEventListener('click',  function(){ stopPlay(); if(cur<steps.length-1){ cur++; render(); } });
+  container.querySelector('[data-algo-btn="play"]').addEventListener('click',  function(){ playing ? stopPlay() : startPlay(); });
+  container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function(){ 
+    stopPlay(); 
+    isInitialized = false; 
+    generateSteps(); 
+    cur = 0; 
+    render(); 
+  });
+  
+  container.querySelector('.algo-speed input').addEventListener('input', function(){
+    if(playing){ clearInterval(interval); interval = setInterval(function(){if(cur<steps.length-1){cur++;render();}else stopPlay();},getDelay()); }
+  });
+      
+  window._algoRerenders[3] = render;
+  generateSteps();
+  render();
 };
 
 window.AlgoWidgets[4] = function(container) {
@@ -1362,326 +1371,432 @@ window.AlgoWidgets[4] = function(container) {
         render();
 };
 
+window._algoTitles = window._algoTitles || {};
+window._algoTitles[5] = { en: 'Closest Pair (Divide & Conquer)', ar: 'أقرب زوج (التقسيم والسيطرة)' };
+
 window.AlgoWidgets[5] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
-          _AL.titleHTML(5) +
-          _AL.toolbar(5) +
-          '<div class="algo-explanation" id="w5-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 10px;"></div>' +
-          '<div class="algo-canvas" style="height:400px; width:100%; border: 1px solid var(--algo-border); border-radius: var(--radius-md); overflow: hidden;">' +
-            '<svg id="w5-svg" width="100%" height="100%" viewBox="0 0 800 400" style="background:var(--algo-canvas-bg);">' +
-              '<g id="w5-lines"></g>' +
-              '<rect id="w5-strip-rect" fill="var(--algo-compare)" opacity="0.1" style="display:none; transition: all 0.3s ease;"></rect>' +
-              '<line id="w5-divline" stroke="var(--algo-active)" stroke-dasharray="5,5" stroke-width="2" style="display:none; transition: all 0.3s ease;"></line>' +
-              '<g id="w5-points-group"></g>' +
-            '</svg>' +
-          '</div>' +
-          '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:12px;font-size:0.85rem;color:var(--text-secondary);">' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w5-points"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w5-divline"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);opacity:0.4;border-radius:3px;margin-right:4px;"></span><span data-algo-text="w5-strip"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;border:2px dashed var(--algo-compare);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w5-comp"></span></span>' +
-            '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w5-minpair"></span></span>' +
-          '</div>' +
-        '</div>';
+      _AL.titleHTML(5) +
+      _AL.toolbar(5) +
+      '<div class="algo-explanation" id="w5-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
       
-        var btnPlay   = container.querySelector('[data-algo-btn="play"]');
-        var expEl     = container.querySelector('#w5-exp');
-        var counter   = container.querySelector('[data-algo-counter]');
-        var svgEl     = container.querySelector('#w5-svg');
-        var linesGroup = container.querySelector('#w5-lines');
-        var pointsGroup = container.querySelector('#w5-points-group');
-        var divLineEl = container.querySelector('#w5-divline');
-        var stripRectEl = container.querySelector('#w5-strip-rect');
+      // حاوية מתجاوبة بأبعاد 16:9
+      '<div class="algo-canvas" id="w5-canvas" style="position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
+        '<svg id="w5-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+      '</div>' +
       
-        var steps = [], cur = 0, playing = false, interval = null;
-        var SVG_WIDTH = 800, SVG_HEIGHT = 400;
-      
-        function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
-      
-        function updateLabels() {
-          container.querySelector('[data-algo-text="w5-points"]').textContent  = _AL.exp('Points', 'النقاط');
-          container.querySelector('[data-algo-text="w5-divline"]').textContent = _AL.exp('Dividing Line', 'خط التقسيم');
-          container.querySelector('[data-algo-text="w5-strip"]').textContent   = _AL.exp('2d Strip', 'شريط 2d');
-          container.querySelector('[data-algo-text="w5-comp"]').textContent    = _AL.exp('Comparison', 'مقارنة / مسافة');
-          container.querySelector('[data-algo-text="w5-minpair"]').textContent = _AL.exp('Closest Pair', 'أقرب زوج');
-        }
-      
-        function dist(p1, p2) {
-          return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-        }
-      
-        function generateSteps() {
-          steps = [];
-          var points = [];
-          var numPoints = 15;
-          var minCoord = 50, maxCoordX = SVG_WIDTH - 50, maxCoordY = SVG_HEIGHT - 50;
-          var minDistanceBetweenGeneratedPoints = 30; 
-      
-          for (var i = 0; i < numPoints; i++) {
-            var newP;
-            var valid = false;
-            while (!valid) {
-              newP = {
-                id: i,
-                x: Math.floor(Math.random() * (maxCoordX - minCoord)) + minCoord,
-                y: Math.floor(Math.random() * (maxCoordY - minCoord)) + minCoord
-              };
-              valid = true;
-              for (var j = 0; j < points.length; j++) {
-                if (dist(newP, points[j]) < minDistanceBetweenGeneratedPoints) {
-                  valid = false;
-                  break;
-                }
-              }
-            }
-            points.push(newP);
-          }
-      
-          steps.push({
-            points: points.slice(), divLineX: null, stripRect: null, comparing: null, minPair: null, highlightPoints: [],
-            en: 'Initial set of ' + numPoints + ' points in 2D space.',
-            ar: 'المجموعة الأولية المكونة من ' + numPoints + ' نقطة في الفضاء ثنائي الأبعاد.'
-          });
-      
-          var sortedPx = points.slice().sort((a, b) => a.x - b.x);
-          steps.push({
-            points: sortedPx.slice(), divLineX: null, stripRect: null, comparing: null, minPair: null, highlightPoints: [],
-            en: 'Points sorted by X-coordinate.',
-            ar: 'تم ترتيب النقاط من اليسار إلى اليمين بناءً على الإحداثي السيني (X).'
-          });
-      
-          var midIndex = Math.floor(sortedPx.length / 2);
-          var midX = (sortedPx[midIndex - 1].x + sortedPx[midIndex].x) / 2;
-          
-          steps.push({
-            points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: null, highlightPoints: [],
-            en: 'Divide points into left and right halves by a vertical line.',
-            ar: 'قسّم: تقسيم النقاط إلى نصفين متساويين (أيسر وأيمن) بخط عمودي وهمي.'
-          });
-      
-          var leftHalf = sortedPx.slice(0, midIndex);
-          var rightHalf = sortedPx.slice(midIndex);
+      // دليل الألوان
+      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.85rem;color:var(--text-secondary);">' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w5-points"></span></span>' +
+        '<span><span style="display:inline-block;width:16px;height:2px;border-bottom:2px dashed var(--algo-active);margin-right:4px;vertical-align:middle;"></span><span data-algo-text="w5-divline"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);opacity:0.4;border-radius:3px;margin-right:4px;"></span><span data-algo-text="w5-strip"></span></span>' +
+        '<span><span style="display:inline-block;width:16px;height:2px;border-bottom:3px dashed var(--algo-compare);margin-right:4px;vertical-align:middle;"></span><span data-algo-text="w5-comp"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w5-minpair"></span></span>' +
+      '</div>' +
+    '</div>';
 
-          var minL = Infinity, pairL = null;
-          for (var i = 0; i < leftHalf.length; i++) {
-            for (var j = i + 1; j < leftHalf.length; j++) {
-              var dL = dist(leftHalf[i], leftHalf[j]);
-              if (dL < minL) { minL = dL; pairL = [leftHalf[i].id, leftHalf[j].id]; }
-            }
-          }
+    var btnPlay = container.querySelector('[data-algo-btn="play"]');
+    var expEl   = container.querySelector('#w5-exp');
+    var svgEl   = container.querySelector('#w5-svg');
+    var counter = container.querySelector('[data-algo-counter]');
 
-          var minR = Infinity, pairR = null;
-          for (var i = 0; i < rightHalf.length; i++) {
-            for (var j = i + 1; j < rightHalf.length; j++) {
-              var dR = dist(rightHalf[i], rightHalf[j]);
-              if (dR < minR) { minR = dR; pairR = [rightHalf[i].id, rightHalf[j].id]; }
-            }
-          }
-      
-          // الخطوة الجديدة 1: استعراض النصف الأيسر فقط
-          steps.push({
-            points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: pairL, minPair: null, highlightPoints: leftHalf.map(p=>p.id),
-            en: 'Solve Left: Recursively find closest pair in left half. dL = ' + minL.toFixed(1) + '.',
-            ar: 'حلّ (النصف الأيسر): تقوم الخوارزمية بالبحث المتكرر في النصف الأيسر، وُجد أن أقصر مسافة هي <strong>dL = ' + minL.toFixed(1) + '</strong>.'
-          });
+    var steps = [], cur = 0, playing = false, interval = null;
+    var isInitialized = false;
 
-          // الخطوة الجديدة 2: استعراض النصف الأيمن فقط
-          steps.push({
-            points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: pairR, minPair: null, highlightPoints: rightHalf.map(p=>p.id),
-            en: 'Solve Right: Recursively find closest pair in right half. dR = ' + minR.toFixed(1) + '.',
-            ar: 'حلّ (النصف الأيمن): تقوم الخوارزمية بالبحث المتكرر في النصف الأيمن، وُجد أن أقصر مسافة هي <strong>dR = ' + minR.toFixed(1) + '</strong>.'
-          });
+    const SVG_W = 800, SVG_H = 450;
+    const PADDING = 50;
+    const RADIUS = 7;
+    
+    var uiElements = {
+      points: {},
+      divLine: null,
+      stripRect: null,
+      compLine: null,
+      bestLine: null,
+      distBadge: { g: null, bg: null, txt: null }
+    };
 
-          var currentMinDist = Infinity;
-          var currentMinPair = null;
-          if (minL < minR) { currentMinDist = minL; currentMinPair = pairL; } 
-          else { currentMinDist = minR; currentMinPair = pairR; }
+    var basePoints = [];
+
+    function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
+
+    function updateLabels() {
+      container.querySelector('[data-algo-text="w5-points"]').textContent  = _AL.exp('Points', 'النقاط');
+      container.querySelector('[data-algo-text="w5-divline"]').textContent = _AL.exp('Dividing Line', 'خط التقسيم');
+      container.querySelector('[data-algo-text="w5-strip"]').textContent   = _AL.exp('2d Strip Boundary', 'شريط الحدود (2d)');
+      container.querySelector('[data-algo-text="w5-comp"]').textContent    = _AL.exp('Distance Check', 'فحص المسافة');
+      container.querySelector('[data-algo-text="w5-minpair"]').textContent = _AL.exp('Closest Pair', 'أقرب زوج');
+    }
+
+    function dist(p1, p2) {
+      return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    function generateSteps() {
+      steps = [];
+      basePoints = [];
+      var numPoints = Math.floor(Math.random() * 6) + 12; // 12 to 17 points
       
-          // الخطوة الجديدة 3: المقارنة وتحديد d
-          steps.push({
-            points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: currentMinPair, highlightPoints: currentMinPair,
-            en: 'Take the minimum of both sides. Let d = min(dL, dR) = ' + currentMinDist.toFixed(1) + '.',
-            ar: 'مقارنة: نأخذ المسافة الأقصر بين النصفين. لتكن <strong>d = ' + currentMinDist.toFixed(1) + '</strong> كأقصر مسافة تم العثور عليها حتى الآن.'
-          });
-      
-          var stripWidth = 2 * currentMinDist;
-          var stripX = midX - currentMinDist;
-          var stripPoints = sortedPx.filter(p => p.x >= stripX && p.x <= midX + currentMinDist);
-          
-          steps.push({
-            points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, y: 0, width: stripWidth, height: SVG_HEIGHT }, comparing: null, minPair: currentMinPair, highlightPoints: stripPoints.map(p => p.id),
-            en: 'Check the boundary: Create a strip of width 2d around the dividing line.',
-            ar: 'ادمج (فحص الحدود): قد توجد نقطة باليسار وأخرى باليمين أقرب لبعضهما من d. نرسم شريطاً بعرض 2d حول الخط.'
-          });
-      
-          var sortedPy = stripPoints.slice().sort((a, b) => a.y - b.y);
-          if(sortedPy.length > 1) {
-              steps.push({
-                points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, y: 0, width: stripWidth, height: SVG_HEIGHT }, comparing: null, minPair: currentMinPair, highlightPoints: sortedPy.map(p => p.id),
-                en: 'Points within the strip are sorted by Y-coordinate.',
-                ar: 'نقوم بترتيب النقاط التي تقع داخل الشريط بناءً على الإحداثي الصادي (Y) لفحصها بسرعة.'
-              });
-          }
-      
-          var foundNewMin = false;
-          for (var i = 0; i < sortedPy.length; i++) {
-            var p1 = sortedPy[i];
-            for (var j = i + 1; j < sortedPy.length && (sortedPy[j].y - p1.y) < currentMinDist; j++) {
-              var p2 = sortedPy[j];
-              steps.push({
-                points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, y: 0, width: stripWidth, height: SVG_HEIGHT }, comparing: [p1.id, p2.id], minPair: currentMinPair, highlightPoints: sortedPy.map(p => p.id),
-                en: 'Comparing distance between points P' + p1.id + ' and P' + p2.id + ' inside the strip.',
-                ar: 'التحقق من المسافة بين P' + p1.id + ' و P' + p2.id + ' داخل الشريط.'
-              });
-      
-              var d = dist(p1, p2);
-              if (d < currentMinDist) {
-                currentMinDist = d;
-                currentMinPair = [p1.id, p2.id];
-                foundNewMin = true;
-                steps.push({
-                  points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, y: 0, width: stripWidth, height: SVG_HEIGHT }, comparing: null, minPair: currentMinPair, highlightPoints: sortedPy.map(p => p.id),
-                  en: 'Found a closer pair across the boundary! Distance is now ' + d.toFixed(1) + '.',
-                  ar: 'تم العثور على زوج أقرب يعبر الحدود! (P' + p1.id + ' , P' + p2.id + ') بمسافة <strong dir="ltr">' + d.toFixed(1) + '</strong>.'
-                });
-              }
-            }
-          }
-          
-          if (!foundNewMin && sortedPy.length > 1) {
-              steps.push({
-                points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, y: 0, width: stripWidth, height: SVG_HEIGHT }, comparing: null, minPair: currentMinPair, highlightPoints: sortedPy.map(p => p.id),
-                en: 'Checked all valid pairs in the strip. No closer pair was found.',
-                ar: 'تم فحص جميع الأزواج المحتملة في الشريط ولم يتم العثور على مسافة أقصر من d.'
-              });
-          }
-      
-          steps.push({
-            points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: currentMinPair, highlightPoints: currentMinPair,
-            en: 'The absolute closest pair is P' + currentMinPair[0] + ' and P' + currentMinPair[1] + '.',
-            ar: 'الخلاصة: أقرب زوج من النقاط على الإطلاق هما P' + currentMinPair[0] + ' و P' + currentMinPair[1] + ' بمسافة نهائية <strong dir="ltr">' + currentMinDist.toFixed(1) + '</strong>.'
-          });
-        }
-      
-        function render() {
-          updateLabels();
-          var s = steps[cur];
-          counter.textContent = _AL.stepLabel(cur, steps.length - 1);
-          expEl.innerHTML = _AL.exp(s.en, s.ar);
-      
-          linesGroup.innerHTML = '';
-          pointsGroup.innerHTML = '';
-      
-          if (s.stripRect) {
-            stripRectEl.setAttribute('x', s.stripRect.x);
-            stripRectEl.setAttribute('y', s.stripRect.y);
-            stripRectEl.setAttribute('width', s.stripRect.width);
-            stripRectEl.setAttribute('height', s.stripRect.height);
-            stripRectEl.style.display = 'block';
-          } else {
-            stripRectEl.style.display = 'none';
-          }
-      
-          if (s.divLineX !== null) {
-            divLineEl.setAttribute('x1', s.divLineX);
-            divLineEl.setAttribute('y1', 0);
-            divLineEl.setAttribute('x2', s.divLineX);
-            divLineEl.setAttribute('y2', SVG_HEIGHT);
-            divLineEl.style.display = 'block';
-          } else {
-            divLineEl.style.display = 'none';
-          }
-      
-          s.points.forEach(function(p) {
-            var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            
-            var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', p.x);
-            circle.setAttribute('cy', p.y);
-            circle.setAttribute('r', 6);
-            
-            // Highlight logic
-            if (s.minPair && (p.id === s.minPair[0] || p.id === s.minPair[1])) {
-               circle.setAttribute('fill', 'var(--algo-sorted)');
-               circle.setAttribute('r', 8);
-            } else if (s.highlightPoints.includes(p.id)) {
-               circle.setAttribute('fill', 'var(--algo-compare)');
-            } else {
-               circle.setAttribute('fill', 'var(--brand-500)');
-               if(s.highlightPoints.length > 0 && !s.minPair) {
-                   circle.setAttribute('opacity', '0.3'); // بهتان العقد غير المحددة للتركيز
-               }
-            }
-            
-            g.appendChild(circle);
-      
-            var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', p.x + 10);
-            text.setAttribute('y', p.y + 4);
-            text.setAttribute('fill', 'var(--algo-text)');
-            text.setAttribute('font-size', '11');
-            text.setAttribute('font-family', "'Inter', sans-serif");
-            text.setAttribute('font-weight', '700');
-            text.textContent = 'P' + p.id;
-            if(s.highlightPoints.length > 0 && !s.highlightPoints.includes(p.id) && !s.minPair) {
-                text.setAttribute('opacity', '0.3');
-            }
-            g.appendChild(text);
-            
-            pointsGroup.appendChild(g);
-          });
-      
-          // رسم خط المقارنة المؤقت (المسافة الفرعية)
-          if (s.comparing && s.comparing.length === 2) {
-            var p1 = s.points.find(p => p.id === s.comparing[0]);
-            var p2 = s.points.find(p => p.id === s.comparing[1]);
-            if (p1 && p2) {
-              var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y);
-              line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y);
-              line.setAttribute('stroke', 'var(--algo-compare)');
-              line.setAttribute('stroke-dasharray', '4,4');
-              line.setAttribute('stroke-width', '2');
-              linesGroup.appendChild(line);
-            }
-          }
-      
-          // رسم خط أقرب مسافة
-          if (s.minPair && s.minPair.length === 2) {
-            var p1 = s.points.find(p => p.id === s.minPair[0]);
-            var p2 = s.points.find(p => p.id === s.minPair[1]);
-            if (p1 && p2) {
-              var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y);
-              line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y);
-              line.setAttribute('stroke', 'var(--algo-sorted)');
-              line.setAttribute('stroke-width', '3');
-              linesGroup.appendChild(line);
+      // توليد نقاط متباعدة بشكل معقول
+      var minDistance = 30; 
+      for (var i = 0; i < numPoints; i++) {
+        var newP;
+        var valid = false;
+        while (!valid) {
+          newP = {
+            id: i,
+            x: Math.floor(Math.random() * (SVG_W - PADDING * 2)) + PADDING,
+            y: Math.floor(Math.random() * (SVG_H - PADDING * 2)) + PADDING
+          };
+          valid = true;
+          for (var j = 0; j < basePoints.length; j++) {
+            if (dist(newP, basePoints[j]) < minDistance) {
+              valid = false;
+              break;
             }
           }
         }
+        basePoints.push(newP);
+      }
+
+      // Step 1: Initial state
+      steps.push({
+        points: basePoints.slice(), divLineX: null, stripRect: null, comparing: null, minPair: null, currDist: null, hlPoints: [],
+        en: `<strong>Initial State:</strong> A set of ${numPoints} points in 2D space. Goal: Find the closest pair using Divide & Conquer.`,
+        ar: `<strong>الحالة الأولية:</strong> مجموعة من ${numPoints} نقطة في فضاء ثنائي الأبعاد. الهدف: إيجاد أقرب نقطتين باستخدام التقسيم والسيطرة.`
+      });
+
+      // Step 2: Sort by X
+      var sortedPx = basePoints.slice().sort((a, b) => a.x - b.x);
+      steps.push({
+        points: sortedPx.slice(), divLineX: null, stripRect: null, comparing: null, minPair: null, currDist: null, hlPoints: [],
+        en: '<strong>Step 1:</strong> Sort all points based on their X-coordinate.',
+        ar: `<strong>الخطوة 1:</strong> نقوم بترتيب جميع النقاط بناءً على إحداثياتها الأفقية (X).`
+      });
+
+      // Step 3: Divide
+      var midIndex = Math.floor(sortedPx.length / 2);
+      var midX = (sortedPx[midIndex - 1].x + sortedPx[midIndex].x) / 2;
       
-        function startPlay() {
-          playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
-          if (cur >= steps.length - 1) cur = 0;
-          interval = setInterval(function() { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay());
+      steps.push({
+        points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: null, currDist: null, hlPoints: [],
+        en: '<strong>Divide:</strong> Split the points into two equal halves (Left and Right) using a vertical dividing line.',
+        ar: `<strong>التقسيم:</strong> نقسم النقاط إلى نصفين متساويين (أيسر وأيمن) باستخدام خط تقسيم رأسي وهمي.`
+      });
+
+      var leftHalf = sortedPx.slice(0, midIndex);
+      var rightHalf = sortedPx.slice(midIndex);
+
+      // Simulation of Left Half solving
+      var minL = Infinity, pairL = null;
+      for (var i = 0; i < leftHalf.length; i++) {
+        for (var j = i + 1; j < leftHalf.length; j++) {
+          var dL = dist(leftHalf[i], leftHalf[j]);
+          if (dL < minL) { minL = dL; pairL = [leftHalf[i].id, leftHalf[j].id]; }
         }
-        function stopPlay() {
-          playing = false; clearInterval(interval); interval = null;
-          btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
+      }
+
+      steps.push({
+        points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: pairL, currDist: minL, hlPoints: leftHalf.map(p => p.id),
+        en: `<strong>Conquer (Left):</strong> Recursively find the closest pair in the left half. <strong>dL = ${minL.toFixed(1)}</strong>.`,
+        ar: `<strong>السيطرة (النصف الأيسر):</strong> نجد أقرب زوج في النصف الأيسر بشكل متكرر. <strong>dL = <span dir="ltr">${minL.toFixed(1)}</span></strong>.`
+      });
+
+      // Simulation of Right Half solving
+      var minR = Infinity, pairR = null;
+      for (var i = 0; i < rightHalf.length; i++) {
+        for (var j = i + 1; j < rightHalf.length; j++) {
+          var dR = dist(rightHalf[i], rightHalf[j]);
+          if (dR < minR) { minR = dR; pairR = [rightHalf[i].id, rightHalf[j].id]; }
         }
+      }
+
+      steps.push({
+        points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: pairR, currDist: minR, hlPoints: rightHalf.map(p => p.id),
+        en: `<strong>Conquer (Right):</strong> Recursively find the closest pair in the right half. <strong>dR = ${minR.toFixed(1)}</strong>.`,
+        ar: `<strong>السيطرة (النصف الأيمن):</strong> نجد أقرب زوج في النصف الأيمن بشكل متكرر. <strong>dR = <span dir="ltr">${minR.toFixed(1)}</span></strong>.`
+      });
+
+      var currentMinDist = Infinity;
+      var currentMinPair = null;
+      if (minL < minR) { currentMinDist = minL; currentMinPair = pairL; } 
+      else { currentMinDist = minR; currentMinPair = pairR; }
+
+      steps.push({
+        points: sortedPx.slice(), divLineX: midX, stripRect: null, comparing: null, minPair: currentMinPair, currDist: currentMinDist, hlPoints: currentMinPair,
+        en: `Let <strong>d</strong> be the minimum of dL and dR. Currently, <strong>d = ${currentMinDist.toFixed(1)}</strong>.`,
+        ar: `لتكن <strong>d</strong> هي القيمة الأصغر بين dL و dR. حالياً، <strong>d = <span dir="ltr">${currentMinDist.toFixed(1)}</span></strong>.`
+      });
+
+      // Strip creation
+      var stripWidth = 2 * currentMinDist;
+      var stripX = midX - currentMinDist;
+      var stripPoints = sortedPx.filter(p => p.x >= stripX && p.x <= midX + currentMinDist);
       
-        container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function() { stopPlay(); if (cur > 0) { cur--; render(); } });
-        container.querySelector('[data-algo-btn="step"]').addEventListener('click', function() { stopPlay(); if (cur < steps.length - 1) { cur++; render(); } });
-        container.querySelector('[data-algo-btn="play"]').addEventListener('click', function() { playing ? stopPlay() : startPlay(); });
-        container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function() { stopPlay(); generateSteps(); cur = 0; render(); });
-        container.querySelector('.algo-speed input').addEventListener('input', function() {
-          if (playing) { clearInterval(interval); interval = setInterval(function() { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay()); }
+      steps.push({
+        points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, width: stripWidth }, comparing: null, minPair: currentMinPair, currDist: currentMinDist, hlPoints: stripPoints.map(p => p.id),
+        en: `<strong>Combine (Boundary Check):</strong> A closer pair might exist across the dividing line. We check points within a strip of width <strong>2d</strong>.`,
+        ar: `<strong>الدمج (فحص الحدود):</strong> قد يوجد زوج أقرب عبر خط التقسيم. نفحص النقاط داخل شريط وهمي بعرض <strong>2d</strong>.`
+      });
+
+      var sortedPy = stripPoints.slice().sort((a, b) => a.y - b.y);
+      if(sortedPy.length > 1) {
+        steps.push({
+          points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, width: stripWidth }, comparing: null, minPair: currentMinPair, currDist: currentMinDist, hlPoints: sortedPy.map(p => p.id),
+          en: `Points in the strip are sorted by Y-coordinate. We only need to check each point against its next few neighbors.`,
+          ar: `يتم ترتيب النقاط في الشريط حسب المحور الرأسي (Y). نحتاج فقط لفحص كل نقطة مع جيرانها القريبين جداً للأسفل.`
         });
+      }
+
+      var foundNewMin = false;
+      for (var i = 0; i < sortedPy.length; i++) {
+        var p1 = sortedPy[i];
+        for (var j = i + 1; j < sortedPy.length && (sortedPy[j].y - p1.y) < currentMinDist; j++) {
+          var p2 = sortedPy[j];
+          var d = dist(p1, p2);
+          
+          steps.push({
+            points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, width: stripWidth }, comparing: [p1.id, p2.id], minPair: currentMinPair, currDist: d, hlPoints: sortedPy.map(p => p.id),
+            en: `Checking pair across boundary. Distance = <strong>${d.toFixed(1)}</strong>.`,
+            ar: `فحص زوج من النقاط عبر الحدود. المسافة = <strong><span dir="ltr">${d.toFixed(1)}</span></strong>.`
+          });
+
+          if (d < currentMinDist) {
+            currentMinDist = d;
+            currentMinPair = [p1.id, p2.id];
+            foundNewMin = true;
+            
+            steps.push({
+              points: sortedPx.slice(), divLineX: midX, stripRect: { x: stripX, width: stripWidth }, comparing: null, minPair: currentMinPair, currDist: currentMinDist, hlPoints: sortedPy.map(p => p.id),
+              en: `<strong>New Minimum!</strong> Found a closer pair across the boundary. <strong>d</strong> is updated to <strong>${d.toFixed(1)}</strong>.`,
+              ar: `<strong>حد أدنى جديد!</strong> وجدنا زوجاً أقرب يعبر الحدود. تم تحديث <strong>d</strong> لتصبح <strong><span dir="ltr">${d.toFixed(1)}</span></strong>.`
+            });
+          }
+        }
+      }
       
-        window._algoRerenders[5] = render;
-        generateSteps();
-        render();
+      steps.push({
+        points: sortedPx.slice(), divLineX: null, stripRect: null, comparing: null, minPair: currentMinPair, currDist: currentMinDist, hlPoints: currentMinPair,
+        en: `<strong>Algorithm Complete!</strong> The absolute closest pair has been found with a distance of <strong>${currentMinDist.toFixed(1)}</strong>.`,
+        ar: `<strong>اكتملت الخوارزمية!</strong> تم إيجاد أقرب زوج من النقاط بمسافة نهائية قدرها <strong><span dir="ltr">${currentMinDist.toFixed(1)}</span></strong>.`
+      });
+    }
+
+    function makeSVG(tag, attrs) {
+      let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (let k in attrs) el.setAttribute(k, attrs[k]);
+      el.style.transition = 'all 0.4s cubic-bezier(0.4,0,0.2,1)';
+      return el;
+    }
+
+    function buildSVG() {
+      svgEl.innerHTML = '';
+      uiElements.points = {};
+
+      // 1. الأنماط (Patterns) للشريط الوهمي
+      let defs = makeSVG('defs', {});
+      defs.innerHTML = `
+        <pattern id="w5-strip-pattern" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="var(--algo-compare)" stroke-width="2" opacity="0.25" />
+        </pattern>
+      `;
+      svgEl.appendChild(defs);
+
+      // 2. العناصر الخلفية (الشريط وخط التقسيم)
+      uiElements.stripRect = makeSVG('rect', { y: 0, height: SVG_H, fill: 'url(#w5-strip-pattern)', opacity: 0 });
+      uiElements.divLine = makeSVG('line', { y1: 0, y2: SVG_H, stroke: 'var(--algo-active)', 'stroke-width': 2, 'stroke-dasharray': '8,6', opacity: 0 });
+      
+      svgEl.appendChild(uiElements.stripRect);
+      svgEl.appendChild(uiElements.divLine);
+
+      // 3. خطوط المسافات
+      uiElements.bestLine = makeSVG('line', { stroke: 'var(--algo-sorted)', 'stroke-width': 4, opacity: 0 });
+      uiElements.compLine = makeSVG('line', { stroke: 'var(--algo-compare)', 'stroke-width': 3, 'stroke-dasharray': '6,4', opacity: 0 });
+      
+      svgEl.appendChild(uiElements.bestLine);
+      svgEl.appendChild(uiElements.compLine);
+
+      // 4. النقاط
+      let nodesGroup = makeSVG('g', {});
+      basePoints.forEach(p => {
+        let g = makeSVG('g', { 'transform-origin': `${p.x}px ${p.y}px` });
+        
+        let circ = makeSVG('circle', { cx: p.x, cy: p.y, r: RADIUS, fill: 'var(--brand-500)', stroke: 'var(--algo-canvas-bg)', 'stroke-width': 2 });
+        
+        let lblBg = makeSVG('rect', { x: p.x + 8, y: p.y - 10, width: 24, height: 20, rx: 4, fill: 'var(--algo-canvas-bg)', opacity: 0.8 });
+        let lblTxt = makeSVG('text', { x: p.x + 20, y: p.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-secondary)', 'font-family': "'JetBrains Mono', monospace", 'font-weight': 'bold', 'font-size': '12px' });
+        lblTxt.textContent = `P${p.id}`;
+
+        g.appendChild(circ);
+        g.appendChild(lblBg);
+        g.appendChild(lblTxt);
+        nodesGroup.appendChild(g);
+
+        uiElements.points[p.id] = { g, circ, lblTxt, p };
+      });
+      svgEl.appendChild(nodesGroup);
+
+      // 5. شارة المسافة العائمة (Distance Badge)
+      uiElements.distBadge.g = makeSVG('g', { opacity: 0 });
+      uiElements.distBadge.bg = makeSVG('rect', { width: 54, height: 24, rx: 6, fill: 'var(--algo-compare)' });
+      uiElements.distBadge.txt = makeSVG('text', { 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: '#ffffff', 'font-family': "'JetBrains Mono', monospace", 'font-weight': '800', 'font-size': '13px' });
+      
+      uiElements.distBadge.g.appendChild(uiElements.distBadge.bg);
+      uiElements.distBadge.g.appendChild(uiElements.distBadge.txt);
+      svgEl.appendChild(uiElements.distBadge.g);
+
+      isInitialized = true;
+    }
+
+    function render() {
+      if(!isInitialized) buildSVG();
+      updateLabels();
+      var s = steps[cur];
+      counter.textContent = _AL.stepLabel(cur, steps.length - 1);
+      expEl.innerHTML = _AL.exp(s.en, s.ar);
+
+      // 1. تحديث الخط العمودي والشريط
+      if (s.divLineX !== null) {
+        uiElements.divLine.setAttribute('x1', s.divLineX);
+        uiElements.divLine.setAttribute('x2', s.divLineX);
+        uiElements.divLine.style.opacity = '1';
+      } else {
+        uiElements.divLine.style.opacity = '0';
+      }
+
+      if (s.stripRect !== null) {
+        uiElements.stripRect.setAttribute('x', s.stripRect.x);
+        uiElements.stripRect.setAttribute('width', s.stripRect.width);
+        uiElements.stripRect.style.opacity = '1';
+      } else {
+        uiElements.stripRect.style.opacity = '0';
+      }
+
+      // 2. تحديث خط المقارنة المؤقت والشارة
+      if (s.comparing) {
+        let p1 = basePoints.find(p => p.id === s.comparing[0]);
+        let p2 = basePoints.find(p => p.id === s.comparing[1]);
+        
+        uiElements.compLine.setAttribute('x1', p1.x); uiElements.compLine.setAttribute('y1', p1.y);
+        uiElements.compLine.setAttribute('x2', p2.x); uiElements.compLine.setAttribute('y2', p2.y);
+        uiElements.compLine.style.opacity = '1';
+
+        let mx = (p1.x + p2.x) / 2;
+        let my = (p1.y + p2.y) / 2;
+        
+        uiElements.distBadge.bg.setAttribute('fill', 'var(--algo-compare)');
+        uiElements.distBadge.bg.setAttribute('x', mx - 27);
+        uiElements.distBadge.bg.setAttribute('y', my - 30);
+        uiElements.distBadge.txt.setAttribute('x', mx);
+        uiElements.distBadge.txt.setAttribute('y', my - 18);
+        uiElements.distBadge.txt.textContent = s.currDist.toFixed(1);
+        
+        uiElements.distBadge.g.style.opacity = '1';
+        uiElements.distBadge.g.style.transform = `scale(1.1)`;
+        uiElements.distBadge.g.style.transformOrigin = `${mx}px ${my - 18}px`;
+
+      } else {
+        uiElements.compLine.style.opacity = '0';
+        uiElements.distBadge.g.style.opacity = '0';
+      }
+
+      // 3. تحديث خط أفضل زوج (Best Pair)
+      if (s.minPair) {
+        let p1 = basePoints.find(p => p.id === s.minPair[0]);
+        let p2 = basePoints.find(p => p.id === s.minPair[1]);
+        
+        uiElements.bestLine.setAttribute('x1', p1.x); uiElements.bestLine.setAttribute('y1', p1.y);
+        uiElements.bestLine.setAttribute('x2', p2.x); uiElements.bestLine.setAttribute('y2', p2.y);
+        
+        // إذا كنا نقارن، نبهت خط الـ Best قليلاً للتركيز على المقارنة
+        uiElements.bestLine.style.opacity = s.comparing ? '0.4' : '1';
+        
+        // إذا لم نكن نقارن، نضع شارة المسافة على الخط الأفضل
+        if (!s.comparing) {
+          let mx = (p1.x + p2.x) / 2;
+          let my = (p1.y + p2.y) / 2;
+          uiElements.distBadge.bg.setAttribute('fill', 'var(--algo-sorted)');
+          uiElements.distBadge.bg.setAttribute('x', mx - 27);
+          uiElements.distBadge.bg.setAttribute('y', my - 30);
+          uiElements.distBadge.txt.setAttribute('x', mx);
+          uiElements.distBadge.txt.setAttribute('y', my - 18);
+          uiElements.distBadge.txt.textContent = s.currDist.toFixed(1);
+          uiElements.distBadge.g.style.opacity = '1';
+          uiElements.distBadge.g.style.transform = `scale(1)`;
+        }
+      } else {
+        uiElements.bestLine.style.opacity = '0';
+      }
+
+      // 4. تحديث النقاط (بهتان وتلوين)
+      Object.keys(uiElements.points).forEach(id => {
+        let ui = uiElements.points[id];
+        let nId = parseInt(id);
+        
+        let isHl = s.hlPoints.length === 0 || s.hlPoints.includes(nId);
+        let isComp = s.comparing && (s.comparing[0] === nId || s.comparing[1] === nId);
+        let isBest = s.minPair && (s.minPair[0] === nId || s.minPair[1] === nId);
+
+        let fill = 'var(--bg-elevated)';
+        let scale = 'scale(1)';
+        let opacity = isHl ? '1' : '0.2'; // Fade pattern
+
+        if (isComp) {
+          fill = 'var(--algo-compare)';
+          scale = 'scale(1.5)';
+          opacity = '1';
+          ui.g.parentNode.appendChild(ui.g); // Bring to front
+        } else if (isBest) {
+          fill = 'var(--algo-sorted)';
+          scale = 'scale(1.4)';
+          opacity = '1';
+          ui.g.parentNode.appendChild(ui.g); // Bring to front
+        } else if (isHl) {
+          fill = 'var(--brand-500)';
+        }
+
+        ui.circ.setAttribute('fill', fill);
+        ui.g.style.transform = scale;
+        ui.g.style.opacity = opacity;
+      });
+    }
+
+    function startPlay() {
+      playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
+      if (cur >= steps.length - 1) cur = 0;
+      interval = setInterval(function() {
+        if (cur < steps.length - 1) { cur++; render(); } else stopPlay();
+      }, getDelay());
+    }
+
+    function stopPlay() {
+      playing = false; clearInterval(interval); interval = null;
+      btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
+    }
+
+    container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function() { stopPlay(); if (cur > 0) { cur--; render(); } });
+    container.querySelector('[data-algo-btn="step"]').addEventListener('click', function() { stopPlay(); if (cur < steps.length - 1) { cur++; render(); } });
+    container.querySelector('[data-algo-btn="play"]').addEventListener('click', function() { playing ? stopPlay() : startPlay(); });
+    
+    // Reset يعيد توليد كل شيء ببيانات جديدة
+    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function() { 
+      stopPlay(); 
+      isInitialized = false; 
+      generateSteps(); 
+      cur = 0; 
+      render(); 
+    });
+    
+    container.querySelector('.algo-speed input').addEventListener('input', function() {
+      if (playing) {
+        clearInterval(interval);
+        interval = setInterval(function() { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay());
+      }
+    });
+
+    window._algoRerenders[5] = render;
+    generateSteps();
+    render();
 };
 
 (function(){

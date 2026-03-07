@@ -389,395 +389,301 @@ window.AlgoWidgets[2] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
       _AL.titleHTML(2) +
       _AL.toolbar(2) +
-      '<div class="algo-explanation" id="w2-exp" style="font-size: 0.85rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+      '<div class="algo-explanation" id="w2-exp" style="font-size: 0.95rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px; text-align: center; min-height: 48px;"></div>' +
       
-      // حاوية متجاوبة بأبعاد مناسبة للجدول
-      '<div class="algo-canvas" id="w2-svg-container" style="position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow:visible; display: flex; align-items: center; justify-content: center;">' +
-        '<svg id="w2-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+      // حاوية متجاوبة هجينة (SVG + HTML Overlay)
+      '<div class="algo-canvas" style="position:relative; width:100%; max-width:700px; margin:0 auto; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow:hidden; display: flex; flex-direction: column; align-items: center; padding-bottom: 60px;">' +
+        '<svg id="w2-svg" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="overflow:visible; margin-top: 15px;"></svg>' +
+        
+        // صندوق المعادلة العائم (HTML للحصول على تنسيق غني)
+        '<div id="w2-formula-box" style="position:absolute; bottom: 15px; width: 90%; max-width: 500px; padding: 8px 15px; background: var(--bg-elevated); border: 2px solid var(--algo-border); border-radius: 8px; text-align: center; font-family: \'JetBrains Mono\', monospace; font-size: 14px; font-weight: bold; color: var(--text-primary); opacity: 0; transition: all 0.4s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.08);"></div>' +
       '</div>' +
       
       // دليل الألوان
-      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.8rem;color:var(--text-secondary);">' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w2-target"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w2-exclude"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w2-include"></span></span>' +
+      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.85rem;color:var(--text-secondary);">' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w2-target"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w2-exclude"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w2-include"></span></span>' +
       '</div>' +
     '</div>';
 
     var btnPlay = container.querySelector('[data-algo-btn="play"]');
     var expEl   = container.querySelector('#w2-exp');
     var svgEl   = container.querySelector('#w2-svg');
+    var formulaBox = container.querySelector('#w2-formula-box');
     var counter = container.querySelector('[data-algo-counter]');
 
     var steps = [], cur = 0, playing = false, interval = null;
     var isInitialized = false;
 
-    // عناصر ה-SVG المحدثة برمجياً
-    var gridRects = [];
-    var gridTexts = [];
+    // عناصر التخزين المؤقت (DOM Caching)
+    var uiCells = [];
+    var uiRowLabels = [];
+    var uiColLabels = [];
     var arrowExclude, arrowInclude;
-    var formulaRect, formulaText, formulaGroup;
 
-    var items = [
-      { w: 0, v: 0 },
-      { w: 2, v: 3 },
-      { w: 3, v: 4 },
-      { w: 4, v: 5 }
-    ];
-    var W = 6;
-    var numItems = items.length - 1;
+    // بيانات الخوارزمية (سيتم توليدها عشوائياً)
+    var items = [];
+    var W = 0;
+    var numItems = 0;
 
-    // الثوابت الهندسية للشبكة
-    const cellW = 55;
-    const cellH = 45;
-    const gridRows = numItems + 1; // 4
-    const gridCols = W + 1;        // 7
-    const gridW = gridCols * cellW;
-    const startX = (800 - gridW) / 2 + 40; // إزاحة لليمين لترك مساحة للعناوين الجانبية
-    const startY = 80;
+    // الثوابت الهندسية
+    const CELL_W = 48;
+    const CELL_H = 40;
+    const GAP = 4;
+    const PAD_LEFT = 90;
+    const PAD_TOP = 50;
 
     function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
 
     function updateLabels() {
-      container.querySelector('[data-algo-text="w2-target"]').textContent  = _AL.exp('Current Cell', 'الخلية الحالية');
-      container.querySelector('[data-algo-text="w2-exclude"]').textContent = _AL.exp('Exclude (Above)', 'استبعاد (من الأعلى)');
-      container.querySelector('[data-algo-text="w2-include"]').textContent = _AL.exp('Include (Add Value)', 'تضمين (إضافة القيمة)');
+      container.querySelector('[data-algo-text="w2-target"]').textContent  = _AL.exp('Target Cell', 'الخلية المستهدفة');
+      container.querySelector('[data-algo-text="w2-exclude"]').textContent = _AL.exp('Exclude Item', 'استبعاد العنصر');
+      container.querySelector('[data-algo-text="w2-include"]').textContent = _AL.exp('Include Item', 'تضمين العنصر');
     }
 
-    function copyDP(dp) {
-      return dp.map(function(row) { return row.slice(); });
+    function makeSVG(tag, attrs) {
+      let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (let k in attrs) el.setAttribute(k, attrs[k]);
+      el.style.transition = 'all 0.3s cubic-bezier(0.4,0,0.2,1)';
+      return el;
     }
 
     function generateSteps() {
-      steps = [];
-      var dp = [];
-      for (var i = 0; i <= numItems; i++) {
-        dp[i] = [];
-        for (var j = 0; j <= W; j++) dp[i][j] = 0;
+      // توليد بيانات عشوائية للحقيبة في كل Reset
+      W = Math.floor(Math.random() * 3) + 5; // سعة من 5 إلى 7
+      numItems = 4;
+      items = [{ w: 0, v: 0 }]; // العنصر 0 وهمي
+      
+      // لتفادي تكرار الأوزان بشكل ممل
+      let wPool = [1, 2, 3, 4, 5];
+      wPool.sort(() => Math.random() - 0.5);
+      
+      for (let i = 1; i <= numItems; i++) {
+        items.push({ 
+          w: wPool[i-1], 
+          v: Math.floor(Math.random() * 8) + 2 
+        });
       }
 
+      steps = [];
+      let dp = Array(numItems + 1).fill().map(() => Array(W + 1).fill(0));
+
       steps.push({
-        dp: copyDP(dp), i: -1, j: -1, phase: 'init',
-        en: 'Initialize DP table. Row 0 (no items) and Col 0 (capacity 0) are set to 0.',
-        ar: 'تهيئة جدول البرمجة الديناميكية. الصف 0 (بدون عناصر) والعمود 0 (سعة 0) قيمتها 0.'
+        dp: dp.map(r => r.slice()), i: -1, j: -1, phase: 'init',
+        en: `Initialize DP table. Capacity <strong>W = ${W}</strong>. Row 0 and Col 0 are 0.`,
+        ar: `تهيئة الجدول. السعة القصوى للحقيبة <strong>W = ${W}</strong>. الصف 0 والعمود 0 أصفار.`
       });
 
-      for (var i = 1; i <= numItems; i++) {
-        for (var j = 1; j <= W; j++) {
-          var w = items[i].w;
-          var v = items[i].v;
+      for (let i = 1; i <= numItems; i++) {
+        for (let j = 1; j <= W; j++) {
+          let w = items[i].w;
+          let v = items[i].v;
 
           steps.push({
-            dp: copyDP(dp), i: i, j: j, phase: 'target', w: w, v: v,
-            en: `Computing cell <strong>F(${i}, ${j})</strong> for Item ${i} (weight=${w}, value=${v}).`,
-            ar: `نحسب الخلية <strong>F(${i}, ${j})</strong> للعنصر ${i} (الوزن=${w}، القيمة=${v}).`
+            dp: dp.map(r => r.slice()), i, j, phase: 'target', w, v,
+            en: `Evaluating Item <strong>${i}</strong> (weight=${w}, value=${v}) at capacity <strong>${j}</strong>.`,
+            ar: `تقييم العنصر <strong>${i}</strong> (الوزن=${w}، القيمة=${v}) عند السعة <strong>${j}</strong>.`
           });
 
           if (j < w) {
             dp[i][j] = dp[i-1][j];
             steps.push({
-              dp: copyDP(dp), i: i, j: j, phase: 'exclude', w: w, v: v,
+              dp: dp.map(r => r.slice()), i, j, phase: 'exclude', w, v,
               from1: { r: i-1, c: j }, val: dp[i][j],
-              en: `Capacity ${j} is less than item weight ${w}. Cannot include. Copy value from above: <strong>${dp[i-1][j]}</strong>.`,
-              ar: `السعة الحالية (${j}) أقل من وزن العنصر (${w}). لا يمكن تضمينه. ننسخ القيمة من الأعلى: <strong>${dp[i-1][j]}</strong>.`
+              en: `Capacity ${j} < weight ${w}. Cannot include. Copy from above: <strong>${dp[i-1][j]}</strong>.`,
+              ar: `السعة ${j} أقل من الوزن ${w}. لا يمكن إضافته. ننسخ من الأعلى: <strong>${dp[i-1][j]}</strong>.`
             });
           } else {
-            var valExclude = dp[i-1][j];
-            var valInclude = dp[i-1][j-w] + v;
-            var maxVal = Math.max(valExclude, valInclude);
+            let valExclude = dp[i-1][j];
+            let valInclude = dp[i-1][j-w] + v;
+            let maxVal = Math.max(valExclude, valInclude);
             dp[i][j] = maxVal;
             
             steps.push({
-              dp: copyDP(dp), i: i, j: j, phase: 'compare', w: w, v: v,
+              dp: dp.map(r => r.slice()), i, j, phase: 'compare', w, v,
               from1: { r: i-1, c: j }, from2: { r: i-1, c: j-w },
-              valExclude: valExclude, valInclude: valInclude, maxVal: maxVal,
-              en: `Compare options: Exclude item = ${valExclude}. Include item = (${dp[i-1][j-w]} + ${v}) = ${valInclude}. Maximum is <strong>${maxVal}</strong>.`,
-              ar: `مقارنة الخيارات: استبعاد العنصر = ${valExclude}. تضمين العنصر = (${dp[i-1][j-w]} + ${v}) = ${valInclude}. القيمة القصوى هي <strong>${maxVal}</strong>.`
+              valExclude, valInclude, maxVal,
+              en: `Compare: Exclude (${valExclude}) vs Include (${dp[i-1][j-w]} + ${v} = ${valInclude}). Max is <strong>${maxVal}</strong>.`,
+              ar: `مقارنة: استبعاد (${valExclude}) ضد تضمين (${dp[i-1][j-w]} + ${v} = ${valInclude}). الأكبر هو <strong>${maxVal}</strong>.`
             });
           }
         }
       }
 
       steps.push({
-        dp: copyDP(dp), i: numItems, j: W, phase: 'done',
-        en: `DP table complete. The maximum possible value for capacity ${W} is <strong>${dp[numItems][W]}</strong>.`,
-        ar: `اكتمل الجدول. القيمة القصوى الممكنة للحقيبة بسعة ${W} هي <strong>${dp[numItems][W]}</strong>.`
+        dp: dp.map(r => r.slice()), i: numItems, j: W, phase: 'done',
+        en: `<strong>Done!</strong> The maximum possible value is <strong>${dp[numItems][W]}</strong>.`,
+        ar: `<strong>انتهينا!</strong> أقصى قيمة ممكنة للحقيبة هي <strong>${dp[numItems][W]}</strong>.`
       });
     }
 
-    function buildSVG() {
-      var ns = 'http://www.w3.org/2000/svg';
+    function buildUI() {
       svgEl.innerHTML = '';
-      gridRects = [];
-      gridTexts = [];
+      uiCells = [];
+      uiRowLabels = [];
+      uiColLabels = [];
 
-      var defs = document.createElementNS(ns, 'defs');
+      // ضبط الـ ViewBox ديناميكياً ليتناسب مع الجوال تماماً ولا يترك فراغات
+      let totalW = PAD_LEFT + (W + 1) * (CELL_W + GAP) + 20;
+      let totalH = PAD_TOP + (numItems + 1) * (CELL_H + GAP) + 20;
+      svgEl.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+
+      // تعريف الأسهم
+      let defs = makeSVG('defs', {});
       defs.innerHTML = `
-        <marker id="arr-exclude" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--algo-swap)" /></marker>
-        <marker id="arr-include" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" /></marker>
+        <marker id="w2-arr-exc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--algo-swap)"/></marker>
+        <marker id="w2-arr-inc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/></marker>
       `;
       svgEl.appendChild(defs);
 
-      // عناوين الأعمدة (السعة j)
-      let colTitle = document.createElementNS(ns, 'text');
-      colTitle.setAttribute('x', startX + (W+1)*cellW/2);
-      colTitle.setAttribute('y', startY - 45);
-      colTitle.setAttribute('text-anchor', 'middle');
-      colTitle.setAttribute('fill', 'var(--text-primary)');
-      colTitle.setAttribute('font-weight', '800');
-      colTitle.setAttribute('font-family', "'Cairo', sans-serif");
-      colTitle.textContent = _AL.lang() === 'ar' ? 'السعة (j)' : 'Capacity (j)';
+      // العناوين (الأعمدة - السعة)
+      let colTitle = makeSVG('text', { x: PAD_LEFT + ((W + 1) * (CELL_W + GAP)) / 2, y: 15, 'text-anchor': 'middle', fill: 'var(--text-primary)', 'font-family': "'Cairo', sans-serif", 'font-size': '15px', 'font-weight': 'bold' });
+      colTitle.textContent = _AL.exp('Capacity (j)', 'السعة المتاحة (j)');
       svgEl.appendChild(colTitle);
 
       for (let j = 0; j <= W; j++) {
-        let text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', startX + j*cellW + cellW/2);
-        text.setAttribute('y', startY - 15);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', 'var(--text-muted)');
-        text.setAttribute('font-weight', '700');
-        text.setAttribute('font-family', "'JetBrains Mono', monospace");
-        text.textContent = j;
-        svgEl.appendChild(text);
+        let x = PAD_LEFT + j * (CELL_W + GAP) + CELL_W / 2;
+        let txt = makeSVG('text', { x: x, y: PAD_TOP - 10, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: 'var(--text-muted)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '14px', 'font-weight': 'bold' });
+        txt.textContent = j;
+        svgEl.appendChild(txt);
+        uiColLabels.push(txt);
       }
 
-      // عناوين الصفوف (العناصر i)
-      let rowTitle = document.createElementNS(ns, 'text');
-      rowTitle.setAttribute('x', startX - 70);
-      rowTitle.setAttribute('y', startY - 15);
-      rowTitle.setAttribute('text-anchor', 'middle');
-      rowTitle.setAttribute('fill', 'var(--text-primary)');
-      rowTitle.setAttribute('font-weight', '800');
-      rowTitle.setAttribute('font-family', "'Cairo', sans-serif");
-      rowTitle.textContent = _AL.lang() === 'ar' ? 'العناصر (i)' : 'Items (i)';
-      svgEl.appendChild(rowTitle);
-
+      // العناوين (الصفوف - العناصر)
       for (let i = 0; i <= numItems; i++) {
-        let text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', startX - 15);
-        text.setAttribute('y', startY + i*cellH + cellH/2);
-        text.setAttribute('text-anchor', 'end');
-        text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', 'var(--text-muted)');
-        text.setAttribute('font-weight', '700');
-        text.setAttribute('font-size', '14px');
-        text.setAttribute('font-family', "'JetBrains Mono', monospace");
-        text.textContent = i === 0 ? '0' : `i=${i} (w:${items[i].w}, v:${items[i].v})`;
-        svgEl.appendChild(text);
+        let y = PAD_TOP + i * (CELL_H + GAP) + CELL_H / 2;
+        let txt = makeSVG('text', { x: PAD_LEFT - 10, y: y, 'text-anchor': 'end', 'dominant-baseline': 'middle', fill: 'var(--text-muted)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '13px', 'font-weight': 'bold' });
+        txt.textContent = i === 0 ? '0' : `i=${i} (w:${items[i].w},v:${items[i].v})`;
+        svgEl.appendChild(txt);
+        uiRowLabels.push(txt);
       }
 
-      // بناء خلايا الجدول (Grid)
+      // بناء الخلايا
+      let cellsG = makeSVG('g', {});
       for (let i = 0; i <= numItems; i++) {
-        gridRects[i] = [];
-        gridTexts[i] = [];
+        uiCells[i] = [];
         for (let j = 0; j <= W; j++) {
-          let cx = startX + j*cellW;
-          let cy = startY + i*cellH;
+          let cx = PAD_LEFT + j * (CELL_W + GAP) + CELL_W / 2;
+          let cy = PAD_TOP + i * (CELL_H + GAP) + CELL_H / 2;
 
-          let g = document.createElementNS(ns, 'g');
-          g.style.transition = 'opacity 0.3s ease';
-
-          let rect = document.createElementNS(ns, 'rect');
-          rect.setAttribute('x', cx);
-          rect.setAttribute('y', cy);
-          rect.setAttribute('width', cellW);
-          rect.setAttribute('height', cellH);
-          rect.setAttribute('fill', 'var(--bg-elevated)');
-          rect.setAttribute('stroke', 'var(--border-color)');
-          rect.setAttribute('stroke-width', '1.5');
-          rect.style.transition = 'all 0.3s ease';
-          g.appendChild(rect);
-
-          let text = document.createElementNS(ns, 'text');
-          text.setAttribute('x', cx + cellW/2);
-          text.setAttribute('y', cy + cellH/2);
-          text.setAttribute('dy', '.1em');
-          text.setAttribute('text-anchor', 'middle');
-          text.setAttribute('dominant-baseline', 'middle');
-          text.setAttribute('fill', 'var(--text-primary)');
-          text.setAttribute('font-weight', '800');
-          text.setAttribute('font-size', '18px');
-          text.setAttribute('font-family', "'JetBrains Mono', monospace");
-          text.textContent = ''; // فارغ مبدئياً
-          text.style.transition = 'fill 0.3s ease';
-          g.appendChild(text);
-
-          svgEl.appendChild(g);
-          gridRects[i][j] = rect;
-          gridTexts[i][j] = text;
+          let g = makeSVG('g', { 'transform-origin': `${cx}px ${cy}px` });
+          let rect = makeSVG('rect', { x: cx - CELL_W/2, y: cy - CELL_H/2, width: CELL_W, height: CELL_H, rx: 6, fill: 'var(--bg-elevated)', stroke: 'var(--algo-border)', 'stroke-width': 1.5 });
+          let txt = makeSVG('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '15px', 'font-weight': 'bold' });
+          
+          g.appendChild(rect); g.appendChild(txt);
+          cellsG.appendChild(g);
+          uiCells[i][j] = { g, rect, txt, cx, cy };
         }
       }
+      svgEl.appendChild(cellsG);
 
-      // بناء الأسهم (تكون شفافة ومخفية في البداية)
-      arrowExclude = document.createElementNS(ns, 'line');
-      arrowExclude.setAttribute('stroke', 'var(--algo-swap)');
-      arrowExclude.setAttribute('stroke-width', '3');
-      arrowExclude.setAttribute('stroke-dasharray', '4,4');
-      arrowExclude.setAttribute('marker-end', 'url(#arr-exclude)');
-      arrowExclude.style.transition = 'all 0.4s ease';
-      arrowExclude.style.opacity = '0';
+      // بناء الأسهم
+      arrowExclude = makeSVG('line', { stroke: 'var(--algo-swap)', 'stroke-width': 3, 'stroke-dasharray': '5,4', 'marker-end': 'url(#w2-arr-exc)', opacity: 0 });
+      arrowInclude = makeSVG('path', { fill: 'none', stroke: 'var(--brand-500)', 'stroke-width': 3, 'marker-end': 'url(#w2-arr-inc)', opacity: 0 });
       svgEl.appendChild(arrowExclude);
-
-      arrowInclude = document.createElementNS(ns, 'line');
-      arrowInclude.setAttribute('stroke', 'var(--brand-500)');
-      arrowInclude.setAttribute('stroke-width', '3');
-      arrowInclude.setAttribute('marker-end', 'url(#arr-include)');
-      arrowInclude.style.transition = 'all 0.4s ease';
-      arrowInclude.style.opacity = '0';
       svgEl.appendChild(arrowInclude);
-
-      // بناء صندوق المعادلة (Formula Box)
-      formulaGroup = document.createElementNS(ns, 'g');
-      formulaGroup.style.transition = 'all 0.4s ease';
-      formulaGroup.style.opacity = '0';
-
-      formulaRect = document.createElementNS(ns, 'rect');
-      formulaRect.setAttribute('x', startX);
-      formulaRect.setAttribute('y', startY + gridRows*cellH + 30);
-      formulaRect.setAttribute('width', gridW);
-      formulaRect.setAttribute('height', 45);
-      formulaRect.setAttribute('rx', 8);
-      formulaRect.setAttribute('fill', 'var(--algo-canvas-bg)');
-      formulaRect.setAttribute('stroke', 'var(--algo-border)');
-      formulaRect.setAttribute('stroke-width', '2');
-      formulaGroup.appendChild(formulaRect);
-
-      formulaText = document.createElementNS(ns, 'text');
-      formulaText.setAttribute('x', startX + gridW/2);
-      formulaText.setAttribute('y', startY + gridRows*cellH + 30 + 22);
-      formulaText.setAttribute('dy', '.1em');
-      formulaText.setAttribute('text-anchor', 'middle');
-      formulaText.setAttribute('dominant-baseline', 'middle');
-      formulaText.setAttribute('fill', 'var(--text-primary)');
-      formulaText.setAttribute('font-weight', '800');
-      formulaText.setAttribute('font-size', '16px');
-      formulaText.setAttribute('font-family', "'JetBrains Mono', monospace");
-      formulaGroup.appendChild(formulaText);
-
-      svgEl.appendChild(formulaGroup);
 
       isInitialized = true;
     }
 
     function render() {
-      if(!isInitialized) buildSVG();
+      if(!isInitialized) buildUI();
       updateLabels();
       var s = steps[cur];
       counter.textContent = _AL.stepLabel(cur, steps.length - 1);
       expEl.innerHTML = _AL.exp(s.en, s.ar);
 
-      // 1. تحديث الخلايا
+      // 1. تحديث الجدول (الخلايا)
       for (let i = 0; i <= numItems; i++) {
+        // تحديث ألوان العناوين
+        let isRowActive = (i === s.i);
+        uiRowLabels[i].setAttribute('fill', isRowActive ? 'var(--algo-active)' : 'var(--text-muted)');
+        
         for (let j = 0; j <= W; j++) {
+          if (i === 0) uiColLabels[j].setAttribute('fill', (j === s.j) ? 'var(--algo-active)' : 'var(--text-muted)');
+
+          let ui = uiCells[i][j];
           let val = s.dp[i][j];
-          let rect = gridRects[i][j];
-          let text = gridTexts[i][j];
-          let g = rect.parentNode;
+          let opacity = '1', scale = 'scale(1)', fill = 'var(--bg-elevated)', stroke = 'var(--algo-border)', txtFill = 'var(--text-primary)';
 
-          let fill = 'var(--algo-canvas-bg)';
-          let stroke = 'var(--border-color)';
-          let textFill = 'var(--text-primary)';
-          let opacity = '1';
-          let scale = 'scale(1)';
-
-          // إخفاء الخلايا المستقبلية
-          if (i > s.i && s.phase !== 'done') {
-             opacity = '0.1';
-             text.textContent = '';
-          } else if (i === s.i && j > s.j && s.phase !== 'done') {
-             opacity = '0.1';
-             text.textContent = '';
-          } else {
-             text.textContent = val;
-             // تبهيت الصفوف السابقة للتركيز
-             if (s.phase !== 'done' && i < s.i - 1) opacity = '0.3';
-             if (s.phase !== 'done' && i === s.i - 1) opacity = '0.8';
+          // منطق الرؤية
+          if (i > s.i || (i === s.i && j > s.j)) {
+            if (s.phase !== 'done') { opacity = '0.1'; val = ''; }
+          } else if (s.phase !== 'done' && i < s.i - 1) {
+            opacity = '0.25'; // تبهيت الصفوف القديمة لتركيز الانتباه
           }
 
-          // الألوان والتحديدات
+          // الألوان والتحديد
           if (s.phase === 'done' && i === numItems && j === W) {
-            fill = 'var(--algo-sorted)';
-            stroke = '#ffffff';
-            textFill = '#ffffff';
-            scale = 'scale(1.1)';
+            fill = 'var(--algo-sorted)'; stroke = '#ffffff'; txtFill = '#ffffff'; scale = 'scale(1.15)';
           } else if (i === s.i && j === s.j) {
-            fill = 'var(--algo-compare)'; // Target cell
-            stroke = '#ffffff';
-            textFill = '#ffffff';
-            scale = 'scale(1.1)';
+            fill = 'var(--algo-active)'; stroke = '#ffffff'; txtFill = '#ffffff'; scale = 'scale(1.15)';
           } else if (s.from1 && s.from1.r === i && s.from1.c === j) {
-            fill = 'var(--algo-swap)'; // Exclude cell
-            stroke = '#ffffff';
-            textFill = '#ffffff';
+            fill = 'var(--algo-swap)'; stroke = '#ffffff'; txtFill = '#ffffff';
           } else if (s.from2 && s.from2.r === i && s.from2.c === j) {
-            fill = 'var(--brand-500)'; // Include cell
-            stroke = '#ffffff';
-            textFill = '#ffffff';
+            fill = 'var(--brand-500)'; stroke = '#ffffff'; txtFill = '#ffffff';
           }
 
-          g.style.opacity = opacity;
-          rect.style.transform = scale;
-          rect.style.transformOrigin = `${startX + j*cellW + cellW/2}px ${startY + i*cellH + cellH/2}px`;
-          rect.setAttribute('fill', fill);
-          rect.setAttribute('stroke', stroke);
-          text.setAttribute('fill', textFill);
+          ui.g.style.opacity = opacity;
+          ui.g.style.transform = scale;
+          ui.rect.setAttribute('fill', fill);
+          ui.rect.setAttribute('stroke', stroke);
+          ui.txt.setAttribute('fill', txtFill);
+          ui.txt.textContent = val;
         }
       }
 
-      // 2. تحديث الأسهم
+      // 2. تحديث الأسهم مع رياضيات دقيقة لا تخترق الخلايا
       arrowExclude.style.opacity = '0';
       arrowInclude.style.opacity = '0';
 
-      if (s.from1 && (s.phase === 'exclude' || s.phase === 'compare')) {
-        let x1 = startX + s.from1.c * cellW + cellW/2;
-        let y1 = startY + s.from1.r * cellH + cellH;
-        let x2 = startX + s.j * cellW + cellW/2;
-        let y2 = startY + s.i * cellH - 4; // Offset for marker
-
-        arrowExclude.setAttribute('x1', x1);
-        arrowExclude.setAttribute('y1', y1);
-        arrowExclude.setAttribute('x2', x2);
-        arrowExclude.setAttribute('y2', y2);
+      if (s.phase === 'exclude' || s.phase === 'compare') {
+        let u = uiCells[s.from1.r][s.from1.c];
+        let v = uiCells[s.i][s.j];
+        arrowExclude.setAttribute('x1', u.cx);
+        arrowExclude.setAttribute('y1', u.cy + CELL_H/2);
+        arrowExclude.setAttribute('x2', v.cx);
+        arrowExclude.setAttribute('y2', v.cy - CELL_H/2 - 6);
         arrowExclude.style.opacity = '1';
       }
 
-      if (s.from2 && s.phase === 'compare') {
-        let x1 = startX + s.from2.c * cellW + cellW/2;
-        let y1 = startY + s.from2.r * cellH + cellH;
-        let x2 = startX + s.j * cellW + cellW/2 - 8; // إزاحة خفيفة لمنع التطابق مع السهم الآخر
-        let y2 = startY + s.i * cellH - 4;
+      if (s.phase === 'compare' && s.from2) {
+        let u = uiCells[s.from2.r][s.from2.c];
+        let v = uiCells[s.i][s.j];
+        // رسم منحنى أنيق باستخدام (Quadratic Bezier Curve) لتجنب التداخل مع سهم الاستبعاد
+        let startX = u.cx;
+        let startY = u.cy + CELL_H/2;
+        let endX = v.cx - 10; // الإزاحة قليلاً لليسار عن السهم الآخر
+        let endY = v.cy - CELL_H/2 - 6;
+        let midX = startX + (endX - startX) / 2;
+        let midY = startY + (endY - startY) / 2 + 25; // انحناء لأسفل
 
-        arrowInclude.setAttribute('x1', x1);
-        arrowInclude.setAttribute('y1', y1);
-        arrowInclude.setAttribute('x2', x2);
-        arrowInclude.setAttribute('y2', y2);
+        arrowInclude.setAttribute('d', `M ${startX} ${startY} Q ${midX} ${midY} ${endX} ${endY}`);
         arrowInclude.style.opacity = '1';
       }
 
-      // 3. تحديث صندوق المعادلة
+      // 3. تحديث صندوق المعادلة (HTML Overlay)
       if (s.phase === 'compare' || s.phase === 'exclude') {
-        formulaGroup.style.opacity = '1';
-        let fText = `F(${s.i}, ${s.j}) = `;
+        formulaBox.style.opacity = '1';
+        let html = `DP[${s.i}][${s.j}] = `;
         if (s.phase === 'exclude') {
-           fText += `F(${s.i-1}, ${s.j}) = ${s.val}`;
-           formulaRect.setAttribute('stroke', 'var(--algo-swap)');
+          html += `<span style="color:var(--algo-swap);">DP[${s.i-1}][${s.j}]</span> = ${s.val}`;
+          formulaBox.style.borderColor = 'var(--algo-swap)';
         } else {
-           fText += `max( F(${s.i-1}, ${s.j}), ${s.v} + F(${s.i-1}, ${s.j - s.w}) ) = ${s.maxVal}`;
-           formulaRect.setAttribute('stroke', 'var(--algo-active)');
+          html += `max( <span style="color:var(--algo-swap);">${s.valExclude}</span>, <span style="color:var(--brand-500);">${s.v} + ${s.valInclude - s.v}</span> ) = <span style="color:var(--algo-active);">${s.maxVal}</span>`;
+          formulaBox.style.borderColor = 'var(--algo-active)';
         }
-        formulaText.textContent = fText;
+        formulaBox.innerHTML = html;
       } else {
-        formulaGroup.style.opacity = '0';
+        formulaBox.style.opacity = '0';
       }
     }
 
     function startPlay() {
       playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
       if (cur >= steps.length - 1) cur = 0;
-      interval = setInterval(function() {
-        if (cur < steps.length - 1) { cur++; render(); } else stopPlay();
-      }, getDelay());
+      interval = setInterval(function() { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay());
     }
     
     function stopPlay() {
@@ -788,7 +694,8 @@ window.AlgoWidgets[2] = function(container) {
     container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function() { stopPlay(); if (cur > 0) { cur--; render(); } });
     container.querySelector('[data-algo-btn="step"]').addEventListener('click', function() { stopPlay(); if (cur < steps.length - 1) { cur++; render(); } });
     container.querySelector('[data-algo-btn="play"]').addEventListener('click', function() { playing ? stopPlay() : startPlay(); });
-    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function() { stopPlay(); generateSteps(); cur = 0; render(); });
+    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function() { stopPlay(); isInitialized = false; generateSteps(); cur = 0; render(); });
+    
     container.querySelector('.algo-speed input').addEventListener('input', function() {
       if (playing) {
         clearInterval(interval);

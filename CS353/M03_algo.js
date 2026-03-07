@@ -763,35 +763,55 @@ window.AlgoWidgets[3] = function(container) {
     render();
 };
 
+window._algoTitles = window._algoTitles || {};
+window._algoTitles[4] = { en: 'Closest Pair (Brute Force)', ar: 'أقرب زوج (القوة الغاشمة)' };
+
 window.AlgoWidgets[4] = function (container) {
   container.innerHTML = '<div class="algo-widget">' +
     _AL.titleHTML(4) +
     _AL.toolbar(4) +
-    '<div class="algo-explanation" id="w4-exp"></div>' +
-    '<div class="algo-canvas" style="width:500px; height:300px; margin: 15px auto; border: 1px solid var(--algo-border); background-color: var(--algo-canvas-bg);">' +
-    '<svg id="w4-svg" width="500" height="300" viewBox="0 0 500 300"></svg>' +
+    '<div class="algo-explanation" id="w4-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+    
+    // حاوية متجاوبة 16:9
+    '<div class="algo-canvas" style="position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
+      '<svg id="w4-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
     '</div>' +
-    '<div class="algo-legend" style="display:flex;justify-content:center;gap:15px;margin-top:12px;font-size:0.9em;">' +
-    '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w4-point"></span></span>' +
-    '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w4-current"></span></span>' +
-    '<span><span style="display:inline-block;width:12px;height:12px;border-bottom:2px dashed var(--algo-compare);margin-right:4px;"></span><span data-algo-text="w4-compare"></span></span>' +
-    '<span><span style="display:inline-block;width:12px;height:12px;border-bottom:2px solid var(--algo-sorted);margin-right:4px;"></span><span data-algo-text="w4-closest"></span></span>' +
+    
+    // دليل الألوان
+    '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.85rem;color:var(--text-secondary);">' +
+      '<span><span style="display:inline-block;width:12px;height:12px;background:var(--bg-elevated);border:2px solid var(--text-muted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w4-point"></span></span>' +
+      '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w4-current"></span></span>' +
+      '<span><span style="display:inline-block;width:16px;height:2px;border-bottom:3px dashed var(--algo-compare);margin-right:4px;vertical-align:middle;"></span><span data-algo-text="w4-compare-line"></span></span>' +
+      '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w4-closest"></span></span>' +
     '</div>' +
-    '</div>';
+  '</div>';
 
   var btnPlay = container.querySelector('[data-algo-btn="play"]');
-  var expEl = container.querySelector('#w4-exp');
-  var svgEl = container.querySelector('#w4-svg');
+  var expEl   = container.querySelector('#w4-exp');
+  var svgEl   = container.querySelector('#w4-svg');
   var counter = container.querySelector('[data-algo-counter]');
+  
   var steps = [], cur = 0, playing = false, interval = null;
+  var isInitialized = false;
+
+  // مساحة الرسم (800x450) مع هوامش للحواف
+  const W = 800, H = 450, PADDING = 60;
+  const RADIUS = 8;
+  
+  // بيانات الخوارزمية وعناصر الـ UI
+  var points = [];
+  var uiPoints = [];
+  var uiBestLine = null;
+  var uiCurrLine = null;
+  var uiDistLabel = { g: null, bg: null, txt: null };
 
   function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
 
   function updateLabels() {
-    container.querySelector('[data-algo-text="w4-point"]').textContent = _AL.lang() === 'ar' ? 'نقطة' : 'Point';
-    container.querySelector('[data-algo-text="w4-current"]').textContent = _AL.lang() === 'ar' ? 'نقطة حالية' : 'Current Point';
-    container.querySelector('[data-algo-text="w4-compare"]').textContent = _AL.lang() === 'ar' ? 'مقارنة المسافة' : 'Comparing Distance';
-    container.querySelector('[data-algo-text="w4-closest"]').textContent = _AL.lang() === 'ar' ? 'أقرب زوج' : 'Closest Pair';
+    container.querySelector('[data-algo-text="w4-point"]').textContent        = _AL.exp('Unexplored Point', 'نقطة لم تُفحص');
+    container.querySelector('[data-algo-text="w4-current"]').textContent      = _AL.exp('Currently Comparing', 'نقطة قيد المقارنة');
+    container.querySelector('[data-algo-text="w4-compare-line"]').textContent = _AL.exp('Distance Check', 'قياس المسافة');
+    container.querySelector('[data-algo-text="w4-closest"]').textContent      = _AL.exp('Closest Pair Found', 'أقرب زوج تم العثور عليه');
   }
 
   function dist(p1, p2) {
@@ -799,26 +819,26 @@ window.AlgoWidgets[4] = function (container) {
   }
 
   function generateSteps() {
-    var points = [];
-    var numPoints = 8 + Math.floor(Math.random() * 3); // 8-10 points
+    points = [];
+    // توليد 8 إلى 12 نقطة عشوائية بمسافات متباعدة نسبياً
+    var numPoints = Math.floor(Math.random() * 5) + 8; 
+    
     for (var i = 0; i < numPoints; i++) {
       points.push({
-        id: i,
-        x: 20 + Math.floor(Math.random() * 460), // 20 to 480
-        y: 20 + Math.floor(Math.random() * 260)  // 20 to 280
+        id: String.fromCharCode(65 + i), // A, B, C...
+        x: PADDING + Math.floor(Math.random() * (W - PADDING * 2)),
+        y: PADDING + Math.floor(Math.random() * (H - PADDING * 2))
       });
     }
 
     steps = [];
     var minDist = Infinity;
-    var closestPair = []; // [idx1, idx2]
+    var closestPair = null;
 
     steps.push({
-      points: points.slice(),
-      p1Idx: null, p2Idx: null, currentDist: null,
-      minDist: Infinity, closestPair: [],
-      en: 'Initial state: ' + numPoints + ' random points generated.',
-      ar: 'الحالة الأولية: تم إنشاء ' + numPoints + ' نقطة عشوائية.'
+      p1: null, p2: null, phase: 'intro', currDist: null, bestDist: Infinity, bestPair: null,
+      en: `<strong>Brute Force:</strong> We have ${numPoints} random points. We need to check the distance between <em>every single pair</em>.`,
+      ar: `<strong>القوة الغاشمة (Brute Force):</strong> لدينا ${numPoints} نقاط عشوائية. سنقوم بحساب المسافة بين <em>كل زوج ممكن</em> من النقاط.`
     });
 
     for (var i = 0; i < numPoints; i++) {
@@ -828,95 +848,174 @@ window.AlgoWidgets[4] = function (container) {
         var d = dist(p1, p2);
 
         steps.push({
-          points: points.slice(),
-          p1Idx: i, p2Idx: j, currentDist: d,
-          minDist: minDist, closestPair: closestPair.slice(),
-          en: 'Comparing point ' + i + ' (' + p1.x + ',' + p1.y + ') and point ' + j + ' (' + p2.x + ',' + p2.y + '). Distance: ' + d.toFixed(2) + '.',
-          ar: 'مقارنة النقطة ' + i + ' (' + p1.x + ',' + p1.y + ') والنقطة ' + j + ' (' + p2.x + ',' + p2.y + '). المسافة: ' + d.toFixed(2) + '.'
+          p1: i, p2: j, phase: 'compare', currDist: d, bestDist: minDist, bestPair: closestPair ? [...closestPair] : null,
+          en: `Measuring distance between <strong>${p1.id}</strong> and <strong>${p2.id}</strong>. Distance = <strong>${d.toFixed(1)}</strong>.`,
+          ar: `قياس المسافة بين <strong>${p1.id}</strong> و <strong>${p2.id}</strong>. المسافة = <strong dir="ltr">${d.toFixed(1)}</strong>.`
         });
 
         if (d < minDist) {
           minDist = d;
           closestPair = [i, j];
           steps.push({
-            points: points.slice(),
-            p1Idx: i, p2Idx: j, currentDist: d,
-            minDist: minDist, closestPair: closestPair.slice(),
-            en: 'New minimum distance found: ' + d.toFixed(2) + ' between points ' + i + ' and ' + j + '.',
-            ar: 'تم العثور على مسافة دنيا جديدة: ' + d.toFixed(2) + ' بين النقطتين ' + i + ' و ' + j + '.'
+            p1: i, p2: j, phase: 'new_min', currDist: d, bestDist: minDist, bestPair: [...closestPair],
+            en: `<strong>New Minimum Found!</strong> ${d.toFixed(1)} is smaller than our previous best. Update closest pair.`,
+            ar: `<strong>تم العثور على مسافة أصغر!</strong> <span dir="ltr">${d.toFixed(1)}</span> أصغر من المسافة السابقة. نحدّث أقرب زوج.`
           });
         }
       }
     }
 
     steps.push({
-      points: points.slice(),
-      p1Idx: null, p2Idx: null, currentDist: null,
-      minDist: minDist, closestPair: closestPair.slice(),
-      en: 'Algorithm finished. Closest pair: points ' + closestPair[0] + ' and ' + closestPair[1] + ' with distance ' + minDist.toFixed(2) + '.',
-      ar: 'انتهت الخوارزمية. أقرب زوج: النقطتان ' + closestPair[0] + ' و ' + closestPair[1] + ' بمسافة ' + minDist.toFixed(2) + '.'
+      p1: null, p2: null, phase: 'done', currDist: null, bestDist: minDist, bestPair: [...closestPair],
+      en: `<strong>Finished!</strong> The closest points are <strong>${points[closestPair[0]].id}</strong> and <strong>${points[closestPair[1]].id}</strong> with a distance of <strong>${minDist.toFixed(1)}</strong>.`,
+      ar: `<strong>انتهينا!</strong> أقرب نقطتين هما <strong>${points[closestPair[0]].id}</strong> و <strong>${points[closestPair[1]].id}</strong> بمسافة قدرها <strong dir="ltr">${minDist.toFixed(1)}</strong>.`
     });
   }
 
+  function makeSVG(tag, attrs) {
+    let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (let k in attrs) el.setAttribute(k, attrs[k]);
+    el.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    return el;
+  }
+
+  function buildSVG() {
+    svgEl.innerHTML = '';
+    uiPoints = [];
+
+    // مجموعة الخطوط في الخلفية
+    let linesG = makeSVG('g', {});
+    
+    // خط أفضل مسافة (Best Pair Line)
+    uiBestLine = makeSVG('line', { stroke: 'var(--algo-sorted)', 'stroke-width': 4, opacity: 0 });
+    linesG.appendChild(uiBestLine);
+
+    // خط المقارنة الحالية (Current Comparison Line)
+    uiCurrLine = makeSVG('line', { stroke: 'var(--algo-compare)', 'stroke-width': 2.5, 'stroke-dasharray': '6,4', opacity: 0 });
+    linesG.appendChild(uiCurrLine);
+    
+    svgEl.appendChild(linesG);
+
+    // مجموعة النقاط
+    let nodesG = makeSVG('g', {});
+    points.forEach((p, i) => {
+      let g = makeSVG('g', { 'transform-origin': `${p.x}px ${p.y}px` });
+      
+      let circ = makeSVG('circle', { cx: p.x, cy: p.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--text-muted)', 'stroke-width': 2 });
+      
+      // خلفية بسيطة للحرف ليكون مقروءاً دائماً
+      let lblBg = makeSVG('circle', { cx: p.x, cy: p.y - 20, r: 10, fill: 'var(--algo-canvas-bg)', opacity: 0.8 });
+      let lbl = makeSVG('text', { x: p.x, y: p.y - 20, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-weight': 'bold', 'font-size': '14px' });
+      lbl.textContent = p.id;
+
+      g.appendChild(circ);
+      g.appendChild(lblBg);
+      g.appendChild(lbl);
+      nodesG.appendChild(g);
+      
+      uiPoints.push({ g, circ, lblBg, lbl, x: p.x, y: p.y });
+    });
+    svgEl.appendChild(nodesG);
+
+    // صندوق يطفو فوق خط المقارنة لعرض المسافة الحالية
+    uiDistLabel.g = makeSVG('g', { opacity: 0 });
+    uiDistLabel.bg = makeSVG('rect', { width: 54, height: 24, rx: 6, fill: 'var(--algo-compare)' });
+    uiDistLabel.txt = makeSVG('text', { 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: '#ffffff', 'font-family': "'JetBrains Mono', monospace", 'font-weight': '800', 'font-size': '13px' });
+    uiDistLabel.g.appendChild(uiDistLabel.bg);
+    uiDistLabel.g.appendChild(uiDistLabel.txt);
+    svgEl.appendChild(uiDistLabel.g);
+
+    isInitialized = true;
+  }
+
   function render() {
+    if (!isInitialized) buildSVG();
     updateLabels();
     var s = steps[cur];
     counter.textContent = _AL.stepLabel(cur, steps.length - 1);
     expEl.innerHTML = _AL.exp(s.en, s.ar);
 
-    // Clear SVG
-    svgEl.innerHTML = '';
+    // 1. تحديث الخط الأفضل (Best Line)
+    if (s.bestPair) {
+      let bp1 = points[s.bestPair[0]];
+      let bp2 = points[s.bestPair[1]];
+      uiBestLine.setAttribute('x1', bp1.x); uiBestLine.setAttribute('y1', bp1.y);
+      uiBestLine.setAttribute('x2', bp2.x); uiBestLine.setAttribute('y2', bp2.y);
+      uiBestLine.style.opacity = (s.phase === 'done') ? '1' : '0.4'; // واضح جداً في النهاية، باهت أثناء البحث
+    } else {
+      uiBestLine.style.opacity = '0';
+    }
 
-    // Draw all points
-    s.points.forEach(function (p, idx) {
-      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', p.x);
-      circle.setAttribute('cy', p.y);
-      circle.setAttribute('r', '5');
-      circle.setAttribute('fill', 'var(--brand-500)');
-      if (idx === s.p1Idx || idx === s.p2Idx) {
-        circle.setAttribute('fill', 'var(--algo-active)');
-        circle.setAttribute('r', '6');
+    // 2. تحديث خط المقارنة الحالي وتسمية المسافة (Current Compare Line & Label)
+    if (s.p1 !== null && s.p2 !== null && s.phase !== 'done') {
+      let cp1 = points[s.p1];
+      let cp2 = points[s.p2];
+      uiCurrLine.setAttribute('x1', cp1.x); uiCurrLine.setAttribute('y1', cp1.y);
+      uiCurrLine.setAttribute('x2', cp2.x); uiCurrLine.setAttribute('y2', cp2.y);
+      
+      let mx = (cp1.x + cp2.x) / 2;
+      let my = (cp1.y + cp2.y) / 2;
+      
+      // إذا كان هذا هو الرقم الأصغر الجديد، نغير لون الصندوق ليكون مميزاً
+      let isNewMin = s.phase === 'new_min';
+      let boxColor = isNewMin ? 'var(--algo-swap)' : 'var(--algo-compare)';
+      uiCurrLine.setAttribute('stroke', boxColor);
+      uiCurrLine.setAttribute('stroke-width', isNewMin ? '4' : '2.5');
+      uiCurrLine.setAttribute('stroke-dasharray', isNewMin ? '0' : '6,4');
+      
+      uiDistLabel.bg.setAttribute('fill', boxColor);
+      uiDistLabel.bg.setAttribute('x', mx - 27);
+      uiDistLabel.bg.setAttribute('y', my - 12);
+      uiDistLabel.txt.setAttribute('x', mx);
+      uiDistLabel.txt.setAttribute('y', my);
+      uiDistLabel.txt.textContent = s.currDist.toFixed(1);
+      
+      uiCurrLine.style.opacity = '1';
+      uiDistLabel.g.style.opacity = '1';
+      
+      // تأثير القفز للرقم عند إيجاد حد أدنى جديد
+      uiDistLabel.g.style.transform = isNewMin ? 'scale(1.2)' : 'scale(1)';
+      uiDistLabel.g.style.transformOrigin = `${mx}px ${my}px`;
+    } else {
+      uiCurrLine.style.opacity = '0';
+      uiDistLabel.g.style.opacity = '0';
+    }
+
+    // 3. تحديث مظهر النقاط (Nodes)
+    uiPoints.forEach((ui, idx) => {
+      let isComparing = (idx === s.p1 || idx === s.p2) && s.phase !== 'done';
+      let isBest = (s.bestPair && (idx === s.bestPair[0] || idx === s.bestPair[1]));
+      let isNewMin = isComparing && s.phase === 'new_min';
+
+      let fill = 'var(--bg-elevated)';
+      let stroke = 'var(--text-muted)';
+      let scale = 'scale(1)';
+      let opacity = '0.3'; // بهتان النقاط غير النشطة للتركيز على مسار الفحص
+
+      if (s.phase === 'intro' || s.phase === 'done') {
+        opacity = '1';
       }
-      svgEl.appendChild(circle);
 
-      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', p.x + 8);
-      text.setAttribute('y', p.y + 4);
-      text.setAttribute('fill', 'var(--algo-text)');
-      text.setAttribute('font-size', '12');
-      text.textContent = p.id;
-      svgEl.appendChild(text);
+      if (isComparing) {
+        fill = isNewMin ? 'var(--algo-swap)' : 'var(--algo-compare)';
+        stroke = '#ffffff';
+        scale = 'scale(1.4)';
+        opacity = '1';
+        // إظهار النقاط التي يتم فحصها في المقدمة
+        ui.g.parentNode.appendChild(ui.g); 
+      } else if (isBest) {
+        fill = 'var(--algo-sorted)';
+        stroke = '#ffffff';
+        scale = (s.phase === 'done') ? 'scale(1.5)' : 'scale(1.2)';
+        opacity = '1';
+      }
+
+      ui.circ.setAttribute('fill', fill);
+      ui.circ.setAttribute('stroke', stroke);
+      ui.circ.setAttribute('stroke-width', (isComparing || isBest) ? '3' : '2');
+      ui.g.style.transform = scale;
+      ui.g.style.opacity = opacity;
     });
-
-    // Draw current comparison line
-    if (s.p1Idx !== null && s.p2Idx !== null) {
-      var p1 = s.points[s.p1Idx];
-      var p2 = s.points[s.p2Idx];
-      var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', p1.x);
-      line.setAttribute('y1', p1.y);
-      line.setAttribute('x2', p2.x);
-      line.setAttribute('y2', p2.y);
-      line.setAttribute('stroke', 'var(--algo-compare)');
-      line.setAttribute('stroke-width', '1');
-      line.setAttribute('stroke-dasharray', '4,2');
-      svgEl.appendChild(line);
-    }
-
-    // Draw closest pair line found so far
-    if (s.closestPair.length === 2) {
-      var cp1 = s.points[s.closestPair[0]];
-      var cp2 = s.points[s.closestPair[1]];
-      var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', cp1.x);
-      line.setAttribute('y1', cp1.y);
-      line.setAttribute('x2', cp2.x);
-      line.setAttribute('y2', cp2.y);
-      line.setAttribute('stroke', 'var(--algo-sorted)');
-      line.setAttribute('stroke-width', '2');
-      svgEl.appendChild(line);
-    }
   }
 
   function startPlay() {
@@ -924,6 +1023,7 @@ window.AlgoWidgets[4] = function (container) {
     if (cur >= steps.length - 1) cur = 0;
     interval = setInterval(function () { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay());
   }
+
   function stopPlay() {
     playing = false; clearInterval(interval); interval = null;
     btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
@@ -932,7 +1032,16 @@ window.AlgoWidgets[4] = function (container) {
   container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function () { stopPlay(); if (cur > 0) { cur--; render(); } });
   container.querySelector('[data-algo-btn="step"]').addEventListener('click', function () { stopPlay(); if (cur < steps.length - 1) { cur++; render(); } });
   container.querySelector('[data-algo-btn="play"]').addEventListener('click', function () { playing ? stopPlay() : startPlay(); });
-  container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function () { stopPlay(); generateSteps(); cur = 0; render(); });
+  
+  // إعادة التوليد بأرقام وإحداثيات جديدة عند النقر على "إعادة"
+  container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function () { 
+    stopPlay(); 
+    isInitialized = false;
+    generateSteps(); 
+    cur = 0; 
+    render(); 
+  });
+  
   container.querySelector('.algo-speed input').addEventListener('input', function () {
     if (playing) { clearInterval(interval); interval = setInterval(function () { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay()); }
   });
@@ -2270,336 +2379,358 @@ window.AlgoWidgets[8] = function(container) {
     render();
 };
 
+window._algoTitles = window._algoTitles || {};
+window._algoTitles[9] = { en: 'Breadth-First Search (BFS)', ar: 'البحث في العرض أولاً (BFS)' };
+
 window.AlgoWidgets[9] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
       _AL.titleHTML(9) +
       _AL.toolbar(9) +
-      '<div class="algo-explanation" id="w9-exp"></div>' +
-      '<div class="algo-canvas" id="w9-canvas" style="width:400px; height:400px; margin: 0 auto; border: 1px solid var(--algo-border); box-sizing: content-box; overflow: visible;">' +
-      '<svg width="100%" height="100%" viewBox="0 0 400 400"></svg>' +
+      '<div class="algo-explanation" id="w9-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+      
+      // حاوية متجاوبة بأبعاد 16:9 مع شبكة (Grid) لتجاوب أفضل بين الرسم والطابور
+      '<div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 15px; width: 100%; max-width: 800px; margin: 0 auto;">' +
+        '<div class="algo-canvas" id="w9-canvas" style="position:relative; width:100%; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
+          '<svg id="w9-svg" width="100%" height="100%" viewBox="0 0 600 350" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+        '</div>' +
+        
+        '<div class="algo-queue-container" style="text-align: center; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--bg-elevated); padding: 10px;">' +
+          '<h5 data-algo-text="w9-queue-label" style="margin: 0 0 10px 0; color: var(--text-primary); font-family: \'Cairo\', sans-serif; font-weight: 800; font-size: 1rem;"></h5>' +
+          '<div id="w9-queue" style="display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; flex-wrap: wrap;"></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="algo-queue-container" style="margin-top: 20px; text-align: center;">' +
-      '<h5 data-algo-text="w9-queue-label" style="margin-bottom: 10px; color: var(--algo-text);"></h5>' +
-      '<div id="w9-queue" style="display: flex; justify-content: center; align-items: center; gap: 5px; min-height: 40px; border: 1px solid var(--algo-border); padding: 5px; border-radius: 5px; background: var(--algo-canvas-bg);"></div>' +
+      
+      '<div class="algo-legend" style="display:flex; justify-content:center; flex-wrap:wrap; gap:15px; margin-top:15px; font-size:0.85rem; color: var(--text-secondary);">' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--bg-elevated);border:2px solid var(--text-muted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w9-unvisited"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w9-in-queue"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w9-current"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w9-visited"></span></span>' +
       '</div>' +
-      '<div class="algo-legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 15px; font-size: 0.9em;">' +
-      '<span><span class="legend-color-box" style="background:var(--brand-500);"></span><span data-algo-text="w9-unvisited"></span></span>' +
-      '<span><span class="legend-color-box" style="background:var(--algo-compare);"></span><span data-algo-text="w9-in-queue"></span></span>' +
-      '<span><span class="legend-color-box" style="background:var(--algo-active);"></span><span data-algo-text="w9-current"></span></span>' +
-      '<span><span class="legend-color-box" style="background:var(--algo-sorted);"></span><span data-algo-text="w9-visited"></span></span>' +
-      '</div>' +
-      '</div>';
-  
+    '</div>';
+
     var btnPlay = container.querySelector('[data-algo-btn="play"]');
-    var expEl = container.querySelector('#w9-exp');
-    var svgEl = container.querySelector('#w9-canvas svg');
+    var expEl   = container.querySelector('#w9-exp');
+    var svgEl   = container.querySelector('#w9-svg');
     var queueEl = container.querySelector('#w9-queue');
     var counter = container.querySelector('[data-algo-counter]');
-  
+
     var steps = [], cur = 0, playing = false, interval = null;
-  
-    // Graph definition (fixed for consistent visualization)
+    var isInitialized = false;
+
+    // بنية الجراف مع إحداثيات متناسقة لـ viewBox="0 0 600 350"
+    const RADIUS = 22;
     var graph = {
       'A': ['B', 'C'],
       'B': ['A', 'D', 'G'],
-      'C': ['A', 'E'],
+      'C': ['A', 'E', 'G'],
       'D': ['B', 'F'],
       'E': ['C', 'F'],
       'F': ['D', 'E'],
-      'G': ['B']
+      'G': ['B', 'C']
     };
-  
+
     var nodePositions = {
-      'A': { x: 200, y: 50 },
-      'B': { x: 100, y: 150 },
-      'C': { x: 300, y: 150 },
-      'D': { x: 50, y: 250 },
-      'E': { x: 350, y: 250 },
-      'F': { x: 200, y: 350 },
-      'G': { x: 100, y: 350 } // Adjusted G to prevent overlap and make it look better
+      'A': { x: 300, y: 50 },
+      'B': { x: 150, y: 150 },
+      'C': { x: 450, y: 150 },
+      'D': { x: 80,  y: 280 },
+      'E': { x: 520, y: 280 },
+      'F': { x: 300, y: 280 },
+      'G': { x: 300, y: 170 } // توسيط G بين B و C
     };
-    // Re-adjust G for better visual separation
-    nodePositions['G'] = { x: 300, y: 50 }; // Move G to top right
-  
-    // Update G's edges in graph to reflect its new position if needed, but it's fine as a neighbor of B.
-    // Let's make G a neighbor of B and C for more interesting paths.
-    graph = {
-      'A': ['B', 'C'],
-      'B': ['A', 'D', 'G'],
-      'C': ['A', 'E', 'G'], // C now also connects to G
-      'D': ['B', 'F'],
-      'E': ['C', 'F'],
-      'F': ['D', 'E'],
-      'G': ['B', 'C'] // G now connects to B and C
-    };
-  
-  
+
+    var allEdges = [];
+    // بناء قائمة حواف فريدة
+    let seenEdges = new Set();
+    Object.keys(graph).forEach(u => {
+      graph[u].forEach(v => {
+        let edgeId = [u, v].sort().join('-');
+        if (!seenEdges.has(edgeId)) {
+          allEdges.push({ u: u, v: v, id: edgeId });
+          seenEdges.add(edgeId);
+        }
+      });
+    });
+
+    var uiNodes = {};
+    var uiEdges = {};
+
     function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
-  
+
     function updateLabels() {
-      container.querySelector('[data-algo-text="w9-queue-label"]').textContent = _AL.lang() === 'ar' ? 'الطابور (Queue)' : 'Queue';
-      container.querySelector('[data-algo-text="w9-unvisited"]').textContent = _AL.lang() === 'ar' ? 'لم تتم زيارته' : 'Unvisited';
-      container.querySelector('[data-algo-text="w9-in-queue"]').textContent = _AL.lang() === 'ar' ? 'في الطابور' : 'In Queue';
-      container.querySelector('[data-algo-text="w9-current"]').textContent = _AL.lang() === 'ar' ? 'العقدة الحالية' : 'Current Node';
-      container.querySelector('[data-algo-text="w9-visited"]').textContent = _AL.lang() === 'ar' ? 'تمت زيارته' : 'Visited';
+      container.querySelector('[data-algo-text="w9-queue-label"]').textContent = _AL.exp('Queue (FIFO)', 'الطابور (Queue)');
+      container.querySelector('[data-algo-text="w9-unvisited"]').textContent   = _AL.exp('Unvisited', 'غير مستكشفة');
+      container.querySelector('[data-algo-text="w9-in-queue"]').textContent    = _AL.exp('In Queue', 'في الطابور');
+      container.querySelector('[data-algo-text="w9-current"]').textContent     = _AL.exp('Current Node', 'العقدة الحالية');
+      container.querySelector('[data-algo-text="w9-visited"]').textContent     = _AL.exp('Visited (Done)', 'مكتملة (تمت زيارتها)');
     }
-  
+
     function generateSteps() {
       steps = [];
-      var startNode = 'A'; // Always start BFS from node A
-  
+      
+      // التفاعلية: اختيار عقدة بداية عشوائية
+      let nodesArray = Object.keys(graph);
+      let startNode = nodesArray[Math.floor(Math.random() * nodesArray.length)];
+
       var visited = {};
       var distances = {};
-      var q = []; // Queue for BFS
-      var parent = {}; // To reconstruct paths or show traversal
-  
-      // Initialize all nodes as unvisited and distance infinity
+      var q = [];
+      
       Object.keys(graph).forEach(node => {
         visited[node] = false;
         distances[node] = Infinity;
-        parent[node] = null;
       });
-  
-      // Step 0: Initial state
+
       steps.push({
-        visited: { ...visited },
-        queue: [],
-        current: null,
-        distances: { ...distances },
-        highlightedEdge: null,
-        en: 'Initial state: All nodes unvisited, distances unknown. Starting BFS from node ' + startNode + '.',
-        ar: 'الحالة الأولية: جميع العقد لم تتم زيارتها، المسافات غير معروفة. بدء البحث في العرض أولاً من العقدة ' + startNode + '.'
+        visited: { ...visited }, queue: [...q], current: null, distances: { ...distances }, highlightedEdge: null,
+        en: `<strong>BFS Algorithm:</strong> We will explore the graph level by level starting from random node <strong>${startNode}</strong>.`,
+        ar: `<strong>خوارزمية BFS:</strong> سنستكشف الرسم البياني مستوى بمستوى، بدءاً من العقدة العشوائية <strong>${startNode}</strong>.`
       });
-  
-      // Step 1: Enqueue start node
+
       q.push(startNode);
       visited[startNode] = true;
       distances[startNode] = 0;
+      
       steps.push({
-        visited: { ...visited },
-        queue: [...q],
-        current: null,
-        distances: { ...distances },
-        highlightedEdge: null,
-        en: 'Enqueue start node ' + startNode + '. Mark as visited and set distance to 0.',
-        ar: 'إضافة عقدة البداية ' + startNode + ' إلى الطابور. تم وضع علامة عليها كـ "تمت زيارتها" وتعيين المسافة إلى 0.'
+        visited: { ...visited }, queue: [...q], current: null, distances: { ...distances }, highlightedEdge: null,
+        en: `Enqueue start node <strong>${startNode}</strong>. Mark it as visited and set its distance to 0.`,
+        ar: `أضف عقدة البداية <strong>${startNode}</strong> إلى الطابور. ضع علامة عليها كمزورة واضبط المسافة إلى 0.`
       });
-  
+
       while (q.length > 0) {
-        var u = q.shift(); // Dequeue
+        var u = q.shift();
+        
         steps.push({
-          visited: { ...visited },
-          queue: [...q],
-          current: u,
-          distances: { ...distances },
-          highlightedEdge: null,
-          en: 'Dequeue node ' + u + '. Now processing its neighbors.',
-          ar: 'إزالة العقدة ' + u + ' من الطابور. الآن تتم معالجة جيرانها.'
+          visited: { ...visited }, queue: [...q], current: u, distances: { ...distances }, highlightedEdge: null,
+          en: `Dequeue node <strong>${u}</strong>. Now we will process all its unvisited neighbors.`,
+          ar: `سحب العقدة <strong>${u}</strong> من الطابور. الآن سنعالج جميع جيرانها غير المستكشفين.`
         });
-  
-        var neighbors = graph[u];
+
+        // ترتيب الجيران ليكون العرض منطقياً
+        var neighbors = graph[u].slice().sort();
         for (var i = 0; i < neighbors.length; i++) {
           var v = neighbors[i];
-          var edge = [u, v].sort().join('-'); // Consistent edge ID
-  
+          var edgeId = [u, v].sort().join('-');
+
           steps.push({
-            visited: { ...visited },
-            queue: [...q],
-            current: u,
-            distances: { ...distances },
-            highlightedEdge: edge,
-            en: 'Checking neighbor ' + v + ' of ' + u + '.',
-            ar: 'التحقق من الجار ' + v + ' للعقدة ' + u + '.'
+            visited: { ...visited }, queue: [...q], current: u, distances: { ...distances }, highlightedEdge: edgeId,
+            en: `Checking neighbor <strong>${v}</strong> of node <strong>${u}</strong>.`,
+            ar: `فحص الجار <strong>${v}</strong> للعقدة <strong>${u}</strong>.`
           });
-  
+
           if (!visited[v]) {
             visited[v] = true;
             distances[v] = distances[u] + 1;
-            parent[v] = u;
             q.push(v);
+            
             steps.push({
-              visited: { ...visited },
-              queue: [...q],
-              current: u,
-              distances: { ...distances },
-              highlightedEdge: edge,
-              en: 'Neighbor ' + v + ' is unvisited. Mark as visited, set distance to ' + distances[v] + ', and enqueue.',
-              ar: 'الجار ' + v + ' لم تتم زيارته. تم وضع علامة عليه كـ "تمت زيارته"، وتعيين المسافة إلى ' + distances[v] + '، وإضافته إلى الطابور.'
+              visited: { ...visited }, queue: [...q], current: u, distances: { ...distances }, highlightedEdge: edgeId,
+              en: `Neighbor <strong>${v}</strong> is unvisited. Mark it as visited, distance = ${distances[v]}, and add to queue.`,
+              ar: `الجار <strong>${v}</strong> لم تتم زيارته بعد. ضع علامة، المسافة = ${distances[v]}، وأضفه للطابور.`
             });
           } else {
             steps.push({
-              visited: { ...visited },
-              queue: [...q],
-              current: u,
-              distances: { ...distances },
-              highlightedEdge: edge,
-              en: 'Neighbor ' + v + ' is already visited. Skipping.',
-              ar: 'الجار ' + v + ' تمت زيارته بالفعل. تخطي.'
+              visited: { ...visited }, queue: [...q], current: u, distances: { ...distances }, highlightedEdge: edgeId,
+              en: `Neighbor <strong>${v}</strong> is already visited or in the queue. Skipping.`,
+              ar: `الجار <strong>${v}</strong> تمت زيارته أو موجود في الطابور مسبقاً. تخطي.`
             });
           }
         }
+        
+        // بعد الانتهاء من جميع الجيران، العقدة تعتبر "منتهية" تماماً
+        // نستخدم حالة خاصة (أو نعتمد على كونها ليست في الطابور وليست الحالية ومزورة)
       }
-  
+
       steps.push({
-        visited: { ...visited },
-        queue: [],
-        current: null,
-        distances: { ...distances },
-        highlightedEdge: null,
-        en: 'Queue is empty. BFS traversal complete!',
-        ar: 'الطابور فارغ. اكتمل البحث في العرض أولاً!'
+        visited: { ...visited }, queue: [], current: null, distances: { ...distances }, highlightedEdge: null,
+        en: `Queue is empty. BFS traversal is <strong>complete</strong>! All reachable nodes have been visited.`,
+        ar: `الطابور فارغ. <strong>اكتمل</strong> الاستكشاف! تمت زيارة جميع العقد التي يمكن الوصول إليها.`
       });
     }
-  
+
+    function makeSVG(tag, attrs) {
+      let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (let k in attrs) el.setAttribute(k, attrs[k]);
+      el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      return el;
+    }
+
+    function buildSVG() {
+      svgEl.innerHTML = '';
+      uiNodes = {};
+      uiEdges = {};
+
+      let edgesG = makeSVG('g', {});
+      let nodesG = makeSVG('g', {});
+
+      // بناء الخطوط
+      allEdges.forEach(e => {
+        let p1 = nodePositions[e.u];
+        let p2 = nodePositions[e.v];
+        
+        // الحسابات المثلثية لتلامس الدائرة (حتى لو كبرت)
+        let dx = p2.x - p1.x; let dy = p2.y - p1.y; let dist = Math.hypot(dx, dy);
+        let x1 = p1.x + (dx/dist) * RADIUS; let y1 = p1.y + (dy/dist) * RADIUS;
+        let x2 = p2.x - (dx/dist) * RADIUS; let y2 = p2.y - (dy/dist) * RADIUS;
+
+        let line = makeSVG('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: 'var(--text-muted)', 'stroke-width': 2 });
+        edgesG.appendChild(line);
+        uiEdges[e.id] = line;
+      });
+
+      // بناء العقد
+      Object.keys(nodePositions).forEach(id => {
+        let p = nodePositions[id];
+        let g = makeSVG('g', { 'transform-origin': `${p.x}px ${p.y}px` });
+
+        let circ = makeSVG('circle', { cx: p.x, cy: p.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--text-muted)', 'stroke-width': 2 });
+        let txt = makeSVG('text', { x: p.x, y: p.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '18px', 'font-weight': '800' });
+        txt.textContent = id;
+
+        // نص المسافة
+        let distTxt = makeSVG('text', { x: p.x, y: p.y + RADIUS + 15, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: 'var(--text-muted)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '14px', 'font-weight': '700', opacity: 0 });
+
+        g.appendChild(circ);
+        g.appendChild(txt);
+        g.appendChild(distTxt);
+        nodesG.appendChild(g);
+
+        uiNodes[id] = { g: g, circ: circ, txt: txt, distTxt: distTxt };
+      });
+
+      svgEl.appendChild(edgesG);
+      svgEl.appendChild(nodesG);
+      isInitialized = true;
+    }
+
     function render() {
+      if(!isInitialized) buildSVG();
       updateLabels();
       var s = steps[cur];
       counter.textContent = _AL.stepLabel(cur, steps.length - 1);
       expEl.innerHTML = _AL.exp(s.en, s.ar);
-  
-      // Clear SVG
-      svgEl.innerHTML = '';
-  
-      // Draw edges first
-      var drawnEdges = new Set();
-      Object.keys(graph).forEach(u => {
-        graph[u].forEach(v => {
-          var edgeId = [u, v].sort().join('-');
-          if (!drawnEdges.has(edgeId)) {
-            var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', nodePositions[u].x);
-            line.setAttribute('y1', nodePositions[u].y);
-            line.setAttribute('x2', nodePositions[v].x);
-            line.setAttribute('y2', nodePositions[v].y);
-            line.setAttribute('stroke', 'var(--algo-muted)');
-            line.setAttribute('stroke-width', '2');
-            line.setAttribute('data-edge', edgeId);
-            if (s.highlightedEdge === edgeId) {
-              line.setAttribute('stroke', 'var(--algo-active)');
-              line.setAttribute('stroke-width', '3');
-            }
-            svgEl.appendChild(line);
-            drawnEdges.add(edgeId);
-          }
-        });
+
+      // 1. تحديث الخطوط
+      Object.keys(uiEdges).forEach(edgeId => {
+        let line = uiEdges[edgeId];
+        let isHl = s.highlightedEdge === edgeId;
+        
+        let color = isHl ? 'var(--algo-active)' : 'var(--text-muted)';
+        let sw = isHl ? '4' : '2';
+        let dash = isHl ? '6,4' : '0';
+        let op = isHl ? '1' : '0.3'; // التركيز على الخط الحالي
+        if(s.highlightedEdge === null && s.current === null) op = '1'; // النهاية
+
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', sw);
+        line.setAttribute('stroke-dasharray', dash);
+        line.style.opacity = op;
+        
+        // إظهار الخط في الأمام عند التحديد
+        if(isHl) line.parentNode.appendChild(line);
       });
-  
-      // Draw nodes
-      Object.keys(graph).forEach(node => {
-        var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', nodePositions[node].x);
-        circle.setAttribute('cy', nodePositions[node].y);
-        circle.setAttribute('r', '20');
-        circle.setAttribute('stroke', 'var(--algo-border)');
-        circle.setAttribute('stroke-width', '2');
-        circle.setAttribute('fill', 'var(--brand-500)'); // Default unvisited
-  
-        if (s.visited[node]) {
-          circle.setAttribute('fill', 'var(--algo-sorted)'); // Visited
+
+      // 2. تحديث العقد
+      Object.keys(uiNodes).forEach(id => {
+        let ui = uiNodes[id];
+        
+        let isCur = s.current === id;
+        let inQ = s.queue.includes(id);
+        let isVis = s.visited[id]; // visited in BFS means "discovered"
+        
+        // If it's visited, NOT in queue, and NOT current -> it is DONE
+        let isDone = isVis && !inQ && !isCur;
+
+        let fill = 'var(--bg-elevated)';
+        let stroke = 'var(--text-muted)';
+        let txtFill = 'var(--text-primary)';
+        let scale = 'scale(1)';
+
+        if (isCur) {
+          fill = 'var(--algo-active)'; stroke = '#ffffff'; txtFill = '#ffffff'; scale = 'scale(1.2)';
+          // جلب العقدة للأمام
+          ui.g.parentNode.appendChild(ui.g);
+        } else if (inQ) {
+          fill = 'var(--algo-compare)'; stroke = '#ffffff'; txtFill = '#ffffff'; scale = 'scale(1.1)';
+        } else if (isDone) {
+          fill = 'var(--algo-sorted)'; stroke = '#ffffff'; txtFill = '#ffffff';
         }
-        if (s.queue.includes(node)) {
-          circle.setAttribute('fill', 'var(--algo-compare)'); // In queue
-        }
-        if (s.current === node) {
-          circle.setAttribute('fill', 'var(--algo-active)'); // Current node being processed
-        }
-  
-        svgEl.appendChild(circle);
-  
-        // Node label
-        var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', nodePositions[node].x);
-        text.setAttribute('y', nodePositions[node].y + 5);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'var(--algo-text)');
-        text.setAttribute('font-size', '14');
-        text.textContent = node;
-        svgEl.appendChild(text);
-  
-        // Distance label (below node)
-        if (s.distances[node] !== Infinity) {
-          var distText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          distText.setAttribute('x', nodePositions[node].x);
-          distText.setAttribute('y', nodePositions[node].y + 35); // Position below node
-          distText.setAttribute('text-anchor', 'middle');
-          distText.setAttribute('fill', 'var(--algo-muted)');
-          distText.setAttribute('font-size', '12');
-          distText.textContent = 'd:' + s.distances[node];
-          svgEl.appendChild(distText);
-        }
-      });
-  
-      // Render queue
-      queueEl.innerHTML = '';
-      s.queue.forEach(node => {
-        var queueNode = document.createElement('div');
-        queueNode.className = 'algo-node-in-queue'; // Custom class for queue items
-        queueNode.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: var(--algo-compare); color: var(--algo-text); font-weight: bold; border: 1px solid var(--algo-border);';
-        queueNode.textContent = node;
-        queueEl.appendChild(queueNode);
-      });
-    }
-  
-    function startPlay() {
-      playing = true;
-      btnPlay.textContent = _AL.t('pause');
-      btnPlay.dataset.playing = '1';
-      if (cur >= steps.length - 1) cur = 0;
-      interval = setInterval(function () {
-        if (cur < steps.length - 1) {
-          cur++;
-          render();
+
+        ui.circ.setAttribute('fill', fill);
+        ui.circ.setAttribute('stroke', stroke);
+        ui.circ.setAttribute('stroke-width', isVis ? '2' : '2');
+        ui.txt.setAttribute('fill', txtFill);
+        ui.g.style.transform = scale;
+
+        // تحديث المسافة
+        let d = s.distances[id];
+        if (d !== Infinity) {
+          ui.distTxt.textContent = `d=${d}`;
+          ui.distTxt.style.opacity = '1';
+          ui.distTxt.setAttribute('fill', (isCur || inQ || isDone) ? 'var(--text-primary)' : 'var(--text-muted)');
         } else {
-          stopPlay();
+          ui.distTxt.style.opacity = '0';
         }
+      });
+
+      // 3. تحديث الطابور (Queue) برمجياً دون تدمير حاويته
+      queueEl.innerHTML = '';
+      if (s.queue.length === 0) {
+        queueEl.innerHTML = `<span style="color:var(--text-muted); font-size:14px; font-family:'Cairo', sans-serif;">${_AL.exp('Empty', 'فارغ')}</span>`;
+      } else {
+        s.queue.forEach(node => {
+          let box = document.createElement('div');
+          box.style.display = 'flex';
+          box.style.alignItems = 'center';
+          box.style.justifyContent = 'center';
+          box.style.width = '36px';
+          box.style.height = '36px';
+          box.style.borderRadius = '6px';
+          box.style.background = 'var(--algo-compare)';
+          box.style.color = '#ffffff';
+          box.style.fontFamily = "'JetBrains Mono', monospace";
+          box.style.fontWeight = 'bold';
+          box.style.fontSize = '16px';
+          box.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+          box.textContent = node;
+          queueEl.appendChild(box);
+        });
+      }
+    }
+
+    function startPlay() {
+      playing = true; btnPlay.textContent = _AL.t('pause'); btnPlay.dataset.playing = '1';
+      if (cur >= steps.length - 1) cur = 0;
+      interval = setInterval(function() {
+        if (cur < steps.length - 1) { cur++; render(); } else stopPlay();
       }, getDelay());
     }
-  
+
     function stopPlay() {
-      playing = false;
-      clearInterval(interval);
-      interval = null;
-      btnPlay.textContent = _AL.t('play');
-      btnPlay.dataset.playing = '0';
+      playing = false; clearInterval(interval); interval = null;
+      btnPlay.textContent = _AL.t('play'); btnPlay.dataset.playing = '0';
     }
-  
-    container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function () {
-      stopPlay();
-      if (cur > 0) {
-        cur--;
-        render();
-      }
+
+    container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function() { stopPlay(); if (cur > 0) { cur--; render(); } });
+    container.querySelector('[data-algo-btn="step"]').addEventListener('click', function() { stopPlay(); if (cur < steps.length - 1) { cur++; render(); } });
+    container.querySelector('[data-algo-btn="play"]').addEventListener('click', function() { playing ? stopPlay() : startPlay(); });
+    
+    // إعادة التوليد من عقدة عشوائية
+    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function() { 
+      stopPlay(); 
+      isInitialized = false;
+      generateSteps(); 
+      cur = 0; 
+      render(); 
     });
-    container.querySelector('[data-algo-btn="step"]').addEventListener('click', function () {
-      stopPlay();
-      if (cur < steps.length - 1) {
-        cur++;
-        render();
-      }
-    });
-    container.querySelector('[data-algo-btn="play"]').addEventListener('click', function () {
-      playing ? stopPlay() : startPlay();
-    });
-    container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function () {
-      stopPlay();
-      generateSteps();
-      cur = 0;
-      render();
-    });
-    container.querySelector('.algo-speed input').addEventListener('input', function () {
+    
+    container.querySelector('.algo-speed input').addEventListener('input', function() {
       if (playing) {
         clearInterval(interval);
-        interval = setInterval(function () {
-          if (cur < steps.length - 1) {
-            cur++;
-            render();
-          } else {
-            stopPlay();
-          }
-        }, getDelay());
+        interval = setInterval(function() { if (cur < steps.length - 1) { cur++; render(); } else stopPlay(); }, getDelay());
       }
     });
-  
+
     window._algoRerenders[9] = render;
     generateSteps();
     render();

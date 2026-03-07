@@ -84,41 +84,41 @@ window.AlgoWidgets[1] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
       _AL.titleHTML(1) +
       _AL.toolbar(1) +
-      '<div class="algo-explanation" id="w1-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+      '<div class="algo-explanation" id="w1-exp" style="font-size: 0.95rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px; text-align: center; min-height: 48px;"></div>' +
       
-      // حاوية متجاوبة بأبعاد 16:9 
-      '<div class="algo-canvas" style="position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
-        '<svg id="w1-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+      // حاوية متجاوبة بأبعاد 4:3 لتناسب الشاشات الصغيرة والكبيرة
+      '<div class="algo-canvas" id="w1-canvas-container" style="position:relative; width:100%; max-width:700px; margin:0 auto; aspect-ratio: 4/3; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
+        '<svg id="w1-svg" width="100%" height="100%" viewBox="0 0 600 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
       '</div>' +
       
       // دليل الألوان
       '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.85rem;color:var(--text-secondary);">' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--bg-elevated);border:1px solid var(--text-muted);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-unvisited"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-candidate"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-current"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:3px;margin-right:4px;"></span><span data-algo-text="w1-mst"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w1-unvisited"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w1-candidate"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w1-current"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w1-mst"></span></span>' +
       '</div>' +
     '</div>';
 
-    var btnPlay = container.querySelector('[data-algo-btn="play"]');
-    var expEl   = container.querySelector('#w1-exp');
-    var counter = container.querySelector('[data-algo-counter]');
-    var svgEl   = container.querySelector('#w1-svg');
+    var btnPlay   = container.querySelector('[data-algo-btn="play"]');
+    var expEl     = container.querySelector('#w1-exp');
+    var counter   = container.querySelector('[data-algo-counter]');
+    var svgEl     = container.querySelector('#w1-svg');
     
     var steps = [], cur = 0, playing = false, interval = null;
     var isInitialized = false;
 
-    // إحداثيات مدروسة لخريطة جميلة بـ 5 عقد
+    // إحداثيات مدروسة لخريطة جميلة بـ 5 عقد تتناسب مع viewBox 600x450
+    // تم تدويرها قليلاً وإعادة توزيعها لتبدو كشبكة طبيعية
     var nodeCoords = {
-      'A': { x: 200, y: 225 },
-      'B': { x: 400, y: 80 },
-      'C': { x: 400, y: 370 },
-      'D': { x: 600, y: 225 },
-      'E': { x: 400, y: 225 } // العقدة المركزية
+      'A': { x: 150, y: 150 },
+      'B': { x: 450, y: 150 },
+      'C': { x: 150, y: 350 },
+      'D': { x: 450, y: 350 },
+      'E': { x: 300, y: 250 } // العقدة المركزية
     };
-    var RADIUS = 24;
+    var RADIUS = 22;
 
-    // الاتصالات الأساسية (بدون أوزان، الأوزان تولد ديناميكياً)
     var baseEdges = [
       { u: 'A', v: 'B' }, { u: 'A', v: 'C' }, { u: 'A', v: 'E' },
       { u: 'B', v: 'D' }, { u: 'C', v: 'D' }, { u: 'B', v: 'E' },
@@ -126,7 +126,6 @@ window.AlgoWidgets[1] = function(container) {
     ];
     var allEdges = [];
 
-    // واجهات الـ SVG
     var nodesUI = {};
     var edgesUI = {};
 
@@ -139,7 +138,6 @@ window.AlgoWidgets[1] = function(container) {
       container.querySelector('[data-algo-text="w1-mst"]').textContent       = _AL.exp('In MST', 'في الشجرة (MST)');
     }
 
-    // دالة إنشاء عنصر SVG
     function makeSVG(tag, attrs) {
       let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
       for (let k in attrs) el.setAttribute(k, attrs[k]);
@@ -147,10 +145,23 @@ window.AlgoWidgets[1] = function(container) {
       return el;
     }
 
+    // حساب نقاط توقف الخطوط عند حواف الدوائر باستخدام المتجهات
+    function getEdgeCoords(p1, p2, r) {
+      let dx = p2.x - p1.x;
+      let dy = p2.y - p1.y;
+      let dist = Math.hypot(dx, dy);
+      return {
+        x1: p1.x + (dx / dist) * r,
+        y1: p1.y + (dy / dist) * r,
+        x2: p2.x - (dx / dist) * r,
+        y2: p2.y - (dy / dist) * r
+      };
+    }
+
     function generateSteps() {
       // 1. توليد أوزان عشوائية في كل مرة لإبقاء الخوارزمية تفاعلية
       allEdges = baseEdges.map(e => ({
-        u: e.u, v: e.v, id: e.u + e.v, w: Math.floor(Math.random() * 14) + 1
+        u: e.u, v: e.v, id: e.u + e.v, w: Math.floor(Math.random() * 15) + 1
       }));
 
       steps = [];
@@ -165,7 +176,7 @@ window.AlgoWidgets[1] = function(container) {
 
       while(visited.size < Object.keys(nodeCoords).length) {
         var candidates = [];
-        // البحث عن جميع الحواف التي تربط العقد المزارة بغير المزارة
+        
         allEdges.forEach(e => {
           let uVis = visited.has(e.u);
           let vVis = visited.has(e.v);
@@ -175,35 +186,33 @@ window.AlgoWidgets[1] = function(container) {
         });
 
         steps.push({
-          visited: Array.from(visited), mstEdges: mstEdges.slice(), candidates: candidates.map(e => e.id), currentEdge: null, currentNode: null,
+          visited: Array.from(visited), mstEdges: [...mstEdges], candidates: candidates.map(e => e.id), currentEdge: null, currentNode: null,
           en: 'Identify all <strong>candidate edges</strong> connecting the current MST to unvisited nodes.',
           ar: 'نحدد جميع <strong>الحواف المرشحة</strong> التي تربط الشجرة الحالية بعقد لم تتم زيارتها بعد.'
         });
 
-        // اختيار الحافة الأقل وزناً
         candidates.sort((a, b) => a.w - b.w);
         var minEdge = candidates[0];
         var newNode = visited.has(minEdge.u) ? minEdge.v : minEdge.u;
 
         steps.push({
-          visited: Array.from(visited), mstEdges: mstEdges.slice(), candidates: candidates.map(e => e.id), currentEdge: minEdge.id, currentNode: newNode,
+          visited: Array.from(visited), mstEdges: [...mstEdges], candidates: candidates.map(e => e.id), currentEdge: minEdge.id, currentNode: newNode,
           en: `Select the edge with the <strong>minimum weight (${minEdge.w})</strong> to reach node <strong>${newNode}</strong>.`,
           ar: `نختار الحافة ذات <strong>الوزن الأقل (${minEdge.w})</strong> للوصول إلى العقدة <strong>${newNode}</strong>.`
         });
 
-        // تحديث الحالات
         visited.add(newNode);
         mstEdges.push(minEdge.id);
 
         steps.push({
-          visited: Array.from(visited), mstEdges: mstEdges.slice(), candidates: [], currentEdge: null, currentNode: newNode,
+          visited: Array.from(visited), mstEdges: [...mstEdges], candidates: [], currentEdge: null, currentNode: newNode,
           en: `Node <strong>${newNode}</strong> is permanently added to the Minimum Spanning Tree.`,
           ar: `تمت إضافة العقدة <strong>${newNode}</strong> بشكل دائم إلى شجرة الامتداد الصغرى (MST).`
         });
       }
 
       steps.push({
-        visited: Array.from(visited), mstEdges: mstEdges.slice(), candidates: [], currentEdge: null, currentNode: null,
+        visited: Array.from(visited), mstEdges: [...mstEdges], candidates: [], currentEdge: null, currentNode: null,
         en: 'All nodes are visited! The <strong>Minimum Spanning Tree</strong> is fully constructed.',
         ar: 'تمت زيارة جميع العقد! اكتمل بناء <strong>شجرة الامتداد الصغرى</strong> بنجاح.'
       });
@@ -217,20 +226,21 @@ window.AlgoWidgets[1] = function(container) {
       let edgesG = makeSVG('g', {});
       let nodesG = makeSVG('g', {});
 
-      // 1. بناء الخطوط والحواف (خلف العقد)
+      // 1. بناء الخطوط والحواف (خلف العقد) باستخدام المتجهات
       allEdges.forEach(e => {
         let uPos = nodeCoords[e.u];
         let vPos = nodeCoords[e.v];
+        let coords = getEdgeCoords(uPos, vPos, RADIUS);
         
         let g = makeSVG('g', {});
-        let line = makeSVG('line', { x1: uPos.x, y1: uPos.y, x2: vPos.x, y2: vPos.y, stroke: 'var(--text-muted)', 'stroke-width': 2 });
+        let line = makeSVG('line', { x1: coords.x1, y1: coords.y1, x2: coords.x2, y2: coords.y2, stroke: 'var(--text-muted)', 'stroke-width': 2 });
         
         let mx = (uPos.x + vPos.x) / 2;
         let my = (uPos.y + vPos.y) / 2;
         
         // خلفية للرقم لكي يكون واضحاً فوق الخط
-        let rect = makeSVG('rect', { x: mx - 12, y: my - 12, width: 24, height: 24, rx: 6, fill: 'var(--bg-elevated)', stroke: 'var(--text-muted)', 'stroke-width': 2 });
-        let txt = makeSVG('text', { x: mx, y: my, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--algo-text)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '13px', 'font-weight': '800' });
+        let rect = makeSVG('rect', { x: mx - 13, y: my - 11, width: 26, height: 22, rx: 4, fill: 'var(--bg-elevated)', stroke: 'var(--border-color)', 'stroke-width': 1.5 });
+        let txt = makeSVG('text', { x: mx, y: my, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '13px', 'font-weight': '800' });
         
         g.appendChild(line);
         g.appendChild(rect);
@@ -241,11 +251,11 @@ window.AlgoWidgets[1] = function(container) {
       });
 
       // 2. بناء العقد
-      ['A', 'B', 'C', 'D', 'E'].forEach(id => {
+      Object.keys(nodeCoords).forEach(id => {
         let p = nodeCoords[id];
         let g = makeSVG('g', { 'transform-origin': `${p.x}px ${p.y}px` });
-        let circle = makeSVG('circle', { cx: p.x, cy: p.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--algo-border)', 'stroke-width': 2 });
-        let txt = makeSVG('text', { x: p.x, y: p.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--algo-text)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '18px', 'font-weight': '800' });
+        let circle = makeSVG('circle', { cx: p.x, cy: p.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--border-color)', 'stroke-width': 2 });
+        let txt = makeSVG('text', { x: p.x, y: p.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '18px', 'font-weight': '800' });
         txt.textContent = id;
 
         g.appendChild(circle);
@@ -270,7 +280,7 @@ window.AlgoWidgets[1] = function(container) {
       // تحديث الحواف (Edges)
       allEdges.forEach(e => {
         let ui = edgesUI[e.id];
-        ui.txt.textContent = e.w; // تحديث الوزن ديناميكياً
+        ui.txt.textContent = e.w;
 
         let isMst  = s.mstEdges.includes(e.id);
         let isCand = s.candidates.includes(e.id);
@@ -279,9 +289,9 @@ window.AlgoWidgets[1] = function(container) {
         let color = 'var(--text-muted)';
         let width = '2';
         let dash = '0';
-        let lineOpacity = '0.3';
+        let lineOpacity = '0.2';
         let rectFill = 'var(--bg-elevated)';
-        let txtColor = 'var(--algo-text)';
+        let txtColor = 'var(--text-primary)';
 
         if (isCur) {
           color = 'var(--algo-active)'; width = '4'; lineOpacity = '1';
@@ -301,19 +311,21 @@ window.AlgoWidgets[1] = function(container) {
 
         ui.rect.setAttribute('fill', rectFill);
         ui.rect.setAttribute('stroke', color);
+        ui.rect.style.opacity = lineOpacity;
         
         ui.txt.setAttribute('fill', txtColor);
+        ui.txt.style.opacity = lineOpacity;
       });
 
       // تحديث العقد (Nodes)
-      ['A', 'B', 'C', 'D', 'E'].forEach(id => {
+      Object.keys(nodeCoords).forEach(id => {
         let ui = nodesUI[id];
         let isVis = s.visited.includes(id);
         let isCur = s.currentNode === id;
 
         let fill = 'var(--bg-elevated)';
-        let stroke = 'var(--text-muted)';
-        let txtColor = 'var(--text-muted)';
+        let stroke = 'var(--border-color)';
+        let txtColor = 'var(--text-primary)';
         let scale = 'scale(1)';
 
         if (isCur) {

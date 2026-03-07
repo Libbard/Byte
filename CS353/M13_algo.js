@@ -468,36 +468,40 @@ window.AlgoWidgets[2] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
       _AL.titleHTML(2) +
       _AL.toolbar(2) +
-      '<div class="algo-explanation" id="w2-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+      '<div class="algo-explanation" id="w2-exp" style="font-size: 0.95rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px; text-align: center; min-height: 48px;"></div>' +
       
-      // حاوية متجاوبة 16:9 مع لوحة الـ Z (Upper Bound)
-      '<div class="algo-canvas" id="w2-canvas" style="position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio: 16/9; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
-        '<svg id="w2-svg" width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
-        '<div id="w2-z-board" style="position:absolute; top:20px; right:20px; padding: 10px 20px; background:var(--bg-elevated); border:2px solid var(--algo-border); border-radius:8px; font-family:\'JetBrains Mono\', monospace; font-size:15px; font-weight:800; color:var(--algo-text); box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.4s ease;">' +
-          'Z = <span id="w2-z-val" style="color:var(--text-muted);">∞</span>' +
+      // حاوية متجاوبة بأبعاد 16/10 تملأ الشاشة وتستغل المساحات الفارغة بشكل ممتاز
+      '<div class="algo-canvas" id="w2-canvas" style="position:relative; width:100%; max-width:850px; margin:0 auto; aspect-ratio: 16/10; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); display: flex; align-items: center; justify-content: center; overflow:hidden;">' +
+        '<svg id="w2-svg" width="100%" height="100%" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet" style="overflow:visible;"></svg>' +
+        
+        // لوحة الـ Z (Upper Bound) بتصميم "Pill" عصري بارز
+        '<div id="w2-z-board" style="position:absolute; top:25px; right:25px; padding: 10px 24px; background:var(--bg-elevated); border:2px solid var(--algo-border); border-radius:24px; font-family:\'JetBrains Mono\', monospace; font-size:17px; font-weight:900; color:var(--text-primary); box-shadow: 0 6px 16px rgba(0,0,0,0.12); transition: all 0.4s cubic-bezier(0.4,0,0.2,1); display:flex; align-items:center; gap:8px; z-index:10;" dir="ltr">' +
+          '<span>Z =</span><span id="w2-z-val" style="color:var(--text-muted); font-size:1.2em;">∞</span>' +
         '</div>' +
       '</div>' +
       
-      // دليل الألوان (متوافق بصرياً مع الدوائر)
-      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:15px;margin-top:15px;font-size:0.85rem;color:var(--text-secondary);">' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--bg-elevated);border:1px solid var(--text-muted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w2-fringe"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w2-current"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w2-expanded"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w2-pruned"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w2-solution"></span></span>' +
+      // دليل الألوان (دائري ليطابق شكل العقد)
+      '<div class="algo-legend" style="display:flex;justify-content:center;flex-wrap:wrap;gap:18px;margin-top:18px;font-size:0.9rem;color:var(--text-secondary);">' +
+        '<span><span style="display:inline-block;width:14px;height:14px;background:var(--bg-elevated);border:2px solid var(--text-muted);border-radius:50%;margin-right:6px;vertical-align:middle;"></span><span data-algo-text="w2-fringe"></span></span>' +
+        '<span><span style="display:inline-block;width:14px;height:14px;background:var(--algo-active);border-radius:50%;margin-right:6px;vertical-align:middle;"></span><span data-algo-text="w2-current"></span></span>' +
+        '<span><span style="display:inline-block;width:14px;height:14px;background:var(--brand-500);border-radius:50%;margin-right:6px;vertical-align:middle;"></span><span data-algo-text="w2-expanded"></span></span>' +
+        '<span><span style="display:inline-block;width:14px;height:14px;background:var(--algo-compare);border-radius:50%;margin-right:6px;vertical-align:middle;"></span><span data-algo-text="w2-pruned"></span></span>' +
+        '<span><span style="display:inline-block;width:14px;height:14px;background:var(--algo-sorted);border-radius:50%;margin-right:6px;vertical-align:middle;"></span><span data-algo-text="w2-solution"></span></span>' +
       '</div>' +
     '</div>';
 
     var btnPlay = container.querySelector('[data-algo-btn="play"]');
     var expEl   = container.querySelector('#w2-exp');
     var svgEl   = container.querySelector('#w2-svg');
+    var zBoard  = container.querySelector('#w2-z-board');
     var zValEl  = container.querySelector('#w2-z-val');
     var counter = container.querySelector('[data-algo-counter]');
     
     var steps = [], cur = 0, playing = false, interval = null;
     var isInitialized = false;
 
-    const RADIUS = 28;
+    // تكبير العقد وتوسيع الإحداثيات لملء الشاشة بجمالية عالية
+    const RADIUS = 32;
     var allNodes = [];
     var allEdges = [];
     var uiNodes = {};
@@ -506,14 +510,14 @@ window.AlgoWidgets[2] = function(container) {
     function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
 
     function updateLabels() {
-      container.querySelector('[data-algo-text="w2-fringe"]').textContent   = _AL.exp('In Queue (Fringe)', 'في قائمة الانتظار');
+      container.querySelector('[data-algo-text="w2-fringe"]').textContent   = _AL.exp('Fringe (Queue)', 'في قائمة الانتظار');
       container.querySelector('[data-algo-text="w2-current"]').textContent  = _AL.exp('Evaluating', 'جاري التقييم');
       container.querySelector('[data-algo-text="w2-expanded"]').textContent = _AL.exp('Expanded', 'تم تفريعها');
-      container.querySelector('[data-algo-text="w2-pruned"]').textContent   = _AL.exp('Pruned (lb ≥ Z)', 'مُقلّمة (مستبعدة)');
-      container.querySelector('[data-algo-text="w2-solution"]').textContent = _AL.exp('Solution Found', 'تم إيجاد الحل');
+      container.querySelector('[data-algo-text="w2-pruned"]').textContent   = _AL.exp('Pruned (Discarded)', 'مُقلّمة (مستبعدة)');
+      container.querySelector('[data-algo-text="w2-solution"]').textContent = _AL.exp('Solution Found', 'الحل الأمثل');
     }
 
-    // الرياضيات المتجهية لرسم الخطوط بشكل مثالي (Golden Rule 2)
+    // حساب نقاط الخطوط لتلامس حواف الدوائر بدقة تامة (Vector Math)
     function getEdgeCoords(p1, p2, r) {
       let dx = p2.x - p1.x;
       let dy = p2.y - p1.y;
@@ -529,24 +533,23 @@ window.AlgoWidgets[2] = function(container) {
     function makeSVG(tag, attrs) {
       let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
       for (let k in attrs) el.setAttribute(k, attrs[k]);
-      el.style.transition = 'all 0.4s cubic-bezier(0.4,0,0.2,1)';
+      el.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'; // تأثير Elastic جميل
       return el;
     }
 
-    // هندسة الشجرة وتوليد القيم (لضمان سيناريو تعليمي متكامل)
+    // هندسة الشجرة بقيم عشوائية وتوزيع إحداثيات مثالي لملء 800x500
     function setupTreeData() {
       let base = Math.floor(Math.random() * 15) + 10;
       
-      // نبني شجرة تضمن "القفز" لفرع آخر، ثم إيجاد حل، ثم "التقليم"
       allNodes = [
         { id: 'n0', p: null, lb: base,       x: 400, y: 70 },
-        { id: 'n1', p: 'n0', lb: base + 4,   x: 220, y: 200 },
-        { id: 'n2', p: 'n0', lb: base + 2,   x: 400, y: 200 },
-        { id: 'n3', p: 'n0', lb: base + 8,   x: 580, y: 200 },
-        { id: 'n6', p: 'n1', lb: base + 4,   x: 150, y: 340, isLeaf: true }, // الحل الأمثل!
-        { id: 'n7', p: 'n1', lb: base + 6,   x: 290, y: 340 },
-        { id: 'n4', p: 'n2', lb: base + 5,   x: 350, y: 340 },
-        { id: 'n5', p: 'n2', lb: base + 7,   x: 450, y: 340 }
+        { id: 'n1', p: 'n0', lb: base + 4,   x: 180, y: 240 },
+        { id: 'n2', p: 'n0', lb: base + 2,   x: 400, y: 240 },
+        { id: 'n3', p: 'n0', lb: base + 8,   x: 620, y: 240 },
+        { id: 'n6', p: 'n1', lb: base + 4,   x: 90,  y: 420, isLeaf: true }, // الحل
+        { id: 'n7', p: 'n1', lb: base + 6,   x: 270, y: 420 },
+        { id: 'n4', p: 'n2', lb: base + 5,   x: 350, y: 420 },
+        { id: 'n5', p: 'n2', lb: base + 7,   x: 500, y: 420 }
       ];
 
       allEdges = [];
@@ -568,46 +571,46 @@ window.AlgoWidgets[2] = function(container) {
         steps.push({ states: {...states}, Z: Z, en: en, ar: ar });
       };
 
-      // 1. البداية
+      // 1
       states['n0'] = 'fringe';
       pushStep(
-        `Start Branch and Bound. Root node represents the entire problem space. Lower Bound (lb) = ${allNodes[0].lb}.`,
-        `بدء خوارزمية التفرع والتحديد. العقدة الجذرية تمثل المشكلة بالكامل. الحد الأدنى (lb) = ${allNodes[0].lb}.`
+        `Start <strong>Branch and Bound</strong>. Root node represents the entire problem space. Lower Bound (lb) = <strong>${allNodes[0].lb}</strong>.`,
+        `بدء خوارزمية <strong>التفرع والتحديد</strong>. العقدة الجذرية تمثل المشكلة بالكامل. الحد الأدنى (lb) = <strong>${allNodes[0].lb}</strong>.`
       );
 
-      // 2. تفريع الجذر
+      // 2
       states['n0'] = 'expanded';
       ['n1', 'n2', 'n3'].forEach(id => states[id] = 'fringe');
       pushStep(
-        `Expand the root. We generate 3 subproblems. Using Best-First Search, we pick the one with the lowest <strong>lb</strong>.`,
-        `تفريع الجذر لإنشاء 3 مشاكل فرعية. باستخدام (البحث الأفضل أولاً)، نختار العقدة صاحبة أقل حد أدنى <strong>lb</strong>.`
+        `Expand the root. We generate 3 subproblems. Using <strong>Best-First Search</strong>, we pick the one with the lowest lb.`,
+        `تفريع الجذر لإنشاء 3 مشاكل فرعية. باستخدام <strong>البحث الأفضل أولاً</strong>، نختار العقدة صاحبة أقل حد أدنى.`
       );
 
-      // 3. اختيار n2 (الأقل)
+      // 3
       states['n2'] = 'current';
       let lb_n2 = allNodes.find(n => n.id === 'n2').lb;
       pushStep(
         `Select node with <strong>lb = ${lb_n2}</strong> for expansion.`,
-        `تحديد العقدة ذات <strong>lb = ${lb_n2}</strong> لتفريعها.`
+        `تحديد العقدة ذات الحد الأدنى <strong>lb = ${lb_n2}</strong> لتفريعها.`
       );
 
-      // 4. تفريع n2
+      // 4
       states['n2'] = 'expanded';
       ['n4', 'n5'].forEach(id => states[id] = 'fringe');
       pushStep(
-        `Expanded. Now the fringe (queue) contains LBs: [${allNodes.filter(n=>states[n.id]==='fringe').map(n=>n.lb).join(', ')}].`,
+        `Expanded. Now the queue contains LBs: [${allNodes.filter(n=>states[n.id]==='fringe').map(n=>n.lb).join(', ')}].`,
         `تم التفريع. قائمة الانتظار تحتوي الآن على الحدود الدنيا: [${allNodes.filter(n=>states[n.id]==='fringe').map(n=>n.lb).join(', ')}].`
       );
 
-      // 5. القفز إلى n1 (وهذا هو سحر Branch & Bound)
+      // 5
       states['n1'] = 'current';
       let lb_n1 = allNodes.find(n => n.id === 'n1').lb;
       pushStep(
-        `Notice the jump! The global minimum in the fringe is now <strong>lb = ${lb_n1}</strong> in a different branch.`,
+        `Notice the jump! The global minimum in the queue is now <strong>lb = ${lb_n1}</strong> in a different branch.`,
         `لاحظ القفزة! الحد الأدنى الإجمالي في القائمة أصبح <strong>lb = ${lb_n1}</strong> في فرع مختلف تماماً.`
       );
 
-      // 6. تفريع n1
+      // 6
       states['n1'] = 'expanded';
       ['n6', 'n7'].forEach(id => states[id] = 'fringe');
       pushStep(
@@ -615,7 +618,7 @@ window.AlgoWidgets[2] = function(container) {
         `تم التفريع. قائمة الانتظار: [${allNodes.filter(n=>states[n.id]==='fringe').map(n=>n.lb).join(', ')}].`
       );
 
-      // 7. اختيار n6 (الحل)
+      // 7
       states['n6'] = 'current';
       let optLb = allNodes.find(n => n.id === 'n6').lb;
       pushStep(
@@ -623,7 +626,7 @@ window.AlgoWidgets[2] = function(container) {
         `تحديد العقدة ذات <strong>lb = ${optLb}</strong>. لحظة، هذه عقدة ورقية (نهاية المسار)!`
       );
 
-      // 8. إعلان الحل وتحديث Z
+      // 8
       states['n6'] = 'solution';
       pushStep(
         `<strong>Solution Found!</strong> We update our Upper Bound (Z) to <strong>${optLb}</strong>. Any path costing more is useless.`,
@@ -631,7 +634,7 @@ window.AlgoWidgets[2] = function(container) {
         optLb
       );
 
-      // 9. التقليم (Pruning)
+      // 9
       allNodes.forEach(n => {
         if (states[n.id] === 'fringe' && n.lb >= optLb) {
           states[n.id] = 'pruned';
@@ -652,29 +655,28 @@ window.AlgoWidgets[2] = function(container) {
       let edgesG = makeSVG('g', {});
       let nodesG = makeSVG('g', {});
 
-      // 1. بناء الخطوط بدقة
+      // 1. بناء الخطوط
       allEdges.forEach(e => {
         let coords = getEdgeCoords(e.u, e.v, RADIUS);
-        let line = makeSVG('line', { x1: coords.x1, y1: coords.y1, x2: coords.x2, y2: coords.y2, stroke: 'var(--text-muted)', 'stroke-width': 2 });
+        let line = makeSVG('line', { x1: coords.x1, y1: coords.y1, x2: coords.x2, y2: coords.y2, stroke: 'var(--text-muted)', 'stroke-width': 2.5 });
         edgesG.appendChild(line);
         uiEdges[e.id] = line;
       });
 
-      // 2. بناء العقد
+      // 2. بناء العقد بحجم أكبر وتفاصيل أوضح
       allNodes.forEach(n => {
         let g = makeSVG('g', { 'transform-origin': `${n.x}px ${n.y}px` });
         
-        let circ = makeSVG('circle', { cx: n.x, cy: n.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--algo-border)', 'stroke-width': 2 });
+        let circ = makeSVG('circle', { cx: n.x, cy: n.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--algo-border)', 'stroke-width': 3 });
         
-        // النص (lb=...)
-        let txt = makeSVG('text', { x: n.x, y: n.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--algo-text)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '14px', 'font-weight': 'bold' });
+        let txt = makeSVG('text', { x: n.x, y: n.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--algo-text)', 'font-family': "'JetBrains Mono', monospace", 'font-size': '16px', 'font-weight': '800' });
         txt.textContent = `lb=${n.lb}`;
 
-        // علامة التقليم (X) مخفية افتراضياً
+        // علامة (X) سميكة للتقليم
         let crossG = makeSVG('g', { opacity: '0' });
-        let offset = RADIUS * 0.6;
-        let l1 = makeSVG('line', { x1: n.x - offset, y1: n.y - offset, x2: n.x + offset, y2: n.y + offset, stroke: '#ffffff', 'stroke-width': 3, 'stroke-linecap': 'round' });
-        let l2 = makeSVG('line', { x1: n.x + offset, y1: n.y - offset, x2: n.x - offset, y2: n.y + offset, stroke: '#ffffff', 'stroke-width': 3, 'stroke-linecap': 'round' });
+        let offset = RADIUS * 0.55;
+        let l1 = makeSVG('line', { x1: n.x - offset, y1: n.y - offset, x2: n.x + offset, y2: n.y + offset, stroke: '#ffffff', 'stroke-width': 4, 'stroke-linecap': 'round' });
+        let l2 = makeSVG('line', { x1: n.x + offset, y1: n.y - offset, x2: n.x - offset, y2: n.y + offset, stroke: '#ffffff', 'stroke-width': 4, 'stroke-linecap': 'round' });
         crossG.appendChild(l1); crossG.appendChild(l2);
 
         g.appendChild(circ);
@@ -697,9 +699,17 @@ window.AlgoWidgets[2] = function(container) {
       counter.textContent = _AL.stepLabel(cur, steps.length - 1);
       expEl.innerHTML = _AL.exp(s.en, s.ar);
 
-      // تحديث لوحة الـ Z (HUD)
+      // تحديث لوحة Z بتأثير لوني جميل عند إيجاد الحل
       zValEl.textContent = s.Z;
-      zValEl.style.color = s.Z === '∞' ? 'var(--text-muted)' : 'var(--algo-sorted)';
+      if (s.Z !== '∞') {
+        zValEl.style.color = 'var(--algo-sorted)';
+        zBoard.style.borderColor = 'var(--algo-sorted)';
+        zBoard.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.2)'; // توهج أخضر خفيف
+      } else {
+        zValEl.style.color = 'var(--text-muted)';
+        zBoard.style.borderColor = 'var(--algo-border)';
+        zBoard.style.boxShadow = '0 6px 16px rgba(0,0,0,0.12)';
+      }
 
       // 1. تحديث الخطوط
       allEdges.forEach(e => {
@@ -712,15 +722,15 @@ window.AlgoWidgets[2] = function(container) {
         } else {
           line.style.opacity = '1';
           let color = 'var(--text-muted)';
-          let sw = '2';
+          let sw = '2.5';
           let dash = '0';
 
           if (toState === 'pruned') {
-            color = 'var(--algo-compare)'; dash = '5,5'; opacity = '0.5';
+            color = 'var(--algo-compare)'; dash = '6,6'; opacity = '0.4';
           } else if (toState === 'solution' || fromState === 'solution') {
-            color = 'var(--algo-sorted)'; sw = '3';
+            color = 'var(--algo-sorted)'; sw = '4';
           } else if (toState === 'current') {
-            color = 'var(--algo-active)'; sw = '3';
+            color = 'var(--algo-active)'; sw = '4';
           }
 
           line.setAttribute('stroke', color);
@@ -729,14 +739,14 @@ window.AlgoWidgets[2] = function(container) {
         }
       });
 
-      // 2. تحديث العقد (إدارة الحالة النظيفة State Management)
+      // 2. تحديث العقد (Pure State Mapping)
       allNodes.forEach(n => {
         let state = s.states[n.id];
         let ui = uiNodes[n.id];
 
         if (state === 'hidden') {
           ui.g.style.opacity = '0';
-          ui.g.style.transform = 'scale(0.5)'; // تأثير انبثاق (Pop-in) جميل عند الظهور
+          ui.g.style.transform = 'scale(0.3)'; // Pop-in
           return;
         }
 
@@ -748,13 +758,13 @@ window.AlgoWidgets[2] = function(container) {
         let showCross = false;
 
         if (state === 'fringe') {
-          stroke = 'var(--text-muted)';
+          stroke = 'var(--algo-text)'; // إبراز الحواف غير المستكشفة قليلاً
         } else if (state === 'current') {
           fill = 'var(--algo-active)'; stroke = '#ffffff'; txtColor = '#ffffff'; scale = 'scale(1.15)';
         } else if (state === 'expanded') {
           fill = 'var(--brand-500)'; stroke = '#ffffff'; txtColor = '#ffffff';
         } else if (state === 'pruned') {
-          fill = 'var(--algo-compare)'; stroke = 'var(--algo-compare)'; txtColor = 'transparent'; showCross = true; opacity = '0.7';
+          fill = 'var(--algo-compare)'; stroke = 'var(--algo-compare)'; txtColor = 'transparent'; showCross = true; opacity = '0.75';
         } else if (state === 'solution') {
           fill = 'var(--algo-sorted)'; stroke = '#ffffff'; txtColor = '#ffffff'; scale = 'scale(1.2)';
         }
@@ -782,8 +792,6 @@ window.AlgoWidgets[2] = function(container) {
     container.querySelector('[data-algo-btn="prev"]').addEventListener('click', function() { stopPlay(); if (cur > 0) { cur--; render(); } });
     container.querySelector('[data-algo-btn="step"]').addEventListener('click', function() { stopPlay(); if (cur < steps.length - 1) { cur++; render(); } });
     container.querySelector('[data-algo-btn="play"]').addEventListener('click', function() { playing ? stopPlay() : startPlay(); });
-    
-    // Reset يعيد توليد القيم وبناء سيناريو جديد بأرقام مختلفة!
     container.querySelector('[data-algo-btn="reset"]').addEventListener('click', function() { 
       stopPlay(); 
       isInitialized = false; 
@@ -808,21 +816,21 @@ window.AlgoWidgets[3] = function(container) {
   container.innerHTML = '<div class="algo-widget">' +
       _AL.titleHTML(3) +
       _AL.toolbar(3) +
-      '<div class="algo-explanation" id="w3-exp" style="font-size: 0.9rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px;"></div>' +
+      '<div class="algo-explanation" id="w3-exp" style="font-size: 0.95rem; font-weight: 600; line-height: 1.6; margin-bottom: 15px; text-align: center; min-height: 48px;"></div>' +
       
-      // التغيير الجوهري هنا: استخدام CSS Grid لضمان بقاء اللوحتين جنباً إلى جنب (أفقياً) دائماً
-      '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 900px; margin: 0 auto; margin-top: 15px;">' +
+      // حاوية CSS Grid الذكية: تتراص أفقياً على الشاشات الكبيرة وعمودياً على الجوال!
+      '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; margin: 0 auto; margin-top: 15px;">' +
         // اللوحة الأولى: MST
         '<div style="display: flex; flex-direction: column; align-items: center; min-width: 0;">' +
-          '<h5 data-algo-text="w3-mst-title" style="font-size: 0.9rem; margin-bottom: 8px; font-weight: 800; color: var(--text-primary); text-align: center;"></h5>' +
-          '<div class="algo-canvas" style="width: 100%; aspect-ratio: 4/3; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow: visible;">' +
+          '<h5 data-algo-text="w3-mst-title" style="font-size: 0.95rem; margin-bottom: 10px; font-weight: 800; color: var(--text-primary); text-align: center;"></h5>' +
+          '<div class="algo-canvas" style="width: 100%; aspect-ratio: 4/3; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow: visible; display:flex; align-items:center; justify-content:center;">' +
             '<svg id="w3-mst-svg" width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet" style="overflow: visible;"></svg>' +
           '</div>' +
         '</div>' +
         // اللوحة الثانية: Tour
         '<div style="display: flex; flex-direction: column; align-items: center; min-width: 0;">' +
-          '<h5 data-algo-text="w3-tour-title" style="font-size: 0.9rem; margin-bottom: 8px; font-weight: 800; color: var(--text-primary); text-align: center;"></h5>' +
-          '<div class="algo-canvas" style="width: 100%; aspect-ratio: 4/3; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow: visible;">' +
+          '<h5 data-algo-text="w3-tour-title" style="font-size: 0.95rem; margin-bottom: 10px; font-weight: 800; color: var(--text-primary); text-align: center;"></h5>' +
+          '<div class="algo-canvas" style="width: 100%; aspect-ratio: 4/3; border: 1px solid var(--algo-border); border-radius: var(--radius-md); background: var(--algo-canvas-bg); overflow: visible; display:flex; align-items:center; justify-content:center;">' +
             '<svg id="w3-tour-svg" width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet" style="overflow: visible;"></svg>' +
           '</div>' +
         '</div>' +
@@ -830,11 +838,10 @@ window.AlgoWidgets[3] = function(container) {
       
       // دليل الألوان
       '<div class="algo-legend" style="display:flex; justify-content:center; gap:15px; margin-top:20px; font-size:0.85rem; flex-wrap:wrap; color: var(--text-secondary);">' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w3-mst-edge"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w3-tour-edge"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w3-shortcut-edge"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--brand-500);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w3-mst-edge"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-swap);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w3-tour-edge"></span></span>' +
+        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-compare);border-radius:4px;margin-right:4px;"></span><span data-algo-text="w3-shortcut-edge"></span></span>' +
         '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-sorted);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w3-visited-node"></span></span>' +
-        '<span><span style="display:inline-block;width:12px;height:12px;background:var(--algo-active);border-radius:50%;margin-right:4px;"></span><span data-algo-text="w3-current-node"></span></span>' +
       '</div>' +
     '</div>';
 
@@ -847,14 +854,14 @@ window.AlgoWidgets[3] = function(container) {
     var steps = [], cur = 0, playing = false, interval = null;
     var isInitialized = false;
 
-    const RADIUS = 18;
-    // التغيير الثاني: تدوير إحداثيات الشجرة لتكون أفقية (من اليسار لليمين) بدلاً من عمودية
+    // تكبير العقد وتوسيع الإحداثيات لملء الـ 400x300 بشكل مثالي
+    const RADIUS = 22; 
     var initialNodes = [
-      { id: 0, x: 80,  y: 150 },
-      { id: 1, x: 200, y: 220 },
-      { id: 2, x: 200, y: 80 },
-      { id: 3, x: 320, y: 260 },
-      { id: 4, x: 320, y: 40 }
+      { id: 0, x: 70,  y: 150 },
+      { id: 1, x: 200, y: 230 },
+      { id: 2, x: 200, y: 70 },
+      { id: 3, x: 330, y: 230 },
+      { id: 4, x: 330, y: 70 }
     ];
 
     var allEdges = [
@@ -872,18 +879,16 @@ window.AlgoWidgets[3] = function(container) {
     function getDelay() { return _AL.speedToDelay(parseInt(container.querySelector('.algo-speed input').value)); }
 
     function updateLabels() {
-      container.querySelector('[data-algo-text="w3-mst-title"]').textContent       = _AL.exp('Graph & Minimum Spanning Tree', 'شجرة الامتداد الصغرى');
-      container.querySelector('[data-algo-text="w3-tour-title"]').textContent      = _AL.exp('Euler Tour & Hamiltonian Cycle', 'جولة أويلر ودورة هاميلتون');
+      container.querySelector('[data-algo-text="w3-mst-title"]').textContent       = _AL.exp('1. Minimum Spanning Tree', '1. شجرة الامتداد الصغرى (MST)');
+      container.querySelector('[data-algo-text="w3-tour-title"]').textContent      = _AL.exp('2. Euler Tour & Hamiltonian', '2. جولة أويلر ودورة هاميلتون');
       container.querySelector('[data-algo-text="w3-mst-edge"]').textContent        = _AL.exp('MST Edge', 'حافة الشجرة');
-      container.querySelector('[data-algo-text="w3-tour-edge"]').textContent       = _AL.exp('Tour Edge', 'مسار عادي');
+      container.querySelector('[data-algo-text="w3-tour-edge"]').textContent       = _AL.exp('Tour Edge', 'مسار أويلر');
       container.querySelector('[data-algo-text="w3-shortcut-edge"]').textContent   = _AL.exp('Shortcut (TSP)', 'اختصار مباشر');
-      container.querySelector('[data-algo-text="w3-visited-node"]').textContent    = _AL.exp('Visited', 'تمت زيارتها');
-      container.querySelector('[data-algo-text="w3-current-node"]').textContent    = _AL.exp('Current', 'العقدة الحالية');
+      container.querySelector('[data-algo-text="w3-visited-node"]').textContent    = _AL.exp('Visited', 'عقدة مُزارة');
     }
 
     function generateSteps() {
       steps = [];
-
       let adj = {0:[], 1:[], 2:[], 3:[], 4:[]};
       allEdges.forEach(e => {
         if(e.isMST) {
@@ -894,8 +899,8 @@ window.AlgoWidgets[3] = function(container) {
 
       steps.push({
         phase: 'intro', eulerPath: [], hamPath: [], currNode: null,
-        en: 'We start with a graph and its Minimum Spanning Tree (MST) already calculated.',
-        ar: 'نبدأ برسم بياني تم حساب شجرة الامتداد الصغرى (MST) الخاصة به مسبقاً.'
+        en: 'We start with a graph and its <strong>Minimum Spanning Tree (MST)</strong> highlighted.',
+        ar: 'نبدأ برسم بياني تم استخراج <strong>شجرة الامتداد الصغرى (MST)</strong> الخاصة به مسبقاً.'
       });
 
       let eulerPath = [];
@@ -904,7 +909,7 @@ window.AlgoWidgets[3] = function(container) {
         steps.push({
           phase: 'euler', eulerPath: [...eulerPath], hamPath: [], currNode: u,
           en: `<strong>Euler Tour:</strong> DFS visits node <strong>${u}</strong>.`,
-          ar: `<strong>جولة أويلر:</strong> البحث بالعمق يزور العقدة <strong>${u}</strong>.`
+          ar: `<strong>جولة أويلر:</strong> خوارزمية (DFS) تزور العقدة <strong>${u}</strong>.`
         });
 
         let neighbors = adj[u].slice().sort((a,b) => a-b);
@@ -946,8 +951,8 @@ window.AlgoWidgets[3] = function(container) {
 
           steps.push({
             phase: 'hamiltonian', eulerPath: [...eulerPath], hamPath: [...hamPath], currNode: u,
-            en: `Node <strong>${u}</strong> is unvisited. Add it to the TSP tour.` + (isShortcut ? ` Taking a <strong>shortcut</strong>!` : ''),
-            ar: `العقدة <strong>${u}</strong> جديدة. أضفها لمسار البائع المتجول.` + (isShortcut ? ` (استخدام <strong>مسار مختصر</strong>!)` : '')
+            en: `Node <strong>${u}</strong> is unvisited. Add it to the TSP tour.` + (isShortcut ? ` <span style="color:var(--algo-compare);">Taking a shortcut!</span>` : ''),
+            ar: `العقدة <strong>${u}</strong> جديدة. أضفها لمسار البائع المتجول.` + (isShortcut ? ` <span style="color:var(--algo-compare);">(استخدام مسار مختصر!)</span>` : '')
           });
           lastNode = u;
         } else {
@@ -975,19 +980,32 @@ window.AlgoWidgets[3] = function(container) {
       return el;
     }
 
-    function getArrowCoords(uId, vId) {
+    // دالة احترافية لرسم المسارات (مستقيمة أو منحنية للعودة)
+    function getArrowPath(uId, vId, isCurve, curveOffset) {
       let n1 = initialNodes.find(n => n.id === uId);
       let n2 = initialNodes.find(n => n.id === vId);
       let dx = n2.x - n1.x;
       let dy = n2.y - n1.y;
       let dist = Math.hypot(dx, dy);
       if (dist === 0) return null;
-      return {
-        x1: n1.x + (dx/dist) * RADIUS,
-        y1: n1.y + (dy/dist) * RADIUS,
-        x2: n2.x - (dx/dist) * (RADIUS + 6), 
-        y2: n2.y - (dy/dist) * (RADIUS + 6)
-      };
+
+      let r1 = RADIUS;
+      let r2 = RADIUS + 6; // مسافة لرأس السهم
+
+      let x1 = n1.x + (dx/dist) * r1;
+      let y1 = n1.y + (dy/dist) * r1;
+      let x2 = n2.x - (dx/dist) * r2; 
+      let y2 = n2.y - (dy/dist) * r2;
+
+      if (isCurve) {
+        let mx = (x1 + x2) / 2;
+        let my = (y1 + y2) / 2;
+        // المتجه العمودي (Normal Vector)
+        let nx = -dy / dist;
+        let ny = dx / dist;
+        return `M ${x1} ${y1} Q ${mx + nx * curveOffset} ${my + ny * curveOffset} ${x2} ${y2}`;
+      }
+      return `M ${x1} ${y1} L ${x2} ${y2}`;
     }
 
     function buildSVG() {
@@ -996,41 +1014,46 @@ window.AlgoWidgets[3] = function(container) {
       tourUiNodes = {};
       tourUiLines = [];
 
+      // تعريف الأسهم
       let defs = makeSVG('defs', {});
       defs.innerHTML = `
-        <marker id="arr-tour" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--algo-swap)"/></marker>
-        <marker id="arr-shortcut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--algo-compare)"/></marker>
+        <marker id="arr-tour" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--algo-swap)"/></marker>
+        <marker id="arr-shortcut" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--algo-compare)"/></marker>
       `;
       tourSvg.appendChild(defs);
 
-      // 1. لوحة MST
+      // 1. لوحة MST (اليسار)
+      let mstEdgesG = makeSVG('g', {});
       allEdges.forEach(e => {
         let uPos = initialNodes.find(n => n.id === e.u);
         let vPos = initialNodes.find(n => n.id === e.v);
         let stroke = e.isMST ? 'var(--brand-500)' : 'var(--text-muted)';
         let sw = e.isMST ? '3' : '2';
         let dash = e.isMST ? '0' : '4,4';
-        let opacity = e.isMST ? '1' : '0.4';
+        let opacity = e.isMST ? '1' : '0.2';
         
         let line = makeSVG('line', { x1: uPos.x, y1: uPos.y, x2: vPos.x, y2: vPos.y, stroke: stroke, 'stroke-width': sw, 'stroke-dasharray': dash, opacity: opacity });
-        mstSvg.appendChild(line);
+        mstEdgesG.appendChild(line);
       });
+      mstSvg.appendChild(mstEdgesG);
 
+      let mstNodesG = makeSVG('g', {});
       initialNodes.forEach(n => {
         let g = makeSVG('g', {});
         let circ = makeSVG('circle', { cx: n.x, cy: n.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--algo-border)', 'stroke-width': 2 });
-        let txt = makeSVG('text', { x: n.x, y: n.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-weight': 'bold', 'font-size': '15px' });
+        let txt = makeSVG('text', { x: n.x, y: n.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-weight': '800', 'font-size': '18px' });
         txt.textContent = n.id;
         g.appendChild(circ); g.appendChild(txt);
-        mstSvg.appendChild(g);
+        mstNodesG.appendChild(g);
       });
+      mstSvg.appendChild(mstNodesG);
 
-      // 2. لوحة Tour
+      // 2. لوحة Tour (اليمين) - استخدام paths لدعم الانحناء
       let edgesGroup = makeSVG('g', {});
       for(let i = 0; i < 20; i++) {
-        let line = makeSVG('line', { opacity: 0 });
-        edgesGroup.appendChild(line);
-        tourUiLines.push(line);
+        let path = makeSVG('path', { opacity: 0, fill: 'none' });
+        edgesGroup.appendChild(path);
+        tourUiLines.push(path);
       }
       tourSvg.appendChild(edgesGroup);
 
@@ -1038,7 +1061,7 @@ window.AlgoWidgets[3] = function(container) {
       initialNodes.forEach(n => {
         let g = makeSVG('g', { 'transform-origin': `${n.x}px ${n.y}px` });
         let circ = makeSVG('circle', { cx: n.x, cy: n.y, r: RADIUS, fill: 'var(--bg-elevated)', stroke: 'var(--algo-border)', 'stroke-width': 2 });
-        let txt = makeSVG('text', { x: n.x, y: n.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-weight': 'bold', 'font-size': '15px' });
+        let txt = makeSVG('text', { x: n.x, y: n.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', dy: '.1em', fill: 'var(--text-primary)', 'font-family': "'JetBrains Mono', monospace", 'font-weight': '800', 'font-size': '18px' });
         txt.textContent = n.id;
         g.appendChild(circ); g.appendChild(txt);
         nodesGroup.appendChild(g);
@@ -1060,43 +1083,44 @@ window.AlgoWidgets[3] = function(container) {
 
       let edgeList = [];
       if (s.phase === 'euler') {
-        for(let i=0; i<s.eulerPath.length - 1; i++) {
-          edgeList.push({ u: s.eulerPath[i], v: s.eulerPath[i+1], type: 'euler' });
-        }
+        for(let i=0; i<s.eulerPath.length - 1; i++) edgeList.push({ u: s.eulerPath[i], v: s.eulerPath[i+1], type: 'euler' });
       } else if (s.phase === 'hamiltonian' || s.phase === 'done' || s.phase === 'ham_start') {
-        for(let i=0; i<s.hamPath.length - 1; i++) {
-          edgeList.push({ u: s.hamPath[i], v: s.hamPath[i+1], type: 'ham' });
-        }
+        for(let i=0; i<s.hamPath.length - 1; i++) edgeList.push({ u: s.hamPath[i], v: s.hamPath[i+1], type: 'ham' });
       }
 
+      let drawn = new Set();
       edgeList.forEach((e, idx) => {
-        let coords = getArrowCoords(e.u, e.v);
-        if(!coords) return;
-        let line = tourUiLines[idx];
+        let key = `${e.u}-${e.v}`;
+        let revKey = `${e.v}-${e.u}`;
         
-        line.setAttribute('x1', coords.x1);
-        line.setAttribute('y1', coords.y1);
-        line.setAttribute('x2', coords.x2);
-        line.setAttribute('y2', coords.y2);
-        line.style.opacity = '1';
+        // إذا كنا رسمنا الخط المعاكس سابقاً، نجعل هذا الخط منحنياً
+        let isCurve = drawn.has(revKey) && e.type === 'euler';
+        drawn.add(key);
+
+        let pathStr = getArrowPath(e.u, e.v, isCurve, 20); // 20px انحناء
+        if(!pathStr) return;
+        
+        let pathEl = tourUiLines[idx];
+        pathEl.setAttribute('d', pathStr);
+        pathEl.style.opacity = '1';
 
         if (e.type === 'euler') {
-          line.setAttribute('stroke', 'var(--algo-swap)');
-          line.setAttribute('stroke-width', '2');
-          line.setAttribute('stroke-dasharray', '0');
-          line.setAttribute('marker-end', 'url(#arr-tour)');
+          pathEl.setAttribute('stroke', 'var(--algo-swap)');
+          pathEl.setAttribute('stroke-width', '2.5');
+          pathEl.setAttribute('stroke-dasharray', '0');
+          pathEl.setAttribute('marker-end', 'url(#arr-tour)');
         } else {
           let isMst = allEdges.some(ae => ae.isMST && ((ae.u===e.u && ae.v===e.v) || (ae.u===e.v && ae.v===e.u)));
           if (isMst) {
-            line.setAttribute('stroke', 'var(--algo-swap)');
-            line.setAttribute('stroke-width', '3');
-            line.setAttribute('stroke-dasharray', '0');
-            line.setAttribute('marker-end', 'url(#arr-tour)');
+            pathEl.setAttribute('stroke', 'var(--algo-swap)');
+            pathEl.setAttribute('stroke-width', '3');
+            pathEl.setAttribute('stroke-dasharray', '0');
+            pathEl.setAttribute('marker-end', 'url(#arr-tour)');
           } else {
-            line.setAttribute('stroke', 'var(--algo-compare)');
-            line.setAttribute('stroke-width', '3');
-            line.setAttribute('stroke-dasharray', '6,6');
-            line.setAttribute('marker-end', 'url(#arr-shortcut)');
+            pathEl.setAttribute('stroke', 'var(--algo-compare)');
+            pathEl.setAttribute('stroke-width', '3');
+            pathEl.setAttribute('stroke-dasharray', '6,6');
+            pathEl.setAttribute('marker-end', 'url(#arr-shortcut)');
           }
         }
       });
