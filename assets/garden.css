@@ -1055,15 +1055,8 @@ h2 .obj-icon {
   }
 }
 
-[dir="rtl"] @keyframes notesPanelSlide {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
-}
+/* [dir="rtl"] @keyframes removed — @keyframes cannot be scoped by selector in CSS.
+   RTL panel slide is handled by JS or the inset-inline-end property instead. */
 
 .notes-panel-header {
   padding: 1.25rem 1.5rem;
@@ -1758,12 +1751,18 @@ h2 .obj-icon {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  position: relative;
+  z-index: 50;
+  /* Must NOT clip tooltip */
+  overflow: visible;
 }
 
 .fc-toolbar-actions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  overflow: visible;
+  position: relative;
 }
 
 .fc-mini-btn {
@@ -1791,47 +1790,81 @@ h2 .obj-icon {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   background: var(--bg-surface);
   color: var(--text-muted);
   font-size: 0.95rem;
   font-weight: 800;
-  cursor: help;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  /* Tooltip context — must NOT clip children */
+  overflow: visible;
+  z-index: 100;
 }
 
-.fc-info-btn:hover {
+.fc-info-btn:hover,
+.fc-info-btn:focus {
   color: var(--brand-500);
   border-color: var(--brand-500);
   background: var(--brand-glow);
+  box-shadow: 0 0 0 3px var(--brand-glow);
+  outline: none;
 }
 
 .fc-info-tooltip {
   display: none;
-  position: absolute;
-  top: calc(100% + 12px);
-  inset-inline-end: 0;
-  width: 320px;
-  padding: 1.25rem;
-  background: var(--bg-elevated);
+  position: fixed;
+  /* immune to overflow — attached directly to body */
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(440px, 72vh);
+  overflow-y: auto;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 500;
   color: var(--text-primary);
-  z-index: 100;
-  box-shadow: 0 10px 25px var(--shadow-base);
+  z-index: 99999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   text-align: start;
   line-height: 1.7;
+  pointer-events: none;
 }
 
-.fc-info-btn:hover .fc-info-tooltip,
-.fc-info-btn:focus .fc-info-tooltip {
+/* Arrow pointing up toward the button */
+.fc-info-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  inset-inline-end: 14px;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  border-inline-end: 1px solid var(--border-color);
+  transform: rotate(-45deg);
+  border-radius: 2px 0 0 0;
+}
+
+.fc-info-tooltip.open {
   display: block;
-  animation: tooltipFade 0.2s ease;
+  animation: sm2PopIn 0.18s ease;
+}
+
+/* Overlay behind tooltip */
+.fc-info-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+}
+
+.fc-info-overlay.open {
+  display: block;
 }
 
 @keyframes tooltipFade {
@@ -1881,12 +1914,18 @@ h2 .obj-icon {
   width: 100%;
   min-height: 340px;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 0.5s ease;
-  cursor: pointer
+  -webkit-transition: -webkit-transform 0.5s ease;
+  cursor: pointer;
+  /* NOTE: will-change / translateZ(0) / -webkit-backface-visibility on the CONTAINER
+     breaks pointer-events on the back face in WebKit (iOS Safari).
+     GPU compositing is handled by the animation itself — no need to force it here. */
 }
 
 .flashcard-card.flipped {
-  transform: rotateY(180deg)
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
 }
 
 .flashcard-face {
@@ -1894,6 +1933,7 @@ h2 .obj-icon {
   width: 100%;
   min-height: 340px;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   border-radius: var(--radius-xl);
   padding: 2rem;
   display: flex;
@@ -1903,7 +1943,11 @@ h2 .obj-icon {
   text-align: center;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  box-shadow: 0 4px 10px -2px var(--shadow-base)
+  box-shadow: 0 4px 10px -2px var(--shadow-base);
+  /* Crisp text rendering on GPU layer */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .flashcard-back {
@@ -1966,19 +2010,39 @@ h2 .obj-icon {
 }
 
 .sm2-btn--0 {
-  background: #ef4444
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 3px 10px rgba(239, 68, 68, .35);
+}
+
+.sm2-btn--0:hover {
+  background: linear-gradient(135deg, #b91c1c, #dc2626);
 }
 
 .sm2-btn--2 {
-  background: #f59e0b
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  box-shadow: 0 3px 10px rgba(245, 158, 11, .35);
+}
+
+.sm2-btn--2:hover {
+  background: linear-gradient(135deg, #b45309, #d97706);
 }
 
 .sm2-btn--3 {
-  background: #3b82f6
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  box-shadow: 0 3px 10px rgba(59, 130, 246, .35);
+}
+
+.sm2-btn--3:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
 }
 
 .sm2-btn--5 {
-  background: #10b981
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 3px 10px rgba(16, 185, 129, .35);
+}
+
+.sm2-btn--5:hover {
+  background: linear-gradient(135deg, #047857, #059669);
 }
 
 .fc-empty {
@@ -4008,7 +4072,7 @@ svg tspan,
   /* مسافة لكي لا يلتصق الرقم بأسفل العمود */
 }
 
-..algo-bar-label {
+.algo-bar-label {
   font-size: 0.85rem;
   font-weight: 800;
   color: var(--algo-bar-label);
@@ -5022,6 +5086,9 @@ mjx-container::-webkit-scrollbar-thumb {
     min-height: 260px;
   }
 
+  /* ── Mobile 3D: ON by default. Class .mobile-3d-off switches to flat opacity ── */
+  /* No overrides here — 3D is active. Flat mode handled below via .mobile-3d-off */
+
   .flashcard-front .fc-term {
     font-size: 1.4rem;
   }
@@ -5030,13 +5097,31 @@ mjx-container::-webkit-scrollbar-thumb {
     font-size: 1rem;
   }
 
+  /* ── 5 grade buttons: 2 rows ── */
   .sm2-grades {
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
   }
 
   .sm2-btn {
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
+    padding: 0.55rem 0.5rem;
+    font-size: 0.82rem;
+    min-width: 0;
+  }
+
+  /* Last 2 buttons center on second row */
+  .sm2-btn:nth-child(4),
+  .sm2-btn:nth-child(5) {
+    grid-column: span 1;
+  }
+
+  .sm2-grades .sm2-btn:nth-child(4) {
+    grid-column: 1 / 2;
+  }
+
+  .sm2-grades .sm2-btn:nth-child(5) {
+    grid-column: 3 / 4;
   }
 }
 
@@ -5221,7 +5306,7 @@ table {
 .ai-explain-btn {
   position: absolute;
   top: 1rem;
-  z-index: 5;
+  z-index: 10;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -5235,6 +5320,39 @@ table {
   opacity: 0.65;
   /* شفافية مريحة للعين */
   padding: 0;
+}
+
+/* ── إخفاء زر AI في المناطق التفاعلية لتجنب تعارضه مع أسهم البطاقات والأسئلة ── */
+.flashcard-section .ai-explain-btn,
+.professor-card .ai-explain-btn {
+  display: none !important;
+}
+
+/* ── زر AI في accordion (اسأل البروفسور) — يظهر في الأسفل عند الفتح فقط ── */
+.accordion-item .ai-explain-btn {
+  display: none;
+  /* مخفي عند الإغلاق */
+  top: auto;
+  bottom: 0.75rem;
+  /* يجلس في الأسفل بدلاً من الأعلى */
+  z-index: 10;
+}
+
+/* يظهر فقط حين يكون الـ accordion مفتوحاً */
+.accordion-item.open .ai-explain-btn {
+  display: flex;
+}
+
+/* RTL: أسفل يسار */
+[dir="rtl"] .accordion-item .ai-explain-btn {
+  left: 1rem;
+  right: auto;
+}
+
+/* LTR: أسفل يمين */
+[dir="ltr"] .accordion-item .ai-explain-btn {
+  right: 1rem;
+  left: auto;
 }
 
 [dir="rtl"] .ai-explain-btn {
@@ -5486,3 +5604,493 @@ table {
     background-size: 14px 14px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   garden.js v3.2 additions
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Grade 4 "ممتاز / Very Good" button ── */
+.sm2-btn--4 {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+  border: none;
+  box-shadow: 0 3px 10px rgba(167, 139, 250, .35);
+}
+
+.sm2-btn--4:hover {
+  background: linear-gradient(135deg, #6d28d9, #9333ea);
+}
+
+/* ── Grade 4 in report ── */
+.sm2-rgs-pill-4 .sm2-rgs-dot {
+  background: #a855f7;
+}
+
+.sm2-rhow-4 {
+  border-color: #a855f7;
+}
+
+.sm2-rhow-4 .sm2-rhow-g {
+  background: #a855f7;
+}
+
+/* ── Undo / Bury util row ── */
+.fc-util-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.fc-util-btn {
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .3rem .9rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+  letter-spacing: 0.01em;
+}
+
+.fc-util-btn:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+  background: var(--brand-glow);
+}
+
+.fc-undo-btn {
+  /* Override: same calm ghost style, just slightly distinct */
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.78rem;
+  padding: .3rem .9rem;
+}
+
+.fc-undo-btn:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+  background: var(--brand-glow);
+  filter: none;
+  transform: none;
+}
+
+.fc-bury-btn {
+  border-color: var(--warning, #f59e0b);
+  color: var(--warning, #f59e0b);
+}
+
+.fc-bury-btn:hover {
+  background: rgba(245, 158, 11, .1);
+}
+
+/* ── Leech badge ── */
+.fc-leech-badge {
+  position: absolute;
+  top: .6rem;
+  inset-inline-end: .6rem;
+  font-size: .7rem;
+  font-weight: 800;
+  background: rgba(239, 68, 68, .15);
+  color: #ef4444;
+  border: 1.5px solid #ef4444;
+  border-radius: var(--radius-pill);
+  padding: .15rem .5rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* .flashcard-front stays position:absolute via .flashcard-face — do not override */
+
+/* ── Review Mode badge (toolbar counter) ── */
+.fc-review-badge {
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--brand-400);
+  background: var(--brand-glow);
+  border: 1.5px solid var(--brand-500);
+  border-radius: var(--radius-pill);
+  padding: .18rem .65rem;
+  white-space: nowrap;
+}
+
+/* ── Filter bar ── */
+.fc-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .4rem;
+  margin-top: .9rem;
+}
+
+.fc-filter-btn {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .22rem .7rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.fc-filter-btn:hover,
+.fc-filter-btn.active {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #fff;
+}
+
+/* ── Red retention pill in report ── */
+.sm2-rpill--red {
+  background: rgba(239, 68, 68, .1);
+  border: 1.5px solid rgba(239, 68, 68, .4);
+}
+
+.sm2-rpill--red .sm2-rpill-n {
+  color: #ef4444;
+}
+
+/* ── Activity Heatmap ── */
+.sm2-heatmap {
+  display: grid;
+  grid-template-columns: repeat(84, 1fr);
+  gap: 2px;
+  margin: .5rem 0 .3rem;
+}
+
+.sm2-hm-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 2px;
+}
+
+.sm2-hm-i0 {
+  background: var(--surface-3, rgba(255, 255, 255, .07));
+}
+
+.sm2-hm-i1 {
+  background: rgba(99, 102, 241, .3);
+}
+
+.sm2-hm-i2 {
+  background: rgba(99, 102, 241, .5);
+}
+
+.sm2-hm-i3 {
+  background: rgba(99, 102, 241, .75);
+}
+
+.sm2-hm-i4 {
+  background: rgba(99, 102, 241, 1);
+}
+
+.sm2-hm-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: .65rem;
+  color: var(--text-muted);
+  margin-top: .3rem;
+}
+
+.sm2-hm-legend span {
+  padding: 0 .2rem;
+}
+
+.sm2-hm-legend .sm2-hm-cell {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+
+/* ── Toolbar bury button ── */
+.fc-toolbar-bury {
+  height: 32px;
+  padding: 0 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid rgba(245, 158, 11, .5);
+  background: rgba(245, 158, 11, .08);
+  color: #d97706;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.fc-toolbar-bury::before {
+  content: '⏸';
+  font-size: 0.82rem;
+}
+
+.fc-toolbar-bury:hover {
+  background: rgba(245, 158, 11, .18);
+  border-color: #f59e0b;
+  color: #b45309;
+  transform: scale(1.03);
+}
+
+[data-theme="dark"] .fc-toolbar-bury {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .fc-toolbar-bury:hover {
+  color: #fde68a;
+}
+
+/* ── 3D toggle button ── */
+.fc-3d-btn {
+  height: 30px;
+  padding: 0 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.fc-3d-btn::before {
+  content: '◈';
+  font-size: 0.78rem;
+}
+
+/* Hide on desktop — only relevant on mobile */
+@media (min-width: 481px) {
+  .fc-3d-btn {
+    display: none;
+  }
+}
+
+/* OFF state — default, muted */
+.fc-3d-btn:not(.active) {
+  opacity: 0.55;
+}
+
+/* ON / active state */
+.fc-3d-btn.active {
+  background: var(--brand-glow);
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--brand-glow);
+}
+
+.fc-3d-btn:active {
+  transform: scale(0.95);
+}
+
+/* ══════════════════════════════════════════════════════
+   Flat flip mode — MOBILE ONLY (≤480px)
+   Desktop always uses 3D regardless of .mobile-3d-off class.
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .mobile-3d-off .flashcard-card {
+    transform-style: flat !important;
+    -webkit-transform-style: flat !important;
+    will-change: auto;
+    transform: none !important;
+    -webkit-transform: none !important;
+    transition: none !important;
+  }
+
+  .mobile-3d-off .flashcard-card.flipped {
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
+
+  .mobile-3d-off .flashcard-face {
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+    transition: opacity 0.22s ease;
+    transform: none !important;
+    -webkit-transform: none !important;
+    -webkit-font-smoothing: subpixel-antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .mobile-3d-off .flashcard-front {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mobile-3d-off .flashcard-back {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mobile-3d-off .flashcard-card.flipped .flashcard-front {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mobile-3d-off .flashcard-card.flipped .flashcard-back {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   v3.2 NEW COMPONENTS
+   ══════════════════════════════════════════════════════ */
+
+/* ── Retrievability badge ───────────────────────────────────────────── */
+.fc-ret-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.2rem 0.65rem;
+  border-radius: 99px;
+  margin-bottom: 0.6rem;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.fc-ret-badge:hover {
+  opacity: 1;
+}
+
+/* green: ≥80% */
+.fc-ret--high {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* yellow: 50-79% */
+.fc-ret--mid {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* red: <50% */
+.fc-ret--low {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ── Daily limit control ────────────────────────────────────────────── */
+.fc-daily-limit-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.fc-dl-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.fc-dl-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 0.5rem;
+}
+
+.fc-dl-btn {
+  background: transparent;
+  border: none;
+  color: var(--brand-500);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  line-height: 1;
+  transition: color 0.15s, transform 0.1s;
+}
+
+.fc-dl-btn:hover {
+  color: var(--brand-400);
+  transform: scale(1.2);
+}
+
+.fc-dl-btn:active {
+  transform: scale(0.9);
+}
+
+.fc-dl-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 2rem;
+  text-align: center;
+}
+
+/* ── Ease Hell warning (inside SM-2 report) ─────────────────────────── */
+.sm2-ease-warning {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.sm2-ease-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.sm2-ease-warning strong {
+  display: block;
+  color: #ef4444;
+  font-size: 0.82rem;
+  margin-bottom: 0.25rem;
+}
+
+.sm2-ease-warning p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* ═══ SVG DIAGRAM · Bilingual Text Control ═══
+   يظهر النص المناسب تلقائياً حسب اتجاه الصفحة
+   ═══════════════════════════════════════════ */
+
+/* الوضع الافتراضي: كلا اللغتين مرئيتان */
+.svg-diagram text.svg-lang-ar,
+.svg-diagram text.svg-lang-en { display: inline; }
+
+/* صفحة عربية (RTL) ← أخفِ النصوص الإنجليزية */
+[dir="rtl"] .svg-diagram text.svg-lang-en { display: none; }
+
+/* صفحة إنجليزية (LTR) ← أخفِ النصوص العربية */
+[dir="ltr"] .svg-diagram text.svg-lang-ar { display: none; }

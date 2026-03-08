@@ -1,6 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════
-   CS Level 5 · Digital Garden · garden.js v3.1
-   
+   CS Level 5 · Digital Garden · garden.js v3.2
+
+   v3.2 Changes (SM-2 Quality Pass):
+   - FIX: Multi-level undo (5 levels) — _undoStack replaces single _lastAction
+   - FIX: Daily-new counter uses _isOriginallyNew flag (not mutable state.n)
+   - FIX: failCount decays on success; resets to 0 when card reaches mastery
+   - FIX: Session counter shows completed + uniqueRemaining (accurate)
+   - FIX: Keyboard shortcut grade 4 restored
+   - FIX: dailyNewLimit loads/saves from localStorage (user-configurable)
+   - NEW: Retrievability % badge on card front (R = 0.9^(t/interval))
+   - NEW: Ease Hell warning in report when avgEF < 1.6
+   - NEW: Daily-limit control in empty-state and report
+
    v3.1 Changes:
    - SM-2 Dashboard: expandable widget with stats (last review, next due, card distribution)
    - Action Links: flashcards & quiz links highlighted in sidebar with pulse animation
@@ -36,12 +47,19 @@
       'layer.flash': '⚡ سريع', 'layer.full': '📖 كامل', 'layer.deep': '🔬 عميق',
       'fc.title': 'البطاقات التعليمية', 'fc.due': 'بطاقة للمراجعة',
       'fc.none_due': 'أحسنت! لا توجد بطاقات مستحقة اليوم', 'fc.flip': 'اضغط للقلب',
-      'fc.grade.0': 'لم أتذكر', 'fc.grade.2': 'صعب', 'fc.grade.3': 'جيد', 'fc.grade.5': 'سهل',
+      'fc.grade.0': 'لم أتذكر', 'fc.grade.2': 'صعب', 'fc.grade.3': 'جيد', 'fc.grade.4': 'ممتاز', 'fc.grade.5': 'سهل',
       'fc.reset': 'إعادة الضبط',
-      'fc.info': 'البطاقات تعمل بنظام التكرار المتباعد (SM-2) — أحد أقوى تقنيات الحفظ العلمية.\n\n📊 كيف يعمل التقييم:\n• "لم أتذكر" (0): البطاقة تعود لنهاية الجلسة لمحاولة أخرى.\n• "صعب" (2): تعود لنهاية الجلسة مع تقليل معامل السهولة.\n• "جيد" (3): تختفي اليوم وتعود بعد أيام.\n• "سهل" (5): تختفي وتعود بعد أسابيع أو أكثر.\n\n🧠 النظام يتكيف معك — كلما أجبت صح، زادت الفترة قبل المراجعة التالية.\n\n↺ إعادة الضبط: يمسح كل التقدم (يطلب تأكيد أولاً).',
+      'fc.undo': '↩ تراجع', 'fc.bury': '⏸ تأجيل',
+      'fc.info': 'البطاقات تعمل بنظام التكرار المتباعد (SM-2) — أحد أقوى تقنيات الحفظ العلمية.\n\n📊 كيف يعمل التقييم:\n• "لم أتذكر" (0): تعود لنهاية الجلسة لمحاولة أخرى.\n• "صعب" (2): تعود مع تقليل معامل السهولة — ستُراجَع أكثر.\n• "جيد" (3): تختفي اليوم وتعود بفترة قياسية (×EF).\n• "ممتاز" (4): فترة أطول من جيد — أفضل لزيادة معامل السهولة.\n• "سهل" (5): أطول فترة ممكنة — يزيد معامل السهولة بشكل ملحوظ.\n\n🧠 النظام يتكيف معك — كلما أجبت صح، زادت الفترة قبل المراجعة التالية.\n\n⌨️ اختصارات لوحة المفاتيح:\n• مسافة: اقلب البطاقة\n• 0/2/3/4/5: التقييم بعد القلب\n\n↩ تراجع: يلغي آخر 5 تقييمات (بالضغط المتكرر).\n⏸ تأجيل: يرجئ البطاقة لليوم التالي.\n↺ إعادة الضبط: يمسح كل التقدم (يطلب تأكيد أولاً).',
       'fc.reset_all': 'إعادة جميع البطاقات', 'fc.reset_hard': 'الصعبة فقط',
       'fc.practice': '🔁 مراجعة حرة', 'fc.practice_badge': 'وضع المراجعة الحرة — لا يؤثر على تقدمك',
       'fc.practice_done': 'انتهت المراجعة الحرة', 'fc.practice_next': 'التالي',
+      'fc.leech': '🔥 تسرّب', 'fc.leech_warning': 'بطاقة متسرّبة — فشلت أكثر من 8 مرات',
+      'fc.filter.all': 'الكل', 'fc.filter.new': 'جديدة', 'fc.filter.learning': 'قيد التعلم',
+      'fc.filter.mastered': 'متقنة', 'fc.filter.leech': 'صعبة جداً',
+      'fc.quick': '⚡ مراجعة سريعة (10)',
+      'fc.streak': 'أيام متتالية', 'fc.retention': 'معدل الحفظ',
+      'fc.3d_on': '✨ تأثير 3D مفعّل', 'fc.3d_off': '✨ تأثير 3D معطّل',
       'quiz.title': 'اختبر نفسك', 'quiz.hint': '💡 تلميح', 'quiz.score': 'النتيجة',
       'quiz.next': 'التالي', 'quiz.retry': 'إعادة الاختبار',
       'vault.title': '🔐 خزنة الامتحان', 'prof.title': '🎓 حديث البروفيسور',
@@ -54,12 +72,19 @@
       'layer.flash': '⚡ Quick', 'layer.full': '📖 Full', 'layer.deep': '🔬 Deep',
       'fc.title': 'Flashcards', 'fc.due': 'cards due',
       'fc.none_due': 'Well done! No cards due today', 'fc.flip': 'Click to flip',
-      'fc.grade.0': 'Blackout', 'fc.grade.2': 'Hard', 'fc.grade.3': 'Good', 'fc.grade.5': 'Easy',
+      'fc.grade.0': 'Blackout', 'fc.grade.2': 'Hard', 'fc.grade.3': 'Good', 'fc.grade.4': 'Very Good', 'fc.grade.5': 'Easy',
       'fc.reset': 'Reset',
-      'fc.info': 'Cards use Spaced Repetition (SM-2) — one of the most powerful evidence-based memorization techniques.\n\n📊 Grading system:\n• "Blackout" (0): Card goes back to the end for another try.\n• "Hard" (2): Goes to the end with reduced ease factor.\n• "Good" (3): Disappears today, comes back in days.\n• "Easy" (5): Disappears, comes back in weeks or more.\n\n🧠 The system adapts to you — the better you know a card, the longer before you see it again.\n\n↺ Reset: Clears all progress (asks for confirmation first).',
+      'fc.undo': '↩ Undo', 'fc.bury': '⏸ Bury',
+      'fc.info': 'Cards use Spaced Repetition (SM-2) — one of the most powerful evidence-based memorization techniques.\n\n📊 Grading system:\n• "Blackout" (0): Card goes back to end for another try.\n• "Hard" (2): Goes back with reduced ease — scheduled more often.\n• "Good" (3): Disappears today, returns at standard interval (×EF).\n• "Very Good" (4): Longer interval than Good — grows ease factor better.\n• "Easy" (5): Longest possible interval — significantly boosts ease factor.\n\n🧠 The system adapts to you — the better you know a card, the longer the interval.\n\n⌨️ Keyboard shortcuts:\n• Space: flip card\n• 0/2/3/4/5: grade after flipping\n\n↩ Undo: reverts last 5 grades (press repeatedly).\n⏸ Bury: postpones card until tomorrow.\n↺ Reset: clears all progress (asks for confirmation first).',
       'fc.reset_all': 'Reset All Cards', 'fc.reset_hard': 'Hard Only',
       'fc.practice': '🔁 Free Review', 'fc.practice_badge': 'Practice Mode — does not affect your progress',
       'fc.practice_done': 'Practice session complete', 'fc.practice_next': 'Next',
+      'fc.leech': '🔥 Leech', 'fc.leech_warning': 'Leech card — failed 8+ times',
+      'fc.filter.all': 'All', 'fc.filter.new': 'New', 'fc.filter.learning': 'Learning',
+      'fc.filter.mastered': 'Mastered', 'fc.filter.leech': 'Leeches',
+      'fc.quick': '⚡ Quick Review (10)',
+      'fc.streak': 'day streak', 'fc.retention': 'Retention Rate',
+      'fc.3d_on': '✨ 3D Flip ON', 'fc.3d_off': '✨ 3D Flip OFF',
       'quiz.title': 'Self Quiz', 'quiz.hint': '💡 Hint', 'quiz.score': 'Score',
       'quiz.next': 'Next', 'quiz.retry': 'Retry Quiz',
       'vault.title': '🔐 Exam Vault', 'prof.title': '🎓 Professor\'s Narrative',
@@ -154,6 +179,8 @@
     if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
       MathJax.typesetPromise().catch((err) => console.log('MathJax Error:', err));
     }
+    // Notify other modules (essay engine etc.) via event — replaces fragile monkey-patching
+    document.dispatchEvent(new CustomEvent('garden:languageChanged', { detail: { lang } }));
   }
   function toggleLanguage() { setLanguage(currentLang === 'ar' ? 'en' : 'ar'); }
 
@@ -194,7 +221,7 @@
      - Counter: "reviewed / totalOriginal" — ascending, total never changes
      - Reset: clears SM-2 state, reloads all cards
      ═══════════════════════════════════════════════════════════ */
-  window._gardenFC = {};
+  window._gardenFC = { _undoStack: [] };
 
   function fcKey() {
     const s = document.documentElement.getAttribute('data-subject') || 'XX';
@@ -210,7 +237,127 @@
     ef = Math.max(1.3, ef + 0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
     return { n, ef, interval, nextReview: Date.now() + interval * 86400000, lastGrade: grade };
   }
-  function newCard() { return { n: 0, ef: 2.5, interval: 0, nextReview: Date.now() }; }
+
+  /* ── Retrievability (SM-2 curve: R = 0.9^(t/interval)) ─────────────────
+     At t=0 (just reviewed): R=100%. At t=interval (due date): R=90%.
+     Returns integer 0-100, or null for new/unreviewed cards.
+  ─────────────────────────────────────────────────────────────────────── */
+  function calcRetrieval(state) {
+    if (!state || !state.n || state.n === 0 || !state.interval || state.interval <= 0) return null;
+    const lastReview = state.nextReview - state.interval * 86400000;
+    const t = (Date.now() - lastReview) / 86400000; // days since last review
+    if (t < 0) return 100;
+    return Math.max(0, Math.min(100, Math.round(Math.pow(0.9, t / state.interval) * 100)));
+  }
+  function newCard() { return { n: 0, ef: 2.5, interval: 0, nextReview: Date.now(), failCount: 0, buriedUntil: 0 }; }
+
+  /* ── Review-page detection ──────────────────────────────────────────
+     صفحة المراجعة: data-page="review"  أو  data-module غير رقمي
+     مثل: review / midterm / final  → عرض كل البطاقات بلا حد يومي
+  ────────────────────────────────────────────────────────────────── */
+  /* ── Mobile 3D flip preference — exposed globally for inline onclick ── */
+  function getMobile3D() {
+    try { return localStorage.getItem('garden_mobile_3d') !== '0'; } catch(e) { return true; }
+  }
+  function setMobile3D(val) {
+    try { localStorage.setItem('garden_mobile_3d', val ? '1' : '0'); } catch(e) {}
+    document.documentElement.classList.toggle('mobile-3d-off', !val);
+    // Update button appearance without full re-render
+    const btn = document.querySelector('.fc-3d-btn');
+    if (btn) {
+      btn.classList.toggle('active', val);
+      btn.title = val
+        ? (document.documentElement.lang === 'ar' ? '3D مفعّل — اضغط لإيقافه' : '3D ON — tap to disable')
+        : (document.documentElement.lang === 'ar' ? '3D معطّل — اضغط لتفعيله' : '3D OFF — tap to enable');
+    }
+  }
+  // Expose globally — needed for inline onclick handlers
+  window._gardenGetMobile3D = getMobile3D;
+  window._gardenSetMobile3D = setMobile3D;
+  window._gardenToggle3D    = function() { setMobile3D(!getMobile3D()); };
+  // Apply on load
+  document.documentElement.classList.toggle('mobile-3d-off', !getMobile3D());
+
+  function isReviewPage() {
+    const page   = document.documentElement.getAttribute('data-page')   || '';
+    const module = document.documentElement.getAttribute('data-module') || '';
+    return page === 'review'
+        || ['review', 'midterm', 'final'].includes(module)
+        || (module !== '0' && isNaN(Number(module)));
+  }
+
+  /* ── Activity / Streak ──────────────────────────────────────────────── */
+  function activityKey() {
+    const s = document.documentElement.getAttribute('data-subject') || 'XX';
+    return 'garden_' + s + '_activity';
+  }
+  function recordDailyActivity() {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      const data = JSON.parse(localStorage.getItem(activityKey()) || '{}');
+      data[today] = (data[today] || 0) + 1;
+      localStorage.setItem(activityKey(), JSON.stringify(data));
+    } catch (e) {}
+  }
+  function calculateStreak() {
+    try {
+      const data = JSON.parse(localStorage.getItem(activityKey()) || '{}');
+      const today = new Date();
+      let streak = 0;
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        if (data[key] && data[key] > 0) { streak++; } else if (i > 0) break;
+      }
+      return streak;
+    } catch (e) { return 0; }
+  }
+  function getActivityData() {
+    try { return JSON.parse(localStorage.getItem(activityKey()) || '{}'); } catch (e) { return {}; }
+  }
+
+  /* ── Retention Rate ─────────────────────────────────────────────────── */
+  function retentionKey() { return fcKey() + '_ret'; }
+  function recordRetention(success) {
+    try {
+      const d = JSON.parse(localStorage.getItem(retentionKey()) || '{"t":0,"c":0}');
+      d.t++; if (success) d.c++;
+      localStorage.setItem(retentionKey(), JSON.stringify(d));
+    } catch (e) {}
+  }
+  function getRetentionRate() {
+    try {
+      const d = JSON.parse(localStorage.getItem(retentionKey()) || '{"t":0,"c":0}');
+      return d.t > 0 ? Math.round((d.c / d.t) * 100) : null;
+    } catch (e) { return null; }
+  }
+
+  /* ── Confetti 🎉 ────────────────────────────────────────────────────── */
+  function launchConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const pieces = Array.from({length: 80}, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * -canvas.height * 0.5,
+      r: Math.random() * 8 + 4, c: 'hsl(' + Math.round(Math.random() * 360) + ',80%,60%)',
+      vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 2,
+      rot: Math.random() * 360, rotV: (Math.random() - 0.5) * 8
+    }));
+    let frame = 0;
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r / 1.5);
+        ctx.restore();
+        p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.vy += 0.05;
+      });
+      if (++frame < 120) requestAnimationFrame(draw); else canvas.remove();
+    })();
+  }
+
   function loadSM2() { try { return JSON.parse(localStorage.getItem(fcKey())) || {}; } catch (e) { return {}; } }
   function saveSM2(st) {
     try { localStorage.setItem(fcKey(), JSON.stringify(st)); }
@@ -227,16 +374,57 @@
     updateDueCount();
   }
 
-  function buildQueue() {
-    const fc = window._gardenFC;
+  function buildQueue(filterMode) {
+    const fc  = window._gardenFC;
     const now = Date.now();
-    fc.queue = fc.cards
-      .map((card, i) => ({ card, i, state: fc.sm2[i] || newCard() }))
-      .filter(({ state }) => state.nextReview <= now);
-    fc.pos = 0;
-    fc.totalOriginal = fc.queue.length; // FIXED total for this session
-    fc.completed = 0;
 
+    /* ── صفحة مراجعة: كل البطاقات، بلا حد يومي، بلا تصفية استحقاق ── */
+    if (isReviewPage()) {
+      fc.queue = fc.cards.map((card, i) => ({
+        card, i,
+        state: fc.sm2[i] || newCard(),
+        _isOriginallyNew: !fc.sm2[i] || fc.sm2[i].n === 0
+      }));
+      fc.pos = 0; fc.totalOriginal = fc.queue.length; fc.completed = 0;
+      fc.filterMode = null; fc._isReview = true;
+      return;
+    }
+
+    /* ── صفحة تعلم عادية ── */
+    fc._isReview = false;
+    // dailyNewLimit: user-configurable, default 10, persisted in localStorage
+    try {
+      const saved = parseInt(localStorage.getItem('garden_daily_new_limit'));
+      fc.dailyNewLimit = (!isNaN(saved) && saved > 0) ? saved : (fc.dailyNewLimit || 10);
+    } catch(e) { fc.dailyNewLimit = fc.dailyNewLimit || 10; }
+    const DAILY_NEW_LIMIT = fc.dailyNewLimit;
+
+    const today    = new Date().toISOString().split('T')[0];
+    const dailyKey = fcKey() + '_dn_' + today;
+    let dailyNewCount = 0;
+    try { dailyNewCount = parseInt(localStorage.getItem(dailyKey) || '0'); } catch (e) {}
+    fc._dailyKey = dailyKey; fc._dailyNewCount = dailyNewCount;
+
+    fc.queue = fc.cards
+      .map((card, i) => ({
+        card, i,
+        state: fc.sm2[i] || newCard(),
+        // _isOriginallyNew: captured at queue-build time, not re-evaluated later
+        _isOriginallyNew: !fc.sm2[i] || fc.sm2[i].n === 0
+      }))
+      .filter(({ i, state, _isOriginallyNew }) => {
+        if (state.buriedUntil && state.buriedUntil > now) return false;
+        const isDue = state.nextReview <= now;
+        if (!isDue) return false;
+        if (filterMode === 'new')      return _isOriginallyNew;
+        if (filterMode === 'learning') return fc.sm2[i] && fc.sm2[i].n > 0 && fc.sm2[i].interval < 21;
+        if (filterMode === 'mastered') return fc.sm2[i] && fc.sm2[i].interval >= 21;
+        if (filterMode === 'leech')    return fc.sm2[i] && (fc.sm2[i].failCount || 0) >= 8;
+        if (_isOriginallyNew && dailyNewCount >= DAILY_NEW_LIMIT) return false;
+        return true;
+      });
+    fc.pos = 0; fc.totalOriginal = fc.queue.length; fc.completed = 0;
+    fc.filterMode = filterMode || null;
   }
 
   function renderFlashcard() {
@@ -254,7 +442,7 @@
           <div class="fc-toolbar-actions">
             <button class="fc-mini-btn" onclick="Garden.resetFC('all')" title="${i18n[L]?.['fc.reset'] || 'Reset'}">↺</button>
             <button class="fc-report-btn" onclick="Garden.report()" title="${L === 'ar' ? 'تقرير SM-2' : 'SM-2 Report'}">R</button>
-            <span class="fc-info-btn" tabindex="0">ⓘ<span class="fc-info-tooltip">${fcInfoText}</span></span>
+            <span class="fc-info-btn" tabindex="0" data-fc-info="${encodeURIComponent(fcInfoText)}">ⓘ</span>
           </div>
         </div>
         <div class="fc-empty">
@@ -262,8 +450,24 @@
           <p>${i18n[L]?.['fc.none_due'] || ''}</p>
           <div class="fc-actions">
             <button class="fc-reset-btn fc-practice-btn" onclick="Garden.practice()">${i18n[L]?.['fc.practice'] || ''}</button>
+            <button class="fc-reset-btn fc-practice-btn" onclick="Garden.quickReview()">${i18n[L]?.['fc.quick'] || '⚡ Quick (10)'}</button>
             <button class="fc-reset-btn" onclick="Garden.resetFC('all')">${i18n[L]?.['fc.reset_all'] || ''}</button>
             <button class="fc-reset-btn" onclick="Garden.resetFC('hard')">${i18n[L]?.['fc.reset_hard'] || ''}</button>
+          </div>
+          <div class="fc-filter-row">
+            <button class="fc-filter-btn${!fc.filterMode ? ' active' : ''}" onclick="Garden.filterFC(null)">${i18n[L]?.['fc.filter.all'] || 'All'}</button>
+            <button class="fc-filter-btn${fc.filterMode==='new' ? ' active' : ''}" onclick="Garden.filterFC('new')">${i18n[L]?.['fc.filter.new'] || 'New'}</button>
+            <button class="fc-filter-btn${fc.filterMode==='learning' ? ' active' : ''}" onclick="Garden.filterFC('learning')">${i18n[L]?.['fc.filter.learning'] || 'Learning'}</button>
+            <button class="fc-filter-btn${fc.filterMode==='mastered' ? ' active' : ''}" onclick="Garden.filterFC('mastered')">${i18n[L]?.['fc.filter.mastered'] || 'Mastered'}</button>
+            <button class="fc-filter-btn${fc.filterMode==='leech' ? ' active' : ''}" onclick="Garden.filterFC('leech')">${i18n[L]?.['fc.filter.leech'] || 'Leeches'}</button>
+          </div>
+          <div class="fc-daily-limit-row">
+            <span class="fc-dl-label">${L==='ar' ? '📅 حد البطاقات الجديدة يومياً:' : '📅 Daily new cards limit:'}</span>
+            <div class="fc-dl-controls">
+              <button class="fc-dl-btn" onclick="Garden.changeDailyLimit(-5)">−</button>
+              <span class="fc-dl-value" id="fc-dl-value">${fc.dailyNewLimit || 10}</span>
+              <button class="fc-dl-btn" onclick="Garden.changeDailyLimit(+5)">+</button>
+            </div>
           </div>
         </div>`;
       return;
@@ -272,20 +476,44 @@
     const item = fc.queue[fc.pos];
     const card = item.card;
     const num = fc.completed + 1;
-    const total = fc.totalOriginal;
+    // FIX: accurate counter — completed + unique cards remaining (not stale totalOriginal)
+    const uniqueRemaining = new Set(fc.queue.map(q => q.i)).size;
+    const total = fc.completed + uniqueRemaining;
+
+    // Retrievability badge (SM-2 curve: R = 0.9^(t/interval))
+    const ret = calcRetrieval(item.state);
+    const retBadge = ret !== null
+      ? (() => {
+          const cls = ret >= 80 ? 'fc-ret--high' : ret >= 50 ? 'fc-ret--mid' : 'fc-ret--low';
+          const label = L === 'ar' ? `تذكّر ${ret}%` : `Memory ${ret}%`;
+          return `<div class="fc-ret-badge ${cls}" title="${L==='ar'?'احتمالية تذكّر البطاقة الآن':'Estimated probability of recalling this card now'}">${label}</div>`;
+        })()
+      : '';
+
+    // Undo button: show count if > 1 step available
+    const undoCount = fc._undoStack ? fc._undoStack.length : 0;
+    const undoLabel = undoCount > 1
+      ? (i18n[L]?.['fc.undo'] || '↩') + ` (${undoCount})`
+      : (i18n[L]?.['fc.undo'] || '↩ Undo');
 
     box.innerHTML = `
       <div class="fc-toolbar">
-        <div class="flashcard-counter">${num} / ${total}</div>
+        <div class="flashcard-counter">${fc._isReview
+          ? '<span class="fc-review-badge">' + (L==='ar' ? '📋 وضع المراجعة' : '📋 Review Mode') + '</span>'
+          : (num + ' / ' + total)}</div>
         <div class="fc-toolbar-actions">
+          <button class="fc-toolbar-bury" onclick="Garden.bury()" title="${L==='ar' ? 'يرجئ هذه البطاقة ليوم الغد' : 'Postpone this card until tomorrow'}">${L==='ar' ? 'تأجيل' : 'Bury'}</button>
           <button class="fc-mini-btn" onclick="Garden.resetFC('all')" title="${i18n[L]?.['fc.reset'] || 'Reset'}">↺</button>
           <button class="fc-report-btn" onclick="Garden.report()" title="${L === 'ar' ? 'تقرير SM-2' : 'SM-2 Report'}">R</button>
-          <span class="fc-info-btn" tabindex="0">ⓘ<span class="fc-info-tooltip">${(i18n[L]?.['fc.info'] || '').replace(/\n/g, '<br>')}</span></span>
+          <button class="fc-3d-btn${getMobile3D() ? ' active' : ''}" onclick="window._gardenToggle3D()" title="${getMobile3D() ? (L==='ar'?'3D مفعّل — اضغط لإيقافه':'3D ON — tap to disable') : (L==='ar'?'3D معطّل — اضغط لتفعيله':'3D OFF — tap to enable')}">3D</button>
+          <span class="fc-info-btn" tabindex="0" data-fc-info="${encodeURIComponent((i18n[L]?.['fc.info'] || '').replace(/\n/g, '<br>'))}">ⓘ</span>
         </div>
       </div>
       <div class="flashcard-scene">
         <div class="flashcard-card" id="fc-card" onclick="Garden.flip()">
           <div class="flashcard-face flashcard-front">
+            ${(item.state.failCount||0)>=8 ? ('<div class="fc-leech-badge" title="'+(i18n[L]?.['fc.leech_warning']||'Leech')+'">'+(i18n[L]?.['fc.leech']||'🔥')+'</div>') : ''}
+            ${retBadge}
             <div class="fc-term" data-bilingual>
               <template class="content-ar">${card.front?.ar || ''}</template>
               <template class="content-en">${card.front?.en || ''}</template>
@@ -311,8 +539,12 @@
         <button class="sm2-btn sm2-btn--0" onclick="Garden.grade(0)">${i18n[L]?.['fc.grade.0'] || '0'}</button>
         <button class="sm2-btn sm2-btn--2" onclick="Garden.grade(2)">${i18n[L]?.['fc.grade.2'] || '2'}</button>
         <button class="sm2-btn sm2-btn--3" onclick="Garden.grade(3)">${i18n[L]?.['fc.grade.3'] || '3'}</button>
+        <button class="sm2-btn sm2-btn--4" onclick="Garden.grade(4)">${i18n[L]?.['fc.grade.4'] || '4'}</button>
         <button class="sm2-btn sm2-btn--5" onclick="Garden.grade(5)">${i18n[L]?.['fc.grade.5'] || '5'}</button>
-      </div>`;
+      </div>
+      ${undoCount > 0
+        ? '<div class="fc-util-row"><button class="fc-util-btn fc-undo-btn" onclick="Garden.undo()">' + undoLabel + '</button></div>'
+        : ''}`;  
   }
 
   function flipCard() {
@@ -328,9 +560,12 @@
     if (!fc.cards || fc.cards.length === 0) return;
     // Build practice queue: all cards, shuffled
     fc.practiceMode = true;
-    fc.practiceQueue = fc.cards
-      .map((card, i) => ({ card, i }))
-      .sort(() => Math.random() - 0.5);
+    const _all = fc.cards.map((card, i) => ({ card, i }));
+    for (let _i = _all.length - 1; _i > 0; _i--) {
+      const _j = Math.floor(Math.random() * (_i + 1));
+      [_all[_i], _all[_j]] = [_all[_j], _all[_i]];
+    }
+    fc.practiceQueue = _all;
     fc.practicePos = 0;
     renderPractice();
   }
@@ -405,36 +640,141 @@
     if (!fc.queue || fc.pos >= fc.queue.length) return;
     const item = fc.queue[fc.pos];
 
+    // ── Undo snapshot (multi-level, max 5) ────────────────────────────
+    if (!fc._undoStack) fc._undoStack = [];
+    fc._undoStack.push({
+      itemIndex    : item.i,
+      sm2Snapshot  : JSON.parse(JSON.stringify(fc.sm2)),  // full deep copy
+      queue        : fc.queue.map(q => ({
+        card: q.card, i: q.i,
+        state: JSON.parse(JSON.stringify(q.state)),
+        retryCount: q.retryCount || 0,
+        _isOriginallyNew: q._isOriginallyNew || false
+      })),
+      pos          : fc.pos,
+      completed    : fc.completed,
+      dailyNewCount: fc._dailyNewCount || 0
+    });
+    if (fc._undoStack.length > 5) fc._undoStack.shift();  // keep max 5
+
     if (grade >= 3) {
-      // PASSED — save SM-2 state, remove from queue permanently, count once
-      fc.sm2[item.i] = sm2Calc(item.state, grade);
-      saveSM2(fc.sm2);
-      fc.queue.splice(fc.pos, 1);
-      fc.completed++; // card leaves queue → count exactly once
-      // Record final grade — card exits queue permanently
-    } else {
-      // FAILED (0 or 2) — update SM-2 state, keep nextReview=now so it stays due
+      // PASSED ─────────────────────────────────────────────────────────
       const updated = sm2Calc(item.state, grade);
-      updated.nextReview = Date.now();
-      fc.sm2[item.i] = updated;
-      item.state = updated;
-      saveSM2(fc.sm2);
-      // Track retry count per card — hard limit prevents infinite loops
+
+      // Preserve failCount with DECAY on success
+      const prevFail = item.state.failCount || 0;
+      if (updated.interval >= 21) {
+        // Card reached mastery: clear leech status entirely
+        updated.failCount = 0;
+      } else if (prevFail > 0 && updated.n > 2) {
+        // Gradual recovery: decrease by 1 per successful review after n>2
+        updated.failCount = prevFail - 1;
+      } else {
+        updated.failCount = prevFail;
+      }
+      updated.buriedUntil = 0;
+
+      if (!fc._isReview) {
+        fc.sm2[item.i] = updated;
+        saveSM2(fc.sm2);
+        recordRetention(true);
+        recordDailyActivity();
+        // Count toward daily-new ONLY if originally new at queue-build time
+        if (item._isOriginallyNew) {
+          const dn = (fc._dailyNewCount || 0) + 1;
+          fc._dailyNewCount = dn;
+          try { localStorage.setItem(fc._dailyKey, String(dn)); } catch(e) {}
+        }
+      }
+      fc.queue.splice(fc.pos, 1);
+      fc.completed++;
+    } else {
+      // FAILED (grade 0 or 2) ──────────────────────────────────────────
+      const updated = sm2Calc(item.state, grade);
+      updated.nextReview  = Date.now();
+      updated.failCount   = (item.state.failCount || 0) + 1;
+      updated.buriedUntil = 0;
+      if (!fc._isReview) {
+        fc.sm2[item.i] = updated;
+        item.state = updated;
+        saveSM2(fc.sm2);
+        recordRetention(false);
+      }
       item.retryCount = (item.retryCount || 0) + 1;
       if (item.retryCount < 3) {
-        // Re-queue to end — do NOT record grade yet (card still active)
         const removed = fc.queue.splice(fc.pos, 1)[0];
         fc.queue.push(removed);
       } else {
-        // Max retries reached — remove card, record final grade (last attempt)
         fc.queue.splice(fc.pos, 1);
         fc.completed++;
+        if (!fc._isReview) recordDailyActivity();
       }
     }
 
     if (fc.pos >= fc.queue.length) fc.pos = 0;
+
+    // 🎉 Confetti on full session complete
+    if (fc.queue.length === 0 && fc.completed > 0 && !fc.filterMode && !fc._isReview) {
+      setTimeout(launchConfetti, 300);
+    }
+
     renderFlashcard();
     updateDueCount();
+  }
+
+  /* ── Undo last grade (multi-level, up to 5) ──────────────────────── */
+  function undoGrade() {
+    const fc = window._gardenFC;
+    if (!fc._undoStack || fc._undoStack.length === 0) return;
+    const snap = fc._undoStack.pop();
+    if (!fc._isReview) {
+      fc.sm2 = snap.sm2Snapshot;
+      saveSM2(fc.sm2);
+    }
+    fc.queue     = snap.queue;
+    fc.pos       = snap.pos;
+    fc.completed = snap.completed;
+    fc._dailyNewCount = snap.dailyNewCount;
+    if (fc._dailyKey) {
+      try { localStorage.setItem(fc._dailyKey, String(snap.dailyNewCount)); } catch(e) {}
+    }
+    renderFlashcard();
+    updateDueCount();
+  }
+
+  /* ── Bury card (skip until tomorrow 23:59) ───────────────────────── */
+  function buryCard() {
+    const fc = window._gardenFC;
+    if (!fc.queue || fc.pos >= fc.queue.length) return;
+    const item = fc.queue[fc.pos];
+    if (!fc._isReview) {
+      const tom = new Date(); tom.setDate(tom.getDate() + 1); tom.setHours(23, 59, 59, 999);
+      const state = fc.sm2[item.i] || newCard();
+      state.buriedUntil = tom.getTime();
+      fc.sm2[item.i] = state;
+      saveSM2(fc.sm2);
+    }
+    fc.queue.splice(fc.pos, 1);
+    if (fc.pos >= fc.queue.length) fc.pos = 0;
+    renderFlashcard(); updateDueCount();
+  }
+
+  /* ── Filter cards by status ──────────────────────────────────────── */
+  function filterFC(mode) { buildQueue(mode); renderFlashcard(); updateDueCount(); }
+
+  /* ── Quick Review: 10 random cards in practice mode ─────────────── */
+  function quickReview() {
+    const fc = window._gardenFC;
+    if (!fc.cards || fc.cards.length === 0) return;
+    fc.practiceMode = true;
+    const all = fc.cards.map((card, i) => ({ card, i }));
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    fc.practiceQueue = all.slice(0, 10);
+    fc.practicePos = 0;
+    renderPractice();
   }
 
   function resetFC(mode) {
@@ -465,6 +805,16 @@
         const fc = window._gardenFC;
         if (isAll) {
           fc.sm2 = {};
+          // Also clear daily-new-count so limit resets immediately
+          try {
+            const prefix = fcKey() + '_dn_';
+            Object.keys(localStorage)
+              .filter(k => k.startsWith(prefix))
+              .forEach(k => localStorage.removeItem(k));
+          } catch(e) {}
+          fc._dailyNewCount = 0;
+          // Clear retention stats (معدل الحفظ) so they reflect the fresh start
+          try { localStorage.removeItem(retentionKey()); } catch(e) {}
         } else {
           Object.keys(fc.sm2).forEach(k => {
             if (fc.sm2[k].ef < 2.0) fc.sm2[k] = newCard();
@@ -474,6 +824,15 @@
         buildQueue();
         renderFlashcard();
         updateDueCount();
+        // Close SM2 dashboard popover — force-close via DOM first (more reliable),
+        // then via the closure-based function for aria state
+        const sm2Dash = document.getElementById('sm2-dashboard');
+        const sm2Ov   = document.getElementById('sm2-overlay');
+        const sm2Tog  = document.getElementById('sm2-toggle');
+        if (sm2Dash) sm2Dash.classList.remove('open');
+        if (sm2Ov)   sm2Ov.classList.remove('open');
+        if (sm2Tog)  sm2Tog.setAttribute('aria-expanded', 'false');
+        if (typeof window._gardenCloseSM2 === 'function') window._gardenCloseSM2();
       }
     });
   }
@@ -526,6 +885,14 @@
           <span class="sm2-dash-value" id="sm2-next-review">—</span>
         </div>
         <div class="sm2-dash-row">
+          <span class="sm2-dash-label" id="sm2-streak-label">🔥</span>
+          <span class="sm2-dash-value" id="sm2-streak">—</span>
+        </div>
+        <div class="sm2-dash-row">
+          <span class="sm2-dash-label" id="sm2-retention-label">🎯</span>
+          <span class="sm2-dash-value" id="sm2-retention">—</span>
+        </div>
+        <div class="sm2-dash-row">
           <span class="sm2-dash-label" id="sm2-total-label">📊</span>
           <span class="sm2-dash-value" id="sm2-total-cards">—</span>
         </div>
@@ -576,6 +943,8 @@
       overlay.classList.remove('open');
       toggle.setAttribute('aria-expanded', 'false');
     }
+    // Expose globally so resetFC can close it
+    window._gardenCloseSM2 = closeSM2;
 
     toggle.addEventListener('click', () => {
       dash.classList.contains('open') ? closeSM2() : openSM2();
@@ -621,26 +990,32 @@
       ar: {
         last: '📅 آخر مراجعة', next: '⏭️ القادمة', total: '📊 الإجمالي',
         newL: 'جديدة', learning: 'قيد التعلم', mastered: 'متقنة',
-        never: 'لم تبدأ بعد', today: 'اليوم', tomorrow: 'غداً',
-        daysAgo: 'يوم', daysLater: 'يوم', allDone: 'أنجزت الكل!'
+        never: 'لم تبدأ بعد', today: 'اليوم', tomorrow: 'غداً', yesterday: 'أمس',
+        daysAgo: 'أيام', daysLater: 'يوم', allDone: 'أنجزت الكل!'
       },
       en: {
         last: '📅 Last review', next: '⏭️ Next due', total: '📊 Total',
         newL: 'New', learning: 'Learning', mastered: 'Mastered',
-        never: 'Not started', today: 'Today', tomorrow: 'Tomorrow',
+        never: 'Not started', today: 'Today', tomorrow: 'Tomorrow', yesterday: 'Yesterday',
         daysAgo: 'days ago', daysLater: 'days', allDone: 'All done!'
       }
     };
     const t = labels[L] || labels.ar;
 
-    // Format relative time
+    // Format relative time — fixed: proper past/future distinction
     function relTime(ts, isFuture) {
       if (!ts || ts === Infinity || ts === 0) return isFuture ? t.allDone : t.never;
-      const diff = Math.abs(ts - now);
-      const days = Math.round(diff / 86400000);
-      if (days === 0) return t.today;
-      if (days === 1) return t.tomorrow;
-      return isFuture ? `${days} ${t.daysLater}` : `${days} ${t.daysAgo}`;
+      const diffMs  = ts - now;
+      const days    = Math.round(diffMs / 86400000);
+      const absDays = Math.abs(days);
+      if (absDays === 0) return t.today;
+      if (isFuture) {
+        if (days === 1) return t.tomorrow;
+        return L === 'ar' ? ('بعد ' + days + ' ' + t.daysLater) : ('In ' + days + ' ' + t.daysLater);
+      } else {
+        if (days === -1) return t.yesterday;
+        return L === 'ar' ? ('منذ ' + absDays + ' ' + t.daysAgo) : (absDays + ' ' + t.daysAgo);
+      }
     }
 
     // Update elements
@@ -652,10 +1027,18 @@
     setT('sm2-total-label', t.total);
     setT('sm2-last-review', relTime(lastReviewTime, false));
     setT('sm2-next-review', relTime(nextReviewTime, true));
-    setT('sm2-total-cards', `${total}`);
-    setT('sm2-leg-new', `${newCount} ${t.newL}`);
-    setT('sm2-leg-learning', `${learningCount} ${t.learning}`);
-    setT('sm2-leg-mastered', `${masteredCount} ${t.mastered}`);
+    setT('sm2-total-cards', String(total));
+    // Streak
+    const streak = calculateStreak();
+    setT('sm2-streak-label', L === 'ar' ? ('🔥 ' + (i18n[L]?.['fc.streak'] || 'أيام متتالية')) : '🔥 Streak');
+    setT('sm2-streak', streak > 0 ? (streak + (L === 'ar' ? ' يوم' : ' days')) : (L === 'ar' ? 'ابدأ اليوم!' : 'Start today!'));
+    // Retention
+    const retention = getRetentionRate();
+    setT('sm2-retention-label', L === 'ar' ? ('🎯 ' + (i18n[L]?.['fc.retention'] || 'معدل الحفظ')) : '🎯 Retention');
+    setT('sm2-retention', retention !== null ? (retention + '%') : '—');
+    setT('sm2-leg-new',      newCount      + ' ' + t.newL);
+    setT('sm2-leg-learning',  learningCount + ' ' + t.learning);
+    setT('sm2-leg-mastered',  masteredCount + ' ' + t.mastered);
 
     // Update bar
     const bar = $l('sm2-bar');
@@ -723,12 +1106,27 @@
     const sessionDone = fc.completed || 0;
     const sessionLeft = fc.queue ? new Set(fc.queue.map(it => it.i)).size : 0;
     // Derive grade distribution from sm2 lastGrade — one value per card, always accurate
-    const gs = { 0: 0, 2: 0, 3: 0, 5: 0 };
+    const gs = { 0: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     for (let i = 0; i < total; i++) {
       const st = fc.sm2?.[i];
       if (st && st.lastGrade !== undefined) gs[st.lastGrade] = (gs[st.lastGrade] || 0) + 1;
     }
-    const gsTot = (gs[0] || 0) + (gs[2] || 0) + (gs[3] || 0) + (gs[5] || 0);
+    const gsTot = (gs[0] || 0) + (gs[2] || 0) + (gs[3] || 0) + (gs[4] || 0) + (gs[5] || 0);
+
+    // ── Ease Hell detection (avgEF < 1.6 on ≥3 cards) ──
+    const avgEFNum = efCount > 0 ? totalEF / efCount : 0;
+    const easeHell = efCount >= 3 && avgEFNum < 1.6;
+    const easeHellHTML = easeHell ? `
+      <div class="sm2-ease-warning">
+        <span class="sm2-ease-icon">⚠️</span>
+        <div>
+          <strong>${isAr ? 'تحذير: Ease Hell' : 'Warning: Ease Hell'}</strong>
+          <p>${isAr
+            ? `معامل السهولة المتوسط (${avgEFNum.toFixed(2)}) منخفض جداً. كثير من بطاقاتك تُراجَع بفترات قصيرة جداً مما يثقّل جلساتك. الحل: قيّم بـ "ممتاز" أو "سهل" عند الإمكان، وأعد ضبط الصعبة جداً.`
+            : `Avg. ease factor (${avgEFNum.toFixed(2)}) is very low. Many cards are scheduled at short intervals, making sessions heavy. Fix: grade cards "Very Good" or "Easy" when possible, or reset hard cards.`
+          }</p>
+        </div>
+      </div>` : '';
 
     // ── Forecast rows (next 14 days, skip empty days after day 7) ──
     const allKeys = Object.keys(forecast).map(Number).sort((a, b) => a - b);
@@ -780,6 +1178,7 @@
               <div class="sm2-rsl"><span class="sm2-rsl-dot sm2-rsl-mastered"></span><span>${isAr ? 'متقنة' : 'Mastered'}</span><strong>${masteredCount}</strong></div>
             </div>
             ${efCount > 0 ? `<div class="sm2-ref-row"><span>${isAr ? 'متوسط معامل السهولة (EF):' : 'Avg. Ease Factor (EF):'}</span><strong>${avgEF}</strong></div>` : ''}
+            ${easeHellHTML}
           </div>
 
           <div class="sm2-report-section">
@@ -805,9 +1204,51 @@
                 <span class="sm2-rgs-pill sm2-rgs-pill-0"><span class="sm2-rgs-dot"></span>${isAr ? 'لم أتذكر' : 'Blackout'}<strong>${gs[0] || 0}</strong></span>
                 <span class="sm2-rgs-pill sm2-rgs-pill-2"><span class="sm2-rgs-dot"></span>${isAr ? 'صعب' : 'Hard'}<strong>${gs[2] || 0}</strong></span>
                 <span class="sm2-rgs-pill sm2-rgs-pill-3"><span class="sm2-rgs-dot"></span>${isAr ? 'جيد' : 'Good'}<strong>${gs[3] || 0}</strong></span>
+                <span class="sm2-rgs-pill sm2-rgs-pill-4"><span class="sm2-rgs-dot"></span>${isAr ? 'ممتاز' : 'Very Good'}<strong>${gs[4] || 0}</strong></span>
                 <span class="sm2-rgs-pill sm2-rgs-pill-5"><span class="sm2-rgs-dot"></span>${isAr ? 'سهل' : 'Easy'}<strong>${gs[5] || 0}</strong></span>
               </div>
             </div>` : ''}
+          </div>
+
+          <div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>🏆</span>${isAr ? 'الأداء العام' : 'Overall Performance'}</div>
+            <div class="sm2-rpills">
+              <div class="sm2-rpill sm2-rpill--blue">
+                <span class="sm2-rpill-n">${calculateStreak()}</span>
+                <span class="sm2-rpill-l">${isAr ? 'أيام متتالية 🔥' : 'Day Streak 🔥'}</span>
+              </div>
+              ${(() => {
+                const r = getRetentionRate();
+                if (r === null) return '';
+                const cls = r >= 80 ? 'sm2-rpill--green' : r >= 60 ? 'sm2-rpill--orange' : 'sm2-rpill--red';
+                return '<div class="sm2-rpill ' + cls + '"><span class="sm2-rpill-n">' + r + '%</span><span class="sm2-rpill-l">' + (isAr ? 'معدل الحفظ 🎯' : 'Retention 🎯') + '</span></div>';
+              })()}
+            </div>
+          </div>
+
+          <div class="sm2-report-section">
+            <div class="sm2-rsec-title"><span>📅</span>${isAr ? 'نشاط المراجعة (12 أسبوع)' : 'Review Activity (12 weeks)'}</div>
+            ${(() => {
+              const actData = getActivityData();
+              const refDay  = new Date(); const DAYS = 84;
+              const vals = []; let maxV = 1;
+              for (let i = DAYS - 1; i >= 0; i--) {
+                const d = new Date(refDay); d.setDate(d.getDate() - i);
+                const key = d.toISOString().split('T')[0];
+                const v = actData[key] || 0;
+                vals.push({ key, v }); if (v > maxV) maxV = v;
+              }
+              const cells = vals.map(({ key, v }) => {
+                const iv = v === 0 ? 0 : Math.ceil((v / maxV) * 4);
+                return '<div class="sm2-hm-cell sm2-hm-i' + iv + '" title="' + key + ': ' + v + ' ' + (isAr ? 'مراجعة' : 'reviews') + '"></div>';
+              }).join('');
+              return '<div class="sm2-heatmap">' + cells + '</div>'
+                + '<div class="sm2-hm-legend"><span>' + (isAr ? 'أقل' : 'Less') + '</span>'
+                + '<div class="sm2-hm-cell sm2-hm-i0"></div><div class="sm2-hm-cell sm2-hm-i1"></div>'
+                + '<div class="sm2-hm-cell sm2-hm-i2"></div><div class="sm2-hm-cell sm2-hm-i3"></div>'
+                + '<div class="sm2-hm-cell sm2-hm-i4"></div>'
+                + '<span>' + (isAr ? 'أكثر' : 'More') + '</span></div>';
+            })()}
           </div>
 
           ${nextDueDate ? `<div class="sm2-report-section">
@@ -834,6 +1275,7 @@
               <div class="sm2-rhow-item sm2-rhow-0"><span class="sm2-rhow-g">0</span><div><strong>${isAr ? 'لم أتذكر' : 'Blackout'}</strong><p>${isAr ? 'تُعاد لنهاية الجلسة (حتى ٣ محاولات)' : 'Re-queued to end (up to 3 tries)'}</p></div></div>
               <div class="sm2-rhow-item sm2-rhow-2"><span class="sm2-rhow-g">2</span><div><strong>${isAr ? 'صعب' : 'Hard'}</strong><p>${isAr ? 'تُعاد، يقل معامل السهولة' : 'Re-queued, ease factor reduced'}</p></div></div>
               <div class="sm2-rhow-item sm2-rhow-3"><span class="sm2-rhow-g">3</span><div><strong>${isAr ? 'جيد' : 'Good'}</strong><p>${isAr ? 'تختفي اليوم، تعود بعد أيام' : 'Done today, returns in days'}</p></div></div>
+              <div class="sm2-rhow-item sm2-rhow-4"><span class="sm2-rhow-g">4</span><div><strong>${isAr ? 'ممتاز' : 'Very Good'}</strong><p>${isAr ? 'تختفي، تعود بعد وقت أطول' : 'Done, returns after longer interval'}</p></div></div>
               <div class="sm2-rhow-item sm2-rhow-5"><span class="sm2-rhow-g">5</span><div><strong>${isAr ? 'سهل' : 'Easy'}</strong><p>${isAr ? 'تختفي، تعود بعد أسابيع أو أكثر' : 'Done, returns in weeks or more'}</p></div></div>
             </div>
             <div class="sm2-rformula">
@@ -1879,7 +2321,7 @@
         case ' ': if (document.getElementById('fc-card')) { e.preventDefault(); flipCard(); } break;
         case 't': case 'T': cycleTheme(); break;
         case 'l': case 'L': toggleLanguage(); break;
-        case '0': case '2': case '3': case '5': if (document.getElementById('fc-card')?.classList.contains('flipped')) { gradeCard(Number(e.key)); } break;
+        case '0': case '2': case '3': case '4': case '5': if (document.getElementById('fc-card')?.classList.contains('flipped')) { gradeCard(Number(e.key)); } break;
         case '+': case '=': changeFontSize(1); break;
         case '-': case '_': changeFontSize(-1); break;
       }
@@ -1999,6 +2441,99 @@
     initAlgoPalette();
     initTableWrap(); initScrollToTop(); initFontSize(); initAlgoLoader();
     initAiSystem();
+    initInfoBtnToggle();
+  }
+
+  /* ═══ INFO BUTTON POPOVER ═══
+     المشكلة الجذرية: .flashcard-section.fade-up عنده transform → أي position:fixed
+     بداخله يتصرف كـ absolute نسبةً لذلك العنصر لا للشاشة.
+     الحل: نافذة واحدة مُلحقة بـ body مباشرةً (خارج أي transform ancestor).
+  ═══ */
+  function initInfoBtnToggle() {
+    // ── نافذة المعلومات — ملحقة بـ body مباشرة ──────────────────────
+    const panel = document.createElement('div');
+    panel.id = 'fc-info-panel';
+    panel.className = 'fc-info-tooltip';
+    document.body.appendChild(panel);
+
+    // ── overlay شفاف للإغلاق عند الضغط خارجه ────────────────────────
+    let infoOverlay = document.getElementById('fc-info-overlay');
+    if (!infoOverlay) {
+      infoOverlay = document.createElement('div');
+      infoOverlay.className = 'fc-info-overlay';
+      infoOverlay.id = 'fc-info-overlay';
+      document.body.appendChild(infoOverlay);
+    }
+
+    let activeBtn = null;
+
+    function positionPanel(btn) {
+      const r   = btn.getBoundingClientRect();
+      const w   = Math.min(300, window.innerWidth - 32);
+      const gap = 10;
+      // فتح للأسفل
+      panel.style.width = w + 'px';
+      panel.style.top   = (r.bottom + gap) + 'px';
+      // محاذاة يمين البطاقة مع يمين الزر — مع تثبيت داخل الشاشة
+      let left = r.right - w;
+      left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
+      panel.style.left  = left + 'px';
+    }
+
+    function openPanel(btn) {
+      activeBtn = btn;
+      const raw = btn.getAttribute('data-fc-info') || '';
+      panel.innerHTML = decodeURIComponent(raw);
+      positionPanel(btn);
+      panel.classList.add('open');
+      panel.style.pointerEvents = 'auto';
+      infoOverlay.classList.add('open');
+      btn.classList.add('open');
+    }
+
+    function closePanel() {
+      if (activeBtn) { activeBtn.classList.remove('open'); activeBtn = null; }
+      panel.classList.remove('open');
+      panel.style.pointerEvents = 'none';
+      infoOverlay.classList.remove('open');
+    }
+
+    // Hover (desktop)
+    document.addEventListener('mouseover', function (e) {
+      const btn = e.target.closest('.fc-info-btn');
+      if (btn && !panel.classList.contains('open')) {
+        const raw = btn.getAttribute('data-fc-info') || '';
+        panel.innerHTML = decodeURIComponent(raw);
+        positionPanel(btn);
+        // CSS :hover يُظهره — نحدّث الموضع فقط
+      }
+    });
+
+    document.addEventListener('mouseleave', function (e) {
+      // لا نغلق لو مفتوح بالـ click
+    }, true);
+
+    // Click toggle
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.fc-info-btn');
+      if (btn) {
+        e.stopPropagation();
+        if (panel.classList.contains('open') && activeBtn === btn) {
+          closePanel();
+        } else {
+          openPanel(btn);
+        }
+        return;
+      }
+      // ضغط على داخل النافذة — لا تغلق
+      if (panel.contains(e.target)) return;
+      closePanel();
+    });
+
+    infoOverlay.addEventListener('click', closePanel);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closePanel();
+    });
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -2472,11 +3007,26 @@ ${baseRules}`;
     init();
   }
 
-  /* ═══ PUBLIC API ═══ */
+  /* ── Daily new-limit control ─────────────────────────────────────── */
+  function changeDailyLimit(delta) {
+    const fc = window._gardenFC;
+    const current = fc.dailyNewLimit || 10;
+    const next = Math.max(5, Math.min(50, current + delta));
+    fc.dailyNewLimit = next;
+    try { localStorage.setItem('garden_daily_new_limit', String(next)); } catch(e) {}
+    // Update displayed value live if visible
+    const el = document.getElementById('fc-dl-value');
+    if (el) el.textContent = next;
+  }
+
   window.Garden = {
     cycleTheme, toggleLanguage, setLanguage, applyTheme,
     flip: flipCard, grade: gradeCard, resetFC, report: showSM2Report,
     practice: startPractice, renderPractice, renderFC: renderFlashcard,
+    undo: undoGrade, bury: buryCard, filterFC, quickReview,
+    changeDailyLimit,
+    toggle3D: (v) => { setMobile3D(typeof v === 'boolean' ? v : !getMobile3D()); },
+    getStreak: calculateStreak, getRetention: getRetentionRate,
     pick: selectOption, nextQ, retryQuiz, showQuizHint: showHint,
     fontUp: () => changeFontSize(1), fontDown: () => changeFontSize(-1), setFontSize: applyFontSize,
     aiExplain: showAiModal, extractCard: extractCardContent
@@ -2756,22 +3306,11 @@ ${baseRules}`;
       updateEssayScoreUI();
     }
 
-    /* ─── Patch Garden.setLanguage to also update essay ─────────── */
+    /* ─── Listen for language change via CustomEvent (replaces fragile monkey-patching) ── */
     function patchLanguageToggle() {
-      const orig = window.Garden?.setLanguage;
-      if (!orig) return;
-      window.Garden.setLanguage = function (lang) {
-        orig(lang);
-        setTimeout(refreshEssayLanguage, 60);
-      };
-
-      const origToggle = window.Garden?.toggleLanguage;
-      if (origToggle) {
-        window.Garden.toggleLanguage = function () {
-          origToggle();
-          setTimeout(refreshEssayLanguage, 60);
-        };
-      }
+      document.addEventListener('garden:languageChanged', function () {
+        refreshEssayLanguage();
+      });
     }
 
     /* ─── Init ───────────────────────────────────────────────────── */
