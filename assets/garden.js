@@ -257,10 +257,10 @@
   ────────────────────────────────────────────────────────────────── */
   /* ── Mobile 3D flip preference — exposed globally for inline onclick ── */
   function getMobile3D() {
-    try { return localStorage.getItem('garden_mobile_3d') !== '0'; } catch(e) { return true; }
+    try { return localStorage.getItem('garden_mobile_3d') !== '0'; } catch (e) { return true; }
   }
   function setMobile3D(val) {
-    try { localStorage.setItem('garden_mobile_3d', val ? '1' : '0'); } catch(e) {}
+    try { localStorage.setItem('garden_mobile_3d', val ? '1' : '0'); } catch (e) { }
     document.documentElement.classList.toggle('mobile-3d-off', !val);
     // Update button appearance without full re-render
     const btn = document.querySelector('.fc-3d-btn');
@@ -274,16 +274,16 @@
   // Expose globally — needed for inline onclick handlers
   window._gardenGetMobile3D = getMobile3D;
   window._gardenSetMobile3D = setMobile3D;
-  window._gardenToggle3D    = function() { setMobile3D(!getMobile3D()); };
+  window._gardenToggle3D = function () { setMobile3D(!getMobile3D()); };
   // Apply on load
   document.documentElement.classList.toggle('mobile-3d-off', !getMobile3D());
 
   function isReviewPage() {
-    const page   = document.documentElement.getAttribute('data-page')   || '';
+    const page = document.documentElement.getAttribute('data-page') || '';
     const module = document.documentElement.getAttribute('data-module') || '';
     return page === 'review'
-        || ['review', 'midterm', 'final'].includes(module)
-        || (module !== '0' && isNaN(Number(module)));
+      || ['review', 'midterm', 'final'].includes(module)
+      || (module !== '0' && isNaN(Number(module)));
   }
 
   /* ── Activity / Streak ──────────────────────────────────────────────── */
@@ -297,7 +297,7 @@
       const data = JSON.parse(localStorage.getItem(activityKey()) || '{}');
       data[today] = (data[today] || 0) + 1;
       localStorage.setItem(activityKey(), JSON.stringify(data));
-    } catch (e) {}
+    } catch (e) { }
   }
   function calculateStreak() {
     try {
@@ -323,7 +323,7 @@
       const d = JSON.parse(localStorage.getItem(retentionKey()) || '{"t":0,"c":0}');
       d.t++; if (success) d.c++;
       localStorage.setItem(retentionKey(), JSON.stringify(d));
-    } catch (e) {}
+    } catch (e) { }
   }
   function getRetentionRate() {
     try {
@@ -339,7 +339,7 @@
     document.body.appendChild(canvas);
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const pieces = Array.from({length: 80}, () => ({
+    const pieces = Array.from({ length: 80 }, () => ({
       x: Math.random() * canvas.width, y: Math.random() * -canvas.height * 0.5,
       r: Math.random() * 8 + 4, c: 'hsl(' + Math.round(Math.random() * 360) + ',80%,60%)',
       vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 2,
@@ -375,7 +375,7 @@
   }
 
   function buildQueue(filterMode) {
-    const fc  = window._gardenFC;
+    const fc = window._gardenFC;
     const now = Date.now();
 
     /* ── صفحة مراجعة: كل البطاقات، بلا حد يومي، بلا تصفية استحقاق ── */
@@ -396,13 +396,13 @@
     try {
       const saved = parseInt(localStorage.getItem('garden_daily_new_limit'));
       fc.dailyNewLimit = (!isNaN(saved) && saved > 0) ? saved : (fc.dailyNewLimit || 10);
-    } catch(e) { fc.dailyNewLimit = fc.dailyNewLimit || 10; }
+    } catch (e) { fc.dailyNewLimit = fc.dailyNewLimit || 10; }
     const DAILY_NEW_LIMIT = fc.dailyNewLimit;
 
-    const today    = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
     const dailyKey = fcKey() + '_dn_' + today;
     let dailyNewCount = 0;
-    try { dailyNewCount = parseInt(localStorage.getItem(dailyKey) || '0'); } catch (e) {}
+    try { dailyNewCount = parseInt(localStorage.getItem(dailyKey) || '0'); } catch (e) { }
     fc._dailyKey = dailyKey; fc._dailyNewCount = dailyNewCount;
 
     fc.queue = fc.cards
@@ -416,10 +416,10 @@
         if (state.buriedUntil && state.buriedUntil > now) return false;
         const isDue = state.nextReview <= now;
         if (!isDue) return false;
-        if (filterMode === 'new')      return _isOriginallyNew;
+        if (filterMode === 'new') return _isOriginallyNew;
         if (filterMode === 'learning') return fc.sm2[i] && fc.sm2[i].n > 0 && fc.sm2[i].interval < 21;
         if (filterMode === 'mastered') return fc.sm2[i] && fc.sm2[i].interval >= 21;
-        if (filterMode === 'leech')    return fc.sm2[i] && (fc.sm2[i].failCount || 0) >= 8;
+        if (filterMode === 'leech') return fc.sm2[i] && (fc.sm2[i].failCount || 0) >= 8;
         if (_isOriginallyNew && dailyNewCount >= DAILY_NEW_LIMIT) return false;
         return true;
       });
@@ -456,13 +456,13 @@
           </div>
           <div class="fc-filter-row">
             <button class="fc-filter-btn${!fc.filterMode ? ' active' : ''}" onclick="Garden.filterFC(null)">${i18n[L]?.['fc.filter.all'] || 'All'}</button>
-            <button class="fc-filter-btn${fc.filterMode==='new' ? ' active' : ''}" onclick="Garden.filterFC('new')">${i18n[L]?.['fc.filter.new'] || 'New'}</button>
-            <button class="fc-filter-btn${fc.filterMode==='learning' ? ' active' : ''}" onclick="Garden.filterFC('learning')">${i18n[L]?.['fc.filter.learning'] || 'Learning'}</button>
-            <button class="fc-filter-btn${fc.filterMode==='mastered' ? ' active' : ''}" onclick="Garden.filterFC('mastered')">${i18n[L]?.['fc.filter.mastered'] || 'Mastered'}</button>
-            <button class="fc-filter-btn${fc.filterMode==='leech' ? ' active' : ''}" onclick="Garden.filterFC('leech')">${i18n[L]?.['fc.filter.leech'] || 'Leeches'}</button>
+            <button class="fc-filter-btn${fc.filterMode === 'new' ? ' active' : ''}" onclick="Garden.filterFC('new')">${i18n[L]?.['fc.filter.new'] || 'New'}</button>
+            <button class="fc-filter-btn${fc.filterMode === 'learning' ? ' active' : ''}" onclick="Garden.filterFC('learning')">${i18n[L]?.['fc.filter.learning'] || 'Learning'}</button>
+            <button class="fc-filter-btn${fc.filterMode === 'mastered' ? ' active' : ''}" onclick="Garden.filterFC('mastered')">${i18n[L]?.['fc.filter.mastered'] || 'Mastered'}</button>
+            <button class="fc-filter-btn${fc.filterMode === 'leech' ? ' active' : ''}" onclick="Garden.filterFC('leech')">${i18n[L]?.['fc.filter.leech'] || 'Leeches'}</button>
           </div>
           <div class="fc-daily-limit-row">
-            <span class="fc-dl-label">${L==='ar' ? '📅 حد البطاقات الجديدة يومياً:' : '📅 Daily new cards limit:'}</span>
+            <span class="fc-dl-label">${L === 'ar' ? '📅 حد البطاقات الجديدة يومياً:' : '📅 Daily new cards limit:'}</span>
             <div class="fc-dl-controls">
               <button class="fc-dl-btn" onclick="Garden.changeDailyLimit(-5)">−</button>
               <span class="fc-dl-value" id="fc-dl-value">${fc.dailyNewLimit || 10}</span>
@@ -484,10 +484,10 @@
     const ret = calcRetrieval(item.state);
     const retBadge = ret !== null
       ? (() => {
-          const cls = ret >= 80 ? 'fc-ret--high' : ret >= 50 ? 'fc-ret--mid' : 'fc-ret--low';
-          const label = L === 'ar' ? `تذكّر ${ret}%` : `Memory ${ret}%`;
-          return `<div class="fc-ret-badge ${cls}" title="${L==='ar'?'احتمالية تذكّر البطاقة الآن':'Estimated probability of recalling this card now'}">${label}</div>`;
-        })()
+        const cls = ret >= 80 ? 'fc-ret--high' : ret >= 50 ? 'fc-ret--mid' : 'fc-ret--low';
+        const label = L === 'ar' ? `تذكّر ${ret}%` : `Memory ${ret}%`;
+        return `<div class="fc-ret-badge ${cls}" title="${L === 'ar' ? 'احتمالية تذكّر البطاقة الآن' : 'Estimated probability of recalling this card now'}">${label}</div>`;
+      })()
       : '';
 
     // Undo button: show count if > 1 step available
@@ -499,20 +499,20 @@
     box.innerHTML = `
       <div class="fc-toolbar">
         <div class="flashcard-counter">${fc._isReview
-          ? '<span class="fc-review-badge">' + (L==='ar' ? '📋 وضع المراجعة' : '📋 Review Mode') + '</span>'
-          : (num + ' / ' + total)}</div>
+        ? '<span class="fc-review-badge">' + (L === 'ar' ? '📋 وضع المراجعة' : '📋 Review Mode') + '</span>'
+        : (num + ' / ' + total)}</div>
         <div class="fc-toolbar-actions">
-          <button class="fc-toolbar-bury" onclick="Garden.bury()" title="${L==='ar' ? 'يرجئ هذه البطاقة ليوم الغد' : 'Postpone this card until tomorrow'}">${L==='ar' ? 'تأجيل' : 'Bury'}</button>
+          <button class="fc-toolbar-bury" onclick="Garden.bury()" title="${L === 'ar' ? 'يرجئ هذه البطاقة ليوم الغد' : 'Postpone this card until tomorrow'}">${L === 'ar' ? 'تأجيل' : 'Bury'}</button>
           <button class="fc-mini-btn" onclick="Garden.resetFC('all')" title="${i18n[L]?.['fc.reset'] || 'Reset'}">↺</button>
           <button class="fc-report-btn" onclick="Garden.report()" title="${L === 'ar' ? 'تقرير SM-2' : 'SM-2 Report'}">R</button>
-          <button class="fc-3d-btn${getMobile3D() ? ' active' : ''}" onclick="window._gardenToggle3D()" title="${getMobile3D() ? (L==='ar'?'3D مفعّل — اضغط لإيقافه':'3D ON — tap to disable') : (L==='ar'?'3D معطّل — اضغط لتفعيله':'3D OFF — tap to enable')}">3D</button>
+          <button class="fc-3d-btn${getMobile3D() ? ' active' : ''}" onclick="window._gardenToggle3D()" title="${getMobile3D() ? (L === 'ar' ? '3D مفعّل — اضغط لإيقافه' : '3D ON — tap to disable') : (L === 'ar' ? '3D معطّل — اضغط لتفعيله' : '3D OFF — tap to enable')}">3D</button>
           <span class="fc-info-btn" tabindex="0" data-fc-info="${encodeURIComponent((i18n[L]?.['fc.info'] || '').replace(/\n/g, '<br>'))}">ⓘ</span>
         </div>
       </div>
       <div class="flashcard-scene">
         <div class="flashcard-card" id="fc-card" onclick="Garden.flip()">
           <div class="flashcard-face flashcard-front">
-            ${(item.state.failCount||0)>=8 ? ('<div class="fc-leech-badge" title="'+(i18n[L]?.['fc.leech_warning']||'Leech')+'">'+(i18n[L]?.['fc.leech']||'🔥')+'</div>') : ''}
+            ${(item.state.failCount || 0) >= 8 ? ('<div class="fc-leech-badge" title="' + (i18n[L]?.['fc.leech_warning'] || 'Leech') + '">' + (i18n[L]?.['fc.leech'] || '🔥') + '</div>') : ''}
             ${retBadge}
             <div class="fc-term" data-bilingual>
               <template class="content-ar">${card.front?.ar || ''}</template>
@@ -544,7 +544,7 @@
       </div>
       ${undoCount > 0
         ? '<div class="fc-util-row"><button class="fc-util-btn fc-undo-btn" onclick="Garden.undo()">' + undoLabel + '</button></div>'
-        : ''}`;  
+        : ''}`;
   }
 
   function flipCard() {
@@ -643,16 +643,16 @@
     // ── Undo snapshot (multi-level, max 5) ────────────────────────────
     if (!fc._undoStack) fc._undoStack = [];
     fc._undoStack.push({
-      itemIndex    : item.i,
-      sm2Snapshot  : JSON.parse(JSON.stringify(fc.sm2)),  // full deep copy
-      queue        : fc.queue.map(q => ({
+      itemIndex: item.i,
+      sm2Snapshot: JSON.parse(JSON.stringify(fc.sm2)),  // full deep copy
+      queue: fc.queue.map(q => ({
         card: q.card, i: q.i,
         state: JSON.parse(JSON.stringify(q.state)),
         retryCount: q.retryCount || 0,
         _isOriginallyNew: q._isOriginallyNew || false
       })),
-      pos          : fc.pos,
-      completed    : fc.completed,
+      pos: fc.pos,
+      completed: fc.completed,
       dailyNewCount: fc._dailyNewCount || 0
     });
     if (fc._undoStack.length > 5) fc._undoStack.shift();  // keep max 5
@@ -683,7 +683,7 @@
         if (item._isOriginallyNew) {
           const dn = (fc._dailyNewCount || 0) + 1;
           fc._dailyNewCount = dn;
-          try { localStorage.setItem(fc._dailyKey, String(dn)); } catch(e) {}
+          try { localStorage.setItem(fc._dailyKey, String(dn)); } catch (e) { }
         }
       }
       fc.queue.splice(fc.pos, 1);
@@ -691,8 +691,8 @@
     } else {
       // FAILED (grade 0 or 2) ──────────────────────────────────────────
       const updated = sm2Calc(item.state, grade);
-      updated.nextReview  = Date.now();
-      updated.failCount   = (item.state.failCount || 0) + 1;
+      updated.nextReview = Date.now();
+      updated.failCount = (item.state.failCount || 0) + 1;
       updated.buriedUntil = 0;
       if (!fc._isReview) {
         fc.sm2[item.i] = updated;
@@ -731,12 +731,12 @@
       fc.sm2 = snap.sm2Snapshot;
       saveSM2(fc.sm2);
     }
-    fc.queue     = snap.queue;
-    fc.pos       = snap.pos;
+    fc.queue = snap.queue;
+    fc.pos = snap.pos;
     fc.completed = snap.completed;
     fc._dailyNewCount = snap.dailyNewCount;
     if (fc._dailyKey) {
-      try { localStorage.setItem(fc._dailyKey, String(snap.dailyNewCount)); } catch(e) {}
+      try { localStorage.setItem(fc._dailyKey, String(snap.dailyNewCount)); } catch (e) { }
     }
     renderFlashcard();
     updateDueCount();
@@ -811,10 +811,10 @@
             Object.keys(localStorage)
               .filter(k => k.startsWith(prefix))
               .forEach(k => localStorage.removeItem(k));
-          } catch(e) {}
+          } catch (e) { }
           fc._dailyNewCount = 0;
           // Clear retention stats (معدل الحفظ) so they reflect the fresh start
-          try { localStorage.removeItem(retentionKey()); } catch(e) {}
+          try { localStorage.removeItem(retentionKey()); } catch (e) { }
         } else {
           Object.keys(fc.sm2).forEach(k => {
             if (fc.sm2[k].ef < 2.0) fc.sm2[k] = newCard();
@@ -827,11 +827,11 @@
         // Close SM2 dashboard popover — force-close via DOM first (more reliable),
         // then via the closure-based function for aria state
         const sm2Dash = document.getElementById('sm2-dashboard');
-        const sm2Ov   = document.getElementById('sm2-overlay');
-        const sm2Tog  = document.getElementById('sm2-toggle');
+        const sm2Ov = document.getElementById('sm2-overlay');
+        const sm2Tog = document.getElementById('sm2-toggle');
         if (sm2Dash) sm2Dash.classList.remove('open');
-        if (sm2Ov)   sm2Ov.classList.remove('open');
-        if (sm2Tog)  sm2Tog.setAttribute('aria-expanded', 'false');
+        if (sm2Ov) sm2Ov.classList.remove('open');
+        if (sm2Tog) sm2Tog.setAttribute('aria-expanded', 'false');
         if (typeof window._gardenCloseSM2 === 'function') window._gardenCloseSM2();
       }
     });
@@ -1005,8 +1005,8 @@
     // Format relative time — fixed: proper past/future distinction
     function relTime(ts, isFuture) {
       if (!ts || ts === Infinity || ts === 0) return isFuture ? t.allDone : t.never;
-      const diffMs  = ts - now;
-      const days    = Math.round(diffMs / 86400000);
+      const diffMs = ts - now;
+      const days = Math.round(diffMs / 86400000);
       const absDays = Math.abs(days);
       if (absDays === 0) return t.today;
       if (isFuture) {
@@ -1036,9 +1036,9 @@
     const retention = getRetentionRate();
     setT('sm2-retention-label', L === 'ar' ? ('🎯 ' + (i18n[L]?.['fc.retention'] || 'معدل الحفظ')) : '🎯 Retention');
     setT('sm2-retention', retention !== null ? (retention + '%') : '—');
-    setT('sm2-leg-new',      newCount      + ' ' + t.newL);
-    setT('sm2-leg-learning',  learningCount + ' ' + t.learning);
-    setT('sm2-leg-mastered',  masteredCount + ' ' + t.mastered);
+    setT('sm2-leg-new', newCount + ' ' + t.newL);
+    setT('sm2-leg-learning', learningCount + ' ' + t.learning);
+    setT('sm2-leg-mastered', masteredCount + ' ' + t.mastered);
 
     // Update bar
     const bar = $l('sm2-bar');
@@ -1122,9 +1122,9 @@
         <div>
           <strong>${isAr ? 'تحذير: Ease Hell' : 'Warning: Ease Hell'}</strong>
           <p>${isAr
-            ? `معامل السهولة المتوسط (${avgEFNum.toFixed(2)}) منخفض جداً. كثير من بطاقاتك تُراجَع بفترات قصيرة جداً مما يثقّل جلساتك. الحل: قيّم بـ "ممتاز" أو "سهل" عند الإمكان، وأعد ضبط الصعبة جداً.`
-            : `Avg. ease factor (${avgEFNum.toFixed(2)}) is very low. Many cards are scheduled at short intervals, making sessions heavy. Fix: grade cards "Very Good" or "Easy" when possible, or reset hard cards.`
-          }</p>
+        ? `معامل السهولة المتوسط (${avgEFNum.toFixed(2)}) منخفض جداً. كثير من بطاقاتك تُراجَع بفترات قصيرة جداً مما يثقّل جلساتك. الحل: قيّم بـ "ممتاز" أو "سهل" عند الإمكان، وأعد ضبط الصعبة جداً.`
+        : `Avg. ease factor (${avgEFNum.toFixed(2)}) is very low. Many cards are scheduled at short intervals, making sessions heavy. Fix: grade cards "Very Good" or "Easy" when possible, or reset hard cards.`
+      }</p>
         </div>
       </div>` : '';
 
@@ -1218,37 +1218,37 @@
                 <span class="sm2-rpill-l">${isAr ? 'أيام متتالية 🔥' : 'Day Streak 🔥'}</span>
               </div>
               ${(() => {
-                const r = getRetentionRate();
-                if (r === null) return '';
-                const cls = r >= 80 ? 'sm2-rpill--green' : r >= 60 ? 'sm2-rpill--orange' : 'sm2-rpill--red';
-                return '<div class="sm2-rpill ' + cls + '"><span class="sm2-rpill-n">' + r + '%</span><span class="sm2-rpill-l">' + (isAr ? 'معدل الحفظ 🎯' : 'Retention 🎯') + '</span></div>';
-              })()}
+        const r = getRetentionRate();
+        if (r === null) return '';
+        const cls = r >= 80 ? 'sm2-rpill--green' : r >= 60 ? 'sm2-rpill--orange' : 'sm2-rpill--red';
+        return '<div class="sm2-rpill ' + cls + '"><span class="sm2-rpill-n">' + r + '%</span><span class="sm2-rpill-l">' + (isAr ? 'معدل الحفظ 🎯' : 'Retention 🎯') + '</span></div>';
+      })()}
             </div>
           </div>
 
           <div class="sm2-report-section">
             <div class="sm2-rsec-title"><span>📅</span>${isAr ? 'نشاط المراجعة (12 أسبوع)' : 'Review Activity (12 weeks)'}</div>
             ${(() => {
-              const actData = getActivityData();
-              const refDay  = new Date(); const DAYS = 84;
-              const vals = []; let maxV = 1;
-              for (let i = DAYS - 1; i >= 0; i--) {
-                const d = new Date(refDay); d.setDate(d.getDate() - i);
-                const key = d.toISOString().split('T')[0];
-                const v = actData[key] || 0;
-                vals.push({ key, v }); if (v > maxV) maxV = v;
-              }
-              const cells = vals.map(({ key, v }) => {
-                const iv = v === 0 ? 0 : Math.ceil((v / maxV) * 4);
-                return '<div class="sm2-hm-cell sm2-hm-i' + iv + '" title="' + key + ': ' + v + ' ' + (isAr ? 'مراجعة' : 'reviews') + '"></div>';
-              }).join('');
-              return '<div class="sm2-heatmap">' + cells + '</div>'
-                + '<div class="sm2-hm-legend"><span>' + (isAr ? 'أقل' : 'Less') + '</span>'
-                + '<div class="sm2-hm-cell sm2-hm-i0"></div><div class="sm2-hm-cell sm2-hm-i1"></div>'
-                + '<div class="sm2-hm-cell sm2-hm-i2"></div><div class="sm2-hm-cell sm2-hm-i3"></div>'
-                + '<div class="sm2-hm-cell sm2-hm-i4"></div>'
-                + '<span>' + (isAr ? 'أكثر' : 'More') + '</span></div>';
-            })()}
+        const actData = getActivityData();
+        const refDay = new Date(); const DAYS = 84;
+        const vals = []; let maxV = 1;
+        for (let i = DAYS - 1; i >= 0; i--) {
+          const d = new Date(refDay); d.setDate(d.getDate() - i);
+          const key = d.toISOString().split('T')[0];
+          const v = actData[key] || 0;
+          vals.push({ key, v }); if (v > maxV) maxV = v;
+        }
+        const cells = vals.map(({ key, v }) => {
+          const iv = v === 0 ? 0 : Math.ceil((v / maxV) * 4);
+          return '<div class="sm2-hm-cell sm2-hm-i' + iv + '" title="' + key + ': ' + v + ' ' + (isAr ? 'مراجعة' : 'reviews') + '"></div>';
+        }).join('');
+        return '<div class="sm2-heatmap">' + cells + '</div>'
+          + '<div class="sm2-hm-legend"><span>' + (isAr ? 'أقل' : 'Less') + '</span>'
+          + '<div class="sm2-hm-cell sm2-hm-i0"></div><div class="sm2-hm-cell sm2-hm-i1"></div>'
+          + '<div class="sm2-hm-cell sm2-hm-i2"></div><div class="sm2-hm-cell sm2-hm-i3"></div>'
+          + '<div class="sm2-hm-cell sm2-hm-i4"></div>'
+          + '<span>' + (isAr ? 'أكثر' : 'More') + '</span></div>';
+      })()}
           </div>
 
           ${nextDueDate ? `<div class="sm2-report-section">
@@ -1630,7 +1630,12 @@
         const sel = window.getSelection();
         const text = sel?.toString().trim();
         if (text && text.length > 3 && text.length < 500) {
-          showNotesTooltip(e.clientX, e.clientY, text);
+          // Use the selection's bounding rect so the button appears *above*
+          // the highlighted text, not on top of it
+          const rect = sel.rangeCount > 0
+            ? sel.getRangeAt(0).getBoundingClientRect()
+            : null;
+          showNotesTooltip(e.clientX, rect ? rect.top : e.clientY, text);
         } else { hideNotesTooltip(); }
       }, 200);
     });
@@ -1666,13 +1671,18 @@
     restoreHighlights();
   }
 
-  function showNotesTooltip(x, y, text) {
+  function showNotesTooltip(x, rectTop, text) {
     const tip = document.getElementById('notes-tooltip');
     if (!tip) return;
     window._gardenNotesSelection = text;
     tip.style.display = 'block';
+    // notes-tooltip is position:fixed → coords are viewport-relative.
+    // rectTop is already viewport-relative (from getBoundingClientRect).
+    // Place the button just above the top of the selected text.
+    const tipHeight = tip.offsetHeight || 42;
+    const topPx = Math.max(rectTop - tipHeight - 8, 8);
     tip.style.left = `${Math.min(x, window.innerWidth - 180)}px`;
-    tip.style.top = `${Math.max(y - 50, 10)}px`;
+    tip.style.top = `${topPx}px`;
     const btn = tip.querySelector('button');
     if (btn) btn.textContent = `📝 ${currentLang === 'ar' ? 'حفظ ملاحظة' : 'Save Note'}`;
   }
@@ -2468,16 +2478,16 @@
     let activeBtn = null;
 
     function positionPanel(btn) {
-      const r   = btn.getBoundingClientRect();
-      const w   = Math.min(300, window.innerWidth - 32);
+      const r = btn.getBoundingClientRect();
+      const w = Math.min(300, window.innerWidth - 32);
       const gap = 10;
       // فتح للأسفل
       panel.style.width = w + 'px';
-      panel.style.top   = (r.bottom + gap) + 'px';
+      panel.style.top = (r.bottom + gap) + 'px';
       // محاذاة يمين البطاقة مع يمين الزر — مع تثبيت داخل الشاشة
       let left = r.right - w;
       left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
-      panel.style.left  = left + 'px';
+      panel.style.left = left + 'px';
     }
 
     function openPanel(btn) {
@@ -2825,10 +2835,12 @@ ${baseRules}`;
       return { error: false, text: data.text || '' };
     } catch (e) {
       console.error('AI fetch failed:', e);
-      return { error: true, text: '', errorData: {
-        message_ar: 'فشل الاتصال بالخادم. تحقق من الرابط أو حاول لاحقاً.',
-        message_en: 'Failed to connect to server. Check URL or try later.'
-      }};
+      return {
+        error: true, text: '', errorData: {
+          message_ar: 'فشل الاتصال بالخادم. تحقق من الرابط أو حاول لاحقاً.',
+          message_en: 'Failed to connect to server. Check URL or try later.'
+        }
+      };
     }
   }
 
@@ -2984,6 +2996,21 @@ ${baseRules}`;
     });
   }
 
+  /* ── SVG Text Z-Order Fix ──────────────────────────────────────── */
+  /* In SVG, paint order follows DOM order (last = on top).           */
+  /* Moving all <text> nodes to the END of their parent makes them    */
+  /* render above every line, rect and arrow — zero visual change.    */
+  function initSvgTextOrder() {
+    document.querySelectorAll('.svg-diagram svg, figure.svg-diagram > svg').forEach(svg => {
+      // Collect all text elements in the SVG
+      const texts = Array.from(svg.querySelectorAll('text'));
+      if (!texts.length) return;
+      // Re-attach each text node at the end of its direct parent.
+      // This preserves grouping (<g>) while guaranteeing text is painted last.
+      texts.forEach(t => t.parentNode.appendChild(t));
+    });
+  }
+
   /* ── إضافة Favicon مخصص (كتاب صلب) ── */
   function initFavicon() {
     if (document.querySelector('link[rel="icon"]')) return;
@@ -3001,9 +3028,10 @@ ${baseRules}`;
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initFavicon(); init(); });
+    document.addEventListener('DOMContentLoaded', () => { initFavicon(); initSvgTextOrder(); init(); });
   } else {
     initFavicon();
+    initSvgTextOrder();
     init();
   }
 
@@ -3013,7 +3041,7 @@ ${baseRules}`;
     const current = fc.dailyNewLimit || 10;
     const next = Math.max(5, Math.min(50, current + delta));
     fc.dailyNewLimit = next;
-    try { localStorage.setItem('garden_daily_new_limit', String(next)); } catch(e) {}
+    try { localStorage.setItem('garden_daily_new_limit', String(next)); } catch (e) { }
     // Update displayed value live if visible
     const el = document.getElementById('fc-dl-value');
     if (el) el.textContent = next;
