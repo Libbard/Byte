@@ -681,6 +681,9 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.add('active');
     planContent.style.display = 'none';
 
+    
+    window.GardenSync?.pause();
+
     const isAr = lang() === 'ar';
     cleanupLoadingIntervals();
     const advanceLoading = setupInteractiveLoading(isAr);
@@ -799,6 +802,8 @@ ${JSON.stringify(relevant, null, 0)}
           console.error('renderPlan error:', renderErr);
           planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p><button onclick="Planner.regenerate()" style="margin-top:1rem;padding:0.5rem 1rem;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;cursor:pointer;">إعادة التوليد</button></div>';
         }
+        
+        window.GardenSync?.resume();
       }, 500);
 
     } catch (err) {
@@ -818,6 +823,8 @@ ${JSON.stringify(relevant, null, 0)}
         console.error('Fallback renderPlan error:', renderErr);
         planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
       }
+      
+      window.GardenSync?.resume();
       showInfo(isAr
         ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
         : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.');
@@ -1164,6 +1171,9 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.remove('active');
     planContent.style.display = '';
 
+    
+    window.GardenSync?.pause();
+
     const plan = generateSmartLocalPlan();
     const storageKey = getPlanStorageKey(userConfig.plan_type);
     localStorage.setItem(storageKey, JSON.stringify(plan));
@@ -1175,6 +1185,9 @@ ${JSON.stringify(relevant, null, 0)}
       console.error('Local plan renderPlan error:', renderErr);
       planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p></div>';
     }
+
+    
+    window.GardenSync?.resume();
 
     showInfo(lang() === 'ar'
       ? '📋 تم إنشاء جدول ذكي محلياً — مرتب حسب الأولوية مع تبديل بين المواد.'
@@ -2488,6 +2501,7 @@ ${JSON.stringify(relevant, null, 0)}
   document.addEventListener('DOMContentLoaded', init);
 
   document.addEventListener('garden:languageChanged', () => {
+    if (window._plannerRenderingPlan) return; 
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {
