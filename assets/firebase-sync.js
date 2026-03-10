@@ -476,52 +476,30 @@
       BASE + 'firebase-firestore-compat.js',
     ];
 
-    function initFirebase() {
-      if (isFirebaseInit) return;
-      if (typeof firebase === 'undefined') {
-        setTimeout(initFirebase, 200);
-        return;
-      }
-      // GARDEN_CONFIG is expected to be globally available or passed
-      // For this example, assuming it's available or a placeholder
-      const GARDEN_CONFIG = window.GARDEN_CONFIG || {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-      };
-
-      const cfg = {
-        apiKey: GARDEN_CONFIG.apiKey,
-        authDomain: GARDEN_CONFIG.authDomain,
-        projectId: GARDEN_CONFIG.projectId,
-        storageBucket: GARDEN_CONFIG.storageBucket,
-        messagingSenderId: GARDEN_CONFIG.messagingSenderId,
-        appId: GARDEN_CONFIG.appId
-      };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(cfg);
-      }
-      db = firebase.firestore();
-      // Resolve "You are overriding the original host" and net::ERR_BLOCKED_BY_CLIENT
-      db.settings({ experimentalForceLongPolling: true, merge: true });
-      isFirebaseInit = true;
-      console.log('[Firebase Sync] Initialized successfully');
-      callback(); // Call the original callback after successful init
-    }
-
-    function tryLoadScript() {
+    function tryInit() {
       loaded++;
       if (loaded < scripts.length) return;
-      initFirebase(); // Call the new initFirebase function
+      (async () => {
+        try {
+          const config = await getFirebaseConfig();
+          if (!firebase.apps.length) firebase.initializeApp(config);
+          db = firebase.firestore();
+          // Resolve "You are overriding the original host" and net::ERR_BLOCKED_BY_CLIENT
+          db.settings({ experimentalForceLongPolling: true, merge: true });
+          isFirebaseInit = true;
+          console.log('[Firebase Sync] Initialized successfully');
+          callback();
+        } catch (e) {
+          console.warn('[Sync] Firebase init failed:', e);
+          setStatus('error');
+        }
+      })();
     }
 
     scripts.forEach(src => {
       const s = document.createElement('script');
       s.src = src;
-      s.onload = tryLoadScript;
+      s.onload = tryInit;
       s.onerror = () => { console.warn('[Sync] Failed to load:', src); setStatus('error'); };
       document.head.appendChild(s);
     });
