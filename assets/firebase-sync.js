@@ -66,6 +66,7 @@
   let pushTimer = null;
   let fabBtn = null;
   let statusDot = null;
+  let isSyncing = false;
 
   /* ════════════════════════════════════════════════════
      🌍  i18n بسيط
@@ -564,6 +565,7 @@
   async function pullAll(key) {
     if (!db || !key) return;
     setStatus('loading');
+    isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
       if (!doc.exists) {
@@ -574,6 +576,7 @@
 
       const remote = doc.data()?.sync || {};
       let changed = false;
+      let localHasNewer = false;
 
       Object.entries(remote).forEach(([fk, entry]) => {
         const lsKey = _localKey(fk);
@@ -582,6 +585,9 @@
         const localRaw = localStorage.getItem(lsKey);
         const remoteT = entry.t || 0;
         const remoteV = entry.v;
+
+        // تجاهل القيم المتطابقة فوراً لتفادي دوران التحديثات
+        if (localRaw === remoteV) return;
 
         if (localRaw === null) {
           // مفتاح جديد عندنا — خذه من Firebase
@@ -602,24 +608,32 @@
         if (remoteT > localT) {
           localStorage.setItem(lsKey, remoteV);
           changed = true;
+        } else if (localT > remoteT) {
+          localHasNewer = true;
         }
       });
 
-      // إذا عندنا بيانات أحدث — ارفعها
-      await pushAll(key);
+      // تحقق من وجود مفاتيح محلية لم ترفع بعد
+      const syncableKeys = getSyncableKeys();
+      const localHasMissingRemote = syncableKeys.some(k => remote[_fireKey(k)] === undefined);
+
+      // إذا عندنا بيانات أحدث أو بيانات تنقص السحابة — ارفعها
+      if (localHasNewer || localHasMissingRemote) {
+        await pushAll(key);
+      }
 
       setStatus('synced');
       localStorage.setItem('garden_sync_last', String(Date.now()));
 
       if (changed) {
-        // أعد تحميل الصفحة بهدوء لتطبيق البيانات الجديدة
-        setTimeout(() => {
-          if (!document.hidden) window.location.reload();
-        }, 400);
+        // تحديث بالخلفية بدون مقاطعة أو تحميل الصفحة
+        window.dispatchEvent(new CustomEvent('garden:syncCompleted'));
       }
     } catch (e) {
       console.warn('[Sync] Pull failed:', e);
       setStatus('error');
+    } finally {
+      isSyncing = false;
     }
   }
 
@@ -627,6 +641,7 @@
   async function importFromKey(otherKey) {
     if (!db || !otherKey) return false;
     setStatus('loading');
+    isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(otherKey).get();
       if (!doc.exists) { setStatus('synced'); return false; }
@@ -638,16 +653,21 @@
       Object.entries(remote).forEach(([fk, entry]) => {
         const lsKey = _localKey(fk);
         if (lsKey && !NEVER_SYNC.has(lsKey) && entry.v !== undefined) {
-          localStorage.setItem(lsKey, entry.v);
+          if (localStorage.getItem(lsKey) !== entry.v) {
+            localStorage.setItem(lsKey, entry.v);
+          }
         }
       });
 
       setStatus('synced');
+      window.dispatchEvent(new CustomEvent('garden:syncCompleted'));
       return true;
     } catch (e) {
       console.warn('[Sync] Import failed:', e);
       setStatus('error');
       return false;
+    } finally {
+      isSyncing = false;
     }
   }
 
@@ -671,7 +691,7 @@
 
     Storage.prototype.setItem = function (key, value) {
       origSet.call(this, key, value);
-      if (this === localStorage && !NEVER_SYNC.has(key)) {
+      if (this === localStorage && !NEVER_SYNC.has(key) && !isSyncing) {
         const isSyncable = FIXED_SYNC_KEYS.includes(key) ||
           DYNAMIC_PATTERNS.some(p => p.test(key));
         if (isSyncable) schedulePush();
@@ -680,7 +700,7 @@
 
     Storage.prototype.removeItem = function (key) {
       origRemove.call(this, key);
-      if (this === localStorage) schedulePush();
+      if (this === localStorage && !isSyncing) schedulePush();
     };
   }
 
