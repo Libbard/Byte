@@ -1380,13 +1380,17 @@ ${JSON.stringify(relevant, null, 0)}
     }
 
     // Re-apply bilingual dynamically without refresh if a plan is displayed
-    if (typeof Garden !== 'undefined' && Garden.setLanguage) {
+    // Guard against infinite loop: renderPlan → setLanguage → languageChanged → renderPlan
+    if (!window._plannerRenderingPlan && typeof Garden !== 'undefined' && Garden.setLanguage) {
+      window._plannerRenderingPlan = true;
       Garden.setLanguage(lang());
+      window._plannerRenderingPlan = false;
     }
 
     // Attach language toggle listener if not already done
     if (!window._plannerLangListenerAttached) {
-      document.addEventListener('languageChanged', (e) => {
+      document.addEventListener('garden:languageChanged', (e) => {
+        if (window._plannerRenderingPlan) return; // prevent re-entrant loop
         const p = getCurrentPlan();
         if (p) renderPlan(p); // Re-render plan on language change
       });
