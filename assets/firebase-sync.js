@@ -67,7 +67,7 @@
   let fabBtn = null;
   let statusDot = null;
   let isSyncing = false;
-  let _syncPaused = false;  // flag مستقل لـ pause/resume — لا يُعاد ضبطه من pullAll
+  let _syncPaused = false;  // flag مستقل — لا يُعاد ضبطه من pullAll
 
   /* ════════════════════════════════════════════════════
      🌍  i18n بسيط
@@ -481,7 +481,7 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
-          db.settings({ experimentalForceLongPolling: false });
+          db.settings({ experimentalForceLongPolling: true, merge: true });
           callback();
         } catch (e) {
           console.warn('[Sync] Firebase init failed:', e);
@@ -569,14 +569,11 @@
 
   /** اسحب من Firestore وادمج مع localStorage (last-write-wins) */
   async function pullAll(key) {
-    if (!db || !key) return;
-    // أوقف إذا كانت المزامنة متوقفة (مثل أثناء توليد الخطة)
-    if (_syncPaused) return;
+    if (!db || !key || _syncPaused) return;
     setStatus('loading');
     isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
-      // تحقق مجدداً بعد await — قد يكون pause() استُدعي أثناء الانتظار
       if (_syncPaused) { setStatus('synced'); return; }
       if (!doc.exists) {
         // مفتاح جديد — ارفع بياناتنا الحالية
@@ -606,13 +603,13 @@
           return;
         }
 
-        // قارن الـ timestamp — نتحقق من updated_at أو generated_at (حقل الخطة)
+        // قارن الـ timestamp
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
           if (parsed && typeof parsed === 'object') {
-            const tsField = parsed.updated_at || parsed.generated_at;
-            if (tsField) localT = new Date(tsField).getTime();
+            const ts = parsed.updated_at || parsed.generated_at;
+            if (ts) localT = new Date(ts).getTime();
           }
         } catch (e) { /* not JSON, استخدم 0 */ }
 
@@ -1060,8 +1057,7 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
-    // إيقاف مؤقت: يمنع pullAll من الكتابة فوق البيانات أثناء التوليد
-    pause:  () => { _syncPaused = true; isSyncing = true; },
+    pause:  () => { _syncPaused = true;  isSyncing = true;  },
     resume: () => { _syncPaused = false; isSyncing = false; if (userKey && db) schedulePush(); },
   };
 

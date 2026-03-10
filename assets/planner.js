@@ -684,7 +684,7 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.add('active');
     planContent.style.display = 'none';
 
-    // ⏸️ أوقف مزامنة Firebase أثناء التوليد
+    window._lastRenderSig = null;
     window.GardenSync?.pause();
 
     const isAr = lang() === 'ar';
@@ -805,7 +805,6 @@ ${JSON.stringify(relevant, null, 0)}
           console.error('renderPlan error:', renderErr);
           planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p><button onclick="Planner.regenerate()" style="margin-top:1rem;padding:0.5rem 1rem;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;cursor:pointer;">إعادة التوليد</button></div>';
         }
-        // ▶️ استأنف المزامنة بعد اكتمال العرض
         window.GardenSync?.resume();
       }, 500);
 
@@ -826,7 +825,6 @@ ${JSON.stringify(relevant, null, 0)}
         console.error('Fallback renderPlan error:', renderErr);
         planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
       }
-      // ▶️ استأنف المزامنة حتى في حالة الفشل
       window.GardenSync?.resume();
       showInfo(isAr
         ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
@@ -1174,6 +1172,7 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.remove('active');
     planContent.style.display = '';
 
+    window._lastRenderSig = null;
     window.GardenSync?.pause();
 
     const plan = generateSmartLocalPlan();
@@ -1283,18 +1282,11 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   // ─── Render Plan ──────────────────────────────────────────
-  // debounce: تجاهل استدعاءات متكررة خلال 80ms
-  let _renderDebounceTimer = null;
   function renderPlan(plan) {
-    if (_renderDebounceTimer) {
-      clearTimeout(_renderDebounceTimer);
-      _renderDebounceTimer = setTimeout(() => { _renderDebounceTimer = null; _doRenderPlan(plan); }, 80);
-      return;
-    }
-    _renderDebounceTimer = null;
-    _doRenderPlan(plan);
-  }
-  function _doRenderPlan(plan) {
+    // تجاهل إذا لم تتغير البيانات أو وضع العرض — يمنع أي مصدر من إعادة render بنفس البيانات
+    const _sig = JSON.stringify(plan?.days?.map(d=>d.date+d.sessions?.length)) + '|' + cardViewMode;
+    if (_sig === window._lastRenderSig) return;
+    window._lastRenderSig = _sig;
     const container = document.getElementById('plan-content');
     const isAr = lang() === 'ar';
 
@@ -1302,8 +1294,6 @@ ${JSON.stringify(relevant, null, 0)}
     cleanupExpiredCourses(plan);
 
     console.log('renderPlan called, days:', plan.days?.length, 'plan_type:', plan.plan_type);
-    // 🔍 مؤقت للتشخيص — يكشف من يستدعي renderPlan
-    console.trace('renderPlan caller trace');
 
     const totalDays = plan.plan_summary?.total_days || plan.days?.length || 0;
     const totalSessions = plan.plan_summary?.total_sessions || 0;
@@ -1403,18 +1393,17 @@ ${JSON.stringify(relevant, null, 0)}
       }, 150);
     }
 
-    // لا نستدعي Garden.setLanguage هنا — كان الجذر الأصلي للحلقة اللانهائية
-    window._plannerLastLang = window._plannerLastLang || lang();
-
-    // Attach language toggle listener if not already done
+    // لا نستدعي Garden.setLanguage — كان مصدر الحلقة الأصلية
     if (!window._plannerLangListenerAttached) {
       document.addEventListener('garden:languageChanged', (e) => {
         const newLang = e.detail?.lang;
         if (!newLang || newLang === window._plannerLastLang) return;
         window._plannerLastLang = newLang;
+        window._lastRenderSig = null;
         const p = getCurrentPlan();
         if (p) renderPlan(p);
       });
+      window._plannerLastLang = lang();
       window._plannerLangListenerAttached = true;
     }
   }
@@ -1632,7 +1621,9 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   function setViewMode(mode) {
+    if (cardViewMode === mode) return; // لا تفعل شيء إذا لم يتغير الوضع
     cardViewMode = mode;
+    window._lastRenderSig = null; // أجبر re-render لأن الوضع تغير
     const plan = getCurrentPlan();
     if (plan) renderPlan(plan);
   }
@@ -2515,6 +2506,7 @@ ${JSON.stringify(relevant, null, 0)}
     const newLang = e.detail?.lang;
     if (!newLang || newLang === window._plannerLastLang) return;
     window._plannerLastLang = newLang;
+    window._lastRenderSig = null;
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {
