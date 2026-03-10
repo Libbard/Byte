@@ -805,7 +805,7 @@ ${JSON.stringify(relevant, null, 0)}
           console.error('renderPlan error:', renderErr);
           planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p><button onclick="Planner.regenerate()" style="margin-top:1rem;padding:0.5rem 1rem;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;cursor:pointer;">إعادة التوليد</button></div>';
         }
-        // ▶️ استأنف المزامنة بعد اكتمال العرض — رفع واحد نظيف
+        // ▶️ استأنف المزامنة بعد اكتمال العرض
         window.GardenSync?.resume();
       }, 500);
 
@@ -1174,7 +1174,6 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.remove('active');
     planContent.style.display = '';
 
-    // ⏸️ أوقف المزامنة أثناء الحفظ والعرض
     window.GardenSync?.pause();
 
     const plan = generateSmartLocalPlan();
@@ -1189,7 +1188,6 @@ ${JSON.stringify(relevant, null, 0)}
       planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p></div>';
     }
 
-    // ▶️ استأنف المزامنة بعد العرض
     window.GardenSync?.resume();
 
     showInfo(lang() === 'ar'
@@ -1285,7 +1283,7 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   // ─── Render Plan ──────────────────────────────────────────
-  // debounce: إذا استُدعيت renderPlan أكثر من مرة في أقل من 80ms، نفّذ الأخيرة فقط
+  // debounce: تجاهل استدعاءات متكررة خلال 80ms
   let _renderDebounceTimer = null;
   function renderPlan(plan) {
     if (_renderDebounceTimer) {
@@ -1304,6 +1302,8 @@ ${JSON.stringify(relevant, null, 0)}
     cleanupExpiredCourses(plan);
 
     console.log('renderPlan called, days:', plan.days?.length, 'plan_type:', plan.plan_type);
+    // 🔍 مؤقت للتشخيص — يكشف من يستدعي renderPlan
+    console.trace('renderPlan caller trace');
 
     const totalDays = plan.plan_summary?.total_days || plan.days?.length || 0;
     const totalSessions = plan.plan_summary?.total_sessions || 0;
@@ -1403,16 +1403,12 @@ ${JSON.stringify(relevant, null, 0)}
       }, 150);
     }
 
-    // ملاحظة: لا نستدعي Garden.setLanguage من هنا —
-    // garden.js يدير اللغة باستقلالية، واستدعاؤها هنا كان الجذر الأصلي للحلقة.
-
-    // سجّل اللغة الحالية لمقارنتها عند كل حدث languageChanged
+    // لا نستدعي Garden.setLanguage هنا — كان الجذر الأصلي للحلقة اللانهائية
     window._plannerLastLang = window._plannerLastLang || lang();
 
     // Attach language toggle listener if not already done
     if (!window._plannerLangListenerAttached) {
       document.addEventListener('garden:languageChanged', (e) => {
-        // تجاهل إذا اللغة لم تتغير فعلاً (مثل استدعاء garden.js init)
         const newLang = e.detail?.lang;
         if (!newLang || newLang === window._plannerLastLang) return;
         window._plannerLastLang = newLang;
@@ -2516,11 +2512,9 @@ ${JSON.stringify(relevant, null, 0)}
   document.addEventListener('DOMContentLoaded', init);
 
   document.addEventListener('garden:languageChanged', (e) => {
-    // تجاهل إذا اللغة لم تتغير فعلاً (مثل garden.js init أو re-render داخلي)
     const newLang = e.detail?.lang;
     if (!newLang || newLang === window._plannerLastLang) return;
     window._plannerLastLang = newLang;
-
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {

@@ -67,6 +67,7 @@
   let fabBtn = null;
   let statusDot = null;
   let isSyncing = false;
+  let _syncPaused = false;  // flag مستقل لـ pause/resume — لا يُعاد ضبطه من pullAll
 
   /* ════════════════════════════════════════════════════
      🌍  i18n بسيط
@@ -569,10 +570,14 @@
   /** اسحب من Firestore وادمج مع localStorage (last-write-wins) */
   async function pullAll(key) {
     if (!db || !key) return;
+    // أوقف إذا كانت المزامنة متوقفة (مثل أثناء توليد الخطة)
+    if (_syncPaused) return;
     setStatus('loading');
     isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
+      // تحقق مجدداً بعد await — قد يكون pause() استُدعي أثناء الانتظار
+      if (_syncPaused) { setStatus('synced'); return; }
       if (!doc.exists) {
         // مفتاح جديد — ارفع بياناتنا الحالية
         await pushAll(key);
@@ -601,12 +606,13 @@
           return;
         }
 
-        // قارن الـ timestamp
+        // قارن الـ timestamp — نتحقق من updated_at أو generated_at (حقل الخطة)
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
-          if (parsed && typeof parsed === 'object' && parsed.updated_at) {
-            localT = new Date(parsed.updated_at).getTime();
+          if (parsed && typeof parsed === 'object') {
+            const tsField = parsed.updated_at || parsed.generated_at;
+            if (tsField) localT = new Date(tsField).getTime();
           }
         } catch (e) { /* not JSON, استخدم 0 */ }
 
@@ -1054,8 +1060,9 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
-    pause:  () => { isSyncing = true; },
-    resume: () => { isSyncing = false; if (userKey && db) schedulePush(); },
+    // إيقاف مؤقت: يمنع pullAll من الكتابة فوق البيانات أثناء التوليد
+    pause:  () => { _syncPaused = true; isSyncing = true; },
+    resume: () => { _syncPaused = false; isSyncing = false; if (userKey && db) schedulePush(); },
   };
 
   /* ════════════════════════════════════════════════════
