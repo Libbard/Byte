@@ -49,6 +49,7 @@
   let fabBtn = null;
   let statusDot = null;
   let isSyncing = false;
+  let _syncPaused = false;  
 
    
   const T = {
@@ -539,10 +540,14 @@
    
   async function pullAll(key) {
     if (!db || !key) return;
+    
+    if (_syncPaused) return;
     setStatus('loading');
     isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
+      
+      if (_syncPaused) { setStatus('synced'); return; }
       if (!doc.exists) {
         
         await pushAll(key);
@@ -575,8 +580,9 @@
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
-          if (parsed && typeof parsed === 'object' && parsed.updated_at) {
-            localT = new Date(parsed.updated_at).getTime();
+          if (parsed && typeof parsed === 'object') {
+            const tsField = parsed.updated_at || parsed.generated_at;
+            if (tsField) localT = new Date(tsField).getTime();
           }
         } catch (e) {   }
 
@@ -1010,8 +1016,9 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
-    pause:  () => { isSyncing = true; },
-    resume: () => { isSyncing = false; if (userKey && db) schedulePush(); },
+    
+    pause:  () => { _syncPaused = true; isSyncing = true; },
+    resume: () => { _syncPaused = false; isSyncing = false; if (userKey && db) schedulePush(); },
   };
 
    

@@ -1171,7 +1171,6 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.remove('active');
     planContent.style.display = '';
 
-    
     window.GardenSync?.pause();
 
     const plan = generateSmartLocalPlan();
@@ -1186,7 +1185,6 @@ ${JSON.stringify(relevant, null, 0)}
       planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p></div>';
     }
 
-    
     window.GardenSync?.resume();
 
     showInfo(lang() === 'ar'
@@ -1301,6 +1299,8 @@ ${JSON.stringify(relevant, null, 0)}
     cleanupExpiredCourses(plan);
 
     console.log('renderPlan called, days:', plan.days?.length, 'plan_type:', plan.plan_type);
+    
+    console.trace('renderPlan caller trace');
 
     const totalDays = plan.plan_summary?.total_days || plan.days?.length || 0;
     const totalSessions = plan.plan_summary?.total_sessions || 0;
@@ -1401,15 +1401,11 @@ ${JSON.stringify(relevant, null, 0)}
     }
 
     
-    
-
-    
     window._plannerLastLang = window._plannerLastLang || lang();
 
     
     if (!window._plannerLangListenerAttached) {
       document.addEventListener('garden:languageChanged', (e) => {
-        
         const newLang = e.detail?.lang;
         if (!newLang || newLang === window._plannerLastLang) return;
         window._plannerLastLang = newLang;
@@ -2513,11 +2509,9 @@ ${JSON.stringify(relevant, null, 0)}
   document.addEventListener('DOMContentLoaded', init);
 
   document.addEventListener('garden:languageChanged', (e) => {
-    
     const newLang = e.detail?.lang;
     if (!newLang || newLang === window._plannerLastLang) return;
     window._plannerLastLang = newLang;
-
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {
