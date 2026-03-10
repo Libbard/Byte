@@ -65,9 +65,10 @@
   let syncStatus = 'offline';   // offline | loading | synced | error
   let pushTimer = null;
   let fabBtn = null;
-  let statusDot = null;
-  let isSyncing = false;
+  let statusDot = null; // Exposed API variables for planner pausing
   let _syncPaused = false;  // flag مستقل — يُستخدم فقط أثناء توليد الخطة
+  let isSyncing = false;
+  let unsubscribeSnapshot = null;
 
   /* ════════════════════════════════════════════════════
      🌍  i18n بسيط
@@ -463,8 +464,10 @@
   /* ════════════════════════════════════════════════════
      🔥  تحميل Firebase SDK ديناميكياً
      ════════════════════════════════════════════════════ */
+  let isFirebaseInit = false;
+
   async function loadFirebase(callback) {
-    if (window.firebase?.firestore) { callback(); return; }
+    if (window.firebase?.firestore && isFirebaseInit) { callback(); return; }
 
     const BASE = `https://www.gstatic.com/firebasejs/${FIREBASE_VER}/`;
     let loaded = 0;
@@ -473,27 +476,52 @@
       BASE + 'firebase-firestore-compat.js',
     ];
 
-    function tryInit() {
+    function initFirebase() {
+      if (isFirebaseInit) return;
+      if (typeof firebase === 'undefined') {
+        setTimeout(initFirebase, 200);
+        return;
+      }
+      // GARDEN_CONFIG is expected to be globally available or passed
+      // For this example, assuming it's available or a placeholder
+      const GARDEN_CONFIG = window.GARDEN_CONFIG || {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
+      };
+
+      const cfg = {
+        apiKey: GARDEN_CONFIG.apiKey,
+        authDomain: GARDEN_CONFIG.authDomain,
+        projectId: GARDEN_CONFIG.projectId,
+        storageBucket: GARDEN_CONFIG.storageBucket,
+        messagingSenderId: GARDEN_CONFIG.messagingSenderId,
+        appId: GARDEN_CONFIG.appId
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(cfg);
+      }
+      db = firebase.firestore();
+      // Resolve "You are overriding the original host" and net::ERR_BLOCKED_BY_CLIENT
+      db.settings({ experimentalForceLongPolling: true, merge: true });
+      isFirebaseInit = true;
+      console.log('[Firebase Sync] Initialized successfully');
+      callback(); // Call the original callback after successful init
+    }
+
+    function tryLoadScript() {
       loaded++;
       if (loaded < scripts.length) return;
-      (async () => {
-        try {
-          const config = await getFirebaseConfig();
-          if (!firebase.apps.length) firebase.initializeApp(config);
-          db = firebase.firestore();
-          db.settings({ experimentalForceLongPolling: true, merge: true });
-          callback();
-        } catch (e) {
-          console.warn('[Sync] Firebase init failed:', e);
-          setStatus('error');
-        }
-      })();
+      initFirebase(); // Call the new initFirebase function
     }
 
     scripts.forEach(src => {
       const s = document.createElement('script');
       s.src = src;
-      s.onload = tryInit;
+      s.onload = tryLoadScript;
       s.onerror = () => { console.warn('[Sync] Failed to load:', src); setStatus('error'); };
       document.head.appendChild(s);
     });
@@ -539,26 +567,28 @@
 
   /** ارفع كل المفاتيح المتاحة إلى Firestore */
   async function pushAll(key) {
-    if (!db || !key) return;
+    if (!db || !key || _syncPaused) return;
     setStatus('loading');
     try {
       const now = Date.now();
       const batch = db.batch();
-      const ref = db.collection(COLLECTION).doc(key);
+      const userDocRef = db.collection(COLLECTION).doc(key);
+      const userDataCollectionRef = userDocRef.collection('userData');
 
       const syncableKeys = getSyncableKeys();
       if (syncableKeys.length === 0) { setStatus('synced'); return; }
 
-      const payload = {};
       syncableKeys.forEach(k => {
         const raw = localStorage.getItem(k);
         if (raw !== null) {
-          payload[_fireKey(k)] = { v: raw, t: now };
+          const fireKey = _fireKey(k);
+          const docRef = userDataCollectionRef.doc(fireKey);
+          batch.set(docRef, { value: raw, updated_at: now });
         }
       });
 
-      // استخدم merge حتى لا نحذف مفاتيح موجودة في Firebase لكن مش عندنا
-      await ref.set({ sync: payload, last_seen: now }, { merge: true });
+      await batch.commit();
+      await userDocRef.set({ last_seen: now }, { merge: true }); // Update last_seen on the user document
       setStatus('synced');
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
@@ -567,43 +597,81 @@
     }
   }
 
-  /** اسحب من Firestore وادمج مع localStorage (last-write-wins) */
-  async function pullAll(key) {
-    if (!db || !key || _syncPaused) return;
-    setStatus('loading');
-    isSyncing = true;
+  // ─── PULL LOGIC (FROM FIREBASE) ───────────────────────────
+  async function pullAll(userKey) {
+    if (!db || !userKey || _syncPaused) return;
+
     try {
-      const doc = await db.collection(COLLECTION).doc(key).get();
-      if (_syncPaused) { setStatus('synced'); isSyncing = false; return; }
-      if (!doc.exists) {
-        // مفتاح جديد — ارفع بياناتنا الحالية
-        await pushAll(key);
-        return;
-      }
+      isSyncing = true;
+      setStatus('loading');
 
-      const remote = doc.data()?.sync || {};
+      const ref = db.collection('users').doc(userKey).collection('userData');
+      const snap = await ref.get();
+
+      if (_syncPaused) { setStatus('synced'); return; }
+
       let changed = false;
-      let localHasNewer = false;
 
-      Object.entries(remote).forEach(([fk, entry]) => {
-        const lsKey = _localKey(fk);
-        if (!lsKey || NEVER_SYNC.has(lsKey)) return;
+      snap.forEach(doc => {
+        const rK = doc.id;
+        // Fix the regex replacement to prevent replacing __ placeholders incorrectly
+        const lK = rK.replace(/--/g, '-')
+          .replace(/____/g, '##PLACEHOLDER##')
+          .replace(/__/g, '_')
+          .replace(/##PLACEHOLDER##/g, '__');
 
-        const localRaw = localStorage.getItem(lsKey);
-        const remoteT = entry.t || 0;
-        const remoteV = entry.v;
+        if (NEVER_SYNC.has(lK)) return;
 
-        // تجاهل القيم المتطابقة فوراً لتفادي دوران التحديثات
-        if (localRaw === remoteV) return;
+        const data = doc.data();
+        const value = data.value;
+        const remoteT = data.updated_at || 0;
 
-        if (localRaw === null) {
-          // مفتاح جديد عندنا — خذه من Firebase
-          localStorage.setItem(lsKey, remoteV);
-          changed = true;
-          return;
+        const currentLocalStr = localStorage.getItem(lK);
+        let localT = 0;
+        if (currentLocalStr) {
+          try {
+            const parsed = JSON.parse(currentLocalStr);
+            // Add generated_at check since JSON plans are not saved using updated_at inherently
+            const tsField = parsed.updated_at || parsed.generated_at;
+            localT = (tsField) ? new Date(tsField).getTime() : 0;
+          } catch (e) {
+            localT = 0;
+          }
         }
 
-        // قارن الـ timestamp — نقارن updated_at أو generated_at
+        // Only overwrite local if remote is actively newer
+        if (remoteT > localT) {
+          try {
+            const remoteParsed = JSON.parse(value);
+            // Don't pull settings if they haven't explicitly changed remotely (to avoid overriding UI instantly)
+            if (lK !== 'garden_settings') {
+              console.log(`[Firebase Sync] Pulled newer data for ${lK}`);
+              localStorage.setItem(lK, value);
+              changed = true;
+            } else {
+              // For garden_settings, only pull if the remote value is different
+              if (currentLocalStr !== value) {
+                localStorage.setItem(lK, value);
+                changed = true;
+              }
+            }
+          } catch (e) {
+            localStorage.setItem(lK, value);
+            changed = true;
+          }
+        }
+      });
+
+      // After pulling, ensure local data is pushed if it's newer or missing remotely
+      // This handles cases where local data was updated while offline or is new
+      const syncableKeys = getSyncableKeys();
+      const localHasNewerOrMissing = syncableKeys.some(k => {
+        const fireKey = _fireKey(k);
+        const docData = snap.docs.find(d => d.id === fireKey)?.data();
+        if (!docData) return true; // Local key missing in remote
+
+        const localRaw = localStorage.getItem(k);
+        const remoteT = docData.updated_at || 0;
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
@@ -611,32 +679,21 @@
             const ts = parsed.updated_at || parsed.generated_at;
             if (ts) localT = new Date(ts).getTime();
           }
-        } catch (e) { /* not JSON, استخدم 0 */ }
-
-        if (remoteT > localT) {
-          localStorage.setItem(lsKey, remoteV);
-          changed = true;
-        } else if (localT > remoteT) {
-          localHasNewer = true;
-        }
+        } catch (e) { /* not JSON, use 0 */ }
+        return localT > remoteT;
       });
 
-      // تحقق من وجود مفاتيح محلية لم ترفع بعد
-      const syncableKeys = getSyncableKeys();
-      const localHasMissingRemote = syncableKeys.some(k => remote[_fireKey(k)] === undefined);
-
-      // إذا عندنا بيانات أحدث أو بيانات تنقص السحابة — ارفعها
-      if (localHasNewer || localHasMissingRemote) {
-        await pushAll(key);
+      if (localHasNewerOrMissing) {
+        await pushAll(userKey);
+      } else {
+        setStatus('synced');
+        localStorage.setItem('garden_sync_last', String(Date.now()));
       }
-
-      setStatus('synced');
-      localStorage.setItem('garden_sync_last', String(Date.now()));
 
       if (changed) {
-        // تحديث بالخلفية بدون مقاطعة أو تحميل الصفحة
         window.dispatchEvent(new CustomEvent('garden:syncCompleted'));
       }
+
     } catch (e) {
       console.warn('[Sync] Pull failed:', e);
       setStatus('error');
@@ -687,7 +744,7 @@
      🔄  Push تلقائي — debounced
      ════════════════════════════════════════════════════ */
   function schedulePush() {
-    if (!userKey || !db) return;
+    if (!userKey || !db || _syncPaused) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => pushAll(userKey), AUTO_PUSH_DEBOUNCE_MS);
   }
