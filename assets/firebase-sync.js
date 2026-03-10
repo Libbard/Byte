@@ -480,7 +480,9 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
-          db.settings({ experimentalForceLongPolling: false });
+          // experimentalAutoDetectLongPolling: يختار Firebase تلقائياً أفضل طريقة اتصال
+          // merge: true: يمنع تحذير "overriding original host"
+          db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
           callback();
         } catch (e) {
           console.warn('[Sync] Firebase init failed:', e);
