@@ -1377,13 +1377,17 @@ ${JSON.stringify(relevant, null, 0)}
     }
 
     
-    if (typeof Garden !== 'undefined' && Garden.setLanguage) {
+    
+    if (!window._plannerRenderingPlan && typeof Garden !== 'undefined' && Garden.setLanguage) {
+      window._plannerRenderingPlan = true;
       Garden.setLanguage(lang());
+      window._plannerRenderingPlan = false;
     }
 
     
     if (!window._plannerLangListenerAttached) {
-      document.addEventListener('languageChanged', (e) => {
+      document.addEventListener('garden:languageChanged', (e) => {
+        if (window._plannerRenderingPlan) return; 
         const p = getCurrentPlan();
         if (p) renderPlan(p); 
       });
