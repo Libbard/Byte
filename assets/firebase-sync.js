@@ -455,7 +455,7 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
-          db.settings({ experimentalForceLongPolling: false });
+          db.settings({ experimentalForceLongPolling: true, merge: true });
           callback();
         } catch (e) {
           console.warn('[Sync] Firebase init failed:', e);
@@ -539,14 +539,11 @@
 
    
   async function pullAll(key) {
-    if (!db || !key) return;
-    
-    if (_syncPaused) return;
+    if (!db || !key || _syncPaused) return;
     setStatus('loading');
     isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
-      
       if (_syncPaused) { setStatus('synced'); return; }
       if (!doc.exists) {
         
@@ -581,8 +578,8 @@
         try {
           const parsed = JSON.parse(localRaw);
           if (parsed && typeof parsed === 'object') {
-            const tsField = parsed.updated_at || parsed.generated_at;
-            if (tsField) localT = new Date(tsField).getTime();
+            const ts = parsed.updated_at || parsed.generated_at;
+            if (ts) localT = new Date(ts).getTime();
           }
         } catch (e) {   }
 
@@ -1016,8 +1013,7 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
-    
-    pause:  () => { _syncPaused = true; isSyncing = true; },
+    pause:  () => { _syncPaused = true;  isSyncing = true;  },
     resume: () => { _syncPaused = false; isSyncing = false; if (userKey && db) schedulePush(); },
   };
 
