@@ -189,9 +189,14 @@
 }
 [dir="rtl"] .sync-fab .sync-status-dot { left: 5px; }
 [dir="ltr"] .sync-fab .sync-status-dot { right: 5px; }
-.sync-status-dot.synced  { background: #10b981; }
-.sync-status-dot.loading { background: #fbbf24; animation: syncPulse 1s ease-in-out infinite; }
-.sync-status-dot.error   { background: #ef4444; }
+.sync-fab .sync-status-dot.synced,
+.sync-header-btn .sync-status-dot.synced { background: #10b981; }
+
+.sync-fab .sync-status-dot.loading,
+.sync-header-btn .sync-status-dot.loading { background: #fbbf24; animation: syncPulse 1s ease-in-out infinite; }
+
+.sync-fab .sync-status-dot.error,
+.sync-header-btn .sync-status-dot.error { background: #ef4444; }
 
 /* ── Desktop header sync icon ── */
 .sync-header-btn {
