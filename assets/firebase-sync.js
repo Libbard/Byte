@@ -47,10 +47,9 @@
   let syncStatus = 'offline';   
   let pushTimer = null;
   let fabBtn = null;
-  let statusDot = null; 
-  let _syncPaused = false;  
+  let statusDot = null;
   let isSyncing = false;
-  let unsubscribeSnapshot = null;
+  let _syncPaused = false;  
 
    
   const T = {
@@ -438,10 +437,8 @@
   }
 
    
-  let isFirebaseInit = false;
-
   async function loadFirebase(callback) {
-    if (window.firebase?.firestore && isFirebaseInit) { callback(); return; }
+    if (window.firebase?.firestore) { callback(); return; }
 
     const BASE = `https://www.gstatic.com/firebasejs/${FIREBASE_VER}/`;
     let loaded = 0;
@@ -458,10 +455,7 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
-          
           db.settings({ experimentalForceLongPolling: true, merge: true });
-          isFirebaseInit = true;
-          console.log('[Firebase Sync] Initialized successfully');
           callback();
         } catch (e) {
           console.warn('[Sync] Firebase init failed:', e);
@@ -520,23 +514,21 @@
     try {
       const now = Date.now();
       const batch = db.batch();
-      const userDocRef = db.collection(COLLECTION).doc(key);
-      const userDataCollectionRef = userDocRef.collection('userData');
+      const ref = db.collection(COLLECTION).doc(key);
 
       const syncableKeys = getSyncableKeys();
       if (syncableKeys.length === 0) { setStatus('synced'); return; }
 
+      const payload = {};
       syncableKeys.forEach(k => {
         const raw = localStorage.getItem(k);
         if (raw !== null) {
-          const fireKey = _fireKey(k);
-          const docRef = userDataCollectionRef.doc(fireKey);
-          batch.set(docRef, { value: raw, updated_at: now });
+          payload[_fireKey(k)] = { v: raw, t: now };
         }
       });
 
-      await batch.commit();
-      await userDocRef.set({ last_seen: now }, { merge: true }); 
+      
+      await ref.set({ sync: payload, last_seen: now }, { merge: true });
       setStatus('synced');
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
@@ -545,81 +537,43 @@
     }
   }
 
-  
-  async function pullAll(userKey) {
-    if (!db || !userKey || _syncPaused) return;
-
+   
+  async function pullAll(key) {
+    if (!db || !key || _syncPaused) return;
+    setStatus('loading');
+    isSyncing = true;
     try {
-      isSyncing = true;
-      setStatus('loading');
+      const doc = await db.collection(COLLECTION).doc(key).get();
+      if (_syncPaused) { setStatus('synced'); isSyncing = false; return; }
+      if (!doc.exists) {
+        
+        await pushAll(key);
+        return;
+      }
 
-      const ref = db.collection('users').doc(userKey).collection('userData');
-      const snap = await ref.get();
-
-      if (_syncPaused) { setStatus('synced'); return; }
-
+      const remote = doc.data()?.sync || {};
       let changed = false;
+      let localHasNewer = false;
 
-      snap.forEach(doc => {
-        const rK = doc.id;
+      Object.entries(remote).forEach(([fk, entry]) => {
+        const lsKey = _localKey(fk);
+        if (!lsKey || NEVER_SYNC.has(lsKey)) return;
+
+        const localRaw = localStorage.getItem(lsKey);
+        const remoteT = entry.t || 0;
+        const remoteV = entry.v;
+
         
-        const lK = rK.replace(/--/g, '-')
-          .replace(/____/g, '##PLACEHOLDER##')
-          .replace(/__/g, '_')
-          .replace(/##PLACEHOLDER##/g, '__');
+        if (localRaw === remoteV) return;
 
-        if (NEVER_SYNC.has(lK)) return;
-
-        const data = doc.data();
-        const value = data.value;
-        const remoteT = data.updated_at || 0;
-
-        const currentLocalStr = localStorage.getItem(lK);
-        let localT = 0;
-        if (currentLocalStr) {
-          try {
-            const parsed = JSON.parse(currentLocalStr);
-            
-            const tsField = parsed.updated_at || parsed.generated_at;
-            localT = (tsField) ? new Date(tsField).getTime() : 0;
-          } catch (e) {
-            localT = 0;
-          }
+        if (localRaw === null) {
+          
+          localStorage.setItem(lsKey, remoteV);
+          changed = true;
+          return;
         }
 
         
-        if (remoteT > localT) {
-          try {
-            const remoteParsed = JSON.parse(value);
-            
-            if (lK !== 'garden_settings') {
-              console.log(`[Firebase Sync] Pulled newer data for ${lK}`);
-              localStorage.setItem(lK, value);
-              changed = true;
-            } else {
-              
-              if (currentLocalStr !== value) {
-                localStorage.setItem(lK, value);
-                changed = true;
-              }
-            }
-          } catch (e) {
-            localStorage.setItem(lK, value);
-            changed = true;
-          }
-        }
-      });
-
-      
-      
-      const syncableKeys = getSyncableKeys();
-      const localHasNewerOrMissing = syncableKeys.some(k => {
-        const fireKey = _fireKey(k);
-        const docData = snap.docs.find(d => d.id === fireKey)?.data();
-        if (!docData) return true; 
-
-        const localRaw = localStorage.getItem(k);
-        const remoteT = docData.updated_at || 0;
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
@@ -628,20 +582,31 @@
             if (ts) localT = new Date(ts).getTime();
           }
         } catch (e) {   }
-        return localT > remoteT;
+
+        if (remoteT > localT) {
+          localStorage.setItem(lsKey, remoteV);
+          changed = true;
+        } else if (localT > remoteT) {
+          localHasNewer = true;
+        }
       });
 
-      if (localHasNewerOrMissing) {
-        await pushAll(userKey);
-      } else {
-        setStatus('synced');
-        localStorage.setItem('garden_sync_last', String(Date.now()));
+      
+      const syncableKeys = getSyncableKeys();
+      const localHasMissingRemote = syncableKeys.some(k => remote[_fireKey(k)] === undefined);
+
+      
+      if (localHasNewer || localHasMissingRemote) {
+        await pushAll(key);
       }
+
+      setStatus('synced');
+      localStorage.setItem('garden_sync_last', String(Date.now()));
 
       if (changed) {
+        
         window.dispatchEvent(new CustomEvent('garden:syncCompleted'));
       }
-
     } catch (e) {
       console.warn('[Sync] Pull failed:', e);
       setStatus('error');
