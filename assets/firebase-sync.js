@@ -1054,6 +1054,10 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
+    // إيقاف المزامنة مؤقتاً أثناء العمليات الحرجة (مثل توليد الخطة)
+    pause: () => { isSyncing = true; },
+    // استئناف المزامنة ورفع كل التغييرات المتراكمة دفعة واحدة
+    resume: () => { isSyncing = false; if (userKey && db) schedulePush(); },
   };
 
   /* ════════════════════════════════════════════════════
