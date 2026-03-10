@@ -2668,7 +2668,22 @@
     return result;
   }
 
-  /* ── بناء البرومبت الذكي (v3) ── */
+  /* ── Base Rules Constants (pre-built for consistent token sequences = better cache) ── */
+  const _BASE_RULES_AR = `قواعد صارمة:
+- اكتب بالعربية الفصحى البسيطة حصراً
+- لا تتجاوز 150 كلمة نهائياً (حد صارم)
+- لا تكرر محتوى البطاقة حرفياً
+- لا تضف مقدمة أو خاتمة
+- إذا كانت هناك نقاط عديدة، اربطها تحت فكرة واحدة تجمعها`;
+
+  const _BASE_RULES_EN = `Rules (strict):
+- Write in English only
+- Max 130 words total (hard cap)
+- Never copy card text verbatim
+- No intro or closing sentence
+- If multiple points exist, connect them under one unifying idea`;
+
+  /* ── بناء البرومبت الذكي (v3 — cache-optimized) ── */
   function buildPrompt(cardData) {
     const subjectCode = document.documentElement.getAttribute('data-subject') || '';
     const moduleNum = document.documentElement.getAttribute('data-module') || '';
@@ -2689,20 +2704,8 @@
       ? rawContent.substring(0, CONTENT_LIMIT) + (L === 'ar' ? '\n[محتوى مقتطع]' : '\n[content trimmed]')
       : rawContent;
 
-    // ── قواعد مشتركة لكل أنواع البرومبت ─────────────────────────────────────
-    const baseRules = L === 'ar'
-      ? `قواعد صارمة:
-- اكتب بالعربية الفصحى البسيطة حصراً
-- لا تتجاوز 150 كلمة نهائياً (حد صارم)
-- لا تكرر محتوى البطاقة حرفياً
-- لا تضف مقدمة أو خاتمة
-- إذا كانت هناك نقاط عديدة، اربطها تحت فكرة واحدة تجمعها`
-      : `Rules (strict):
-- Write in English only
-- Max 130 words total (hard cap)
-- Never copy card text verbatim
-- No intro or closing sentence
-- If multiple points exist, connect them under one unifying idea`;
+    // ── قواعد مشتركة لكل أنواع البرومبت (ثوابت مسبقة = cache-friendly) ──────
+    const baseRules = L === 'ar' ? _BASE_RULES_AR : _BASE_RULES_EN;
 
     let systemPrompt, userMsg;
 
