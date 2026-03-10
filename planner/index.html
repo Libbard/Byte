@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مخطط الدراسة · Digital Garden</title>
+
+  <!-- Anti-flash -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('garden_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('garden_lang') || 'ar';
+      document.documentElement.setAttribute('lang', l);
+      document.documentElement.setAttribute('dir', l === 'ar' ? 'rtl' : 'ltr');
+      var fs = localStorage.getItem('garden_font_size');
+      if (fs) document.documentElement.setAttribute('data-font-size', fs);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/garden.css">
+  <link rel="stylesheet" href="../assets/planner.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+  <div class="page-layout">
+    <div class="planner-app" id="planner-app">
+
+      <!-- ═══ Header ═══ -->
+      <header class="planner-header">
+        <a href="../index.html" class="planner-brand" title="العودة للصفحة الرئيسية">
+          <i class="fas fa-arrow-right"></i>
+        </a>
+        <div class="planner-title-center">
+          <span>📅</span>
+          <span data-bilingual>
+            <template class="content-ar">مخطط الدراسة</template>
+            <template class="content-en">Study Planner</template>
+            <span class="content-target">مخطط الدراسة</span>
+          </span>
+        </div>
+        <div class="planner-actions">
+          <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+          <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+        </div>
+      </header>
+
+      <!-- ═══ Wizard Progress ═══ -->
+      <div class="wizard-progress" id="wizard-progress">
+        <div class="wizard-step-indicator active" data-step="1">
+          <span class="step-num">1</span>
+          <span data-bilingual>
+            <template class="content-ar">نوع الجدول</template>
+            <template class="content-en">Plan Type</template>
+            <span class="content-target">نوع الجدول</span>
+          </span>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step-indicator" data-step="2">
+          <span class="step-num">2</span>
+          <span data-bilingual>
+            <template class="content-ar">المواد</template>
+            <template class="content-en">Courses</template>
+            <span class="content-target">المواد</span>
+          </span>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step-indicator" data-step="3">
+          <span class="step-num">3</span>
+          <span data-bilingual>
+            <template class="content-ar">الجلسات</template>
+            <template class="content-en">Sessions</template>
+            <span class="content-target">الجلسات</span>
+          </span>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step-indicator" data-step="4">
+          <span class="step-num">4</span>
+          <span data-bilingual>
+            <template class="content-ar">الجدول</template>
+            <template class="content-en">Schedule</template>
+            <span class="content-target">الجدول</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- ═══ Error Box ═══ -->
+      <div class="error-box" id="error-box"></div>
+
+      <!-- ═══ Continue Prompt (if saved plan exists) ═══ -->
+      <div class="continue-prompt" id="continue-prompt" style="display:none;">
+        <h2 data-bilingual>
+          <template class="content-ar">لديك جدول محفوظ</template>
+          <template class="content-en">You have a saved plan</template>
+          <span class="content-target">لديك جدول محفوظ</span>
+        </h2>
+        <p data-bilingual>
+          <template class="content-ar">هل تريد استكمال الجدول الحالي أم إنشاء جدول جديد؟</template>
+          <template class="content-en">Continue with your current plan or create a new one?</template>
+          <span class="content-target">هل تريد استكمال الجدول الحالي أم إنشاء جدول جديد؟</span>
+        </p>
+        <div class="continue-buttons">
+          <button class="btn-primary" onclick="Planner.continuePlan()">
+            <span data-bilingual>
+              <template class="content-ar">استكمال الجدول</template>
+              <template class="content-en">Continue Plan</template>
+              <span class="content-target">استكمال الجدول</span>
+            </span>
+          </button>
+          <button class="btn-secondary" onclick="Planner.newPlan()">
+            <span data-bilingual>
+              <template class="content-ar">جدول جديد</template>
+              <template class="content-en">New Plan</template>
+              <span class="content-target">جدول جديد</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══ Step 1: Plan Type ═══ -->
+      <section id="step-plan-type" class="step active">
+        <h1 class="step-title" data-bilingual>
+          <template class="content-ar">📅 ما نوع الجدول الذي تريد إنشاءه؟</template>
+          <template class="content-en">📅 What type of plan do you want?</template>
+          <span class="content-target">📅 ما نوع الجدول الذي تريد إنشاءه؟</span>
+        </h1>
+        <div class="step-subtitle" data-bilingual>
+          <template class="content-ar">اختر الخطة المناسبة لوضعك الدراسي</template>
+          <template class="content-en">Choose the plan that fits your study situation</template>
+          <span class="content-target">اختر الخطة المناسبة لوضعك الدراسي</span>
+        </div>
+
+        <div class="plan-type-grid">
+          <div class="plan-type-card" data-plan-type="general" onclick="Planner.selectPlanType('general')">
+            <div class="plan-type-icon">📚</div>
+            <div class="plan-type-name" data-bilingual>
+              <template class="content-ar">عام</template>
+              <template class="content-en">General</template>
+              <span class="content-target">عام</span>
+            </div>
+            <div class="plan-type-name-en">General</div>
+            <div class="plan-type-desc" data-bilingual>
+              <template class="content-ar">خطة مذاكرة أسبوعية دون ضغط امتحان</template>
+              <template class="content-en">Weekly study plan without exam pressure</template>
+              <span class="content-target">خطة مذاكرة أسبوعية دون ضغط امتحان</span>
+            </div>
+          </div>
+
+          <div class="plan-type-card" data-plan-type="midterm" onclick="Planner.selectPlanType('midterm')">
+            <div class="plan-type-icon">📝</div>
+            <div class="plan-type-name" data-bilingual>
+              <template class="content-ar">ميدتيرم</template>
+              <template class="content-en">Midterm</template>
+              <span class="content-target">ميدتيرم</span>
+            </div>
+            <div class="plan-type-name-en">Midterm</div>
+            <div class="plan-type-desc" data-bilingual>
+              <template class="content-ar">خطة مركّزة للاختبار النصفي</template>
+              <template class="content-en">Focused plan for midterm exam</template>
+              <span class="content-target">خطة مركّزة للاختبار النصفي</span>
+            </div>
+          </div>
+
+          <div class="plan-type-card" data-plan-type="final" onclick="Planner.selectPlanType('final')">
+            <div class="plan-type-icon">🎓</div>
+            <div class="plan-type-name" data-bilingual>
+              <template class="content-ar">فاينل</template>
+              <template class="content-en">Final</template>
+              <span class="content-target">فاينل</span>
+            </div>
+            <div class="plan-type-name-en">Final</div>
+            <div class="plan-type-desc" data-bilingual>
+              <template class="content-ar">خطة شاملة لكل المادة</template>
+              <template class="content-en">Comprehensive plan for the full course</template>
+              <span class="content-target">خطة شاملة لكل المادة</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ Step 2: Course Setup ═══ -->
+      <section id="step-courses" class="step">
+        <h1 class="step-title" data-bilingual>
+          <template class="content-ar">📋 حدد المواد وقيّم نفسك</template>
+          <template class="content-en">📋 Select Courses & Rate Yourself</template>
+          <span class="content-target">📋 حدد المواد وقيّم نفسك</span>
+        </h1>
+        <div class="step-subtitle" data-bilingual>
+          <template class="content-ar">فعّل المواد التي تريد مذاكرتها وحدد تاريخ الامتحان وتقييمك لكل وحدة</template>
+          <template class="content-en">Enable courses, set exam dates, and rate yourself on each module</template>
+          <span class="content-target">فعّل المواد التي تريد مذاكرتها وحدد تاريخ الامتحان وتقييمك لكل وحدة</span>
+        </div>
+        <div class="course-list" id="course-list">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="step-nav">
+          <button class="btn-secondary" onclick="Planner.prevStep()">
+            <i class="fas fa-arrow-right"></i>
+            <span data-bilingual><template class="content-ar">رجوع</template><template
+                class="content-en">Back</template><span class="content-target">رجوع</span></span>
+          </button>
+          <button class="btn-primary" onclick="Planner.nextStep()" id="btn-step2-next">
+            <span data-bilingual><template class="content-ar">التالي</template><template
+                class="content-en">Next</template><span class="content-target">التالي</span></span>
+            <i class="fas fa-arrow-left"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- ═══ Step 3: Session Config ═══ -->
+      <section id="step-sessions" class="step">
+        <h1 class="step-title" data-bilingual>
+          <template class="content-ar">⚙️ كيف تُنظّم يومك الدراسي؟</template>
+          <template class="content-en">⚙️ How do you organize your study day?</template>
+          <span class="content-target">⚙️ كيف تُنظّم يومك الدراسي؟</span>
+        </h1>
+
+        <div class="config-card" style="margin-bottom: 1.25rem;">
+          <div class="config-card-title" data-bilingual>
+            <template class="content-ar">📅 تاريخ بدء المذاكرة</template>
+            <template class="content-en">📅 Study start date</template>
+            <span class="content-target">📅 تاريخ بدء المذاكرة</span>
+          </div>
+          <input type="date" id="start-date-input"
+            style="width:100%;max-width:280px;padding:0.5rem;border-radius:var(--radius-md);border:1px solid var(--border-color);background:var(--bg-elevated);color:var(--text-primary);font-family:inherit;"
+            onchange="Planner.setConfig('start_date', this.value, this)">
+        </div>
+
+        <div class="config-grid">
+          <div class="config-card">
+            <div class="config-card-title" data-bilingual>
+              <template class="content-ar">كم جلسة مذاكرة تستطيع يومياً؟</template>
+              <template class="content-en">Daily study sessions?</template>
+              <span class="content-target">كم جلسة مذاكرة تستطيع يومياً؟</span>
+            </div>
+            <div class="config-options" id="sessions-per-day">
+              <div class="config-option" data-value="1" onclick="Planner.setConfig('daily_sessions',1,this)">1</div>
+              <div class="config-option selected" data-value="2" onclick="Planner.setConfig('daily_sessions',2,this)">2
+              </div>
+              <div class="config-option" data-value="3" onclick="Planner.setConfig('daily_sessions',3,this)">3</div>
+              <div class="config-option" data-value="4" onclick="Planner.setConfig('daily_sessions',4,this)">4</div>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <div class="config-card-title" data-bilingual>
+              <template class="content-ar">كم وحدة تُنهي في الجلسة؟</template>
+              <template class="content-en">Modules per session?</template>
+              <span class="content-target">كم وحدة تُنهي في الجلسة؟</span>
+            </div>
+            <div class="config-options" id="modules-per-session">
+              <div class="config-option" data-value="0.5" onclick="Planner.setConfig('modules_per_session',0.5,this)">
+                0.5</div>
+              <div class="config-option selected" data-value="1"
+                onclick="Planner.setConfig('modules_per_session',1,this)">1</div>
+              <div class="config-option" data-value="1.5" onclick="Planner.setConfig('modules_per_session',1.5,this)">
+                1.5</div>
+              <div class="config-option" data-value="2" onclick="Planner.setConfig('modules_per_session',2,this)">2
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card" style="margin-bottom: 1.25rem;">
+          <div class="config-card-title" data-bilingual>
+            <template class="content-ar">أيام الراحة (لا مذاكرة)</template>
+            <template class="content-en">Rest days (no study)</template>
+            <span class="content-target">أيام الراحة (لا مذاكرة)</span>
+          </div>
+          <div class="rest-day-checks" id="rest-days">
+            <div class="rest-day-check checked" data-day="friday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">الجمعة</template><template
+                  class="content-en">Fri</template><span class="content-target">الجمعة</span></span>
+            </div>
+            <div class="rest-day-check checked" data-day="saturday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">السبت</template><template
+                  class="content-en">Sat</template><span class="content-target">السبت</span></span>
+            </div>
+            <div class="rest-day-check" data-day="sunday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">الأحد</template><template
+                  class="content-en">Sun</template><span class="content-target">الأحد</span></span>
+            </div>
+            <div class="rest-day-check" data-day="monday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">الاثنين</template><template
+                  class="content-en">Mon</template><span class="content-target">الاثنين</span></span>
+            </div>
+            <div class="rest-day-check" data-day="tuesday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">الثلاثاء</template><template
+                  class="content-en">Tue</template><span class="content-target">الثلاثاء</span></span>
+            </div>
+            <div class="rest-day-check" data-day="wednesday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">الأربعاء</template><template
+                  class="content-en">Wed</template><span class="content-target">الأربعاء</span></span>
+            </div>
+            <div class="rest-day-check" data-day="thursday" onclick="Planner.toggleRestDay(this)">
+              <span data-bilingual><template class="content-ar">الخميس</template><template
+                  class="content-en">Thu</template><span class="content-target">الخميس</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card" style="margin-bottom: 1.25rem;">
+          <div class="config-card-title" data-bilingual>
+            <template class="content-ar">استثناءات (أيام مشغول)</template>
+            <template class="content-en">Exceptions (busy days)</template>
+            <span class="content-target">استثناءات (أيام مشغول)</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <input type="date" id="busy-date-input"
+              style="flex:1;min-width:150px;padding:0.5rem;border-radius:var(--radius-md);border:1px solid var(--border-color);background:var(--bg-elevated);color:var(--text-primary);font-family:inherit;">
+            <button class="btn-secondary" onclick="Planner.addBusyDate()" style="padding:0.5rem 1rem;">
+              <span data-bilingual><template class="content-ar">أضف</template><template
+                  class="content-en">Add</template><span class="content-target">أضف</span></span>
+            </button>
+          </div>
+          <div class="busy-dates-list" id="busy-dates-list"></div>
+        </div>
+
+        <!-- Feasibility Summary -->
+        <div class="feasibility-summary" id="feasibility-summary">
+          <div class="feasibility-title" data-bilingual>
+            <template class="content-ar">📊 الملخص التلقائي</template>
+            <template class="content-en">📊 Auto Summary</template>
+            <span class="content-target">📊 الملخص التلقائي</span>
+          </div>
+          <div class="feasibility-stats" id="feasibility-stats"></div>
+          <div class="feasibility-status" id="feasibility-status"></div>
+        </div>
+
+        <div class="step-nav step-nav-generate">
+          <button class="btn-secondary" onclick="Planner.prevStep()">
+            <i class="fas fa-arrow-right"></i>
+            <span data-bilingual><template class="content-ar">رجوع</template><template
+                class="content-en">Back</template><span class="content-target">رجوع</span></span>
+          </button>
+          <div class="generate-buttons">
+            <button class="btn-secondary btn-local-gen" onclick="Planner.generateLocalPlan()" id="btn-generate-local">
+              <i class="fas fa-calculator"></i>
+              <span data-bilingual><template class="content-ar">إنشاء بدون AI</template><template
+                  class="content-en">Generate Locally</template><span class="content-target">إنشاء بدون AI</span></span>
+            </button>
+            <button class="btn-primary" onclick="Planner.onGeneratePlan()" id="btn-generate">
+              <span data-bilingual><template class="content-ar">إنشاء الجدول بـ AI</template><template
+                  class="content-en">Generate Plan with AI</template><span class="content-target">إنشاء الجدول بـ
+                  AI</span></span>
+              <i class="fas fa-wand-magic-sparkles"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ Step 4: Plan Display ═══ -->
+      <section id="step-display" class="step">
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loading-screen">
+          <div class="loading-icon">🤖</div>
+          <div class="loading-title" data-bilingual>
+            <template class="content-ar">الذكاء الاصطناعي يُحلل مناهجك...</template>
+            <template class="content-en">AI is analyzing your curriculum...</template>
+            <span class="content-target">الذكاء الاصطناعي يُحلل مناهجك...</span>
+          </div>
+          <div class="loading-bar">
+            <div class="loading-bar-fill" id="loading-fill"></div>
+          </div>
+          <div class="loading-steps" id="loading-steps"></div>
+        </div>
+
+        <!-- Plan Content -->
+        <div id="plan-content" style="display:none;"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="../assets/garden.js"></script>
+  <script src="../assets/firebase-sync.js"></script>
+  <script src="../assets/planner.js"></script>
+</body>
+
+</html>
