@@ -552,7 +552,7 @@
   const DEEPSEEK_SYSTEM = `أنت مستشار أكاديمي ذكي متخصص في تحسين خطط الدراسة لطلاب علوم الحاسوب الجامعية.
 مبادئك: 1.التبديل الذكي بين المواد 2.أولوية المتطلبات 3.الربط المفاهيمي 4.التصاعد التدريجي 5.الواقعية 6.يوم قبل الامتحان=مراجعة خفيفة
 أنت تجيد اللغتين الإنجليزية والعربية بطلاقة تامة، والزامي أن تملأ الحقول التي تنتهي بـ _ar باللغة العربية، والحقول التي تنتهي بـ _en باللغة الإنجليزية في كل الأحوال.
-أجب بـ JSON نظيف فقط ومطابق تماما للقالب.`;
+أجب بـ JSON نظيف فقط ومطابق تماماً للقالب.`;
 
   function buildPrompt() {
     const isAr = lang() === 'ar';
@@ -593,49 +593,8 @@ ${coursesInfo}
 ${JSON.stringify(relevant, null, 0)}
 
 ## الناتج المطلوب
-يجب أن ترجع ردك بصيغة JSON حصراً وحسب القالب التالي المطابق لكل أيام وفترات الخطة الدراسية، أملأ _ar بالعربية و _en مشروحا بالانجليزية:
-{
-  "plan_summary": {
-    "total_days": N,
-    "total_sessions": N,
-    "strategy_description_ar": "شرح مجمل للاستراتيجية بالعربية...",
-    "strategy_description_en": "Overall strategy description in English...",
-    "weeks": [
-      {
-        "week_number": 1,
-        "theme_ar": "موضوع الأسبوع بالعربية...",
-        "theme_en": "Week theme in English..."
-      }
-    ]
-  },
-  "days": [
-    {
-      "date": "YYYY-MM-DD",
-      "day_label_ar": "شرح عن اليوم كـ يوم دراسة جديد او يوم ماقبل الاختبار بالعربية",
-      "day_label_en": "Description of the day as a new study day or pre-exam day in English",
-      "week_number": 1,
-      "day_type": "study",
-      "sessions": [
-        {
-          "session_number": 1,
-          "course_id": "CS350",
-          "module_id": "M01",
-          "mode": "deep",
-          "difficulty_avg": 7,
-          "is_critical": false,
-          "ai_note_ar": "نصائح بالعربية لفهم المديول...",
-          "ai_note_en": "Tips in English to understand the module...",
-          "must_know_today_ar": ["أهم نقطة 1", "..."],
-          "must_know_today_en": ["Important point 1", "..."],
-          "must_memorize_today_ar": ["احفظ هذا التعريف 1", "..."],
-          "must_memorize_today_en": ["Memorize logic 1", "..."]
-        }
-      ],
-      "daily_tip_ar": "نصيحة عامة لليوم بالعربية...",
-      "daily_tip_en": "Daily tip in English..."
-    }
-  ]
-}`;
+يجب أن ترجع ردك بصيغة JSON حصراً وحسب القالب التالي، أملأ _ar بالعربية و _en بالانجليزية:
+{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[{"session_number":1,"course_id":"CS350","module_id":"M01","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"نصائح بالعربية...","ai_note_en":"Tips in English...","must_know_today":["أهم نقطة..."],"must_know_today_en":["Important point..."],"must_memorize_today":["احفظ هذا..."],"must_memorize_today_en":["Memorize this..."]}],"daily_tip_ar":"نصيحة بالعربية...","daily_tip_en":"Tip in English..."}]}`;
   }
 
   // ─── Loading Screen Helpers ──────────────────────────────
@@ -909,9 +868,9 @@ ${JSON.stringify(relevant, null, 0)}
         is_critical: item.priority >= 3 && !isReview,
         ai_note_ar: noteOverride?.ar || (item.priority >= 3 ? `⚠️ هذه الوحدة تحتاج دراسة مركّزة — ${curriculumMap.courses[item.courseId]?.name || item.courseId}` : ''),
         ai_note_en: noteOverride?.en || (item.priority >= 3 ? `⚠️ This module needs focused study — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}` : ''),
-        must_know_today_ar: item.mustKnow,
+        must_know_today: item.mustKnow,
         must_know_today_en: item.mustKnowEn.length ? item.mustKnowEn : item.mustKnow,
-        must_memorize_today_ar: item.mustMem,
+        must_memorize_today: item.mustMem,
         must_memorize_today_en: item.mustMemEn.length ? item.mustMemEn : item.mustMem,
         completed: false,
         _snoozeCount: 0
@@ -1048,17 +1007,16 @@ ${JSON.stringify(relevant, null, 0)}
             is_critical: false,
             ai_note_ar: `📝 اختبار ${courseName} — بالتوفيق!`,
             ai_note_en: `📝 ${courseName} Exam — Good luck!`,
-            must_know_today_ar: [],
+            must_know_today: [],
             must_know_today_en: [],
-            must_memorize_today_ar: [],
+            must_memorize_today: [],
             must_memorize_today_en: [],
             completed: false
           };
         });
         days.push({
           date: dateStr,
-          day_label_ar: formatDate(dateStr, 'card'),
-          day_label_en: formatDate(dateStr, 'card'),
+          day_label: formatDate(dateStr, 'card'),
           week_number: Math.floor(i / 7) + 1,
           day_type: 'exam',
           sessions: examSessions,
@@ -1105,8 +1063,7 @@ ${JSON.stringify(relevant, null, 0)}
         if (sessions.length > 0) {
           days.push({
             date: dateStr,
-            day_label_ar: formatDate(dateStr, 'card'),
-            day_label_en: formatDate(dateStr, 'card'),
+            day_label: formatDate(dateStr, 'card'),
             week_number: Math.floor(i / 7) + 1,
             day_type: 'golden_review',
             sessions,
@@ -1166,8 +1123,7 @@ ${JSON.stringify(relevant, null, 0)}
         const hasReview = sessions.some(s => s.mode === 'flash');
         days.push({
           date: dateStr,
-          day_label_ar: formatDate(dateStr, 'card'),
-          day_label_en: formatDate(dateStr, 'card'),
+          day_label: formatDate(dateStr, 'card'),
           week_number: Math.floor(i / 7) + 1,
           day_type: hasReview ? 'mixed' : 'study',
           sessions,
@@ -1182,7 +1138,7 @@ ${JSON.stringify(relevant, null, 0)}
     const weekSet = [...new Set(days.map(d => d.week_number))];
     const weeks = weekSet.map((w, i) => ({
       week_number: w,
-      theme_ar: i === 0
+      theme: i === 0
         ? (isAr ? 'بناء الأساس' : 'Foundation')
         : i === weekSet.length - 1
           ? (isAr ? 'مراجعة وتثبيت' : 'Review & Consolidation')
@@ -1201,6 +1157,7 @@ ${JSON.stringify(relevant, null, 0)}
         total_sessions: sessionCount,
         strategy_description_ar: 'جدول تكيّفي ذكي — يمتد حتى آخر اختبار مع مراجعة ذهبية ⭐ قبل كل اختبار وحذف تلقائي للمواد المنتهية',
         strategy_description_en: 'Adaptive smart plan — extends to last exam with golden reviews ⭐ before each exam and auto-removal of finished courses',
+        strategy_description: 'جدول تكيّفي ذكي — يمتد حتى آخر اختبار مع مراجعة ذهبية ⭐ قبل كل اختبار وحذف تلقائي للمواد المنتهية',
         weeks
       },
       days
@@ -1331,33 +1288,19 @@ ${JSON.stringify(relevant, null, 0)}
     return `<div class="course-progress-bars">${barsHTML}</div>`;
   }
 
-  // ─── Render Pipeline (Debounced to prevent double renders) ────────
-  let _renderDebounceTimer = null;
+  // ─── Render Plan ──────────────────────────────────────────
   function renderPlan(plan) {
-    if (_renderDebounceTimer) clearTimeout(_renderDebounceTimer);
-    _renderDebounceTimer = setTimeout(() => _doRenderPlan(plan), 80);
-  }
-
-  function _doRenderPlan(plan) {
-    if (!plan || !plan.days) return;
-
-    // Render signature validation (guards against infinite recursion)
-    // Combines generated timestamp, length, and view mode to see if changes occurred
-    const planSig = (plan.generated_at || '') + '|' + plan.days.length + '|' + cardViewMode;
-    if (planSig === window._lastRenderSig) return;
-    window._lastRenderSig = planSig;
-
-    console.log('renderPlan called, days:', plan.days.length, 'plan_type:', plan.plan_type);
-
-    // Save latest valid view settings
-    userConfig = plan.config || userConfig;
-
-    const isAr = lang() === 'ar';
+    // planSig — يمنع إعادة render إذا لم تتغير البيانات أو وضع العرض
+    const _sig = JSON.stringify(plan?.days?.map(d => d.date + d.sessions?.length)) + '|' + cardViewMode;
+    if (_sig === window._lastRenderSig) return;
+    window._lastRenderSig = _sig;
     const container = document.getElementById('plan-content');
-    if (!container) return;
+    const isAr = lang() === 'ar';
 
     // Phase 3: Auto-cleanup expired courses
     cleanupExpiredCourses(plan);
+
+    console.log('renderPlan called, days:', plan.days?.length, 'plan_type:', plan.plan_type);
 
     const totalDays = plan.plan_summary?.total_days || plan.days?.length || 0;
     const totalSessions = plan.plan_summary?.total_sessions || 0;
@@ -1456,6 +1399,9 @@ ${JSON.stringify(relevant, null, 0)}
         }
       }, 150);
     }
+
+    // لا نستدعي Garden.setLanguage هنا — كان مصدر الحلقة اللانهائية
+    // المستمع الخارجي عند garden:languageChanged يتكفل بإعادة الرسم عند تغيير اللغة
   }
 
   function newPlan() {
@@ -1532,19 +1478,21 @@ ${JSON.stringify(relevant, null, 0)}
       const mustKnowMsg = isAr ? 'يجب معرفته' : 'Must know';
       const mustMemMsg = isAr ? 'يجب حفظه' : 'Must memorize';
 
-      const mustKnowList = isAr ? session.must_know_today_ar : session.must_know_today_en;
-      const mustMemList = isAr ? session.must_memorize_today_ar : session.must_memorize_today_en;
+      const mustKnowList = (!isAr && session.must_know_today_en && session.must_know_today_en.length > 0) ? session.must_know_today_en : session.must_know_today;
+      const mustMemList = (!isAr && session.must_memorize_today_en && session.must_memorize_today_en.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
 
-      const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
-      const crossLink = session.cross_link_alert?.active
-        ? `<div class="card-back-section"><span class="card-back-icon">🔗</span><div>${session.cross_link_alert.message}</div></div>` : '';
+      const contentNoteStr = !isAr && mustKnowList?.length && mustKnowList[0].match(/[\u0600-\u06FF]/)
+        ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;font-weight:600;">(Module details maintained in Arabic)</div>` : '';
 
       const mustKnow = mustKnowList?.length
-        ? `<div class="card-back-section"><span class="card-back-icon">🎯</span><div><strong>${mustKnowMsg}:</strong><br>${mustKnowList.join('<br>')}</div></div>` : '';
+        ? `<div class="card-back-section"><span class="card-back-icon">🎯</span><div><strong>${mustKnowMsg}:</strong>${contentNoteStr}<br>${mustKnowList.join('<br>')}</div></div>` : '';
       const mustMem = mustMemList?.length
-        ? `<div class="card-back-section"><span class="card-back-icon">📝</span><div><strong>${mustMemMsg}:</strong><br>${mustMemList.join('<br>')}</div></div>` : '';
+        ? `<div class="card-back-section"><span class="card-back-icon">📝</span><div><strong>${mustMemMsg}:</strong>${contentNoteStr}<br>${mustMemList.join('<br>')}</div></div>` : '';
+      const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
       const aiNote = aiNoteStr
         ? `<div class="card-back-section"><span class="card-back-icon">💡</span><div>${aiNoteStr}</div></div>` : '';
+      const crossLink = session.cross_link_alert?.active
+        ? `<div class="card-back-section"><span class="card-back-icon">🔗</span><div>${session.cross_link_alert.message}</div></div>` : '';
 
       sessionCardsHTML += `
         <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
@@ -1608,7 +1556,7 @@ ${JSON.stringify(relevant, null, 0)}
         <!-- Day label -->
         <div class="card-day-header ${isToday ? 'today' : ''} ${day.day_type === 'exam' ? 'day-type-exam' : day.day_type === 'golden_review' ? 'day-type-golden' : ''}">
           <div class="card-day-label-group">
-            <span class="card-day-text">${isAr ? (day.day_label_ar || formatDate(day.date, 'card')) : (day.day_label_en || formatDate(day.date, 'card'))}</span>
+            <span class="card-day-text">${formatDate(day.date, 'card')}</span>
             ${day.day_type === 'exam' ? `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>` : ''}
             ${day.day_type === 'golden_review' ? `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>` : ''}
             ${day.day_type === 'mixed' ? `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>` : ''}
