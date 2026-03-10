@@ -1010,9 +1010,7 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
-    
-    pause: () => { isSyncing = true; },
-    
+    pause:  () => { isSyncing = true; },
     resume: () => { isSyncing = false; if (userKey && db) schedulePush(); },
   };
 

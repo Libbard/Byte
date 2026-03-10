@@ -1282,7 +1282,18 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   
+  
+  let _renderDebounceTimer = null;
   function renderPlan(plan) {
+    if (_renderDebounceTimer) {
+      clearTimeout(_renderDebounceTimer);
+      _renderDebounceTimer = setTimeout(() => { _renderDebounceTimer = null; _doRenderPlan(plan); }, 80);
+      return;
+    }
+    _renderDebounceTimer = null;
+    _doRenderPlan(plan);
+  }
+  function _doRenderPlan(plan) {
     const container = document.getElementById('plan-content');
     const isAr = lang() === 'ar';
 
@@ -1391,18 +1402,19 @@ ${JSON.stringify(relevant, null, 0)}
 
     
     
-    if (!window._plannerRenderingPlan && typeof Garden !== 'undefined' && Garden.setLanguage) {
-      window._plannerRenderingPlan = true;
-      Garden.setLanguage(lang());
-      window._plannerRenderingPlan = false;
-    }
+
+    
+    window._plannerLastLang = window._plannerLastLang || lang();
 
     
     if (!window._plannerLangListenerAttached) {
       document.addEventListener('garden:languageChanged', (e) => {
-        if (window._plannerRenderingPlan) return; 
+        
+        const newLang = e.detail?.lang;
+        if (!newLang || newLang === window._plannerLastLang) return;
+        window._plannerLastLang = newLang;
         const p = getCurrentPlan();
-        if (p) renderPlan(p); 
+        if (p) renderPlan(p);
       });
       window._plannerLangListenerAttached = true;
     }
@@ -2500,8 +2512,12 @@ ${JSON.stringify(relevant, null, 0)}
   
   document.addEventListener('DOMContentLoaded', init);
 
-  document.addEventListener('garden:languageChanged', () => {
-    if (window._plannerRenderingPlan) return; 
+  document.addEventListener('garden:languageChanged', (e) => {
+    
+    const newLang = e.detail?.lang;
+    if (!newLang || newLang === window._plannerLastLang) return;
+    window._plannerLastLang = newLang;
+
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {
