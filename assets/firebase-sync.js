@@ -67,7 +67,6 @@
   let fabBtn = null;
   let statusDot = null;
   let isSyncing = false;
-  let _syncPaused = false;  // flag مستقل — يُستخدم فقط أثناء توليد الخطة
 
   /* ════════════════════════════════════════════════════
      🌍  i18n بسيط
@@ -481,7 +480,7 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
-          db.settings({ experimentalForceLongPolling: true, merge: true });
+          db.settings({ experimentalForceLongPolling: false });
           callback();
         } catch (e) {
           console.warn('[Sync] Firebase init failed:', e);
@@ -539,7 +538,7 @@
 
   /** ارفع كل المفاتيح المتاحة إلى Firestore */
   async function pushAll(key) {
-    if (!db || !key || _syncPaused) return;
+    if (!db || !key) return;
     setStatus('loading');
     try {
       const now = Date.now();
@@ -569,12 +568,11 @@
 
   /** اسحب من Firestore وادمج مع localStorage (last-write-wins) */
   async function pullAll(key) {
-    if (!db || !key || _syncPaused) return;
+    if (!db || !key) return;
     setStatus('loading');
     isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
-      if (_syncPaused) { setStatus('synced'); isSyncing = false; return; }
       if (!doc.exists) {
         // مفتاح جديد — ارفع بياناتنا الحالية
         await pushAll(key);
@@ -603,13 +601,12 @@
           return;
         }
 
-        // قارن الـ timestamp — نقارن updated_at أو generated_at
+        // قارن الـ timestamp
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
-          if (parsed && typeof parsed === 'object') {
-            const ts = parsed.updated_at || parsed.generated_at;
-            if (ts) localT = new Date(ts).getTime();
+          if (parsed && typeof parsed === 'object' && parsed.updated_at) {
+            localT = new Date(parsed.updated_at).getTime();
           }
         } catch (e) { /* not JSON, استخدم 0 */ }
 
@@ -687,7 +684,7 @@
      🔄  Push تلقائي — debounced
      ════════════════════════════════════════════════════ */
   function schedulePush() {
-    if (!userKey || !db || _syncPaused) return;
+    if (!userKey || !db) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => pushAll(userKey), AUTO_PUSH_DEBOUNCE_MS);
   }
@@ -1057,8 +1054,6 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
-    pause: () => { _syncPaused = true; isSyncing = true; },
-    resume: () => { _syncPaused = false; isSyncing = false; if (userKey && db) schedulePush(); },
   };
 
   /* ════════════════════════════════════════════════════
