@@ -548,47 +548,47 @@
   }
 
   // ─── Step 3 → 4: Generate Plan ────────────────────────────
-  // ─── System Prompt Builder (curriculum in system = cached by DeepSeek) ──
-  function buildSystemPrompt(curriculumMap) {
-    return `أنت مستشار أكاديمي ذكي متخصص في تحسين خطط الدراسة لطلاب علوم الحاسوب الجامعية.
+  const DEEPSEEK_SYSTEM = `أنت مستشار أكاديمي ذكي متخصص في تحسين خطط الدراسة لطلاب علوم الحاسوب الجامعية.
 مبادئك: 1.التبديل الذكي بين المواد 2.أولوية المتطلبات 3.الربط المفاهيمي 4.التصاعد التدريجي 5.الواقعية 6.يوم قبل الامتحان=مراجعة خفيفة
-أجب بـ JSON نظيف فقط.
+أجب بـ JSON نظيف فقط.`;
 
-## بيانات المناهج الكاملة (مرجعك الثابت)
-${JSON.stringify(curriculumMap.courses, null, 0)}`;
-  }
-
-  // ─── User Prompt Builder (cache-friendly: static first, dynamic last) ──
   function buildPrompt() {
+    const isAr = lang() === 'ar';
     const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
-    const today = new Date().toISOString().split('T')[0];
 
-    // Normalize: sort self_rating keys for consistent token sequence
+    // Extract relevant topics only
+    const relevant = {};
+    for (const [cid, cfg] of activeCourses) {
+      if (!curriculumMap.courses[cid]) continue;
+      relevant[cid] = {};
+      for (const m of cfg.included_modules) {
+        const mod = curriculumMap.courses[cid].modules[m];
+        if (mod) relevant[cid][m] = mod;
+      }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
     const coursesInfo = activeCourses.map(([cid, cfg]) => {
       const c = curriculumMap.courses[cid];
-      const sortedRatings = Object.fromEntries(
-        Object.entries(cfg.self_rating).sort(([a], [b]) => a.localeCompare(b))
-      );
-      return `${cid} (${c?.name_en || cid}): exam=${cfg.exam_date || 'none'}, modules=${cfg.included_modules.join(',')}, ratings=${JSON.stringify(sortedRatings)}`;
+      return `${cid} (${c?.name_en || cid}): exam=${cfg.exam_date || 'none'}, modules=${cfg.included_modules.join(',')}, ratings=${JSON.stringify(cfg.self_rating)}`;
     }).join('\n');
 
-    // Order: least-changing first → most-changing last (maximizes prefix cache hits)
     return `## مهمتك
 أنشئ جدول مذاكرة ذكياً.
-## إعدادات ثابتة
+## إعدادات الطالب
 - نوع: ${userConfig.plan_type}
+- تاريخ اليوم: ${today}
 - جلسات يومية: ${userConfig.daily_sessions}
 - وحدات/جلسة: ${userConfig.modules_per_session}
 - أيام راحة: ${userConfig.rest_days.join(', ')}
-## المواد والتقييمات
+- أيام مشغولة: ${userConfig.busy_dates.join(', ') || 'لا يوجد'}
+## المواد
 ${coursesInfo}
-## الأيام المشغولة (يتغير)
-${userConfig.busy_dates.join(', ') || 'لا يوجد'}
-## تاريخ البدء (يتغير)
-${userConfig.start_date || today}
+## بيانات المناهج
+${JSON.stringify(relevant, null, 0)}
 ## الناتج المطلوب
 أنتج JSON:
-{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description_ar":"وصف الاستراتيجية بالعربية","strategy_description_en":"Strategy description in English","weeks":[{"week_number":1,"theme":"...","theme_en":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[{"session_number":1,"course_id":"CS350","module_id":"M01","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"...","ai_note_en":"...","must_know_today":["..."],"must_know_today_en":["..."],"must_memorize_today":["..."],"must_memorize_today_en":["..."]}],"daily_tip_ar":"...","daily_tip_en":"..."}]}`;
+{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[{"session_number":1,"course_id":"CS350","module_id":"M01","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"...","ai_note_en":"...","must_know_today":["..."],"must_know_today_en":["..."],"must_memorize_today":["..."],"must_memorize_today_en":["..."]}],"daily_tip_ar":"...","daily_tip_en":"..."}]}`;
   }
 
   // ─── Loading Screen Helpers ──────────────────────────────
@@ -708,7 +708,7 @@ ${userConfig.start_date || today}
         apiBody = JSON.stringify({
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: buildSystemPrompt(curriculumMap) },
+            { role: 'system', content: DEEPSEEK_SYSTEM },
             { role: 'user', content: prompt }
           ],
           max_tokens: MAX_TOKENS,
@@ -722,7 +722,7 @@ ${userConfig.start_date || today}
         apiHeaders = { 'Content-Type': 'application/json' };
         apiBody = JSON.stringify({
           messages: [
-            { role: 'system', content: buildSystemPrompt(curriculumMap) },
+            { role: 'system', content: DEEPSEEK_SYSTEM },
             { role: 'user', content: prompt }
           ],
           max_tokens: MAX_TOKENS,
@@ -1423,6 +1423,14 @@ ${userConfig.start_date || today}
     showStep(1);
   }
 
+  // ─── Arabic Pluralization Helper ──────────────────────────
+  function formatSessionsCount(count, isAr) {
+    if (!isAr) return `${count} Sessions`;
+    if (count === 1) return 'جلسة واحدة';
+    if (count === 2) return 'جلستين';
+    return `${count} جلسات`;
+  }
+
   // ─── Card View (each session is its own 3D card) ────────────
   function renderCardView(plan, isAr) {
     if (allDayCards.length === 0) return `<p style="text-align:center;color:var(--text-muted)">${isAr ? 'لا توجد جلسات' : 'No sessions'}</p>`;
@@ -1532,7 +1540,7 @@ ${userConfig.start_date || today}
     return `
       <div class="card-3d-container">
         <div class="card-top-bar">
-          <div class="card-counter">${isAr ? `الجلسات المتبقية: ${allDayCards.length - currentCardIndex} من اصل ${allDayCards.length}` : `Remaining: ${allDayCards.length - currentCardIndex} of ${allDayCards.length}`}</div>
+          <div class="card-counter">${isAr ? `الجلسات المتبقية: ${formatSessionsCount(allDayCards.length - currentCardIndex, isAr)} من اصل ${formatSessionsCount(allDayCards.length, isAr)}` : `Remaining: ${allDayCards.length - currentCardIndex} of ${allDayCards.length}`}</div>
           ${toggle3DBtn}
         </div>
         <!-- Day label -->
@@ -1652,7 +1660,7 @@ ${userConfig.start_date || today}
         else if (dayType === 'light_review') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>`;
 
         // Session progress counter
-        const progressText = totalCount > 0 ? `<span class="day-progress-count">${doneCount}/${totalCount}</span>` : '';
+        const progressText = totalCount > 0 ? `<span class="day-progress-count">${doneCount}/${totalCount} ${formatSessionsCount(totalCount, isAr)}</span>` : '';
 
         html += `
           <div class="day-section ${isToday ? 'today-section' : ''} ${isPast && !isToday ? 'past-section' : ''}" data-day-type="${dayType}" data-date="${day.date}">
@@ -1734,7 +1742,7 @@ ${userConfig.start_date || today}
     }, 600);
   }
 
-  // ─── PDF Export (Professional Output) ──────────────────────
+  // ─── PDF Export (Professional Output Redesign) ─────────────
   function buildPrintTable(plan, isAr) {
     const dir = isAr ? 'rtl' : 'ltr';
     const langAttr = isAr ? 'ar' : 'en';
@@ -1759,15 +1767,17 @@ ${userConfig.start_date || today}
       <div class="print-container">
         <!-- Document Header -->
         <div class="doc-header">
-          <div class="doc-header-content">
+          <div class="header-left">
             <h1 class="doc-title">${isAr ? 'خطة المذاكرة الذكية' : 'Smart Study Plan'}</h1>
             <p class="doc-subtitle">${planTypeLabel[plan.plan_type] || ''} • ${totalDays} ${isAr ? 'يوم' : 'Days'} • ${sourceText}</p>
           </div>
-          <div class="doc-branding">
+          <div class="header-right doc-branding">
             Digital Garden
           </div>
         </div>
-        ${strategy ? `<div class="doc-strategy"><span class="icon">💡</span> ${strategy}</div>` : ''}
+        ${strategy ? `<div class="doc-strategy"><span class="strategy-icon">💡</span> ${strategy}</div>` : ''}
+        
+        <div class="plan-grid">
     `;
 
     let currentWeek = 0;
@@ -1780,8 +1790,11 @@ ${userConfig.start_date || today}
         const weekTheme = weekInfo ? (isAr ? weekInfo.theme : (weekInfo.theme_en || weekInfo.theme)) : '';
         htmlBody += `
           <div class="week-divider">
-            <span class="week-pill">📌 ${isAr ? 'الأسبوع' : 'Week'} ${currentWeek}</span>
-            ${weekTheme ? `<span class="week-theme">${weekTheme}</span>` : ''}
+            <div class="week-pill-container">
+               <span class="week-pill">${isAr ? 'الأسبوع' : 'Week'} ${currentWeek}</span>
+            </div>
+            ${weekTheme ? `<div class="week-theme">${weekTheme}</div>` : ''}
+            <div class="week-line"></div>
           </div>
         `;
       }
@@ -1789,14 +1802,56 @@ ${userConfig.start_date || today}
       const sessions = day.sessions || [];
       const dayDateParsed = formatDate(day.date, 'card');
 
+      const dayType = day.day_type || 'study';
+      let dayThemeClass = 'theme-study';
+      let dayIcon = '📅';
+      let typeLabel = '';
+
+      if (dayType === 'exam') {
+        dayThemeClass = 'theme-exam';
+        dayIcon = '📝';
+        typeLabel = isAr ? 'يوم اختبار' : 'Exam Day';
+      } else if (dayType === 'golden_review') {
+        dayThemeClass = 'theme-golden';
+        dayIcon = '⭐';
+        typeLabel = isAr ? 'مراجعة ذهبية' : 'Golden Review';
+      } else if (dayType === 'mixed') {
+        dayThemeClass = 'theme-review';
+        dayIcon = '🔄';
+        typeLabel = isAr ? 'تعلم + مراجعة' : 'Study + Review';
+      } else if (dayType === 'light_review') {
+        dayThemeClass = 'theme-review';
+        dayIcon = '🏁';
+        typeLabel = isAr ? 'مراجعة خفيفة' : 'Light Review';
+      } else if (dayType === 'rest') {
+        dayThemeClass = 'theme-rest';
+        dayIcon = '😴';
+        typeLabel = isAr ? 'يوم راحة' : 'Rest Day';
+      }
+
       htmlBody += `
-        <div class="day-block">
+        <!-- Wrap the day content so it avoids hard page breaks inside if possible -->
+        <div class="day-wrapper ${dayThemeClass}">
           <div class="day-header">
-            <div class="day-date">${dayDateParsed}</div>
-            <div class="day-meta">${sessions.length} ${isAr ? 'جلسات' : 'Sessions'}</div>
+            <div class="day-header-main">
+              <span class="day-icon">${dayIcon}</span>
+              <span class="day-date">${dayDateParsed}</span>
+            </div>
+            <div class="day-header-meta">
+              ${typeLabel ? `<span class="day-type-tag">${typeLabel}</span>` : ''}
+              <span class="day-count-tag">${formatSessionsCount(sessions.length, isAr)}</span>
+            </div>
           </div>
           <div class="sessions-list">
       `;
+
+      if (sessions.length === 0) {
+        htmlBody += `
+          <div class="empty-day-message">
+            ${isAr ? 'لا توجد جلسات لهذا اليوم. استمتع بوقتك!' : 'No sessions for today. Enjoy your time!'}
+          </div>
+        `;
+      }
 
       sessions.forEach((session, idx) => {
         const courseName = curriculumMap.courses[session.course_id]
@@ -1805,27 +1860,41 @@ ${userConfig.start_date || today}
 
         const diff = session.difficulty_avg || 5;
         const diffClass = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
-        const modeLabel = session.mode === 'deep' ? '🔴' : session.mode === 'full' ? '🟡' : '🟢';
+
+        let diffLabel = diff + '/10';
+        if (isAr) {
+          diffLabel = diff >= 9 ? 'حرج' : diff >= 7 ? 'صعب' : diff >= 4 ? 'متوسط' : 'سهل';
+        } else {
+          diffLabel = diff >= 9 ? 'Critical' : diff >= 7 ? 'Hard' : diff >= 4 ? 'Medium' : 'Easy';
+        }
 
         const mustKnowList = (!isAr && session.must_know_today_en && session.must_know_today_en.length > 0) ? session.must_know_today_en : session.must_know_today;
         const mustMemList = (!isAr && session.must_memorize_today_en && session.must_memorize_today_en.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
+        const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
 
         const mustKnow = mustKnowList?.join(isAr ? '، ' : ', ') || '';
         const mustMem = mustMemList?.join(isAr ? '، ' : ', ') || '';
 
         htmlBody += `
-            <div class="session-row">
-              <div class="sess-meta">
-                <span class="sess-num">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
-                <span class="diff-badge ${diffClass}">${diff}/10</span>
-              </div>
-              <div class="sess-main">
-                <div class="sess-course"><span class="c-id">${session.course_id}</span> <span class="m-id">${session.module_id}</span></div>
-                <div class="sess-name">${courseName}</div>
-              </div>
-              <div class="sess-details">
-                ${mustKnow ? `<div class="detail-line"><span class="d-icon">🎯</span> <span>${mustKnow}</span></div>` : ''}
-                ${mustMem ? `<div class="detail-line"><span class="d-icon">📝</span> <span>${mustMem}</span></div>` : ''}
+            <div class="session-item">
+              <div class="session-check-circle"></div>
+              <div class="session-content">
+                <div class="session-top">
+                  <div class="session-course-title">
+                    <span class="c-id">${session.course_id}</span>
+                    <span class="m-id">${session.module_id}</span>
+                    <span class="c-name">${courseName}</span>
+                  </div>
+                  <div class="session-tags">
+                     <span class="s-num">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                     <span class="diff-badge ${diffClass}">${diffLabel}</span>
+                  </div>
+                </div>
+                <div class="session-body">
+                  ${mustKnow ? `<div class="detail-line"><span class="d-icon">🎯</span> <span class="d-text">${mustKnow}</span></div>` : ''}
+                  ${mustMem ? `<div class="detail-line"><span class="d-icon">📝</span> <span class="d-text">${mustMem}</span></div>` : ''}
+                  ${aiNoteStr ? `<div class="detail-line"><span class="d-icon">💡</span> <span class="d-text">${aiNoteStr}</span></div>` : ''}
+                </div>
               </div>
             </div>
         `;
@@ -1838,6 +1907,7 @@ ${userConfig.start_date || today}
     });
 
     htmlBody += `
+        </div> <!-- end plan-grid -->
       </div>
     `;
 
@@ -1851,17 +1921,17 @@ ${userConfig.start_date || today}
 
   @page {
     size: A4 portrait;
-    margin: 12mm 15mm;
+    margin: 10mm 12mm;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     font-family: 'Noto Kufi Arabic', 'Inter', sans-serif;
-    font-size: 9pt;
-    line-height: 1.5;
-    color: #0f172a;
-    background: #f8fafc;
+    font-size: 10pt;
+    line-height: 1.6;
+    color: #1e293b;
+    background: #ffffff;
     direction: ${dir};
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -1870,8 +1940,6 @@ ${userConfig.start_date || today}
   .print-container {
     max-width: 100%;
     margin: 0 auto;
-    background: #ffffff;
-    padding: 0;
   }
 
   /* Header */
@@ -1879,184 +1947,309 @@ ${userConfig.start_date || today}
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    padding-bottom: 15px;
+    padding-bottom: 12px;
     border-bottom: 2px solid #e2e8f0;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
   }
   .doc-title {
-    font-size: 22pt;
+    font-size: 24pt;
     font-weight: 900;
-    color: #1e293b;
+    color: #0f172a;
     letter-spacing: -0.5px;
     margin-bottom: 4px;
+    line-height: 1.1;
   }
   .doc-subtitle {
-    font-size: 10pt;
-    font-weight: 500;
+    font-size: 11pt;
+    font-weight: 600;
     color: #64748b;
   }
   .doc-branding {
-    font-size: 14pt;
+    font-size: 16pt;
     font-weight: 900;
-    color: #a78bfa;
+    color: #8b5cf6;
     letter-spacing: -0.5px;
+    opacity: 0.9;
   }
 
   .doc-strategy {
-    background: rgba(167, 139, 250, 0.08);
-    border-${isAr ? 'right' : 'left'}: 4px solid #a78bfa;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 9.5pt;
-    font-weight: 500;
+    background: rgba(139, 92, 246, 0.06);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 10pt;
+    font-weight: 600;
     color: #4c1d95;
-    margin-bottom: 20px;
-    page-break-inside: avoid;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+  }
+  .strategy-icon {
+    font-size: 12pt;
+    margin-top: 2px;
+  }
+
+  /* Grid Layout (One column but blocks handle page breaks) */
+  .plan-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   /* Week Divider */
   .week-divider {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    margin: 25px 0 15px 0;
+    margin: 20px 0 10px 0;
+    position: relative;
     page-break-after: avoid;
+  }
+  .week-pill-container {
+    background: #ffffff;
+    padding: 0 16px;
+    z-index: 2;
   }
   .week-pill {
     background: #1e293b;
     color: #ffffff;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 8.5pt;
-    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.5px;
   }
   .week-theme {
-    font-size: 9.5pt;
-    font-weight: 600;
+    background: #ffffff;
     color: #475569;
+    font-size: 10.5pt;
+    font-weight: 700;
+    padding: 4px 16px;
+    margin-top: 8px;
+    z-index: 2;
+  }
+  .week-line {
+    position: absolute;
+    top: 14px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e2e8f0;
+    z-index: 1;
   }
 
-  /* Day Block */
-  .day-block {
-    margin-bottom: 20px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+  /* Day Wrapper - Heart of the elegant layout */
+  .day-wrapper {
     background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
     overflow: hidden;
-    page-break-inside: avoid;
+    page-break-inside: avoid; /* Core requirement: Keeps day complete */
   }
+
+  /* Day Themes - Very subtle pastel backgrounds for headers */
+  .theme-study  .day-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .theme-exam   .day-header { background: #fff1f2; border-bottom: 1px solid #fecdd3; }
+  .theme-golden .day-header { background: #fffbeb; border-bottom: 1px solid #fde68a; }
+  .theme-review .day-header { background: #f0fdf4; border-bottom: 1px solid #bbf7d0; }
+  .theme-rest   .day-header { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+
+  /* Very subtle full-body tint for special days (optional, disabled for cleaner print) */
+  /* .theme-exam   { background: #fffcfd; } */
+
   .day-header {
-    background: #f1f5f9;
-    padding: 8px 12px;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
+  
+  .day-header-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-icon {
+    font-size: 14pt;
+  }
   .day-date {
-    font-size: 10.5pt;
+    font-size: 12pt;
     font-weight: 800;
     color: #0f172a;
   }
-  .day-meta {
-    font-size: 8pt;
-    font-weight: 600;
-    color: #64748b;
+
+  .day-header-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .day-type-tag {
+    font-size: 8.5pt;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.05);
+    color: #334155;
+  }
+  .theme-exam .day-type-tag { background: #ffe4e6; color: #be123c; }
+  .theme-golden .day-type-tag { background: #fef3c7; color: #b45309; }
+  
+  .day-count-tag {
+    font-size: 8.5pt;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
     background: #e2e8f0;
-    padding: 2px 8px;
-    border-radius: 10px;
+    color: #475569;
   }
 
-  /* Sessions */
+  /* Sessions List inside Day */
   .sessions-list {
     display: flex;
     flex-direction: column;
   }
-  .session-row {
-    display: flex;
-    padding: 10px 12px;
-    border-bottom: 1px solid #f1f5f9;
-    align-items: flex-start;
+
+  .empty-day-message {
+    padding: 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 10pt;
+    font-style: italic;
   }
-  .session-row:last-child {
+
+  /* Session Item Flex Layout */
+  .session-item {
+    display: flex;
+    padding: 12px 16px;
+    border-bottom: 1px dashed #e2e8f0;
+    position: relative;
+    page-break-inside: avoid;
+  }
+  .session-item:last-child {
     border-bottom: none;
   }
 
-  .sess-meta {
-    width: 65px;
+  /* Check Circle for Physical Printing */
+  .session-check-circle {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #cbd5e1;
+    border-radius: 50%;
+    margin-top: 4px;
+    margin-${isAr ? 'left' : 'right'}: 14px;
     flex-shrink: 0;
+    background: #fff;
+  }
+
+  .session-content {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-  }
-  .sess-num {
-    font-size: 7.5pt;
-    font-weight: 700;
-    color: #64748b;
+    gap: 6px;
   }
 
-  .sess-main {
-    width: 140px;
-    flex-shrink: 0;
-    padding-${isAr ? 'left' : 'right'}: 15px;
+  /* Session Top Row */
+  .session-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
   }
-  .sess-course {
-    font-weight: 800;
-    font-family: 'Inter', monospace;
-    font-size: 9pt;
-    color: #1e293b;
-    margin-bottom: 2px;
-  }
-  .c-id { color: #4338ca; }
-  .m-id { color: #0f172a; }
-  .sess-name {
-    font-size: 7.5pt;
-    color: #64748b;
-    font-weight: 600;
+
+  .session-course-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
     line-height: 1.3;
   }
+  
+  .c-id {
+    font-family: 'Inter', monospace;
+    font-weight: 900;
+    font-size: 10.5pt;
+    color: #4338ca;
+  }
+  .m-id {
+    font-family: 'Inter', monospace;
+    font-weight: 700;
+    font-size: 10pt;
+    color: #334155;
+    background: #f1f5f9;
+    padding: 0 6px;
+    border-radius: 4px;
+  }
+  .c-name {
+    font-weight: 700;
+    font-size: 9.5pt;
+    color: #64748b;
+  }
 
-  .sess-details {
-    flex: 1;
-    border-${isAr ? 'right' : 'left'}: 2px solid #f1f5f9;
-    padding-${isAr ? 'right' : 'left'}: 15px;
+  .session-tags {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  
+  .s-num {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  /* Beautiful Difficulty Badges */
+  .diff-badge {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 8.5pt;
+    font-weight: 800;
+  }
+  /* Adjusted for optimal paper print clarity */
+  .diff-badge.easy { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  .diff-badge.medium { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+  .diff-badge.hard { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+  .diff-badge.critical { background: #ffe4e6; color: #be123c; border: 1px solid #fecdd3; }
+
+  /* Session Details Loop */
+  .session-body {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    margin-top: 2px;
+    padding-${isAr ? 'right' : 'left'}: 4px; /* Slight indent under title */
+    border-${isAr ? 'right' : 'left'}: 2px solid #f1f5f9;
   }
+  
   .detail-line {
     display: flex;
     align-items: flex-start;
     gap: 6px;
-    font-size: 8.5pt;
-    color: #334155;
   }
   .d-icon {
-    font-size: 8pt;
-    opacity: 0.8;
-    margin-top: 2px;
+    font-size: 9pt;
+    opacity: 0.9;
+    margin-top: 1px;
   }
-
-  /* Badges */
-  .diff-badge {
-    display: inline-block;
-    padding: 2px 7px;
-    border-radius: 6px;
-    font-size: 7pt;
-    font-weight: 800;
-    align-self: flex-start;
+  .d-text {
+    font-size: 9pt;
+    color: #334155;
+    font-weight: 500;
+    line-height: 1.5;
   }
-  .diff-badge.easy { background: #dcfce7; color: #166534; }
-  .diff-badge.medium { background: #dbeafe; color: #1e40af; }
-  .diff-badge.hard { background: #ffedd5; color: #9a3412; }
-  .diff-badge.critical { background: #ffe4e6; color: #be123c; }
 
 </style>
 </head>
 <body>
 <div id="print-container">
   ${htmlBody}
-  <div class="print-footer-area">Digital Garden · Intelligent Study Planner · ${new Date().toLocaleDateString(langAttr)} | AI-Powered Schedules</div>
+  <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #f1f5f9; color: #94a3b8; font-size: 9pt; font-weight: 600;">
+    Digital Garden · Intelligent Study Planner · ${new Date().toLocaleDateString(langAttr)}
+  </div>
 </div>
 </body>
 </html>`;
@@ -2073,11 +2266,13 @@ ${userConfig.start_date || today}
 
     const isNowCompleted = !session.completed;
 
+    // Immediately update memory and storage to prevent race condition
+    session.completed = isNowCompleted;
+    session.completed_at = isNowCompleted ? new Date().toISOString() : null;
+    localStorage.setItem(key, JSON.stringify(plan));
+
     // Fast-path for undo
     if (!isNowCompleted) {
-      session.completed = false;
-      session.completed_at = null;
-      localStorage.setItem(key, JSON.stringify(plan));
       renderPlan(plan);
       return;
     }
@@ -2095,16 +2290,11 @@ ${userConfig.start_date || today}
     if (animatedEl) {
       animatedEl.classList.add('completed-animate');
       setTimeout(() => {
-        session.completed = true;
-        session.completed_at = new Date().toISOString();
-        localStorage.setItem(key, JSON.stringify(plan));
-        renderPlan(plan);
+        // Re-fetch in case other sessions were toggled during the 600ms
+        const updatedPlan = JSON.parse(localStorage.getItem(key) || '{}');
+        renderPlan(updatedPlan);
       }, 600);
     } else {
-      // Fallback if element not found
-      session.completed = true;
-      session.completed_at = new Date().toISOString();
-      localStorage.setItem(key, JSON.stringify(plan));
       renderPlan(plan);
     }
   }
@@ -2180,6 +2370,7 @@ ${userConfig.start_date || today}
         return {
           hasPlan: true,
           todaySessions: total,
+          todaySessionsFormatted: formatSessionsCount(total, lang() === 'ar'),
           todayDone: done,
           totalSessions,
           doneSessions,
