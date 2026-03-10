@@ -165,7 +165,6 @@
 
   
   async function init() {
-    window._plannerLastLang = lang(); 
     try {
       const r = await fetch(CURRICULUM_MAP_URL);
       if (!r.ok) throw new Error('Failed to load curriculum map');
@@ -548,8 +547,7 @@
   
   const DEEPSEEK_SYSTEM = `أنت مستشار أكاديمي ذكي متخصص في تحسين خطط الدراسة لطلاب علوم الحاسوب الجامعية.
 مبادئك: 1.التبديل الذكي بين المواد 2.أولوية المتطلبات 3.الربط المفاهيمي 4.التصاعد التدريجي 5.الواقعية 6.يوم قبل الامتحان=مراجعة خفيفة
-أنت تجيد اللغتين الإنجليزية والعربية بطلاقة تامة، والزامي أن تملأ الحقول التي تنتهي بـ _ar باللغة العربية، والحقول التي تنتهي بـ _en باللغة الإنجليزية في كل الأحوال.
-أجب بـ JSON نظيف فقط ومطابق تماماً للقالب.`;
+أجب بـ JSON نظيف فقط.`;
 
   function buildPrompt() {
     const isAr = lang() === 'ar';
@@ -573,25 +571,21 @@
     }).join('\n');
 
     return `## مهمتك
-أنشئ جدول مذاكرة ذكياً ومُفصلاً بناءً على معطيات الطالب التالية.
-
+أنشئ جدول مذاكرة ذكياً.
 ## إعدادات الطالب
-- نوع الخطة: ${userConfig.plan_type}
+- نوع: ${userConfig.plan_type}
 - تاريخ اليوم: ${today}
 - جلسات يومية: ${userConfig.daily_sessions}
 - وحدات/جلسة: ${userConfig.modules_per_session}
 - أيام راحة: ${userConfig.rest_days.join(', ')}
 - أيام مشغولة: ${userConfig.busy_dates.join(', ') || 'لا يوجد'}
-
-## المواد المفعّلة
+## المواد
 ${coursesInfo}
-
-## بيانات المناهج (استخدمها كمراجع للمواضيع)
+## بيانات المناهج
 ${JSON.stringify(relevant, null, 0)}
-
 ## الناتج المطلوب
-يجب أن ترجع ردك بصيغة JSON حصراً وحسب القالب التالي، أملأ _ar بالعربية و _en بالانجليزية:
-{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[{"session_number":1,"course_id":"CS350","module_id":"M01","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"نصائح بالعربية...","ai_note_en":"Tips in English...","must_know_today":["أهم نقطة..."],"must_know_today_en":["Important point..."],"must_memorize_today":["احفظ هذا..."],"must_memorize_today_en":["Memorize this..."]}],"daily_tip_ar":"نصيحة بالعربية...","daily_tip_en":"Tip in English..."}]}`;
+أنتج JSON:
+{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[{"session_number":1,"course_id":"CS350","module_id":"M01","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"...","ai_note_en":"...","must_know_today":["..."],"must_know_today_en":["..."],"must_memorize_today":["..."],"must_memorize_today_en":["..."]}],"daily_tip_ar":"...","daily_tip_en":"..."}]}`;
   }
 
   
@@ -687,9 +681,6 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.add('active');
     planContent.style.display = 'none';
 
-    window._lastRenderSig = null;
-    window.GardenSync?.pause();
-
     const isAr = lang() === 'ar';
     cleanupLoadingIntervals();
     const advanceLoading = setupInteractiveLoading(isAr);
@@ -732,15 +723,14 @@ ${JSON.stringify(relevant, null, 0)}
             { role: 'user', content: prompt }
           ],
           max_tokens: MAX_TOKENS,
-          temperature: 0.3,
-          response_format: { type: 'json_object' }
+          temperature: 0.3
         });
         parseResponse = (data) => data.text || data.choices?.[0]?.message?.content || '';
       }
 
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 150000);
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -809,7 +799,6 @@ ${JSON.stringify(relevant, null, 0)}
           console.error('renderPlan error:', renderErr);
           planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p><button onclick="Planner.regenerate()" style="margin-top:1rem;padding:0.5rem 1rem;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;cursor:pointer;">إعادة التوليد</button></div>';
         }
-        window.GardenSync?.resume();
       }, 500);
 
     } catch (err) {
@@ -829,7 +818,6 @@ ${JSON.stringify(relevant, null, 0)}
         console.error('Fallback renderPlan error:', renderErr);
         planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
       }
-      window.GardenSync?.resume();
       showInfo(isAr
         ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
         : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.');
@@ -1176,9 +1164,6 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.remove('active');
     planContent.style.display = '';
 
-    window._lastRenderSig = null;
-    window.GardenSync?.pause();
-
     const plan = generateSmartLocalPlan();
     const storageKey = getPlanStorageKey(userConfig.plan_type);
     localStorage.setItem(storageKey, JSON.stringify(plan));
@@ -1190,8 +1175,6 @@ ${JSON.stringify(relevant, null, 0)}
       console.error('Local plan renderPlan error:', renderErr);
       planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p></div>';
     }
-
-    window.GardenSync?.resume();
 
     showInfo(lang() === 'ar'
       ? '📋 تم إنشاء جدول ذكي محلياً — مرتب حسب الأولوية مع تبديل بين المواد.'
@@ -1287,10 +1270,6 @@ ${JSON.stringify(relevant, null, 0)}
 
   
   function renderPlan(plan) {
-    
-    const _sig = JSON.stringify(plan?.days?.map(d => d.date + d.sessions?.length)) + '|' + cardViewMode;
-    if (_sig === window._lastRenderSig) return;
-    window._lastRenderSig = _sig;
     const container = document.getElementById('plan-content');
     const isAr = lang() === 'ar';
 
@@ -1398,7 +1377,20 @@ ${JSON.stringify(relevant, null, 0)}
     }
 
     
+    if (typeof Garden !== 'undefined' && Garden.setLanguage) {
+      if (localStorage.getItem('garden_lang') !== lang()) {
+        Garden.setLanguage(lang());
+      }
+    }
+
     
+    if (!window._plannerLangListenerAttached) {
+      document.addEventListener('languageChanged', (e) => {
+        const p = getCurrentPlan();
+        if (p) renderPlan(p); 
+      });
+      window._plannerLangListenerAttached = true;
+    }
   }
 
   function newPlan() {
@@ -1614,9 +1606,7 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   function setViewMode(mode) {
-    if (cardViewMode === mode) return; 
     cardViewMode = mode;
-    window._lastRenderSig = null; 
     const plan = getCurrentPlan();
     if (plan) renderPlan(plan);
   }
@@ -2495,11 +2485,7 @@ ${JSON.stringify(relevant, null, 0)}
   
   document.addEventListener('DOMContentLoaded', init);
 
-  document.addEventListener('garden:languageChanged', (e) => {
-    const newLang = e.detail?.lang;
-    if (!newLang || newLang === window._plannerLastLang) return;
-    window._plannerLastLang = newLang;
-    window._lastRenderSig = null;
+  document.addEventListener('garden:languageChanged', () => {
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {
