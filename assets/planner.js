@@ -684,9 +684,6 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.add('active');
     planContent.style.display = 'none';
 
-    window._lastRenderSig = null;
-    window.GardenSync?.pause();
-
     const isAr = lang() === 'ar';
     cleanupLoadingIntervals();
     const advanceLoading = setupInteractiveLoading(isAr);
@@ -805,7 +802,6 @@ ${JSON.stringify(relevant, null, 0)}
           console.error('renderPlan error:', renderErr);
           planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p><button onclick="Planner.regenerate()" style="margin-top:1rem;padding:0.5rem 1rem;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;cursor:pointer;">إعادة التوليد</button></div>';
         }
-        window.GardenSync?.resume();
       }, 500);
 
     } catch (err) {
@@ -825,7 +821,6 @@ ${JSON.stringify(relevant, null, 0)}
         console.error('Fallback renderPlan error:', renderErr);
         planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
       }
-      window.GardenSync?.resume();
       showInfo(isAr
         ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
         : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.');
@@ -1172,9 +1167,6 @@ ${JSON.stringify(relevant, null, 0)}
     loadingScreen.classList.remove('active');
     planContent.style.display = '';
 
-    window._lastRenderSig = null;
-    window.GardenSync?.pause();
-
     const plan = generateSmartLocalPlan();
     const storageKey = getPlanStorageKey(userConfig.plan_type);
     localStorage.setItem(storageKey, JSON.stringify(plan));
@@ -1186,8 +1178,6 @@ ${JSON.stringify(relevant, null, 0)}
       console.error('Local plan renderPlan error:', renderErr);
       planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p></div>';
     }
-
-    window.GardenSync?.resume();
 
     showInfo(lang() === 'ar'
       ? '📋 تم إنشاء جدول ذكي محلياً — مرتب حسب الأولوية مع تبديل بين المواد.'
@@ -1283,10 +1273,6 @@ ${JSON.stringify(relevant, null, 0)}
 
   // ─── Render Plan ──────────────────────────────────────────
   function renderPlan(plan) {
-    // تجاهل إذا لم تتغير البيانات أو وضع العرض — يمنع أي مصدر من إعادة render بنفس البيانات
-    const _sig = JSON.stringify(plan?.days?.map(d=>d.date+d.sessions?.length)) + '|' + cardViewMode;
-    if (_sig === window._lastRenderSig) return;
-    window._lastRenderSig = _sig;
     const container = document.getElementById('plan-content');
     const isAr = lang() === 'ar';
 
@@ -1393,17 +1379,17 @@ ${JSON.stringify(relevant, null, 0)}
       }, 150);
     }
 
-    // لا نستدعي Garden.setLanguage — كان مصدر الحلقة الأصلية
+    // Re-apply bilingual dynamically without refresh if a plan is displayed
+    if (typeof Garden !== 'undefined' && Garden.setLanguage) {
+      Garden.setLanguage(lang());
+    }
+
+    // Attach language toggle listener if not already done
     if (!window._plannerLangListenerAttached) {
-      document.addEventListener('garden:languageChanged', (e) => {
-        const newLang = e.detail?.lang;
-        if (!newLang || newLang === window._plannerLastLang) return;
-        window._plannerLastLang = newLang;
-        window._lastRenderSig = null;
+      document.addEventListener('languageChanged', (e) => {
         const p = getCurrentPlan();
-        if (p) renderPlan(p);
+        if (p) renderPlan(p); // Re-render plan on language change
       });
-      window._plannerLastLang = lang();
       window._plannerLangListenerAttached = true;
     }
   }
@@ -1621,9 +1607,7 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   function setViewMode(mode) {
-    if (cardViewMode === mode) return; // لا تفعل شيء إذا لم يتغير الوضع
     cardViewMode = mode;
-    window._lastRenderSig = null; // أجبر re-render لأن الوضع تغير
     const plan = getCurrentPlan();
     if (plan) renderPlan(plan);
   }
@@ -2502,11 +2486,7 @@ ${JSON.stringify(relevant, null, 0)}
   // ─── Boot ─────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', init);
 
-  document.addEventListener('garden:languageChanged', (e) => {
-    const newLang = e.detail?.lang;
-    if (!newLang || newLang === window._plannerLastLang) return;
-    window._plannerLastLang = newLang;
-    window._lastRenderSig = null;
+  document.addEventListener('garden:languageChanged', () => {
     if (currentStep === 2) renderCourseSelection();
     if (currentStep === 3) renderConfigOptions();
     if (currentStep === 4) {
