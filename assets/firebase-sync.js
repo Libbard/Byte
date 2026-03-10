@@ -67,6 +67,7 @@
   let fabBtn = null;
   let statusDot = null;
   let isSyncing = false;
+  let _syncPaused = false;  // flag مستقل — يُستخدم فقط أثناء توليد الخطة
 
   /* ════════════════════════════════════════════════════
      🌍  i18n بسيط
@@ -480,7 +481,7 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
-          db.settings({ experimentalForceLongPolling: false });
+          db.settings({ experimentalForceLongPolling: true, merge: true });
           callback();
         } catch (e) {
           console.warn('[Sync] Firebase init failed:', e);
@@ -568,11 +569,12 @@
 
   /** اسحب من Firestore وادمج مع localStorage (last-write-wins) */
   async function pullAll(key) {
-    if (!db || !key) return;
+    if (!db || !key || _syncPaused) return;
     setStatus('loading');
     isSyncing = true;
     try {
       const doc = await db.collection(COLLECTION).doc(key).get();
+      if (_syncPaused) { setStatus('synced'); isSyncing = false; return; }
       if (!doc.exists) {
         // مفتاح جديد — ارفع بياناتنا الحالية
         await pushAll(key);
@@ -601,12 +603,13 @@
           return;
         }
 
-        // قارن الـ timestamp
+        // قارن الـ timestamp — نقارن updated_at أو generated_at
         let localT = 0;
         try {
           const parsed = JSON.parse(localRaw);
-          if (parsed && typeof parsed === 'object' && parsed.updated_at) {
-            localT = new Date(parsed.updated_at).getTime();
+          if (parsed && typeof parsed === 'object') {
+            const ts = parsed.updated_at || parsed.generated_at;
+            if (ts) localT = new Date(ts).getTime();
           }
         } catch (e) { /* not JSON, استخدم 0 */ }
 
@@ -1054,6 +1057,8 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
+    pause: () => { _syncPaused = true; isSyncing = true; },
+    resume: () => { _syncPaused = false; isSyncing = false; if (userKey && db) schedulePush(); },
   };
 
   /* ════════════════════════════════════════════════════
