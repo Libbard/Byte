@@ -1991,9 +1991,14 @@ ${JSON.stringify(relevant, null, 0)}
 
   /* Grid Layout (One column but blocks handle page breaks) */
   .plan-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: block;
+  }
+  .plan-grid > * {
+    margin-bottom: 20px;
+  }
+  .week-divider {
+    margin-top: 24px !important;
+    margin-bottom: 12px !important;
   }
 
   /* Week Divider */
@@ -2004,6 +2009,7 @@ ${JSON.stringify(relevant, null, 0)}
     margin: 20px 0 10px 0;
     position: relative;
     page-break-after: avoid;
+    break-after: avoid;
   }
   .week-pill-container {
     background: #ffffff;
@@ -2045,6 +2051,7 @@ ${JSON.stringify(relevant, null, 0)}
     border-radius: 16px;
     overflow: hidden;
     page-break-inside: avoid; /* Core requirement: Keeps day complete */
+    break-inside: avoid;
   }
 
   /* Day Themes - Very subtle pastel backgrounds for headers */
@@ -2125,6 +2132,7 @@ ${JSON.stringify(relevant, null, 0)}
     border-bottom: 1px dashed #e2e8f0;
     position: relative;
     page-break-inside: avoid;
+    break-inside: avoid;
   }
   .session-item:last-child {
     border-bottom: none;
