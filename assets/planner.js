@@ -712,19 +712,27 @@
     const totalPlanningDays = Math.max(1, Math.ceil((endDate - todayDate) / 86400000));
 
     
+    
+    const examDateStrings = new Set(Object.values(examDates)); 
     const availableDates = [];
     for (let i = 0; i < totalPlanningDays; i++) {
       const d = new Date(todayDate);
       d.setDate(d.getDate() + i);
       const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
       if (userConfig.rest_days.includes(dayName)) continue;
       if (userConfig.busy_dates.includes(dateStr)) continue;
+      if (examDateStrings.has(dateStr)) continue; 
 
       availableDates.push(dateStr);
     }
+
+    
+    const examDatesList = Object.entries(examDates)
+      .map(([cid, date]) => `  ${date} → ${cid} (${curriculumMap.courses[cid]?.name_en || cid})`)
+      .sort()
+      .join('\n');
 
     
     
@@ -797,6 +805,10 @@
 ${availableDatesStr}
 الأيام الغائبة هي أيام راحة (${userConfig.rest_days.join(', ')}) أو أيام مشغولة — لا تضع فيها أي جلسات.
 
+## 📝 تواريخ الاختبارات الفعلية (أيام اختبار — لا تضع فيها جلسات دراسة!)
+${examDatesList || 'لا يوجد اختبارات محددة'}
+⚠️ هذه التواريخ هي أيام الاختبار الفعلية. لا تُنشئ لها أي جلسات في الناتج. سنضيف بطاقة الاختبار تلقائياً.
+
 ## المواد وتواريخ الاختبارات وأولوية كل وحدة
 (priority: 1.0=الأعلى أولوية | mode: deep=من الصفر, full=يحتاج تعزيز, flash=مراجعة سريعة)
 (est_hours=الوقت التقديري للدراسة)
@@ -805,8 +817,8 @@ ${coursesDetail}
 
 ## قواعد إلزامية
 ⚠️ كل يوم دراسي = ${dailySessions} جلسة بالضبط — لا أكثر ولا أقل.
-⚠️ لا تضع جلسات لمادة بعد تاريخ اختبارها (exam_date لكل مادة محدد أعلاه).
-⚠️ اليوم أو اليومان قبل كل اختبار = مراجعة ذهبية (day_type=golden_review, mode=flash).
+⚠️ لا تضع جلسات لمادة بعد تاريخ اختبارها. لا تضع أي جلسات في يوم الاختبار نفسه (أيام الاختبار مذكورة أعلاه).
+⚠️ المراجعة الذهبية: اليوم الذي يسبق الاختبار مباشرة (وليس يوم الاختبار!) = day_type=golden_review, mode=flash لمادة الاختبار القادم.
 ⚠️ بعد الانتهاء من كل وحدات مادة → خصص ما تبقى من أيام قبل اختبارها للمراجعة.
 ⚠️ الترتيب التسلسلي إلزامي: ابدأ دائماً من M01 ثم M02 ثم M03... لكل مادة. الوحدة M01 أساسية لفهم بقية المنهج — لا تقفز لوحدات متقدمة!
 ⚠️ priority تحدد الـ mode (deep/full/flash) وليس ترتيب الدراسة. حتى لو M01 تقييمها "excellent"، يجب مراجعتها (flash) قبل M02 لأنها أساس.
@@ -925,6 +937,135 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
     }
 
     planData._wasTruncated = wasTruncated;
+    return planData;
+  }
+
+  
+  
+  
+  
+  function injectExamDays(planData) {
+    if (!planData?.days || !planData.config?.courses) return planData;
+    const isAr = lang() === 'ar';
+
+    
+    const examEntries = []; 
+    for (const [cid, cfg] of Object.entries(planData.config.courses)) {
+      if (!cfg.active || !cfg.exam_date) continue;
+      const course = curriculumMap?.courses?.[cid];
+      examEntries.push({
+        cid,
+        date: cfg.exam_date,
+        name: course?.name || cid,
+        name_en: course?.name_en || cid
+      });
+    }
+    if (examEntries.length === 0) return planData;
+
+    
+    const examsByDate = {};
+    for (const e of examEntries) {
+      if (!examsByDate[e.date]) examsByDate[e.date] = [];
+      examsByDate[e.date].push(e);
+    }
+
+    let modified = false;
+
+    for (const [date, exams] of Object.entries(examsByDate)) {
+      
+      const existingDay = planData.days.find(d => d.date === date);
+
+      if (existingDay) {
+        
+        if (existingDay.day_type !== 'exam') {
+          
+          console.warn(`⚠️ Exam day ${date} had type "${existingDay.day_type}" — converting to exam`);
+          existingDay.day_type = 'exam';
+          modified = true;
+        }
+
+        
+        const existingExamCids = new Set(
+          (existingDay.sessions || [])
+            .filter(s => s.mode === 'exam')
+            .map(s => s.course_id)
+        );
+
+        const missingSessions = exams.filter(e => !existingExamCids.has(e.cid));
+        if (missingSessions.length > 0 || !existingDay.sessions || existingDay.sessions.length === 0) {
+          existingDay.sessions = exams.map((e, idx) => ({
+            session_number: idx + 1,
+            course_id: e.cid,
+            module_id: isAr ? 'اختبار' : 'Exam',
+            mode: 'exam',
+            difficulty_avg: 10,
+            is_critical: false,
+            ai_note_ar: `📝 اختبار ${e.name} — بالتوفيق!`,
+            ai_note_en: `📝 ${e.name_en} Exam — Good luck!`,
+            must_know_today: [], must_know_today_en: [],
+            must_memorize_today: [], must_memorize_today_en: [],
+            completed: false
+          }));
+          existingDay.daily_tip_ar = '📝 يوم اختبار — توكل على الله وثق بنفسك!';
+          existingDay.daily_tip_en = '📝 Exam day — trust yourself and do your best!';
+          modified = true;
+        }
+      } else {
+        
+        console.warn(`⚠️ Exam day ${date} was missing from plan — injecting`);
+        const firstDate = planData.days[0]?.date || date;
+        const weekNum = Math.floor(
+          (new Date(date + 'T00:00:00') - new Date(firstDate + 'T00:00:00')) / (7 * 86400000)
+        ) + 1;
+
+        planData.days.push({
+          date,
+          day_label: formatDate(date, 'card'),
+          week_number: weekNum,
+          day_type: 'exam',
+          sessions: exams.map((e, idx) => ({
+            session_number: idx + 1,
+            course_id: e.cid,
+            module_id: isAr ? 'اختبار' : 'Exam',
+            mode: 'exam',
+            difficulty_avg: 10,
+            is_critical: false,
+            ai_note_ar: `📝 اختبار ${e.name} — بالتوفيق!`,
+            ai_note_en: `📝 ${e.name_en} Exam — Good luck!`,
+            must_know_today: [], must_know_today_en: [],
+            must_memorize_today: [], must_memorize_today_en: [],
+            completed: false
+          })),
+          daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
+          daily_tip_en: '📝 Exam day — trust yourself and do your best!'
+        });
+        modified = true;
+      }
+    }
+
+    
+    for (const { cid, date } of examEntries) {
+      for (const day of planData.days) {
+        if (day.date >= date && day.day_type !== 'exam') {
+          const before = (day.sessions || []).length;
+          day.sessions = (day.sessions || []).filter(s => s.course_id !== cid || s.mode === 'exam');
+          if (day.sessions.length !== before) {
+            day.sessions.forEach((s, idx) => s.session_number = idx + 1);
+            modified = true;
+          }
+        }
+      }
+    }
+
+    if (modified) {
+      
+      planData.days.sort((a, b) => a.date.localeCompare(b.date));
+      
+      planData.days = planData.days.filter(d =>
+        (d.sessions && d.sessions.length > 0) || d.day_type === 'exam'
+      );
+    }
+
     return planData;
   }
 
@@ -1284,6 +1425,15 @@ ${remainingDatesStr}
       }
 
       
+      injectExamDays(fullPlan);
+
+      
+      fullPlan.plan_summary.total_days = fullPlan.days.length;
+      fullPlan.plan_summary.total_sessions = fullPlan.days.reduce(
+        (sum, d) => sum + (d.sessions?.length || 0), 0
+      );
+
+      
       const storageKey = getPlanStorageKey(userConfig.plan_type);
       localStorage.setItem(storageKey, JSON.stringify(fullPlan));
       localStorage.setItem('planner_config', JSON.stringify(userConfig));
@@ -1311,6 +1461,7 @@ ${remainingDatesStr}
 
       const fallback = generateFallbackPlan();
       fallback.ai_status = 'fallback';
+      injectExamDays(fallback); 
       const storageKey = getPlanStorageKey(userConfig.plan_type);
       localStorage.setItem(storageKey, JSON.stringify(fallback));
       localStorage.setItem('planner_config', JSON.stringify(userConfig));
@@ -1339,6 +1490,12 @@ ${remainingDatesStr}
     const endDate = latestExam || new Date(startDate.getTime() + 90 * 86400000);
     const totalDays = Math.ceil((endDate - startDate) / 86400000) + 1;
 
+    
+    const examDateSet = new Set();
+    for (const [, cfg] of activeCourses) {
+      if (cfg.exam_date) examDateSet.add(cfg.exam_date);
+    }
+
     const dates = [];
     for (let i = 0; i < totalDays; i++) {
       const d = new Date(startDate);
@@ -1347,6 +1504,7 @@ ${remainingDatesStr}
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (userConfig.rest_days.includes(dayName)) continue;
       if ((userConfig.busy_dates || []).includes(dateStr)) continue;
+      if (examDateSet.has(dateStr)) continue; 
       dates.push(dateStr);
     }
     return dates;
@@ -1993,6 +2151,7 @@ ${remainingDatesStr}
     planContent.style.display = '';
 
     const plan = generateSmartLocalPlan();
+    injectExamDays(plan); 
     const storageKey = getPlanStorageKey(userConfig.plan_type);
     localStorage.setItem(storageKey, JSON.stringify(plan));
     localStorage.setItem('planner_config', JSON.stringify(userConfig));
