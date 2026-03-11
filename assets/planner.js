@@ -872,6 +872,7 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
       if (!day.daily_tip_ar) { day.daily_tip_ar = ''; day.daily_tip_en = ''; }
 
       if (!day.sessions || day.sessions.length === 0) {
+        day.sessions = day.sessions || []; 
         wasTruncated = true;
         continue;
       }
@@ -2010,6 +2011,7 @@ ${remainingDatesStr}
 
   
   function cleanupExpiredCourses(plan) {
+    if (!plan?.days || !Array.isArray(plan.days)) return;
     const todayStr = getLocalTodayStr();
     const examDates = {};
 
@@ -2022,6 +2024,7 @@ ${remainingDatesStr}
     
     let changed = false;
     plan.days.forEach(day => {
+      if (!day.sessions) { day.sessions = []; return; }
       if (day.date <= todayStr) return; 
       const before = day.sessions.length;
       day.sessions = day.sessions.filter(s => {
@@ -3125,7 +3128,7 @@ ${remainingDatesStr}
     let animatedEl = null;
 
     if (cardViewMode === 'cards') {
-      const sIdx = day.sessions.findIndex(s => s.session_number === sessionNum);
+      const sIdx = (day.sessions || []).findIndex(s => s.session_number === sessionNum);
       animatedEl = document.getElementById('session-inner-' + sIdx);
     } else {
       animatedEl = document.querySelector(`.session-card[data-date="${dateStr}"][data-session="${sessionNum}"]`);
@@ -3253,11 +3256,11 @@ ${remainingDatesStr}
 
   function snoozeSession(date, sessionNum) {
     const plan = getCurrentPlan();
-    if (!plan) return;
+    if (!plan || !plan.days) return;
     const isAr = lang() === 'ar';
 
     const day = plan.days.find(d => d.date === date);
-    if (!day) return;
+    if (!day || !day.sessions) return;
     const session = day.sessions.find(s => s.session_number === sessionNum);
     if (!session) return;
 
@@ -3291,6 +3294,7 @@ ${remainingDatesStr}
     day.sessions.forEach((s, idx) => s.session_number = idx + 1);
 
     
+    if (!targetDay.sessions) targetDay.sessions = [];
     const newSession = { ...session, session_number: targetDay.sessions.length + 1 };
     targetDay.sessions.push(newSession);
 
