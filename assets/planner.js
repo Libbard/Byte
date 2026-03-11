@@ -715,45 +715,25 @@ ${JSON.stringify(relevant, null, 0)}
       advanceLoading(1, 35);
 
       // Dual API: local → DeepSeek direct, GitHub → Cloudflare Worker
-      let apiUrl, apiHeaders, apiBody, parseResponse;
-      const deepseekKey = isLocalServer() ? await EnvLoader.getDeepseekKey() : '';
+      // Always use Cloudflare Worker — it handles auth/routing to DeepSeek.
+      // Local .env / direct DeepSeek path removed: caused fetch() hang on file://
+      // and added unnecessary delay even when no key was present.
+      const apiUrl = CLOUDFLARE_WORKER_URL;
+      const apiHeaders = { 'Content-Type': 'application/json' };
+      const apiBody = JSON.stringify({
+        messages: [
+          { role: 'system', content: DEEPSEEK_SYSTEM },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: MAX_TOKENS,
+        temperature: 0.3
+      });
+      const parseResponse = (data) => data.text || data.choices?.[0]?.message?.content || '';
 
-      if (deepseekKey) {
-        // Local: call DeepSeek API directly
-        apiUrl = 'https://api.deepseek.com/chat/completions';
-        apiHeaders = {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + deepseekKey
-        };
-        apiBody = JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            { role: 'system', content: DEEPSEEK_SYSTEM },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: MAX_TOKENS,
-          temperature: 0.3,
-          response_format: { type: 'json_object' }
-        });
-        parseResponse = (data) => data.choices?.[0]?.message?.content || '';
-      } else {
-        // GitHub Pages: use Cloudflare Worker
-        apiUrl = CLOUDFLARE_WORKER_URL;
-        apiHeaders = { 'Content-Type': 'application/json' };
-        apiBody = JSON.stringify({
-          messages: [
-            { role: 'system', content: DEEPSEEK_SYSTEM },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: MAX_TOKENS,
-          temperature: 0.3
-        });
-        parseResponse = (data) => data.text || data.choices?.[0]?.message?.content || '';
-      }
-
-      // Fetch with 90-second timeout
+      // 3-minute timeout — large curriculum prompts can legitimately take 2+ minutes
+      const TIMEOUT_MS = 180000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      const timeoutId = setTimeout(() => controller.abort(new DOMException('Request timed out after 3 minutes', 'TimeoutError')), TIMEOUT_MS);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -825,7 +805,8 @@ ${JSON.stringify(relevant, null, 0)}
       }, 500);
 
     } catch (err) {
-      console.error('Plan generation failed:', err.message);
+      const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
+      console.error('Plan generation failed:', err.name, err.message);
       cleanupLoadingIntervals();
       loadingScreen.classList.remove('active');
       planContent.style.display = '';
@@ -841,9 +822,13 @@ ${JSON.stringify(relevant, null, 0)}
         console.error('Fallback renderPlan error:', renderErr);
         planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
       }
-      showInfo(isAr
+      const timeoutMsg = isAr
+        ? 'انتهى وقت الانتظار (3 دقائق) — الخادم مشغول. تم إنشاء جدول أساسي. حاول مجدداً لاحقاً.'
+        : 'Request timed out (3 min) — server busy. A basic plan was generated. Try again later.';
+      const genericMsg = isAr
         ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
-        : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.');
+        : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.';
+      showInfo(isTimeout ? timeoutMsg : genericMsg);
     }
   }
 
