@@ -1771,7 +1771,7 @@ ${JSON.stringify(relevant, null, 0)}
     }
 
     const strategy = isAr
-      ? (plan.plan_summary?.strategy_description || '')
+      ? (plan.plan_summary?.strategy_description_ar || plan.plan_summary?.strategy_description || '')
       : (plan.plan_summary?.strategy_description_en || plan.plan_summary?.strategy_description || '');
 
     let htmlBody = `
