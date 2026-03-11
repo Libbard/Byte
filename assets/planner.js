@@ -6,7 +6,7 @@
   
   const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
-  const MAX_TOKENS = 8192;
+  const MAX_TOKENS = 32768; 
 
   
   const EnvLoader = {
@@ -578,29 +578,102 @@
 
     
     
-    const compactCurriculum = {};
+    
+    
+    
+    
+    
+    
+    
+    const richCurriculum = {};
     for (const [cid, cfg] of activeCourses) {
-      if (!curriculumMap.courses[cid]) continue;
-      compactCurriculum[cid] = {};
+      const courseData = curriculumMap.courses[cid];
+      if (!courseData) continue;
+      richCurriculum[cid] = {
+        name: courseData.name_en,
+        modules: {}
+      };
       for (const m of cfg.included_modules) {
-        const mod = curriculumMap.courses[cid].modules[m];
+        const mod = courseData.modules[m];
         if (!mod) continue;
-        const mustKnow = [], mustKnowEn = [], mustMem = [], mustMemEn = [];
-        (mod.topics || []).forEach(t => {
-          if (t.must_know) mustKnow.push(...t.must_know.slice(0, 1));
-          if (t.must_know_en) mustKnowEn.push(...t.must_know_en.slice(0, 1));
-          if (t.must_memorize) mustMem.push(...t.must_memorize.slice(0, 1));
-          if (t.must_memorize_en) mustMemEn.push(...t.must_memorize_en.slice(0, 1));
-        });
-        compactCurriculum[cid][m] = {
-          title_en: mod.title_en,
-          difficulty: mod.module_difficulty,
+
+        
+        const prereqs = new Set();      
+        const unlocks = new Set();      
+        const crossLinks = [];          
+        const topicTypes = [];          
+        const commonMistakes = [];      
+        let maxConceptual = 0, maxExamApp = 0, networkEffect = 0;
+
+        for (const t of (mod.topics || [])) {
+          
+          for (const prereqTopic of (t.prerequisites || [])) {
+            
+            const match = prereqTopic.match(new RegExp(`^${cid}_(M\\d+)_`));
+            if (match && match[1] !== m) prereqs.add(match[1]);
+          }
+          
+          for (const unlockTopic of (t.unlocks || [])) {
+            const match = unlockTopic.match(new RegExp(`^${cid}_(M\\d+)_`));
+            if (match && match[1] !== m) unlocks.add(match[1]);
+          }
+          
+          for (const link of (t.cross_course_links || [])) {
+            if (typeof link === 'string') {
+              crossLinks.push(link);
+            } else if (link.topic_id) {
+              crossLinks.push(link.topic_id);
+            }
+          }
+          
+          if (t.type && !topicTypes.includes(t.type)) topicTypes.push(t.type);
+          
+          if (t.difficulty) {
+            maxConceptual = Math.max(maxConceptual, t.difficulty.conceptual_abstraction || 0);
+            maxExamApp = Math.max(maxExamApp, t.difficulty.exam_application || 0);
+            networkEffect = Math.max(networkEffect, t.difficulty.network_effect || 0);
+          }
+          
+          if (t.common_mistakes?.[0] && commonMistakes.length < 2) {
+            commonMistakes.push(t.common_mistakes[0]);
+          }
+        }
+
+        richCurriculum[cid].modules[m] = {
+          title: mod.title_en,
+          diff: mod.module_difficulty,
           hours: mod.study_hours_estimate,
-          must_know: mustKnow.slice(0, 2),
-          must_know_en: mustKnowEn.slice(0, 2),
-          must_memorize: mustMem.slice(0, 2),
-          must_memorize_en: mustMemEn.slice(0, 2)
+          types: topicTypes,                              
+          prereqs: [...prereqs].sort(),                   
+          unlocks: [...unlocks].sort(),                   
+          cross_links: crossLinks,                        
+          conceptual: maxConceptual,                      
+          exam_app: maxExamApp,                           
+          network: networkEffect,                         
+          mistakes: commonMistakes                        
         };
+      }
+    }
+
+    
+    
+    const relevantClusters = [];
+    if (curriculumMap.cross_course_clusters) {
+      const activeCids = new Set(activeCourses.map(([cid]) => cid));
+      for (const cluster of curriculumMap.cross_course_clusters) {
+        
+        const relevantTopics = cluster.topics.filter(t => {
+          const topicCourse = t.split('_')[0];
+          return activeCids.has(topicCourse);
+        });
+        if (relevantTopics.length >= 2) {
+          relevantClusters.push({
+            name: cluster.cluster_name_en || cluster.cluster_name,
+            topics: relevantTopics,
+            order: cluster.study_order || relevantTopics,
+            tip: cluster.study_tip_en || cluster.study_tip
+          });
+        }
       }
     }
 
@@ -676,13 +749,15 @@
 
     
     
+    
+    
     const exampleSessions = [];
     for (let s = 1; s <= dailySessions; s++) {
       const exModuleId = mps > 1
-        ? `M0${s} + M0${s + 1}` 
+        ? `M0${s} + M0${s + 1}`
         : `M0${s}`;
       exampleSessions.push(
-        `{"session_number":${s},"course_id":"CS${300 + s}","module_id":"${exModuleId}","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"...","ai_note_en":"...","must_know_today":["..."],"must_know_today_en":["..."],"must_memorize_today":["..."],"must_memorize_today_en":["..."]}`
+        `{"sn":${s},"cid":"CS350","mid":"${exModuleId}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
       );
     }
     const exampleSessionsStr = exampleSessions.join(',');
@@ -739,14 +814,166 @@ ${coursesDetail}
 ⚠️ أضف مراجعة متباعدة (spaced review): راجع كل وحدة بعد يوم واحد، ثم 3 أيام، ثم 7 أيام من دراستها.
 ${moduleGroupingNote}
 
-## محتوى الوحدات (must_know + must_memorize)
-${JSON.stringify(compactCurriculum, null, 0)}
+## بيانات المناهج الهيكلية (prerequisites + cross-links + difficulty)
+⚠️ استخدم هذه البيانات لاتخاذ قرارات الجدولة. لا تضمّنها في الناتج.
+⚠️ prereqs = وحدات يجب دراستها قبل هذه الوحدة. unlocks = وحدات تعتمد على هذه الوحدة.
+⚠️ cross_links = مواضيع في مواد أخرى مرتبطة — حاول جدولتها في نفس الأسبوع.
+⚠️ types: concept=فهم, algorithm=تطبيق+تمرين, theorem=إثبات, formula=حفظ+تطبيق
+${JSON.stringify(richCurriculum, null, 0)}
 
-## الناتج المطلوب
-أنتج JSON نظيف فقط (بدون أي نص خارج الـ JSON):
-{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","strategy_description_en":"...","weeks":[{"week_number":1,"theme":"...","theme_en":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[${exampleSessionsStr}],"daily_tip_ar":"...","daily_tip_en":"..."}]}
+${relevantClusters.length > 0 ? `## مجموعات المفاهيم المشتركة بين المواد
+هذه مواضيع من مواد مختلفة يُفضل دراستها في نفس الأسبوع لأنها تُكمل بعضها:
+${JSON.stringify(relevantClusters, null, 0)}` : ''}
 
-تذكر: استخدم فقط التواريخ من القائمة المتاحة أعلاه. كل يوم دراسي = ${dailySessions} جلسات بالضبط.`;
+## الناتج المطلوب (مضغوط — استخدم مفاتيح قصيرة لتوفير المساحة)
+أنتج JSON نظيف فقط (بدون أي نص خارج الـ JSON).
+⚠️ لا تُضمّن must_know أو must_memorize في الناتج — سنضيفها تلقائياً من قاعدة البيانات.
+⚠️ استخدم المفاتيح القصيرة: sn=session_number, cid=course_id, mid=module_id, diff=difficulty_avg
+{"plan_summary":{"total_days":N,"total_sessions":N,"strategy":"وصف مختصر","weeks":[{"wn":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","wn":1,"type":"study","sessions":[${exampleSessionsStr}],"tip":"..."}]}
+
+تذكر: استخدم فقط التواريخ من القائمة المتاحة أعلاه. كل يوم دراسي = ${dailySessions} جلسات بالضبط. أنشئ أيام لكل التواريخ المتاحة — لا تحذف أياً منها!`;
+  }
+
+  
+  
+  
+  
+  
+  
+  function expandCompactAIPlan(planData) {
+    if (!planData?.days) return planData;
+    const isAr = lang() === 'ar';
+
+    
+    if (planData.plan_summary) {
+      const ps = planData.plan_summary;
+      if (!ps.strategy_description && ps.strategy) {
+        ps.strategy_description = ps.strategy;
+        ps.strategy_description_ar = ps.strategy;
+        ps.strategy_description_en = ps.strategy;
+      }
+      if (ps.weeks) {
+        ps.weeks = ps.weeks.map(w => ({
+          week_number: w.wn || w.week_number || 1,
+          theme: w.theme || '',
+          theme_en: w.theme_en || w.theme || ''
+        }));
+      }
+    }
+
+    let wasTruncated = false;
+
+    for (const day of planData.days) {
+      
+      if (!day.week_number && day.wn) day.week_number = day.wn;
+      if (!day.day_type && day.type) day.day_type = day.type;
+      if (!day.day_label) day.day_label = formatDate(day.date, 'card');
+      if (!day.daily_tip_ar && day.tip) { day.daily_tip_ar = day.tip; day.daily_tip_en = day.tip; }
+      if (!day.daily_tip_ar) { day.daily_tip_ar = ''; day.daily_tip_en = ''; }
+
+      if (!day.sessions || day.sessions.length === 0) {
+        wasTruncated = true;
+        continue;
+      }
+
+      day.sessions = day.sessions.map(s => {
+        
+        const session = {
+          session_number: s.sn || s.session_number || 1,
+          course_id: s.cid || s.course_id || '',
+          module_id: s.mid || s.module_id || '',
+          mode: s.mode || 'deep',
+          difficulty_avg: s.diff || s.difficulty_avg || 5,
+          is_critical: s.is_critical || (s.diff >= 7),
+          ai_note_ar: s.note || s.ai_note_ar || s.ai_note || '',
+          ai_note_en: s.note_en || s.ai_note_en || s.ai_note || s.note || '',
+          must_know_today: s.must_know_today || [],
+          must_know_today_en: s.must_know_today_en || [],
+          must_memorize_today: s.must_memorize_today || [],
+          must_memorize_today_en: s.must_memorize_today_en || [],
+          completed: false,
+          _snoozeCount: 0
+        };
+
+        
+        if (session.must_know_today.length === 0 && curriculumMap?.courses) {
+          const course = curriculumMap.courses[session.course_id];
+          if (course) {
+            
+            const modIds = session.module_id.split(/\s*\+\s*/).map(s => s.trim().replace(/\s*\(.*\)/, ''));
+            for (const mid of modIds) {
+              const mod = course.modules[mid];
+              if (mod?.topics) {
+                for (const t of mod.topics) {
+                  if (t.must_know && session.must_know_today.length < 3)
+                    session.must_know_today.push(...t.must_know.slice(0, 1));
+                  if (t.must_know_en && session.must_know_today_en.length < 3)
+                    session.must_know_today_en.push(...t.must_know_en.slice(0, 1));
+                  if (t.must_memorize && session.must_memorize_today.length < 2)
+                    session.must_memorize_today.push(...t.must_memorize.slice(0, 1));
+                  if (t.must_memorize_en && session.must_memorize_today_en.length < 2)
+                    session.must_memorize_today_en.push(...t.must_memorize_en.slice(0, 1));
+                }
+              }
+            }
+          }
+        }
+
+        return session;
+      });
+    }
+
+    planData._wasTruncated = wasTruncated;
+    return planData;
+  }
+
+  
+  
+  
+  
+  function completeTruncatedPlan(planData) {
+    if (!planData?.days) return planData;
+    const isAr = lang() === 'ar';
+
+    
+    const coveredDates = new Set(planData.days.map(d => d.date));
+
+    
+    const localPlan = generateSmartLocalPlan();
+
+    
+    const missingDays = (localPlan.days || []).filter(d => !coveredDates.has(d.date));
+
+    if (missingDays.length > 0) {
+      console.log(`Completing plan: AI provided ${planData.days.length} days, adding ${missingDays.length} local days`);
+
+      
+      planData.days = [...planData.days, ...missingDays].sort((a, b) => a.date.localeCompare(b.date));
+
+      
+      if (planData.plan_summary) {
+        planData.plan_summary.total_days = planData.days.length;
+        planData.plan_summary.total_sessions = planData.days.reduce(
+          (sum, d) => sum + (d.sessions?.length || 0), 0
+        );
+        const desc = isAr
+          ? 'جدول مدمج: AI + استكمال ذكي محلي (بسبب بتر استجابة الذكاء الاصطناعي)'
+          : 'Hybrid plan: AI + smart local completion (AI response was truncated)';
+        planData.plan_summary.strategy_description = desc;
+        planData.plan_summary.strategy_description_ar = desc;
+      }
+    }
+
+    
+    if (planData.days.length > 0) {
+      const firstDate = new Date(planData.days[0].date + 'T00:00:00');
+      planData.days.forEach(d => {
+        const dayDate = new Date(d.date + 'T00:00:00');
+        d.week_number = Math.floor((dayDate - firstDate) / (7 * 86400000)) + 1;
+      });
+    }
+
+    return planData;
   }
 
   
@@ -835,13 +1062,11 @@ ${JSON.stringify(compactCurriculum, null, 0)}
   }
 
   async function onGeneratePlan() {
-    
-    
-    
     const startInput = document.getElementById('start-date-input');
     userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
 
     hideError();
+    hideInfo();
     showStep(4);
     const loadingScreen = document.getElementById('loading-screen');
     const planContent = document.getElementById('plan-content');
@@ -851,90 +1076,213 @@ ${JSON.stringify(compactCurriculum, null, 0)}
     const isAr = lang() === 'ar';
     cleanupLoadingIntervals();
     const advanceLoading = setupInteractiveLoading(isAr);
-
-    advanceLoading(0, 15);
+    advanceLoading(0, 10);
 
     try {
       const prompt = buildPrompt();
-      advanceLoading(1, 35);
+      advanceLoading(1, 20);
 
       
       
       
       
-      const apiUrl = CLOUDFLARE_WORKER_URL;
-      const apiHeaders = { 'Content-Type': 'application/json' };
-      const apiBody = JSON.stringify({
-        messages: [
-          { role: 'system', content: DEEPSEEK_SYSTEM },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: MAX_TOKENS,
-        temperature: 0.3
-      });
-      const parseResponse = (data) => data.text || data.choices?.[0]?.message?.content || '';
-
       
       
       
-      const activeCourseList = Object.entries(userConfig.courses).filter(([, c]) => c.active);
-      const totalModuleCount = activeCourseList.reduce((sum, [, cfg]) => sum + (cfg.included_modules?.length || 0), 0);
-      const TIMEOUT_MS = Math.min(720000, Math.max(180000, 90000 + totalModuleCount * 18000));
-      console.log(`⏱ Timeout set to ${Math.round(TIMEOUT_MS / 1000)}s for ${totalModuleCount} modules`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(new DOMException(`Request timed out after ${Math.round(TIMEOUT_MS / 1000)}s`, 'TimeoutError')), TIMEOUT_MS);
+      
+      
+      
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: apiHeaders,
-        body: apiBody,
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+      const MAX_CHUNKS = 6; 
+      const allDays = [];   
+      let planSummary = null;
+      let chunkCount = 0;
+      let lastCoveredDate = null;
 
-      advanceLoading(2, 65);
+      
+      const expectedDates = getExpectedAvailableDates();
 
-      if (!response.ok) {
-        const errBody = await response.text().catch(() => '');
-        console.error('API response status:', response.status, '| Response preview:', errBody.substring(0, 200));
-        throw new Error('API error: ' + response.status);
+      
+      const systemMsg = { role: 'system', content: DEEPSEEK_SYSTEM };
+      const userMsg = { role: 'user', content: prompt };
+      let messages = [systemMsg, userMsg];
+
+      while (chunkCount < MAX_CHUNKS) {
+        chunkCount++;
+        const chunkLabel = chunkCount === 1
+          ? (isAr ? 'إنشاء الجدول...' : 'Generating plan...')
+          : (isAr ? `استكمال الجزء ${chunkCount}...` : `Continuing chunk ${chunkCount}...`);
+
+        
+        updateChunkProgress(chunkCount, MAX_CHUNKS, chunkLabel, isAr);
+        const pct = 20 + Math.round((chunkCount / (MAX_CHUNKS + 1)) * 60);
+        advanceLoading(2, pct);
+
+        console.log(`🔄 Chunk ${chunkCount}: sending request...`);
+
+        
+        const TIMEOUT_MS = 180000; 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() =>
+          controller.abort(new DOMException('Chunk timeout', 'TimeoutError')), TIMEOUT_MS);
+
+        const response = await fetch(CLOUDFLARE_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages,
+            max_tokens: 8192,
+            temperature: 0.3
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => '');
+          console.error(`Chunk ${chunkCount} API error:`, response.status, errBody.substring(0, 200));
+          throw new Error('API error: ' + response.status);
+        }
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.message_ar || data.message_en || data.error);
+
+        const text = data.text || data.choices?.[0]?.message?.content || '';
+        const finishReason = data.finish_reason || data.choices?.[0]?.finish_reason || 'unknown';
+        const outputTokens = data.usage?.output || 0;
+        console.log(`✅ Chunk ${chunkCount}: ${text.length} chars, ${outputTokens} tokens, finish=${finishReason}`);
+
+        
+        let chunkData = tryParseJSON(text);
+        if (!chunkData) {
+          console.error(`Chunk ${chunkCount} parse failed. First 300 chars:`, text.substring(0, 300));
+          if (allDays.length > 0) break; 
+          throw new Error('Invalid JSON from AI');
+        }
+
+        
+        chunkData = expandCompactAIPlan(chunkData);
+
+        
+        if (chunkData.plan_summary && !planSummary) {
+          planSummary = chunkData.plan_summary;
+        }
+        if (chunkData.days && chunkData.days.length > 0) {
+          
+          const existingDates = new Set(allDays.map(d => d.date));
+          for (const day of chunkData.days) {
+            if (!existingDates.has(day.date)) {
+              allDays.push(day);
+              existingDates.add(day.date);
+            }
+          }
+          lastCoveredDate = allDays[allDays.length - 1]?.date;
+        }
+
+        
+        const coveredDates = new Set(allDays.map(d => d.date));
+        const missingDates = expectedDates.filter(d => !coveredDates.has(d));
+        const completionPct = Math.round(((expectedDates.length - missingDates.length) / expectedDates.length) * 100);
+
+        console.log(`📊 Coverage: ${coveredDates.size}/${expectedDates.length} dates (${completionPct}%), missing: ${missingDates.length}`);
+
+        
+        if (missingDates.length <= 2) {
+          console.log('✅ Plan is complete!');
+          break;
+        }
+
+        
+        
+        if (finishReason === 'stop' && outputTokens < 7000) {
+          console.log('AI stopped naturally but plan incomplete. Requesting continuation...');
+        }
+
+        
+        const remainingDatesStr = missingDates.slice(0, 60).join(', ');
+        const coveredDatesStr = [...coveredDates].sort().join(', ');
+        const continuePrompt = `## استكمال الجدول
+الأيام التالية تم إنشاؤها بالفعل: ${coveredDatesStr}
+
+## الأيام المتبقية المطلوبة (${missingDates.length} يوم)
+${remainingDatesStr}
+
+## التعليمات
+أكمل الجدول لهذه الأيام المتبقية فقط. استخدم نفس الشكل المضغوط:
+{"days":[{"date":"YYYY-MM-DD","wn":N,"type":"study","sessions":[{"sn":1,"cid":"CS350","mid":"M0X","mode":"deep","diff":5,"note":"..."}],"tip":"..."}]}
+
+⚠️ كل يوم = ${userConfig.daily_sessions} جلسات بالضبط. أكمل من حيث توقفت — تابع التسلسل.`;
+
+        
+        messages = [
+          systemMsg,
+          { role: 'user', content: prompt },
+          { role: 'assistant', content: text }, 
+          { role: 'user', content: continuePrompt }
+        ];
       }
-      const data = await response.json();
-
-      if (data.error) {
-        console.error('API returned error object:', data.error);
-        throw new Error(data.message_ar || data.message_en || data.error);
-      }
-
-      advanceLoading(3, 85);
-
-      let planData;
-      const text = parseResponse(data);
-      console.log('AI response length:', text.length, 'chars');
 
       
-      const finishReason = data.choices?.[0]?.finish_reason || '';
-      if (finishReason === 'length') {
-        console.warn('AI response was truncated (finish_reason=length). Attempting JSON repair...');
+      advanceLoading(3, 90);
+
+      
+      allDays.sort((a, b) => a.date.localeCompare(b.date));
+
+      
+      if (allDays.length > 0) {
+        const firstDate = new Date(allDays[0].date + 'T00:00:00');
+        allDays.forEach(d => {
+          const dayDate = new Date(d.date + 'T00:00:00');
+          d.week_number = Math.floor((dayDate - firstDate) / (7 * 86400000)) + 1;
+        });
       }
 
       
-      planData = tryParseJSON(text);
-      if (!planData) {
-        console.error('Failed to parse AI response even with repair. First 300 chars:', text.substring(0, 300));
-        throw new Error('Invalid JSON response from AI');
+      const finalCovered = new Set(allDays.map(d => d.date));
+      const finalMissing = expectedDates.filter(d => !finalCovered.has(d));
+      if (finalMissing.length > 2) {
+        console.warn(`⚠️ Still missing ${finalMissing.length} dates after ${chunkCount} chunks. Filling with local generator.`);
+        const localPlan = generateSmartLocalPlan();
+        const localDays = (localPlan.days || []).filter(d => !finalCovered.has(d.date));
+        allDays.push(...localDays);
+        allDays.sort((a, b) => a.date.localeCompare(b.date));
       }
-      console.log('AI plan parsed successfully. Days:', planData.days?.length);
 
-      
+      const totalSessions = allDays.reduce((sum, d) => sum + (d.sessions?.length || 0), 0);
+
       const fullPlan = {
         plan_type: userConfig.plan_type,
         generated_at: new Date().toISOString(),
         ai_model: 'deepseek',
-        ai_status: 'success',
+        ai_status: chunkCount > 1 ? 'multi_chunk' : 'success',
+        ai_chunks: chunkCount,
         config: userConfig,
-        ...planData
+        plan_summary: planSummary || {
+          total_days: allDays.length,
+          total_sessions: totalSessions,
+          strategy_description: isAr
+            ? `جدول ذكي مولّد عبر AI (${chunkCount} ${chunkCount > 1 ? 'أجزاء' : 'جزء'})`
+            : `AI-generated smart plan (${chunkCount} chunk${chunkCount > 1 ? 's' : ''})`,
+          strategy_description_ar: `جدول ذكي مولّد عبر AI (${chunkCount} ${chunkCount > 1 ? 'أجزاء' : 'جزء'})`,
+          strategy_description_en: `AI-generated smart plan (${chunkCount} chunk${chunkCount > 1 ? 's' : ''})`,
+          weeks: []
+        },
+        days: allDays
       };
+
+      
+      fullPlan.plan_summary.total_days = allDays.length;
+      fullPlan.plan_summary.total_sessions = totalSessions;
+
+      
+      if (!fullPlan.plan_summary.weeks || fullPlan.plan_summary.weeks.length === 0) {
+        const weekSet = [...new Set(allDays.map(d => d.week_number))];
+        fullPlan.plan_summary.weeks = weekSet.map(w => ({
+          week_number: w, theme: '', theme_en: ''
+        }));
+      }
+
+      
       const storageKey = getPlanStorageKey(userConfig.plan_type);
       localStorage.setItem(storageKey, JSON.stringify(fullPlan));
       localStorage.setItem('planner_config', JSON.stringify(userConfig));
@@ -959,26 +1307,75 @@ ${JSON.stringify(compactCurriculum, null, 0)}
       cleanupLoadingIntervals();
       loadingScreen.classList.remove('active');
       planContent.style.display = '';
-      
+
       const fallback = generateFallbackPlan();
       fallback.ai_status = 'fallback';
       const storageKey = getPlanStorageKey(userConfig.plan_type);
       localStorage.setItem(storageKey, JSON.stringify(fallback));
       localStorage.setItem('planner_config', JSON.stringify(userConfig));
-      try {
-        renderPlan(fallback);
-      } catch (renderErr) {
-        console.error('Fallback renderPlan error:', renderErr);
-        planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
+      try { renderPlan(fallback); } catch (e) {
+        planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + e.message + '</p></div>';
       }
-      const timeoutMinutes = Math.round((Math.min(720000, Math.max(180000, 90000 + (Object.entries(userConfig.courses).filter(([, c]) => c.active).reduce((s, [, cfg]) => s + (cfg.included_modules?.length || 0), 0)) * 18000)) / 60000));
-      const timeoutMsg = isAr
-        ? `انتهى وقت الانتظار (${timeoutMinutes} دقيقة) — الخادم مشغول. تم إنشاء جدول أساسي. حاول مجدداً لاحقاً.`
-        : `Request timed out (${timeoutMinutes} min) — server busy. A basic plan was generated. Try again later.`;
-      const genericMsg = isAr
-        ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
-        : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.';
-      showInfo(isTimeout ? timeoutMsg : genericMsg);
+      showInfo(isAr
+        ? 'تم إنشاء جدول ذكي محلي بدلاً من AI. يمكنك إعادة التوليد لاحقاً.'
+        : 'A smart local plan was generated. You can regenerate later for an AI plan.');
+    }
+  }
+
+  
+  function getExpectedAvailableDates() {
+    const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
+    const startDate = userConfig.start_date ? new Date(userConfig.start_date + 'T00:00:00') : new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    let latestExam = null;
+    for (const [, cfg] of activeCourses) {
+      if (cfg.exam_date) {
+        const d = new Date(cfg.exam_date + 'T00:00:00');
+        if (!latestExam || d > latestExam) latestExam = d;
+      }
+    }
+    const endDate = latestExam || new Date(startDate.getTime() + 90 * 86400000);
+    const totalDays = Math.ceil((endDate - startDate) / 86400000) + 1;
+
+    const dates = [];
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (userConfig.rest_days.includes(dayName)) continue;
+      if ((userConfig.busy_dates || []).includes(dateStr)) continue;
+      dates.push(dateStr);
+    }
+    return dates;
+  }
+
+  
+  function updateChunkProgress(chunkNum, maxChunks, label, isAr) {
+    let chunkEl = document.getElementById('chunk-progress');
+    if (!chunkEl) {
+      const stepsEl = document.getElementById('loading-steps');
+      if (stepsEl) {
+        const div = document.createElement('div');
+        div.id = 'chunk-progress';
+        div.className = 'loading-chunk-progress';
+        stepsEl.parentNode.insertBefore(div, stepsEl.nextSibling);
+        chunkEl = div;
+      }
+    }
+    if (chunkEl) {
+      const dots = Array.from({ length: maxChunks }, (_, i) =>
+        `<span class="chunk-dot ${i < chunkNum ? 'filled' : ''} ${i === chunkNum - 1 ? 'active' : ''}">${i < chunkNum ? '✅' : '○'}</span>`
+      ).join('');
+
+      chunkEl.innerHTML = `
+        <div class="chunk-label">${label}</div>
+        <div class="chunk-dots">${dots}</div>
+        ${chunkNum > 1 ? `<div class="chunk-note">${isAr
+          ? '⏳ الجدول طويل — يتم استكماله تلقائياً على أجزاء'
+          : '⏳ Plan is long — auto-continuing in chunks'}</div>` : ''}
+      `;
     }
   }
 
@@ -1728,8 +2125,9 @@ ${JSON.stringify(compactCurriculum, null, 0)}
     
     const aiStatus = plan.ai_status || (plan.ai_model === 'deepseek' ? 'success' : plan.ai_model === 'smart_local' ? 'smart_local' : 'fallback');
     let sourceLabel, sourceLabelClass;
-    if (aiStatus === 'success') {
-      sourceLabel = isAr ? '🤖 مولّد عبر الذكاء الاصطناعي' : '🤖 AI Generated';
+    if (aiStatus === 'success' || aiStatus === 'multi_chunk') {
+      const chunkInfo = plan.ai_chunks > 1 ? ` (${plan.ai_chunks} ${isAr ? 'أجزاء' : 'chunks'})` : '';
+      sourceLabel = isAr ? `🤖 مولّد عبر الذكاء الاصطناعي${chunkInfo}` : `🤖 AI Generated${chunkInfo}`;
       sourceLabelClass = 'ai';
     } else if (aiStatus === 'smart_local') {
       sourceLabel = isAr ? '📋 جدول ذكي محلي' : '📋 Smart Local Plan';
