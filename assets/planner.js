@@ -568,23 +568,100 @@
     const mps = userConfig.modules_per_session || 1;
 
     
-    const relevant = {};
+    
+    const compactCurriculum = {};
     for (const [cid, cfg] of activeCourses) {
       if (!curriculumMap.courses[cid]) continue;
-      relevant[cid] = {};
+      compactCurriculum[cid] = {};
       for (const m of cfg.included_modules) {
         const mod = curriculumMap.courses[cid].modules[m];
-        if (mod) relevant[cid][m] = mod;
+        if (!mod) continue;
+        const mustKnow = [], mustKnowEn = [], mustMem = [], mustMemEn = [];
+        (mod.topics || []).forEach(t => {
+          if (t.must_know) mustKnow.push(...t.must_know.slice(0, 1));
+          if (t.must_know_en) mustKnowEn.push(...t.must_know_en.slice(0, 1));
+          if (t.must_memorize) mustMem.push(...t.must_memorize.slice(0, 1));
+          if (t.must_memorize_en) mustMemEn.push(...t.must_memorize_en.slice(0, 1));
+        });
+        compactCurriculum[cid][m] = {
+          title_en: mod.title_en,
+          difficulty: mod.module_difficulty,
+          hours: mod.study_hours_estimate,
+          must_know: mustKnow.slice(0, 2),
+          must_know_en: mustKnowEn.slice(0, 2),
+          must_memorize: mustMem.slice(0, 2),
+          must_memorize_en: mustMemEn.slice(0, 2)
+        };
       }
     }
 
     
     
     const today = userConfig.start_date || getLocalTodayStr();
-    const coursesInfo = activeCourses.map(([cid, cfg]) => {
+    const todayDate = new Date(today + 'T00:00:00');
+    todayDate.setHours(0, 0, 0, 0);
+
+    
+    let earliestExam = null;
+    let latestExam = null;
+    const examDates = {}; 
+    if (userConfig.plan_type !== 'general') {
+      for (const [courseId, cfg] of activeCourses) {
+        if (cfg.exam_date) {
+          const d = new Date(cfg.exam_date + 'T00:00:00');
+          examDates[courseId] = cfg.exam_date; 
+          if (!earliestExam || d < earliestExam) earliestExam = d;
+          if (!latestExam || d > latestExam) latestExam = d;
+        }
+      }
+    }
+
+    
+    
+    
+    let endDate = new Date(todayDate);
+    if (latestExam) {
+      endDate = new Date(latestExam);
+      endDate.setDate(endDate.getDate() + 7); 
+    } else {
+      endDate.setDate(endDate.getDate() + 14); 
+    }
+
+    const totalPlanningDays = Math.max(1, Math.ceil((endDate - todayDate) / 86400000));
+
+    
+    const availableDates = [];
+    for (let i = 0; i < totalPlanningDays; i++) {
+      const d = new Date(todayDate);
+      d.setDate(d.getDate() + i);
+      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
+      const dateStr = d.toISOString().split('T')[0];
+
+      if (userConfig.rest_days.includes(dayName)) continue;
+      if (userConfig.busy_dates.includes(dateStr)) continue;
+
+      availableDates.push(dateStr);
+    }
+
+    
+    
+    const coursesDetail = activeCourses.map(([cid, cfg]) => {
       const c = curriculumMap.courses[cid];
-      return `${cid} (${c?.name_en || cid}): exam=${cfg.exam_date || 'none'}, modules=${cfg.included_modules.join(',')}, ratings=${JSON.stringify(cfg.self_rating)}`;
-    }).join('\n');
+      const courseName = c?.name_en || cid;
+      const examDate = examDates[cid] || 'none';
+      
+      const ratingWeight = { not_studied: 1.0, weak: 0.7, good: 0.4, excellent: 0.15 };
+      const moduleSummaries = cfg.included_modules.map(m => {
+        const mod = c?.modules[m];
+        const rating = cfg.self_rating[m] || 'not_studied';
+        const diff = mod?.module_difficulty || 5;
+        const hours = mod?.study_hours_estimate || 2;
+        const priority = Math.round(((ratingWeight[rating] || 1.0) * 0.65 + (diff / 10) * 0.35) * 10) / 10;
+        const modeHint = (rating === 'not_studied' || rating === 'weak') ? 'deep' : rating === 'good' ? 'full' : 'flash';
+        return `  ${m}(diff=${diff},rating=${rating},priority=${priority},mode=${modeHint},est_hours=${hours})`;
+      }).join('\n');
+      return `${cid} — ${courseName} [exam_date=${examDate}]\n${moduleSummaries}`;
+    }).join('\n\n');
 
     
     
@@ -606,35 +683,52 @@
         ? `- كل وحدة تُقسَّم على ${Math.round(1 / mps)} جلسات → أضف تسمية الجزء مثل "M01 (1/2)"`
         : `- كل جلسة تغطي وحدة واحدة فقط`;
 
+    
+    const availableDatesStr = availableDates.length > 0
+      ? availableDates.slice(0, 90).join(', ')
+      : 'لم يتم تحديد نطاق زمني';
+
+    
+    const scheduleEndStr = latestExam
+      ? latestExam.toISOString().split('T')[0]
+      : new Date(new Date(today + 'T00:00:00').getTime() + 14 * 86400000).toISOString().split('T')[0];
+
     return `## مهمتك
-أنشئ جدول مذاكرة ذكياً وشاملاً.
+أنشئ جدول مذاكرة ذكياً يمتد من تاريخ البدء حتى آخر اختبار، مع مراعاة أولوية كل وحدة واختلاف مواعيد الاختبارات.
 
 ## إعدادات الطالب
-- نوع: ${userConfig.plan_type}
-- تاريخ اليوم: ${today}
-- جلسات يومية: ${dailySessions}
-- وحدات/جلسة: ${mps}
-- أيام راحة: ${userConfig.rest_days.join(', ')}
-- أيام مشغولة: ${userConfig.busy_dates.join(', ') || 'لا يوجد'}
+- نوع الجدول: ${userConfig.plan_type}
+- تاريخ البدء: ${today}
+- تاريخ آخر اختبار: ${scheduleEndStr}
+- الجلسات اليومية المسموحة: ${dailySessions} (الحد الأقصى المطلق — لا تتجاوزه)
+- وحدات لكل جلسة: ${mps}
 
-## قواعد إلزامية لبناء الجدول
-⚠️ كل يوم دراسي (day_type=study) يجب أن يحتوي على ${dailySessions} جلسة مستقلة تماماً — لا أكثر ولا أقل.
-⚠️ كل جلسة يجب أن تكون لمادة أو وحدة مختلفة (تنويع ذكي بين المواد).
+## ⚠️ التواريخ المتاحة للدراسة (يُحظر وضع جلسات خارجها)
+${availableDatesStr}
+الأيام الغائبة هي أيام راحة (${userConfig.rest_days.join(', ')}) أو أيام مشغولة — لا تضع فيها أي جلسات.
+
+## المواد وتواريخ الاختبارات وأولوية كل وحدة
+(priority: 1.0=الأعلى أولوية | mode: deep=من الصفر, full=يحتاج تعزيز, flash=مراجعة سريعة)
+(est_hours=الوقت التقديري للدراسة)
+
+${coursesDetail}
+
+## قواعد إلزامية
+⚠️ كل يوم دراسي = ${dailySessions} جلسة بالضبط — لا أكثر ولا أقل.
+⚠️ لا تضع جلسات لمادة بعد تاريخ اختبارها (exam_date لكل مادة محدد أعلاه).
+⚠️ اليوم أو اليومان قبل كل اختبار = مراجعة ذهبية (day_type=golden_review, mode=flash).
+⚠️ بعد الانتهاء من كل وحدات مادة → خصص ما تبقى من أيام قبل اختبارها للمراجعة.
+⚠️ رتّب الوحدات حسب priority (الأعلى أولاً) مع التنويع بين المواد يومياً.
 ${moduleGroupingNote}
-⚠️ لا تضع جلسة واحدة فقط في أي يوم دراسي أبداً — الحد الأدنى ${dailySessions}.
-⚠️ يجب توزيع جميع الوحدات على الأيام حتى اكتمال الجدول.
 
-## المواد
-${coursesInfo}
-
-## بيانات المناهج
-${JSON.stringify(relevant, null, 0)}
+## محتوى الوحدات (must_know + must_memorize)
+${JSON.stringify(compactCurriculum, null, 0)}
 
 ## الناتج المطلوب
 أنتج JSON نظيف فقط (بدون أي نص خارج الـ JSON):
-{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[${exampleSessionsStr}],"daily_tip_ar":"...","daily_tip_en":"..."}]}
+{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","strategy_description_en":"...","weeks":[{"week_number":1,"theme":"...","theme_en":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[${exampleSessionsStr}],"daily_tip_ar":"...","daily_tip_en":"..."}]}
 
-تذكر: كل يوم دراسي = ${dailySessions} جلسات بالضبط.`;
+تذكر: استخدم فقط التواريخ من القائمة المتاحة أعلاه. كل يوم دراسي = ${dailySessions} جلسات بالضبط.`;
   }
 
   
@@ -935,21 +1029,34 @@ ${JSON.stringify(relevant, null, 0)}
       allDates.push(d);
     }
 
+    
+    
+    function toLocalDateStr(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     function isAvailable(d) {
       const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      const dateStr = d.toISOString().split('T')[0];
-      return !userConfig.rest_days.includes(dayName) && !userConfig.busy_dates.includes(dateStr);
+      const dateStr = toLocalDateStr(d);
+      return !userConfig.rest_days.includes(dayName) && !(userConfig.busy_dates || []).includes(dateStr);
     }
 
     
+    
+    
+    const ratingScoreMap = { not_studied: 1.0, weak: 0.7, good: 0.4, excellent: 0.15 };
+
     const allModulesByCourse = {}; 
     for (const [cid, cfg] of activeCourses) {
       allModulesByCourse[cid] = [];
       for (const m of cfg.included_modules) {
         const r = cfg.self_rating[m] || 'not_studied';
-        const priority = r === 'not_studied' ? 4 : r === 'weak' ? 3 : r === 'good' ? 2 : 1;
         const mod = curriculumMap.courses[cid]?.modules[m];
         const diff = mod?.module_difficulty || 5;
+        
+        const rawPriority = r === 'not_studied' ? 4 : r === 'weak' ? 3 : r === 'good' ? 2 : 1;
+        
+        const compositeScore = (ratingScoreMap[r] || 1.0) * 0.65 + (diff / 10) * 0.35;
 
         const mustKnow = [], mustKnowEn = [], mustMem = [], mustMemEn = [];
         if (mod?.topics) {
@@ -962,13 +1069,17 @@ ${JSON.stringify(relevant, null, 0)}
         }
 
         allModulesByCourse[cid].push({
-          courseId: cid, moduleId: m, priority, difficulty: diff, mod,
+          courseId: cid, moduleId: m,
+          priority: rawPriority,       
+          compositeScore,              
+          difficulty: diff, mod,
           mustKnow: mustKnow.slice(0, 3), mustKnowEn: mustKnowEn.slice(0, 3),
           mustMem: mustMem.slice(0, 2), mustMemEn: mustMemEn.slice(0, 2),
-          mode: priority >= 3 ? 'deep' : priority === 2 ? 'full' : 'flash'
+          mode: rawPriority >= 3 ? 'deep' : rawPriority === 2 ? 'full' : 'flash'
         });
       }
-      allModulesByCourse[cid].sort((a, b) => b.priority - a.priority || b.difficulty - a.difficulty);
+      
+      allModulesByCourse[cid].sort((a, b) => b.compositeScore - a.compositeScore || b.difficulty - a.difficulty);
     }
 
     
@@ -1017,11 +1128,12 @@ ${JSON.stringify(relevant, null, 0)}
 
     for (let i = 0; i < allDates.length; i++) {
       const d = allDates[i];
-      const dateStr = d.toISOString().split('T')[0];
+      
+      const dateStr = toLocalDateStr(d);
 
       
       const examsToday = courseExams.filter(ce =>
-        ce.examDate && ce.examDate.toISOString().split('T')[0] === dateStr
+        ce.examDate && toLocalDateStr(ce.examDate) === dateStr
       );
       if (examsToday.length > 0) {
         
@@ -1067,7 +1179,9 @@ ${JSON.stringify(relevant, null, 0)}
         .map(ce => ce.cid)
         .filter(cid => !finishedCourses.has(cid));
 
-      if (liveCourseIds.length === 0) break;
+      
+      
+      if (liveCourseIds.length === 0 && studiedModules.length === 0) break;
 
       
       let goldenExam = null;
@@ -1110,43 +1224,87 @@ ${JSON.stringify(relevant, null, 0)}
       const sessions = [];
 
       
-      const reviewSlots = Math.max(0, Math.floor(sessionsPerDay * 0.2));
-      const studySlots = sessionsPerDay - reviewSlots;
+      const allStudyQueuesEmpty = liveCourseIds.every(
+        cid => !studyQueueByCourse[cid] || studyQueueByCourse[cid].length === 0
+      );
 
-      
-      let filled = 0;
-      let rrIdx = 0;
-      let emptyRounds = 0;
-      while (filled < studySlots && emptyRounds < liveCourseIds.length) {
-        const cid = liveCourseIds[rrIdx % liveCourseIds.length];
-        rrIdx++;
-        if (studyQueueByCourse[cid] && studyQueueByCourse[cid].length > 0) {
-          const item = studyQueueByCourse[cid].shift();
-          sessions.push(buildSession(item, sessions.length + 1));
-          studiedModules.push({ ...item, _studiedDate: dateStr });
-          filled++;
-          emptyRounds = 0;
-        } else {
-          emptyRounds++;
-        }
-      }
-
-      
-      if (reviewSlots > 0 && studiedModules.length > 0) {
-        const reviewCandidates = studiedModules.filter(sm => {
-          const daysSince = Math.ceil((d - new Date(sm._studiedDate + 'T00:00:00')) / 86400000);
-          const key = sm.courseId + ':' + sm.moduleId;
-          return daysSince >= 2 && !finishedCourses.has(sm.courseId) && !reviewScheduled.has(key + ':' + dateStr);
-        });
+      if (allStudyQueuesEmpty && liveCourseIds.length > 0) {
         
-        reviewCandidates.sort((a, b) => b.priority - a.priority || b.difficulty - a.difficulty);
-        for (let r = 0; r < reviewSlots && r < reviewCandidates.length; r++) {
-          const item = reviewCandidates[r];
+        
+        const liveByExam = [...liveCourseIds].sort((a, b) => {
+          const eA = courseExams.find(ce => ce.cid === a)?.examDate;
+          const eB = courseExams.find(ce => ce.cid === b)?.examDate;
+          if (!eA && !eB) return 0;
+          if (!eA) return 1;
+          if (!eB) return -1;
+          return eA - eB;
+        });
+
+        
+        const reviewCandidatesPhase2 = [];
+        for (const cid of liveByExam) {
+          const mods = [...(allModulesByCourse[cid] || [])]
+            .sort((a, b) => b.compositeScore - a.compositeScore || b.difficulty - a.difficulty);
+          for (const m of mods) {
+            const key = `${m.courseId}:${m.moduleId}:${dateStr}`;
+            if (!reviewScheduled.has(key)) {
+              reviewCandidatesPhase2.push(m);
+            }
+          }
+        }
+
+        for (let s = 0; s < sessionsPerDay && s < reviewCandidatesPhase2.length; s++) {
+          const item = reviewCandidatesPhase2[s];
           sessions.push(buildSession(item, sessions.length + 1, 'flash', {
-            ar: `🔄 مراجعة — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
-            en: `🔄 Review — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
+            ar: `📖 مراجعة ما قبل الاختبار — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
+            en: `📖 Pre-exam review — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
           }));
-          reviewScheduled.add(item.courseId + ':' + item.moduleId + ':' + dateStr);
+          reviewScheduled.add(`${item.courseId}:${item.moduleId}:${dateStr}`);
+        }
+      } else {
+        
+
+        
+        
+        
+        const reviewSlots = sessionsPerDay >= 3 ? Math.floor(sessionsPerDay / 3) : 0;
+        const studySlots = sessionsPerDay - reviewSlots;
+
+        
+        
+        let filled = 0;
+        let rrOffset = 0; 
+        let consecutiveEmpty = 0;
+        while (filled < studySlots && consecutiveEmpty < liveCourseIds.length) {
+          const cid = liveCourseIds[rrOffset % liveCourseIds.length];
+          rrOffset++;
+          if (studyQueueByCourse[cid] && studyQueueByCourse[cid].length > 0) {
+            const item = studyQueueByCourse[cid].shift();
+            sessions.push(buildSession(item, sessions.length + 1));
+            studiedModules.push({ ...item, _studiedDate: dateStr });
+            filled++;
+            consecutiveEmpty = 0; 
+          } else {
+            consecutiveEmpty++; 
+          }
+        }
+
+        
+        if (reviewSlots > 0 && studiedModules.length > 0) {
+          const reviewCandidates = studiedModules.filter(sm => {
+            const daysSince = Math.ceil((d - new Date(sm._studiedDate + 'T00:00:00')) / 86400000);
+            const key = `${sm.courseId}:${sm.moduleId}:${dateStr}`;
+            return daysSince >= 2 && !finishedCourses.has(sm.courseId) && !reviewScheduled.has(key);
+          });
+          reviewCandidates.sort((a, b) => b.compositeScore - a.compositeScore || b.difficulty - a.difficulty);
+          for (let r = 0; r < reviewSlots && r < reviewCandidates.length; r++) {
+            const item = reviewCandidates[r];
+            sessions.push(buildSession(item, sessions.length + 1, 'flash', {
+              ar: `🔄 مراجعة — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
+              en: `🔄 Review — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
+            }));
+            reviewScheduled.add(`${item.courseId}:${item.moduleId}:${dateStr}`);
+          }
         }
       }
 
@@ -2441,36 +2599,26 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   
+  
+  
   function findNextAvailableDay(plan, afterDate, beforeExamDate) {
     const sessionsPerDay = plan.config?.daily_sessions || 2;
-    
-    const maxWithSnooze = sessionsPerDay + 1;
     const afterD = new Date(afterDate + 'T00:00:00');
+    
     const beforeD = beforeExamDate ? new Date(beforeExamDate + 'T00:00:00') : null;
 
     
     for (const day of plan.days) {
       const dayD = new Date(day.date + 'T00:00:00');
-      if (dayD <= afterD) continue;
-      if (beforeD && dayD >= beforeD) continue;
-      if (day.day_type === 'exam') continue;
-      if ((day.sessions || []).length < sessionsPerDay) return day;
+      if (dayD <= afterD) continue;                      
+      if (beforeD && dayD >= beforeD) continue;          
+      if (day.day_type === 'exam') continue;             
+      if (day.day_type === 'golden_review') continue;    
+      const currentCount = (day.sessions || []).length;
+      if (currentCount < sessionsPerDay) return day;     
     }
+
     
-    for (const day of plan.days) {
-      const dayD = new Date(day.date + 'T00:00:00');
-      if (dayD <= afterD) continue;
-      if (beforeD && dayD >= beforeD) continue;
-      if (day.day_type === 'exam') continue;
-      if ((day.sessions || []).length < maxWithSnooze) return day;
-    }
-    
-    for (const day of plan.days) {
-      const dayD = new Date(day.date + 'T00:00:00');
-      if (dayD <= afterD) continue;
-      if (day.day_type === 'exam') continue;
-      if ((day.sessions || []).length < maxWithSnooze) return day;
-    }
     return null;
   }
 
@@ -2544,8 +2692,10 @@ ${JSON.stringify(relevant, null, 0)}
   document.addEventListener('DOMContentLoaded', init);
 
   document.addEventListener('garden:languageChanged', () => {
-    if (currentStep === 2) renderCourseSelection();
-    if (currentStep === 3) renderConfigOptions();
+    
+    
+    if (currentStep === 2) buildCourseList();
+    if (currentStep === 3) updateFeasibility();
     if (currentStep === 4) {
       const plan = getCurrentPlan();
       if (plan) renderPlan(plan);
