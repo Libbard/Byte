@@ -110,6 +110,17 @@
   
   
   
+  function getLocalTodayStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  
+  
+  
   
   function formatDate(dateStr, mode) {
     
@@ -260,9 +271,10 @@
       });
       
       const startInput = document.getElementById('start-date-input');
-      if (startInput && !startInput.value) {
-        startInput.value = new Date().toISOString().split('T')[0];
-        userConfig.start_date = startInput.value;
+      if (startInput) {
+        const restored = userConfig.start_date || getLocalTodayStr();
+        startInput.value = restored;
+        userConfig.start_date = restored;
       }
     }
   }
@@ -564,7 +576,9 @@
       }
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    
+    
+    const today = userConfig.start_date || getLocalTodayStr();
     const coursesInfo = activeCourses.map(([cid, cfg]) => {
       const c = curriculumMap.courses[cid];
       return `${cid} (${c?.name_en || cid}): exam=${cfg.exam_date || 'none'}, modules=${cfg.included_modules.join(',')}, ratings=${JSON.stringify(cfg.self_rating)}`;
@@ -674,6 +688,12 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   async function onGeneratePlan() {
+    
+    
+    
+    const startInput = document.getElementById('start-date-input');
+    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+
     hideError();
     showStep(4);
     const loadingScreen = document.getElementById('loading-screen');
@@ -1156,6 +1176,10 @@ ${JSON.stringify(relevant, null, 0)}
 
   
   function generateLocalPlan() {
+    
+    const startInput = document.getElementById('start-date-input');
+    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+
     hideError();
     hideInfo();
     showStep(4);
@@ -1183,7 +1207,7 @@ ${JSON.stringify(relevant, null, 0)}
 
   
   function cleanupExpiredCourses(plan) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     const examDates = {};
 
     if (plan.config?.courses) {
@@ -1215,7 +1239,7 @@ ${JSON.stringify(relevant, null, 0)}
   
   function buildCourseProgressBars(plan, isAr) {
     if (!plan.config?.courses) return '';
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     const todayD = new Date(todayStr + 'T00:00:00');
     const activeCourses = Object.entries(plan.config.courses).filter(([, c]) => c.active);
     if (activeCourses.length === 0) return '';
@@ -1364,7 +1388,7 @@ ${JSON.stringify(relevant, null, 0)}
           todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           
-          const todayStr = new Date().toISOString().split('T')[0];
+          const todayStr = getLocalTodayStr();
           const allDays = container.querySelectorAll('.day-section[data-date]');
           for (const el of allDays) {
             if (el.dataset.date >= todayStr) {
@@ -1434,7 +1458,7 @@ ${JSON.stringify(relevant, null, 0)}
   function renderCardView(plan, isAr) {
     if (allDayCards.length === 0) return `<p style="text-align:center;color:var(--text-muted)">${isAr ? 'لا توجد جلسات' : 'No sessions'}</p>`;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     
     if (!_cardIndexInitialized) {
       const todayIdx = allDayCards.findIndex(d => d.date === todayStr);
@@ -1621,7 +1645,7 @@ ${JSON.stringify(relevant, null, 0)}
   
   function renderListView(plan, isAr) {
     let html = '';
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
 
     
     const weeks = {};
@@ -2365,7 +2389,7 @@ ${JSON.stringify(relevant, null, 0)}
       if (!raw) continue;
       try {
         const plan = JSON.parse(raw);
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalTodayStr();
         const todayDay = plan.days?.find(d => d.date === todayStr);
         if (!todayDay) continue;
         const sessions = todayDay.sessions || [];
