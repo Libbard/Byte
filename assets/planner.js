@@ -511,7 +511,7 @@
 
     const today = userConfig.start_date ? new Date(userConfig.start_date + 'T00:00:00') : new Date();
     today.setHours(0, 0, 0, 0);
-    let totalDays = earliestExam ? Math.max(1, Math.ceil((earliestExam - today) / 86400000)) : 14;
+    let totalDays = earliestExam ? Math.max(1, Math.ceil((earliestExam - today) / 86400000)) : 90;
 
     
     let availDays = 0;
@@ -520,7 +520,8 @@
       d.setDate(d.getDate() + i);
       const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
       if (userConfig.rest_days.includes(dayName)) continue;
-      const dateStr = d.toISOString().split('T')[0];
+      
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (userConfig.busy_dates.includes(dateStr)) continue;
       availDays++;
     }
@@ -558,7 +559,15 @@
 
   
   const DEEPSEEK_SYSTEM = `أنت مستشار أكاديمي ذكي متخصص في تحسين خطط الدراسة لطلاب علوم الحاسوب الجامعية.
-مبادئك: 1.التبديل الذكي بين المواد 2.أولوية المتطلبات 3.الربط المفاهيمي 4.التصاعد التدريجي 5.الواقعية 6.يوم قبل الامتحان=مراجعة خفيفة
+مبادئك:
+1. الترتيب التسلسلي إلزامي: ابدأ من M01 ثم M02 ثم M03 لكل مادة — لا تقفز! M01 دائماً أساسية.
+2. التبديل الذكي بين المواد (interleaving): لا تُكمّل مادة كاملة قبل الأخرى.
+3. أولوية المتطلبات (prerequisites): لا تدرس موضوعاً قبل متطلباته.
+4. التصاعد التدريجي: ابدأ بالسهل، تصاعد تدريجياً.
+5. المراجعة المتباعدة: راجع كل وحدة بعد 1 يوم، ثم 3 أيام، ثم 7 أيام.
+6. الواقعية: احترم عدد الجلسات والوقت المتاح بدقة.
+7. يوم قبل الامتحان = مراجعة خفيفة فقط (Flash Mode).
+8. priority تحدد mode الدراسة (deep/full/flash) وليس ترتيب المودلات.
 أجب بـ JSON نظيف فقط.`;
 
   function buildPrompt() {
@@ -624,7 +633,7 @@
       endDate = new Date(latestExam);
       endDate.setDate(endDate.getDate() + 7); 
     } else {
-      endDate.setDate(endDate.getDate() + 14); 
+      endDate.setDate(endDate.getDate() + 90); 
     }
 
     const totalPlanningDays = Math.max(1, Math.ceil((endDate - todayDate) / 86400000));
@@ -635,7 +644,8 @@
       const d = new Date(todayDate);
       d.setDate(d.getDate() + i);
       const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      const dateStr = d.toISOString().split('T')[0];
+      
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
       if (userConfig.rest_days.includes(dayName)) continue;
       if (userConfig.busy_dates.includes(dateStr)) continue;
@@ -649,18 +659,19 @@
       const c = curriculumMap.courses[cid];
       const courseName = c?.name_en || cid;
       const examDate = examDates[cid] || 'none';
-      
       const ratingWeight = { not_studied: 1.0, weak: 0.7, good: 0.4, excellent: 0.15 };
-      const moduleSummaries = cfg.included_modules.map(m => {
+      
+      const sortedModules = [...cfg.included_modules].sort();
+      const moduleSummaries = sortedModules.map((m, idx) => {
         const mod = c?.modules[m];
         const rating = cfg.self_rating[m] || 'not_studied';
         const diff = mod?.module_difficulty || 5;
         const hours = mod?.study_hours_estimate || 2;
         const priority = Math.round(((ratingWeight[rating] || 1.0) * 0.65 + (diff / 10) * 0.35) * 10) / 10;
         const modeHint = (rating === 'not_studied' || rating === 'weak') ? 'deep' : rating === 'good' ? 'full' : 'flash';
-        return `  ${m}(diff=${diff},rating=${rating},priority=${priority},mode=${modeHint},est_hours=${hours})`;
+        return `  ${m}(order=${idx + 1},diff=${diff},rating=${rating},priority=${priority},mode=${modeHint},est_hours=${hours})`;
       }).join('\n');
-      return `${cid} — ${courseName} [exam_date=${examDate}]\n${moduleSummaries}`;
+      return `${cid} — ${courseName} [exam_date=${examDate}]\nStudy order: M01→M02→M03... (sequential, mandatory)\n${moduleSummaries}`;
     }).join('\n\n');
 
     
@@ -689,9 +700,13 @@
       : 'لم يتم تحديد نطاق زمني';
 
     
+    
+    function _toLocalStr(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
     const scheduleEndStr = latestExam
-      ? latestExam.toISOString().split('T')[0]
-      : new Date(new Date(today + 'T00:00:00').getTime() + 14 * 86400000).toISOString().split('T')[0];
+      ? _toLocalStr(latestExam)
+      : _toLocalStr(new Date(new Date(today + 'T00:00:00').getTime() + 90 * 86400000));
 
     return `## مهمتك
 أنشئ جدول مذاكرة ذكياً يمتد من تاريخ البدء حتى آخر اختبار، مع مراعاة أولوية كل وحدة واختلاف مواعيد الاختبارات.
@@ -718,7 +733,10 @@ ${coursesDetail}
 ⚠️ لا تضع جلسات لمادة بعد تاريخ اختبارها (exam_date لكل مادة محدد أعلاه).
 ⚠️ اليوم أو اليومان قبل كل اختبار = مراجعة ذهبية (day_type=golden_review, mode=flash).
 ⚠️ بعد الانتهاء من كل وحدات مادة → خصص ما تبقى من أيام قبل اختبارها للمراجعة.
-⚠️ رتّب الوحدات حسب priority (الأعلى أولاً) مع التنويع بين المواد يومياً.
+⚠️ الترتيب التسلسلي إلزامي: ابدأ دائماً من M01 ثم M02 ثم M03... لكل مادة. الوحدة M01 أساسية لفهم بقية المنهج — لا تقفز لوحدات متقدمة!
+⚠️ priority تحدد الـ mode (deep/full/flash) وليس ترتيب الدراسة. حتى لو M01 تقييمها "excellent"، يجب مراجعتها (flash) قبل M02 لأنها أساس.
+⚠️ نوّع بين المواد يومياً (interleaving) مع الحفاظ على التسلسل داخل كل مادة.
+⚠️ أضف مراجعة متباعدة (spaced review): راجع كل وحدة بعد يوم واحد، ثم 3 أيام، ثم 7 أيام من دراستها.
 ${moduleGroupingNote}
 
 ## محتوى الوحدات (must_know + must_memorize)
@@ -970,6 +988,13 @@ ${JSON.stringify(compactCurriculum, null, 0)}
   
   
   
+  
+  
+  
+  
+  
+  
+  
 
   function generateSmartLocalPlan() {
     const startDate = userConfig.start_date ? new Date(userConfig.start_date + 'T00:00:00') : new Date();
@@ -978,6 +1003,17 @@ ${JSON.stringify(compactCurriculum, null, 0)}
     const isAr = lang() === 'ar';
     const mps = userConfig.modules_per_session || 1;
     const sessionsPerDay = userConfig.daily_sessions || 2;
+
+    
+    function toLocalDateStr(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function isAvailable(d) {
+      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
+      const dateStr = toLocalDateStr(d);
+      return !userConfig.rest_days.includes(dayName) && !(userConfig.busy_dates || []).includes(dateStr);
+    }
 
     
     function buildSession(item, num, modeOverride, noteOverride) {
@@ -1003,14 +1039,93 @@ ${JSON.stringify(compactCurriculum, null, 0)}
     }
 
     
-    const courseExams = []; 
+    
+    
+    
+    
+    
+
+    function topologicalSortModules(cid, includedModules) {
+      const courseData = curriculumMap.courses[cid];
+      if (!courseData) return [...includedModules].sort();
+
+      
+      const prereqMap = {}; 
+      const allTopicToModule = {}; 
+
+      
+      for (const [mid, mod] of Object.entries(courseData.modules)) {
+        for (const topic of (mod.topics || [])) {
+          allTopicToModule[topic.topic_id] = mid;
+        }
+      }
+
+      
+      for (const mid of includedModules) {
+        prereqMap[mid] = new Set();
+        const mod = courseData.modules[mid];
+        if (!mod) continue;
+        for (const topic of (mod.topics || [])) {
+          for (const prereqTopicId of (topic.prerequisites || [])) {
+            const prereqModId = allTopicToModule[prereqTopicId];
+            
+            if (prereqModId && prereqModId !== mid && includedModules.includes(prereqModId)) {
+              prereqMap[mid].add(prereqModId);
+            }
+          }
+        }
+      }
+
+      
+      const inDegree = {};
+      includedModules.forEach(m => inDegree[m] = 0);
+      for (const [mid, prereqs] of Object.entries(prereqMap)) {
+        inDegree[mid] = prereqs.size;
+      }
+
+      const queue = includedModules.filter(m => inDegree[m] === 0)
+        .sort(); 
+
+      const sorted = [];
+      while (queue.length > 0) {
+        const current = queue.shift();
+        sorted.push(current);
+        
+        for (const [mid, prereqs] of Object.entries(prereqMap)) {
+          if (prereqs.has(current)) {
+            prereqs.delete(current);
+            inDegree[mid]--;
+            if (inDegree[mid] === 0) {
+              
+              let insertIdx = queue.length;
+              for (let qi = 0; qi < queue.length; qi++) {
+                if (queue[qi] > mid) { insertIdx = qi; break; }
+              }
+              queue.splice(insertIdx, 0, mid);
+            }
+          }
+        }
+      }
+
+      
+      if (sorted.length < includedModules.length) {
+        const remaining = includedModules.filter(m => !sorted.includes(m)).sort();
+        sorted.push(...remaining);
+      }
+
+      return sorted;
+    }
+
+    
+    
+    
+    const courseExams = [];
     let latestExam = null;
     for (const [cid, cfg] of activeCourses) {
       const examDate = cfg.exam_date ? new Date(cfg.exam_date + 'T00:00:00') : null;
       courseExams.push({ cid, examDate });
       if (examDate && (!latestExam || examDate > latestExam)) latestExam = examDate;
     }
-    
     courseExams.sort((a, b) => {
       if (!a.examDate && !b.examDate) return 0;
       if (!a.examDate) return 1;
@@ -1018,28 +1133,13 @@ ${JSON.stringify(compactCurriculum, null, 0)}
       return a.examDate - b.examDate;
     });
 
-    const endDate = latestExam || new Date(startDate.getTime() + 14 * 86400000);
-    const totalCalendarDays = Math.max(1, Math.ceil((endDate - startDate) / 86400000)) + 1; 
-
     
-    const allDates = [];
-    for (let i = 0; i < totalCalendarDays; i++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + i);
-      allDates.push(d);
-    }
-
-    
-    
-    function toLocalDateStr(d) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function isAvailable(d) {
-      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      const dateStr = toLocalDateStr(d);
-      return !userConfig.rest_days.includes(dayName) && !(userConfig.busy_dates || []).includes(dateStr);
-    }
+    const endDate = latestExam
+      ? new Date(latestExam)
+      : userConfig.end_date
+        ? new Date(userConfig.end_date + 'T00:00:00')
+        : new Date(startDate.getTime() + 90 * 86400000);
+    const totalCalendarDays = Math.max(1, Math.ceil((endDate - startDate) / 86400000)) + 1;
 
     
     
@@ -1047,15 +1147,17 @@ ${JSON.stringify(compactCurriculum, null, 0)}
     const ratingScoreMap = { not_studied: 1.0, weak: 0.7, good: 0.4, excellent: 0.15 };
 
     const allModulesByCourse = {}; 
+
     for (const [cid, cfg] of activeCourses) {
       allModulesByCourse[cid] = [];
-      for (const m of cfg.included_modules) {
+      
+      const sortedModuleIds = topologicalSortModules(cid, cfg.included_modules);
+
+      for (const m of sortedModuleIds) {
         const r = cfg.self_rating[m] || 'not_studied';
         const mod = curriculumMap.courses[cid]?.modules[m];
         const diff = mod?.module_difficulty || 5;
-        
         const rawPriority = r === 'not_studied' ? 4 : r === 'weak' ? 3 : r === 'good' ? 2 : 1;
-        
         const compositeScore = (ratingScoreMap[r] || 1.0) * 0.65 + (diff / 10) * 0.35;
 
         const mustKnow = [], mustKnowEn = [], mustMem = [], mustMemEn = [];
@@ -1068,20 +1170,39 @@ ${JSON.stringify(compactCurriculum, null, 0)}
           }
         }
 
+        
+        let crossLinkInfo = null;
+        if (curriculumMap.cross_course_clusters) {
+          for (const cluster of curriculumMap.cross_course_clusters) {
+            const matchingTopics = (mod?.topics || []).filter(t => cluster.topics.includes(t.topic_id));
+            if (matchingTopics.length > 0) {
+              crossLinkInfo = {
+                clusterName: isAr ? cluster.cluster_name : cluster.cluster_name_en,
+                tip: isAr ? cluster.study_tip : (cluster.study_tip_en || cluster.study_tip),
+                linkedTopics: cluster.topics.filter(t => !matchingTopics.map(mt => mt.topic_id).includes(t))
+              };
+              break;
+            }
+          }
+        }
+
         allModulesByCourse[cid].push({
           courseId: cid, moduleId: m,
-          priority: rawPriority,       
-          compositeScore,              
+          priority: rawPriority,
+          compositeScore,
           difficulty: diff, mod,
           mustKnow: mustKnow.slice(0, 3), mustKnowEn: mustKnowEn.slice(0, 3),
           mustMem: mustMem.slice(0, 2), mustMemEn: mustMemEn.slice(0, 2),
-          mode: rawPriority >= 3 ? 'deep' : rawPriority === 2 ? 'full' : 'flash'
+          
+          mode: rawPriority >= 3 ? 'deep' : rawPriority === 2 ? 'full' : 'flash',
+          crossLinkInfo
         });
       }
       
-      allModulesByCourse[cid].sort((a, b) => b.compositeScore - a.compositeScore || b.difficulty - a.difficulty);
     }
 
+    
+    
     
     function expandModules(modules) {
       if (mps < 1) {
@@ -1102,6 +1223,8 @@ ${JSON.stringify(compactCurriculum, null, 0)}
           if (group.length > 1) {
             m.moduleId = group.map(g => g.moduleId).join(' + ');
             m.difficulty = Math.round(group.reduce((s, g) => s + g.difficulty, 0) / group.length);
+            m.priority = Math.max(...group.map(g => g.priority));
+            m.mode = m.priority >= 3 ? 'deep' : m.priority === 2 ? 'full' : 'flash';
             m.mustKnow = group.flatMap(g => g.mustKnow).slice(0, 3);
             m.mustKnowEn = group.flatMap(g => g.mustKnowEn).slice(0, 3);
             m.mustMem = group.flatMap(g => g.mustMem).slice(0, 2);
@@ -1114,21 +1237,37 @@ ${JSON.stringify(compactCurriculum, null, 0)}
       return modules;
     }
 
-    const studyQueueByCourse = {}; 
+    const studyQueueByCourse = {};
     for (const cid of Object.keys(allModulesByCourse)) {
       studyQueueByCourse[cid] = expandModules([...allModulesByCourse[cid]]);
     }
 
     
+    
+    
+    const allDates = [];
+    for (let i = 0; i < totalCalendarDays; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      allDates.push(d);
+    }
+
+    
+    
+    
     const days = [];
     let sessionCount = 0;
-    const studiedModules = []; 
-    const reviewScheduled = new Set(); 
-    const finishedCourses = new Set(); 
+    const studiedModules = [];       
+    const reviewScheduled = new Set();
+    const finishedCourses = new Set();
+    let globalRROffset = 0;          
+    let dayCounter = 0;              
+
+    
+    const SM2_INTERVALS = [1, 3, 7, 14, 30];
 
     for (let i = 0; i < allDates.length; i++) {
       const d = allDates[i];
-      
       const dateStr = toLocalDateStr(d);
 
       
@@ -1136,100 +1275,117 @@ ${JSON.stringify(compactCurriculum, null, 0)}
         ce.examDate && toLocalDateStr(ce.examDate) === dateStr
       );
       if (examsToday.length > 0) {
-        
         const examSessions = examsToday.map((ce, idx) => {
           const courseName = curriculumMap.courses[ce.cid]
             ? (isAr ? curriculumMap.courses[ce.cid].name : curriculumMap.courses[ce.cid].name_en)
             : ce.cid;
           return {
-            session_number: idx + 1,
-            course_id: ce.cid,
-            module_id: isAr ? 'اختبار' : 'Exam',
-            mode: 'exam',
-            difficulty_avg: 10,
-            is_critical: false,
+            session_number: idx + 1, course_id: ce.cid,
+            module_id: isAr ? 'اختبار' : 'Exam', mode: 'exam',
+            difficulty_avg: 10, is_critical: false,
             ai_note_ar: `📝 اختبار ${courseName} — بالتوفيق!`,
             ai_note_en: `📝 ${courseName} Exam — Good luck!`,
-            must_know_today: [],
-            must_know_today_en: [],
-            must_memorize_today: [],
-            must_memorize_today_en: [],
+            must_know_today: [], must_know_today_en: [],
+            must_memorize_today: [], must_memorize_today_en: [],
             completed: false
           };
         });
         days.push({
-          date: dateStr,
-          day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1,
-          day_type: 'exam',
+          date: dateStr, day_label: formatDate(dateStr, 'card'),
+          week_number: Math.floor(i / 7) + 1, day_type: 'exam',
           sessions: examSessions,
           daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
           daily_tip_en: '📝 Exam day — trust yourself and do your best!'
         });
-
-        
         examsToday.forEach(ce => finishedCourses.add(ce.cid));
         continue;
       }
 
       if (!isAvailable(d)) continue;
 
-      
       const liveCourseIds = courseExams
         .map(ce => ce.cid)
         .filter(cid => !finishedCourses.has(cid));
 
-      
-      
       if (liveCourseIds.length === 0 && studiedModules.length === 0) break;
 
       
-      let goldenExam = null;
+      
+      let goldenExamCourses = [];
       for (const ce of courseExams) {
         if (!ce.examDate || finishedCourses.has(ce.cid)) continue;
         const daysUntilExam = Math.ceil((ce.examDate - d) / 86400000);
         if (daysUntilExam >= 1 && daysUntilExam <= 2) {
-          goldenExam = ce;
-          break;
+          goldenExamCourses.push(ce);
         }
       }
 
-      if (goldenExam) {
+      if (goldenExamCourses.length > 0) {
+        const sessions = [];
         
-        const cid = goldenExam.cid;
-        const courseModules = allModulesByCourse[cid] || [];
-        const hardest = [...courseModules].sort((a, b) => b.difficulty - a.difficulty || b.priority - a.priority).slice(0, sessionsPerDay);
-        const sessions = hardest.map((item, idx) =>
-          buildSession(item, idx + 1, 'flash', {
-            ar: `⭐ مراجعة ذهبية — ${curriculumMap.courses[cid]?.name || cid}`,
-            en: `⭐ Golden review — ${curriculumMap.courses[cid]?.name_en || cid}`
-          })
-        );
+        const goldenSlots = Math.min(sessionsPerDay, Math.max(1, Math.ceil(sessionsPerDay * 0.7)));
+        const otherSlots = sessionsPerDay - goldenSlots;
+
+        
+        for (const ge of goldenExamCourses) {
+          const cid = ge.cid;
+          const courseModules = allModulesByCourse[cid] || [];
+          
+          const reviewOrder = [...courseModules].sort((a, b) => {
+            
+            if (a.priority !== b.priority) return b.priority - a.priority;
+            return b.difficulty - a.difficulty;
+          });
+          const slotsForThis = Math.ceil(goldenSlots / goldenExamCourses.length);
+          const toReview = reviewOrder.slice(0, slotsForThis);
+          for (const item of toReview) {
+            if (sessions.length >= goldenSlots) break;
+            sessions.push(buildSession(item, sessions.length + 1, 'flash', {
+              ar: `⭐ مراجعة ذهبية — ${curriculumMap.courses[cid]?.name || cid}`,
+              en: `⭐ Golden review — ${curriculumMap.courses[cid]?.name_en || cid}`
+            }));
+          }
+        }
+
+        
+        if (otherSlots > 0) {
+          const otherCourseIds = liveCourseIds.filter(
+            cid => !goldenExamCourses.some(ge => ge.cid === cid)
+          );
+          for (let s = 0; s < otherSlots && otherCourseIds.length > 0; s++) {
+            const cid = otherCourseIds[s % otherCourseIds.length];
+            if (studyQueueByCourse[cid] && studyQueueByCourse[cid].length > 0) {
+              const item = studyQueueByCourse[cid].shift();
+              sessions.push(buildSession(item, sessions.length + 1));
+              studiedModules.push({ ...item, _studiedDate: dateStr, _reviewCount: 0, _studyDayNum: dayCounter });
+            }
+          }
+        }
+
         if (sessions.length > 0) {
           days.push({
-            date: dateStr,
-            day_label: formatDate(dateStr, 'card'),
-            week_number: Math.floor(i / 7) + 1,
-            day_type: 'golden_review',
+            date: dateStr, day_label: formatDate(dateStr, 'card'),
+            week_number: Math.floor(i / 7) + 1, day_type: 'golden_review',
             sessions,
-            daily_tip_ar: `⭐ مراجعة ذهبية لمادة ${curriculumMap.courses[cid]?.name || cid} — الاختبار قريب!`,
-            daily_tip_en: `⭐ Golden review for ${curriculumMap.courses[cid]?.name_en || cid} — exam is near!`
+            daily_tip_ar: `⭐ مراجعة ذهبية — الاختبار قريب!`,
+            daily_tip_en: `⭐ Golden review — exam is near!`
           });
           sessionCount += sessions.length;
+          dayCounter++;
         }
         continue;
       }
 
       
+      
+      
       const sessions = [];
 
-      
       const allStudyQueuesEmpty = liveCourseIds.every(
         cid => !studyQueueByCourse[cid] || studyQueueByCourse[cid].length === 0
       );
 
       if (allStudyQueuesEmpty && liveCourseIds.length > 0) {
-        
         
         const liveByExam = [...liveCourseIds].sort((a, b) => {
           const eA = courseExams.find(ce => ce.cid === a)?.examDate;
@@ -1241,20 +1397,22 @@ ${JSON.stringify(compactCurriculum, null, 0)}
         });
 
         
-        const reviewCandidatesPhase2 = [];
+        const reviewCandidates = [];
         for (const cid of liveByExam) {
-          const mods = [...(allModulesByCourse[cid] || [])]
-            .sort((a, b) => b.compositeScore - a.compositeScore || b.difficulty - a.difficulty);
-          for (const m of mods) {
+          const mods = [...(allModulesByCourse[cid] || [])];
+          
+          const offset = dayCounter % mods.length;
+          const rotated = [...mods.slice(offset), ...mods.slice(0, offset)];
+          for (const m of rotated) {
             const key = `${m.courseId}:${m.moduleId}:${dateStr}`;
             if (!reviewScheduled.has(key)) {
-              reviewCandidatesPhase2.push(m);
+              reviewCandidates.push(m);
             }
           }
         }
 
-        for (let s = 0; s < sessionsPerDay && s < reviewCandidatesPhase2.length; s++) {
-          const item = reviewCandidatesPhase2[s];
+        for (let s = 0; s < sessionsPerDay && s < reviewCandidates.length; s++) {
+          const item = reviewCandidates[s];
           sessions.push(buildSession(item, sessions.length + 1, 'flash', {
             ar: `📖 مراجعة ما قبل الاختبار — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
             en: `📖 Pre-exam review — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
@@ -1267,42 +1425,62 @@ ${JSON.stringify(compactCurriculum, null, 0)}
         
         
         
-        const reviewSlots = sessionsPerDay >= 3 ? Math.floor(sessionsPerDay / 3) : 0;
+        
+        let reviewSlots = 0;
+        if (sessionsPerDay >= 3) {
+          reviewSlots = Math.floor(sessionsPerDay / 3);
+        } else if (dayCounter > 0 && dayCounter % 3 === 0 && studiedModules.length > 0) {
+          reviewSlots = 1; 
+        }
         const studySlots = sessionsPerDay - reviewSlots;
 
         
-        
         let filled = 0;
-        let rrOffset = 0; 
         let consecutiveEmpty = 0;
         while (filled < studySlots && consecutiveEmpty < liveCourseIds.length) {
-          const cid = liveCourseIds[rrOffset % liveCourseIds.length];
-          rrOffset++;
+          const cid = liveCourseIds[globalRROffset % liveCourseIds.length];
+          globalRROffset++; 
           if (studyQueueByCourse[cid] && studyQueueByCourse[cid].length > 0) {
             const item = studyQueueByCourse[cid].shift();
             sessions.push(buildSession(item, sessions.length + 1));
-            studiedModules.push({ ...item, _studiedDate: dateStr });
+            studiedModules.push({ ...item, _studiedDate: dateStr, _reviewCount: 0, _studyDayNum: dayCounter });
             filled++;
-            consecutiveEmpty = 0; 
+            consecutiveEmpty = 0;
           } else {
-            consecutiveEmpty++; 
+            consecutiveEmpty++;
           }
+        }
+
+        
+        if (filled < studySlots) {
+          reviewSlots += (studySlots - filled);
         }
 
         
         if (reviewSlots > 0 && studiedModules.length > 0) {
           const reviewCandidates = studiedModules.filter(sm => {
-            const daysSince = Math.ceil((d - new Date(sm._studiedDate + 'T00:00:00')) / 86400000);
+            const daysSinceStudy = dayCounter - sm._studyDayNum;
+            const nextReviewAt = SM2_INTERVALS[Math.min(sm._reviewCount, SM2_INTERVALS.length - 1)];
             const key = `${sm.courseId}:${sm.moduleId}:${dateStr}`;
-            return daysSince >= 2 && !finishedCourses.has(sm.courseId) && !reviewScheduled.has(key);
+            return daysSinceStudy >= nextReviewAt
+              && !finishedCourses.has(sm.courseId)
+              && !reviewScheduled.has(key);
           });
-          reviewCandidates.sort((a, b) => b.compositeScore - a.compositeScore || b.difficulty - a.difficulty);
+          
+          reviewCandidates.sort((a, b) => {
+            const aOverdue = dayCounter - a._studyDayNum - SM2_INTERVALS[Math.min(a._reviewCount, SM2_INTERVALS.length - 1)];
+            const bOverdue = dayCounter - b._studyDayNum - SM2_INTERVALS[Math.min(b._reviewCount, SM2_INTERVALS.length - 1)];
+            if (bOverdue !== aOverdue) return bOverdue - aOverdue;
+            return b.compositeScore - a.compositeScore;
+          });
+
           for (let r = 0; r < reviewSlots && r < reviewCandidates.length; r++) {
             const item = reviewCandidates[r];
             sessions.push(buildSession(item, sessions.length + 1, 'flash', {
-              ar: `🔄 مراجعة — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
-              en: `🔄 Review — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
+              ar: `🔄 مراجعة متباعدة (${item._reviewCount + 1}) — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
+              en: `🔄 Spaced review (${item._reviewCount + 1}) — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
             }));
+            item._reviewCount++;
             reviewScheduled.add(`${item.courseId}:${item.moduleId}:${dateStr}`);
           }
         }
@@ -1310,30 +1488,73 @@ ${JSON.stringify(compactCurriculum, null, 0)}
 
       if (sessions.length > 0) {
         const hasReview = sessions.some(s => s.mode === 'flash');
+        const hasStudy = sessions.some(s => s.mode !== 'flash' && s.mode !== 'exam');
+
+        
+        sessions.forEach(s => {
+          const item = allModulesByCourse[s.course_id]?.find(m =>
+            s.module_id.includes(m.moduleId)
+          );
+          if (item?.crossLinkInfo) {
+            s.cross_link_alert = {
+              active: true,
+              message: isAr
+                ? `🔗 ${item.crossLinkInfo.clusterName}: ${item.crossLinkInfo.tip}`
+                : `🔗 ${item.crossLinkInfo.clusterName}: ${item.crossLinkInfo.tip}`
+            };
+          }
+        });
+
         days.push({
           date: dateStr,
           day_label: formatDate(dateStr, 'card'),
           week_number: Math.floor(i / 7) + 1,
-          day_type: hasReview ? 'mixed' : 'study',
+          day_type: hasReview && hasStudy ? 'mixed' : hasReview ? 'light_review' : 'study',
           sessions,
           daily_tip_ar: '',
           daily_tip_en: ''
         });
         sessionCount += sessions.length;
+        dayCounter++;
       }
     }
 
     
+    
+    
     const weekSet = [...new Set(days.map(d => d.week_number))];
-    const weeks = weekSet.map((w, i) => ({
-      week_number: w,
-      theme: i === 0
-        ? (isAr ? 'بناء الأساس' : 'Foundation')
-        : i === weekSet.length - 1
-          ? (isAr ? 'مراجعة وتثبيت' : 'Review & Consolidation')
-          : (isAr ? 'تعميق الفهم' : 'Deepening Understanding'),
-      theme_en: i === 0 ? 'Foundation Building' : i === weekSet.length - 1 ? 'Review & Consolidation' : 'Deepening Understanding'
-    }));
+    const totalWeeks = weekSet.length;
+
+    const weeks = weekSet.map((w, i) => {
+      let theme, themeEn;
+      const progress = totalWeeks > 1 ? i / (totalWeeks - 1) : 0;
+
+      if (progress === 0) { theme = 'بناء الأساس'; themeEn = 'Foundation Building'; }
+      else if (progress < 0.4) { theme = 'التعمق في المفاهيم'; themeEn = 'Core Concepts'; }
+      else if (progress < 0.7) { theme = 'تعميق الفهم والربط'; themeEn = 'Deepening & Linking'; }
+      else if (progress < 0.9) { theme = 'التكثيف والتعزيز'; themeEn = 'Intensification'; }
+      else { theme = 'مراجعة وتثبيت'; themeEn = 'Review & Consolidation'; }
+
+      return { week_number: w, theme, theme_en: themeEn };
+    });
+
+    
+    
+    
+    const warnings = [];
+    for (const cid of Object.keys(studyQueueByCourse)) {
+      const remaining = studyQueueByCourse[cid]?.length || 0;
+      if (remaining > 0) {
+        const modIds = studyQueueByCourse[cid].map(m => m.moduleId).join(', ');
+        warnings.push({
+          type: 'time_pressure',
+          message: isAr
+            ? `⚠️ لم يتسع الوقت لجدولة ${remaining} وحدة من ${cid}: ${modIds}`
+            : `⚠️ Not enough time to schedule ${remaining} module(s) from ${cid}: ${modIds}`,
+          affected_modules: studyQueueByCourse[cid].map(m => `${cid}_${m.moduleId}`)
+        });
+      }
+    }
 
     return {
       plan_type: userConfig.plan_type,
@@ -1344,12 +1565,13 @@ ${JSON.stringify(compactCurriculum, null, 0)}
       plan_summary: {
         total_days: days.length,
         total_sessions: sessionCount,
-        strategy_description_ar: 'جدول تكيّفي ذكي — يمتد حتى آخر اختبار مع مراجعة ذهبية ⭐ قبل كل اختبار وحذف تلقائي للمواد المنتهية',
-        strategy_description_en: 'Adaptive smart plan — extends to last exam with golden reviews ⭐ before each exam and auto-removal of finished courses',
-        strategy_description: 'جدول تكيّفي ذكي — يمتد حتى آخر اختبار مع مراجعة ذهبية ⭐ قبل كل اختبار وحذف تلقائي للمواد المنتهية',
+        strategy_description_ar: 'جدول تكيّفي ذكي v4 — ترتيب تسلسلي يحترم المتطلبات + مراجعة متباعدة SM-2 + ربط مفاهيمي بين المواد',
+        strategy_description_en: 'Adaptive smart plan v4 — sequential prerequisite-aware ordering + SM-2 spaced review + cross-course concept linking',
+        strategy_description: 'جدول تكيّفي ذكي v4 — ترتيب تسلسلي يحترم المتطلبات + مراجعة متباعدة SM-2 + ربط مفاهيمي بين المواد',
         weeks
       },
-      days
+      days,
+      critical_warnings: warnings
     };
   }
 
@@ -1543,6 +1765,15 @@ ${JSON.stringify(compactCurriculum, null, 0)}
 
       <!-- Per-course progress bars (Phase 3) -->
       ${buildCourseProgressBars(plan, isAr)}
+
+      <!-- Critical warnings -->
+      ${(plan.critical_warnings || []).length > 0 ? `
+        <div class="plan-warnings">
+          ${plan.critical_warnings.map(w => `
+            <div class="plan-warning-item">${w.message}</div>
+          `).join('')}
+        </div>
+      ` : ''}
 
       <!-- View mode toggle -->
       <div class="view-mode-toggle">
