@@ -110,6 +110,17 @@
 
   const DAY_MAP = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 
+  // ─── Local Date Helper ────────────────────────────────────
+  // Returns YYYY-MM-DD using LOCAL timezone (avoids UTC-shift bug where
+  // new Date().toISOString() returns yesterday for GMT+3 users before 3am)
+  function getLocalTodayStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   // ─── Date Formatting ──────────────────────────────────────
   // mode: 'card' = "10 مارس" / "March 10"
   //       'table' = "10/3" (compact, below day name)
@@ -261,11 +272,12 @@
         const day = el.dataset.day;
         el.classList.toggle('checked', userConfig.rest_days.includes(day));
       });
-      // Set start-date input default to today
+      // Restore start-date input: prefer userConfig.start_date (saved), fallback to local today
       const startInput = document.getElementById('start-date-input');
-      if (startInput && !startInput.value) {
-        startInput.value = new Date().toISOString().split('T')[0];
-        userConfig.start_date = startInput.value;
+      if (startInput) {
+        const restored = userConfig.start_date || getLocalTodayStr();
+        startInput.value = restored;
+        userConfig.start_date = restored;
       }
     }
   }
@@ -567,7 +579,9 @@
       }
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    // Use the user-selected start date, NOT the raw UTC "today" which causes
+    // off-by-one errors for GMT+3 users and ignores user's chosen start date
+    const today = userConfig.start_date || getLocalTodayStr();
     const coursesInfo = activeCourses.map(([cid, cfg]) => {
       const c = curriculumMap.courses[cid];
       return `${cid} (${c?.name_en || cid}): exam=${cfg.exam_date || 'none'}, modules=${cfg.included_modules.join(',')}, ratings=${JSON.stringify(cfg.self_rating)}`;
@@ -677,6 +691,12 @@ ${JSON.stringify(relevant, null, 0)}
   }
 
   async function onGeneratePlan() {
+    // ── Sync start_date from DOM input (source of truth = what user sees) ──
+    // This handles: user changed input manually, regenerate with different date,
+    // or new plan without touching the date field.
+    const startInput = document.getElementById('start-date-input');
+    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+
     hideError();
     showStep(4);
     const loadingScreen = document.getElementById('loading-screen');
@@ -1159,6 +1179,10 @@ ${JSON.stringify(relevant, null, 0)}
 
   // ─── Generate Local Plan (UI wrapper) ─────────────────────
   function generateLocalPlan() {
+    // Sync start_date from DOM (same as onGeneratePlan)
+    const startInput = document.getElementById('start-date-input');
+    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+
     hideError();
     hideInfo();
     showStep(4);
@@ -1186,7 +1210,7 @@ ${JSON.stringify(relevant, null, 0)}
 
   // ─── Auto-Cleanup: Remove Expired Course Sessions (Phase 3) ──
   function cleanupExpiredCourses(plan) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     const examDates = {};
 
     if (plan.config?.courses) {
@@ -1218,7 +1242,7 @@ ${JSON.stringify(relevant, null, 0)}
   // ─── Build Course Progress Bars HTML (Phase 3) ──────────────
   function buildCourseProgressBars(plan, isAr) {
     if (!plan.config?.courses) return '';
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     const todayD = new Date(todayStr + 'T00:00:00');
     const activeCourses = Object.entries(plan.config.courses).filter(([, c]) => c.active);
     if (activeCourses.length === 0) return '';
@@ -1367,7 +1391,7 @@ ${JSON.stringify(relevant, null, 0)}
           todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           // No today — find nearest future day
-          const todayStr = new Date().toISOString().split('T')[0];
+          const todayStr = getLocalTodayStr();
           const allDays = container.querySelectorAll('.day-section[data-date]');
           for (const el of allDays) {
             if (el.dataset.date >= todayStr) {
@@ -1437,7 +1461,7 @@ ${JSON.stringify(relevant, null, 0)}
   function renderCardView(plan, isAr) {
     if (allDayCards.length === 0) return `<p style="text-align:center;color:var(--text-muted)">${isAr ? 'لا توجد جلسات' : 'No sessions'}</p>`;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     // Find today's card — only auto-jump on first render, not on navigation
     if (!_cardIndexInitialized) {
       const todayIdx = allDayCards.findIndex(d => d.date === todayStr);
@@ -1624,7 +1648,7 @@ ${JSON.stringify(relevant, null, 0)}
   // ─── List View (Show All) ─────────────────────────────────
   function renderListView(plan, isAr) {
     let html = '';
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
 
     // Group by weeks
     const weeks = {};
@@ -2368,7 +2392,7 @@ ${JSON.stringify(relevant, null, 0)}
       if (!raw) continue;
       try {
         const plan = JSON.parse(raw);
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalTodayStr();
         const todayDay = plan.days?.find(d => d.date === todayStr);
         if (!todayDay) continue;
         const sessions = todayDay.sessions || [];
