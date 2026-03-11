@@ -567,6 +567,8 @@
   function buildPrompt() {
     const isAr = lang() === 'ar';
     const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
+    const dailySessions = userConfig.daily_sessions || 2;
+    const mps = userConfig.modules_per_session || 1;
 
     // Extract relevant topics only
     const relevant = {};
@@ -587,22 +589,55 @@
       return `${cid} (${c?.name_en || cid}): exam=${cfg.exam_date || 'none'}, modules=${cfg.included_modules.join(',')}, ratings=${JSON.stringify(cfg.self_rating)}`;
     }).join('\n');
 
+    // Build dynamic JSON example reflecting ACTUAL daily_sessions count
+    // This forces the AI to replicate the correct structure (not just 1 session/day)
+    const exampleSessions = [];
+    for (let s = 1; s <= dailySessions; s++) {
+      const exModuleId = mps > 1
+        ? `M0${s} + M0${s + 1}` // show merged modules when mps > 1
+        : `M0${s}`;
+      exampleSessions.push(
+        `{"session_number":${s},"course_id":"CS${300 + s}","module_id":"${exModuleId}","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"...","ai_note_en":"...","must_know_today":["..."],"must_know_today_en":["..."],"must_memorize_today":["..."],"must_memorize_today_en":["..."]}`
+      );
+    }
+    const exampleSessionsStr = exampleSessions.join(',');
+
+    // Determine module grouping instruction
+    const moduleGroupingNote = mps > 1
+      ? `- كل جلسة تضم ${mps} وحدات مدمجة → اجعل module_id سلسلة مثل "M01 + M02"`
+      : mps < 1
+        ? `- كل وحدة تُقسَّم على ${Math.round(1 / mps)} جلسات → أضف تسمية الجزء مثل "M01 (1/2)"`
+        : `- كل جلسة تغطي وحدة واحدة فقط`;
+
     return `## مهمتك
-أنشئ جدول مذاكرة ذكياً.
+أنشئ جدول مذاكرة ذكياً وشاملاً.
+
 ## إعدادات الطالب
 - نوع: ${userConfig.plan_type}
 - تاريخ اليوم: ${today}
-- جلسات يومية: ${userConfig.daily_sessions}
-- وحدات/جلسة: ${userConfig.modules_per_session}
+- جلسات يومية: ${dailySessions}
+- وحدات/جلسة: ${mps}
 - أيام راحة: ${userConfig.rest_days.join(', ')}
 - أيام مشغولة: ${userConfig.busy_dates.join(', ') || 'لا يوجد'}
+
+## قواعد إلزامية لبناء الجدول
+⚠️ كل يوم دراسي (day_type=study) يجب أن يحتوي على ${dailySessions} جلسة مستقلة تماماً — لا أكثر ولا أقل.
+⚠️ كل جلسة يجب أن تكون لمادة أو وحدة مختلفة (تنويع ذكي بين المواد).
+${moduleGroupingNote}
+⚠️ لا تضع جلسة واحدة فقط في أي يوم دراسي أبداً — الحد الأدنى ${dailySessions}.
+⚠️ يجب توزيع جميع الوحدات على الأيام حتى اكتمال الجدول.
+
 ## المواد
 ${coursesInfo}
+
 ## بيانات المناهج
 ${JSON.stringify(relevant, null, 0)}
+
 ## الناتج المطلوب
-أنتج JSON:
-{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[{"session_number":1,"course_id":"CS350","module_id":"M01","mode":"deep","difficulty_avg":7,"is_critical":false,"ai_note_ar":"...","ai_note_en":"...","must_know_today":["..."],"must_know_today_en":["..."],"must_memorize_today":["..."],"must_memorize_today_en":["..."]}],"daily_tip_ar":"...","daily_tip_en":"..."}]}`;
+أنتج JSON نظيف فقط (بدون أي نص خارج الـ JSON):
+{"plan_summary":{"total_days":N,"total_sessions":N,"strategy_description":"...","weeks":[{"week_number":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","day_label":"...","week_number":1,"day_type":"study","sessions":[${exampleSessionsStr}],"daily_tip_ar":"...","daily_tip_en":"..."}]}
+
+تذكر: كل يوم دراسي = ${dailySessions} جلسات بالضبط.`;
   }
 
   // ─── Loading Screen Helpers ──────────────────────────────
@@ -730,10 +765,15 @@ ${JSON.stringify(relevant, null, 0)}
       });
       const parseResponse = (data) => data.text || data.choices?.[0]?.message?.content || '';
 
-      // 3-minute timeout — large curriculum prompts can legitimately take 2+ minutes
-      const TIMEOUT_MS = 180000;
+      // Dynamic timeout: scales with total module count so large curricula don't get cut off.
+      // Formula: 90s base + 18s per module (enough for the AI to write full JSON per session).
+      // Minimum: 3 minutes (180s). Maximum: 12 minutes (720s).
+      const activeCourseList = Object.entries(userConfig.courses).filter(([, c]) => c.active);
+      const totalModuleCount = activeCourseList.reduce((sum, [, cfg]) => sum + (cfg.included_modules?.length || 0), 0);
+      const TIMEOUT_MS = Math.min(720000, Math.max(180000, 90000 + totalModuleCount * 18000));
+      console.log(`⏱ Timeout set to ${Math.round(TIMEOUT_MS / 1000)}s for ${totalModuleCount} modules`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(new DOMException('Request timed out after 3 minutes', 'TimeoutError')), TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(new DOMException(`Request timed out after ${Math.round(TIMEOUT_MS / 1000)}s`, 'TimeoutError')), TIMEOUT_MS);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -822,9 +862,10 @@ ${JSON.stringify(relevant, null, 0)}
         console.error('Fallback renderPlan error:', renderErr);
         planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + renderErr.message + '</p></div>';
       }
+      const timeoutMinutes = Math.round((Math.min(720000, Math.max(180000, 90000 + (Object.entries(userConfig.courses).filter(([, c]) => c.active).reduce((s, [, cfg]) => s + (cfg.included_modules?.length || 0), 0)) * 18000)) / 60000));
       const timeoutMsg = isAr
-        ? 'انتهى وقت الانتظار (3 دقائق) — الخادم مشغول. تم إنشاء جدول أساسي. حاول مجدداً لاحقاً.'
-        : 'Request timed out (3 min) — server busy. A basic plan was generated. Try again later.';
+        ? `انتهى وقت الانتظار (${timeoutMinutes} دقيقة) — الخادم مشغول. تم إنشاء جدول أساسي. حاول مجدداً لاحقاً.`
+        : `Request timed out (${timeoutMinutes} min) — server busy. A basic plan was generated. Try again later.`;
       const genericMsg = isAr
         ? 'تم إنشاء جدول أساسي تلقائياً (بدون AI). يمكنك إعادة التوليد للحصول على جدول ذكي.'
         : 'A basic plan was generated locally. You can regenerate for an AI-powered plan.';
