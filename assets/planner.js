@@ -6,39 +6,7 @@
   
   const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
-  const MAX_TOKENS = 32768; 
-
-  
-  const EnvLoader = {
-    _cache: null,
-    async load() {
-      if (this._cache) return this._cache;
-      try {
-        const res = await fetch('../.env');
-        if (!res.ok) return {};
-        const text = await res.text();
-        const vars = {};
-        text.split('\n').forEach(line => {
-          line = line.trim();
-          if (!line || line.startsWith('#')) return;
-          const eq = line.indexOf('=');
-          if (eq > 0) vars[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
-        });
-        this._cache = vars;
-        return vars;
-      } catch (e) { return {}; }
-    },
-    async getDeepseekKey() {
-      const vars = await this.load();
-      return vars.DEEPSEEK_API_KEY || '';
-    }
-  };
-
-  
-  function isLocalServer() {
-    const h = window.location.hostname;
-    return h === 'localhost' || h === '127.0.0.1' || h === '' || window.location.protocol === 'file:';
-  }
+  const MAX_TOKENS = 8192; 
 
   
   function stripFences(t) {
@@ -176,6 +144,38 @@
 
   
   async function init() {
+    
+    if (!document.getElementById('planner-extra-styles')) {
+      const style = document.createElement('style');
+      style.id = 'planner-extra-styles';
+      style.textContent = `
+        .card-study-link-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 6px 14px; margin-top: 6px;
+          font-size: 0.82rem; font-weight: 600;
+          color: var(--accent, #a78bfa); background: rgba(167,139,250,0.08);
+          border: 1px solid rgba(167,139,250,0.25); border-radius: 8px;
+          text-decoration: none; cursor: pointer; transition: all 0.2s;
+          justify-content: center; width: fit-content;
+        }
+        .card-study-link-btn:hover {
+          background: rgba(167,139,250,0.18); border-color: rgba(167,139,250,0.5);
+          transform: translateY(-1px); box-shadow: 0 2px 8px rgba(167,139,250,0.15);
+        }
+        .session-study-link-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 5px 12px; font-size: 0.8rem; font-weight: 600;
+          color: var(--accent, #a78bfa); background: rgba(167,139,250,0.08);
+          border: 1px solid rgba(167,139,250,0.25); border-radius: 8px;
+          text-decoration: none; cursor: pointer; transition: all 0.2s;
+        }
+        .session-study-link-btn:hover {
+          background: rgba(167,139,250,0.18); border-color: rgba(167,139,250,0.5);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     try {
       const r = await fetch(CURRICULUM_MAP_URL);
       if (!r.ok) throw new Error('Failed to load curriculum map');
@@ -185,11 +185,6 @@
         ? 'فشل تحميل بيانات المناهج — تأكد من وجود data/curriculum_map.json'
         : 'Failed to load curriculum data');
       return;
-    }
-
-    
-    if (isLocalServer()) {
-      await EnvLoader.load();
     }
 
     
@@ -503,7 +498,7 @@
     if (userConfig.plan_type !== 'general') {
       for (const [, cfg] of activeCourses) {
         if (cfg.exam_date) {
-          const d = new Date(cfg.exam_date);
+          const d = new Date(cfg.exam_date + 'T00:00:00');  
           if (!earliestExam || d < earliestExam) earliestExam = d;
         }
       }
@@ -779,7 +774,7 @@
 
     
     const availableDatesStr = availableDates.length > 0
-      ? availableDates.slice(0, 90).join(', ')
+      ? availableDates.slice(0, 120).join(', ')
       : 'لم يتم تحديد نطاق زمني';
 
     
@@ -1273,7 +1268,7 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages,
-            max_tokens: 8192,
+            max_tokens: MAX_TOKENS,
             temperature: 0.3
           }),
           signal: controller.signal
@@ -1426,6 +1421,35 @@ ${remainingDatesStr}
 
       
       injectExamDays(fullPlan);
+
+      
+      
+      const mps = userConfig.modules_per_session || 1;
+      if (mps < 1 && fullPlan.days) {
+        const sessionsPerMod = Math.round(1 / mps);
+        let nonCompliant = 0;
+        for (const day of fullPlan.days) {
+          if (!day.sessions || day.day_type === 'exam') continue;
+          for (const s of day.sessions) {
+            if (s.mode === 'exam') continue;
+            const mid = s.module_id || '';
+            
+            if (!mid.includes('(') && !mid.includes('/') && mid.match(/^M\d+$/)) {
+              nonCompliant++;
+            }
+          }
+        }
+        if (nonCompliant > 0) {
+          console.warn(`⚠️ AI did not split ${nonCompliant} sessions into ${sessionsPerMod} parts (mps=${mps})`);
+          if (!fullPlan.critical_warnings) fullPlan.critical_warnings = [];
+          fullPlan.critical_warnings.push({
+            type: 'mps_ignored',
+            message: isAr
+              ? `⚠️ الذكاء الاصطناعي لم يلتزم بتقسيم الوحدات (${mps} وحدة/جلسة). لنتائج أدق، استخدم "إنشاء بدون AI".`
+              : `⚠️ AI did not follow module splitting (${mps} per session). For accurate results, use "Generate without AI".`
+          });
+        }
+      }
 
       
       fullPlan.plan_summary.total_days = fullPlan.days.length;
@@ -1822,6 +1846,23 @@ ${remainingDatesStr}
     
     const SM2_INTERVALS = [1, 3, 7, 14, 30];
 
+    
+    
+    function _isLastStudyDayBefore(currentDate, examDate) {
+      let next = new Date(currentDate);
+      next.setDate(next.getDate() + 1);
+      while (next < examDate) {
+        if (isAvailable(next)) {
+          
+          const nextStr = toLocalDateStr(next);
+          const isExamDay = courseExams.some(ce => ce.examDate && toLocalDateStr(ce.examDate) === nextStr);
+          if (!isExamDay) return false; 
+        }
+        next.setDate(next.getDate() + 1);
+      }
+      return true; 
+    }
+
     for (let i = 0; i < allDates.length; i++) {
       const d = allDates[i];
       const dateStr = toLocalDateStr(d);
@@ -1846,14 +1887,46 @@ ${remainingDatesStr}
             completed: false
           };
         });
-        days.push({
-          date: dateStr, day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1, day_type: 'exam',
-          sessions: examSessions,
-          daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
-          daily_tip_en: '📝 Exam day — trust yourself and do your best!'
-        });
         examsToday.forEach(ce => finishedCourses.add(ce.cid));
+
+        
+        const goldenForOthers = [];
+        for (const ce of courseExams) {
+          if (!ce.examDate || finishedCourses.has(ce.cid)) continue;
+          const daysUntilExam = Math.ceil((ce.examDate - d) / 86400000);
+          if (daysUntilExam >= 1 && daysUntilExam <= 5 && _isLastStudyDayBefore(d, ce.examDate)) {
+            goldenForOthers.push(ce);
+          }
+        }
+
+        if (goldenForOthers.length > 0) {
+          for (const ge of goldenForOthers) {
+            const cid = ge.cid;
+            const courseModules = [...(allModulesByCourse[cid] || [])].sort((a, b) => b.priority - a.priority);
+            const item = courseModules[0];
+            if (item) {
+              examSessions.push(buildSession(item, examSessions.length + 1, 'flash', {
+                ar: `⭐ مراجعة ذهبية — ${curriculumMap.courses[cid]?.name || cid}`,
+                en: `⭐ Golden review — ${curriculumMap.courses[cid]?.name_en || cid}`
+              }));
+            }
+          }
+          days.push({
+            date: dateStr, day_label: formatDate(dateStr, 'card'),
+            week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1, day_type: 'exam',
+            sessions: examSessions,
+            daily_tip_ar: '📝 يوم اختبار مع مراجعة للمادة التالية!',
+            daily_tip_en: '📝 Exam day + golden review for next exam!'
+          });
+        } else {
+          days.push({
+            date: dateStr, day_label: formatDate(dateStr, 'card'),
+            week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1, day_type: 'exam',
+            sessions: examSessions,
+            daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
+            daily_tip_en: '📝 Exam day — trust yourself and do your best!'
+          });
+        }
         continue;
       }
 
@@ -1871,7 +1944,8 @@ ${remainingDatesStr}
       for (const ce of courseExams) {
         if (!ce.examDate || finishedCourses.has(ce.cid)) continue;
         const daysUntilExam = Math.ceil((ce.examDate - d) / 86400000);
-        if (daysUntilExam >= 1 && daysUntilExam <= 2) {
+        
+        if (daysUntilExam >= 1 && daysUntilExam <= 5 && _isLastStudyDayBefore(d, ce.examDate)) {
           goldenExamCourses.push(ce);
         }
       }
@@ -1921,7 +1995,7 @@ ${remainingDatesStr}
         if (sessions.length > 0) {
           days.push({
             date: dateStr, day_label: formatDate(dateStr, 'card'),
-            week_number: Math.floor(i / 7) + 1, day_type: 'golden_review',
+            week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1, day_type: 'golden_review',
             sessions,
             daily_tip_ar: `⭐ مراجعة ذهبية — الاختبار قريب!`,
             daily_tip_en: `⭐ Golden review — exam is near!`
@@ -2064,7 +2138,7 @@ ${remainingDatesStr}
         days.push({
           date: dateStr,
           day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1,
+          week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1,
           day_type: hasReview && hasStudy ? 'mixed' : hasReview ? 'light_review' : 'study',
           sessions,
           daily_tip_ar: '',
@@ -2074,6 +2148,73 @@ ${remainingDatesStr}
         dayCounter++;
       }
     }
+
+    
+    
+    
+    
+    
+    for (const ce of courseExams) {
+      if (!ce.examDate) continue;
+      const examDateStr = toLocalDateStr(ce.examDate);
+
+      
+      const hasGolden = days.some(day => {
+        const dayD = new Date(day.date + 'T00:00:00');
+        const diff = Math.ceil((ce.examDate - dayD) / 86400000);
+        return diff >= 1 && diff <= 5 &&
+          day.sessions?.some(s => s.course_id === ce.cid && (s.mode === 'flash' || s.mode === 'exam'));
+      });
+
+      if (!hasGolden) {
+        
+        for (let offset = 1; offset <= 3; offset++) {
+          const candidateD = new Date(ce.examDate);
+          candidateD.setDate(candidateD.getDate() - offset);
+          const candidateStr = toLocalDateStr(candidateD);
+
+          
+          if (courseExams.some(other => other.examDate && toLocalDateStr(other.examDate) === candidateStr)) continue;
+          
+          if (candidateD < startDate) continue;
+
+          const existingDay = days.find(dd => dd.date === candidateStr);
+          const courseModules = [...(allModulesByCourse[ce.cid] || [])].sort((a, b) => b.priority - a.priority);
+          const item = courseModules[0];
+          if (!item) break;
+
+          const goldenSession = buildSession(item, 1, 'flash', {
+            ar: `⭐ مراجعة ذهبية استثنائية — ${curriculumMap.courses[ce.cid]?.name || ce.cid}`,
+            en: `⭐ Special golden review — ${curriculumMap.courses[ce.cid]?.name_en || ce.cid}`
+          });
+
+          if (existingDay) {
+            
+            goldenSession.session_number = existingDay.sessions.length + 1;
+            existingDay.sessions.push(goldenSession);
+            
+            if (existingDay.day_type === 'study') existingDay.day_type = 'mixed';
+          } else {
+            
+            const weekNum = allDates.length > 0
+              ? Math.floor((candidateD - allDates[0]) / (7 * 86400000)) + 1
+              : 1;
+            days.push({
+              date: candidateStr,
+              day_label: formatDate(candidateStr, 'card'),
+              week_number: weekNum,
+              day_type: 'golden_review',
+              sessions: [goldenSession],
+              daily_tip_ar: '⭐ مراجعة ذهبية استثنائية — اليوم أُضيف خصيصاً لأن الاختبار قريب!',
+              daily_tip_en: '⭐ Special golden review — this day was added because the exam is near!'
+            });
+          }
+          break; 
+        }
+      }
+    }
+    
+    days.sort((a, b) => a.date.localeCompare(b.date));
 
     
     
@@ -2430,6 +2571,17 @@ ${remainingDatesStr}
   }
 
   
+  function getStudyUrl(courseId, moduleId) {
+    if (!courseId || !moduleId) return null;
+    const cid = courseId.toLowerCase(); 
+    
+    const match = moduleId.match(/M(\d+)/);
+    if (!match) return null;
+    const modNum = parseInt(match[1]); 
+    return `../${cid}/M${modNum}.html`;
+  }
+
+  
   function renderCardView(plan, isAr) {
     if (allDayCards.length === 0) return `<p style="text-align:center;color:var(--text-muted)">${isAr ? 'لا توجد جلسات' : 'No sessions'}</p>`;
 
@@ -2505,6 +2657,11 @@ ${remainingDatesStr}
                       onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
                 ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
               </button>
+              ${session.mode !== 'exam' && getStudyUrl(session.course_id, session.module_id) ? `
+              <a class="card-study-link-btn" href="${getStudyUrl(session.course_id, session.module_id)}" 
+                 onclick="event.stopPropagation()" target="_blank" rel="noopener">
+                📚 ${isAr ? 'انتقل للدراسة' : 'Go to Study'}
+              </a>` : ''}
               ${(session.mode === 'flash' || day.day_type === 'golden_review') && !session.completed ? `
               <button class="card-snooze-btn"
                       onclick="event.stopPropagation(); Planner.snoozeSession('${day.date}',${session.session_number})">
@@ -2545,7 +2702,14 @@ ${remainingDatesStr}
         <div class="card-day-header ${isToday ? 'today' : ''} ${day.day_type === 'exam' ? 'day-type-exam' : day.day_type === 'golden_review' ? 'day-type-golden' : ''}">
           <div class="card-day-label-group">
             <span class="card-day-text">${formatDate(day.date, 'card')}</span>
-            ${day.day_type === 'exam' ? `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>` : ''}
+            ${day.day_type === 'exam' ? (() => {
+    const names = [...new Set((day.sessions || []).filter(s => s.mode === 'exam').map(s =>
+        curriculumMap?.courses?.[s.course_id]
+            ? (isAr ? curriculumMap.courses[s.course_id].name : curriculumMap.courses[s.course_id].name_en)
+            : s.course_id
+    ))].join(' · ');
+    return `<span class="day-type-badge exam-badge">📝 ${isAr ? 'اختبار' : 'Exam'}: ${names}</span>`;
+})() : ''}
             ${day.day_type === 'golden_review' ? `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>` : ''}
             ${day.day_type === 'mixed' ? `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>` : ''}
             ${day.day_type === 'light_review' ? `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>` : ''}
@@ -2652,7 +2816,14 @@ ${remainingDatesStr}
         
         const dayType = day.day_type || 'study';
         let dayTypeBadge = '';
-        if (dayType === 'exam') dayTypeBadge = `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>`;
+        if (dayType === 'exam') {
+          const names = [...new Set((day.sessions || []).filter(s => s.mode === 'exam').map(s =>
+            curriculumMap?.courses?.[s.course_id]
+              ? (isAr ? curriculumMap.courses[s.course_id].name : curriculumMap.courses[s.course_id].name_en)
+              : s.course_id
+          ))].join(' · ');
+          dayTypeBadge = `<span class="day-type-badge exam-badge">📝 ${isAr ? 'اختبار' : 'Exam'}: ${names}</span>`;
+        }
         else if (dayType === 'golden_review') dayTypeBadge = `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>`;
         else if (dayType === 'mixed') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>`;
         else if (dayType === 'light_review') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>`;
@@ -2705,6 +2876,10 @@ ${remainingDatesStr}
                 <button class="session-action-btn session-complete-btn" onclick="Planner.toggleComplete('${day.date}',${session.session_number})">
                   ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
                 </button>
+                ${session.mode !== 'exam' && getStudyUrl(session.course_id, session.module_id) ? `
+                <a class="session-action-btn session-study-link-btn" href="${getStudyUrl(session.course_id, session.module_id)}" target="_blank" rel="noopener">
+                  📚 ${isAr ? 'انتقل للدراسة' : 'Go to Study'}
+                </a>` : ''}
                 ${showSnooze ? `<button class="session-action-btn session-snooze-btn" onclick="Planner.snoozeSession('${day.date}',${session.session_number})">
                   😴 ${isAr ? 'راحة' : 'Snooze'}
                   ${(session._snoozeCount || 0) > 0 ? `<span class="snooze-warning">(${session._snoozeCount}/2)</span>` : ''}
@@ -3404,7 +3579,7 @@ ${remainingDatesStr}
       if (dayD <= afterD) continue;                      
       if (beforeD && dayD >= beforeD) continue;          
       if (day.day_type === 'exam') continue;             
-      if (day.day_type === 'golden_review') continue;    
+      
       const currentCount = (day.sessions || []).length;
       if (currentCount < sessionsPerDay) return day;     
     }
