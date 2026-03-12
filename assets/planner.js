@@ -429,6 +429,33 @@
       cfg.included_modules.sort();
       el.classList.add('checked');
     }
+    
+    const courseBlock = document.getElementById('course-' + courseId);
+    if (!courseBlock || !curriculumMap) return;
+    const isAr = lang() === 'ar';
+    const courseData = curriculumMap.courses[courseId];
+    if (!courseData) return;
+    const ratingGridEl = courseBlock.querySelector('.rating-grid');
+    if (!ratingGridEl) return;
+    ratingGridEl.innerHTML = cfg.included_modules.map(m => {
+      const mod = courseData.modules[m];
+      const modTitle = mod ? (isAr ? mod.title : mod.title_en) : m;
+      if (!cfg.self_rating[m]) cfg.self_rating[m] = 'not_studied';
+      return `
+        <div class="rating-row">
+          <span class="rating-module-label">${m}</span>
+          <div class="rating-options">
+            ${Object.keys(RATING_LABELS[isAr ? 'ar' : 'en']).map(r => `
+              <div class="rating-option ${cfg.self_rating[m] === r ? 'selected' : ''}"
+                   data-rating="${r}"
+                   onclick="Planner.setRating('${courseId}','${m}','${r}',this)">
+                ${RATING_LABELS[isAr ? 'ar' : 'en'][r]}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   function setRating(courseId, modId, rating, el) {
@@ -521,7 +548,7 @@
       availDays++;
     }
 
-    const availSessions = availDays * userConfig.daily_sessions;
+    const availModuleCapacity = availDays * userConfig.daily_sessions * (userConfig.modules_per_session || 1);
 
     
     let criticalModules = 0, reviewModules = 0;
@@ -534,7 +561,7 @@
     }
 
     const totalModules = criticalModules + reviewModules;
-    const ratio = totalModules > 0 ? availSessions / totalModules : 999;
+    const ratio = totalModules > 0 ? availModuleCapacity / totalModules : 999;
 
     let status, label;
     if (ratio >= 1.5) { status = 'comfortable'; label = isAr ? '✅ ممتاز — لديك وقت كافٍ' : '✅ Excellent — plenty of time'; }
@@ -544,7 +571,7 @@
 
     statsEl.innerHTML = `
       <div class="feasibility-stat"><span class="feasibility-stat-icon">📅</span><div><div class="feasibility-stat-text">${isAr ? 'أيام متاحة' : 'Available days'}</div><div class="feasibility-stat-value">${availDays} ${isAr ? 'يوم' : 'days'}</div></div></div>
-      <div class="feasibility-stat"><span class="feasibility-stat-icon">⏱️</span><div><div class="feasibility-stat-text">${isAr ? 'إجمالي الجلسات' : 'Total sessions'}</div><div class="feasibility-stat-value">${availSessions}</div></div></div>
+      <div class="feasibility-stat"><span class="feasibility-stat-icon">⏱️</span><div><div class="feasibility-stat-text">${isAr ? 'سعة الوحدات الكلية' : 'Total module capacity'}</div><div class="feasibility-stat-value">${availModuleCapacity}</div></div></div>
       <div class="feasibility-stat"><span class="feasibility-stat-icon">📚</span><div><div class="feasibility-stat-text">${isAr ? 'وحدات للدراسة' : 'Modules to study'}</div><div class="feasibility-stat-value">${totalModules}</div></div></div>
       <div class="feasibility-stat"><span class="feasibility-stat-icon">🔴</span><div><div class="feasibility-stat-text">${isAr ? 'وحدات حرجة' : 'Critical modules'}</div><div class="feasibility-stat-value">${criticalModules}</div></div></div>
     `;
@@ -563,6 +590,7 @@
 6. الواقعية: احترم عدد الجلسات والوقت المتاح بدقة.
 7. يوم قبل الامتحان = مراجعة خفيفة فقط (Flash Mode).
 8. priority تحدد mode الدراسة (deep/full/flash) وليس ترتيب المودلات.
+9. كل جلسة تستخدم "mids":[] (مصفوفة) وليس "mid":string — هذا إلزامي في كل الناتج.
 أجب بـ JSON نظيف فقط.`;
 
   function buildPrompt() {
@@ -755,16 +783,28 @@
     
     
     
+    
+    const effectiveMpsPerSession = mps >= 1 ? Math.round(mps) : 1;
+    const effectiveDailyModules  = dailySessions * effectiveMpsPerSession; 
+
+    
     const exampleSessions = [];
+    let _exampleMod = 1;
     for (let s = 1; s <= dailySessions; s++) {
+      const midsArr = [];
+      for (let m = 0; m < effectiveMpsPerSession; m++) {
+        midsArr.push(`"M${String(_exampleMod++).padStart(2, '0')}"`);
+      }
       exampleSessions.push(
-        `{"sn":${s},"cid":"CS350","mid":"M0${s}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
+        `{"sn":${s},"cid":"CS350","mids":[${midsArr.join(',')}],"mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
       );
     }
     const exampleSessionsStr = exampleSessions.join(',');
 
     
-    const moduleGroupingNote = `- كل جلسة تغطي وحدة واحدة فقط (سنعالج التجميع/التقسيم تلقائياً بعد الاستلام)`;
+    const midsSchemaNote = effectiveMpsPerSession === 1
+      ? `- كل جلسة تغطي وحدة واحدة: "mids":["M01"] — مصفوفة بعنصر واحد دائماً`
+      : `- كل جلسة تغطي ${effectiveMpsPerSession} وحدات: "mids":["M01","M02",...] — مصفوفة بـ ${effectiveMpsPerSession} عناصر بالضبط`;
 
     
     const availableDatesStr = availableDates.length > 0
@@ -787,7 +827,9 @@
 - نوع الجدول: ${userConfig.plan_type}
 - تاريخ البدء: ${today}
 - تاريخ آخر اختبار: ${scheduleEndStr}
-- الجلسات اليومية المسموحة: ${dailySessions} (الحد الأقصى المطلق — لا تتجاوزه)
+- الجلسات اليومية: ${dailySessions}
+- وحدات لكل جلسة: ${effectiveMpsPerSession}
+- ⚡ الطاقة اليومية الفعلية: ${effectiveDailyModules} وحدة (${dailySessions} جلسة × ${effectiveMpsPerSession} وحدة/جلسة)
 
 ## ⚠️ التواريخ المتاحة للدراسة (يُحظر وضع جلسات خارجها)
 ${availableDatesStr}
@@ -805,6 +847,7 @@ ${coursesDetail}
 
 ## قواعد إلزامية
 ⚠️ كل يوم دراسي = ${dailySessions} جلسة بالضبط — لا أكثر ولا أقل.
+⚠️ كل جلسة = ${effectiveMpsPerSession} وحدة بالضبط في مصفوفة mids — لا تكسر هذه القاعدة أبداً.
 ⚠️ لا تضع جلسات لمادة بعد تاريخ اختبارها. لا تضع أي جلسات في يوم الاختبار نفسه (أيام الاختبار مذكورة أعلاه).
 ⚠️ المراجعة الذهبية: اليوم الذي يسبق الاختبار مباشرة (وليس يوم الاختبار!) = day_type=golden_review, mode=flash لمادة الاختبار القادم.
 ⚠️ بعد الانتهاء من كل وحدات مادة → خصص ما تبقى من أيام قبل اختبارها للمراجعة.
@@ -812,7 +855,7 @@ ${coursesDetail}
 ⚠️ priority تحدد الـ mode (deep/full/flash) وليس ترتيب الدراسة. حتى لو M01 تقييمها "excellent"، يجب مراجعتها (flash) قبل M02 لأنها أساس.
 ⚠️ نوّع بين المواد يومياً (interleaving) مع الحفاظ على التسلسل داخل كل مادة.
 ⚠️ أضف مراجعة متباعدة (spaced review): راجع كل وحدة بعد يوم واحد، ثم 3 أيام، ثم 7 أيام من دراستها.
-${moduleGroupingNote}
+${midsSchemaNote}
 
 ## بيانات المناهج الهيكلية (prerequisites + cross-links + difficulty)
 ⚠️ استخدم هذه البيانات لاتخاذ قرارات الجدولة. لا تضمّنها في الناتج.
@@ -828,10 +871,11 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
 ## الناتج المطلوب (مضغوط — استخدم مفاتيح قصيرة لتوفير المساحة)
 أنتج JSON نظيف فقط (بدون أي نص خارج الـ JSON).
 ⚠️ لا تُضمّن must_know أو must_memorize في الناتج — سنضيفها تلقائياً من قاعدة البيانات.
-⚠️ استخدم المفاتيح القصيرة: sn=session_number, cid=course_id, mid=module_id, diff=difficulty_avg
+⚠️ استخدم المفاتيح القصيرة: sn=session_number, cid=course_id, mids=[array of module_ids], diff=difficulty_avg
+⚠️ mids يجب أن تكون مصفوفة دائماً حتى لو وحدة واحدة: "mids":["M01"] وليس "mid":"M01"
 {"plan_summary":{"total_days":N,"total_sessions":N,"strategy":"وصف مختصر","weeks":[{"wn":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","wn":1,"type":"study","sessions":[${exampleSessionsStr}],"tip":"..."}]}
 
-تذكر: استخدم فقط التواريخ من القائمة المتاحة أعلاه. كل يوم دراسي = ${dailySessions} جلسات بالضبط. أنشئ أيام لكل التواريخ المتاحة — لا تحذف أياً منها!`;
+تذكر: استخدم فقط التواريخ من القائمة المتاحة أعلاه. كل يوم دراسي = ${dailySessions} جلسات × ${effectiveMpsPerSession} وحدة/جلسة = ${effectiveDailyModules} وحدة/يوم. أنشئ أيام لكل التواريخ المتاحة — لا تحذف أياً منها!`;
   }
 
   
@@ -879,10 +923,19 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
 
       day.sessions = day.sessions.map(s => {
         
+        
+        let resolvedModuleId;
+        if (Array.isArray(s.mids) && s.mids.length > 0) {
+          resolvedModuleId = s.mids.join(' + ');
+        } else {
+          resolvedModuleId = s.mid || s.module_id || '';
+        }
+
+        
         const session = {
           session_number: s.sn || s.session_number || 1,
           course_id: s.cid || s.course_id || '',
-          module_id: s.mid || s.module_id || '',
+          module_id: resolvedModuleId,
           mode: s.mode || 'deep',
           difficulty_avg: s.diff || s.difficulty_avg || 5,
           is_critical: s.is_critical || (s.diff >= 7),
@@ -897,11 +950,15 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
         };
 
         
+        
         if (session.must_know_today.length === 0 && curriculumMap?.courses) {
           const course = curriculumMap.courses[session.course_id];
           if (course) {
             
-            const modIds = session.module_id.split(/\s*\+\s*/).map(s => s.trim().replace(/\s*\(.*\)/, ''));
+            
+            const modIds = session.module_id
+              .split(/\s*\+\s*/)
+              .map(s => s.trim().replace(/\s*\(.*\)/, ''));
             for (const mid of modIds) {
               const mod = course.modules[mid];
               if (mod?.topics) {
@@ -932,24 +989,28 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
   
   
   
+  
   function enforceModulesPerSession(planData) {
     if (!planData?.days || !planData.config) return planData;
     const mps = planData.config.modules_per_session || 1;
-    if (mps === 1) return planData; 
+
+    
+    if (mps >= 1) return planData;
+
+    
 
     const dailySessions = planData.config.daily_sessions || 2;
     const isAr = lang() === 'ar';
 
     
-    const fixedDays = [];   
-    const studySessions = []; 
+    const fixedDays = [];
+    const studySessions = [];
 
     for (const day of planData.days) {
       if (day.day_type === 'exam' || day.day_type === 'golden_review') {
         fixedDays.push(day);
         continue;
       }
-      
       for (const s of (day.sessions || [])) {
         if (s.mode !== 'exam') {
           studySessions.push({ ...s, _originalDate: day.date });
@@ -958,81 +1019,29 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
     }
 
     
-    let transformedSessions = [];
+    const sessionsPerMod = Math.round(1 / mps);
+    const transformedSessions = [];
 
-    if (mps < 1) {
-      
-      const sessionsPerMod = Math.round(1 / mps);
-      for (const s of studySessions) {
-        const mid = s.module_id || '';
-        
-        if (mid.includes('(') && mid.includes('/')) {
-          transformedSessions.push(s);
-          continue;
-        }
-        for (let p = 0; p < sessionsPerMod; p++) {
-          transformedSessions.push({
-            ...s,
-            module_id: `${mid} (${p + 1}/${sessionsPerMod})`,
-            ai_note_ar: p === 0
-              ? (s.ai_note_ar || (isAr ? '📖 الجزء الأول — ركز على المفاهيم الأساسية' : ''))
-              : (isAr ? `📖 الجزء ${p + 1} — أكمل ما بدأته` : ''),
-            ai_note_en: p === 0
-              ? (s.ai_note_en || 'Part 1 — Focus on core concepts')
-              : `Part ${p + 1} — Continue where you left off`
-          });
-        }
+    for (const s of studySessions) {
+      const mid = s.module_id || '';
+      if (mid.includes('(') && mid.includes('/')) {
+        transformedSessions.push(s); 
+        continue;
       }
-      console.log(`✂️ MPS=${mps}: Split ${studySessions.length} sessions → ${transformedSessions.length} parts`);
-    } else {
-      
-      const mergeCount = Math.round(mps);
-      
-      const byCourse = {};
-      const courseOrder = [];
-      for (const s of studySessions) {
-        const cid = s.course_id;
-        if (!byCourse[cid]) { byCourse[cid] = []; courseOrder.push(cid); }
-        byCourse[cid].push(s);
+      for (let p = 0; p < sessionsPerMod; p++) {
+        transformedSessions.push({
+          ...s,
+          module_id: `${mid} (${p + 1}/${sessionsPerMod})`,
+          ai_note_ar: p === 0
+            ? (s.ai_note_ar || (isAr ? '📖 الجزء الأول — ركز على المفاهيم الأساسية' : ''))
+            : (isAr ? `📖 الجزء ${p + 1} — أكمل ما بدأته` : ''),
+          ai_note_en: p === 0
+            ? (s.ai_note_en || 'Part 1 — Focus on core concepts')
+            : `Part ${p + 1} — Continue where you left off`
+        });
       }
-      
-      const mergedByCourse = {};
-      for (const cid of courseOrder) {
-        mergedByCourse[cid] = [];
-        const sessions = byCourse[cid];
-        for (let k = 0; k < sessions.length; k += mergeCount) {
-          const group = sessions.slice(k, k + mergeCount);
-          if (group.length > 1) {
-            const mergedModIds = group.map(g =>
-              (g.module_id || '').replace(/\s*\(.*?\)/, '').trim()
-            );
-            mergedByCourse[cid].push({
-              ...group[0],
-              module_id: mergedModIds.join(' + '),
-              difficulty_avg: Math.round(group.reduce((sum, g) => sum + (g.difficulty_avg || 5), 0) / group.length),
-              must_know_today: group.flatMap(g => g.must_know_today || []).slice(0, 3),
-              must_know_today_en: group.flatMap(g => g.must_know_today_en || []).slice(0, 3),
-              must_memorize_today: group.flatMap(g => g.must_memorize_today || []).slice(0, 2),
-              must_memorize_today_en: group.flatMap(g => g.must_memorize_today_en || []).slice(0, 2),
-              ai_note_ar: isAr ? `📦 وحدات مدمجة: ${mergedModIds.join(' + ')}` : '',
-              ai_note_en: `📦 Combined modules: ${mergedModIds.join(' + ')}`
-            });
-          } else {
-            mergedByCourse[cid].push(group[0]);
-          }
-        }
-      }
-      
-      let maxLen = Math.max(...courseOrder.map(cid => mergedByCourse[cid].length));
-      for (let idx = 0; idx < maxLen; idx++) {
-        for (const cid of courseOrder) {
-          if (idx < mergedByCourse[cid].length) {
-            transformedSessions.push(mergedByCourse[cid][idx]);
-          }
-        }
-      }
-      console.log(`📦 MPS=${mps}: Merged ${studySessions.length} sessions → ${transformedSessions.length} combined`);
     }
+    console.log(`✂️ MPS=${mps}: Split ${studySessions.length} sessions → ${transformedSessions.length} parts`);
 
     
     const fixedDates = new Set(fixedDays.map(d => d.date));
@@ -1560,9 +1569,10 @@ ${remainingDatesStr}
 
 ## التعليمات
 أكمل الجدول لهذه الأيام المتبقية فقط. استخدم نفس الشكل المضغوط:
-{"days":[{"date":"YYYY-MM-DD","wn":N,"type":"study","sessions":[{"sn":1,"cid":"CS350","mid":"M0X","mode":"deep","diff":5,"note":"..."}],"tip":"..."}]}
+{"days":[{"date":"YYYY-MM-DD","wn":N,"type":"study","sessions":[{"sn":1,"cid":"CS350","mids":["M01","M02"],"mode":"deep","diff":5,"note":"..."}],"tip":"..."}]}
 
-⚠️ كل يوم = ${userConfig.daily_sessions} جلسات بالضبط. أكمل من حيث توقفت — تابع التسلسل.`;
+⚠️ كل يوم = ${userConfig.daily_sessions} جلسات × ${Math.max(1, Math.round(userConfig.modules_per_session || 1))} وحدة/جلسة. أكمل من حيث توقفت — تابع التسلسل.
+⚠️ mids يجب أن تكون مصفوفة دائماً: ["M01"] أو ["M01","M02"] — لا تستخدم mid:string`;
 
         
         messages = [
@@ -1636,7 +1646,6 @@ ${remainingDatesStr}
       
       injectExamDays(fullPlan);
 
-      
       
       enforceModulesPerSession(fullPlan);
 
@@ -2511,10 +2520,12 @@ ${remainingDatesStr}
     }
 
     
+    
     let changed = false;
     plan.days.forEach(day => {
       if (!day.sessions) { day.sessions = []; return; }
       if (day.date <= todayStr) return; 
+      if (day.day_type === 'exam' || day.day_type === 'golden_review') return; 
       const before = day.sessions.length;
       day.sessions = day.sessions.filter(s => {
         const examDate = examDates[s.course_id];
@@ -2801,9 +2812,7 @@ ${remainingDatesStr}
         : session.course_id;
       const diff = session.difficulty_avg || 5;
       const diffLabel = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
-      const modeEmoji = session.mode === 'deep' ? '🔴' : session.mode === 'full' ? '🟡' : '🟢';
-
-      
+      const modeEmoji = session.mode === 'deep' ? '🔴' : session.mode === 'full' ? '🟡' : session.mode === 'exam' ? '📝' : '🟢';
       const mustKnowMsg = isAr ? 'يجب معرفته' : 'Must know';
       const mustMemMsg = isAr ? 'يجب حفظه' : 'Must memorize';
 
@@ -2830,7 +2839,7 @@ ${remainingDatesStr}
                onclick="Planner.flipSession(${sIdx})">
             <div class="sc-face sc-front">
               <div class="card-session-top-row">
-                <span class="card-session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                <span class="card-session-badge ${diffLabel}">${modeEmoji} ${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
                 <span class="card-diff-text">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
               </div>
               <div class="card-course-name">${session.course_id} — ${session.module_id}</div>
@@ -2884,7 +2893,7 @@ ${remainingDatesStr}
     return `
       <div class="card-3d-container">
         <div class="card-top-bar">
-          <div class="card-counter">${isAr ? `الجلسات المتبقية: ${formatSessionsCount(allDayCards.length - currentCardIndex, isAr)} من اصل ${formatSessionsCount(allDayCards.length, isAr)}` : `Remaining: ${allDayCards.length - currentCardIndex} of ${allDayCards.length}`}</div>
+          <div class="card-counter">${isAr ? `اليوم ${currentCardIndex + 1} من ${allDayCards.length} — ${formatDate(day.date, 'card')}` : `Day ${currentCardIndex + 1} of ${allDayCards.length}`}</div>
           ${toggle3DBtn}
         </div>
         <!-- Day label -->
@@ -3051,7 +3060,7 @@ ${remainingDatesStr}
           html += `
             <div class="session-card ${session.completed ? 'completed' : ''}" data-date="${day.date}" data-session="${session.session_number}">
               <div class="session-card-top">
-                <span class="session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                <span class="session-badge ${diffLabel}">${modeEmoji} ${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
                 <span class="session-difficulty">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
               </div>
               <div class="session-course">${session.course_id} — ${session.module_id} (${courseName})</div>
@@ -3673,6 +3682,7 @@ ${remainingDatesStr}
   function continuePlan() {
     const plan = getCurrentPlan();
     if (!plan) return;
+    _cardIndexInitialized = false; 
     showStep(4);
     document.getElementById('loading-screen').classList.remove('active');
     document.getElementById('plan-content').style.display = '';
@@ -3682,6 +3692,7 @@ ${remainingDatesStr}
 
 
   function regenerate() {
+    _cardIndexInitialized = false; 
     const savedConfigRaw = localStorage.getItem('planner_config');
     if (savedConfigRaw) {
       try {
