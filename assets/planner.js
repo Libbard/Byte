@@ -754,23 +754,17 @@
     
     
     
+    
     const exampleSessions = [];
     for (let s = 1; s <= dailySessions; s++) {
-      const exModuleId = mps > 1
-        ? `M0${s} + M0${s + 1}`
-        : `M0${s}`;
       exampleSessions.push(
-        `{"sn":${s},"cid":"CS350","mid":"${exModuleId}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
+        `{"sn":${s},"cid":"CS350","mid":"M0${s}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
       );
     }
     const exampleSessionsStr = exampleSessions.join(',');
 
     
-    const moduleGroupingNote = mps > 1
-      ? `- كل جلسة تضم ${mps} وحدات مدمجة → اجعل module_id سلسلة مثل "M01 + M02"`
-      : mps < 1
-        ? `- كل وحدة تُقسَّم على ${Math.round(1 / mps)} جلسات → أضف تسمية الجزء مثل "M01 (1/2)"`
-        : `- كل جلسة تغطي وحدة واحدة فقط`;
+    const moduleGroupingNote = `- كل جلسة تغطي وحدة واحدة فقط (سنعالج التجميع/التقسيم تلقائياً بعد الاستلام)`;
 
     
     const availableDatesStr = availableDates.length > 0
@@ -794,7 +788,6 @@
 - تاريخ البدء: ${today}
 - تاريخ آخر اختبار: ${scheduleEndStr}
 - الجلسات اليومية المسموحة: ${dailySessions} (الحد الأقصى المطلق — لا تتجاوزه)
-- وحدات لكل جلسة: ${mps}
 
 ## ⚠️ التواريخ المتاحة للدراسة (يُحظر وضع جلسات خارجها)
 ${availableDatesStr}
@@ -932,6 +925,227 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
     }
 
     planData._wasTruncated = wasTruncated;
+    return planData;
+  }
+
+  
+  
+  
+  
+  function enforceModulesPerSession(planData) {
+    if (!planData?.days || !planData.config) return planData;
+    const mps = planData.config.modules_per_session || 1;
+    if (mps === 1) return planData; 
+
+    const dailySessions = planData.config.daily_sessions || 2;
+    const isAr = lang() === 'ar';
+
+    
+    const fixedDays = [];   
+    const studySessions = []; 
+
+    for (const day of planData.days) {
+      if (day.day_type === 'exam' || day.day_type === 'golden_review') {
+        fixedDays.push(day);
+        continue;
+      }
+      
+      for (const s of (day.sessions || [])) {
+        if (s.mode !== 'exam') {
+          studySessions.push({ ...s, _originalDate: day.date });
+        }
+      }
+    }
+
+    
+    let transformedSessions = [];
+
+    if (mps < 1) {
+      
+      const sessionsPerMod = Math.round(1 / mps);
+      for (const s of studySessions) {
+        const mid = s.module_id || '';
+        
+        if (mid.includes('(') && mid.includes('/')) {
+          transformedSessions.push(s);
+          continue;
+        }
+        for (let p = 0; p < sessionsPerMod; p++) {
+          transformedSessions.push({
+            ...s,
+            module_id: `${mid} (${p + 1}/${sessionsPerMod})`,
+            ai_note_ar: p === 0
+              ? (s.ai_note_ar || (isAr ? '📖 الجزء الأول — ركز على المفاهيم الأساسية' : ''))
+              : (isAr ? `📖 الجزء ${p + 1} — أكمل ما بدأته` : ''),
+            ai_note_en: p === 0
+              ? (s.ai_note_en || 'Part 1 — Focus on core concepts')
+              : `Part ${p + 1} — Continue where you left off`
+          });
+        }
+      }
+      console.log(`✂️ MPS=${mps}: Split ${studySessions.length} sessions → ${transformedSessions.length} parts`);
+    } else {
+      
+      const mergeCount = Math.round(mps);
+      
+      const byCourse = {};
+      const courseOrder = [];
+      for (const s of studySessions) {
+        const cid = s.course_id;
+        if (!byCourse[cid]) { byCourse[cid] = []; courseOrder.push(cid); }
+        byCourse[cid].push(s);
+      }
+      
+      const mergedByCourse = {};
+      for (const cid of courseOrder) {
+        mergedByCourse[cid] = [];
+        const sessions = byCourse[cid];
+        for (let k = 0; k < sessions.length; k += mergeCount) {
+          const group = sessions.slice(k, k + mergeCount);
+          if (group.length > 1) {
+            const mergedModIds = group.map(g =>
+              (g.module_id || '').replace(/\s*\(.*?\)/, '').trim()
+            );
+            mergedByCourse[cid].push({
+              ...group[0],
+              module_id: mergedModIds.join(' + '),
+              difficulty_avg: Math.round(group.reduce((sum, g) => sum + (g.difficulty_avg || 5), 0) / group.length),
+              must_know_today: group.flatMap(g => g.must_know_today || []).slice(0, 3),
+              must_know_today_en: group.flatMap(g => g.must_know_today_en || []).slice(0, 3),
+              must_memorize_today: group.flatMap(g => g.must_memorize_today || []).slice(0, 2),
+              must_memorize_today_en: group.flatMap(g => g.must_memorize_today_en || []).slice(0, 2),
+              ai_note_ar: isAr ? `📦 وحدات مدمجة: ${mergedModIds.join(' + ')}` : '',
+              ai_note_en: `📦 Combined modules: ${mergedModIds.join(' + ')}`
+            });
+          } else {
+            mergedByCourse[cid].push(group[0]);
+          }
+        }
+      }
+      
+      let maxLen = Math.max(...courseOrder.map(cid => mergedByCourse[cid].length));
+      for (let idx = 0; idx < maxLen; idx++) {
+        for (const cid of courseOrder) {
+          if (idx < mergedByCourse[cid].length) {
+            transformedSessions.push(mergedByCourse[cid][idx]);
+          }
+        }
+      }
+      console.log(`📦 MPS=${mps}: Merged ${studySessions.length} sessions → ${transformedSessions.length} combined`);
+    }
+
+    
+    const fixedDates = new Set(fixedDays.map(d => d.date));
+    const restDays = planData.config.rest_days || [];
+    const busyDates = planData.config.busy_dates || [];
+    const examDatesSet = new Set();
+    if (planData.config.courses) {
+      for (const [, cfg] of Object.entries(planData.config.courses)) {
+        if (cfg.exam_date) examDatesSet.add(cfg.exam_date);
+      }
+    }
+
+    
+    const allPlanDates = planData.days.map(d => d.date).sort();
+    const startStr = planData.config.start_date || allPlanDates[0] || getLocalTodayStr();
+    const endStr = allPlanDates[allPlanDates.length - 1] || startStr;
+    const startD = new Date(startStr + 'T00:00:00');
+    const endD = new Date(endStr + 'T00:00:00');
+    
+    const neededDays = Math.ceil(transformedSessions.length / dailySessions);
+    const totalCalDays = Math.max(
+      Math.ceil((endD - startD) / 86400000) + 1,
+      neededDays + 30 
+    );
+
+    const availableStudyDates = [];
+    for (let i = 0; i < totalCalDays; i++) {
+      const d = new Date(startD);
+      d.setDate(d.getDate() + i);
+      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      if (restDays.includes(dayName)) continue;
+      if (busyDates.includes(dateStr)) continue;
+      if (examDatesSet.has(dateStr)) continue;
+      if (fixedDates.has(dateStr)) continue; 
+
+      availableStudyDates.push(dateStr);
+    }
+
+    
+    
+    const courseExamDates = {};
+    if (planData.config.courses) {
+      for (const [cid, cfg] of Object.entries(planData.config.courses)) {
+        if (cfg.exam_date) courseExamDates[cid] = cfg.exam_date;
+      }
+    }
+
+    const newStudyDays = [];
+    let sessionIdx = 0;
+    const firstDate = planData.days[0]?.date || startStr;
+    const skippedSessions = []; 
+
+    for (const dateStr of availableStudyDates) {
+      if (sessionIdx >= transformedSessions.length) break;
+
+      const daySessions = [];
+      while (daySessions.length < dailySessions && sessionIdx < transformedSessions.length) {
+        const session = transformedSessions[sessionIdx];
+        const courseExam = courseExamDates[session.course_id];
+        
+        if (courseExam && dateStr >= courseExam) {
+          skippedSessions.push(session);
+          sessionIdx++;
+          continue;
+        }
+        daySessions.push({ ...session, session_number: daySessions.length + 1 });
+        sessionIdx++;
+      }
+
+      if (daySessions.length > 0) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const weekNum = Math.floor((d - new Date(firstDate + 'T00:00:00')) / (7 * 86400000)) + 1;
+        const hasReview = daySessions.some(s => s.mode === 'flash');
+        const hasStudy = daySessions.some(s => s.mode !== 'flash' && s.mode !== 'exam');
+
+        newStudyDays.push({
+          date: dateStr,
+          day_label: formatDate(dateStr, 'card'),
+          week_number: weekNum,
+          day_type: hasReview && hasStudy ? 'mixed' : hasReview ? 'light_review' : 'study',
+          sessions: daySessions,
+          daily_tip_ar: '', daily_tip_en: ''
+        });
+      }
+    }
+
+    
+    planData.days = [...fixedDays, ...newStudyDays].sort((a, b) => a.date.localeCompare(b.date));
+
+    
+    planData.plan_summary.total_days = planData.days.length;
+    planData.plan_summary.total_sessions = planData.days.reduce(
+      (sum, d) => sum + (d.sessions?.length || 0), 0
+    );
+
+    
+    const remaining = transformedSessions.length - sessionIdx;
+    const totalDropped = remaining + skippedSessions.length;
+    if (totalDropped > 0) {
+      if (!planData.critical_warnings) planData.critical_warnings = [];
+      if (remaining > 0) {
+        planData.critical_warnings.push({
+          type: 'mps_overflow',
+          message: isAr
+            ? `⚠️ لم يتسع الوقت لـ ${remaining} جلسة بعد تقسيم الوحدات`
+            : `⚠️ ${remaining} session(s) couldn't fit after module splitting`
+        });
+      }
+    }
+
+    console.log(`✅ enforceModulesPerSession: ${planData.days.length} days, ${planData.plan_summary.total_sessions} sessions`);
     return planData;
   }
 
@@ -1424,32 +1638,7 @@ ${remainingDatesStr}
 
       
       
-      const mps = userConfig.modules_per_session || 1;
-      if (mps < 1 && fullPlan.days) {
-        const sessionsPerMod = Math.round(1 / mps);
-        let nonCompliant = 0;
-        for (const day of fullPlan.days) {
-          if (!day.sessions || day.day_type === 'exam') continue;
-          for (const s of day.sessions) {
-            if (s.mode === 'exam') continue;
-            const mid = s.module_id || '';
-            
-            if (!mid.includes('(') && !mid.includes('/') && mid.match(/^M\d+$/)) {
-              nonCompliant++;
-            }
-          }
-        }
-        if (nonCompliant > 0) {
-          console.warn(`⚠️ AI did not split ${nonCompliant} sessions into ${sessionsPerMod} parts (mps=${mps})`);
-          if (!fullPlan.critical_warnings) fullPlan.critical_warnings = [];
-          fullPlan.critical_warnings.push({
-            type: 'mps_ignored',
-            message: isAr
-              ? `⚠️ الذكاء الاصطناعي لم يلتزم بتقسيم الوحدات (${mps} وحدة/جلسة). لنتائج أدق، استخدم "إنشاء بدون AI".`
-              : `⚠️ AI did not follow module splitting (${mps} per session). For accurate results, use "Generate without AI".`
-          });
-        }
-      }
+      enforceModulesPerSession(fullPlan);
 
       
       fullPlan.plan_summary.total_days = fullPlan.days.length;
