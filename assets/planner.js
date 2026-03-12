@@ -9,39 +9,7 @@
   // ─── Constants ────────────────────────────────────────────
   const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
-  const MAX_TOKENS = 32768; // ★ FIX: was 8192 — truncated plans to ~12 sessions. 32K allows full 28+ day plans
-
-  // ─── Env Loader (reads .env for local DeepSeek API) ──────
-  const EnvLoader = {
-    _cache: null,
-    async load() {
-      if (this._cache) return this._cache;
-      try {
-        const res = await fetch('../.env');
-        if (!res.ok) return {};
-        const text = await res.text();
-        const vars = {};
-        text.split('\n').forEach(line => {
-          line = line.trim();
-          if (!line || line.startsWith('#')) return;
-          const eq = line.indexOf('=');
-          if (eq > 0) vars[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
-        });
-        this._cache = vars;
-        return vars;
-      } catch (e) { return {}; }
-    },
-    async getDeepseekKey() {
-      const vars = await this.load();
-      return vars.DEEPSEEK_API_KEY || '';
-    }
-  };
-
-  // ─── API Config (local DeepSeek vs Cloudflare) ───────────
-  function isLocalServer() {
-    const h = window.location.hostname;
-    return h === 'localhost' || h === '127.0.0.1' || h === '' || window.location.protocol === 'file:';
-  }
+  const MAX_TOKENS = 8192; // DeepSeek hard limit per response — plan continues via multi-chunk
 
   // ─── JSON Repair Utilities (ported from reformat_b_gemini.py) ───
   function stripFences(t) {
@@ -179,6 +147,38 @@
 
   // ─── Init ─────────────────────────────────────────────────
   async function init() {
+    // Inject additional CSS for new features (study link button)
+    if (!document.getElementById('planner-extra-styles')) {
+      const style = document.createElement('style');
+      style.id = 'planner-extra-styles';
+      style.textContent = `
+        .card-study-link-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 6px 14px; margin-top: 6px;
+          font-size: 0.82rem; font-weight: 600;
+          color: var(--accent, #a78bfa); background: rgba(167,139,250,0.08);
+          border: 1px solid rgba(167,139,250,0.25); border-radius: 8px;
+          text-decoration: none; cursor: pointer; transition: all 0.2s;
+          justify-content: center; width: fit-content;
+        }
+        .card-study-link-btn:hover {
+          background: rgba(167,139,250,0.18); border-color: rgba(167,139,250,0.5);
+          transform: translateY(-1px); box-shadow: 0 2px 8px rgba(167,139,250,0.15);
+        }
+        .session-study-link-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 5px 12px; font-size: 0.8rem; font-weight: 600;
+          color: var(--accent, #a78bfa); background: rgba(167,139,250,0.08);
+          border: 1px solid rgba(167,139,250,0.25); border-radius: 8px;
+          text-decoration: none; cursor: pointer; transition: all 0.2s;
+        }
+        .session-study-link-btn:hover {
+          background: rgba(167,139,250,0.18); border-color: rgba(167,139,250,0.5);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     try {
       const r = await fetch(CURRICULUM_MAP_URL);
       if (!r.ok) throw new Error('Failed to load curriculum map');
@@ -188,11 +188,6 @@
         ? 'فشل تحميل بيانات المناهج — تأكد من وجود data/curriculum_map.json'
         : 'Failed to load curriculum data');
       return;
-    }
-
-    // Pre-load env for local API
-    if (isLocalServer()) {
-      await EnvLoader.load();
     }
 
     // Auto-open last plan if exists
@@ -506,7 +501,7 @@
     if (userConfig.plan_type !== 'general') {
       for (const [, cfg] of activeCourses) {
         if (cfg.exam_date) {
-          const d = new Date(cfg.exam_date);
+          const d = new Date(cfg.exam_date + 'T00:00:00');  // local timezone
           if (!earliestExam || d < earliestExam) earliestExam = d;
         }
       }
@@ -762,27 +757,21 @@
     // ★ FIX: COMPACT output format — no bilingual fields, no must_know/memorize
     // These fields are ALREADY in curriculum_map.json — we inject them locally after parsing
     // This reduces output size from ~650 tokens/day to ~150 tokens/day = 4x savings!
+    // ★ FIX: Always tell AI to use 1 module per session — we handle mps post-processing locally
     const exampleSessions = [];
     for (let s = 1; s <= dailySessions; s++) {
-      const exModuleId = mps > 1
-        ? `M0${s} + M0${s + 1}`
-        : `M0${s}`;
       exampleSessions.push(
-        `{"sn":${s},"cid":"CS350","mid":"${exModuleId}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
+        `{"sn":${s},"cid":"CS350","mid":"M0${s}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
       );
     }
     const exampleSessionsStr = exampleSessions.join(',');
 
-    // Determine module grouping instruction
-    const moduleGroupingNote = mps > 1
-      ? `- كل جلسة تضم ${mps} وحدات مدمجة → اجعل module_id سلسلة مثل "M01 + M02"`
-      : mps < 1
-        ? `- كل وحدة تُقسَّم على ${Math.round(1 / mps)} جلسات → أضف تسمية الجزء مثل "M01 (1/2)"`
-        : `- كل جلسة تغطي وحدة واحدة فقط`;
+    // Module grouping is handled post-AI — prompt always uses 1:1
+    const moduleGroupingNote = `- كل جلسة تغطي وحدة واحدة فقط (سنعالج التجميع/التقسيم تلقائياً بعد الاستلام)`;
 
     // بناء سطر التواريخ المتاحة الفعلية (بحد أقصى 90 تاريخ لتجنب overflow)
     const availableDatesStr = availableDates.length > 0
-      ? availableDates.slice(0, 90).join(', ')
+      ? availableDates.slice(0, 120).join(', ')
       : 'لم يتم تحديد نطاق زمني';
 
     // نطاق الجدول الزمني للعرض
@@ -802,7 +791,6 @@
 - تاريخ البدء: ${today}
 - تاريخ آخر اختبار: ${scheduleEndStr}
 - الجلسات اليومية المسموحة: ${dailySessions} (الحد الأقصى المطلق — لا تتجاوزه)
-- وحدات لكل جلسة: ${mps}
 
 ## ⚠️ التواريخ المتاحة للدراسة (يُحظر وضع جلسات خارجها)
 ${availableDatesStr}
@@ -940,6 +928,227 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
     }
 
     planData._wasTruncated = wasTruncated;
+    return planData;
+  }
+
+  // ── Enforce modules_per_session (Post-Processor) ──────────
+  // AI always generates 1 module/session. This function deterministically
+  // splits (mps<1) or merges (mps>1) sessions, then redistributes across
+  // available dates respecting daily_sessions. 100% reliable, no AI needed.
+  function enforceModulesPerSession(planData) {
+    if (!planData?.days || !planData.config) return planData;
+    const mps = planData.config.modules_per_session || 1;
+    if (mps === 1) return planData; // No transformation needed
+
+    const dailySessions = planData.config.daily_sessions || 2;
+    const isAr = lang() === 'ar';
+
+    // ── Step A: Separate fixed days (exam/golden) from study days ──
+    const fixedDays = [];   // Keep untouched
+    const studySessions = []; // Extract and transform
+
+    for (const day of planData.days) {
+      if (day.day_type === 'exam' || day.day_type === 'golden_review') {
+        fixedDays.push(day);
+        continue;
+      }
+      // Extract study sessions (non-exam) preserving order
+      for (const s of (day.sessions || [])) {
+        if (s.mode !== 'exam') {
+          studySessions.push({ ...s, _originalDate: day.date });
+        }
+      }
+    }
+
+    // ── Step B: Transform sessions based on mps ──
+    let transformedSessions = [];
+
+    if (mps < 1) {
+      // SPLIT: each session → multiple parts
+      const sessionsPerMod = Math.round(1 / mps);
+      for (const s of studySessions) {
+        const mid = s.module_id || '';
+        // Don't re-split already split sessions
+        if (mid.includes('(') && mid.includes('/')) {
+          transformedSessions.push(s);
+          continue;
+        }
+        for (let p = 0; p < sessionsPerMod; p++) {
+          transformedSessions.push({
+            ...s,
+            module_id: `${mid} (${p + 1}/${sessionsPerMod})`,
+            ai_note_ar: p === 0
+              ? (s.ai_note_ar || (isAr ? '📖 الجزء الأول — ركز على المفاهيم الأساسية' : ''))
+              : (isAr ? `📖 الجزء ${p + 1} — أكمل ما بدأته` : ''),
+            ai_note_en: p === 0
+              ? (s.ai_note_en || 'Part 1 — Focus on core concepts')
+              : `Part ${p + 1} — Continue where you left off`
+          });
+        }
+      }
+      console.log(`✂️ MPS=${mps}: Split ${studySessions.length} sessions → ${transformedSessions.length} parts`);
+    } else {
+      // MERGE: group same-course sessions → combine every N modules into 1 session
+      const mergeCount = Math.round(mps);
+      // Step 1: Group sessions by course, preserving internal order
+      const byCourse = {};
+      const courseOrder = [];
+      for (const s of studySessions) {
+        const cid = s.course_id;
+        if (!byCourse[cid]) { byCourse[cid] = []; courseOrder.push(cid); }
+        byCourse[cid].push(s);
+      }
+      // Step 2: Within each course, merge every mergeCount sessions
+      const mergedByCourse = {};
+      for (const cid of courseOrder) {
+        mergedByCourse[cid] = [];
+        const sessions = byCourse[cid];
+        for (let k = 0; k < sessions.length; k += mergeCount) {
+          const group = sessions.slice(k, k + mergeCount);
+          if (group.length > 1) {
+            const mergedModIds = group.map(g =>
+              (g.module_id || '').replace(/\s*\(.*?\)/, '').trim()
+            );
+            mergedByCourse[cid].push({
+              ...group[0],
+              module_id: mergedModIds.join(' + '),
+              difficulty_avg: Math.round(group.reduce((sum, g) => sum + (g.difficulty_avg || 5), 0) / group.length),
+              must_know_today: group.flatMap(g => g.must_know_today || []).slice(0, 3),
+              must_know_today_en: group.flatMap(g => g.must_know_today_en || []).slice(0, 3),
+              must_memorize_today: group.flatMap(g => g.must_memorize_today || []).slice(0, 2),
+              must_memorize_today_en: group.flatMap(g => g.must_memorize_today_en || []).slice(0, 2),
+              ai_note_ar: isAr ? `📦 وحدات مدمجة: ${mergedModIds.join(' + ')}` : '',
+              ai_note_en: `📦 Combined modules: ${mergedModIds.join(' + ')}`
+            });
+          } else {
+            mergedByCourse[cid].push(group[0]);
+          }
+        }
+      }
+      // Step 3: Round-robin interleave courses back together
+      let maxLen = Math.max(...courseOrder.map(cid => mergedByCourse[cid].length));
+      for (let idx = 0; idx < maxLen; idx++) {
+        for (const cid of courseOrder) {
+          if (idx < mergedByCourse[cid].length) {
+            transformedSessions.push(mergedByCourse[cid][idx]);
+          }
+        }
+      }
+      console.log(`📦 MPS=${mps}: Merged ${studySessions.length} sessions → ${transformedSessions.length} combined`);
+    }
+
+    // ── Step C: Build list of available study dates ──
+    const fixedDates = new Set(fixedDays.map(d => d.date));
+    const restDays = planData.config.rest_days || [];
+    const busyDates = planData.config.busy_dates || [];
+    const examDatesSet = new Set();
+    if (planData.config.courses) {
+      for (const [, cfg] of Object.entries(planData.config.courses)) {
+        if (cfg.exam_date) examDatesSet.add(cfg.exam_date);
+      }
+    }
+
+    // Determine date range from the original plan
+    const allPlanDates = planData.days.map(d => d.date).sort();
+    const startStr = planData.config.start_date || allPlanDates[0] || getLocalTodayStr();
+    const endStr = allPlanDates[allPlanDates.length - 1] || startStr;
+    const startD = new Date(startStr + 'T00:00:00');
+    const endD = new Date(endStr + 'T00:00:00');
+    // Extend range if we have more sessions than available slots
+    const neededDays = Math.ceil(transformedSessions.length / dailySessions);
+    const totalCalDays = Math.max(
+      Math.ceil((endD - startD) / 86400000) + 1,
+      neededDays + 30 // buffer for rest days
+    );
+
+    const availableStudyDates = [];
+    for (let i = 0; i < totalCalDays; i++) {
+      const d = new Date(startD);
+      d.setDate(d.getDate() + i);
+      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      if (restDays.includes(dayName)) continue;
+      if (busyDates.includes(dateStr)) continue;
+      if (examDatesSet.has(dateStr)) continue;
+      if (fixedDates.has(dateStr)) continue; // Don't overwrite fixed days
+
+      availableStudyDates.push(dateStr);
+    }
+
+    // ── Step D: Redistribute sessions into available dates ──
+    // ★ Respect exam dates: don't place a course's sessions on/after its exam
+    const courseExamDates = {};
+    if (planData.config.courses) {
+      for (const [cid, cfg] of Object.entries(planData.config.courses)) {
+        if (cfg.exam_date) courseExamDates[cid] = cfg.exam_date;
+      }
+    }
+
+    const newStudyDays = [];
+    let sessionIdx = 0;
+    const firstDate = planData.days[0]?.date || startStr;
+    const skippedSessions = []; // Sessions that can't be placed (past exam)
+
+    for (const dateStr of availableStudyDates) {
+      if (sessionIdx >= transformedSessions.length) break;
+
+      const daySessions = [];
+      while (daySessions.length < dailySessions && sessionIdx < transformedSessions.length) {
+        const session = transformedSessions[sessionIdx];
+        const courseExam = courseExamDates[session.course_id];
+        // Skip if this date is on/after the course's exam
+        if (courseExam && dateStr >= courseExam) {
+          skippedSessions.push(session);
+          sessionIdx++;
+          continue;
+        }
+        daySessions.push({ ...session, session_number: daySessions.length + 1 });
+        sessionIdx++;
+      }
+
+      if (daySessions.length > 0) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const weekNum = Math.floor((d - new Date(firstDate + 'T00:00:00')) / (7 * 86400000)) + 1;
+        const hasReview = daySessions.some(s => s.mode === 'flash');
+        const hasStudy = daySessions.some(s => s.mode !== 'flash' && s.mode !== 'exam');
+
+        newStudyDays.push({
+          date: dateStr,
+          day_label: formatDate(dateStr, 'card'),
+          week_number: weekNum,
+          day_type: hasReview && hasStudy ? 'mixed' : hasReview ? 'light_review' : 'study',
+          sessions: daySessions,
+          daily_tip_ar: '', daily_tip_en: ''
+        });
+      }
+    }
+
+    // ── Step E: Merge fixed days + new study days, sort by date ──
+    planData.days = [...fixedDays, ...newStudyDays].sort((a, b) => a.date.localeCompare(b.date));
+
+    // Update totals
+    planData.plan_summary.total_days = planData.days.length;
+    planData.plan_summary.total_sessions = planData.days.reduce(
+      (sum, d) => sum + (d.sessions?.length || 0), 0
+    );
+
+    // Warn if sessions were dropped
+    const remaining = transformedSessions.length - sessionIdx;
+    const totalDropped = remaining + skippedSessions.length;
+    if (totalDropped > 0) {
+      if (!planData.critical_warnings) planData.critical_warnings = [];
+      if (remaining > 0) {
+        planData.critical_warnings.push({
+          type: 'mps_overflow',
+          message: isAr
+            ? `⚠️ لم يتسع الوقت لـ ${remaining} جلسة بعد تقسيم الوحدات`
+            : `⚠️ ${remaining} session(s) couldn't fit after module splitting`
+        });
+      }
+    }
+
+    console.log(`✅ enforceModulesPerSession: ${planData.days.length} days, ${planData.plan_summary.total_sessions} sessions`);
     return planData;
   }
 
@@ -1276,7 +1485,7 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages,
-            max_tokens: 8192,
+            max_tokens: MAX_TOKENS,
             temperature: 0.3
           }),
           signal: controller.signal
@@ -1429,6 +1638,10 @@ ${remainingDatesStr}
 
       // ★ FIX: Inject exam days — ensures ALL exam dates appear correctly
       injectExamDays(fullPlan);
+
+      // ★ FIX: Enforce modules_per_session (deterministic post-processing)
+      // AI always generates 1 module/session. This splits/merges + redistributes.
+      enforceModulesPerSession(fullPlan);
 
       // Re-update totals after exam injection
       fullPlan.plan_summary.total_days = fullPlan.days.length;
@@ -1825,6 +2038,23 @@ ${remainingDatesStr}
     // SM-2 review intervals (in study-days, not calendar days)
     const SM2_INTERVALS = [1, 3, 7, 14, 30];
 
+    // ★ FIX 5: Helper — is this the last study day before an exam?
+    // Used in golden review check and exam day golden review injection
+    function _isLastStudyDayBefore(currentDate, examDate) {
+      let next = new Date(currentDate);
+      next.setDate(next.getDate() + 1);
+      while (next < examDate) {
+        if (isAvailable(next)) {
+          // Also check it's not itself an exam day
+          const nextStr = toLocalDateStr(next);
+          const isExamDay = courseExams.some(ce => ce.examDate && toLocalDateStr(ce.examDate) === nextStr);
+          if (!isExamDay) return false; // there IS a study day after this one
+        }
+        next.setDate(next.getDate() + 1);
+      }
+      return true; // this is genuinely the last study day
+    }
+
     for (let i = 0; i < allDates.length; i++) {
       const d = allDates[i];
       const dateStr = toLocalDateStr(d);
@@ -1849,14 +2079,46 @@ ${remainingDatesStr}
             completed: false
           };
         });
-        days.push({
-          date: dateStr, day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1, day_type: 'exam',
-          sessions: examSessions,
-          daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
-          daily_tip_en: '📝 Exam day — trust yourself and do your best!'
-        });
         examsToday.forEach(ce => finishedCourses.add(ce.cid));
+
+        // ★ FIX 9: Check if other courses need golden review on this exam day
+        const goldenForOthers = [];
+        for (const ce of courseExams) {
+          if (!ce.examDate || finishedCourses.has(ce.cid)) continue;
+          const daysUntilExam = Math.ceil((ce.examDate - d) / 86400000);
+          if (daysUntilExam >= 1 && daysUntilExam <= 5 && _isLastStudyDayBefore(d, ce.examDate)) {
+            goldenForOthers.push(ce);
+          }
+        }
+
+        if (goldenForOthers.length > 0) {
+          for (const ge of goldenForOthers) {
+            const cid = ge.cid;
+            const courseModules = [...(allModulesByCourse[cid] || [])].sort((a, b) => b.priority - a.priority);
+            const item = courseModules[0];
+            if (item) {
+              examSessions.push(buildSession(item, examSessions.length + 1, 'flash', {
+                ar: `⭐ مراجعة ذهبية — ${curriculumMap.courses[cid]?.name || cid}`,
+                en: `⭐ Golden review — ${curriculumMap.courses[cid]?.name_en || cid}`
+              }));
+            }
+          }
+          days.push({
+            date: dateStr, day_label: formatDate(dateStr, 'card'),
+            week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1, day_type: 'exam',
+            sessions: examSessions,
+            daily_tip_ar: '📝 يوم اختبار مع مراجعة للمادة التالية!',
+            daily_tip_en: '📝 Exam day + golden review for next exam!'
+          });
+        } else {
+          days.push({
+            date: dateStr, day_label: formatDate(dateStr, 'card'),
+            week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1, day_type: 'exam',
+            sessions: examSessions,
+            daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
+            daily_tip_en: '📝 Exam day — trust yourself and do your best!'
+          });
+        }
         continue;
       }
 
@@ -1868,13 +2130,14 @@ ${remainingDatesStr}
 
       if (liveCourseIds.length === 0 && studiedModules.length === 0) break;
 
-      // ── Golden review: 1-2 days before exam ──
-      // ★ FIX: only use PART of sessions for golden review, allow other courses to continue
+      // ── Golden review: last study day before exam ──
+      // ★ FIX 5: expanded window (up to 5 calendar days) + must be last available day
       let goldenExamCourses = [];
       for (const ce of courseExams) {
         if (!ce.examDate || finishedCourses.has(ce.cid)) continue;
         const daysUntilExam = Math.ceil((ce.examDate - d) / 86400000);
-        if (daysUntilExam >= 1 && daysUntilExam <= 2) {
+        // Expanded window: within 5 calendar days AND must be last available study day
+        if (daysUntilExam >= 1 && daysUntilExam <= 5 && _isLastStudyDayBefore(d, ce.examDate)) {
           goldenExamCourses.push(ce);
         }
       }
@@ -1924,7 +2187,7 @@ ${remainingDatesStr}
         if (sessions.length > 0) {
           days.push({
             date: dateStr, day_label: formatDate(dateStr, 'card'),
-            week_number: Math.floor(i / 7) + 1, day_type: 'golden_review',
+            week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1, day_type: 'golden_review',
             sessions,
             daily_tip_ar: `⭐ مراجعة ذهبية — الاختبار قريب!`,
             daily_tip_en: `⭐ Golden review — exam is near!`
@@ -2067,7 +2330,7 @@ ${remainingDatesStr}
         days.push({
           date: dateStr,
           day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1,
+          week_number: Math.floor((d - allDates[0]) / (7 * 86400000)) + 1,
           day_type: hasReview && hasStudy ? 'mixed' : hasReview ? 'light_review' : 'study',
           sessions,
           daily_tip_ar: '',
@@ -2077,6 +2340,73 @@ ${remainingDatesStr}
         dayCounter++;
       }
     }
+
+    // ══════════════════════════════════════════════════════════════
+    // STEP 6.5: POST-PROCESSING — Guarantee golden review for every exam
+    // ══════════════════════════════════════════════════════════════
+    // If no golden review exists for a course within 5 days before its exam,
+    // create one — even on a rest day if necessary (as exception).
+    for (const ce of courseExams) {
+      if (!ce.examDate) continue;
+      const examDateStr = toLocalDateStr(ce.examDate);
+
+      // Check if golden review already exists for this course before its exam
+      const hasGolden = days.some(day => {
+        const dayD = new Date(day.date + 'T00:00:00');
+        const diff = Math.ceil((ce.examDate - dayD) / 86400000);
+        return diff >= 1 && diff <= 5 &&
+          day.sessions?.some(s => s.course_id === ce.cid && (s.mode === 'flash' || s.mode === 'exam'));
+      });
+
+      if (!hasGolden) {
+        // Find the closest day before exam to inject golden review
+        for (let offset = 1; offset <= 3; offset++) {
+          const candidateD = new Date(ce.examDate);
+          candidateD.setDate(candidateD.getDate() - offset);
+          const candidateStr = toLocalDateStr(candidateD);
+
+          // Skip if it's another exam day
+          if (courseExams.some(other => other.examDate && toLocalDateStr(other.examDate) === candidateStr)) continue;
+          // Skip if before plan start
+          if (candidateD < startDate) continue;
+
+          const existingDay = days.find(dd => dd.date === candidateStr);
+          const courseModules = [...(allModulesByCourse[ce.cid] || [])].sort((a, b) => b.priority - a.priority);
+          const item = courseModules[0];
+          if (!item) break;
+
+          const goldenSession = buildSession(item, 1, 'flash', {
+            ar: `⭐ مراجعة ذهبية استثنائية — ${curriculumMap.courses[ce.cid]?.name || ce.cid}`,
+            en: `⭐ Special golden review — ${curriculumMap.courses[ce.cid]?.name_en || ce.cid}`
+          });
+
+          if (existingDay) {
+            // Add golden review session to existing day
+            goldenSession.session_number = existingDay.sessions.length + 1;
+            existingDay.sessions.push(goldenSession);
+            // Update day type if needed
+            if (existingDay.day_type === 'study') existingDay.day_type = 'mixed';
+          } else {
+            // Create new day (even on rest day — exception for pre-exam review)
+            const weekNum = allDates.length > 0
+              ? Math.floor((candidateD - allDates[0]) / (7 * 86400000)) + 1
+              : 1;
+            days.push({
+              date: candidateStr,
+              day_label: formatDate(candidateStr, 'card'),
+              week_number: weekNum,
+              day_type: 'golden_review',
+              sessions: [goldenSession],
+              daily_tip_ar: '⭐ مراجعة ذهبية استثنائية — اليوم أُضيف خصيصاً لأن الاختبار قريب!',
+              daily_tip_en: '⭐ Special golden review — this day was added because the exam is near!'
+            });
+          }
+          break; // found a candidate, stop looking
+        }
+      }
+    }
+    // Re-sort days after post-processing
+    days.sort((a, b) => a.date.localeCompare(b.date));
 
     // ══════════════════════════════════════════════════════════════
     // STEP 7: Build week labels with meaningful themes
@@ -2432,6 +2762,17 @@ ${remainingDatesStr}
     return `${count} جلسات`;
   }
 
+  // ─── Study Material URL Helper ────────────────────────────
+  function getStudyUrl(courseId, moduleId) {
+    if (!courseId || !moduleId) return null;
+    const cid = courseId.toLowerCase(); // CS350 → cs350
+    // Extract first module number from compound/part IDs like "M01 + M02" or "M01 (1/2)"
+    const match = moduleId.match(/M(\d+)/);
+    if (!match) return null;
+    const modNum = parseInt(match[1]); // M01 → 1
+    return `../${cid}/M${modNum}.html`;
+  }
+
   // ─── Card View (each session is its own 3D card) ────────────
   function renderCardView(plan, isAr) {
     if (allDayCards.length === 0) return `<p style="text-align:center;color:var(--text-muted)">${isAr ? 'لا توجد جلسات' : 'No sessions'}</p>`;
@@ -2508,6 +2849,11 @@ ${remainingDatesStr}
                       onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
                 ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
               </button>
+              ${session.mode !== 'exam' && getStudyUrl(session.course_id, session.module_id) ? `
+              <a class="card-study-link-btn" href="${getStudyUrl(session.course_id, session.module_id)}" 
+                 onclick="event.stopPropagation()" target="_blank" rel="noopener">
+                📚 ${isAr ? 'انتقل للدراسة' : 'Go to Study'}
+              </a>` : ''}
               ${(session.mode === 'flash' || day.day_type === 'golden_review') && !session.completed ? `
               <button class="card-snooze-btn"
                       onclick="event.stopPropagation(); Planner.snoozeSession('${day.date}',${session.session_number})">
@@ -2548,7 +2894,14 @@ ${remainingDatesStr}
         <div class="card-day-header ${isToday ? 'today' : ''} ${day.day_type === 'exam' ? 'day-type-exam' : day.day_type === 'golden_review' ? 'day-type-golden' : ''}">
           <div class="card-day-label-group">
             <span class="card-day-text">${formatDate(day.date, 'card')}</span>
-            ${day.day_type === 'exam' ? `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>` : ''}
+            ${day.day_type === 'exam' ? (() => {
+    const names = [...new Set((day.sessions || []).filter(s => s.mode === 'exam').map(s =>
+        curriculumMap?.courses?.[s.course_id]
+            ? (isAr ? curriculumMap.courses[s.course_id].name : curriculumMap.courses[s.course_id].name_en)
+            : s.course_id
+    ))].join(' · ');
+    return `<span class="day-type-badge exam-badge">📝 ${isAr ? 'اختبار' : 'Exam'}: ${names}</span>`;
+})() : ''}
             ${day.day_type === 'golden_review' ? `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>` : ''}
             ${day.day_type === 'mixed' ? `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>` : ''}
             ${day.day_type === 'light_review' ? `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>` : ''}
@@ -2655,7 +3008,14 @@ ${remainingDatesStr}
         // Day type badge (same as Card View)
         const dayType = day.day_type || 'study';
         let dayTypeBadge = '';
-        if (dayType === 'exam') dayTypeBadge = `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>`;
+        if (dayType === 'exam') {
+          const names = [...new Set((day.sessions || []).filter(s => s.mode === 'exam').map(s =>
+            curriculumMap?.courses?.[s.course_id]
+              ? (isAr ? curriculumMap.courses[s.course_id].name : curriculumMap.courses[s.course_id].name_en)
+              : s.course_id
+          ))].join(' · ');
+          dayTypeBadge = `<span class="day-type-badge exam-badge">📝 ${isAr ? 'اختبار' : 'Exam'}: ${names}</span>`;
+        }
         else if (dayType === 'golden_review') dayTypeBadge = `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>`;
         else if (dayType === 'mixed') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>`;
         else if (dayType === 'light_review') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>`;
@@ -2708,6 +3068,10 @@ ${remainingDatesStr}
                 <button class="session-action-btn session-complete-btn" onclick="Planner.toggleComplete('${day.date}',${session.session_number})">
                   ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
                 </button>
+                ${session.mode !== 'exam' && getStudyUrl(session.course_id, session.module_id) ? `
+                <a class="session-action-btn session-study-link-btn" href="${getStudyUrl(session.course_id, session.module_id)}" target="_blank" rel="noopener">
+                  📚 ${isAr ? 'انتقل للدراسة' : 'Go to Study'}
+                </a>` : ''}
                 ${showSnooze ? `<button class="session-action-btn session-snooze-btn" onclick="Planner.snoozeSession('${day.date}',${session.session_number})">
                   😴 ${isAr ? 'راحة' : 'Snooze'}
                   ${(session._snoozeCount || 0) > 0 ? `<span class="snooze-warning">(${session._snoozeCount}/2)</span>` : ''}
@@ -3407,7 +3771,7 @@ ${remainingDatesStr}
       if (dayD <= afterD) continue;                      // بعد اليوم الحالي فقط
       if (beforeD && dayD >= beforeD) continue;          // قبل يوم الاختبار
       if (day.day_type === 'exam') continue;             // ليس يوم اختبار
-      if (day.day_type === 'golden_review') continue;    // ليس مراجعة ذهبية
+      // golden_review مقبولة إذا فيها مساحة
       const currentCount = (day.sessions || []).length;
       if (currentCount < sessionsPerDay) return day;     // يوجد مجال
     }
