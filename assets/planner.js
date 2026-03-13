@@ -7,9 +7,15 @@
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────
-  const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';
+  // ── Worker URLs ─────────────────────────────────────────
+  // garden-ai worker  → used by garden.js (plain text, 1000 tokens)
+  // planner-ai worker → used by planner.js (JSON mode, 8192 tokens)
+  // If you deployed a single worker for both, set PLANNER_WORKER_URL = GARDEN_WORKER_URL
+  const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';   // garden worker (keep as-is)
+  const PLANNER_WORKER_URL    = 'https://planner-ai.xxli50xx.workers.dev';  // ← update after deploying planner-worker.js
+
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
-  const MAX_TOKENS = 32768; // ★ FIX: was 8192 — truncated plans to ~12 sessions. 32K allows full 28+ day plans
+  const MAX_TOKENS = 8192; // DeepSeek absolute hard cap — do NOT increase. Multi-chunk handles long plans.
 
   // ─── Env Loader (reads .env for local DeepSeek API) ──────
   const EnvLoader = {
@@ -1271,17 +1277,65 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
         const timeoutId = setTimeout(() =>
           controller.abort(new DOMException('Chunk timeout', 'TimeoutError')), TIMEOUT_MS);
 
-        const response = await fetch(CLOUDFLARE_WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages,
-            max_tokens: 8192,
-            temperature: 0.3
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        // ── Endpoint selection ──────────────────────────────
+        // Local (localhost / file://) → call DeepSeek directly using .env key
+        //   Avoids CORS issues and Cloudflare Worker round-trip during dev
+        // Remote (GitHub Pages etc.) → call planner Cloudflare Worker
+        let response;
+        const localKey = isLocalServer() ? await EnvLoader.getDeepseekKey() : '';
+
+        if (localKey) {
+          // Direct DeepSeek call — mirrors exactly what planner-worker does
+          response = await fetch('https://api.deepseek.com/chat/completions', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localKey },
+            body: JSON.stringify({
+              model:           'deepseek-chat',
+              messages:        messages.slice(0, 5),
+              max_tokens:      MAX_TOKENS,
+              temperature:     0.3,
+              stream:          false,
+              response_format: { type: 'json_object' },
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            const t = await response.text();
+            console.error(`Chunk ${chunkCount} DeepSeek direct error:`, response.status, t.substring(0, 200));
+            throw new Error('API error: ' + response.status);
+          }
+          // Normalize direct DeepSeek response to match worker shape { text, finish_reason, usage }
+          const raw = await response.json();
+          response = {
+            ok:   true,
+            json: async () => ({
+              text:          raw.choices?.[0]?.message?.content || '',
+              finish_reason: raw.choices?.[0]?.finish_reason   || 'unknown',
+              usage: {
+                input:      raw.usage?.prompt_tokens     || 0,
+                output:     raw.usage?.completion_tokens || 0,
+                max_output: 8192,
+              }
+            })
+          };
+        } else {
+          // Cloudflare Worker call — planner-worker.js handles json_object mode
+          response = await fetch(PLANNER_WORKER_URL, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages,
+              max_tokens:  MAX_TOKENS,
+              temperature: 0.3,
+              // response_format is handled by planner-worker.js automatically
+              // but sending it here makes the intent explicit for single-worker setups
+              response_format: { type: 'json_object' },
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
           const errBody = await response.text().catch(() => '');
