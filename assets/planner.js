@@ -12,7 +12,7 @@
   // planner-ai worker → used by planner.js (JSON mode, 8192 tokens)
   // If you deployed a single worker for both, set PLANNER_WORKER_URL = GARDEN_WORKER_URL
   const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';   // garden worker (keep as-is)
-  const PLANNER_WORKER_URL    = 'https://planner-ai.xxli50xx.workers.dev';  // ← update after deploying planner-worker.js
+  const PLANNER_WORKER_URL    = 'lively-block-fc3c.xxli50xx.workers.dev';  // ← update after deploying planner-worker.js
 
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
   const MAX_TOKENS = 8192; // DeepSeek absolute hard cap — do NOT increase. Multi-chunk handles long plans.
