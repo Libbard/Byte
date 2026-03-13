@@ -9,7 +9,7 @@
   
   
   const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';   
-  const PLANNER_WORKER_URL    = 'https://planner-ai.xxli50xx.workers.dev';  
+  const PLANNER_WORKER_URL    = 'lively-block-fc3c.xxli50xx.workers.dev';  
 
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
   const MAX_TOKENS = 8192; 
