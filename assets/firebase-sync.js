@@ -37,6 +37,7 @@
 
    
   const SYNC_KEY_LS = 'garden_sync_key';
+  const SYNC_DECLINED_LS = 'garden_sync_declined'; 
   const KEY_REGEX = /^[A-Z]{3}[0-9]{5,}$/;
   const COLLECTION = 'users';
   const AUTO_PUSH_DEBOUNCE_MS = 1500; 
@@ -745,7 +746,10 @@
       await initSync();
     });
 
-    skipBtn.addEventListener('click', () => overlay.remove());
+    skipBtn.addEventListener('click', () => {
+      localStorage.setItem(SYNC_DECLINED_LS, '1');
+      overlay.remove();
+    });
 
     
     overlay.addEventListener('click', e => {
@@ -884,6 +888,7 @@
       if (!confirm(t('changeKeyWarn'))) return;
       overlay.remove();
       localStorage.removeItem(SYNC_KEY_LS);
+      localStorage.removeItem(SYNC_DECLINED_LS); 
       userKey = null;
       showFirstRunModal();
     });
@@ -1022,6 +1027,8 @@
 
     const key = getKey();
     if (!key) {
+      
+      if (localStorage.getItem(SYNC_DECLINED_LS)) return;
       
       setTimeout(showFirstRunModal, 1200);
     } else {

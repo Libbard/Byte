@@ -4,9 +4,15 @@
   'use strict';
 
   
-  const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';
+  
+  
+  
+  
+  const CLOUDFLARE_WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';   
+  const PLANNER_WORKER_URL    = 'https://planner-ai.xxli50xx.workers.dev';  
+
   const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
-  const MAX_TOKENS = 32768; 
+  const MAX_TOKENS = 8192; 
 
   
   const EnvLoader = {
@@ -1268,17 +1274,65 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
         const timeoutId = setTimeout(() =>
           controller.abort(new DOMException('Chunk timeout', 'TimeoutError')), TIMEOUT_MS);
 
-        const response = await fetch(CLOUDFLARE_WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages,
-            max_tokens: 8192,
-            temperature: 0.3
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        
+        
+        
+        
+        let response;
+        const localKey = isLocalServer() ? await EnvLoader.getDeepseekKey() : '';
+
+        if (localKey) {
+          
+          response = await fetch('https://api.deepseek.com/chat/completions', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localKey },
+            body: JSON.stringify({
+              model:           'deepseek-chat',
+              messages:        messages.slice(0, 5),
+              max_tokens:      MAX_TOKENS,
+              temperature:     0.3,
+              stream:          false,
+              response_format: { type: 'json_object' },
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            const t = await response.text();
+            console.error(`Chunk ${chunkCount} DeepSeek direct error:`, response.status, t.substring(0, 200));
+            throw new Error('API error: ' + response.status);
+          }
+          
+          const raw = await response.json();
+          response = {
+            ok:   true,
+            json: async () => ({
+              text:          raw.choices?.[0]?.message?.content || '',
+              finish_reason: raw.choices?.[0]?.finish_reason   || 'unknown',
+              usage: {
+                input:      raw.usage?.prompt_tokens     || 0,
+                output:     raw.usage?.completion_tokens || 0,
+                max_output: 8192,
+              }
+            })
+          };
+        } else {
+          
+          response = await fetch(PLANNER_WORKER_URL, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages,
+              max_tokens:  MAX_TOKENS,
+              temperature: 0.3,
+              
+              
+              response_format: { type: 'json_object' },
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
           const errBody = await response.text().catch(() => '');
