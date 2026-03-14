@@ -251,10 +251,26 @@
 
     const activePlanKey = getActivePlanKey();
     const savedPlan = localStorage.getItem(activePlanKey);
-    if (savedPlan) {
-      try {
-        const plan = JSON.parse(savedPlan);
-        showStep(4);
+	if (savedPlan) {
+	  try {
+		const plan = JSON.parse(savedPlan);
+
+		
+		const fixKey = activePlanKey + '_urls_fixed';
+		if (!localStorage.getItem(fixKey)) {
+		  for (const day of (plan.days || [])) {
+			for (const session of (day.sessions || [])) {
+			  if (session.course_id && session.module_id) {
+				const num = parseInt(session.module_id.replace(/^M/i, ''));
+				session.study_url = `../${session.course_id}/M${String(num).padStart(2, '0')}.html`;
+			  }
+			}
+		  }
+		  localStorage.setItem(activePlanKey, JSON.stringify(plan));
+		  localStorage.setItem(fixKey, '1'); 
+		}
+
+		showStep(4);
         document.getElementById('loading-screen').classList.remove('active');
         document.getElementById('plan-content').style.display = '';
         renderPlan(plan);
@@ -1145,11 +1161,11 @@
     }
   }
 
-	function buildStudyURL(courseId, moduleId) {
-		const folder = courseId;
-		const num = parseInt(moduleId.replace(/^M/i, ''));
-		return `../${folder}/M${String(num).padStart(2, '0')}.html`;
-	}
+  function buildStudyURL(courseId, moduleId) {
+    const folder = courseId;
+    const num = parseInt(moduleId.replace(/^M/i, ''));
+    return `../${folder}/M${String(num).padStart(2, '0')}.html`;
+  }
 
   
   
