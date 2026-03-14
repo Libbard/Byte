@@ -2796,6 +2796,9 @@ ${baseRules}`;
           <button class="ai-action-btn" id="ai-copy-prompt">
             📋 ${aiT('نسخ البرومبت', 'Copy Prompt')}
           </button>
+          ${GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--regen" id="ai-regen" title="${aiT('تجاهل الكاش وتوليد شرح جديد', 'Bypass cache and generate a fresh explanation')}">
+            🔄 ${aiT('إعادة التوليد', 'Regenerate')}
+          </button>` : ''}
           <a class="ai-action-btn" href="https://chat.deepseek.com/" target="_blank" rel="noopener">
             🔵 DeepSeek
           </a>
@@ -2832,6 +2835,51 @@ ${baseRules}`;
         if (btn) { const old = btn.innerHTML; btn.innerHTML = `✅ ${aiT('تم النسخ!', 'Copied!')}`; setTimeout(() => btn.innerHTML = old, 1500); }
       });
     });
+
+     
+    function doRegen() {
+      const body = overlay.querySelector('#ai-body');
+      const regenBtn = overlay.querySelector('#ai-regen');
+      if (!body) return;
+
+      
+      try { localStorage.removeItem(cacheKey); } catch (e) { }
+
+      
+      if (regenBtn) {
+        regenBtn.disabled = true;
+        regenBtn.innerHTML = `<span class="ai-regen-spin">↻</span> ${aiT('جاري التوليد...', 'Generating...')}`;
+      }
+
+      body.innerHTML = `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${aiT('جاري توليد شرح جديد...', 'Generating a fresh explanation...')}</span></div>`;
+
+      callAI(systemPrompt, userMsg).then(result => {
+        if (!body) return;
+
+        
+        if (regenBtn) {
+          regenBtn.disabled = false;
+          regenBtn.innerHTML = `🔄 ${aiT('إعادة التوليد', 'Regenerate')}`;
+        }
+
+        if (result.error) {
+          const errMsg = result.errorData?.message_ar && currentLang === 'ar'
+            ? result.errorData.message_ar
+            : result.errorData?.message_en || aiT('فشل التوليد. حاول مرة أخرى.', 'Generation failed. Try again.');
+          body.innerHTML = `
+            <div class="ai-error">
+              <div class="ai-error-icon">⚠️</div>
+              <div class="ai-error-msg">${errMsg}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">${aiT('يمكنك نسخ البرومبت وإرساله يدوياً', 'You can copy the prompt and send it manually')}</div>
+            </div>`;
+        } else {
+          setAiCache(cacheKey, result.text);
+          body.innerHTML = `<div class="ai-fresh-badge">✨ ${aiT('شرح جديد', 'Fresh explanation')}</div><div class="ai-result">${formatAiText(result.text)}</div>`;
+        }
+      });
+    }
+
+    overlay.querySelector('#ai-regen')?.addEventListener('click', doRegen);
 
     
     if (!cached && GARDEN_AI_ENDPOINT) {
