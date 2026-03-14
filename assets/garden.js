@@ -2847,6 +2847,15 @@ ${baseRules}`;
     }
   }
 
+  /* ── SVG أيقونات الخدمات ── */
+  const _AI_ICON_HEADER = `<span class="ai-header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" fill="white"/><circle cx="4.5" cy="7.5" r="1.8" fill="rgba(255,255,255,0.75)"/><circle cx="19.5" cy="7.5" r="1.8" fill="rgba(255,255,255,0.75)"/><circle cx="4.5" cy="16.5" r="1.8" fill="rgba(255,255,255,0.75)"/><circle cx="19.5" cy="16.5" r="1.8" fill="rgba(255,255,255,0.75)"/><line x1="12" y1="9" x2="6" y2="8.2" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/><line x1="12" y1="9" x2="18" y2="8.2" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/><line x1="12" y1="15" x2="6" y2="15.8" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/><line x1="12" y1="15" x2="18" y2="15.8" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/></svg></span>`;
+
+  const _AI_ICON_DEEPSEEK = `<svg width="16" height="16" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="36" height="36" rx="9" fill="#1A56DB"/><g transform="translate(4.5,6.8) scale(0.97)"><path d="M26.5542 4.34393C26.2719 4.20592 26.1506 4.46928 25.9856 4.60268C25.9292 4.64581 25.8815 4.70216 25.8338 4.75391C25.4215 5.19438 24.9396 5.48361 24.3105 5.44911C23.3905 5.39736 22.605 5.68659 21.9104 6.39041C21.7626 5.52271 21.2721 5.00462 20.5258 4.67226C20.1353 4.49976 19.7403 4.32668 19.4666 3.95119C19.2757 3.68381 19.2234 3.38595 19.1279 3.09211C19.0669 2.91501 19.0066 2.73388 18.8024 2.7034C18.5811 2.6689 18.4942 2.85463 18.4074 3.00989C18.0601 3.6447 17.9255 4.34393 17.9388 5.05235C17.9692 6.64572 18.642 7.91478 19.9789 8.81756C20.1307 8.92106 20.1698 9.02457 20.1221 9.1758C20.0307 9.48688 19.9226 9.78876 19.8271 10.0998C19.7662 10.2982 19.6753 10.3419 19.4626 10.2551C18.7288 9.94862 18.0952 9.49493 17.5351 8.94694C16.5846 8.02749 15.7249 7.01258 14.6531 6.21791C14.4013 6.03218 14.1494 5.85967 13.8889 5.69522C12.7952 4.63316 14.0321 3.76086 14.3185 3.65736C14.618 3.54925 14.4225 3.17779 13.4548 3.18239C12.487 3.18642 11.6015 3.51073 10.4727 3.94256C10.3077 4.00754 10.1341 4.05469 9.95637 4.09379C8.93227 3.89944 7.86849 3.85631 6.75755 3.98167C4.66564 4.21455 2.99464 5.20358 1.7664 6.89183C0.290908 8.92106 -0.0564026 11.2269 0.368535 13.6316C0.815324 16.1663 2.10911 18.2645 4.09695 19.905C6.15838 21.6059 8.53263 22.4397 11.2415 22.2799C12.8867 22.185 14.7181 21.9648 16.7841 20.2161C17.3051 20.4755 17.8519 20.579 18.7587 20.6566C19.4574 20.7216 20.1302 20.6221 20.6511 20.514C21.4671 20.3415 21.4107 19.5859 21.1157 19.4473C18.7242 18.3335 19.2492 18.7866 18.772 18.4198C19.987 16.9822 21.8431 14.4269 22.4158 10.9474C22.4722 10.5633 22.5441 10.0222 22.5355 9.71114C22.5309 9.52138 22.5746 9.44778 22.7913 9.42593C23.3905 9.35693 23.9718 9.19305 24.506 8.89921C26.0557 8.05279 26.6808 6.6624 26.828 4.996C26.8498 4.74126 26.8234 4.47791 26.5542 4.34393ZM13.0511 19.3438C10.7332 17.5216 9.60906 16.9219 9.14502 16.9477C8.71089 16.9736 8.78909 17.4704 8.88454 17.7942C8.98459 18.1139 9.11455 18.3341 9.29683 18.6147C9.42276 18.8004 9.50959 19.0764 9.1709 19.284C8.42453 19.7458 7.12671 19.1288 7.06576 19.0983C5.55519 18.2087 4.29245 17.0346 3.40233 15.4285C2.54268 13.8829 2.04356 12.2245 1.96133 10.4546C1.93948 10.0274 2.06541 9.87617 2.49092 9.79854C3.05099 9.69504 3.62831 9.67319 4.1878 9.75541C6.55342 10.101 8.56713 11.1585 10.2554 12.8341C11.2191 13.788 11.9482 14.9283 12.6992 16.0421C13.4979 17.2249 14.357 18.3519 15.4512 19.276C15.8377 19.5997 16.1459 19.8458 16.4408 20.0275C15.5513 20.127 14.0666 20.1483 13.0511 19.345V19.3438ZM14.162 12.1981C14.162 12.0083 14.3139 11.8571 14.5048 11.8571C14.5479 11.8571 14.587 11.8657 14.6221 11.8784C14.6698 11.8956 14.7135 11.9215 14.748 11.9606C14.8089 12.021 14.8434 12.1072 14.8434 12.1981C14.8434 12.3878 14.6916 12.5391 14.5007 12.5391C14.3098 12.5391 14.162 12.3878 14.162 12.1981ZM17.6127 13.968C17.3913 14.0588 17.17 14.1365 16.9572 14.1451C16.6271 14.1623 16.2672 14.0284 16.0717 13.8645C15.7681 13.6098 15.5507 13.4671 15.4599 13.0227C15.4208 12.8329 15.4426 12.5391 15.4771 12.3706C15.5553 12.0078 15.4685 11.7749 15.2126 11.5633C15.0045 11.3908 14.7394 11.343 14.4484 11.343C14.3397 11.343 14.2403 11.2953 14.1661 11.2568C14.0447 11.1964 13.9447 11.0452 14.0401 10.8594C14.0706 10.7991 14.2184 10.6524 14.2529 10.6266C14.6479 10.4017 15.1034 10.4753 15.5248 10.6438C15.9153 10.8037 16.2108 11.0969 16.6358 11.5115C17.0699 12.0124 17.1481 12.1504 17.3954 12.5264C17.5909 12.8203 17.7686 13.1221 17.8905 13.4677C17.9641 13.6834 17.8686 13.8599 17.6127 13.968Z" fill="white"/></g></svg>`;
+
+  const _AI_ICON_CHATGPT = `<svg width="16" height="16" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="36" height="36" rx="9" fill="#0d0d0d"/><path d="M18 9C13.6 9 10 12.3 10 16.4C10 18.9 11.3 21.1 13.3 22.5L12.5 26L16 24.3C16.6 24.5 17.3 24.6 18 24.6C22.4 24.6 26 21.3 26 17.2C26 13.1 22.4 9 18 9Z" fill="white" opacity="0.95"/><circle cx="14.5" cy="16.8" r="1.5" fill="#0d0d0d"/><circle cx="18" cy="16.8" r="1.5" fill="#0d0d0d"/><circle cx="21.5" cy="16.8" r="1.5" fill="#0d0d0d"/></svg>`;
+
+  const _AI_ICON_GEMINI = `<svg width="16" height="16" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="36" height="36" rx="9" fill="white"/><rect width="36" height="36" rx="9" stroke="#e8e8e8" stroke-width="0.5"/><path d="M18 5L20.2 15.8L31 18L20.2 20.2L18 31L15.8 20.2L5 18L15.8 15.8Z" fill="url(#ai-gem-grad)"/><defs><linearGradient id="ai-gem-grad" x1="5" y1="5" x2="31" y2="31" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4285F4"/><stop offset="45%" stop-color="#9C27B0"/><stop offset="100%" stop-color="#EA4335"/></linearGradient></defs></svg>`;
+
   /* ── بناء النافذة ── */
   function showAiModal(cardData) {
     // إزالة أي نافذة سابقة
@@ -2862,7 +2871,7 @@ ${baseRules}`;
     overlay.innerHTML = `
       <div class="ai-modal">
         <div class="ai-modal-header">
-          <h3>✨ ${aiT('DeepSeek يشرح', 'AI Explanation')}</h3>
+          <h3>${_AI_ICON_HEADER} ${aiT('DeepSeek يشرح', 'AI Explanation')}</h3>
           <button class="ai-modal-close" id="ai-close">✕</button>
         </div>
         <div class="ai-modal-body" id="ai-body">
@@ -2873,22 +2882,25 @@ ${baseRules}`;
         </div>
         <div class="ai-modal-footer" id="ai-footer">
           <button class="ai-action-btn" id="ai-copy-prompt">
-            📋 ${aiT('نسخ البرومبت', 'Copy Prompt')}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            ${aiT('نسخ البرومبت', 'Copy Prompt')}
           </button>
           ${GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--regen" id="ai-regen" title="${aiT('تجاهل الكاش وتوليد شرح جديد', 'Bypass cache and generate a fresh explanation')}">
-            🔄 ${aiT('إعادة التوليد', 'Regenerate')}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            ${aiT('إعادة التوليد', 'Regenerate')}
           </button>` : ''}
           <a class="ai-action-btn" href="https://chat.deepseek.com/" target="_blank" rel="noopener">
-            🔵 DeepSeek
+            ${_AI_ICON_DEEPSEEK} DeepSeek
           </a>
           <a class="ai-action-btn" href="https://chatgpt.com/" target="_blank" rel="noopener">
-            🟢 ChatGPT
+            ${_AI_ICON_CHATGPT} ChatGPT
           </a>
           <a class="ai-action-btn" href="https://gemini.google.com/" target="_blank" rel="noopener">
-            🔷 Gemini
+            ${_AI_ICON_GEMINI} Gemini
           </a>
           ${!cached && GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--primary" id="ai-retry" style="display:none">
-            🔄 ${aiT('إعادة المحاولة', 'Retry')}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            ${aiT('إعادة المحاولة', 'Retry')}
           </button>` : ''}
         </div>
       </div>`;
@@ -2915,49 +2927,34 @@ ${baseRules}`;
       });
     });
 
-    /* ── إعادة التوليد (تجاوز الكاش دائماً) ───────────────────────── */
+    /* ── إعادة التوليد (تجاوز الكاش دائماً) ── */
     function doRegen() {
       const body = overlay.querySelector('#ai-body');
       const regenBtn = overlay.querySelector('#ai-regen');
       if (!body) return;
-
-      // حذف الكاش القديم قبل الطلب الجديد
       try { localStorage.removeItem(cacheKey); } catch (e) { }
-
-      // تعطيل الزر أثناء التحميل
       if (regenBtn) {
         regenBtn.disabled = true;
         regenBtn.innerHTML = `<span class="ai-regen-spin">↻</span> ${aiT('جاري التوليد...', 'Generating...')}`;
       }
-
       body.innerHTML = `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${aiT('جاري توليد شرح جديد...', 'Generating a fresh explanation...')}</span></div>`;
-
       callAI(systemPrompt, userMsg).then(result => {
         if (!body) return;
-
-        // إعادة تفعيل الزر دائماً
         if (regenBtn) {
           regenBtn.disabled = false;
-          regenBtn.innerHTML = `🔄 ${aiT('إعادة التوليد', 'Regenerate')}`;
+          regenBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> ${aiT('إعادة التوليد', 'Regenerate')}`;
         }
-
         if (result.error) {
           const errMsg = result.errorData?.message_ar && currentLang === 'ar'
             ? result.errorData.message_ar
             : result.errorData?.message_en || aiT('فشل التوليد. حاول مرة أخرى.', 'Generation failed. Try again.');
-          body.innerHTML = `
-            <div class="ai-error">
-              <div class="ai-error-icon">⚠️</div>
-              <div class="ai-error-msg">${errMsg}</div>
-              <div style="font-size:0.8rem;color:var(--text-muted)">${aiT('يمكنك نسخ البرومبت وإرساله يدوياً', 'You can copy the prompt and send it manually')}</div>
-            </div>`;
+          body.innerHTML = `<div class="ai-error"><div class="ai-error-icon">⚠️</div><div class="ai-error-msg">${errMsg}</div></div>`;
         } else {
           setAiCache(cacheKey, result.text);
           body.innerHTML = `<div class="ai-fresh-badge">✨ ${aiT('شرح جديد', 'Fresh explanation')}</div><div class="ai-result">${formatAiText(result.text)}</div>`;
         }
       });
     }
-
     overlay.querySelector('#ai-regen')?.addEventListener('click', doRegen);
 
     // لو مافيه cache → اطلب من API
@@ -2965,7 +2962,6 @@ ${baseRules}`;
       callAI(systemPrompt, userMsg).then(result => {
         const body = overlay.querySelector('#ai-body');
         if (!body) return;
-
         if (result.error) {
           const errMsg = result.errorData?.message_ar && currentLang === 'ar'
             ? result.errorData.message_ar
@@ -2984,7 +2980,6 @@ ${baseRules}`;
         }
       });
     } else if (!cached && !GARDEN_AI_ENDPOINT) {
-      // لا يوجد endpoint — فقط نسخ البرومبت
       const body = overlay.querySelector('#ai-body');
       if (body) body.innerHTML = `
         <div class="ai-error">
@@ -2993,7 +2988,7 @@ ${baseRules}`;
         </div>`;
     }
 
-    // Retry (عند الخطأ في أول تحميل)
+    // Retry
     overlay.querySelector('#ai-retry')?.addEventListener('click', () => {
       const body = overlay.querySelector('#ai-body');
       if (body) body.innerHTML = `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${aiT('جاري الشرح...', 'Generating explanation...')}</span></div>`;
