@@ -6,15 +6,11 @@
   
   
   
-  
-  
-  const CLOUDFLARE_WORKER_URL = 'https://lively-block-fc3c.xxli50xx.workers.dev';   
-  const PLANNER_WORKER_URL    = 'https://lively-block-fc3c.xxli50xx.workers.dev';  
+  const CLOUDFLARE_WORKER_URL = 'https://lively-block-fc3c.xxli50xx.workers.dev';
+  const PLANNER_WORKER_URL    = 'https://lively-block-fc3c.xxli50xx.workers.dev';
+  const CURRICULUM_MAP_URL    = '../data/curriculum_map.json';
+  const MAX_TOKENS            = 8192;
 
-  const CURRICULUM_MAP_URL = '../data/curriculum_map.json';
-  const MAX_TOKENS = 8192; 
-
-  
   const EnvLoader = {
     _cache: null,
     async load() {
@@ -40,12 +36,13 @@
     }
   };
 
-  
   function isLocalServer() {
     const h = window.location.hostname;
     return h === 'localhost' || h === '127.0.0.1' || h === '' || window.location.protocol === 'file:';
   }
 
+  
+  
   
   function stripFences(t) {
     t = t.trim();
@@ -68,33 +65,27 @@
         if (stack.length && stack[stack.length - 1] === ch) stack.pop();
       }
     }
-    
     let result = text.replace(/,\s*$/, '');
     return result + stack.reverse().join('');
   }
 
   function tryParseJSON(text) {
+    if (!text) return null;
     text = stripFences(text);
-    
     try { return JSON.parse(text); } catch (e) {   }
-    
     const match = text.match(/\{[\s\S]*\}/);
     if (match) {
       try { return JSON.parse(match[0]); } catch (e) {   }
-      
       try { return JSON.parse(autoClose(match[0])); } catch (e) {   }
     }
-    
     try { return JSON.parse(autoClose(text)); } catch (e) {   }
     return null;
   }
 
-  const SELF_RATING_MAP = {
-    excellent: 0.85,
-    good: 0.55,
-    weak: 0.20,
-    not_studied: 0.0
-  };
+  
+  
+  
+  const SELF_RATING_MAP = { excellent: 0.85, good: 0.55, weak: 0.20, not_studied: 0.0 };
 
   const RATING_LABELS = {
     ar: { excellent: 'ممتاز', good: 'جيد', weak: 'ضعيف', not_studied: 'لم أدرسها' },
@@ -113,44 +104,30 @@
 
   const DAY_MAP = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 
-  
-  
-  
   function getLocalTodayStr() {
     const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  
-  
-  
-  
   function formatDate(dateStr, mode) {
-    
     const parts = (dateStr || '').split('-');
     const d = parts.length === 3
       ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
       : new Date(dateStr);
     const day = d.getDate();
-    const month = d.getMonth(); 
+    const month = d.getMonth();
     const year = d.getFullYear();
     const isAr = lang() === 'ar';
     const dayName = isAr ? DAY_NAMES.ar[d.getDay()] : DAY_NAMES.en[d.getDay()];
 
     switch (mode) {
       case 'card':
-        
         return isAr
           ? `${dayName} · ${day} ${MONTH_NAMES.ar[month]}`
           : `${dayName} · ${MONTH_NAMES.en[month]} ${day}`;
       case 'table':
-        
         return `${day}/${month + 1}`;
       case 'input':
-        
         return `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`;
       default:
         return dateStr;
@@ -158,14 +135,92 @@
   }
 
   
+  
+  
+  function toLocalDateStr(d) {
+    if (typeof d === 'string') return d;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function addDaysToDate(dateStr, n) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return toLocalDateStr(d);
+  }
+
+  function subtractDays(dateStr, n) {
+    return addDaysToDate(dateStr, -n);
+  }
+
+  function getDayName(d) {
+    const names = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const date = typeof d === 'string' ? new Date(d + 'T00:00:00') : d;
+    return names[date.getDay()];
+  }
+
+  function dateDiffDays(d1, d2) {
+    return Math.round((new Date(d1 + 'T00:00:00') - new Date(d2 + 'T00:00:00')) / 86400000);
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function formatDateDisplay(dateStr) { return formatDate(dateStr, 'input'); }
+
+  
+  
+  
+  function getActiveCourses(config) {
+    return Object.entries(config.courses || {}).filter(([, c]) => c.active);
+  }
+
+  function getLatestExamDate(config) {
+    let latest = null;
+    for (const [, cfg] of getActiveCourses(config)) {
+      if (cfg.exam_date && (!latest || cfg.exam_date > latest)) latest = cfg.exam_date;
+    }
+    return latest;
+  }
+
+  function getFirstExamDate(config) {
+    let first = null;
+    for (const [, cfg] of getActiveCourses(config)) {
+      if (cfg.exam_date && (!first || cfg.exam_date < first)) first = cfg.exam_date;
+    }
+    return first;
+  }
+
+  function isExamDate(dateStr, config) {
+    for (const [, cfg] of getActiveCourses(config)) {
+      if (cfg.exam_date === dateStr) return true;
+    }
+    return false;
+  }
+
+  function getExamCoursesOnDate(dateStr, config, cMap) {
+    const result = [];
+    const isAr = lang() === 'ar';
+    for (const [cid, cfg] of getActiveCourses(config)) {
+      if (cfg.exam_date !== dateStr) continue;
+      result.push({
+        cid,
+        name: cMap?.courses?.[cid]?.name || cid,
+        name_en: cMap?.courses?.[cid]?.name_en || cid
+      });
+    }
+    return result;
+  }
+
+  
+  
+  
   let curriculumMap = null;
   let currentStep = 1;
-  let cardViewMode = 'cards'; 
+  let cardViewMode = 'cards';
   let currentCardIndex = 0;
-  let _cardIndexInitialized = false; 
-  let allDayCards = [];  
-  let use3D = true; 
-  let _loadingIntervals = []; 
+  let _cardIndexInitialized = false;
+  let allDayCards = [];
+  let use3D = true;
+  let _loadingIntervals = [];
   let userConfig = {
     plan_type: null,
     daily_sessions: 2,
@@ -180,7 +235,6 @@
     return localStorage.getItem('garden_lang') || 'ar';
   }
 
-  
   async function init() {
     try {
       const r = await fetch(CURRICULUM_MAP_URL);
@@ -193,12 +247,8 @@
       return;
     }
 
-    
-    if (isLocalServer()) {
-      await EnvLoader.load();
-    }
+    if (isLocalServer()) await EnvLoader.load();
 
-    
     const activePlanKey = getActivePlanKey();
     const savedPlan = localStorage.getItem(activePlanKey);
     if (savedPlan) {
@@ -211,32 +261,16 @@
         return;
       } catch (e) {   }
     }
-
-    
     showStep(1);
   }
 
   
+  
+  
   function getActivePlanKey() {
-    
-    const midPlan = localStorage.getItem('study_plan_midterm');
-    if (midPlan) {
-      try {
-        JSON.parse(midPlan); 
-        return 'study_plan_midterm';
-      } catch (e) {
-        localStorage.removeItem('study_plan_midterm');
-      }
-    }
-    
-    const finalPlan = localStorage.getItem('study_plan_final');
-    if (finalPlan) {
-      try {
-        JSON.parse(finalPlan);
-        return 'study_plan_final';
-      } catch (e) {
-        localStorage.removeItem('study_plan_final');
-      }
+    for (const key of ['study_plan_midterm', 'study_plan_final']) {
+      const raw = localStorage.getItem(key);
+      if (raw) { try { JSON.parse(raw); return key; } catch (e) { localStorage.removeItem(key); } }
     }
     return 'study_plan_general';
   }
@@ -247,7 +281,6 @@
     return 'study_plan_general';
   }
 
-  
   function showStep(n) {
     currentStep = n;
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -255,13 +288,9 @@
     const el = document.getElementById(steps[n - 1]);
     if (el) el.classList.add('active');
 
-    
     const wizardProgress = document.getElementById('wizard-progress');
-    if (wizardProgress) {
-      wizardProgress.style.display = (n === 4) ? 'none' : '';
-    }
+    if (wizardProgress) wizardProgress.style.display = (n === 4) ? 'none' : '';
 
-    
     const cp = document.getElementById('continue-prompt');
     if (cp) cp.style.display = 'none';
 
@@ -269,18 +298,30 @@
     if (n === 2) buildCourseList();
     if (n === 3) {
       updateFeasibility();
-      renderBusyDates(); 
-      
+      renderBusyDates();
       document.querySelectorAll('.rest-day-check').forEach(el => {
         const day = el.dataset.day;
         el.classList.toggle('checked', userConfig.rest_days.includes(day));
       });
-      
       const startInput = document.getElementById('start-date-input');
       if (startInput) {
         const restored = userConfig.start_date || getLocalTodayStr();
         startInput.value = restored;
         userConfig.start_date = restored;
+      }
+      
+      if (!document.getElementById('rest-days-note')) {
+        const isAr = lang() === 'ar';
+        const container = document.querySelector('.rest-day-checks');
+        if (container && container.parentElement) {
+          const note = document.createElement('div');
+          note.id = 'rest-days-note';
+          note.className = 'field-note';
+          note.innerHTML = isAr
+            ? '💡 أيام الراحة تُطبَّق <strong>فقط قبل أول اختبار</strong>. خلال فترة الاختبارات، كل الأيام متاحة للمذاكرة والمراجعة الذهبية. استخدم "أيام مشغولة" لاستثناء أيام محددة.'
+            : '💡 Rest days apply <strong>only before the first exam</strong>. During exams, all days are available. Use "Busy dates" to exclude specific days.';
+          container.parentElement.appendChild(note);
+        }
       }
     }
   }
@@ -321,7 +362,6 @@
   
   function selectPlanType(type) {
     userConfig.plan_type = type;
-    
     userConfig.courses = {};
     document.querySelectorAll('.plan-type-card').forEach(c => {
       c.classList.toggle('selected', c.dataset.planType === type);
@@ -340,9 +380,7 @@
       const modules = Object.keys(courseData.modules);
       const isAr = lang() === 'ar';
 
-      
       if (!userConfig.courses[courseId]) {
-        
         const defaultModules = userConfig.plan_type === 'midterm'
           ? modules.slice(0, Math.min(6, modules.length))
           : [...modules];
@@ -358,11 +396,9 @@
       }
 
       const cfg = userConfig.courses[courseId];
-
       const block = document.createElement('div');
       block.className = 'course-block' + (cfg.active ? ' active-course' : '');
       block.id = 'course-' + courseId;
-
       const title = isAr ? courseData.name : courseData.name_en;
 
       block.innerHTML = `
@@ -376,8 +412,7 @@
           <div class="course-field">
             <label>${isAr ? 'تاريخ الامتحان' : 'Exam Date'}</label>
             <input type="date" value="${cfg.exam_date}" onchange="Planner.setExamDate('${courseId}', this.value)">
-          </div>
-          ` : ''}
+          </div>` : ''}
           <div class="course-field">
             <label>${isAr ? 'الوحدات المشمولة' : 'Included Modules'}</label>
             <div class="module-checks">
@@ -393,9 +428,8 @@
             <label>${isAr ? 'تقييمك لنفسك في كل وحدة' : 'Self-rating per module'}</label>
             <div class="rating-grid">
               ${cfg.included_modules.map(m => {
-        const mod = courseData.modules[m];
-        const modTitle = mod ? (isAr ? mod.title : mod.title_en) : m;
-        return `
+                const mod = courseData.modules[m];
+                return `
                 <div class="rating-row">
                   <span class="rating-module-label">${m}</span>
                   <div class="rating-options">
@@ -407,8 +441,8 @@
                       </div>
                     `).join('')}
                   </div>
-                </div>
-              `}).join('')}
+                </div>`;
+              }).join('')}
             </div>
           </div>
         </div>
@@ -432,14 +466,8 @@
   function toggleModule(courseId, modId, el) {
     const cfg = userConfig.courses[courseId];
     const idx = cfg.included_modules.indexOf(modId);
-    if (idx >= 0) {
-      cfg.included_modules.splice(idx, 1);
-      el.classList.remove('checked');
-    } else {
-      cfg.included_modules.push(modId);
-      cfg.included_modules.sort();
-      el.classList.add('checked');
-    }
+    if (idx >= 0) { cfg.included_modules.splice(idx, 1); el.classList.remove('checked'); }
+    else { cfg.included_modules.push(modId); cfg.included_modules.sort(); el.classList.add('checked'); }
   }
 
   function setRating(courseId, modId, rating, el) {
@@ -496,7 +524,7 @@
     const statsEl = document.getElementById('feasibility-stats');
     const statusEl = document.getElementById('feasibility-status');
 
-    const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
+    const activeCourses = getActiveCourses(userConfig);
     if (activeCourses.length === 0) {
       statsEl.innerHTML = '';
       statusEl.textContent = isAr ? 'فعّل مادة واحدة على الأقل' : 'Enable at least one course';
@@ -504,7 +532,7 @@
       return;
     }
 
-    
+    const firstExam = getFirstExamDate(userConfig);
     let earliestExam = null;
     if (userConfig.plan_type !== 'general') {
       for (const [, cfg] of activeCourses) {
@@ -517,26 +545,27 @@
 
     const today = userConfig.start_date ? new Date(userConfig.start_date + 'T00:00:00') : new Date();
     today.setHours(0, 0, 0, 0);
-    let totalDays = earliestExam ? Math.max(1, Math.ceil((earliestExam - today) / 86400000)) : 90;
+    const latestExam = getLatestExamDate(userConfig);
+    let totalDays = latestExam
+      ? Math.max(1, Math.ceil((new Date(latestExam + 'T00:00:00') - today) / 86400000))
+      : 90;
 
-    
     let availDays = 0;
     for (let i = 0; i < totalDays; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
-      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      if (userConfig.rest_days.includes(dayName)) continue;
+      const dayName = getDayName(d);
+      const dateStr = toLocalDateStr(d);
       
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      if (userConfig.busy_dates.includes(dateStr)) continue;
+      if (userConfig.rest_days.includes(dayName) && (!firstExam || dateStr < firstExam)) continue;
+      if ((userConfig.busy_dates || []).includes(dateStr)) continue;
+      if (isExamDate(dateStr, userConfig)) continue;
       availDays++;
     }
 
     const availSessions = availDays * userConfig.daily_sessions;
-
-    
     let criticalModules = 0, reviewModules = 0;
-    for (const [courseId, cfg] of activeCourses) {
+    for (const [, cfg] of activeCourses) {
       for (const m of cfg.included_modules) {
         const r = cfg.self_rating[m] || 'not_studied';
         if (r === 'weak' || r === 'not_studied') criticalModules++;
@@ -564,580 +593,978 @@
   }
 
   
-  const DEEPSEEK_SYSTEM = `أنت مستشار أكاديمي ذكي متخصص في تحسين خطط الدراسة لطلاب علوم الحاسوب الجامعية.
-مبادئك:
-1. الترتيب التسلسلي إلزامي: ابدأ من M01 ثم M02 ثم M03 لكل مادة — لا تقفز! M01 دائماً أساسية.
-2. التبديل الذكي بين المواد (interleaving): لا تُكمّل مادة كاملة قبل الأخرى.
-3. أولوية المتطلبات (prerequisites): لا تدرس موضوعاً قبل متطلباته.
-4. التصاعد التدريجي: ابدأ بالسهل، تصاعد تدريجياً.
-5. المراجعة المتباعدة: راجع كل وحدة بعد 1 يوم، ثم 3 أيام، ثم 7 أيام.
-6. الواقعية: احترم عدد الجلسات والوقت المتاح بدقة.
-7. يوم قبل الامتحان = مراجعة خفيفة فقط (Flash Mode).
-8. priority تحدد mode الدراسة (deep/full/flash) وليس ترتيب المودلات.
-أجب بـ JSON نظيف فقط.`;
+  
+  
+  
 
-  function buildPrompt() {
-    const isAr = lang() === 'ar';
-    const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
-    const dailySessions = userConfig.daily_sessions || 2;
-    const mps = userConfig.modules_per_session || 1;
+  
+  function buildLocalSkeleton(config, cMap) {
+    const start = new Date(config.start_date + 'T00:00:00');
+    const latestExam = getLatestExamDate(config);
+    const end = latestExam ? new Date(latestExam + 'T00:00:00') : new Date(start.getTime() + 90 * 86400000);
+    const firstExam = getFirstExamDate(config);
+    const totalDays = Math.ceil((end - start) / 86400000) + 1;
+    const days = [];
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    const richCurriculum = {};
-    for (const [cid, cfg] of activeCourses) {
-      const courseData = curriculumMap.courses[cid];
-      if (!courseData) continue;
-      richCurriculum[cid] = {
-        name: courseData.name_en,
-        modules: {}
-      };
-      for (const m of cfg.included_modules) {
-        const mod = courseData.modules[m];
-        if (!mod) continue;
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const dateStr = toLocalDateStr(d);
+      const dayName = getDayName(d);
 
-        
-        const prereqs = new Set();      
-        const unlocks = new Set();      
-        const crossLinks = [];          
-        const topicTypes = [];          
-        const commonMistakes = [];      
-        let maxConceptual = 0, maxExamApp = 0, networkEffect = 0;
+      let dayType = 'study';
 
-        for (const t of (mod.topics || [])) {
-          
-          for (const prereqTopic of (t.prerequisites || [])) {
-            
-            const match = prereqTopic.match(new RegExp(`^${cid}_(M\\d+)_`));
-            if (match && match[1] !== m) prereqs.add(match[1]);
-          }
-          
-          for (const unlockTopic of (t.unlocks || [])) {
-            const match = unlockTopic.match(new RegExp(`^${cid}_(M\\d+)_`));
-            if (match && match[1] !== m) unlocks.add(match[1]);
-          }
-          
-          for (const link of (t.cross_course_links || [])) {
-            if (typeof link === 'string') {
-              crossLinks.push(link);
-            } else if (link.topic_id) {
-              crossLinks.push(link.topic_id);
-            }
-          }
-          
-          if (t.type && !topicTypes.includes(t.type)) topicTypes.push(t.type);
-          
-          if (t.difficulty) {
-            maxConceptual = Math.max(maxConceptual, t.difficulty.conceptual_abstraction || 0);
-            maxExamApp = Math.max(maxExamApp, t.difficulty.exam_application || 0);
-            networkEffect = Math.max(networkEffect, t.difficulty.network_effect || 0);
-          }
-          
-          if (t.common_mistakes?.[0] && commonMistakes.length < 2) {
-            commonMistakes.push(t.common_mistakes[0]);
-          }
+      
+      if (config.rest_days.includes(dayName)) {
+        if (!firstExam || dateStr < firstExam) {
+          dayType = 'rest';
         }
-
-        richCurriculum[cid].modules[m] = {
-          title: mod.title_en,
-          diff: mod.module_difficulty,
-          hours: mod.study_hours_estimate,
-          types: topicTypes,                              
-          prereqs: [...prereqs].sort(),                   
-          unlocks: [...unlocks].sort(),                   
-          cross_links: crossLinks,                        
-          conceptual: maxConceptual,                      
-          exam_app: maxExamApp,                           
-          network: networkEffect,                         
-          mistakes: commonMistakes                        
-        };
       }
+
+      
+      if ((config.busy_dates || []).includes(dateStr)) dayType = 'rest';
+
+      
+      if (isExamDate(dateStr, config)) dayType = 'exam';
+
+      days.push({
+        date: dateStr,
+        day_type: dayType,
+        sessions: [],
+        session_slots: dayType === 'study' ? config.daily_sessions : 0
+      });
     }
 
     
-    
-    const relevantClusters = [];
-    if (curriculumMap.cross_course_clusters) {
-      const activeCids = new Set(activeCourses.map(([cid]) => cid));
-      for (const cluster of curriculumMap.cross_course_clusters) {
-        
-        const relevantTopics = cluster.topics.filter(t => {
-          const topicCourse = t.split('_')[0];
-          return activeCids.has(topicCourse);
+    const isAr = lang() === 'ar';
+    for (const day of days) {
+      if (day.day_type !== 'exam') continue;
+      const exams = getExamCoursesOnDate(day.date, config, cMap);
+      for (const ex of exams) {
+        day.sessions.push({
+          session_number: day.sessions.length + 1,
+          course_id: ex.cid,
+          module_id: isAr ? 'اختبار' : 'Exam',
+          modules: [],
+          mode: 'exam',
+          difficulty_avg: 10,
+          session_type: 'exam',
+          is_critical: false,
+          ai_note_ar: `📝 اختبار ${ex.name} — بالتوفيق!`,
+          ai_note_en: `📝 ${ex.name_en} Exam — Good luck!`,
+          ai_note: '',
+          must_know_today: [], must_know_today_en: [],
+          must_memorize_today: [], must_memorize_today_en: [],
+          completed: false, _snoozeCount: 0,
+          cross_link_alert: { active: false, message: null }
         });
-        if (relevantTopics.length >= 2) {
-          relevantClusters.push({
-            name: cluster.cluster_name_en || cluster.cluster_name,
-            topics: relevantTopics,
-            order: cluster.study_order || relevantTopics,
-            tip: cluster.study_tip_en || cluster.study_tip
+      }
+    }
+
+    return days;
+  }
+
+  
+  function markGoldenReviewDays(days, config) {
+    if (config.plan_type === 'general') return;
+    const activeCourses = getActiveCourses(config);
+
+    
+    const sorted = [...activeCourses].sort(([, a], [, b]) => {
+      if (!a.exam_date) return 1;
+      if (!b.exam_date) return -1;
+      return a.exam_date.localeCompare(b.exam_date);
+    });
+
+    for (const [cid, cfg] of sorted) {
+      if (!cfg.exam_date) continue;
+
+      
+      let reserved = false;
+      for (let back = 1; back <= 7; back++) {
+        const date = subtractDays(cfg.exam_date, back);
+        const entry = days.find(d => d.date === date);
+        if (!entry) continue;
+        if (entry.day_type === 'exam') continue;
+        if (entry.day_type === 'golden_review') continue;
+
+        
+        if (entry.day_type === 'rest') {
+          entry.rest_override = true;
+          entry.session_slots = config.daily_sessions;
+        }
+        entry.day_type = 'golden_review';
+        entry._golden_for = cid;
+        reserved = true;
+        break;
+      }
+
+      
+      if (!reserved) {
+        for (let back = 1; back <= 7; back++) {
+          const date = subtractDays(cfg.exam_date, back);
+          const entry = days.find(d => d.date === date);
+          if (!entry || entry.day_type === 'exam') continue;
+          if (entry.day_type === 'golden_review') {
+            reserved = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  
+  function distributeCoreSessions(days, config, cMap) {
+    const activeCourses = getActiveCourses(config);
+    const mps = config.modules_per_session || 1;
+
+    
+    const courseQueues = {};
+    for (const [cid, cfg] of activeCourses) {
+      const sortedModules = [...cfg.included_modules].sort();
+      courseQueues[cid] = sortedModules.map((m, idx) => {
+        const rating = cfg.self_rating[m] || 'not_studied';
+        const diff = cMap.courses[cid]?.modules[m]?.module_difficulty || 5;
+        const mode = (rating === 'not_studied' || rating === 'weak') ? 'deep'
+                   : rating === 'good' ? 'full' : 'flash';
+        return {
+          session_type: 'core', cid, mid: m, mode, diff,
+          exam_date: cfg.exam_date || null,
+          sequential_order: idx
+        };
+      });
+    }
+
+    const mergedQueue = buildMergedQueue(courseQueues, mps);
+    const studyDays = days.filter(d => d.day_type === 'study');
+
+    for (const session of mergedQueue) {
+      const eligibleDays = studyDays.filter(d => {
+        if (session.exam_date && d.date >= session.exam_date) return false;
+        if (d.sessions.length >= config.daily_sessions) return false;
+        return true;
+      });
+      if (eligibleDays.length === 0) break;
+
+      const targetDay = eligibleDays[0]; 
+      targetDay.sessions.push({
+        session_number: targetDay.sessions.length + 1,
+        course_id: session.cid,
+        module_id: session.mid,
+        modules: session.modules || [session.mid],
+        mode: session.mode,
+        difficulty_avg: session.diff,
+        session_type: 'core',
+        exam_date: session.exam_date,
+        is_critical: session.diff >= 7,
+        ai_note_ar: '', ai_note_en: '', ai_note: '',
+        must_know_today: [], must_know_today_en: [],
+        must_memorize_today: [], must_memorize_today_en: [],
+        completed: false, _snoozeCount: 0,
+        cross_link_alert: { active: false, message: null }
+      });
+    }
+
+    return days;
+  }
+
+  
+  function buildMergedQueue(courseQueues, mps) {
+    const perCourse = [];
+
+    if (mps < 1) {
+      
+      const sessionsPerMod = Math.round(1 / mps);
+      for (const [cid, queue] of Object.entries(courseQueues)) {
+        for (const s of queue) {
+          for (let p = 1; p <= sessionsPerMod; p++) {
+            perCourse.push({
+              ...s,
+              mid: `${s.mid} (${p}/${sessionsPerMod})`,
+              modules: [s.mid],
+              _partLabel: `(${p}/${sessionsPerMod})`
+            });
+          }
+        }
+      }
+    } else {
+      const step = Math.round(mps);
+      for (const [cid, queue] of Object.entries(courseQueues)) {
+        for (let i = 0; i < queue.length; i += step) {
+          const chunk = queue.slice(i, i + step);
+          const midStr = chunk.map(c => c.mid).join(' + ');
+          const avgDiff = chunk.reduce((s, c) => s + c.diff, 0) / chunk.length;
+          perCourse.push({
+            session_type: 'core',
+            cid: chunk[0].cid,
+            mid: midStr,
+            modules: chunk.map(c => c.mid),
+            mode: chunk[0].mode,
+            diff: avgDiff,
+            exam_date: chunk[0].exam_date,
+            sequential_order: chunk[0].sequential_order
           });
         }
       }
     }
 
-    
-    
-    const today = userConfig.start_date || getLocalTodayStr();
-    const todayDate = new Date(today + 'T00:00:00');
-    todayDate.setHours(0, 0, 0, 0);
+    return interleaveRoundRobin(perCourse);
+  }
 
-    
-    let earliestExam = null;
-    let latestExam = null;
-    const examDates = {}; 
-    if (userConfig.plan_type !== 'general') {
-      for (const [courseId, cfg] of activeCourses) {
-        if (cfg.exam_date) {
-          const d = new Date(cfg.exam_date + 'T00:00:00');
-          examDates[courseId] = cfg.exam_date; 
-          if (!earliestExam || d < earliestExam) earliestExam = d;
-          if (!latestExam || d > latestExam) latestExam = d;
-        }
+  function interleaveRoundRobin(sessions) {
+    const byCourse = {};
+    for (const s of sessions) {
+      const key = s.cid;
+      if (!byCourse[key]) byCourse[key] = [];
+      byCourse[key].push(s);
+    }
+    const result = [];
+    const queues = Object.values(byCourse);
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const q of queues) {
+        if (q.length) { result.push(q.shift()); hasMore = true; }
       }
     }
-
-    
-    
-    
-    let endDate = new Date(todayDate);
-    if (latestExam) {
-      endDate = new Date(latestExam);
-      endDate.setDate(endDate.getDate() + 7); 
-    } else {
-      endDate.setDate(endDate.getDate() + 90); 
-    }
-
-    const totalPlanningDays = Math.max(1, Math.ceil((endDate - todayDate) / 86400000));
-
-    
-    
-    const examDateStrings = new Set(Object.values(examDates)); 
-    const availableDates = [];
-    for (let i = 0; i < totalPlanningDays; i++) {
-      const d = new Date(todayDate);
-      d.setDate(d.getDate() + i);
-      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-      if (userConfig.rest_days.includes(dayName)) continue;
-      if (userConfig.busy_dates.includes(dateStr)) continue;
-      if (examDateStrings.has(dateStr)) continue; 
-
-      availableDates.push(dateStr);
-    }
-
-    
-    const examDatesList = Object.entries(examDates)
-      .map(([cid, date]) => `  ${date} → ${cid} (${curriculumMap.courses[cid]?.name_en || cid})`)
-      .sort()
-      .join('\n');
-
-    
-    
-    const coursesDetail = activeCourses.map(([cid, cfg]) => {
-      const c = curriculumMap.courses[cid];
-      const courseName = c?.name_en || cid;
-      const examDate = examDates[cid] || 'none';
-      const ratingWeight = { not_studied: 1.0, weak: 0.7, good: 0.4, excellent: 0.15 };
-      
-      const sortedModules = [...cfg.included_modules].sort();
-      const moduleSummaries = sortedModules.map((m, idx) => {
-        const mod = c?.modules[m];
-        const rating = cfg.self_rating[m] || 'not_studied';
-        const diff = mod?.module_difficulty || 5;
-        const hours = mod?.study_hours_estimate || 2;
-        const priority = Math.round(((ratingWeight[rating] || 1.0) * 0.65 + (diff / 10) * 0.35) * 10) / 10;
-        const modeHint = (rating === 'not_studied' || rating === 'weak') ? 'deep' : rating === 'good' ? 'full' : 'flash';
-        return `  ${m}(order=${idx + 1},diff=${diff},rating=${rating},priority=${priority},mode=${modeHint},est_hours=${hours})`;
-      }).join('\n');
-      return `${cid} — ${courseName} [exam_date=${examDate}]\nStudy order: M01→M02→M03... (sequential, mandatory)\n${moduleSummaries}`;
-    }).join('\n\n');
-
-    
-    
-    
-    
-    const exampleSessions = [];
-    for (let s = 1; s <= dailySessions; s++) {
-      const exModuleId = mps > 1
-        ? `M0${s} + M0${s + 1}`
-        : `M0${s}`;
-      exampleSessions.push(
-        `{"sn":${s},"cid":"CS350","mid":"${exModuleId}","mode":"deep","diff":7,"note":"ملاحظة مختصرة"}`
-      );
-    }
-    const exampleSessionsStr = exampleSessions.join(',');
-
-    
-    const moduleGroupingNote = mps > 1
-      ? `- كل جلسة تضم ${mps} وحدات مدمجة → اجعل module_id سلسلة مثل "M01 + M02"`
-      : mps < 1
-        ? `- كل وحدة تُقسَّم على ${Math.round(1 / mps)} جلسات → أضف تسمية الجزء مثل "M01 (1/2)"`
-        : `- كل جلسة تغطي وحدة واحدة فقط`;
-
-    
-    const availableDatesStr = availableDates.length > 0
-      ? availableDates.slice(0, 90).join(', ')
-      : 'لم يتم تحديد نطاق زمني';
-
-    
-    
-    function _toLocalStr(d) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    const scheduleEndStr = latestExam
-      ? _toLocalStr(latestExam)
-      : _toLocalStr(new Date(new Date(today + 'T00:00:00').getTime() + 90 * 86400000));
-
-    return `## مهمتك
-أنشئ جدول مذاكرة ذكياً يمتد من تاريخ البدء حتى آخر اختبار، مع مراعاة أولوية كل وحدة واختلاف مواعيد الاختبارات.
-
-## إعدادات الطالب
-- نوع الجدول: ${userConfig.plan_type}
-- تاريخ البدء: ${today}
-- تاريخ آخر اختبار: ${scheduleEndStr}
-- الجلسات اليومية المسموحة: ${dailySessions} (الحد الأقصى المطلق — لا تتجاوزه)
-- وحدات لكل جلسة: ${mps}
-
-## ⚠️ التواريخ المتاحة للدراسة (يُحظر وضع جلسات خارجها)
-${availableDatesStr}
-الأيام الغائبة هي أيام راحة (${userConfig.rest_days.join(', ')}) أو أيام مشغولة — لا تضع فيها أي جلسات.
-
-## 📝 تواريخ الاختبارات الفعلية (أيام اختبار — لا تضع فيها جلسات دراسة!)
-${examDatesList || 'لا يوجد اختبارات محددة'}
-⚠️ هذه التواريخ هي أيام الاختبار الفعلية. لا تُنشئ لها أي جلسات في الناتج. سنضيف بطاقة الاختبار تلقائياً.
-
-## المواد وتواريخ الاختبارات وأولوية كل وحدة
-(priority: 1.0=الأعلى أولوية | mode: deep=من الصفر, full=يحتاج تعزيز, flash=مراجعة سريعة)
-(est_hours=الوقت التقديري للدراسة)
-
-${coursesDetail}
-
-## قواعد إلزامية
-⚠️ كل يوم دراسي = ${dailySessions} جلسة بالضبط — لا أكثر ولا أقل.
-⚠️ لا تضع جلسات لمادة بعد تاريخ اختبارها. لا تضع أي جلسات في يوم الاختبار نفسه (أيام الاختبار مذكورة أعلاه).
-⚠️ المراجعة الذهبية: اليوم الذي يسبق الاختبار مباشرة (وليس يوم الاختبار!) = day_type=golden_review, mode=flash لمادة الاختبار القادم.
-⚠️ بعد الانتهاء من كل وحدات مادة → خصص ما تبقى من أيام قبل اختبارها للمراجعة.
-⚠️ الترتيب التسلسلي إلزامي: ابدأ دائماً من M01 ثم M02 ثم M03... لكل مادة. الوحدة M01 أساسية لفهم بقية المنهج — لا تقفز لوحدات متقدمة!
-⚠️ priority تحدد الـ mode (deep/full/flash) وليس ترتيب الدراسة. حتى لو M01 تقييمها "excellent"، يجب مراجعتها (flash) قبل M02 لأنها أساس.
-⚠️ نوّع بين المواد يومياً (interleaving) مع الحفاظ على التسلسل داخل كل مادة.
-⚠️ أضف مراجعة متباعدة (spaced review): راجع كل وحدة بعد يوم واحد، ثم 3 أيام، ثم 7 أيام من دراستها.
-${moduleGroupingNote}
-
-## بيانات المناهج الهيكلية (prerequisites + cross-links + difficulty)
-⚠️ استخدم هذه البيانات لاتخاذ قرارات الجدولة. لا تضمّنها في الناتج.
-⚠️ prereqs = وحدات يجب دراستها قبل هذه الوحدة. unlocks = وحدات تعتمد على هذه الوحدة.
-⚠️ cross_links = مواضيع في مواد أخرى مرتبطة — حاول جدولتها في نفس الأسبوع.
-⚠️ types: concept=فهم, algorithm=تطبيق+تمرين, theorem=إثبات, formula=حفظ+تطبيق
-${JSON.stringify(richCurriculum, null, 0)}
-
-${relevantClusters.length > 0 ? `## مجموعات المفاهيم المشتركة بين المواد
-هذه مواضيع من مواد مختلفة يُفضل دراستها في نفس الأسبوع لأنها تُكمل بعضها:
-${JSON.stringify(relevantClusters, null, 0)}` : ''}
-
-## الناتج المطلوب (مضغوط — استخدم مفاتيح قصيرة لتوفير المساحة)
-أنتج JSON نظيف فقط (بدون أي نص خارج الـ JSON).
-⚠️ لا تُضمّن must_know أو must_memorize في الناتج — سنضيفها تلقائياً من قاعدة البيانات.
-⚠️ استخدم المفاتيح القصيرة: sn=session_number, cid=course_id, mid=module_id, diff=difficulty_avg
-{"plan_summary":{"total_days":N,"total_sessions":N,"strategy":"وصف مختصر","weeks":[{"wn":1,"theme":"..."}]},"days":[{"date":"YYYY-MM-DD","wn":1,"type":"study","sessions":[${exampleSessionsStr}],"tip":"..."}]}
-
-تذكر: استخدم فقط التواريخ من القائمة المتاحة أعلاه. كل يوم دراسي = ${dailySessions} جلسات بالضبط. أنشئ أيام لكل التواريخ المتاحة — لا تحذف أياً منها!`;
+    return result;
   }
 
   
   
+  function distributeGoldenReviews(days, config, cMap) {
+    if (config.plan_type === 'general') return days;
+    const activeCourses = getActiveCourses(config);
+    const isAr = lang() === 'ar';
+
+    const sortedCourses = [...activeCourses].sort(([, a], [, b]) => {
+      if (!a.exam_date) return 1;
+      if (!b.exam_date) return -1;
+      return a.exam_date.localeCompare(b.exam_date);
+    });
+
+    for (const [cid, cfg] of sortedCourses) {
+      if (!cfg.exam_date) continue;
+      const courseName = cMap.courses[cid]?.name || cid;
+      const courseNameEn = cMap.courses[cid]?.name_en || cid;
+      const allModules = [...cfg.included_modules].sort();
+
+      
+      let targetEntry = days.find(d => d._golden_for === cid && d.day_type === 'golden_review');
+
+      
+      if (!targetEntry) {
+        for (let daysBack = 1; daysBack <= 7; daysBack++) {
+          const candidateDate = subtractDays(cfg.exam_date, daysBack);
+          const candidateEntry = days.find(d => d.date === candidateDate);
+          if (!candidateEntry) continue;
+          if (candidateEntry.day_type === 'exam') continue;
+          if (candidateEntry.day_type === 'golden_review') { targetEntry = candidateEntry; break; }
+        }
+      }
+
+      
+      if (!targetEntry) {
+        for (let daysBack = 1; daysBack <= 7; daysBack++) {
+          const candidateDate = subtractDays(cfg.exam_date, daysBack);
+          const candidateEntry = days.find(d => d.date === candidateDate);
+          if (!candidateEntry) continue;
+          if (candidateEntry.day_type === 'exam') continue;
+          targetEntry = candidateEntry;
+          break;
+        }
+      }
+
+      if (!targetEntry) continue;
+
+      
+      if (targetEntry.day_type === 'rest') {
+        targetEntry.day_type = 'golden_review';
+        targetEntry.session_slots = config.daily_sessions;
+        targetEntry.rest_override = true;
+      } else if (targetEntry.day_type === 'study') {
+        targetEntry.day_type = 'golden_review';
+      }
+      
+
+      if (!targetEntry.sessions) targetEntry.sessions = [];
+
+      
+      const avgDiff = allModules.reduce((sum, m) => {
+        return sum + (cMap.courses[cid]?.modules[m]?.module_difficulty || 5);
+      }, 0) / allModules.length;
+
+      targetEntry.sessions.push({
+        session_number: targetEntry.sessions.length + 1,
+        course_id: cid,
+        module_id: isAr ? `مراجعة ذهبية (${allModules.length} وحدة)` : `Golden Review (${allModules.length} modules)`,
+        modules: allModules,
+        mode: 'flash',
+        difficulty_avg: Math.round(avgDiff * 10) / 10,
+        session_type: 'golden_review',
+        exam_date: cfg.exam_date,
+        is_critical: true,
+        ai_note_ar: `⭐ مراجعة ذهبية شاملة — ${courseName} — راجع جميع الوحدات بسرعة`,
+        ai_note_en: `⭐ Golden review — ${courseNameEn} — Quick pass over all modules`,
+        ai_note: '',
+        must_know_today: [], must_know_today_en: [],
+        must_memorize_today: [], must_memorize_today_en: [],
+        completed: false, _snoozeCount: 0,
+        cross_link_alert: { active: false, message: null }
+      });
+    }
+    return days;
+  }
+
   
-  
-  
-  
-  function expandCompactAIPlan(planData) {
-    if (!planData?.days) return planData;
+  function distributeSpacedReviews(days, config, cMap) {
     const isAr = lang() === 'ar';
 
     
-    if (planData.plan_summary) {
-      const ps = planData.plan_summary;
-      if (!ps.strategy_description && ps.strategy) {
-        ps.strategy_description = ps.strategy;
-        ps.strategy_description_ar = ps.strategy;
-        ps.strategy_description_en = ps.strategy;
-      }
-      if (ps.weeks) {
-        ps.weeks = ps.weeks.map(w => ({
-          week_number: w.wn || w.week_number || 1,
-          theme: w.theme || '',
-          theme_en: w.theme_en || w.theme || ''
-        }));
-      }
-    }
+    const studiedMap = new Map();
 
-    let wasTruncated = false;
+    for (const day of days) {
+      for (const s of day.sessions) {
+        if (s.session_type !== 'core') continue;
 
-    for (const day of planData.days) {
-      
-      if (!day.week_number && day.wn) day.week_number = day.wn;
-      if (!day.day_type && day.type) day.day_type = day.type;
-      if (!day.day_label) day.day_label = formatDate(day.date, 'card');
-      if (!day.daily_tip_ar && day.tip) { day.daily_tip_ar = day.tip; day.daily_tip_en = day.tip; }
-      if (!day.daily_tip_ar) { day.daily_tip_ar = ''; day.daily_tip_en = ''; }
+        for (const mid of (s.modules || [s.module_id])) {
+          const rawMid = mid.trim();
+          const partMatch = rawMid.match(/^(.+?)\s+\((\d+)\/(\d+)\)$/);
 
-      if (!day.sessions || day.sessions.length === 0) {
-        day.sessions = day.sessions || []; 
-        wasTruncated = true;
-        continue;
-      }
-
-      day.sessions = day.sessions.map(s => {
-        
-        const session = {
-          session_number: s.sn || s.session_number || 1,
-          course_id: s.cid || s.course_id || '',
-          module_id: s.mid || s.module_id || '',
-          mode: s.mode || 'deep',
-          difficulty_avg: s.diff || s.difficulty_avg || 5,
-          is_critical: s.is_critical || (s.diff >= 7),
-          ai_note_ar: s.note || s.ai_note_ar || s.ai_note || '',
-          ai_note_en: s.note_en || s.ai_note_en || s.ai_note || s.note || '',
-          must_know_today: s.must_know_today || [],
-          must_know_today_en: s.must_know_today_en || [],
-          must_memorize_today: s.must_memorize_today || [],
-          must_memorize_today_en: s.must_memorize_today_en || [],
-          completed: false,
-          _snoozeCount: 0
-        };
-
-        
-        if (session.must_know_today.length === 0 && curriculumMap?.courses) {
-          const course = curriculumMap.courses[session.course_id];
-          if (course) {
-            
-            const modIds = session.module_id.split(/\s*\+\s*/).map(s => s.trim().replace(/\s*\(.*\)/, ''));
-            for (const mid of modIds) {
-              const mod = course.modules[mid];
-              if (mod?.topics) {
-                for (const t of mod.topics) {
-                  if (t.must_know && session.must_know_today.length < 3)
-                    session.must_know_today.push(...t.must_know.slice(0, 1));
-                  if (t.must_know_en && session.must_know_today_en.length < 3)
-                    session.must_know_today_en.push(...t.must_know_en.slice(0, 1));
-                  if (t.must_memorize && session.must_memorize_today.length < 2)
-                    session.must_memorize_today.push(...t.must_memorize.slice(0, 1));
-                  if (t.must_memorize_en && session.must_memorize_today_en.length < 2)
-                    session.must_memorize_today_en.push(...t.must_memorize_en.slice(0, 1));
-                }
-              }
+          if (partMatch) {
+            const cleanMid = partMatch[1].trim();
+            const partNum = parseInt(partMatch[2]);
+            const totalParts = parseInt(partMatch[3]);
+            if (partNum < totalParts) continue; 
+            const key = `${s.course_id}_${cleanMid}`;
+            if (!studiedMap.has(key)) {
+              studiedMap.set(key, {
+                cid: s.course_id, mid: cleanMid, studiedOn: day.date,
+                diff: cMap.courses[s.course_id]?.modules[cleanMid]?.module_difficulty || 5,
+                exam_date: s.exam_date
+              });
+            }
+          } else {
+            const cleanMid = rawMid.split(' + ')[0].trim();
+            const key = `${s.course_id}_${cleanMid}`;
+            if (!studiedMap.has(key)) {
+              studiedMap.set(key, {
+                cid: s.course_id, mid: cleanMid, studiedOn: day.date,
+                diff: cMap.courses[s.course_id]?.modules[cleanMid]?.module_difficulty || 5,
+                exam_date: s.exam_date
+              });
             }
           }
         }
-
-        return session;
-      });
+      }
     }
 
-    planData._wasTruncated = wasTruncated;
-    return planData;
+    const studiedModules = [...studiedMap.values()].sort((a, b) => b.diff - a.diff);
+
+    for (const item of studiedModules) {
+      for (const interval of [1, 3, 7]) {
+        if (countRemainingSlots(days, config) === 0) return days;
+
+        const targetDate = addDaysToDate(item.studiedOn, interval);
+        let targetDay = days.find(d => {
+          if (d.date !== targetDate) return false;
+          if (['exam', 'golden_review'].includes(d.day_type)) return false;
+          if (item.exam_date && d.date >= item.exam_date) return false;
+          if (d.sessions.length >= config.daily_sessions) return false;
+          return true;
+        });
+
+        if (!targetDay)
+          targetDay = findNearestAvailableDay(days, targetDate, item.exam_date, config);
+        if (!targetDay) continue;
+
+        const courseName = cMap.courses[item.cid]?.name || item.cid;
+        const courseNameEn = cMap.courses[item.cid]?.name_en || item.cid;
+
+        targetDay.sessions.push({
+          session_number: targetDay.sessions.length + 1,
+          course_id: item.cid,
+          module_id: item.mid,
+          modules: [item.mid],
+          mode: 'flash',
+          difficulty_avg: item.diff,
+          session_type: 'spaced_review',
+          exam_date: item.exam_date,
+          is_critical: false,
+          ai_note_ar: `🔄 مراجعة متباعدة (${interval} يوم) — ${courseName}`,
+          ai_note_en: `🔄 Spaced review (${interval}d) — ${courseNameEn}`,
+          ai_note: '',
+          must_know_today: [], must_know_today_en: [],
+          must_memorize_today: [], must_memorize_today_en: [],
+          completed: false, _snoozeCount: 0,
+          cross_link_alert: { active: false, message: null },
+          original_study_date: item.studiedOn,
+          interval_days: interval
+        });
+      }
+    }
+    return days;
+  }
+
+  function countRemainingSlots(days, config) {
+    return days.filter(d => d.day_type === 'study')
+      .reduce((sum, d) => sum + Math.max(0, config.daily_sessions - d.sessions.length), 0);
+  }
+
+  function findNearestAvailableDay(days, targetDate, examDate, config) {
+    let best = null, bestDist = Infinity;
+    for (const d of days) {
+      if (['exam', 'golden_review', 'rest'].includes(d.day_type)) continue;
+      if (examDate && d.date >= examDate) continue;
+      if (d.sessions.length >= config.daily_sessions) continue;
+      const dist = Math.abs(dateDiffDays(d.date, targetDate));
+      if (dist < bestDist) { best = d; bestDist = dist; }
+    }
+    return best;
   }
 
   
-  
-  
-  
-  function injectExamDays(planData) {
-    if (!planData?.days || !planData.config?.courses) return planData;
-    const isAr = lang() === 'ar';
+  function validateBeforeSend(days, config, cMap) {
+    const activeCourses = getActiveCourses(config);
+    const errors = [];
 
-    
-    const examEntries = []; 
-    for (const [cid, cfg] of Object.entries(planData.config.courses)) {
-      if (!cfg.active || !cfg.exam_date) continue;
-      const course = curriculumMap?.courses?.[cid];
-      examEntries.push({
-        cid,
-        date: cfg.exam_date,
-        name: course?.name || cid,
-        name_en: course?.name_en || cid
+    const covered = new Set();
+    for (const day of days) {
+      for (const s of day.sessions) {
+        if (s.session_type !== 'core') continue;
+        (s.modules || [s.module_id]).forEach(m =>
+          covered.add(`${s.course_id}_${m.replace(/ \(\d\/\d\)/, '').trim()}`)
+        );
+      }
+    }
+
+    const uncovered = [];
+    for (const [cid, cfg] of activeCourses) {
+      for (const m of cfg.included_modules) {
+        if (!covered.has(`${cid}_${m}`)) uncovered.push(`${cid}-${m}`);
+      }
+    }
+
+    if (uncovered.length > 0) {
+      const totalSlots = days.filter(d => d.day_type === 'study')
+        .reduce((s, d) => s + (d.session_slots || config.daily_sessions), 0);
+      const totalModules = activeCourses.reduce((s, [, cfg]) => s + cfg.included_modules.length, 0);
+      errors.push({
+        type: 'insufficient_sessions',
+        message_ar:
+          `لا يمكن إنشاء الجدول:\n` +
+          `الجلسات المتاحة (${totalSlots}) لا تكفي لتغطية كل المودلات (${totalModules}).\n` +
+          `المودلات غير المغطاة: ${uncovered.join(', ')}\n\n` +
+          `الحلول:\n① زد عدد الجلسات اليومية\n② زد المودلات لكل جلسة\n` +
+          `③ قلّل أيام الراحة\n④ قلّل عدد المواد المُفعَّلة`,
+        message_en:
+          `Cannot generate: ${totalSlots} sessions cannot cover ${totalModules} modules.\n` +
+          `Uncovered: ${uncovered.join(', ')}`
       });
     }
-    if (examEntries.length === 0) return planData;
+
+    return { canSend: errors.length === 0, errors };
+  }
+
+  
+  function validateAfterReceive(plan, config, cMap) {
+    const activeCourses = getActiveCourses(config);
+    const critical = [], warnings = [];
 
     
-    const examsByDate = {};
-    for (const e of examEntries) {
-      if (!examsByDate[e.date]) examsByDate[e.date] = [];
-      examsByDate[e.date].push(e);
+    const covered = new Set();
+    for (const day of (plan.days || plan)) {
+      for (const s of (day.sessions || [])) {
+        if (s.session_type === 'core')
+          (s.modules || [s.module_id]).forEach(m =>
+            covered.add(`${s.course_id}_${m.replace(/ \(\d\/\d\)/, '').trim()}`)
+          );
+      }
     }
-
-    let modified = false;
-
-    for (const [date, exams] of Object.entries(examsByDate)) {
-      
-      const existingDay = planData.days.find(d => d.date === date);
-
-      if (existingDay) {
-        
-        if (existingDay.day_type !== 'exam') {
-          
-          console.warn(`⚠️ Exam day ${date} had type "${existingDay.day_type}" — converting to exam`);
-          existingDay.day_type = 'exam';
-          modified = true;
-        }
-
-        
-        const existingExamCids = new Set(
-          (existingDay.sessions || [])
-            .filter(s => s.mode === 'exam')
-            .map(s => s.course_id)
-        );
-
-        const missingSessions = exams.filter(e => !existingExamCids.has(e.cid));
-        if (missingSessions.length > 0 || !existingDay.sessions || existingDay.sessions.length === 0) {
-          existingDay.sessions = exams.map((e, idx) => ({
-            session_number: idx + 1,
-            course_id: e.cid,
-            module_id: isAr ? 'اختبار' : 'Exam',
-            mode: 'exam',
-            difficulty_avg: 10,
-            is_critical: false,
-            ai_note_ar: `📝 اختبار ${e.name} — بالتوفيق!`,
-            ai_note_en: `📝 ${e.name_en} Exam — Good luck!`,
-            must_know_today: [], must_know_today_en: [],
-            must_memorize_today: [], must_memorize_today_en: [],
-            completed: false
-          }));
-          existingDay.daily_tip_ar = '📝 يوم اختبار — توكل على الله وثق بنفسك!';
-          existingDay.daily_tip_en = '📝 Exam day — trust yourself and do your best!';
-          modified = true;
-        }
-      } else {
-        
-        console.warn(`⚠️ Exam day ${date} was missing from plan — injecting`);
-        const firstDate = planData.days[0]?.date || date;
-        const weekNum = Math.floor(
-          (new Date(date + 'T00:00:00') - new Date(firstDate + 'T00:00:00')) / (7 * 86400000)
-        ) + 1;
-
-        planData.days.push({
-          date,
-          day_label: formatDate(date, 'card'),
-          week_number: weekNum,
-          day_type: 'exam',
-          sessions: exams.map((e, idx) => ({
-            session_number: idx + 1,
-            course_id: e.cid,
-            module_id: isAr ? 'اختبار' : 'Exam',
-            mode: 'exam',
-            difficulty_avg: 10,
-            is_critical: false,
-            ai_note_ar: `📝 اختبار ${e.name} — بالتوفيق!`,
-            ai_note_en: `📝 ${e.name_en} Exam — Good luck!`,
-            must_know_today: [], must_know_today_en: [],
-            must_memorize_today: [], must_memorize_today_en: [],
-            completed: false
-          })),
-          daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
-          daily_tip_en: '📝 Exam day — trust yourself and do your best!'
-        });
-        modified = true;
+    for (const [cid, cfg] of activeCourses) {
+      for (const m of cfg.included_modules) {
+        if (!covered.has(`${cid}_${m}`))
+          critical.push(`مودل بلا جلسة: ${cid}-${m}`);
       }
     }
 
     
-    for (const { cid, date } of examEntries) {
-      for (const day of planData.days) {
-        if (day.date >= date && day.day_type !== 'exam') {
-          const before = (day.sessions || []).length;
-          day.sessions = (day.sessions || []).filter(s => s.course_id !== cid || s.mode === 'exam');
-          if (day.sessions.length !== before) {
-            day.sessions.forEach((s, idx) => s.session_number = idx + 1);
-            modified = true;
+    if (config.plan_type !== 'general') {
+      const daysArr = plan.days || plan;
+      for (const [cid, cfg] of activeCourses) {
+        if (!cfg.exam_date) continue;
+        const hasGolden = daysArr.some(d =>
+          d.day_type === 'golden_review' &&
+          d.sessions?.some(s => s.course_id === cid && s.session_type === 'golden_review')
+        );
+        if (!hasGolden) critical.push(`مادة بلا مراجعة ذهبية: ${cid}`);
+      }
+    }
+
+    
+    const daysArr = plan.days || plan;
+    for (const day of daysArr) {
+      if (['exam', 'rest', 'golden_review'].includes(day.day_type)) continue;
+      if ((day.sessions || []).length > config.daily_sessions)
+        warnings.push(`يوم تجاوز الحد: ${day.date}`);
+    }
+
+    return { valid: critical.length === 0, critical, warnings };
+  }
+
+  
+  function injectCurriculumData(skeleton, cMap) {
+    for (const day of skeleton) {
+      for (const session of (day.sessions || [])) {
+        if (session.mode === 'exam') continue;
+        const modules = session.modules || [session.module_id];
+        for (const mid of modules) {
+          const cleanMid = mid.replace(/ \(\d\/\d\)/, '').trim().split(' + ')[0];
+          const modData = cMap.courses?.[session.course_id]?.modules?.[cleanMid];
+          if (!modData) continue;
+
+          if (!session.must_know_today?.length) {
+            session.must_know_today = modData.topics?.[0]?.must_know?.slice(0, 2) || [];
+          }
+          if (!session.must_know_today_en?.length) {
+            session.must_know_today_en = modData.topics?.[0]?.must_know_en?.slice(0, 2) || [];
+          }
+          if (!session.must_memorize_today?.length) {
+            session.must_memorize_today = modData.topics?.[0]?.must_memorize?.slice(0, 1) || [];
+          }
+          if (!session.must_memorize_today_en?.length) {
+            session.must_memorize_today_en = modData.topics?.[0]?.must_memorize_en?.slice(0, 1) || [];
+          }
+
+          if (!session.study_url) {
+            session.study_url = buildStudyURL(session.course_id, cleanMid);
           }
         }
       }
     }
+  }
 
-    if (modified) {
-      
-      planData.days.sort((a, b) => a.date.localeCompare(b.date));
-      
-      planData.days = planData.days.filter(d =>
-        (d.sessions && d.sessions.length > 0) || d.day_type === 'exam'
-      );
-    }
-
-    return planData;
+  function buildStudyURL(courseId, moduleId) {
+    const folder = courseId.toLowerCase();
+    const num = parseInt(moduleId.replace('M', ''));
+    return `../${folder}/M${num}.html`;
   }
 
   
   
   
-  
-  function completeTruncatedPlan(planData) {
-    if (!planData?.days) return planData;
-    const isAr = lang() === 'ar';
 
-    
-    const coveredDates = new Set(planData.days.map(d => d.date));
+  function buildRichCurriculum(config, cMap) {
+    const activeCourses = getActiveCourses(config);
+    const richCurriculum = {};
+    for (const [cid, cfg] of activeCourses) {
+      const courseData = cMap.courses[cid];
+      if (!courseData) continue;
+      richCurriculum[cid] = { name: courseData.name_en, modules: {} };
+      for (const m of cfg.included_modules) {
+        const mod = courseData.modules[m];
+        if (!mod) continue;
+        const prereqs = new Set(), crossLinks = [], topicTypes = [], commonMistakes = [];
+        let maxConceptual = 0, maxExamApp = 0;
+        for (const t of (mod.topics || [])) {
+          for (const prereqTopic of (t.prerequisites || [])) {
+            const match = prereqTopic.match(new RegExp(`^${cid}_(M\\d+)_`));
+            if (match && match[1] !== m) prereqs.add(match[1]);
+          }
+          for (const link of (t.cross_course_links || [])) {
+            if (typeof link === 'string') crossLinks.push(link);
+            else if (link.topic_id) crossLinks.push(link.topic_id);
+          }
+          if (t.type && !topicTypes.includes(t.type)) topicTypes.push(t.type);
+          if (t.difficulty) {
+            maxConceptual = Math.max(maxConceptual, t.difficulty.conceptual_abstraction || 0);
+            maxExamApp = Math.max(maxExamApp, t.difficulty.exam_application || 0);
+          }
+          if (t.common_mistakes?.[0] && commonMistakes.length < 2) commonMistakes.push(t.common_mistakes[0]);
+        }
+        richCurriculum[cid].modules[m] = {
+          title: mod.title_en, diff: mod.module_difficulty, hours: mod.study_hours_estimate,
+          types: topicTypes, prereqs: [...prereqs].sort(), cross_links: crossLinks,
+          conceptual: maxConceptual, exam_app: maxExamApp, mistakes: commonMistakes
+        };
+      }
+    }
+    return richCurriculum;
+  }
 
-    
-    const localPlan = generateSmartLocalPlan();
+  function buildAIPrompt(localSkeleton, config, cMap) {
+    const compactDays = localSkeleton
+      .filter(d => d.sessions.length > 0)
+      .map(d => ({
+        date: d.date, type: d.day_type,
+        sessions: d.sessions.map(s => ({
+          sn: s.session_number, cid: s.course_id, mid: s.module_id,
+          mods: s.modules, mode: s.mode, diff: s.difficulty_avg, stype: s.session_type
+        }))
+      }));
 
-    
-    const missingDays = (localPlan.days || []).filter(d => !coveredDates.has(d.date));
+    const richCurriculum = buildRichCurriculum(config, cMap);
+    const examInfo = Object.entries(config.courses)
+      .filter(([, c]) => c.active && c.exam_date)
+      .map(([cid, c]) => `${cid}: ${c.exam_date}`)
+      .join(', ');
 
-    if (missingDays.length > 0) {
-      console.log(`Completing plan: AI provided ${planData.days.length} days, adding ${missingDays.length} local days`);
+    const systemPrompt = `أنت مستشار أكاديمي لطلاب علوم الحاسوب. مهمتك الوحيدة:
+إثراء الجدول الدراسي المعطى بمحتوى تعليمي ذكي.
 
-      
-      planData.days = [...planData.days, ...missingDays].sort((a, b) => a.date.localeCompare(b.date));
+قواعد صارمة لا استثناء فيها:
+1. لا تُعدّل أي تاريخ أو ترتيب جلسة في الهيكل المعطى.
+2. لا تُضف جلسات. لا تحذف جلسات.
+3. الترتيب التسلسلي M01→M02→M03 محدد ومحمي.
+4. الربط المفاهيمي يعني: اذكره في ai_note فقط.
+5. أجب بـ JSON نظيف فقط.`;
 
-      
-      if (planData.plan_summary) {
-        planData.plan_summary.total_days = planData.days.length;
-        planData.plan_summary.total_sessions = planData.days.reduce(
-          (sum, d) => sum + (d.sessions?.length || 0), 0
-        );
-        const desc = isAr
-          ? 'جدول مدمج: AI + استكمال ذكي محلي (بسبب بتر استجابة الذكاء الاصطناعي)'
-          : 'Hybrid plan: AI + smart local completion (AI response was truncated)';
-        planData.plan_summary.strategy_description = desc;
-        planData.plan_summary.strategy_description_ar = desc;
+    const userPrompt = `## الجدول المحدد مسبقاً (أضف إليه فقط — لا تعدّله)
+${JSON.stringify(compactDays, null, 0)}
+
+## مواعيد الاختبارات
+${examInfo || 'لا يوجد'}
+
+## بيانات المناهج
+${JSON.stringify(richCurriculum, null, 0)}
+
+## المطلوب لكل جلسة (أضف حسب sn + cid + mid):
+- "topics_focus": [topic_id, ...]
+- "must_know_today": ["جملة واحدة"]
+- "must_memorize_today": ["جملة واحدة"]
+- "is_critical": true|false
+- "estimated_minutes": 60|90|120
+- "ai_note": "جملة واحدة بالعربية"
+- "cross_link_alert": {"active": bool, "message": "نص" أو null}
+
+## المطلوب لكل يوم:
+- "daily_tip": "جملة واحدة"
+- "week_theme": "3 كلمات"
+
+## المطلوب على مستوى الجدول:
+- "critical_warnings": [{"type": "time_pressure|dependency_risk|overload", "message": "...", "affected": ["CS350-M04"]}]
+
+## شكل الناتج:
+{"days":[{"date":"YYYY-MM-DD","daily_tip":"...","week_theme":"...","sessions":[{"sn":1,"cid":"CS350","mid":"M01","topics_focus":[],"must_know_today":[],"must_memorize_today":[],"is_critical":false,"estimated_minutes":90,"ai_note":"...","cross_link_alert":{"active":false,"message":null}}]}],"critical_warnings":[]}
+
+⚠️ أعِد كل الأيام والجلسات كما هي. المفاتيح sn وcid وmid يجب أن تطابق تماماً.`;
+
+    return { system: systemPrompt, user: userPrompt };
+  }
+
+  function mergeAIResponse(localSkeleton, aiResponse) {
+    if (!aiResponse?.days) {
+      injectCurriculumData(localSkeleton, curriculumMap);
+      return localSkeleton;
+    }
+
+    const aiDayIndex = {};
+    for (const aiDay of aiResponse.days) aiDayIndex[aiDay.date] = aiDay;
+
+    for (const localDay of localSkeleton) {
+      const aiDay = aiDayIndex[localDay.date];
+      if (!aiDay) continue;
+
+      if (aiDay.daily_tip) localDay.daily_tip_ar = aiDay.daily_tip;
+      if (aiDay.week_theme) localDay.week_theme = aiDay.week_theme;
+
+      const aiSessionIndex = {};
+      for (const s of (aiDay.sessions || [])) {
+        aiSessionIndex[`${s.sn}_${s.cid}_${s.mid}`] = s;
+      }
+
+      for (const ls of localDay.sessions) {
+        const key = `${ls.session_number}_${ls.course_id}_${ls.module_id}`;
+        const as = aiSessionIndex[key];
+        if (!as) continue;
+
+        if (as.topics_focus) ls.topics_focus = as.topics_focus;
+        if (as.must_know_today) ls.must_know_today = as.must_know_today;
+        if (as.must_memorize_today) ls.must_memorize_today = as.must_memorize_today;
+        if (as.is_critical != null) ls.is_critical = as.is_critical;
+        if (as.estimated_minutes) ls.estimated_minutes = as.estimated_minutes;
+        if (as.ai_note) { ls.ai_note = as.ai_note; ls.ai_note_ar = as.ai_note; }
+        if (as.cross_link_alert) ls.cross_link_alert = as.cross_link_alert;
       }
     }
 
-    
-    if (planData.days.length > 0) {
-      const firstDate = new Date(planData.days[0].date + 'T00:00:00');
-      planData.days.forEach(d => {
-        const dayDate = new Date(d.date + 'T00:00:00');
-        d.week_number = Math.floor((dayDate - firstDate) / (7 * 86400000)) + 1;
-      });
+    if (aiResponse.critical_warnings?.length) {
+      localSkeleton._critical_warnings = aiResponse.critical_warnings;
     }
 
-    return planData;
+    injectCurriculumData(localSkeleton, curriculumMap);
+    return localSkeleton;
+  }
+
+  async function callAIWorker(systemMsg, userMsg) {
+    const messages = [
+      { role: 'system', content: systemMsg },
+      { role: 'user', content: userMsg }
+    ];
+
+    const localKey = isLocalServer() ? await EnvLoader.getDeepseekKey() : '';
+
+    if (localKey) {
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localKey },
+        body: JSON.stringify({
+          model: 'deepseek-chat', messages: messages.slice(0, 5),
+          max_tokens: MAX_TOKENS, temperature: 0.3, stream: false,
+          response_format: { type: 'json_object' }
+        })
+      });
+      if (!response.ok) throw new Error('API error: ' + response.status);
+      const raw = await response.json();
+      return raw.choices?.[0]?.message?.content || '';
+    } else {
+      const response = await fetch(PLANNER_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages, max_tokens: MAX_TOKENS, temperature: 0.3,
+          response_format: { type: 'json_object' }
+        })
+      });
+      if (!response.ok) throw new Error('API error: ' + response.status);
+      const data = await response.json();
+      if (data.error) throw new Error(data.message_ar || data.error);
+      return data.text || data.choices?.[0]?.message?.content || '';
+    }
   }
 
   
-  function cleanupLoadingIntervals() {
-    _loadingIntervals.forEach(id => clearInterval(id));
-    _loadingIntervals = [];
+  
+  
+
+  function normalizePlanDays(days) {
+    if (!days || days.length === 0) return [];
+    const firstDate = days[0].date;
+
+    return days.map(day => {
+      const weekNum = Math.floor(dateDiffDays(day.date, firstDate) / 7) + 1;
+      return {
+        ...day,
+        day_label: formatDate(day.date, 'card'),
+        week_number: weekNum,
+        daily_tip_ar: day.daily_tip_ar || '',
+        daily_tip_en: day.daily_tip_en || '',
+        daily_tip: day.daily_tip_ar || ''
+      };
+    });
   }
 
-  function setupInteractiveLoading(isAr) {
+  function buildWeekLabels(days, isAr) {
+    const weekSet = [...new Set(days.map(d => d.week_number))];
+    const totalWeeks = weekSet.length;
+    return weekSet.map((w, i) => {
+      const progress = totalWeeks > 1 ? i / (totalWeeks - 1) : 0;
+      let theme, themeEn;
+      if (progress === 0) { theme = 'بناء الأساس'; themeEn = 'Foundation Building'; }
+      else if (progress < 0.4) { theme = 'التعمق في المفاهيم'; themeEn = 'Core Concepts'; }
+      else if (progress < 0.7) { theme = 'تعميق الفهم والربط'; themeEn = 'Deepening & Linking'; }
+      else if (progress < 0.9) { theme = 'التكثيف والتعزيز'; themeEn = 'Intensification'; }
+      else { theme = 'مراجعة وتثبيت'; themeEn = 'Review & Consolidation'; }
+      return { week_number: w, theme, theme_en: themeEn };
+    });
+  }
+
+  function buildFinalPlan(days, config, aiStatus, warnings) {
+    const isAr = lang() === 'ar';
+    const normalizedDays = normalizePlanDays(days);
+    const totalSessions = normalizedDays.reduce((s, d) => s + (d.sessions?.length || 0), 0);
+    const weeks = buildWeekLabels(normalizedDays, isAr);
+
+    return {
+      plan_type: config.plan_type,
+      generated_at: getLocalTodayStr(),
+      ai_model: aiStatus === 'hybrid' ? 'deepseek' : 'smart_local',
+      ai_status: aiStatus,
+      config: { ...config },
+      plan_summary: {
+        total_days: normalizedDays.length,
+        total_sessions: totalSessions,
+        strategy_description_ar: aiStatus === 'hybrid'
+          ? 'جدول هجين — هيكل محلي مضمون + إثراء ذكاء اصطناعي'
+          : 'جدول تكيّفي ذكي — توزيع عادل + مراجعة ذهبية + مراجعة متباعدة',
+        strategy_description_en: aiStatus === 'hybrid'
+          ? 'Hybrid plan — guaranteed local structure + AI enrichment'
+          : 'Smart adaptive plan — fair distribution + golden review + spaced review',
+        strategy_description: aiStatus === 'hybrid'
+          ? 'جدول هجين — هيكل محلي مضمون + إثراء ذكاء اصطناعي'
+          : 'جدول تكيّفي ذكي — توزيع عادل + مراجعة ذهبية + مراجعة متباعدة',
+        weeks
+      },
+      days: normalizedDays,
+      critical_warnings: warnings || []
+    };
+  }
+
+  
+  
+  
+
+  
+  function onGeneratePlan() {
+    return generatePlanFlow();
+  }
+
+  async function generatePlanFlow() {
+    const startInput = document.getElementById('start-date-input');
+    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+    const isAr = lang() === 'ar';
+
+    hideError(); hideInfo();
+    showStep(4);
+    const loadingScreen = document.getElementById('loading-screen');
+    const planContent = document.getElementById('plan-content');
+    loadingScreen.classList.add('active');
+    planContent.style.display = 'none';
+
+    const loader = showInteractiveLoadingScreen();
+
+    try {
+      
+      loader.advance('local');
+      const skeleton = buildLocalSkeleton(userConfig, curriculumMap);
+      markGoldenReviewDays(skeleton, userConfig);
+      distributeCoreSessions(skeleton, userConfig, curriculumMap);
+
+      const preCheck = validateBeforeSend(skeleton, userConfig, curriculumMap);
+      if (!preCheck.canSend) {
+        cleanupLoadingIntervals();
+        loadingScreen.classList.remove('active');
+        planContent.style.display = '';
+        showBlockingError(preCheck);
+        return;
+      }
+
+      distributeGoldenReviews(skeleton, userConfig, curriculumMap);
+      distributeSpacedReviews(skeleton, userConfig, curriculumMap);
+      injectCurriculumData(skeleton, curriculumMap);
+
+      
+      let aiData = null;
+      try {
+        loader.advance('ai');
+        const { system, user } = buildAIPrompt(skeleton, userConfig, curriculumMap);
+        const aiRaw = await callAIWorker(system, user);
+        aiData = tryParseJSON(aiRaw);
+      } catch (aiErr) {
+        console.warn('AI enrichment failed, using local plan:', aiErr.message);
+      }
+
+      if (aiData) {
+        mergeAIResponse(skeleton, aiData);
+      }
+
+      const postCheck = validateAfterReceive({ days: skeleton }, userConfig, curriculumMap);
+      if (!postCheck.valid) {
+        console.error('أخطاء في التحقق:', postCheck.critical);
+      }
+
+      
+      loader.advance('done');
+      const finalPlan = buildFinalPlan(
+        skeleton, userConfig,
+        aiData ? 'hybrid' : 'smart_local',
+        [...(postCheck.warnings || []), ...(skeleton._critical_warnings || [])]
+      );
+
+      
+      localStorage.setItem(getPlanStorageKey(userConfig.plan_type), JSON.stringify(finalPlan));
+      localStorage.setItem('planner_config', JSON.stringify(userConfig));
+
+      await sleep(400);
+      cleanupLoadingIntervals();
+      loadingScreen.classList.remove('active');
+      planContent.style.display = '';
+      renderPlan(finalPlan);
+
+    } catch (err) {
+      console.error('generatePlanFlow:', err);
+      cleanupLoadingIntervals();
+
+      
+      try {
+        const fallback = buildLocalPlanDirect();
+        localStorage.setItem(getPlanStorageKey(userConfig.plan_type), JSON.stringify(fallback));
+        localStorage.setItem('planner_config', JSON.stringify(userConfig));
+        loadingScreen.classList.remove('active');
+        planContent.style.display = '';
+        renderPlan(fallback);
+        showInfo(isAr
+          ? '⚠️ فشل الاتصال بالذكاء — تم إنشاء جدول ذكي محلي بدلاً.'
+          : '⚠️ AI failed — smart local plan generated instead.');
+      } catch (fallbackErr) {
+        loadingScreen.classList.remove('active');
+        planContent.style.display = '';
+        showError(isAr ? 'خطأ في التوليد — تحقق من الاتصال' : 'Generation error — check connection');
+      }
+    }
+  }
+
+  
+  function buildLocalPlanDirect() {
+    const skeleton = buildLocalSkeleton(userConfig, curriculumMap);
+    markGoldenReviewDays(skeleton, userConfig);
+    distributeCoreSessions(skeleton, userConfig, curriculumMap);
+
+    const preCheck = validateBeforeSend(skeleton, userConfig, curriculumMap);
+    if (!preCheck.canSend) {
+      console.warn('Validation issues:', preCheck.errors);
+    }
+
+    distributeGoldenReviews(skeleton, userConfig, curriculumMap);
+    distributeSpacedReviews(skeleton, userConfig, curriculumMap);
+    injectCurriculumData(skeleton, curriculumMap);
+
+    return buildFinalPlan(skeleton, userConfig, 'smart_local', []);
+  }
+
+  function generateLocalPlan() {
+    const startInput = document.getElementById('start-date-input');
+    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+
+    hideError(); hideInfo();
+    showStep(4);
+    document.getElementById('loading-screen').classList.remove('active');
+    document.getElementById('plan-content').style.display = '';
+
+    const plan = buildLocalPlanDirect();
+    localStorage.setItem(getPlanStorageKey(userConfig.plan_type), JSON.stringify(plan));
+    localStorage.setItem('planner_config', JSON.stringify(userConfig));
+
+    try { renderPlan(plan); } catch (e) {
+      console.error('renderPlan error:', e);
+      document.getElementById('plan-content').innerHTML =
+        '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + e.message + '</p></div>';
+    }
+
+    showInfo(lang() === 'ar'
+      ? '📋 تم إنشاء جدول ذكي محلياً — مرتب تسلسلياً مع توزيع عادل ومراجعات ذهبية.'
+      : '📋 Smart local plan generated — sequential with fair distribution and golden reviews.');
+  }
+
+  
+  function generateSmartLocalPlan() { return buildLocalPlanDirect(); }
+  function generateFallbackPlan() { return buildLocalPlanDirect(); }
+
+  
+  
+  
+
+  const LOADING_STAGES = [
+    { id: 'local',  ar: '🏗️ بناء الجدول محلياً...',  en: '🏗️ Building local schedule...' },
+    { id: 'ai',     ar: '🤖 إثراء المحتوى بالذكاء...', en: '🤖 AI enriching content...' },
+    { id: 'done',   ar: '🎉 الجدول جاهز!',             en: '🎉 Plan ready!' }
+  ];
+
+  function showInteractiveLoadingScreen() {
+    const isAr = lang() === 'ar';
     const stepsEl = document.getElementById('loading-steps');
     const fillEl = document.getElementById('loading-fill');
-    const loadingScreen = document.getElementById('loading-screen');
-
-    const loadSteps = isAr
-      ? ['تحليل نقاط ضعفك...', 'اكتشاف الروابط بين المواضيع...', 'ترتيب الأولويات...', 'بناء الجدول...']
-      : ['Analyzing weak points...', 'Finding topic connections...', 'Prioritizing...', 'Building schedule...'];
 
     const tips = isAr ? [
       '💡 التبديل بين المواد يُقوّي الذاكرة أكثر من دراسة مادة واحدة حتى الانتهاء',
@@ -1145,38 +1572,89 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
       '💡 اربط المفاهيم المتشابهة بين المواد — فهم واحد يُعزز الآخر',
       '💡 ابدأ بالأصعب وأنت نشيط، ثم انتقل للأسهل',
       '💡 استخدم تقنية البومودورو: 25 دقيقة مذاكرة + 5 دقائق راحة',
-      '💡 المراجعة المتباعدة (Spaced Repetition) أفضل من الحشو المتواصل',
-      '💡 اشرح المفهوم لنفسك بصوت عالٍ — إذا وقفت، ارجع وادرسه!'
+      '💡 المراجعة المتباعدة أفضل من الحشو المتواصل'
     ] : [
       '💡 Switching between subjects strengthens memory retention',
       '💡 Rest day before exam is more important than cramming',
-      '💡 Link similar concepts across courses — understanding one boosts the other',
-      '💡 Start with hard topics while fresh, then move to easier ones',
+      '💡 Link similar concepts across courses',
+      '💡 Start with hard topics while fresh',
       '💡 Use the Pomodoro technique: 25 min study + 5 min break',
-      '💡 Spaced repetition beats continuous cramming',
-      '💡 Explain the concept aloud — if you get stuck, review it!'
+      '💡 Spaced repetition beats continuous cramming'
     ];
 
     
     stepsEl.innerHTML = `
-      <div class="loading-steps-list">
-        ${loadSteps.map((s, i) => `<div class="loading-step" id="ls-${i}">${i === 0 ? '⏳' : '○'} ${s}</div>`).join('')}
+      <div class="loading-stages">
+        ${LOADING_STAGES.map(s => `
+          <div class="loading-stage" id="stage-${s.id}">
+            <span class="loading-stage-icon">○</span>
+            <span class="loading-stage-text">${isAr ? s.ar : s.en}</span>
+          </div>
+        `).join('')}
       </div>
-      <div class="loading-warning">
-        ⚠️ ${isAr ? 'لا تحدّث الصفحة — المحتوى قيد التوليد' : 'Do not refresh — content is being generated'}
-      </div>
+      <div class="loading-status" id="loading-status"></div>
       <div class="loading-timer" id="loading-timer">00:00</div>
       <div class="loading-tip" id="loading-tip">${tips[0]}</div>
+      <div class="loading-warning">
+        ⚠️ ${isAr ? 'لا تحدّث الصفحة' : 'Do not refresh the page'}
+      </div>
     `;
 
     
     const startTime = Date.now();
+    let currentPhase = 'local'; 
+
+    const timeMessages = isAr
+      ? [
+          { after: 0,   msg: 'جارٍ بناء الهيكل الأساسي...' },
+          { after: 5,   msg: 'يتم الآن إرسال البيانات للذكاء الاصطناعي...' },
+          { after: 20,  msg: 'الذكاء الاصطناعي يحلل المناهج ويكتب الملاحظات...' },
+          { after: 45,  msg: 'تقريباً انتهى — يُراجع الجدول...' },
+          { after: 90,  msg: 'بقي القليل — يُنهي الإثراء...' },
+          { after: 150, msg: 'لحظات فقط — يتم حفظ النتائج...' },
+          { after: 240, msg: 'استجابة بطيئة — لا تقلق، سيتم الإكمال محلياً إن تأخر...' }
+        ]
+      : [
+          { after: 0,   msg: 'Building base schedule...' },
+          { after: 5,   msg: 'Sending data to AI...' },
+          { after: 20,  msg: 'AI is analyzing curriculum and writing notes...' },
+          { after: 45,  msg: 'Almost done — reviewing the schedule...' },
+          { after: 90,  msg: 'Almost there — finishing enrichment...' },
+          { after: 150, msg: 'Just a moment — saving results...' },
+          { after: 240, msg: 'Slow response — will complete locally if delayed...' }
+        ];
+
     const timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
       const secs = String(elapsed % 60).padStart(2, '0');
       const timerEl = document.getElementById('loading-timer');
       if (timerEl) timerEl.textContent = mins + ':' + secs;
+
+      
+      if (currentPhase === 'ai') {
+        const statusEl = document.getElementById('loading-status');
+        if (statusEl) {
+          let best = timeMessages[0];
+          for (const tm of timeMessages) {
+            if (elapsed >= tm.after) best = tm;
+          }
+          if (statusEl.textContent !== best.msg) {
+            statusEl.style.opacity = '0';
+            setTimeout(() => {
+              statusEl.textContent = best.msg;
+              statusEl.style.opacity = '1';
+            }, 200);
+          }
+        }
+      }
+
+      
+      if (currentPhase === 'ai' && fillEl) {
+        
+        const aiPct = Math.min(85, 40 + (elapsed / 180) * 45);
+        fillEl.style.width = aiPct + '%';
+      }
     }, 1000);
     _loadingIntervals.push(timerInterval);
 
@@ -1190,1072 +1668,109 @@ ${JSON.stringify(relevantClusters, null, 0)}` : ''}
         setTimeout(() => {
           tipEl.textContent = tips[tipIdx];
           tipEl.style.opacity = '1';
-        }, 400);
+        }, 300);
       }
     }, 8000);
     _loadingIntervals.push(tipInterval);
 
-    
-    const advanceLoading = (step, pct) => {
-      fillEl.style.width = pct + '%';
-      for (let i = 0; i < loadSteps.length; i++) {
-        const el = document.getElementById('ls-' + i);
-        if (!el) continue;
-        if (i < step) { el.classList.add('done'); el.classList.remove('active-step'); el.textContent = '✅ ' + loadSteps[i]; }
-        else if (i === step) { el.classList.add('active-step'); el.textContent = '⏳ ' + loadSteps[i]; }
-      }
-    };
+    function advance(stageId) {
+      currentPhase = stageId;
 
-    return advanceLoading;
+      LOADING_STAGES.forEach(s => {
+        const el = document.getElementById('stage-' + s.id);
+        if (!el) return;
+        const icon = el.querySelector('.loading-stage-icon');
+
+        if (s.id === stageId) {
+          el.classList.add('loading-stage--active');
+          el.classList.remove('loading-stage--done');
+          icon.textContent = '⏳';
+        } else if (LOADING_STAGES.findIndex(x => x.id === s.id) < LOADING_STAGES.findIndex(x => x.id === stageId)) {
+          el.classList.remove('loading-stage--active');
+          el.classList.add('loading-stage--done');
+          icon.textContent = '✅';
+        }
+      });
+
+      
+      if (fillEl) {
+        if (stageId === 'local') fillEl.style.width = '15%';
+        else if (stageId === 'done') fillEl.style.width = '100%';
+        
+      }
+
+      
+      const statusEl = document.getElementById('loading-status');
+      if (statusEl && stageId === 'local') {
+        statusEl.textContent = isAr ? 'يبني الهيكل الأساسي...' : 'Building base structure...';
+        statusEl.style.opacity = '1';
+      }
+      if (statusEl && stageId === 'done') {
+        statusEl.textContent = isAr ? '✨ تم بنجاح!' : '✨ Complete!';
+        statusEl.style.opacity = '1';
+      }
+    }
+
+    return { advance };
   }
 
-  async function onGeneratePlan() {
-    const startInput = document.getElementById('start-date-input');
-    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
+  function cleanupLoadingIntervals() {
+    _loadingIntervals.forEach(id => clearInterval(id));
+    _loadingIntervals = [];
+  }
 
-    hideError();
-    hideInfo();
-    showStep(4);
-    const loadingScreen = document.getElementById('loading-screen');
-    const planContent = document.getElementById('plan-content');
-    loadingScreen.classList.add('active');
-    planContent.style.display = 'none';
-
+  function showBlockingError(preCheck) {
     const isAr = lang() === 'ar';
-    cleanupLoadingIntervals();
-    const advanceLoading = setupInteractiveLoading(isAr);
-    advanceLoading(0, 10);
-
-    try {
-      const prompt = buildPrompt();
-      advanceLoading(1, 20);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      const MAX_CHUNKS = 6; 
-      const allDays = [];   
-      let planSummary = null;
-      let chunkCount = 0;
-      let lastCoveredDate = null;
-
-      
-      const expectedDates = getExpectedAvailableDates();
-
-      
-      const systemMsg = { role: 'system', content: DEEPSEEK_SYSTEM };
-      const userMsg = { role: 'user', content: prompt };
-      let messages = [systemMsg, userMsg];
-
-      while (chunkCount < MAX_CHUNKS) {
-        chunkCount++;
-        const chunkLabel = chunkCount === 1
-          ? (isAr ? 'إنشاء الجدول...' : 'Generating plan...')
-          : (isAr ? `استكمال الجزء ${chunkCount}...` : `Continuing chunk ${chunkCount}...`);
-
-        
-        updateChunkProgress(chunkCount, MAX_CHUNKS, chunkLabel, isAr);
-        const pct = 20 + Math.round((chunkCount / (MAX_CHUNKS + 1)) * 60);
-        advanceLoading(2, pct);
-
-        console.log(`🔄 Chunk ${chunkCount}: sending request...`);
-
-        
-        const TIMEOUT_MS = 180000; 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() =>
-          controller.abort(new DOMException('Chunk timeout', 'TimeoutError')), TIMEOUT_MS);
-
-        
-        
-        
-        
-        let response;
-        const localKey = isLocalServer() ? await EnvLoader.getDeepseekKey() : '';
-
-        if (localKey) {
-          
-          response = await fetch('https://api.deepseek.com/chat/completions', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localKey },
-            body: JSON.stringify({
-              model:           'deepseek-chat',
-              messages:        messages.slice(0, 5),
-              max_tokens:      MAX_TOKENS,
-              temperature:     0.3,
-              stream:          false,
-              response_format: { type: 'json_object' },
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (!response.ok) {
-            const t = await response.text();
-            console.error(`Chunk ${chunkCount} DeepSeek direct error:`, response.status, t.substring(0, 200));
-            throw new Error('API error: ' + response.status);
-          }
-          
-          const raw = await response.json();
-          response = {
-            ok:   true,
-            json: async () => ({
-              text:          raw.choices?.[0]?.message?.content || '',
-              finish_reason: raw.choices?.[0]?.finish_reason   || 'unknown',
-              usage: {
-                input:      raw.usage?.prompt_tokens     || 0,
-                output:     raw.usage?.completion_tokens || 0,
-                max_output: 8192,
-              }
-            })
-          };
-        } else {
-          
-          response = await fetch(PLANNER_WORKER_URL, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages,
-              max_tokens:  MAX_TOKENS,
-              temperature: 0.3,
-              
-              
-              response_format: { type: 'json_object' },
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-        }
-
-        if (!response.ok) {
-          const errBody = await response.text().catch(() => '');
-          console.error(`Chunk ${chunkCount} API error:`, response.status, errBody.substring(0, 200));
-          throw new Error('API error: ' + response.status);
-        }
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.message_ar || data.message_en || data.error);
-
-        const text = data.text || data.choices?.[0]?.message?.content || '';
-        const finishReason = data.finish_reason || data.choices?.[0]?.finish_reason || 'unknown';
-        const outputTokens = data.usage?.output || 0;
-        console.log(`✅ Chunk ${chunkCount}: ${text.length} chars, ${outputTokens} tokens, finish=${finishReason}`);
-
-        
-        let chunkData = tryParseJSON(text);
-        if (!chunkData) {
-          console.error(`Chunk ${chunkCount} parse failed. First 300 chars:`, text.substring(0, 300));
-          if (allDays.length > 0) break; 
-          throw new Error('Invalid JSON from AI');
-        }
-
-        
-        chunkData = expandCompactAIPlan(chunkData);
-
-        
-        if (chunkData.plan_summary && !planSummary) {
-          planSummary = chunkData.plan_summary;
-        }
-        if (chunkData.days && chunkData.days.length > 0) {
-          
-          const existingDates = new Set(allDays.map(d => d.date));
-          for (const day of chunkData.days) {
-            if (!existingDates.has(day.date)) {
-              allDays.push(day);
-              existingDates.add(day.date);
-            }
-          }
-          lastCoveredDate = allDays[allDays.length - 1]?.date;
-        }
-
-        
-        const coveredDates = new Set(allDays.map(d => d.date));
-        const missingDates = expectedDates.filter(d => !coveredDates.has(d));
-        const completionPct = Math.round(((expectedDates.length - missingDates.length) / expectedDates.length) * 100);
-
-        console.log(`📊 Coverage: ${coveredDates.size}/${expectedDates.length} dates (${completionPct}%), missing: ${missingDates.length}`);
-
-        
-        if (missingDates.length <= 2) {
-          console.log('✅ Plan is complete!');
-          break;
-        }
-
-        
-        
-        if (finishReason === 'stop' && outputTokens < 7000) {
-          console.log('AI stopped naturally but plan incomplete. Requesting continuation...');
-        }
-
-        
-        const remainingDatesStr = missingDates.slice(0, 60).join(', ');
-        const coveredDatesStr = [...coveredDates].sort().join(', ');
-        const continuePrompt = `## استكمال الجدول
-الأيام التالية تم إنشاؤها بالفعل: ${coveredDatesStr}
-
-## الأيام المتبقية المطلوبة (${missingDates.length} يوم)
-${remainingDatesStr}
-
-## التعليمات
-أكمل الجدول لهذه الأيام المتبقية فقط. استخدم نفس الشكل المضغوط:
-{"days":[{"date":"YYYY-MM-DD","wn":N,"type":"study","sessions":[{"sn":1,"cid":"CS350","mid":"M0X","mode":"deep","diff":5,"note":"..."}],"tip":"..."}]}
-
-⚠️ كل يوم = ${userConfig.daily_sessions} جلسات بالضبط. أكمل من حيث توقفت — تابع التسلسل.`;
-
-        
-        messages = [
-          systemMsg,
-          { role: 'user', content: prompt },
-          { role: 'assistant', content: text }, 
-          { role: 'user', content: continuePrompt }
-        ];
-      }
-
-      
-      advanceLoading(3, 90);
-
-      
-      allDays.sort((a, b) => a.date.localeCompare(b.date));
-
-      
-      if (allDays.length > 0) {
-        const firstDate = new Date(allDays[0].date + 'T00:00:00');
-        allDays.forEach(d => {
-          const dayDate = new Date(d.date + 'T00:00:00');
-          d.week_number = Math.floor((dayDate - firstDate) / (7 * 86400000)) + 1;
-        });
-      }
-
-      
-      const finalCovered = new Set(allDays.map(d => d.date));
-      const finalMissing = expectedDates.filter(d => !finalCovered.has(d));
-      if (finalMissing.length > 2) {
-        console.warn(`⚠️ Still missing ${finalMissing.length} dates after ${chunkCount} chunks. Filling with local generator.`);
-        const localPlan = generateSmartLocalPlan();
-        const localDays = (localPlan.days || []).filter(d => !finalCovered.has(d.date));
-        allDays.push(...localDays);
-        allDays.sort((a, b) => a.date.localeCompare(b.date));
-      }
-
-      const totalSessions = allDays.reduce((sum, d) => sum + (d.sessions?.length || 0), 0);
-
-      const fullPlan = {
-        plan_type: userConfig.plan_type,
-        generated_at: new Date().toISOString(),
-        ai_model: 'deepseek',
-        ai_status: chunkCount > 1 ? 'multi_chunk' : 'success',
-        ai_chunks: chunkCount,
-        config: userConfig,
-        plan_summary: planSummary || {
-          total_days: allDays.length,
-          total_sessions: totalSessions,
-          strategy_description: isAr
-            ? `جدول ذكي مولّد عبر AI (${chunkCount} ${chunkCount > 1 ? 'أجزاء' : 'جزء'})`
-            : `AI-generated smart plan (${chunkCount} chunk${chunkCount > 1 ? 's' : ''})`,
-          strategy_description_ar: `جدول ذكي مولّد عبر AI (${chunkCount} ${chunkCount > 1 ? 'أجزاء' : 'جزء'})`,
-          strategy_description_en: `AI-generated smart plan (${chunkCount} chunk${chunkCount > 1 ? 's' : ''})`,
-          weeks: []
-        },
-        days: allDays
-      };
-
-      
-      fullPlan.plan_summary.total_days = allDays.length;
-      fullPlan.plan_summary.total_sessions = totalSessions;
-
-      
-      if (!fullPlan.plan_summary.weeks || fullPlan.plan_summary.weeks.length === 0) {
-        const weekSet = [...new Set(allDays.map(d => d.week_number))];
-        fullPlan.plan_summary.weeks = weekSet.map(w => ({
-          week_number: w, theme: '', theme_en: ''
-        }));
-      }
-
-      
-      injectExamDays(fullPlan);
-
-      
-      fullPlan.plan_summary.total_days = fullPlan.days.length;
-      fullPlan.plan_summary.total_sessions = fullPlan.days.reduce(
-        (sum, d) => sum + (d.sessions?.length || 0), 0
-      );
-
-      
-      const storageKey = getPlanStorageKey(userConfig.plan_type);
-      localStorage.setItem(storageKey, JSON.stringify(fullPlan));
-      localStorage.setItem('planner_config', JSON.stringify(userConfig));
-
-      cleanupLoadingIntervals();
-      advanceLoading(4, 100);
-
-      setTimeout(() => {
-        loadingScreen.classList.remove('active');
-        planContent.style.display = '';
-        try {
-          renderPlan(fullPlan);
-        } catch (renderErr) {
-          console.error('renderPlan error:', renderErr);
-          planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p><button onclick="Planner.regenerate()" style="margin-top:1rem;padding:0.5rem 1rem;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.1);color:#a78bfa;cursor:pointer;">إعادة التوليد</button></div>';
-        }
-      }, 500);
-
-    } catch (err) {
-      const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
-      console.error('Plan generation failed:', err.name, err.message);
-      cleanupLoadingIntervals();
-      loadingScreen.classList.remove('active');
-      planContent.style.display = '';
-
-      const fallback = generateFallbackPlan();
-      fallback.ai_status = 'fallback';
-      injectExamDays(fallback); 
-      const storageKey = getPlanStorageKey(userConfig.plan_type);
-      localStorage.setItem(storageKey, JSON.stringify(fallback));
-      localStorage.setItem('planner_config', JSON.stringify(userConfig));
-      try { renderPlan(fallback); } catch (e) {
-        planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);"><p>⚠️ ' + e.message + '</p></div>';
-      }
-      showInfo(isAr
-        ? 'تم إنشاء جدول ذكي محلي بدلاً من AI. يمكنك إعادة التوليد لاحقاً.'
-        : 'A smart local plan was generated. You can regenerate later for an AI plan.');
-    }
+    const msg = preCheck.errors.map(e => isAr ? e.message_ar : e.message_en).join('\n\n');
+    const container = document.getElementById('plan-content');
+    container.style.display = '';
+    container.innerHTML = `
+      <div class="blocking-error">
+        <div class="blocking-error-icon">🚫</div>
+        <div class="blocking-error-title">${isAr ? 'لا يمكن إنشاء الجدول' : 'Cannot generate plan'}</div>
+        <pre class="blocking-error-message">${msg}</pre>
+        <button class="blocking-error-btn" onclick="Planner.regenerate()">
+          ${isAr ? '← تعديل الإعدادات' : '← Edit settings'}
+        </button>
+      </div>
+    `;
   }
 
   
-  function getExpectedAvailableDates() {
-    const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
-    const startDate = userConfig.start_date ? new Date(userConfig.start_date + 'T00:00:00') : new Date();
-    startDate.setHours(0, 0, 0, 0);
-
-    let latestExam = null;
-    for (const [, cfg] of activeCourses) {
-      if (cfg.exam_date) {
-        const d = new Date(cfg.exam_date + 'T00:00:00');
-        if (!latestExam || d > latestExam) latestExam = d;
-      }
-    }
-    const endDate = latestExam || new Date(startDate.getTime() + 90 * 86400000);
-    const totalDays = Math.ceil((endDate - startDate) / 86400000) + 1;
-
-    
-    const examDateSet = new Set();
-    for (const [, cfg] of activeCourses) {
-      if (cfg.exam_date) examDateSet.add(cfg.exam_date);
-    }
-
-    const dates = [];
-    for (let i = 0; i < totalDays; i++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + i);
-      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      if (userConfig.rest_days.includes(dayName)) continue;
-      if ((userConfig.busy_dates || []).includes(dateStr)) continue;
-      if (examDateSet.has(dateStr)) continue; 
-      dates.push(dateStr);
-    }
-    return dates;
-  }
-
-  
-  function updateChunkProgress(chunkNum, maxChunks, label, isAr) {
-    let chunkEl = document.getElementById('chunk-progress');
-    if (!chunkEl) {
-      const stepsEl = document.getElementById('loading-steps');
-      if (stepsEl) {
-        const div = document.createElement('div');
-        div.id = 'chunk-progress';
-        div.className = 'loading-chunk-progress';
-        stepsEl.parentNode.insertBefore(div, stepsEl.nextSibling);
-        chunkEl = div;
-      }
-    }
-    if (chunkEl) {
-      const dots = Array.from({ length: maxChunks }, (_, i) =>
-        `<span class="chunk-dot ${i < chunkNum ? 'filled' : ''} ${i === chunkNum - 1 ? 'active' : ''}">${i < chunkNum ? '✅' : '○'}</span>`
-      ).join('');
-
-      chunkEl.innerHTML = `
-        <div class="chunk-label">${label}</div>
-        <div class="chunk-dots">${dots}</div>
-        ${chunkNum > 1 ? `<div class="chunk-note">${isAr
-          ? '⏳ الجدول طويل — يتم استكماله تلقائياً على أجزاء'
-          : '⏳ Plan is long — auto-continuing in chunks'}</div>` : ''}
-      `;
-    }
+  function setupInteractiveLoading(isAr) {
+    return showInteractiveLoadingScreen().advance;
   }
 
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
-  function generateSmartLocalPlan() {
-    const startDate = userConfig.start_date ? new Date(userConfig.start_date + 'T00:00:00') : new Date();
-    startDate.setHours(0, 0, 0, 0);
-    const activeCourses = Object.entries(userConfig.courses).filter(([, c]) => c.active);
-    const isAr = lang() === 'ar';
-    const mps = userConfig.modules_per_session || 1;
-    const sessionsPerDay = userConfig.daily_sessions || 2;
-
-    
-    function toLocalDateStr(d) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function isAvailable(d) {
-      const dayName = Object.keys(DAY_MAP).find(k => DAY_MAP[k] === d.getDay());
-      const dateStr = toLocalDateStr(d);
-      return !userConfig.rest_days.includes(dayName) && !(userConfig.busy_dates || []).includes(dateStr);
-    }
-
-    
-    function buildSession(item, num, modeOverride, noteOverride) {
-      const partLabel = item._partLabel || '';
-      const mode = modeOverride || item.mode;
-      const isReview = mode === 'flash' || mode === 'review';
-      return {
-        session_number: num,
-        course_id: item.courseId,
-        module_id: item.moduleId + (partLabel ? ' ' + partLabel : ''),
-        mode,
-        difficulty_avg: item.difficulty,
-        is_critical: item.priority >= 3 && !isReview,
-        ai_note_ar: noteOverride?.ar || (item.priority >= 3 ? `⚠️ هذه الوحدة تحتاج دراسة مركّزة — ${curriculumMap.courses[item.courseId]?.name || item.courseId}` : ''),
-        ai_note_en: noteOverride?.en || (item.priority >= 3 ? `⚠️ This module needs focused study — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}` : ''),
-        must_know_today: item.mustKnow,
-        must_know_today_en: item.mustKnowEn.length ? item.mustKnowEn : item.mustKnow,
-        must_memorize_today: item.mustMem,
-        must_memorize_today_en: item.mustMemEn.length ? item.mustMemEn : item.mustMem,
-        completed: false,
-        _snoozeCount: 0
-      };
-    }
-
-    
-    
-    
-    
-    
-    
-
-    function topologicalSortModules(cid, includedModules) {
-      const courseData = curriculumMap.courses[cid];
-      if (!courseData) return [...includedModules].sort();
-
-      
-      const prereqMap = {}; 
-      const allTopicToModule = {}; 
-
-      
-      for (const [mid, mod] of Object.entries(courseData.modules)) {
-        for (const topic of (mod.topics || [])) {
-          allTopicToModule[topic.topic_id] = mid;
-        }
-      }
-
-      
-      for (const mid of includedModules) {
-        prereqMap[mid] = new Set();
-        const mod = courseData.modules[mid];
-        if (!mod) continue;
-        for (const topic of (mod.topics || [])) {
-          for (const prereqTopicId of (topic.prerequisites || [])) {
-            const prereqModId = allTopicToModule[prereqTopicId];
-            
-            if (prereqModId && prereqModId !== mid && includedModules.includes(prereqModId)) {
-              prereqMap[mid].add(prereqModId);
-            }
-          }
-        }
-      }
-
-      
-      const inDegree = {};
-      includedModules.forEach(m => inDegree[m] = 0);
-      for (const [mid, prereqs] of Object.entries(prereqMap)) {
-        inDegree[mid] = prereqs.size;
-      }
-
-      const queue = includedModules.filter(m => inDegree[m] === 0)
-        .sort(); 
-
-      const sorted = [];
-      while (queue.length > 0) {
-        const current = queue.shift();
-        sorted.push(current);
-        
-        for (const [mid, prereqs] of Object.entries(prereqMap)) {
-          if (prereqs.has(current)) {
-            prereqs.delete(current);
-            inDegree[mid]--;
-            if (inDegree[mid] === 0) {
-              
-              let insertIdx = queue.length;
-              for (let qi = 0; qi < queue.length; qi++) {
-                if (queue[qi] > mid) { insertIdx = qi; break; }
-              }
-              queue.splice(insertIdx, 0, mid);
-            }
-          }
-        }
-      }
-
-      
-      if (sorted.length < includedModules.length) {
-        const remaining = includedModules.filter(m => !sorted.includes(m)).sort();
-        sorted.push(...remaining);
-      }
-
-      return sorted;
-    }
-
-    
-    
-    
-    const courseExams = [];
-    let latestExam = null;
-    for (const [cid, cfg] of activeCourses) {
-      const examDate = cfg.exam_date ? new Date(cfg.exam_date + 'T00:00:00') : null;
-      courseExams.push({ cid, examDate });
-      if (examDate && (!latestExam || examDate > latestExam)) latestExam = examDate;
-    }
-    courseExams.sort((a, b) => {
-      if (!a.examDate && !b.examDate) return 0;
-      if (!a.examDate) return 1;
-      if (!b.examDate) return -1;
-      return a.examDate - b.examDate;
-    });
-
-    
-    const endDate = latestExam
-      ? new Date(latestExam)
-      : userConfig.end_date
-        ? new Date(userConfig.end_date + 'T00:00:00')
-        : new Date(startDate.getTime() + 90 * 86400000);
-    const totalCalendarDays = Math.max(1, Math.ceil((endDate - startDate) / 86400000)) + 1;
-
-    
-    
-    
-    const ratingScoreMap = { not_studied: 1.0, weak: 0.7, good: 0.4, excellent: 0.15 };
-
-    const allModulesByCourse = {}; 
-
-    for (const [cid, cfg] of activeCourses) {
-      allModulesByCourse[cid] = [];
-      
-      const sortedModuleIds = topologicalSortModules(cid, cfg.included_modules);
-
-      for (const m of sortedModuleIds) {
-        const r = cfg.self_rating[m] || 'not_studied';
-        const mod = curriculumMap.courses[cid]?.modules[m];
-        const diff = mod?.module_difficulty || 5;
-        const rawPriority = r === 'not_studied' ? 4 : r === 'weak' ? 3 : r === 'good' ? 2 : 1;
-        const compositeScore = (ratingScoreMap[r] || 1.0) * 0.65 + (diff / 10) * 0.35;
-
-        const mustKnow = [], mustKnowEn = [], mustMem = [], mustMemEn = [];
-        if (mod?.topics) {
-          for (const t of mod.topics) {
-            if (t.must_know) mustKnow.push(...t.must_know);
-            if (t.must_know_en) mustKnowEn.push(...t.must_know_en);
-            if (t.must_memorize) mustMem.push(...t.must_memorize);
-            if (t.must_memorize_en) mustMemEn.push(...t.must_memorize_en);
-          }
-        }
-
-        
-        let crossLinkInfo = null;
-        if (curriculumMap.cross_course_clusters) {
-          for (const cluster of curriculumMap.cross_course_clusters) {
-            const matchingTopics = (mod?.topics || []).filter(t => cluster.topics.includes(t.topic_id));
-            if (matchingTopics.length > 0) {
-              crossLinkInfo = {
-                clusterName: isAr ? cluster.cluster_name : cluster.cluster_name_en,
-                tip: isAr ? cluster.study_tip : (cluster.study_tip_en || cluster.study_tip),
-                linkedTopics: cluster.topics.filter(t => !matchingTopics.map(mt => mt.topic_id).includes(t))
-              };
-              break;
-            }
-          }
-        }
-
-        allModulesByCourse[cid].push({
-          courseId: cid, moduleId: m,
-          priority: rawPriority,
-          compositeScore,
-          difficulty: diff, mod,
-          mustKnow: mustKnow.slice(0, 3), mustKnowEn: mustKnowEn.slice(0, 3),
-          mustMem: mustMem.slice(0, 2), mustMemEn: mustMemEn.slice(0, 2),
-          
-          mode: rawPriority >= 3 ? 'deep' : rawPriority === 2 ? 'full' : 'flash',
-          crossLinkInfo
-        });
-      }
-      
-    }
-
-    
-    
-    
-    function expandModules(modules) {
-      if (mps < 1) {
-        const sessionsPerMod = Math.round(1 / mps);
-        const expanded = [];
-        for (const item of modules) {
-          for (let p = 0; p < sessionsPerMod; p++) {
-            expanded.push({ ...item, _partLabel: `(${p + 1}/${sessionsPerMod})` });
-          }
-        }
-        return expanded;
-      } else if (mps > 1) {
-        const mergeCount = Math.round(mps);
-        const merged = [];
-        for (let i = 0; i < modules.length; i += mergeCount) {
-          const group = modules.slice(i, i + mergeCount);
-          const m = { ...group[0] };
-          if (group.length > 1) {
-            m.moduleId = group.map(g => g.moduleId).join(' + ');
-            m.difficulty = Math.round(group.reduce((s, g) => s + g.difficulty, 0) / group.length);
-            m.priority = Math.max(...group.map(g => g.priority));
-            m.mode = m.priority >= 3 ? 'deep' : m.priority === 2 ? 'full' : 'flash';
-            m.mustKnow = group.flatMap(g => g.mustKnow).slice(0, 3);
-            m.mustKnowEn = group.flatMap(g => g.mustKnowEn).slice(0, 3);
-            m.mustMem = group.flatMap(g => g.mustMem).slice(0, 2);
-            m.mustMemEn = group.flatMap(g => g.mustMemEn).slice(0, 2);
-          }
-          merged.push(m);
-        }
-        return merged;
-      }
-      return modules;
-    }
-
-    const studyQueueByCourse = {};
-    for (const cid of Object.keys(allModulesByCourse)) {
-      studyQueueByCourse[cid] = expandModules([...allModulesByCourse[cid]]);
-    }
-
-    
-    
-    
-    const allDates = [];
-    for (let i = 0; i < totalCalendarDays; i++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + i);
-      allDates.push(d);
-    }
-
-    
-    
-    
-    const days = [];
-    let sessionCount = 0;
-    const studiedModules = [];       
-    const reviewScheduled = new Set();
-    const finishedCourses = new Set();
-    let globalRROffset = 0;          
-    let dayCounter = 0;              
-
-    
-    const SM2_INTERVALS = [1, 3, 7, 14, 30];
-
-    for (let i = 0; i < allDates.length; i++) {
-      const d = allDates[i];
-      const dateStr = toLocalDateStr(d);
-
-      
-      const examsToday = courseExams.filter(ce =>
-        ce.examDate && toLocalDateStr(ce.examDate) === dateStr
-      );
-      if (examsToday.length > 0) {
-        const examSessions = examsToday.map((ce, idx) => {
-          const courseName = curriculumMap.courses[ce.cid]
-            ? (isAr ? curriculumMap.courses[ce.cid].name : curriculumMap.courses[ce.cid].name_en)
-            : ce.cid;
-          return {
-            session_number: idx + 1, course_id: ce.cid,
-            module_id: isAr ? 'اختبار' : 'Exam', mode: 'exam',
-            difficulty_avg: 10, is_critical: false,
-            ai_note_ar: `📝 اختبار ${courseName} — بالتوفيق!`,
-            ai_note_en: `📝 ${courseName} Exam — Good luck!`,
-            must_know_today: [], must_know_today_en: [],
-            must_memorize_today: [], must_memorize_today_en: [],
-            completed: false
-          };
-        });
-        days.push({
-          date: dateStr, day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1, day_type: 'exam',
-          sessions: examSessions,
-          daily_tip_ar: '📝 يوم اختبار — توكل على الله وثق بنفسك!',
-          daily_tip_en: '📝 Exam day — trust yourself and do your best!'
-        });
-        examsToday.forEach(ce => finishedCourses.add(ce.cid));
-        continue;
-      }
-
-      if (!isAvailable(d)) continue;
-
-      const liveCourseIds = courseExams
-        .map(ce => ce.cid)
-        .filter(cid => !finishedCourses.has(cid));
-
-      if (liveCourseIds.length === 0 && studiedModules.length === 0) break;
-
-      
-      
-      let goldenExamCourses = [];
-      for (const ce of courseExams) {
-        if (!ce.examDate || finishedCourses.has(ce.cid)) continue;
-        const daysUntilExam = Math.ceil((ce.examDate - d) / 86400000);
-        if (daysUntilExam >= 1 && daysUntilExam <= 2) {
-          goldenExamCourses.push(ce);
-        }
-      }
-
-      if (goldenExamCourses.length > 0) {
-        const sessions = [];
-        
-        const goldenSlots = Math.min(sessionsPerDay, Math.max(1, Math.ceil(sessionsPerDay * 0.7)));
-        const otherSlots = sessionsPerDay - goldenSlots;
-
-        
-        for (const ge of goldenExamCourses) {
-          const cid = ge.cid;
-          const courseModules = allModulesByCourse[cid] || [];
-          
-          const reviewOrder = [...courseModules].sort((a, b) => {
-            
-            if (a.priority !== b.priority) return b.priority - a.priority;
-            return b.difficulty - a.difficulty;
-          });
-          const slotsForThis = Math.ceil(goldenSlots / goldenExamCourses.length);
-          const toReview = reviewOrder.slice(0, slotsForThis);
-          for (const item of toReview) {
-            if (sessions.length >= goldenSlots) break;
-            sessions.push(buildSession(item, sessions.length + 1, 'flash', {
-              ar: `⭐ مراجعة ذهبية — ${curriculumMap.courses[cid]?.name || cid}`,
-              en: `⭐ Golden review — ${curriculumMap.courses[cid]?.name_en || cid}`
-            }));
-          }
-        }
-
-        
-        if (otherSlots > 0) {
-          const otherCourseIds = liveCourseIds.filter(
-            cid => !goldenExamCourses.some(ge => ge.cid === cid)
-          );
-          for (let s = 0; s < otherSlots && otherCourseIds.length > 0; s++) {
-            const cid = otherCourseIds[s % otherCourseIds.length];
-            if (studyQueueByCourse[cid] && studyQueueByCourse[cid].length > 0) {
-              const item = studyQueueByCourse[cid].shift();
-              sessions.push(buildSession(item, sessions.length + 1));
-              studiedModules.push({ ...item, _studiedDate: dateStr, _reviewCount: 0, _studyDayNum: dayCounter });
-            }
-          }
-        }
-
-        if (sessions.length > 0) {
-          days.push({
-            date: dateStr, day_label: formatDate(dateStr, 'card'),
-            week_number: Math.floor(i / 7) + 1, day_type: 'golden_review',
-            sessions,
-            daily_tip_ar: `⭐ مراجعة ذهبية — الاختبار قريب!`,
-            daily_tip_en: `⭐ Golden review — exam is near!`
-          });
-          sessionCount += sessions.length;
-          dayCounter++;
-        }
-        continue;
-      }
-
-      
-      
-      
-      const sessions = [];
-
-      const allStudyQueuesEmpty = liveCourseIds.every(
-        cid => !studyQueueByCourse[cid] || studyQueueByCourse[cid].length === 0
-      );
-
-      if (allStudyQueuesEmpty && liveCourseIds.length > 0) {
-        
-        const liveByExam = [...liveCourseIds].sort((a, b) => {
-          const eA = courseExams.find(ce => ce.cid === a)?.examDate;
-          const eB = courseExams.find(ce => ce.cid === b)?.examDate;
-          if (!eA && !eB) return 0;
-          if (!eA) return 1;
-          if (!eB) return -1;
-          return eA - eB;
-        });
-
-        
-        const reviewCandidates = [];
-        for (const cid of liveByExam) {
-          const mods = [...(allModulesByCourse[cid] || [])];
-          
-          const offset = dayCounter % mods.length;
-          const rotated = [...mods.slice(offset), ...mods.slice(0, offset)];
-          for (const m of rotated) {
-            const key = `${m.courseId}:${m.moduleId}:${dateStr}`;
-            if (!reviewScheduled.has(key)) {
-              reviewCandidates.push(m);
-            }
-          }
-        }
-
-        for (let s = 0; s < sessionsPerDay && s < reviewCandidates.length; s++) {
-          const item = reviewCandidates[s];
-          sessions.push(buildSession(item, sessions.length + 1, 'flash', {
-            ar: `📖 مراجعة ما قبل الاختبار — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
-            en: `📖 Pre-exam review — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
-          }));
-          reviewScheduled.add(`${item.courseId}:${item.moduleId}:${dateStr}`);
-        }
-      } else {
-        
-
-        
-        
-        
-        
-        let reviewSlots = 0;
-        if (sessionsPerDay >= 3) {
-          reviewSlots = Math.floor(sessionsPerDay / 3);
-        } else if (dayCounter > 0 && dayCounter % 3 === 0 && studiedModules.length > 0) {
-          reviewSlots = 1; 
-        }
-        const studySlots = sessionsPerDay - reviewSlots;
-
-        
-        let filled = 0;
-        let consecutiveEmpty = 0;
-        while (filled < studySlots && consecutiveEmpty < liveCourseIds.length) {
-          const cid = liveCourseIds[globalRROffset % liveCourseIds.length];
-          globalRROffset++; 
-          if (studyQueueByCourse[cid] && studyQueueByCourse[cid].length > 0) {
-            const item = studyQueueByCourse[cid].shift();
-            sessions.push(buildSession(item, sessions.length + 1));
-            studiedModules.push({ ...item, _studiedDate: dateStr, _reviewCount: 0, _studyDayNum: dayCounter });
-            filled++;
-            consecutiveEmpty = 0;
-          } else {
-            consecutiveEmpty++;
-          }
-        }
-
-        
-        if (filled < studySlots) {
-          reviewSlots += (studySlots - filled);
-        }
-
-        
-        if (reviewSlots > 0 && studiedModules.length > 0) {
-          const reviewCandidates = studiedModules.filter(sm => {
-            const daysSinceStudy = dayCounter - sm._studyDayNum;
-            const nextReviewAt = SM2_INTERVALS[Math.min(sm._reviewCount, SM2_INTERVALS.length - 1)];
-            const key = `${sm.courseId}:${sm.moduleId}:${dateStr}`;
-            return daysSinceStudy >= nextReviewAt
-              && !finishedCourses.has(sm.courseId)
-              && !reviewScheduled.has(key);
-          });
-          
-          reviewCandidates.sort((a, b) => {
-            const aOverdue = dayCounter - a._studyDayNum - SM2_INTERVALS[Math.min(a._reviewCount, SM2_INTERVALS.length - 1)];
-            const bOverdue = dayCounter - b._studyDayNum - SM2_INTERVALS[Math.min(b._reviewCount, SM2_INTERVALS.length - 1)];
-            if (bOverdue !== aOverdue) return bOverdue - aOverdue;
-            return b.compositeScore - a.compositeScore;
-          });
-
-          for (let r = 0; r < reviewSlots && r < reviewCandidates.length; r++) {
-            const item = reviewCandidates[r];
-            sessions.push(buildSession(item, sessions.length + 1, 'flash', {
-              ar: `🔄 مراجعة متباعدة (${item._reviewCount + 1}) — ${curriculumMap.courses[item.courseId]?.name || item.courseId}`,
-              en: `🔄 Spaced review (${item._reviewCount + 1}) — ${curriculumMap.courses[item.courseId]?.name_en || item.courseId}`
-            }));
-            item._reviewCount++;
-            reviewScheduled.add(`${item.courseId}:${item.moduleId}:${dateStr}`);
-          }
-        }
-      }
-
-      if (sessions.length > 0) {
-        const hasReview = sessions.some(s => s.mode === 'flash');
-        const hasStudy = sessions.some(s => s.mode !== 'flash' && s.mode !== 'exam');
-
-        
-        sessions.forEach(s => {
-          const item = allModulesByCourse[s.course_id]?.find(m =>
-            s.module_id.includes(m.moduleId)
-          );
-          if (item?.crossLinkInfo) {
-            s.cross_link_alert = {
-              active: true,
-              message: isAr
-                ? `🔗 ${item.crossLinkInfo.clusterName}: ${item.crossLinkInfo.tip}`
-                : `🔗 ${item.crossLinkInfo.clusterName}: ${item.crossLinkInfo.tip}`
-            };
-          }
-        });
-
-        days.push({
-          date: dateStr,
-          day_label: formatDate(dateStr, 'card'),
-          week_number: Math.floor(i / 7) + 1,
-          day_type: hasReview && hasStudy ? 'mixed' : hasReview ? 'light_review' : 'study',
-          sessions,
-          daily_tip_ar: '',
-          daily_tip_en: ''
-        });
-        sessionCount += sessions.length;
-        dayCounter++;
-      }
-    }
-
-    
-    
-    
-    const weekSet = [...new Set(days.map(d => d.week_number))];
-    const totalWeeks = weekSet.length;
-
-    const weeks = weekSet.map((w, i) => {
-      let theme, themeEn;
-      const progress = totalWeeks > 1 ? i / (totalWeeks - 1) : 0;
-
-      if (progress === 0) { theme = 'بناء الأساس'; themeEn = 'Foundation Building'; }
-      else if (progress < 0.4) { theme = 'التعمق في المفاهيم'; themeEn = 'Core Concepts'; }
-      else if (progress < 0.7) { theme = 'تعميق الفهم والربط'; themeEn = 'Deepening & Linking'; }
-      else if (progress < 0.9) { theme = 'التكثيف والتعزيز'; themeEn = 'Intensification'; }
-      else { theme = 'مراجعة وتثبيت'; themeEn = 'Review & Consolidation'; }
-
-      return { week_number: w, theme, theme_en: themeEn };
-    });
-
-    
-    
-    
-    const warnings = [];
-    for (const cid of Object.keys(studyQueueByCourse)) {
-      const remaining = studyQueueByCourse[cid]?.length || 0;
-      if (remaining > 0) {
-        const modIds = studyQueueByCourse[cid].map(m => m.moduleId).join(', ');
-        warnings.push({
-          type: 'time_pressure',
-          message: isAr
-            ? `⚠️ لم يتسع الوقت لجدولة ${remaining} وحدة من ${cid}: ${modIds}`
-            : `⚠️ Not enough time to schedule ${remaining} module(s) from ${cid}: ${modIds}`,
-          affected_modules: studyQueueByCourse[cid].map(m => `${cid}_${m.moduleId}`)
-        });
-      }
-    }
-
-    return {
-      plan_type: userConfig.plan_type,
-      generated_at: new Date().toISOString(),
-      ai_model: 'smart_local',
-      ai_status: 'smart_local',
-      config: { ...userConfig },
-      plan_summary: {
-        total_days: days.length,
-        total_sessions: sessionCount,
-        strategy_description_ar: 'جدول تكيّفي ذكي v4 — ترتيب تسلسلي يحترم المتطلبات + مراجعة متباعدة SM-2 + ربط مفاهيمي بين المواد',
-        strategy_description_en: 'Adaptive smart plan v4 — sequential prerequisite-aware ordering + SM-2 spaced review + cross-course concept linking',
-        strategy_description: 'جدول تكيّفي ذكي v4 — ترتيب تسلسلي يحترم المتطلبات + مراجعة متباعدة SM-2 + ربط مفاهيمي بين المواد',
-        weeks
-      },
-      days,
-      critical_warnings: warnings
-    };
-  }
-
-  
-  function generateFallbackPlan() {
-    return generateSmartLocalPlan();
-  }
-
-  
-  function generateLocalPlan() {
-    
-    const startInput = document.getElementById('start-date-input');
-    userConfig.start_date = (startInput && startInput.value) ? startInput.value : getLocalTodayStr();
-
-    hideError();
-    hideInfo();
-    showStep(4);
-    const loadingScreen = document.getElementById('loading-screen');
-    const planContent = document.getElementById('plan-content');
-    loadingScreen.classList.remove('active');
-    planContent.style.display = '';
-
-    const plan = generateSmartLocalPlan();
-    injectExamDays(plan); 
-    const storageKey = getPlanStorageKey(userConfig.plan_type);
-    localStorage.setItem(storageKey, JSON.stringify(plan));
-    localStorage.setItem('planner_config', JSON.stringify(userConfig));
-
-    try {
-      renderPlan(plan);
-    } catch (renderErr) {
-      console.error('Local plan renderPlan error:', renderErr);
-      planContent.innerHTML = '<div style="padding:2rem;text-align:center;color:#f43f5e;"><h3>⚠️ خطأ في عرض الجدول</h3><p>' + renderErr.message + '</p></div>';
-    }
-
-    showInfo(lang() === 'ar'
-      ? '📋 تم إنشاء جدول ذكي محلياً — مرتب حسب الأولوية مع تبديل بين المواد.'
-      : '📋 Smart local plan generated — prioritized with course interleaving.');
-  }
-
-  
   function cleanupExpiredCourses(plan) {
     if (!plan?.days || !Array.isArray(plan.days)) return;
     const todayStr = getLocalTodayStr();
     const examDates = {};
-
     if (plan.config?.courses) {
       for (const [cid, cfg] of Object.entries(plan.config.courses)) {
         if (cfg.exam_date) examDates[cid] = cfg.exam_date;
       }
     }
-
-    
     let changed = false;
     plan.days.forEach(day => {
       if (!day.sessions) { day.sessions = []; return; }
-      if (day.date <= todayStr) return; 
+      if (day.date <= todayStr) return;
       const before = day.sessions.length;
       day.sessions = day.sessions.filter(s => {
         const examDate = examDates[s.course_id];
         return !examDate || day.date <= examDate;
       });
       if (day.sessions.length !== before) changed = true;
-      
       day.sessions.forEach((s, idx) => s.session_number = idx + 1);
     });
-
-    
     if (changed) {
       plan.days = plan.days.filter(d => (d.sessions && d.sessions.length > 0) || d.day_type === 'exam');
     }
   }
 
-  
   function buildCourseProgressBars(plan, isAr) {
     if (!plan.config?.courses) return '';
     const todayStr = getLocalTodayStr();
@@ -2266,10 +1781,8 @@ ${remainingDatesStr}
     let barsHTML = '';
     for (const [cid, cfg] of activeCourses) {
       const courseName = curriculumMap?.courses?.[cid]
-        ? (isAr ? curriculumMap.courses[cid].name : curriculumMap.courses[cid].name_en)
-        : cid;
+        ? (isAr ? curriculumMap.courses[cid].name : curriculumMap.courses[cid].name_en) : cid;
 
-      
       let totalSessions = 0, completedSessions = 0;
       (plan.days || []).forEach(day => {
         (day.sessions || []).forEach(s => {
@@ -2281,22 +1794,12 @@ ${remainingDatesStr}
       });
 
       const pct = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
-
-      
-      let metaText = '';
-      let fillClass = '';
+      let metaText = '', fillClass = '';
       if (cfg.exam_date) {
-        const examD = new Date(cfg.exam_date + 'T00:00:00');
-        const daysLeft = Math.ceil((examD - todayD) / 86400000);
-        if (daysLeft < 0) {
-          metaText = isAr ? '✅ انتهى' : '✅ Done';
-          fillClass = 'exam-passed';
-        } else if (daysLeft <= 3) {
-          metaText = isAr ? `⚠️ ${daysLeft} أيام` : `⚠️ ${daysLeft}d left`;
-          fillClass = 'near-exam';
-        } else {
-          metaText = isAr ? `${daysLeft} يوم` : `${daysLeft}d left`;
-        }
+        const daysLeft = Math.ceil((new Date(cfg.exam_date + 'T00:00:00') - todayD) / 86400000);
+        if (daysLeft < 0) { metaText = isAr ? '✅ انتهى' : '✅ Done'; fillClass = 'exam-passed'; }
+        else if (daysLeft <= 3) { metaText = isAr ? `⚠️ ${daysLeft} أيام` : `⚠️ ${daysLeft}d left`; fillClass = 'near-exam'; }
+        else { metaText = isAr ? `${daysLeft} يوم` : `${daysLeft}d left`; }
       }
 
       barsHTML += `
@@ -2304,22 +1807,15 @@ ${remainingDatesStr}
           <span class="course-progress-name">${cid}</span>
           <div class="course-progress-bar"><div class="course-progress-fill ${fillClass}" style="width:${pct}%"></div></div>
           <span class="course-progress-meta">${pct}% ${metaText ? '· ' + metaText : ''}</span>
-        </div>
-      `;
+        </div>`;
     }
-
     return `<div class="course-progress-bars">${barsHTML}</div>`;
   }
 
-  
   function renderPlan(plan) {
     const container = document.getElementById('plan-content');
     const isAr = lang() === 'ar';
-
-    
     cleanupExpiredCourses(plan);
-
-    console.log('renderPlan called, days:', plan.days?.length, 'plan_type:', plan.plan_type);
 
     const totalDays = plan.plan_summary?.total_days || plan.days?.length || 0;
     const totalSessions = plan.plan_summary?.total_sessions || 0;
@@ -2329,31 +1825,24 @@ ${remainingDatesStr}
 
     const planTypeLabel = { general: isAr ? 'عام' : 'General', midterm: isAr ? 'ميدتيرم' : 'Midterm', final: isAr ? 'فاينل' : 'Final' };
 
-    
     allDayCards = [];
     (plan.days || []).forEach(day => {
-      if (day.sessions && day.sessions.length > 0) {
-        allDayCards.push(day);
-      }
+      if (day.sessions && day.sessions.length > 0) allDayCards.push(day);
     });
-    
 
-    
-    const aiStatus = plan.ai_status || (plan.ai_model === 'deepseek' ? 'success' : plan.ai_model === 'smart_local' ? 'smart_local' : 'fallback');
+    const aiStatus = plan.ai_status || 'fallback';
     let sourceLabel, sourceLabelClass;
-    if (aiStatus === 'success' || aiStatus === 'multi_chunk') {
-      const chunkInfo = plan.ai_chunks > 1 ? ` (${plan.ai_chunks} ${isAr ? 'أجزاء' : 'chunks'})` : '';
-      sourceLabel = isAr ? `🤖 مولّد عبر الذكاء الاصطناعي${chunkInfo}` : `🤖 AI Generated${chunkInfo}`;
+    if (aiStatus === 'hybrid' || aiStatus === 'success' || aiStatus === 'multi_chunk') {
+      sourceLabel = isAr ? '🤖 جدول هجين (محلي + AI)' : '🤖 Hybrid (Local + AI)';
       sourceLabelClass = 'ai';
     } else if (aiStatus === 'smart_local') {
       sourceLabel = isAr ? '📋 جدول ذكي محلي' : '📋 Smart Local Plan';
       sourceLabelClass = 'smart_local';
     } else {
-      sourceLabel = isAr ? '📋 جدول أساسي محلي' : '📋 Local Basic Plan';
+      sourceLabel = isAr ? '📋 جدول محلي' : '📋 Local Plan';
       sourceLabelClass = 'local';
     }
 
-    
     let html = `
       <div class="plan-header">
         <div class="plan-header-top">
@@ -2376,20 +1865,11 @@ ${remainingDatesStr}
         </div>
         ${strategy ? `<div class="plan-strategy-bar"><div class="plan-strategy-icon">💡</div><p class="plan-header-strategy">${strategy}</p></div>` : ''}
       </div>
-
-      <!-- Per-course progress bars (Phase 3) -->
       ${buildCourseProgressBars(plan, isAr)}
-
-      <!-- Critical warnings -->
       ${(plan.critical_warnings || []).length > 0 ? `
         <div class="plan-warnings">
-          ${plan.critical_warnings.map(w => `
-            <div class="plan-warning-item">${w.message}</div>
-          `).join('')}
-        </div>
-      ` : ''}
-
-      <!-- View mode toggle -->
+          ${plan.critical_warnings.map(w => `<div class="plan-warning-item">${typeof w === 'string' ? w : w.message}</div>`).join('')}
+        </div>` : ''}
       <div class="view-mode-toggle">
         <button class="view-mode-btn ${cardViewMode === 'cards' ? 'active' : ''}" onclick="Planner.setViewMode('cards')">
           <i class="fas fa-clone"></i> ${isAr ? 'بطاقات' : 'Cards'}
@@ -2400,82 +1880,31 @@ ${remainingDatesStr}
       </div>
     `;
 
-    if (cardViewMode === 'cards') {
-      html += renderCardView(plan, isAr);
-    } else {
-      html += renderListView(plan, isAr);
-    }
-
-    console.log('renderPlan: setting innerHTML, length:', html.length);
+    html += cardViewMode === 'cards' ? renderCardView(plan, isAr) : renderListView(plan, isAr);
     container.innerHTML = html;
 
-    
     if (cardViewMode === 'list') {
       setTimeout(() => {
         const todayEl = container.querySelector('.day-section.today-section');
-        if (todayEl) {
-          todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-          
+        if (todayEl) { todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        else {
           const todayStr = getLocalTodayStr();
-          const allDays = container.querySelectorAll('.day-section[data-date]');
-          for (const el of allDays) {
-            if (el.dataset.date >= todayStr) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              break;
-            }
+          for (const el of container.querySelectorAll('.day-section[data-date]')) {
+            if (el.dataset.date >= todayStr) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); break; }
           }
         }
       }, 150);
     }
 
-    
-    if (typeof Garden !== 'undefined' && Garden.setLanguage) {
-      if (localStorage.getItem('garden_lang') !== lang()) {
-        Garden.setLanguage(lang());
-      }
-    }
-
-    
     if (!window._plannerLangListenerAttached) {
-      document.addEventListener('languageChanged', (e) => {
+      document.addEventListener('languageChanged', () => {
         const p = getCurrentPlan();
-        if (p) renderPlan(p); 
+        if (p) renderPlan(p);
       });
       window._plannerLangListenerAttached = true;
     }
   }
 
-  function newPlan() {
-    const isAr = lang() === 'ar';
-    const confirmed = confirm(isAr
-      ? 'هل تريد إنشاء جدول جديد؟ سيتم حذف الجدول الحالي.'
-      : 'Create a new plan? The current plan will be removed.');
-    if (!confirmed) return;
-    const key = getActivePlanKey();
-    localStorage.removeItem(key);
-    localStorage.removeItem('planner_config');
-    const cp = document.getElementById('continue-prompt');
-    if (cp) cp.style.display = 'none';
-    userConfig = {
-      plan_type: null,
-      daily_sessions: 2,
-      modules_per_session: 1,
-      start_date: null,
-      rest_days: ['friday', 'saturday'],
-      busy_dates: [],
-      courses: {}
-    };
-    currentStep = 1;
-    cardViewMode = 'cards';
-    currentCardIndex = 0;
-    _cardIndexInitialized = false;
-    hideError();
-    hideInfo();
-    showStep(1);
-  }
-
-  
   function formatSessionsCount(count, isAr) {
     if (!isAr) return `${count} Sessions`;
     if (count === 1) return 'جلسة واحدة';
@@ -2484,17 +1913,25 @@ ${remainingDatesStr}
   }
 
   
+  function getSessionTypeBadge(session, isAr) {
+    const st = session.session_type;
+    if (st === 'golden_review') return `<span class="session-type-tag golden">${isAr ? '⭐ ذهبية' : '⭐ Golden'}</span>`;
+    if (st === 'spaced_review') return `<span class="session-type-tag spaced">${isAr ? '🔄 مراجعة' : '🔄 Review'}</span>`;
+    return '';
+  }
+
+  
+  
+  
+
   function renderCardView(plan, isAr) {
     if (allDayCards.length === 0) return `<p style="text-align:center;color:var(--text-muted)">${isAr ? 'لا توجد جلسات' : 'No sessions'}</p>`;
 
     const todayStr = getLocalTodayStr();
-    
     if (!_cardIndexInitialized) {
       const todayIdx = allDayCards.findIndex(d => d.date === todayStr);
-      if (todayIdx >= 0) {
-        currentCardIndex = todayIdx;
-      } else {
-        
+      if (todayIdx >= 0) currentCardIndex = todayIdx;
+      else {
         const futureIdx = allDayCards.findIndex(d => d.date > todayStr);
         currentCardIndex = futureIdx >= 0 ? futureIdx : Math.max(0, allDayCards.length - 1);
       }
@@ -2506,7 +1943,6 @@ ${remainingDatesStr}
     const isToday = day.date === todayStr;
     const sessions = day.sessions || [];
 
-    
     let sessionCardsHTML = '';
     sessions.forEach((session, sIdx) => {
       const courseName = curriculumMap.courses[session.course_id]
@@ -2514,36 +1950,32 @@ ${remainingDatesStr}
         : session.course_id;
       const diff = session.difficulty_avg || 5;
       const diffLabel = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
-      const modeEmoji = session.mode === 'deep' ? '🔴' : session.mode === 'full' ? '🟡' : '🟢';
 
-      
-      const mustKnowMsg = isAr ? 'يجب معرفته' : 'Must know';
-      const mustMemMsg = isAr ? 'يجب حفظه' : 'Must memorize';
+      const mustKnowList = (!isAr && session.must_know_today_en?.length > 0) ? session.must_know_today_en : session.must_know_today;
+      const mustMemList = (!isAr && session.must_memorize_today_en?.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
+      const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
 
-      const mustKnowList = (!isAr && session.must_know_today_en && session.must_know_today_en.length > 0) ? session.must_know_today_en : session.must_know_today;
-      const mustMemList = (!isAr && session.must_memorize_today_en && session.must_memorize_today_en.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
-
-      const contentNoteStr = !isAr && mustKnowList?.length && mustKnowList[0].match(/[\u0600-\u06FF]/)
-        ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;font-weight:600;">(Module details maintained in Arabic)</div>` : '';
+      const contentNoteStr = !isAr && mustKnowList?.length && mustKnowList[0]?.match(/[\u0600-\u06FF]/)
+        ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;font-weight:600;">(Module details in Arabic)</div>` : '';
 
       const mustKnow = mustKnowList?.length
-        ? `<div class="card-back-section"><span class="card-back-icon">🎯</span><div><strong>${mustKnowMsg}:</strong>${contentNoteStr}<br>${mustKnowList.join('<br>')}</div></div>` : '';
+        ? `<div class="card-back-section"><span class="card-back-icon">🎯</span><div><strong>${isAr ? 'يجب معرفته' : 'Must know'}:</strong>${contentNoteStr}<br>${mustKnowList.join('<br>')}</div></div>` : '';
       const mustMem = mustMemList?.length
-        ? `<div class="card-back-section"><span class="card-back-icon">📝</span><div><strong>${mustMemMsg}:</strong>${contentNoteStr}<br>${mustMemList.join('<br>')}</div></div>` : '';
-      const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
+        ? `<div class="card-back-section"><span class="card-back-icon">📝</span><div><strong>${isAr ? 'يجب حفظه' : 'Must memorize'}:</strong>${contentNoteStr}<br>${mustMemList.join('<br>')}</div></div>` : '';
       const aiNote = aiNoteStr
         ? `<div class="card-back-section"><span class="card-back-icon">💡</span><div>${aiNoteStr}</div></div>` : '';
       const crossLink = session.cross_link_alert?.active
         ? `<div class="card-back-section"><span class="card-back-icon">🔗</span><div>${session.cross_link_alert.message}</div></div>` : '';
 
+      const typeBadge = getSessionTypeBadge(session, isAr);
+
       sessionCardsHTML += `
         <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
-          <div class="sc-card ${session.completed ? 'completed' : ''}"
-               id="session-inner-${sIdx}"
-               onclick="Planner.flipSession(${sIdx})">
+          <div class="sc-card ${session.completed ? 'completed' : ''}" id="session-inner-${sIdx}" onclick="Planner.flipSession(${sIdx})">
             <div class="sc-face sc-front">
               <div class="card-session-top-row">
                 <span class="card-session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                ${typeBadge}
                 <span class="card-diff-text">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
               </div>
               <div class="card-course-name">${session.course_id} — ${session.module_id}</div>
@@ -2551,43 +1983,36 @@ ${remainingDatesStr}
               <div class="card-difficulty">
                 <span class="card-diff-bar"><span class="card-diff-fill ${diffLabel}" style="width:${diff * 10}%"></span></span>
                 <span class="card-diff-label ${diffLabel}">${isAr
-          ? (diffLabel === 'critical' ? 'حرج' : diffLabel === 'hard' ? 'صعب' : diffLabel === 'medium' ? 'متوسط' : 'سهل')
-          : (diffLabel === 'critical' ? 'Critical' : diffLabel === 'hard' ? 'Hard' : diffLabel === 'medium' ? 'Medium' : 'Easy')
-        }</span>
+                  ? (diffLabel === 'critical' ? 'حرج' : diffLabel === 'hard' ? 'صعب' : diffLabel === 'medium' ? 'متوسط' : 'سهل')
+                  : (diffLabel === 'critical' ? 'Critical' : diffLabel === 'hard' ? 'Hard' : diffLabel === 'medium' ? 'Medium' : 'Easy')
+                }</span>
               </div>
-              <button class="card-session-done-btn"
-                      onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
+              ${session.study_url ? `<a href="${session.study_url}" class="study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 ادرس' : '📖 Study'}</a>` : ''}
+              <button class="card-session-done-btn" onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
                 ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
               </button>
               ${(session.mode === 'flash' || day.day_type === 'golden_review') && !session.completed ? `
-              <button class="card-snooze-btn"
-                      onclick="event.stopPropagation(); Planner.snoozeSession('${day.date}',${session.session_number})">
-                😴 ${isAr ? 'راحة' : 'Snooze'}
+              <button class="card-snooze-btn" onclick="event.stopPropagation(); Planner.snoozeSession('${day.date}',${session.session_number})">
+                😴 ${isAr ? 'تأجيل' : 'Snooze'}
                 ${(session._snoozeCount || 0) > 0 ? `<span class="snooze-warning">(${session._snoozeCount}/2)</span>` : ''}
               </button>` : ''}
               <div class="sc-hint">${isAr ? '👆 اضغط للتفاصيل' : '👆 Tap for details'}</div>
             </div>
-            <!-- BACK -->
             <div class="sc-face sc-back">
               <div class="card-back-session-title">${session.course_id} — ${session.module_id}</div>
               <div class="card-back-subtitle">${courseName}</div>
-              <div class="sc-back-body">
-                ${mustKnow}${mustMem}${aiNote}${crossLink}
-              </div>
+              <div class="sc-back-body">${mustKnow}${mustMem}${aiNote}${crossLink}</div>
               <div class="sc-hint">${isAr ? '👆 اضغط للرجوع' : '👆 Tap to go back'}</div>
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
     });
 
-    
     const toggle3DBtn = `
       <button class="card-3d-toggle" onclick="Planner.toggle3D()">
         <i class="fas ${use3D ? 'fa-cube' : 'fa-square'}"></i>
         ${use3D ? (isAr ? '3D مفعّل' : '3D On') : (isAr ? '3D معطّل' : '3D Off')}
-      </button>
-    `;
+      </button>`;
 
     return `
       <div class="card-3d-container">
@@ -2595,23 +2020,16 @@ ${remainingDatesStr}
           <div class="card-counter">${isAr ? `الجلسات المتبقية: ${formatSessionsCount(allDayCards.length - currentCardIndex, isAr)} من اصل ${formatSessionsCount(allDayCards.length, isAr)}` : `Remaining: ${allDayCards.length - currentCardIndex} of ${allDayCards.length}`}</div>
           ${toggle3DBtn}
         </div>
-        <!-- Day label -->
         <div class="card-day-header ${isToday ? 'today' : ''} ${day.day_type === 'exam' ? 'day-type-exam' : day.day_type === 'golden_review' ? 'day-type-golden' : ''}">
           <div class="card-day-label-group">
             <span class="card-day-text">${formatDate(day.date, 'card')}</span>
             ${day.day_type === 'exam' ? `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>` : ''}
             ${day.day_type === 'golden_review' ? `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>` : ''}
-            ${day.day_type === 'mixed' ? `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>` : ''}
-            ${day.day_type === 'light_review' ? `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>` : ''}
           </div>
           ${isToday ? `<span class="card-today-badge">${isAr ? '⏳ اليوم' : '⏳ Today'}</span>` : ''}
         </div>
-        <!-- Sessions as individual 3D cards -->
-        <div class="session-cards-list">
-          ${sessionCardsHTML}
-        </div>
+        <div class="session-cards-list">${sessionCardsHTML}</div>
         ${(isAr ? (day.daily_tip_ar || day.daily_tip) : (day.daily_tip_en || day.daily_tip)) ? `<div class="card-tip">💡 ${(isAr ? (day.daily_tip_ar || day.daily_tip) : (day.daily_tip_en || day.daily_tip))}</div>` : ''}
-        <!-- Navigation -->
         <div class="card-nav">
           <button class="card-nav-btn" onclick="Planner.prevCard()" ${currentCardIndex === 0 ? 'disabled' : ''}>
             <i class="fas fa-arrow-right"></i> ${isAr ? 'السابق' : 'Prev'}
@@ -2620,63 +2038,12 @@ ${remainingDatesStr}
             ${isAr ? 'التالي' : 'Next'} <i class="fas fa-arrow-left"></i>
           </button>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  function flipSession(sessionIdx) {
-    const card = document.getElementById('session-inner-' + sessionIdx);
-    if (card) card.classList.toggle('flipped');
-  }
-
-  
-  function flipCard() {
-    document.querySelectorAll('.sc-card').forEach(s => s.classList.toggle('flipped'));
-  }
-
-  function toggle3D() {
-    use3D = !use3D;
-    
-    document.querySelectorAll('.sc-card').forEach(s => s.classList.remove('flipped'));
-    const plan = getCurrentPlan();
-    if (plan) renderPlan(plan);
-  }
-
-  function nextCard() {
-    if (currentCardIndex < allDayCards.length - 1) {
-      currentCardIndex++;
-      const plan = getCurrentPlan();
-      if (plan) renderPlan(plan);
-    }
-  }
-
-  function prevCard() {
-    if (currentCardIndex > 0) {
-      currentCardIndex--;
-      const plan = getCurrentPlan();
-      if (plan) renderPlan(plan);
-    }
-  }
-
-  function setViewMode(mode) {
-    cardViewMode = mode;
-    const plan = getCurrentPlan();
-    if (plan) renderPlan(plan);
-  }
-
-  function getCurrentPlan() {
-    const key = getActivePlanKey();
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch { return null; }
-  }
-
-  
   function renderListView(plan, isAr) {
     let html = '';
     const todayStr = getLocalTodayStr();
-
-    
     const weeks = {};
     (plan.days || []).forEach(day => {
       const w = day.week_number || 1;
@@ -2694,28 +2061,37 @@ ${remainingDatesStr}
       for (const day of days) {
         const isToday = day.date === todayStr;
         const isPast = new Date(day.date) < new Date(todayStr);
-        const allDone = day.sessions?.every(s => s.completed);
-        const doneCount = (day.sessions || []).filter(s => s.completed).length;
         const totalCount = (day.sessions || []).length;
+        const doneCount = (day.sessions || []).filter(s => s.completed).length;
+        const allDone = totalCount > 0 && day.sessions.every(s => s.completed);
+        const isRestDay = totalCount === 0;
         let statusClass = 'upcoming', statusText = '';
 
-        if (isToday) { statusClass = 'today'; statusText = isAr ? '⏳ اليوم' : '⏳ Today'; }
-        else if (allDone) { statusClass = 'completed'; statusText = isAr ? '✅ منتهي' : '✅ Done'; }
-        else if (isPast) { statusClass = 'past'; statusText = ''; }
+        if (isRestDay) {
+          statusClass = 'rest';
+          statusText = isAr ? '😴 راحة' : '😴 Rest';
+        } else if (isToday) {
+          statusClass = 'today';
+          statusText = isAr ? '⏳ اليوم' : '⏳ Today';
+        } else if (allDone) {
+          statusClass = 'completed';
+          statusText = isAr ? '✅ منتهي' : '✅ Done';
+        } else if (isPast) {
+          statusClass = 'past';
+        }
 
-        
         const dayType = day.day_type || 'study';
         let dayTypeBadge = '';
         if (dayType === 'exam') dayTypeBadge = `<span class="day-type-badge exam-badge">${isAr ? '📝 يوم اختبار' : '📝 Exam Day'}</span>`;
         else if (dayType === 'golden_review') dayTypeBadge = `<span class="day-type-badge golden-badge">${isAr ? '⭐ مراجعة ذهبية' : '⭐ Golden Review'}</span>`;
-        else if (dayType === 'mixed') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🔄 تعلم + مراجعة' : '🔄 Study + Review'}</span>`;
-        else if (dayType === 'light_review') dayTypeBadge = `<span class="day-type-badge review-badge">${isAr ? '🏁 مراجعة' : '🏁 Review'}</span>`;
 
         
-        const progressText = totalCount > 0 ? `<span class="day-progress-count">${doneCount}/${totalCount} ${formatSessionsCount(totalCount, isAr)}</span>` : '';
+        const progressText = !isRestDay
+          ? `<span class="day-progress-count">${doneCount}/${totalCount} ${formatSessionsCount(totalCount, isAr)}</span>`
+          : '';
 
         html += `
-          <div class="day-section ${isToday ? 'today-section' : ''} ${isPast && !isToday ? 'past-section' : ''}" data-day-type="${dayType}" data-date="${day.date}">
+          <div class="day-section ${isToday ? 'today-section' : ''} ${isPast && !isToday ? 'past-section' : ''} ${isRestDay ? 'rest-section' : ''}" data-day-type="${dayType}" data-date="${day.date}">
             <div class="day-header">
               <div class="day-label-group">
                 <div class="day-label">${formatDate(day.date, 'card')}</div>
@@ -2733,19 +2109,18 @@ ${remainingDatesStr}
             : session.course_id;
           const diff = session.difficulty_avg || 5;
           const diffLabel = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
-          const modeEmoji = session.mode === 'deep' ? '🔴' : session.mode === 'full' ? '🟡' : '🟢';
 
-          const mustKnowList = (!isAr && session.must_know_today_en && session.must_know_today_en.length > 0) ? session.must_know_today_en : session.must_know_today;
-          const mustMemList = (!isAr && session.must_memorize_today_en && session.must_memorize_today_en.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
+          const mustKnowList = (!isAr && session.must_know_today_en?.length > 0) ? session.must_know_today_en : session.must_know_today;
+          const mustMemList = (!isAr && session.must_memorize_today_en?.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
           const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
-
-          
           const showSnooze = (session.mode === 'flash' || dayType === 'golden_review') && !session.completed;
+          const typeBadge = getSessionTypeBadge(session, isAr);
 
           html += `
             <div class="session-card ${session.completed ? 'completed' : ''}" data-date="${day.date}" data-session="${session.session_number}">
               <div class="session-card-top">
                 <span class="session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                ${typeBadge}
                 <span class="session-difficulty">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
               </div>
               <div class="session-course">${session.course_id} — ${session.module_id} (${courseName})</div>
@@ -2756,12 +2131,12 @@ ${remainingDatesStr}
               </div>
               ${session.cross_link_alert?.active ? `<div class="session-link-alert">🔗 ${session.cross_link_alert.message}</div>` : ''}
               <div class="session-actions">
+                ${session.study_url ? `<a href="${session.study_url}" class="session-action-btn study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 ادرس' : '📖 Study'}</a>` : ''}
                 <button class="session-action-btn session-complete-btn" onclick="Planner.toggleComplete('${day.date}',${session.session_number})">
-                  ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
+                  ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أنهيت' : '✅ Done')}
                 </button>
                 ${showSnooze ? `<button class="session-action-btn session-snooze-btn" onclick="Planner.snoozeSession('${day.date}',${session.session_number})">
-                  😴 ${isAr ? 'راحة' : 'Snooze'}
-                  ${(session._snoozeCount || 0) > 0 ? `<span class="snooze-warning">(${session._snoozeCount}/2)</span>` : ''}
+                  😴 ${isAr ? 'تأجيل' : 'Snooze'} ${(session._snoozeCount || 0) > 0 ? `(${session._snoozeCount}/2)` : ''}
                 </button>` : ''}
               </div>
             </div>`;
@@ -2773,6 +2148,266 @@ ${remainingDatesStr}
     return html;
   }
 
+  
+  
+  
+
+  function flipSession(sessionIdx) {
+    const card = document.getElementById('session-inner-' + sessionIdx);
+    if (card) card.classList.toggle('flipped');
+  }
+
+  function flipCard() {
+    document.querySelectorAll('.sc-card').forEach(s => s.classList.toggle('flipped'));
+  }
+
+  function toggle3D() {
+    use3D = !use3D;
+    document.querySelectorAll('.sc-card').forEach(s => s.classList.remove('flipped'));
+    const plan = getCurrentPlan();
+    if (plan) renderPlan(plan);
+  }
+
+  function nextCard() {
+    if (currentCardIndex < allDayCards.length - 1) { currentCardIndex++; const plan = getCurrentPlan(); if (plan) renderPlan(plan); }
+  }
+
+  function prevCard() {
+    if (currentCardIndex > 0) { currentCardIndex--; const plan = getCurrentPlan(); if (plan) renderPlan(plan); }
+  }
+
+  function setViewMode(mode) {
+    cardViewMode = mode;
+    const plan = getCurrentPlan();
+    if (plan) renderPlan(plan);
+  }
+
+  function getCurrentPlan() {
+    const key = getActivePlanKey();
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+
+  function newPlan() {
+    const isAr = lang() === 'ar';
+    const confirmed = confirm(isAr
+      ? 'هل تريد إنشاء جدول جديد؟ سيتم حذف الجدول الحالي.'
+      : 'Create a new plan? The current plan will be removed.');
+    if (!confirmed) return;
+    const key = getActivePlanKey();
+    localStorage.removeItem(key);
+    localStorage.removeItem('planner_config');
+    const cp = document.getElementById('continue-prompt');
+    if (cp) cp.style.display = 'none';
+    userConfig = {
+      plan_type: null, daily_sessions: 2, modules_per_session: 1,
+      start_date: null, rest_days: ['friday', 'saturday'],
+      busy_dates: [], courses: {}
+    };
+    currentStep = 1; cardViewMode = 'cards'; currentCardIndex = 0;
+    _cardIndexInitialized = false;
+    hideError(); hideInfo();
+    showStep(1);
+  }
+
+  function continuePlan() {
+    const plan = getCurrentPlan();
+    if (!plan) return;
+    showStep(4);
+    document.getElementById('loading-screen').classList.remove('active');
+    document.getElementById('plan-content').style.display = '';
+    renderPlan(plan);
+  }
+
+  function regenerate() {
+    const savedConfigRaw = localStorage.getItem('planner_config');
+    if (savedConfigRaw) {
+      try {
+        const savedConfig = JSON.parse(savedConfigRaw);
+        userConfig = { ...userConfig, ...savedConfig };
+        hideError(); hideInfo();
+        showStep(3);
+        return;
+      } catch (e) {   }
+    }
+    showStep(1);
+  }
+
+  
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = msg;
+    el.className = 'error-box visible';
+  }
+
+  function hideError() {
+    document.getElementById('error-box').classList.remove('visible');
+  }
+
+  function showInfo(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = msg;
+    el.className = 'error-box info-box visible';
+  }
+
+  function hideInfo() {
+    const el = document.getElementById('error-box');
+    el.classList.remove('info-box', 'visible');
+  }
+
+  
+  function toggleComplete(dateStr, sessionNum) {
+    const plan = getCurrentPlan();
+    if (!plan || !plan.days) return;
+
+    const day = plan.days.find(d => d.date === dateStr);
+    if (!day || !day.sessions) return;
+
+    const session = day.sessions.find(s => s.session_number === sessionNum);
+    if (!session) return;
+
+    const isNowCompleted = !session.completed;
+    session.completed = isNowCompleted;
+
+    const key = getPlanStorageKey(plan.plan_type);
+    localStorage.setItem(key, JSON.stringify(plan));
+
+    if (!isNowCompleted) { renderPlan(plan); return; }
+
+    let animatedEl = null;
+    if (cardViewMode === 'cards') {
+      const sIdx = (day.sessions || []).findIndex(s => s.session_number === sessionNum);
+      animatedEl = document.getElementById('session-inner-' + sIdx);
+    } else {
+      animatedEl = document.querySelector(`.session-card[data-date="${dateStr}"][data-session="${sessionNum}"]`);
+    }
+
+    if (animatedEl) {
+      animatedEl.classList.add('completed-animate');
+      setTimeout(() => {
+        const updatedPlan = JSON.parse(localStorage.getItem(key) || '{}');
+        renderPlan(updatedPlan);
+      }, 600);
+    } else {
+      renderPlan(plan);
+    }
+  }
+
+  
+  function markDayMissedAndRegenerate(date) {
+    const isAr = lang() === 'ar';
+    const plan = getCurrentPlan();
+    if (!plan) return;
+
+    const confirmed = confirm(isAr
+      ? 'لم تدرس اليوم؟ سيُحدَّث تقييم المودلات المكتملة وتُعاد جدولة الباقي.'
+      : "Missed today? Completed modules will be updated and remaining days rescheduled.");
+    if (!confirmed) return;
+
+    const completed = new Set();
+    for (const d of plan.days)
+      for (const s of (d.sessions || []))
+        if (s.completed) completed.add(`${s.course_id}_${s.module_id}`);
+
+    const saved = JSON.parse(localStorage.getItem('planner_config') || '{}');
+    for (const [cid, cfg] of Object.entries(saved.courses || {}))
+      for (const m of (cfg.included_modules || []))
+        if (completed.has(`${cid}_${m}`))
+          saved.courses[cid].self_rating[m] = 'excellent';
+
+    saved.start_date = addDaysToDate(date, 1);
+    localStorage.setItem('planner_config', JSON.stringify(saved));
+    userConfig = { ...userConfig, ...saved };
+
+    showInfo(isAr
+      ? '✅ تم التحديث — أعِد ضبط الإعدادات وأنشئ جدولاً جديداً'
+      : '✅ Updated — adjust settings and create a new plan');
+    setTimeout(() => showStep(2), 700);
+  }
+
+  
+  function findNextAvailableDay(plan, afterDate, beforeExamDate) {
+    const sessionsPerDay = plan.config?.daily_sessions || 2;
+    const afterD = new Date(afterDate + 'T00:00:00');
+    const beforeD = beforeExamDate ? new Date(beforeExamDate + 'T00:00:00') : null;
+
+    for (const day of plan.days) {
+      const dayD = new Date(day.date + 'T00:00:00');
+      if (dayD <= afterD) continue;
+      if (beforeD && dayD >= beforeD) continue;
+      if (day.day_type === 'exam') continue;
+      if (day.day_type === 'golden_review') continue;
+      const currentCount = (day.sessions || []).length;
+      if (currentCount < sessionsPerDay) return day;
+    }
+    return null;
+  }
+
+  function snoozeSession(date, sessionNum) {
+    const plan = getCurrentPlan();
+    if (!plan || !plan.days) return;
+    const isAr = lang() === 'ar';
+
+    const day = plan.days.find(d => d.date === date);
+    if (!day || !day.sessions) return;
+    const session = day.sessions.find(s => s.session_number === sessionNum);
+    if (!session) return;
+
+    session._snoozeCount = (session._snoozeCount || 0) + 1;
+    if (session._snoozeCount > 2) {
+      alert(isAr ? '⚠️ لا يمكن تأجيل هذه الجلسة أكثر!' : '⚠️ Cannot snooze again — max 2!');
+      session._snoozeCount = 2;
+      return;
+    }
+
+    const examDate = plan.config?.courses?.[session.course_id]?.exam_date || null;
+    const targetDay = findNextAvailableDay(plan, date, examDate);
+    if (!targetDay) {
+      alert(isAr ? '⚠️ لا يوجد يوم متاح!' : '⚠️ No available day!');
+      session._snoozeCount--;
+      return;
+    }
+
+    day.sessions = day.sessions.filter(s => s.session_number !== sessionNum);
+    day.sessions.forEach((s, idx) => s.session_number = idx + 1);
+    if (!targetDay.sessions) targetDay.sessions = [];
+    targetDay.sessions.push({ ...session, session_number: targetDay.sessions.length + 1 });
+
+    plan.days = plan.days.filter(d => (d.sessions && d.sessions.length > 0) || d.day_type === 'exam');
+    localStorage.setItem(getPlanStorageKey(plan.plan_type), JSON.stringify(plan));
+    renderPlan(plan);
+    showInfo(isAr ? `😴 تم تأجيل الجلسة إلى ${formatDate(targetDay.date, 'card')}` : `😴 Snoozed to ${formatDate(targetDay.date, 'card')}`);
+  }
+
+  
+  function getTodayBannerData() {
+    const keys = ['study_plan_midterm', 'study_plan_final', 'study_plan_general'];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const plan = JSON.parse(raw);
+        const todayStr = getLocalTodayStr();
+        const todayDay = plan.days?.find(d => d.date === todayStr);
+        if (!todayDay) continue;
+        const sessions = todayDay.sessions || [];
+        const total = sessions.length;
+        const done = sessions.filter(s => s.completed).length;
+        const allDays = plan.days || [];
+        const totalSessions = allDays.reduce((sum, d) => sum + (d.sessions?.length || 0), 0);
+        const doneSessions = allDays.reduce((sum, d) => sum + (d.sessions?.filter(s => s.completed).length || 0), 0);
+        return {
+          hasPlan: true, todaySessions: total,
+          todaySessionsFormatted: formatSessionsCount(total, lang() === 'ar'),
+          todayDone: done, totalSessions, doneSessions,
+          progressPct: totalSessions > 0 ? Math.round((doneSessions / totalSessions) * 100) : 0,
+          planType: plan.plan_type, planUrl: './planner/index.html'
+        };
+      } catch (e) { continue; }
+    }
+    return { hasPlan: false };
+  }
   
   function exportPDF() {
     const plan = getCurrentPlan();
@@ -3315,215 +2950,10 @@ ${remainingDatesStr}
 </html>`;
   }
 
-  
-  function toggleComplete(dateStr, sessionNum) {
-    const key = getActivePlanKey();
-    const plan = JSON.parse(localStorage.getItem(key) || '{}');
-    const day = plan.days?.find(d => d.date === dateStr);
-    if (!day) return;
-    const session = day.sessions?.find(s => s.session_number === sessionNum);
-    if (!session) return;
 
-    const isNowCompleted = !session.completed;
-
-    
-    session.completed = isNowCompleted;
-    session.completed_at = isNowCompleted ? new Date().toISOString() : null;
-    localStorage.setItem(key, JSON.stringify(plan));
-
-    
-    if (!isNowCompleted) {
-      renderPlan(plan);
-      return;
-    }
-
-    
-    let animatedEl = null;
-
-    if (cardViewMode === 'cards') {
-      const sIdx = (day.sessions || []).findIndex(s => s.session_number === sessionNum);
-      animatedEl = document.getElementById('session-inner-' + sIdx);
-    } else {
-      animatedEl = document.querySelector(`.session-card[data-date="${dateStr}"][data-session="${sessionNum}"]`);
-    }
-
-    if (animatedEl) {
-      animatedEl.classList.add('completed-animate');
-      setTimeout(() => {
-        
-        const updatedPlan = JSON.parse(localStorage.getItem(key) || '{}');
-        renderPlan(updatedPlan);
-      }, 600);
-    } else {
-      renderPlan(plan);
-    }
-  }
-
-  
-  function continuePlan() {
-    const plan = getCurrentPlan();
-    if (!plan) return;
-    showStep(4);
-    document.getElementById('loading-screen').classList.remove('active');
-    document.getElementById('plan-content').style.display = '';
-    renderPlan(plan);
-  }
-
-
-
-  function regenerate() {
-    const savedConfigRaw = localStorage.getItem('planner_config');
-    if (savedConfigRaw) {
-      try {
-        const savedConfig = JSON.parse(savedConfigRaw);
-        userConfig = { ...userConfig, ...savedConfig }; 
-        hideError();
-        hideInfo();
-        
-        showStep(3);
-        return;
-      } catch (e) {   }
-    }
-    showStep(1);
-  }
-
-  
-  function showError(msg) {
-    const el = document.getElementById('error-box');
-    el.textContent = msg;
-    el.className = 'error-box visible';
-  }
-
-  function hideError() {
-    document.getElementById('error-box').classList.remove('visible');
-  }
-
-  function showInfo(msg) {
-    const el = document.getElementById('error-box');
-    el.textContent = msg;
-    el.className = 'error-box info-box visible';
-  }
-
-  function hideInfo() {
-    const el = document.getElementById('error-box');
-    el.classList.remove('info-box', 'visible');
-  }
-
-  
-  function getTodayBannerData() {
-    
-    const keys = ['study_plan_midterm', 'study_plan_final', 'study_plan_general'];
-    for (const key of keys) {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      try {
-        const plan = JSON.parse(raw);
-        const todayStr = getLocalTodayStr();
-        const todayDay = plan.days?.find(d => d.date === todayStr);
-        if (!todayDay) continue;
-        const sessions = todayDay.sessions || [];
-        const total = sessions.length;
-        const done = sessions.filter(s => s.completed).length;
-        const allDays = plan.days || [];
-        const totalSessions = allDays.reduce((sum, d) => sum + (d.sessions?.length || 0), 0);
-        const doneSessions = allDays.reduce((sum, d) => sum + (d.sessions?.filter(s => s.completed).length || 0), 0);
-        return {
-          hasPlan: true,
-          todaySessions: total,
-          todaySessionsFormatted: formatSessionsCount(total, lang() === 'ar'),
-          todayDone: done,
-          totalSessions,
-          doneSessions,
-          progressPct: totalSessions > 0 ? Math.round((doneSessions / totalSessions) * 100) : 0,
-          planType: plan.plan_type,
-          planUrl: './planner/index.html'
-        };
-      } catch (e) { continue; }
-    }
-    return { hasPlan: false };
-  }
 
   
   
-  
-  function findNextAvailableDay(plan, afterDate, beforeExamDate) {
-    const sessionsPerDay = plan.config?.daily_sessions || 2;
-    const afterD = new Date(afterDate + 'T00:00:00');
-    
-    const beforeD = beforeExamDate ? new Date(beforeExamDate + 'T00:00:00') : null;
-
-    
-    for (const day of plan.days) {
-      const dayD = new Date(day.date + 'T00:00:00');
-      if (dayD <= afterD) continue;                      
-      if (beforeD && dayD >= beforeD) continue;          
-      if (day.day_type === 'exam') continue;             
-      if (day.day_type === 'golden_review') continue;    
-      const currentCount = (day.sessions || []).length;
-      if (currentCount < sessionsPerDay) return day;     
-    }
-
-    
-    return null;
-  }
-
-  function snoozeSession(date, sessionNum) {
-    const plan = getCurrentPlan();
-    if (!plan || !plan.days) return;
-    const isAr = lang() === 'ar';
-
-    const day = plan.days.find(d => d.date === date);
-    if (!day || !day.sessions) return;
-    const session = day.sessions.find(s => s.session_number === sessionNum);
-    if (!session) return;
-
-    
-    session._snoozeCount = (session._snoozeCount || 0) + 1;
-    if (session._snoozeCount > 2) {
-      alert(isAr
-        ? '⚠️ لا يمكن تأجيل هذه الجلسة أكثر — الحد الأقصى تأجيلتان!'
-        : '⚠️ Cannot snooze this session again — max 2 snoozes!');
-      session._snoozeCount = 2;
-      return;
-    }
-
-    
-    const examDate = plan.config?.courses?.[session.course_id]?.exam_date || null;
-
-    
-    const targetDay = findNextAvailableDay(plan, date, examDate);
-    if (!targetDay) {
-      alert(isAr
-        ? '⚠️ لا يوجد يوم متاح لنقل الجلسة — كل الأيام ممتلئة قبل الاختبار!'
-        : '⚠️ No available day to move this session — all days are full before the exam!');
-      session._snoozeCount--;
-      return;
-    }
-
-    
-    day.sessions = day.sessions.filter(s => s.session_number !== sessionNum);
-
-    
-    day.sessions.forEach((s, idx) => s.session_number = idx + 1);
-
-    
-    if (!targetDay.sessions) targetDay.sessions = [];
-    const newSession = { ...session, session_number: targetDay.sessions.length + 1 };
-    targetDay.sessions.push(newSession);
-
-    
-    plan.days = plan.days.filter(d => (d.sessions && d.sessions.length > 0) || d.day_type === 'exam');
-
-    
-    const storageKey = getPlanStorageKey(plan.plan_type);
-    localStorage.setItem(storageKey, JSON.stringify(plan));
-    renderPlan(plan);
-
-    showInfo(isAr
-      ? `😴 تم تأجيل الجلسة إلى ${formatDate(targetDay.date, 'card')}`
-      : `😴 Session snoozed to ${formatDate(targetDay.date, 'card')}`);
-  }
-
   
   window.Planner = {
     selectPlanType, nextStep, prevStep, toggleCourse, setExamDate,
@@ -3531,15 +2961,12 @@ ${remainingDatesStr}
     removeBusyDate, onGeneratePlan, generateLocalPlan, toggleComplete,
     continuePlan, newPlan, regenerate, flipCard, flipSession, nextCard, prevCard,
     setViewMode, exportPDF, buildPrintTable, toggle3D, getTodayBannerData,
-    snoozeSession
+    snoozeSession, markDayMissedAndRegenerate, formatDateDisplay
   };
 
-  
   document.addEventListener('DOMContentLoaded', init);
 
   document.addEventListener('garden:languageChanged', () => {
-    
-    
     if (currentStep === 2) buildCourseList();
     if (currentStep === 3) updateFeasibility();
     if (currentStep === 4) {
