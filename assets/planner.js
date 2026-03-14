@@ -922,6 +922,27 @@
           ? `../${cid}/final-review.html`
           : buildStudyURL(cid, allModules[0] || 'M01');
 
+      // ── جمع أهم المعلومات من كل المودلات (وليس M01 فقط) ──
+      const allMustKnow = [], allMustKnowEn = [];
+      const allMustMem = [], allMustMemEn = [];
+      for (const m of allModules) {
+        const modData = cMap.courses[cid]?.modules[m];
+        if (!modData?.topics) continue;
+        for (const t of modData.topics) {
+          if (t.must_know?.[0] && allMustKnow.length < 5) allMustKnow.push(t.must_know[0]);
+          if (t.must_know_en?.[0] && allMustKnowEn.length < 5) allMustKnowEn.push(t.must_know_en[0]);
+          if (t.must_memorize?.[0] && allMustMem.length < 3) allMustMem.push(t.must_memorize[0]);
+          if (t.must_memorize_en?.[0] && allMustMemEn.length < 3) allMustMemEn.push(t.must_memorize_en[0]);
+        }
+      }
+
+      // ── تعليق إيجابي مبني من معلومات المادة ──
+      const topicCount = allModules.reduce((sum, m) => {
+        return sum + (cMap.courses[cid]?.modules[m]?.topics?.length || 0);
+      }, 0);
+      const goldenMsgAr = `🌟 أنت درست ${allModules.length} وحدات و ${topicCount} موضوع في ${courseName} — اليوم تُثبّت كل شيء!`;
+      const goldenMsgEn = `🌟 You studied ${allModules.length} modules & ${topicCount} topics in ${courseNameEn} — today you lock it all in!`;
+
       targetEntry.sessions.push({
         session_number: targetEntry.sessions.length + 1,
         course_id: cid,
@@ -933,11 +954,15 @@
         exam_date: cfg.exam_date,
         is_critical: true,
         study_url: reviewUrl,
+        golden_message_ar: goldenMsgAr,
+        golden_message_en: goldenMsgEn,
         ai_note_ar: `⭐ مراجعة ذهبية شاملة — ${courseName} — راجع جميع الوحدات بسرعة`,
         ai_note_en: `⭐ Golden review — ${courseNameEn} — Quick pass over all modules`,
         ai_note: '',
-        must_know_today: [], must_know_today_en: [],
-        must_memorize_today: [], must_memorize_today_en: [],
+        must_know_today: allMustKnow,
+        must_know_today_en: allMustKnowEn,
+        must_memorize_today: allMustMem,
+        must_memorize_today_en: allMustMemEn,
         completed: false, _snoozeCount: 0,
         cross_link_alert: { active: false, message: null }
       });
@@ -1152,20 +1177,18 @@
           const modData = cMap.courses?.[session.course_id]?.modules?.[cleanMid];
           if (!modData) continue;
 
-          // Arabic: fill only if empty (preserve AI enrichment)
           if (!session.must_know_today?.length) {
             session.must_know_today = modData.topics?.[0]?.must_know?.slice(0, 2) || [];
+          }
+          if (!session.must_know_today_en?.length) {
+            session.must_know_today_en = modData.topics?.[0]?.must_know_en?.slice(0, 2) || [];
           }
           if (!session.must_memorize_today?.length) {
             session.must_memorize_today = modData.topics?.[0]?.must_memorize?.slice(0, 1) || [];
           }
-
-          // English: ALWAYS fill from curriculum — AI doesn't provide these
-          // This prevents Arabic text from leaking into English view
-          const enKnow = modData.topics?.[0]?.must_know_en?.slice(0, 2) || [];
-          const enMem = modData.topics?.[0]?.must_memorize_en?.slice(0, 1) || [];
-          if (enKnow.length > 0) session.must_know_today_en = enKnow;
-          if (enMem.length > 0) session.must_memorize_today_en = enMem;
+          if (!session.must_memorize_today_en?.length) {
+            session.must_memorize_today_en = modData.topics?.[0]?.must_memorize_en?.slice(0, 1) || [];
+          }
 
           if (!session.study_url) {
             session.study_url = buildStudyURL(session.course_id, cleanMid);
@@ -1248,43 +1271,37 @@
 2. لا تُضف جلسات. لا تحذف جلسات.
 3. الترتيب التسلسلي M01→M02→M03 محدد ومحمي.
 4. الربط المفاهيمي يعني: اذكره في ai_note فقط.
-5. كل حقل يحتوي على نسخة عربية وإنجليزية (ai_note + ai_note_en، daily_tip + daily_tip_en).
-6. أجب بـ JSON نظيف فقط.`;
+5. أجب بـ JSON نظيف فقط.`;
 
-    const userPrompt = `## القواعد والتعليمات (لا تتغير)
-⚠️ أعِد كل الأيام والجلسات كما هي. المفاتيح sn وcid وmid يجب أن تطابق تماماً.
-⚠️ أجب بالعربية في ai_note وبالإنجليزية في ai_note_en.
-⚠️ لا تكرر نفس الملاحظة لجلسات مختلفة من نفس المودل — نوّع حسب السياق (دراسة أولى / جزء ثانٍ / مراجعة).
+    const userPrompt = `## الجدول المحدد مسبقاً (أضف إليه فقط — لا تعدّله)
+${JSON.stringify(compactDays, null, 0)}
+
+## مواعيد الاختبارات
+${examInfo || 'لا يوجد'}
+
+## بيانات المناهج
+${JSON.stringify(richCurriculum, null, 0)}
 
 ## المطلوب لكل جلسة (أضف حسب sn + cid + mid):
 - "topics_focus": [topic_id, ...]
-- "must_know_today": ["جملة واحدة بالعربية"]
-- "must_memorize_today": ["جملة واحدة بالعربية"]
+- "must_know_today": ["جملة واحدة"]
+- "must_memorize_today": ["جملة واحدة"]
 - "is_critical": true|false
 - "estimated_minutes": 60|90|120
-- "ai_note": "جملة واحدة بالعربية — نصيحة أو ربط أو تحذير"
-- "ai_note_en": "Same tip in English"
-- "cross_link_alert": {"active": bool, "message": "نص بالعربية", "message_en": "English text"} أو null
+- "ai_note": "جملة واحدة بالعربية"
+- "cross_link_alert": {"active": bool, "message": "نص" أو null}
 
 ## المطلوب لكل يوم:
-- "daily_tip": "جملة واحدة بالعربية"
-- "daily_tip_en": "Same tip in English"
-- "week_theme": "3 كلمات بالعربية"
+- "daily_tip": "جملة واحدة"
+- "week_theme": "3 كلمات"
 
 ## المطلوب على مستوى الجدول:
 - "critical_warnings": [{"type": "time_pressure|dependency_risk|overload", "message": "...", "affected": ["CS350-M04"]}]
 
 ## شكل الناتج:
-{"days":[{"date":"YYYY-MM-DD","daily_tip":"...","daily_tip_en":"...","week_theme":"...","sessions":[{"sn":1,"cid":"CS350","mid":"M01","topics_focus":[],"must_know_today":[],"must_memorize_today":[],"is_critical":false,"estimated_minutes":90,"ai_note":"...","ai_note_en":"...","cross_link_alert":null}]}],"critical_warnings":[]}
+{"days":[{"date":"YYYY-MM-DD","daily_tip":"...","week_theme":"...","sessions":[{"sn":1,"cid":"CS350","mid":"M01","topics_focus":[],"must_know_today":[],"must_memorize_today":[],"is_critical":false,"estimated_minutes":90,"ai_note":"...","cross_link_alert":{"active":false,"message":null}}]}],"critical_warnings":[]}
 
-## بيانات المناهج (ثابتة — للاستخدام في المحتوى)
-${JSON.stringify(richCurriculum, null, 0)}
-
-## مواعيد الاختبارات
-${examInfo || 'لا يوجد'}
-
-## الجدول المحدد مسبقاً (أضف إليه فقط — لا تعدّله)
-${JSON.stringify(compactDays, null, 0)}`;
+⚠️ أعِد كل الأيام والجلسات كما هي. المفاتيح sn وcid وmid يجب أن تطابق تماماً.`;
 
     return { system: systemPrompt, user: userPrompt };
   }
@@ -1303,7 +1320,6 @@ ${JSON.stringify(compactDays, null, 0)}`;
       if (!aiDay) continue;
 
       if (aiDay.daily_tip) localDay.daily_tip_ar = aiDay.daily_tip;
-      if (aiDay.daily_tip_en) localDay.daily_tip_en = aiDay.daily_tip_en;
       if (aiDay.week_theme) localDay.week_theme = aiDay.week_theme;
 
       const aiSessionIndex = {};
@@ -1321,20 +1337,8 @@ ${JSON.stringify(compactDays, null, 0)}`;
         if (as.must_memorize_today) ls.must_memorize_today = as.must_memorize_today;
         if (as.is_critical != null) ls.is_critical = as.is_critical;
         if (as.estimated_minutes) ls.estimated_minutes = as.estimated_minutes;
-
-        // ── Arabic AI note → ai_note_ar only. English → ai_note_en only ──
-        // Never set generic ai_note to Arabic — prevents fallback leak to English view
-        if (as.ai_note) ls.ai_note_ar = as.ai_note;
-        if (as.ai_note_en) ls.ai_note_en = as.ai_note_en;
-
-        // ── Bilingual cross_link_alert ──
-        if (as.cross_link_alert) {
-          ls.cross_link_alert = {
-            active: as.cross_link_alert.active || false,
-            message: as.cross_link_alert.message || null,
-            message_en: as.cross_link_alert.message_en || null
-          };
-        }
+        if (as.ai_note) { ls.ai_note = as.ai_note; ls.ai_note_ar = as.ai_note; }
+        if (as.cross_link_alert) ls.cross_link_alert = as.cross_link_alert;
       }
     }
 
@@ -1610,54 +1614,68 @@ ${JSON.stringify(compactDays, null, 0)}`;
     { id: 'done',   ar: '🎉 الجدول جاهز!',             en: '🎉 Plan ready!' }
   ];
 
-  // ── Time-based messages: always contain both languages ──
-  const TIME_MESSAGES = [
-    { after: 0,   ar: 'جارٍ بناء الهيكل الأساسي...',                                  en: 'Building base schedule...' },
-    { after: 5,   ar: 'يتم الآن إرسال البيانات للذكاء الاصطناعي...',                   en: 'Sending data to AI...' },
-    { after: 20,  ar: 'الذكاء الاصطناعي يحلل المناهج ويكتب الملاحظات...',              en: 'AI is analyzing curriculum and writing notes...' },
-    { after: 120, ar: 'تقريباً انتهى — يُراجع الجدول...',                              en: 'Almost done — reviewing the schedule...' },
-    { after: 150, ar: 'بقي القليل — يُنهي الإثراء...',                                 en: 'Almost there — finishing enrichment...' },
-    { after: 200, ar: 'لحظات فقط — يتم حفظ النتائج...',                                en: 'Just a moment — saving results...' },
-    { after: 300, ar: 'استجابة بطيئة — لا تقلق، سيتم الإكمال محلياً إن تأخر...', en: 'Slow response — will complete locally if delayed...' }
-  ];
-
   function showInteractiveLoadingScreen() {
+    const isAr = lang() === 'ar';
     const stepsEl = document.getElementById('loading-steps');
     const fillEl = document.getElementById('loading-fill');
 
-    const tips = [
-      { ar: '💡 التبديل بين المواد يُقوّي الذاكرة أكثر من دراسة مادة واحدة حتى الانتهاء', en: '💡 Switching between subjects strengthens memory retention' },
-      { ar: '💡 يوم الراحة قبل الامتحان أهم من المذاكرة المكثفة',                          en: '💡 Rest day before exam is more important than cramming' },
-      { ar: '💡 اربط المفاهيم المتشابهة بين المواد — فهم واحد يُعزز الآخر',                en: '💡 Link similar concepts across courses' },
-      { ar: '💡 ابدأ بالأصعب وأنت نشيط، ثم انتقل للأسهل',                                  en: '💡 Start with hard topics while fresh' },
-      { ar: '💡 استخدم تقنية البومودورو: 25 دقيقة مذاكرة + 5 دقائق راحة',                  en: '💡 Use the Pomodoro technique: 25 min study + 5 min break' },
-      { ar: '💡 المراجعة المتباعدة أفضل من الحشو المتواصل',                                 en: '💡 Spaced repetition beats continuous cramming' }
+    const tips = isAr ? [
+      '💡 التبديل بين المواد يُقوّي الذاكرة أكثر من دراسة مادة واحدة حتى الانتهاء',
+      '💡 يوم الراحة قبل الامتحان أهم من المذاكرة المكثفة',
+      '💡 اربط المفاهيم المتشابهة بين المواد — فهم واحد يُعزز الآخر',
+      '💡 ابدأ بالأصعب وأنت نشيط، ثم انتقل للأسهل',
+      '💡 استخدم تقنية البومودورو: 25 دقيقة مذاكرة + 5 دقائق راحة',
+      '💡 المراجعة المتباعدة أفضل من الحشو المتواصل'
+    ] : [
+      '💡 Switching between subjects strengthens memory retention',
+      '💡 Rest day before exam is more important than cramming',
+      '💡 Link similar concepts across courses',
+      '💡 Start with hard topics while fresh',
+      '💡 Use the Pomodoro technique: 25 min study + 5 min break',
+      '💡 Spaced repetition beats continuous cramming'
     ];
 
-    // Read language dynamically for each render
-    const L = () => lang() === 'ar';
-
-    // Build UI with both languages, show current
+    // Build UI
     stepsEl.innerHTML = `
       <div class="loading-stages">
         ${LOADING_STAGES.map(s => `
           <div class="loading-stage" id="stage-${s.id}">
             <span class="loading-stage-icon">○</span>
-            <span class="loading-stage-text" data-ar="${s.ar}" data-en="${s.en}">${L() ? s.ar : s.en}</span>
+            <span class="loading-stage-text">${isAr ? s.ar : s.en}</span>
           </div>
         `).join('')}
       </div>
       <div class="loading-status" id="loading-status"></div>
       <div class="loading-timer" id="loading-timer">00:00</div>
-      <div class="loading-tip" id="loading-tip">${L() ? tips[0].ar : tips[0].en}</div>
+      <div class="loading-tip" id="loading-tip">${tips[0]}</div>
       <div class="loading-warning">
-        ⚠️ ${L() ? 'لا تحدّث الصفحة' : 'Do not refresh the page'}
+        ⚠️ ${isAr ? 'لا تحدّث الصفحة' : 'Do not refresh the page'}
       </div>
     `;
 
-    // Timer + time-based status messages (reads lang() dynamically)
+    // Timer + time-based status messages
     const startTime = Date.now();
-    let currentPhase = 'local';
+    let currentPhase = 'local'; // track which phase we're in
+
+    const timeMessages = isAr
+      ? [
+          { after: 0,   msg: 'جارٍ بناء الهيكل الأساسي...' },
+          { after: 5,   msg: 'يتم الآن إرسال البيانات للذكاء الاصطناعي...' },
+          { after: 20,  msg: 'الذكاء الاصطناعي يحلل المناهج ويكتب الملاحظات...' },
+          { after: 120,  msg: 'تقريباً انتهى — يُراجع الجدول...' },
+          { after: 150,  msg: 'بقي القليل — يُنهي الإثراء...' },
+          { after: 200, msg: 'لحظات فقط — يتم حفظ النتائج...' },
+          { after: 300, msg: 'استجابة بطيئة — لا تقلق، سيتم الإكمال محلياً إن تأخر...' }
+        ]
+      : [
+          { after: 0,   msg: 'Building base schedule...' },
+          { after: 5,   msg: 'Sending data to AI...' },
+          { after: 20,  msg: 'AI is analyzing curriculum and writing notes...' },
+          { after: 120,  msg: 'Almost done — reviewing the schedule...' },
+          { after: 150,  msg: 'Almost there — finishing enrichment...' },
+          { after: 200, msg: 'Just a moment — saving results...' },
+          { after: 300, msg: 'Slow response — will complete locally if delayed...' }
+        ];
 
     const timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -1666,40 +1684,33 @@ ${JSON.stringify(compactDays, null, 0)}`;
       const timerEl = document.getElementById('loading-timer');
       if (timerEl) timerEl.textContent = mins + ':' + secs;
 
-      // Dynamic language: read current lang() each tick
-      const isAr = L();
-
-      // Time-based status (during AI phase)
+      // Time-based status (only during AI phase)
       if (currentPhase === 'ai') {
         const statusEl = document.getElementById('loading-status');
         if (statusEl) {
-          let best = TIME_MESSAGES[0];
-          for (const tm of TIME_MESSAGES) {
+          let best = timeMessages[0];
+          for (const tm of timeMessages) {
             if (elapsed >= tm.after) best = tm;
           }
-          const msg = isAr ? best.ar : best.en;
-          if (statusEl.textContent !== msg) {
+          if (statusEl.textContent !== best.msg) {
             statusEl.style.opacity = '0';
-            setTimeout(() => { statusEl.textContent = msg; statusEl.style.opacity = '1'; }, 200);
+            setTimeout(() => {
+              statusEl.textContent = best.msg;
+              statusEl.style.opacity = '1';
+            }, 200);
           }
         }
       }
 
-      // Update stage labels on language change
-      document.querySelectorAll('.loading-stage-text[data-ar]').forEach(el => {
-        const expected = isAr ? el.dataset.ar : el.dataset.en;
-        if (el.textContent !== expected) el.textContent = expected;
-      });
-
-      // Smooth progress bar during AI phase
-      if (currentPhase === 'ai' && fillEl) {
+      // Smooth progress bar during AI phase — update every 5s for smooth jumps
+      if (currentPhase === 'ai' && fillEl && elapsed % 5 === 0) {
         const aiPct = Math.min(85, 40 + (elapsed / 180) * 45);
         fillEl.style.width = aiPct + '%';
       }
     }, 1000);
     _loadingIntervals.push(timerInterval);
 
-    // Rotating tips (bilingual)
+    // Rotating tips
     let tipIdx = 0;
     const tipInterval = setInterval(() => {
       tipIdx = (tipIdx + 1) % tips.length;
@@ -1707,7 +1718,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
       if (tipEl) {
         tipEl.style.opacity = '0';
         setTimeout(() => {
-          tipEl.textContent = L() ? tips[tipIdx].ar : tips[tipIdx].en;
+          tipEl.textContent = tips[tipIdx];
           tipEl.style.opacity = '1';
         }, 300);
       }
@@ -1716,7 +1727,6 @@ ${JSON.stringify(compactDays, null, 0)}`;
 
     function advance(stageId) {
       currentPhase = stageId;
-      const isAr = L();
 
       LOADING_STAGES.forEach(s => {
         const el = document.getElementById('stage-' + s.id);
@@ -1734,11 +1744,14 @@ ${JSON.stringify(compactDays, null, 0)}`;
         }
       });
 
+      // Progress bar snap for non-AI stages
       if (fillEl) {
         if (stageId === 'local') fillEl.style.width = '15%';
         else if (stageId === 'done') fillEl.style.width = '100%';
+        // 'ai' is handled smoothly by the timer
       }
 
+      // Status text for local phase
       const statusEl = document.getElementById('loading-status');
       if (statusEl && stageId === 'local') {
         statusEl.textContent = isAr ? 'يبني الهيكل الأساسي...' : 'Building base structure...';
@@ -1989,6 +2002,8 @@ ${JSON.stringify(compactDays, null, 0)}`;
         : session.course_id;
       const diff = session.difficulty_avg || 5;
       const diffLabel = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
+      const isGolden = session.session_type === 'golden_review';
+      const goldenMsg = isGolden ? (isAr ? session.golden_message_ar : session.golden_message_en) : '';
 
       const mustKnowList = (!isAr && session.must_know_today_en?.length > 0) ? session.must_know_today_en : session.must_know_today;
       const mustMemList = (!isAr && session.must_memorize_today_en?.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
@@ -2008,24 +2023,34 @@ ${JSON.stringify(compactDays, null, 0)}`;
 
       const typeBadge = getSessionTypeBadge(session, isAr);
 
-      sessionCardsHTML += `
-        <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
-          <div class="sc-card ${session.completed ? 'completed' : ''}" id="session-inner-${sIdx}" onclick="Planner.flipSession(${sIdx})">
-            <div class="sc-face sc-front">
-              <div class="card-session-top-row">
-                <span class="card-session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
-                ${typeBadge}
-                <span class="card-diff-text">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
-              </div>
-              <div class="card-course-name">${session.course_id} — ${session.module_id}</div>
-              <div class="card-course-subtitle">${courseName}</div>
-              <div class="card-difficulty">
+      // ── Difficulty area: golden reviews get a positive message instead ──
+      const diffArea = isGolden
+        ? `<div class="golden-motivational">${goldenMsg || (isAr ? '⭐ أنت جاهز!' : '⭐ You are ready!')}</div>`
+        : `<div class="card-difficulty">
                 <span class="card-diff-bar"><span class="card-diff-fill ${diffLabel}" style="width:${diff * 10}%"></span></span>
                 <span class="card-diff-label ${diffLabel}">${isAr
                   ? (diffLabel === 'critical' ? 'حرج' : diffLabel === 'hard' ? 'صعب' : diffLabel === 'medium' ? 'متوسط' : 'سهل')
                   : (diffLabel === 'critical' ? 'Critical' : diffLabel === 'hard' ? 'Hard' : diffLabel === 'medium' ? 'Medium' : 'Easy')
                 }</span>
+              </div>`;
+
+      // ── Top row: golden reviews don't show difficulty number ──
+      const topRightText = isGolden
+        ? `<span class="card-diff-text golden-hint">${isAr ? '⭐ مراجعة شاملة' : '⭐ Full Review'}</span>`
+        : `<span class="card-diff-text">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>`;
+
+      sessionCardsHTML += `
+        <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
+          <div class="sc-card ${session.completed ? 'completed' : ''}" id="session-inner-${sIdx}" onclick="Planner.flipSession(${sIdx})">
+            <div class="sc-face sc-front">
+              <div class="card-session-top-row">
+                <span class="card-session-badge ${isGolden ? 'golden' : diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                ${typeBadge}
+                ${topRightText}
               </div>
+              <div class="card-course-name">${session.course_id} — ${session.module_id}</div>
+              <div class="card-course-subtitle">${courseName}</div>
+              ${diffArea}
               ${session.study_url ? `<a href="${session.study_url}" class="study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 ادرس' : '📖 Study'}</a>` : ''}
               <button class="card-session-done-btn" onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
                 ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
@@ -2148,6 +2173,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
             : session.course_id;
           const diff = session.difficulty_avg || 5;
           const diffLabel = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
+          const isGolden = session.session_type === 'golden_review';
 
           const mustKnowList = (!isAr && session.must_know_today_en?.length > 0) ? session.must_know_today_en : session.must_know_today;
           const mustMemList = (!isAr && session.must_memorize_today_en?.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
@@ -2155,14 +2181,23 @@ ${JSON.stringify(compactDays, null, 0)}`;
           const showSnooze = (session.mode === 'flash' || dayType === 'golden_review') && !session.completed;
           const typeBadge = getSessionTypeBadge(session, isAr);
 
+          // Golden review: positive message instead of difficulty
+          const diffOrGolden = isGolden
+            ? `<span class="session-difficulty golden-hint">${isAr ? '⭐ مراجعة شاملة' : '⭐ Full Review'}</span>`
+            : `<span class="session-difficulty">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>`;
+          const goldenMotivation = isGolden
+            ? `<div class="golden-motivational-sm">${isAr ? (session.golden_message_ar || '') : (session.golden_message_en || '')}</div>`
+            : '';
+
           html += `
-            <div class="session-card ${session.completed ? 'completed' : ''}" data-date="${day.date}" data-session="${session.session_number}">
+            <div class="session-card ${session.completed ? 'completed' : ''} ${isGolden ? 'session-card--golden' : ''}" data-date="${day.date}" data-session="${session.session_number}">
               <div class="session-card-top">
-                <span class="session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                <span class="session-badge ${isGolden ? 'golden' : diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
                 ${typeBadge}
-                <span class="session-difficulty">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
+                ${diffOrGolden}
               </div>
               <div class="session-course">${session.course_id} — ${session.module_id} (${courseName})</div>
+              ${goldenMotivation}
               <div class="session-details">
                 ${mustKnowList?.length ? `<span>🎯 ${mustKnowList.join(isAr ? '، ' : ', ')}</span>` : ''}
                 ${mustMemList?.length ? `<span>📝 ${mustMemList.join(isAr ? '، ' : ', ')}</span>` : ''}
@@ -2170,7 +2205,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
               </div>
               ${session.cross_link_alert?.active ? `<div class="session-link-alert">🔗 ${(!isAr && session.cross_link_alert.message_en) ? session.cross_link_alert.message_en : (session.cross_link_alert.message || '')}</div>` : ''}
               <div class="session-actions">
-                ${session.study_url ? `<a href="${session.study_url}" class="session-action-btn study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 ادرس' : '📖 Study'}</a>` : ''}
+                ${session.study_url ? `<a href="${session.study_url}" class="session-action-btn study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 راجع' : '📖 Review'}</a>` : ''}
                 <button class="session-action-btn session-complete-btn" onclick="Planner.toggleComplete('${day.date}',${session.session_number})">
                   ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أنهيت' : '✅ Done')}
                 </button>
