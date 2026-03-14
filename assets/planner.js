@@ -1145,11 +1145,11 @@
     }
   }
 
-  function buildStudyURL(courseId, moduleId) {
-    const folder = courseId.toLowerCase();
-    const num = parseInt(moduleId.replace('M', ''));
-    return `../${folder}/M${num}.html`;
-  }
+	function buildStudyURL(courseId, moduleId) {
+		const folder = courseId;
+		const num = parseInt(moduleId.replace(/^M/i, ''));
+		return `../${folder}/M${String(num).padStart(2, '0')}.html`;
+	}
 
   
   
