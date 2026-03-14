@@ -1613,19 +1613,19 @@ ${JSON.stringify(richCurriculum, null, 0)}
           { after: 0,   msg: 'جارٍ بناء الهيكل الأساسي...' },
           { after: 5,   msg: 'يتم الآن إرسال البيانات للذكاء الاصطناعي...' },
           { after: 20,  msg: 'الذكاء الاصطناعي يحلل المناهج ويكتب الملاحظات...' },
-          { after: 45,  msg: 'تقريباً انتهى — يُراجع الجدول...' },
-          { after: 90,  msg: 'بقي القليل — يُنهي الإثراء...' },
-          { after: 150, msg: 'لحظات فقط — يتم حفظ النتائج...' },
-          { after: 240, msg: 'استجابة بطيئة — لا تقلق، سيتم الإكمال محلياً إن تأخر...' }
+          { after: 120,  msg: 'تقريباً انتهى — يُراجع الجدول...' },
+          { after: 150,  msg: 'بقي القليل — يُنهي الإثراء...' },
+          { after: 200, msg: 'لحظات فقط — يتم حفظ النتائج...' },
+          { after: 300, msg: 'استجابة بطيئة — لا تقلق، سيتم الإكمال محلياً إن تأخر...' }
         ]
       : [
           { after: 0,   msg: 'Building base schedule...' },
           { after: 5,   msg: 'Sending data to AI...' },
           { after: 20,  msg: 'AI is analyzing curriculum and writing notes...' },
-          { after: 45,  msg: 'Almost done — reviewing the schedule...' },
-          { after: 90,  msg: 'Almost there — finishing enrichment...' },
-          { after: 150, msg: 'Just a moment — saving results...' },
-          { after: 240, msg: 'Slow response — will complete locally if delayed...' }
+          { after: 120,  msg: 'Almost done — reviewing the schedule...' },
+          { after: 150,  msg: 'Almost there — finishing enrichment...' },
+          { after: 200, msg: 'Just a moment — saving results...' },
+          { after: 300, msg: 'Slow response — will complete locally if delayed...' }
         ];
 
     const timerInterval = setInterval(() => {
