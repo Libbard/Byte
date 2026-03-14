@@ -912,19 +912,11 @@
 
       if (!targetEntry.sessions) targetEntry.sessions = [];
 
-      // ── جلسة واحدة لكل مادة (مراجعة شاملة لجميع المودلات) ──
+      // ── جمع أهم المعلومات من كل المودلات ──
       const avgDiff = allModules.reduce((sum, m) => {
         return sum + (cMap.courses[cid]?.modules[m]?.module_difficulty || 5);
       }, 0) / allModules.length;
 
-      // ── رابط المراجعة حسب نوع الجدول ──
-      const reviewUrl = config.plan_type === 'midterm'
-        ? `../${cid}/midterm-review.html`
-        : config.plan_type === 'final'
-          ? `../${cid}/final-review.html`
-          : buildStudyURL(cid, allModules[0] || 'M01');
-
-      // ── جمع أهم المعلومات من كل المودلات (وليس M01 فقط) ──
       const allMustKnow = [], allMustKnowEn = [];
       const allMustMem = [], allMustMemEn = [];
       for (const m of allModules) {
@@ -938,19 +930,24 @@
         }
       }
 
-      // ── تعليق إيجابي مبني من معلومات المادة ──
+      // ── رابط المراجعة حسب نوع الجدول ──
+      const reviewUrl = config.plan_type === 'midterm'
+        ? `../${cid}/midterm-review.html`
+        : config.plan_type === 'final'
+          ? `../${cid}/final-review.html`
+          : buildStudyURL(cid, allModules[0] || 'M01');
+
+      // ── رسالة تحفيزية ──
       const topicCount = allModules.reduce((sum, m) => {
         return sum + (cMap.courses[cid]?.modules[m]?.topics?.length || 0);
       }, 0);
-      const goldenMsgAr = `🌟 أنت درست ${allModules.length} وحدات و ${topicCount} موضوع في ${courseName} — اليوم تُثبّت كل شيء!`;
-      const goldenMsgEn = `🌟 You studied ${allModules.length} modules & ${topicCount} topics in ${courseNameEn} — today you lock it all in!`;
 
       targetEntry.sessions.push({
         session_number: targetEntry.sessions.length + 1,
         course_id: cid,
-        module_id: `Golden Review (${allModules.length} modules)`,
-        module_id_ar: `مراجعة ذهبية (${allModules.length} وحدة)`,
-        module_id_en: `Golden Review (${allModules.length} modules)`,
+        module_id: courseNameEn,
+        module_id_ar: courseName,
+        module_id_en: courseNameEn,
         modules: allModules,
         mode: 'flash',
         difficulty_avg: Math.round(avgDiff * 10) / 10,
@@ -958,10 +955,10 @@
         exam_date: cfg.exam_date,
         is_critical: true,
         study_url: reviewUrl,
-        golden_message_ar: goldenMsgAr,
-        golden_message_en: goldenMsgEn,
-        ai_note_ar: `⭐ مراجعة ذهبية شاملة — ${courseName} — راجع جميع الوحدات بسرعة`,
-        ai_note_en: `⭐ Golden review — ${courseNameEn} — Quick pass over all modules`,
+        golden_message_ar: `🌟 درست ${allModules.length} وحدات و ${topicCount} موضوع — اليوم تُثبّت كل شيء!`,
+        golden_message_en: `🌟 You covered ${allModules.length} modules & ${topicCount} topics — lock it all in!`,
+        ai_note_ar: `⭐ راجع المفاهيم الأساسية وركّز على النقاط الصعبة`,
+        ai_note_en: `⭐ Review core concepts, focus on tricky parts`,
         ai_note: '',
         must_know_today: allMustKnow,
         must_know_today_en: allMustKnowEn,
@@ -1635,54 +1632,73 @@ ${JSON.stringify(compactDays, null, 0)}`;
   // ═══════════════════════════════════════════════════════════════
 
   const LOADING_STAGES = [
-    { id: 'local', icon: '🏗️', ar: 'بناء الجدول محلياً',   en: 'Building local schedule' },
-    { id: 'ai',    icon: '🤖', ar: 'إثراء المحتوى بالذكاء', en: 'AI enriching content' },
-    { id: 'done',  icon: '🎉', ar: 'الجدول جاهز!',          en: 'Plan ready!' }
-  ];
-
-  const TIME_MESSAGES = [
-    { after: 0,   ar: 'جارٍ بناء الهيكل الأساسي...',                             en: 'Building base schedule...' },
-    { after: 5,   ar: 'يتم إرسال البيانات للذكاء الاصطناعي...',                   en: 'Sending data to AI...' },
-    { after: 20,  ar: 'الذكاء الاصطناعي يحلل المناهج ويكتب الملاحظات...',         en: 'AI is analyzing and writing notes...' },
-    { after: 120, ar: 'تقريباً انتهى — يُراجع الجدول...',                         en: 'Almost done — reviewing...' },
-    { after: 150, ar: 'بقي القليل — يُنهي الإثراء...',                            en: 'Almost there — finishing up...' },
-    { after: 200, ar: 'لحظات فقط...',                                              en: 'Just a moment...' },
-    { after: 300, ar: 'استجابة بطيئة — سيُكمَل محلياً إن تأخر...', en: 'Slow response — will complete locally if delayed...' }
-  ];
-
-  const TIPS = [
-    { ar: 'التبديل بين المواد يُقوّي الذاكرة أكثر من دراسة مادة واحدة حتى الانتهاء', en: 'Switching between subjects strengthens memory retention' },
-    { ar: 'يوم الراحة قبل الامتحان أهم من المذاكرة المكثفة',                          en: 'Rest day before exam is more important than cramming' },
-    { ar: 'اربط المفاهيم المتشابهة بين المواد — فهم واحد يُعزز الآخر',                en: 'Link similar concepts across courses' },
-    { ar: 'ابدأ بالأصعب وأنت نشيط، ثم انتقل للأسهل',                                  en: 'Start with hard topics while fresh' },
-    { ar: 'استخدم تقنية البومودورو: 25 دقيقة مذاكرة + 5 دقائق راحة',                  en: 'Pomodoro: 25 min study + 5 min break' },
-    { ar: 'المراجعة المتباعدة أفضل من الحشو المتواصل',                                 en: 'Spaced repetition beats continuous cramming' }
+    { id: 'local',  ar: '🏗️ بناء الجدول محلياً...',  en: '🏗️ Building local schedule...' },
+    { id: 'ai',     ar: '🤖 إثراء المحتوى بالذكاء...', en: '🤖 AI enriching content...' },
+    { id: 'done',   ar: '🎉 الجدول جاهز!',             en: '🎉 Plan ready!' }
   ];
 
   function showInteractiveLoadingScreen() {
+    const isAr = lang() === 'ar';
     const stepsEl = document.getElementById('loading-steps');
     const fillEl = document.getElementById('loading-fill');
-    const L = () => lang() === 'ar';
 
+    const tips = isAr ? [
+      '💡 التبديل بين المواد يُقوّي الذاكرة أكثر من دراسة مادة واحدة حتى الانتهاء',
+      '💡 يوم الراحة قبل الامتحان أهم من المذاكرة المكثفة',
+      '💡 اربط المفاهيم المتشابهة بين المواد — فهم واحد يُعزز الآخر',
+      '💡 ابدأ بالأصعب وأنت نشيط، ثم انتقل للأسهل',
+      '💡 استخدم تقنية البومودورو: 25 دقيقة مذاكرة + 5 دقائق راحة',
+      '💡 المراجعة المتباعدة أفضل من الحشو المتواصل'
+    ] : [
+      '💡 Switching between subjects strengthens memory retention',
+      '💡 Rest day before exam is more important than cramming',
+      '💡 Link similar concepts across courses',
+      '💡 Start with hard topics while fresh',
+      '💡 Use the Pomodoro technique: 25 min study + 5 min break',
+      '💡 Spaced repetition beats continuous cramming'
+    ];
+
+    // Build UI
     stepsEl.innerHTML = `
-      <div class="loading-stages-box">
+      <div class="loading-stages">
         ${LOADING_STAGES.map(s => `
           <div class="loading-stage" id="stage-${s.id}">
             <span class="loading-stage-icon">○</span>
-            <span class="loading-stage-label" data-ar="${s.icon} ${s.ar}" data-en="${s.icon} ${s.en}">${s.icon} ${L() ? s.ar : s.en}</span>
+            <span class="loading-stage-text">${isAr ? s.ar : s.en}</span>
           </div>
         `).join('')}
       </div>
       <div class="loading-status" id="loading-status"></div>
       <div class="loading-timer" id="loading-timer">00:00</div>
-      <div class="loading-tip" id="loading-tip">💡 ${L() ? TIPS[0].ar : TIPS[0].en}</div>
-      <div class="loading-warning-pill" id="loading-warning">
-        ⚠️ <span data-ar="لا تحدّث الصفحة" data-en="Do not refresh">${L() ? 'لا تحدّث الصفحة' : 'Do not refresh'}</span>
+      <div class="loading-tip" id="loading-tip">${tips[0]}</div>
+      <div class="loading-warning">
+        ⚠️ ${isAr ? 'لا تحدّث الصفحة' : 'Do not refresh the page'}
       </div>
     `;
 
+    // Timer + time-based status messages
     const startTime = Date.now();
-    let currentPhase = 'local';
+    let currentPhase = 'local'; // track which phase we're in
+
+    const timeMessages = isAr
+      ? [
+          { after: 0,   msg: 'جارٍ بناء الهيكل الأساسي...' },
+          { after: 5,   msg: 'يتم الآن إرسال البيانات للذكاء الاصطناعي...' },
+          { after: 20,  msg: 'الذكاء الاصطناعي يحلل المناهج ويكتب الملاحظات...' },
+          { after: 120,  msg: 'تقريباً انتهى — يُراجع الجدول...' },
+          { after: 150,  msg: 'بقي القليل — يُنهي الإثراء...' },
+          { after: 200, msg: 'لحظات فقط — يتم حفظ النتائج...' },
+          { after: 300, msg: 'استجابة بطيئة — لا تقلق، سيتم الإكمال محلياً إن تأخر...' }
+        ]
+      : [
+          { after: 0,   msg: 'Building base schedule...' },
+          { after: 5,   msg: 'Sending data to AI...' },
+          { after: 20,  msg: 'AI is analyzing curriculum and writing notes...' },
+          { after: 120,  msg: 'Almost done — reviewing the schedule...' },
+          { after: 150,  msg: 'Almost there — finishing enrichment...' },
+          { after: 200, msg: 'Just a moment — saving results...' },
+          { after: 300, msg: 'Slow response — will complete locally if delayed...' }
+        ];
 
     const timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -1691,44 +1707,42 @@ ${JSON.stringify(compactDays, null, 0)}`;
       const timerEl = document.getElementById('loading-timer');
       if (timerEl) timerEl.textContent = mins + ':' + secs;
 
-      const isAr = L();
-
-      // Dynamic language update for all data-ar/data-en elements
-      stepsEl.querySelectorAll('[data-ar]').forEach(el => {
-        const txt = isAr ? el.dataset.ar : el.dataset.en;
-        if (el.textContent !== txt) el.textContent = txt;
-      });
-
-      // Time-based status during AI phase
+      // Time-based status (only during AI phase)
       if (currentPhase === 'ai') {
         const statusEl = document.getElementById('loading-status');
         if (statusEl) {
-          let best = TIME_MESSAGES[0];
-          for (const tm of TIME_MESSAGES) { if (elapsed >= tm.after) best = tm; }
-          const msg = isAr ? best.ar : best.en;
-          if (statusEl.textContent !== msg) {
+          let best = timeMessages[0];
+          for (const tm of timeMessages) {
+            if (elapsed >= tm.after) best = tm;
+          }
+          if (statusEl.textContent !== best.msg) {
             statusEl.style.opacity = '0';
-            setTimeout(() => { statusEl.textContent = msg; statusEl.style.opacity = '1'; }, 200);
+            setTimeout(() => {
+              statusEl.textContent = best.msg;
+              statusEl.style.opacity = '1';
+            }, 200);
           }
         }
       }
 
-      // Smooth progress during AI phase (update every 5s)
-      if (currentPhase === 'ai' && fillEl && elapsed % 5 === 0) {
-        fillEl.style.width = Math.min(85, 40 + (elapsed / 180) * 45) + '%';
+      // Smooth progress bar during AI phase
+      if (currentPhase === 'ai' && fillEl) {
+        // Start at 40%, reach ~85% over 3 mins (180s), never exceed 85
+        const aiPct = Math.min(85, 40 + (elapsed / 180) * 45);
+        fillEl.style.width = aiPct + '%';
       }
     }, 1000);
     _loadingIntervals.push(timerInterval);
 
-    // Rotating tips (bilingual)
+    // Rotating tips
     let tipIdx = 0;
     const tipInterval = setInterval(() => {
-      tipIdx = (tipIdx + 1) % TIPS.length;
+      tipIdx = (tipIdx + 1) % tips.length;
       const tipEl = document.getElementById('loading-tip');
       if (tipEl) {
         tipEl.style.opacity = '0';
         setTimeout(() => {
-          tipEl.textContent = '💡 ' + (L() ? TIPS[tipIdx].ar : TIPS[tipIdx].en);
+          tipEl.textContent = tips[tipIdx];
           tipEl.style.opacity = '1';
         }, 300);
       }
@@ -1737,35 +1751,38 @@ ${JSON.stringify(compactDays, null, 0)}`;
 
     function advance(stageId) {
       currentPhase = stageId;
+
       LOADING_STAGES.forEach(s => {
         const el = document.getElementById('stage-' + s.id);
         if (!el) return;
         const icon = el.querySelector('.loading-stage-icon');
-        const idx = LOADING_STAGES.findIndex(x => x.id === s.id);
-        const activeIdx = LOADING_STAGES.findIndex(x => x.id === stageId);
-        if (idx < activeIdx) {
-          el.classList.remove('loading-stage--active');
-          el.classList.add('loading-stage--done');
-          icon.textContent = '✅';
-        } else if (idx === activeIdx) {
+
+        if (s.id === stageId) {
           el.classList.add('loading-stage--active');
           el.classList.remove('loading-stage--done');
           icon.textContent = '⏳';
+        } else if (LOADING_STAGES.findIndex(x => x.id === s.id) < LOADING_STAGES.findIndex(x => x.id === stageId)) {
+          el.classList.remove('loading-stage--active');
+          el.classList.add('loading-stage--done');
+          icon.textContent = '✅';
         }
       });
 
+      // Progress bar snap for non-AI stages
       if (fillEl) {
         if (stageId === 'local') fillEl.style.width = '15%';
         else if (stageId === 'done') fillEl.style.width = '100%';
+        // 'ai' is handled smoothly by the timer
       }
 
+      // Status text for local phase
       const statusEl = document.getElementById('loading-status');
       if (statusEl && stageId === 'local') {
-        statusEl.textContent = L() ? 'يبني الهيكل الأساسي...' : 'Building base structure...';
+        statusEl.textContent = isAr ? 'يبني الهيكل الأساسي...' : 'Building base structure...';
         statusEl.style.opacity = '1';
       }
       if (statusEl && stageId === 'done') {
-        statusEl.textContent = L() ? '✨ تم بنجاح!' : '✨ Complete!';
+        statusEl.textContent = isAr ? '✨ تم بنجاح!' : '✨ Complete!';
         statusEl.style.opacity = '1';
       }
     }
@@ -2016,7 +2033,6 @@ ${JSON.stringify(compactDays, null, 0)}`;
         : session.course_id;
       const diff = session.difficulty_avg || 5;
       const diffLabel = diff >= 9 ? 'critical' : diff >= 7 ? 'hard' : diff >= 4 ? 'medium' : 'easy';
-      const isGolden = session.session_type === 'golden_review';
 
       const mustKnowList = (!isAr && session.must_know_today_en?.length > 0) ? session.must_know_today_en : session.must_know_today;
       const mustMemList = (!isAr && session.must_memorize_today_en?.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
@@ -2035,36 +2051,59 @@ ${JSON.stringify(compactDays, null, 0)}`;
         ? `<div class="card-back-section"><span class="card-back-icon">🔗</span><div>${(!isAr && session.cross_link_alert.message_en) ? session.cross_link_alert.message_en : (session.cross_link_alert.message || '')}</div></div>` : '';
 
       const typeBadge = getSessionTypeBadge(session, isAr);
+      const isGolden = session.session_type === 'golden_review';
+      const isExam = session.mode === 'exam';
+      const moduleDisplay = getModuleIdDisplay(session, isAr);
 
-      // ── Golden review: motivational message instead of difficulty ──
-      const goldenMsg = isGolden ? (isAr ? session.golden_message_ar : session.golden_message_en) : '';
-      const diffArea = isGolden
-        ? `<div class="golden-motivational">${goldenMsg || (isAr ? '⭐ أنت جاهز!' : '⭐ You are ready!')}</div>`
-        : `<div class="card-difficulty">
+      // ── Golden review: completely different card design ──
+      if (isGolden) {
+        const goldenMsg = isAr ? (session.golden_message_ar || '') : (session.golden_message_en || '');
+        sessionCardsHTML += `
+        <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
+          <div class="sc-card ${session.completed ? 'completed' : ''}" id="session-inner-${sIdx}" onclick="Planner.flipSession(${sIdx})">
+            <div class="sc-face sc-front sc-front--golden">
+              <div class="golden-card-header">
+                <span class="golden-card-badge">⭐ ${isAr ? 'مراجعة ذهبية' : 'Golden Review'}</span>
+              </div>
+              <div class="golden-card-course">${session.course_id}</div>
+              <div class="golden-card-name">${courseName}</div>
+              <div class="golden-card-modules">${session.modules?.length || 0} ${isAr ? 'وحدات' : 'modules'}</div>
+              ${goldenMsg ? `<div class="golden-card-msg">${goldenMsg}</div>` : ''}
+              ${session.study_url ? `<a href="${session.study_url}" class="golden-review-btn" onclick="event.stopPropagation()">📖 ${isAr ? 'ابدأ المراجعة' : 'Start Review'}</a>` : ''}
+              <button class="card-session-done-btn" onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
+                ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أنهيت المراجعة' : '✅ Review Done')}
+              </button>
+              <div class="sc-hint">${isAr ? '👆 اضغط لأهم النقاط' : '👆 Tap for key points'}</div>
+            </div>
+            <div class="sc-face sc-back">
+              <div class="card-back-session-title">${session.course_id} — ${isAr ? 'أهم النقاط للمراجعة' : 'Key Review Points'}</div>
+              <div class="card-back-subtitle">${courseName}</div>
+              <div class="sc-back-body">${mustKnow}${mustMem}${aiNote}</div>
+              <div class="sc-hint">${isAr ? '👆 اضغط للرجوع' : '👆 Tap to go back'}</div>
+            </div>
+          </div>
+        </div>`;
+      } else {
+        // ── Normal session card ──
+        sessionCardsHTML += `
+        <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
+          <div class="sc-card ${session.completed ? 'completed' : ''}" id="session-inner-${sIdx}" onclick="Planner.flipSession(${sIdx})">
+            <div class="sc-face sc-front">
+              <div class="card-session-top-row">
+                <span class="card-session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                ${typeBadge}
+                <span class="card-diff-text">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
+              </div>
+              <div class="card-course-name">${session.course_id} — ${moduleDisplay}</div>
+              <div class="card-course-subtitle">${courseName}</div>
+              <div class="card-difficulty">
                 <span class="card-diff-bar"><span class="card-diff-fill ${diffLabel}" style="width:${diff * 10}%"></span></span>
                 <span class="card-diff-label ${diffLabel}">${isAr
                   ? (diffLabel === 'critical' ? 'حرج' : diffLabel === 'hard' ? 'صعب' : diffLabel === 'medium' ? 'متوسط' : 'سهل')
                   : (diffLabel === 'critical' ? 'Critical' : diffLabel === 'hard' ? 'Hard' : diffLabel === 'medium' ? 'Medium' : 'Easy')
                 }</span>
-              </div>`;
-      const topRightText = isGolden
-        ? `<span class="card-diff-text golden-hint">${isAr ? '⭐ مراجعة شاملة' : '⭐ Full Review'}</span>`
-        : `<span class="card-diff-text">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>`;
-      const studyBtnLabel = isGolden ? (isAr ? '📖 راجع' : '📖 Review') : (isAr ? '📖 ادرس' : '📖 Study');
-
-      sessionCardsHTML += `
-        <div class="sc-scene ${use3D ? '' : 'mobile-3d-off'}" id="session-scene-${sIdx}">
-          <div class="sc-card ${session.completed ? 'completed' : ''}" id="session-inner-${sIdx}" onclick="Planner.flipSession(${sIdx})">
-            <div class="sc-face sc-front">
-              <div class="card-session-top-row">
-                <span class="card-session-badge ${isGolden ? 'golden' : diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
-                ${typeBadge}
-                ${topRightText}
               </div>
-              <div class="card-course-name">${session.course_id} — ${getModuleIdDisplay(session, isAr)}</div>
-              <div class="card-course-subtitle">${courseName}</div>
-              ${diffArea}
-              ${session.study_url ? `<a href="${session.study_url}" class="study-link-btn" onclick="event.stopPropagation()">${studyBtnLabel}</a>` : ''}
+              ${session.study_url ? `<a href="${session.study_url}" class="study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 ادرس' : '📖 Study'}</a>` : ''}
               <button class="card-session-done-btn" onclick="event.stopPropagation(); Planner.toggleComplete('${day.date}',${session.session_number})">
                 ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أتممت مذاكرة المودل' : '✅ Module Complete')}
               </button>
@@ -2076,13 +2115,14 @@ ${JSON.stringify(compactDays, null, 0)}`;
               <div class="sc-hint">${isAr ? '👆 اضغط للتفاصيل' : '👆 Tap for details'}</div>
             </div>
             <div class="sc-face sc-back">
-              <div class="card-back-session-title">${session.course_id} — ${getModuleIdDisplay(session, isAr)}</div>
+              <div class="card-back-session-title">${session.course_id} — ${moduleDisplay}</div>
               <div class="card-back-subtitle">${courseName}</div>
               <div class="sc-back-body">${mustKnow}${mustMem}${aiNote}${crossLink}</div>
               <div class="sc-hint">${isAr ? '👆 اضغط للرجوع' : '👆 Tap to go back'}</div>
             </div>
           </div>
         </div>`;
+      }
     });
 
     const toggle3DBtn = `
@@ -2191,26 +2231,39 @@ ${JSON.stringify(compactDays, null, 0)}`;
           const mustKnowList = (!isAr && session.must_know_today_en?.length > 0) ? session.must_know_today_en : session.must_know_today;
           const mustMemList = (!isAr && session.must_memorize_today_en?.length > 0) ? session.must_memorize_today_en : session.must_memorize_today;
           const aiNoteStr = isAr ? (session.ai_note_ar || session.ai_note) : (session.ai_note_en || session.ai_note);
-          const showSnooze = (session.mode === 'flash' || dayType === 'golden_review') && !session.completed;
-          const typeBadge = getSessionTypeBadge(session, isAr);
+          const showSnooze = !isGolden && (session.mode === 'flash' || dayType === 'golden_review') && !session.completed;
 
-          const diffOrGolden = isGolden
-            ? `<span class="session-difficulty golden-hint">${isAr ? '⭐ مراجعة شاملة' : '⭐ Full Review'}</span>`
-            : `<span class="session-difficulty">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>`;
-          const goldenMotivation = isGolden
-            ? `<div class="golden-motivational-sm">${isAr ? (session.golden_message_ar || '') : (session.golden_message_en || '')}</div>`
-            : '';
-          const studyBtnLabel = isGolden ? (isAr ? '📖 راجع' : '📖 Review') : (isAr ? '📖 ادرس' : '📖 Study');
-
-          html += `
-            <div class="session-card ${session.completed ? 'completed' : ''} ${isGolden ? 'session-card--golden' : ''}" data-date="${day.date}" data-session="${session.session_number}">
+          if (isGolden) {
+            const goldenMsg = isAr ? (session.golden_message_ar || '') : (session.golden_message_en || '');
+            html += `
+            <div class="session-card session-card--golden ${session.completed ? 'completed' : ''}" data-date="${day.date}" data-session="${session.session_number}">
               <div class="session-card-top">
-                <span class="session-badge ${isGolden ? 'golden' : diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
+                <span class="session-badge golden">⭐ ${isAr ? 'مراجعة ذهبية' : 'Golden Review'}</span>
+              </div>
+              <div class="session-course golden-course-title">${session.course_id} — ${courseName}</div>
+              ${goldenMsg ? `<div class="golden-motivational-sm">${goldenMsg}</div>` : ''}
+              <div class="session-details">
+                ${mustKnowList?.length ? `<span>🎯 ${mustKnowList.join(isAr ? '، ' : ', ')}</span>` : ''}
+                ${mustMemList?.length ? `<span>📝 ${mustMemList.join(isAr ? '، ' : ', ')}</span>` : ''}
+                ${aiNoteStr ? `<span>💡 ${aiNoteStr}</span>` : ''}
+              </div>
+              <div class="session-actions">
+                ${session.study_url ? `<a href="${session.study_url}" class="session-action-btn golden-review-btn-sm" onclick="event.stopPropagation()">📖 ${isAr ? 'ابدأ المراجعة' : 'Start Review'}</a>` : ''}
+                <button class="session-action-btn session-complete-btn" onclick="Planner.toggleComplete('${day.date}',${session.session_number})">
+                  ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أنهيت' : '✅ Done')}
+                </button>
+              </div>
+            </div>`;
+          } else {
+            const typeBadge = getSessionTypeBadge(session, isAr);
+            html += `
+            <div class="session-card ${session.completed ? 'completed' : ''}" data-date="${day.date}" data-session="${session.session_number}">
+              <div class="session-card-top">
+                <span class="session-badge ${diffLabel}">${isAr ? 'جلسة' : 'Session'} ${session.session_number}</span>
                 ${typeBadge}
-                ${diffOrGolden}
+                <span class="session-difficulty">${isAr ? 'الصعوبة: ' + diff + ' من 10' : 'Difficulty: ' + diff + ' of 10'}</span>
               </div>
               <div class="session-course">${session.course_id} — ${getModuleIdDisplay(session, isAr)} (${courseName})</div>
-              ${goldenMotivation}
               <div class="session-details">
                 ${mustKnowList?.length ? `<span>🎯 ${mustKnowList.join(isAr ? '، ' : ', ')}</span>` : ''}
                 ${mustMemList?.length ? `<span>📝 ${mustMemList.join(isAr ? '، ' : ', ')}</span>` : ''}
@@ -2218,7 +2271,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
               </div>
               ${session.cross_link_alert?.active ? `<div class="session-link-alert">🔗 ${(!isAr && session.cross_link_alert.message_en) ? session.cross_link_alert.message_en : (session.cross_link_alert.message || '')}</div>` : ''}
               <div class="session-actions">
-                ${session.study_url ? `<a href="${session.study_url}" class="session-action-btn study-link-btn" onclick="event.stopPropagation()">${studyBtnLabel}</a>` : ''}
+                ${session.study_url ? `<a href="${session.study_url}" class="session-action-btn study-link-btn" onclick="event.stopPropagation()">${isAr ? '📖 ادرس' : '📖 Study'}</a>` : ''}
                 <button class="session-action-btn session-complete-btn" onclick="Planner.toggleComplete('${day.date}',${session.session_number})">
                   ${session.completed ? (isAr ? '↩ إلغاء' : '↩ Undo') : (isAr ? '✅ أنهيت' : '✅ Done')}
                 </button>
@@ -2227,6 +2280,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
                 </button>` : ''}
               </div>
             </div>`;
+          }
         }
         html += '</div>';
       }
