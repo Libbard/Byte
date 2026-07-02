@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS363" data-module="12">
+<head>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التزامن (Concurrency) · CS363 · الحديقة الرقمية</title>
+
+  
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M11.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-microchip"></i></div>
+      <span class="module-badge font-display">MOD 12</span>
+      <span class="subject-name">CS363</span>
+    </div>
+    <div class="header-actions">
+      <a href="M13.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#categories-of-concurrency" class="toc-link" data-bilingual>
+        <template class="content-ar">فئات التزامن</template>
+        <template class="content-en">Categories of Concurrency</template>
+        <span class="content-target">فئات التزامن</span>
+      </a>
+      <a href="#task-execution-states" class="toc-link" data-bilingual>
+        <template class="content-ar">حالات تنفيذ المهام والجدولة</template>
+        <template class="content-en">Task Execution States and Scheduling</template>
+        <span class="content-target">حالات تنفيذ المهام والجدولة</span>
+      </a>
+      <a href="#task-synchronization" class="toc-link" data-bilingual>
+        <template class="content-ar">مزامنة المهام (التعاون والتنافس)</template>
+        <template class="content-en">Task Synchronization (Cooperation & Competition)</template>
+        <span class="content-target">مزامنة المهام (التعاون والتنافس)</span>
+      </a>
+      <a href="#semaphores" class="toc-link" data-bilingual>
+        <template class="content-ar">السيمافورات (Semaphores)</template>
+        <template class="content-en">Semaphores</template>
+        <span class="content-target">السيمافورات (Semaphores)</span>
+      </a>
+      <a href="#monitors" class="toc-link" data-bilingual>
+        <template class="content-ar">المراقبون (Monitors)</template>
+        <template class="content-en">Monitors</template>
+        <span class="content-target">المراقبون (Monitors)</span>
+      </a>
+      <a href="#message-passing" class="toc-link" data-bilingual>
+        <template class="content-ar">تمرير الرسائل (Message Passing)</template>
+        <template class="content-en">Message Passing</template>
+        <span class="content-target">تمرير الرسائل (Message Passing)</span>
+      </a>
+      <a href="#java-threads" class="toc-link" data-bilingual>
+        <template class="content-ar">خيوط جافا (Java Threads)</template>
+        <template class="content-en">Java Threads</template>
+        <span class="content-target">خيوط جافا (Java Threads)</span>
+      </a>
+      <a href="#csharp-threads" class="toc-link" data-bilingual>
+        <template class="content-ar">خيوط سي شارب (C# Threads)</template>
+        <template class="content-en">C# Threads</template>
+        <span class="content-target">خيوط سي شارب (C# Threads)</span>
+      </a>
+      <a href="#statement-level-concurrency" class="toc-link" data-bilingual>
+        <template class="content-ar">التزامن على مستوى الجملة (HPF)</template>
+        <template class="content-en">Statement-Level Concurrency (HPF)</template>
+        <span class="content-target">التزامن على مستوى الجملة (HPF)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 12</template>
+      <template class="content-en">Module 12</template>
+      <span class="content-target">الوحدة 12</span>
+    </span> · CS363
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">التزامن (Concurrency)</h1>
+      <p class="hero-description">دراسة شاملة لمفاهيم التزامن في لغات البرمجة، بما في ذلك التزامن على مستوى المهام، آليات المزامنة (السيمافورات، المراقبون، تمرير الرسائل)، ودعم التزامن في لغات مثل Java و C# و Ada و High-Performance Fortran.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Concurrency</h1>
+      <p class="hero-description">A comprehensive study of concurrency concepts in programming languages, including task-level concurrency, synchronization mechanisms (semaphores, monitors, message passing), and concurrency support in Java, C#, Ada, and High-Performance Fortran.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">التزامن</span>
+      <span class="tag">الخيوط</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Concurrency</span>
+      <span class="tag">Threads</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف الأنواع الأكثر شيوعًا لمعماريات الحواسيب متعددة المعالجات.</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة التزامن على مستوى الوحدة (Unit-level concurrency).</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة قضايا التصميم لتوفير دعم لغوي للتزامن.</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة ثلاثة مناهج رئيسية لدعم التزامن: السيمافورات، المراقبون، وتمرير الرسائل.</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة التزامن على مستوى الجملة، بما في ذلك الدعم المقدم في High-Performance Fortran.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe the most common kinds of multiprocessor computer architectures.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss unit-level concurrency.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss design issues for providing language support for concurrency.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss three major approaches to language support for concurrency: semaphores, monitors, and message passing.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss statement-level concurrency, including an introduction to part of the language support provided for it in High-Performance Fortran.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="categories-of-concurrency" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> فئات التزامن</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Categories of Concurrency</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التزامن يمكن أن يكون ماديًا (معالجات متعددة) أو منطقيًا (مشاركة الوقت على معالج واحد).</p></template>
+    <template class="content-en"><p>Concurrency can be physical (multiple processors) or logical (time-sharing on one processor).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>ينقسم التزامن إلى ثلاث فئات رئيسية:</p><ol><li><strong><b>التزامن المادي (Physical concurrency)</b></strong> — وجود معالجات مستقلة متعددة (خيوط تحكم متعددة).</li><li><strong><b>التزامن المنطقي (Logical concurrency)</b></strong> — مظهر التزامن المادي الذي يتم تقديمه عن طريق مشاركة الوقت (time-sharing) لمعالج واحد، حيث يُصمم البرنامج وكأن هناك خيوط تحكم متعددة.</li><li><strong><b>الروتينات المساعدة (Coroutines)</b></strong> — تُعرف بشبه التزامن (quasi-concurrency) وتمتلك خيط تحكم واحد فقط.</li></ol></template>
+    <template class="content-en"><p>Concurrency is divided into main categories:</p><ol><li><strong><b>Physical concurrency</b></strong> — Multiple independent processors (multiple threads of control).</li><li><strong><b>Logical concurrency</b></strong> — The appearance of physical concurrency is presented by time-sharing one processor (software can be designed as if there were multiple threads of control).</li><li><strong><b>Coroutines (quasi-concurrency)</b></strong> — Have a single thread of control.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الدافع وراء التزامن ليس فقط استغلال المعالجات المتعددة (MIMD/SIMD) لتسريع التنفيذ، بل حتى على معالج واحد، يمكن للبرنامج المتزامن أن يكون أسرع من البرنامج المتسلسل لأنه يستغل أوقات الانتظار (مثل انتظار الإدخال/الإخراج) لتنفيذ مهام أخرى.</p><p>كما أنه يوفر طريقة مختلفة ومفيدة لتصميم البرمجيات التي تحاكي العالم الحقيقي.</p></template>
+    <template class="content-en"><p>The motivation for concurrency is not just utilizing multiple processors (MIMD/SIMD) for speedup. Even on a single processor, a concurrent program can be faster than a sequential one by utilizing idle time (e.g., waiting for I/O) to execute other tasks.</p><p>It also provides a different, often more natural way of designing software that models real-world situations.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكن لبرنامج متزامن أن يعمل بشكل أسرع من برنامج متسلسل على جهاز يحتوي على معالج واحد فقط؟</template>
+      <template class="content-en">How can a concurrent program run faster than a sequential program on a machine with only one processor?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال التزامن المنطقي؛ عندما تتوقف إحدى المهام لانتظار حدث خارجي (مثل الإدخال/الإخراج)، يمكن للمعالج التبديل لتنفيذ مهمة أخرى بدلاً من البقاء خاملاً.</p></template>
+      <template class="content-en"><p>Through logical concurrency; when one task blocks to wait for an external event (like I/O), the processor can switch to execute another task instead of sitting idle.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="task-execution-states" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> حالات تنفيذ المهام والجدولة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Task Execution States and Scheduling</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تمر المهمة بحالات متعددة (جديدة، جاهزة، قيد التشغيل، محظورة، ميتة) ويتحكم <span class="smart-term" data-term-en="Scheduler" data-ar="المجدول" data-en-def="A program that maintains task execution control and maps tasks onto available processors.">المجدول<span class="smart-term-tooltip"></span></span> في انتقالها.</p></template>
+    <template class="content-en"><p>A task goes through multiple states (New, Ready, Running, Blocked, Dead) controlled by the <span class="smart-term" data-term-en="Scheduler" data-ar="المجدول" data-en-def="A program that maintains task execution control and maps tasks onto available processors.">Scheduler<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المهمة (Task/Process/Thread) هي وحدة برمجية يمكن أن تكون في حالة تنفيذ متزامن مع وحدات أخرى. يتم التحكم في تنفيذ المهام بواسطة برنامج يسمى <b>المجدول (Scheduler)</b>، والذي يعين المهام للمعالجات المتاحة.</p><p>حالات المهمة هي:</p><ul><li><strong><b>New</b></strong> — (تم إنشاؤها ولم تبدأ)</li><li><strong><b>Ready</b></strong> — (جاهزة للتشغيل ولكن لا يوجد معالج متاح)</li><li><strong><b>Running</b></strong> — (قيد التشغيل حاليًا)</li><li><strong><b>Blocked</b></strong> — (كانت قيد التشغيل ولكن لا يمكنها المتابعة، عادةً لانتظار حدث)</li><li><strong><b>Dead</b></strong> — (لم تعد نشطة).</li></ul></template>
+    <template class="content-en"><p>A task (or process/thread) is a program unit that can be in concurrent execution with other units. Task execution control is maintained by a program called the <b>scheduler</b>, which maps task execution onto available processors.</p><p>Task states are:</p><ul><li><strong><b>New</b></strong> — (created but not started)</li><li><strong><b>Ready</b></strong> — (ready to run but no available processor)</li><li><strong><b>Running</b></strong> — (currently executing)</li><li><strong><b>Blocked</b></strong> — (cannot continue, usually waiting for an event)</li><li><strong><b>Dead</b></strong> — (no longer active).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المهام يمكن أن تكون ثقيلة (Heavyweight) تمتلك مساحة عناوين خاصة بها، أو خفيفة (Lightweight) تتشارك نفس مساحة العناوين مما يجعلها أكثر كفاءة.</p><p>من أهم التحديات في بيئة التزامن هي <b>الحيوية (Liveness)</b>، وهي قدرة المهمة على إكمال تنفيذها. إذا فقدت جميع المهام حيويتها (مثلاً كل منها ينتظر الآخر)، تحدث حالة <b>الجمود (Deadlock)</b>.</p></template>
+    <template class="content-en"><p>Tasks can be Heavyweight (execute in their own address space) or Lightweight (run in the same address space, more efficient).</p><p>A critical challenge in concurrency is <b>Liveness</b>, the characteristic that a unit will eventually complete execution. If all tasks in a concurrent environment lose their liveness (e.g., waiting on each other circularly), it results in a <b>Deadlock</b>.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+
+        
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+
+        
+        <linearGradient id="running-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="var(--brand-600)" stop-opacity="0.05"/>
+        </linearGradient>
+
+        
+        <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="var(--text-muted)" opacity="0.15"/>
+        </pattern>
+    </defs>
+
+    
+    <rect width="100%" height="100%" fill="var(--bg-surface)" rx="8" />
+    <rect width="100%" height="100%" fill="url(#dots)" rx="8" />
+
+    
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)">Task Execution State Machine</text>
+        <text x="400" y="65" font-size="16" fill="var(--text-secondary)">مخطط حالات تنفيذ المهام</text>
+    </g>
+
+    
+    <g fill="none" stroke-width="2" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        
+        <path d="M 170 140 L 222 140" stroke="var(--brand-500)" marker-end="url(#arrow)"/>
+        
+        
+        <path d="M 370 125 Q 420 105 462 125" stroke="var(--brand-500)" marker-end="url(#arrow)"/>
+        
+        
+        <path d="M 470 155 Q 420 175 378 155" stroke="var(--brand-400)" stroke-dasharray="6,4" marker-end="url(#arrow-dashed)"/>
+        
+        
+        <path d="M 540 185 Q 540 220 475 253" stroke="var(--brand-500)" marker-end="url(#arrow)"/>
+        
+        
+        <path d="M 370 260 Q 300 220 300 193" stroke="var(--brand-500)" marker-end="url(#arrow)"/>
+        
+        
+        <path d="M 610 140 L 652 140" stroke="var(--brand-500)" marker-end="url(#arrow)"/>
+    </g>
+
+    
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">
+        <text x="196" y="130">Admit / قبول</text>
+        <text x="416" y="95">Dispatch / إرسال</text>
+        <text x="424" y="200" fill="var(--brand-400)">Yield / مقاطعة</text>
+        <text x="565" y="235">Wait / انتظار</text>
+        <text x="275" y="235">Event / وقوع حدث</text>
+        <text x="635" y="130">Terminate / إنهاء</text>
+    </g>
+
+    
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        
+        
+        <g transform="translate(30, 95)">
+            <rect width="140" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <g transform="translate(58, 12)" stroke="var(--text-primary)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+            </g>
+            <text x="70" y="58" font-size="18" font-weight="bold" fill="var(--text-primary)">New</text>
+            <text x="70" y="78" font-size="15" fill="var(--text-secondary)">جديد</text>
+        </g>
+
+        
+        <g transform="translate(230, 95)">
+            <rect width="140" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <g transform="translate(58, 12)" stroke="var(--text-primary)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </g>
+            <text x="70" y="58" font-size="18" font-weight="bold" fill="var(--text-primary)">Ready</text>
+            <text x="70" y="78" font-size="15" fill="var(--text-secondary)">جاهز</text>
+        </g>
+
+        
+        <g transform="translate(470, 95)">
+            <rect width="140" height="90" rx="12" fill="url(#running-grad)" stroke="var(--brand-500)" stroke-width="2.5" filter="url(#shadow)"/>
+            <g transform="translate(58, 12)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </g>
+            <text x="70" y="58" font-size="18" font-weight="bold" fill="var(--brand-500)">Running</text>
+            <text x="70" y="78" font-size="15" fill="var(--text-secondary)">قيد التشغيل</text>
+        </g>
+
+        
+        <g transform="translate(660, 95)">
+            <rect width="120" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <g transform="translate(48, 12)" stroke="var(--text-primary)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </g>
+            <text x="60" y="58" font-size="18" font-weight="bold" fill="var(--text-primary)">Dead</text>
+            <text x="60" y="78" font-size="15" fill="var(--text-secondary)">منهي</text>
+        </g>
+
+        
+        <g transform="translate(350, 260)">
+            <rect width="140" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <g transform="translate(58, 12)" stroke="var(--text-primary)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="10" y1="15" x2="10" y2="9"/>
+                <line x1="14" y1="15" x2="14" y2="9"/>
+            </g>
+            <text x="70" y="58" font-size="18" font-weight="bold" fill="var(--text-primary)">Blocked</text>
+            <text x="70" y="78" font-size="15" fill="var(--text-secondary)">في الانتظار</text>
+        </g>
+
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Heavyweight Tasks</th><th>Lightweight Tasks</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مساحة العناوين (Address Space)</template>
+          <template class="content-en">Address Space</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تنفذ في مساحة عناوين خاصة بها (مستقلة).</template>
+          <template class="content-en">Execute in their own address space (independent).</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تتشارك جميعها في نفس مساحة العناوين.</template>
+          <template class="content-en">All run in the same address space.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الكفاءة (Efficiency)</template>
+          <template class="content-en">Efficiency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أقل كفاءة بسبب تكلفة تبديل السياق العالية.</template>
+          <template class="content-en">Less efficient due to high context-switching overhead.</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أكثر كفاءة وأسرع في التبديل.</template>
+          <template class="content-en">More efficient and faster to switch.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما الفرق الأساسي بين المهمة الثقيلة (Heavyweight) والمهمة الخفيفة (Lightweight)؟</template>
+      <template class="content-en">What is the primary difference between a heavyweight task and a lightweight task?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>المهام الثقيلة تنفذ في مساحة عناوين (address space) خاصة بها، بينما المهام الخفيفة تتشارك نفس مساحة العناوين، مما يجعل التبديل بينها أسرع وأكثر كفاءة.</p></template>
+      <template class="content-en"><p>Heavyweight tasks execute in their own separate address space, whereas lightweight tasks all run in the same shared address space, making them more efficient to switch between.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="task-synchronization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> مزامنة المهام (التعاون والتنافس)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Task Synchronization (Cooperation & Competition)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المزامنة تتحكم في ترتيب تنفيذ المهام وتنقسم إلى: تعاون (انتظار مهمة لأخرى) وتنافس (الوصول الحصري لمورد مشترك).</p></template>
+    <template class="content-en"><p>Synchronization controls the order of task execution and is divided into: Cooperation (waiting for another task) and Competition (exclusive access to a shared resource).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المزامنة هي آلية تتحكم في الترتيب الذي تُنفذ به المهام. هناك نوعان رئيسيان:</p><ol><li><strong><b>تزامن التعاون (Cooperation synchronization)</b></strong> — يجب أن تنتظر المهمة A حتى تكمل المهمة B نشاطًا معينًا قبل أن تتمكن A من مواصلة تنفيذها (مثل مشكلة المنتج والمستهلك).</li><li><strong><b>تزامن التنافس (Competition synchronization)</b></strong> — يجب على مهمتين أو أكثر استخدام مورد لا يمكن استخدامه في نفس الوقت (مثل عداد مشترك).</li></ol><p>يتم توفير التنافس عادةً عن طريق الوصول الحصري المتبادل (Mutually exclusive access).</p></template>
+    <template class="content-en"><p>Synchronization is a mechanism that controls the order in which tasks execute. There are two kinds:</p><ol><li><strong><b>Cooperation synchronization</b></strong> — Task A must wait for task B to complete some specific activity before task A can continue (e.g., the producer-consumer problem).</li><li><strong><b>Competition synchronization</b></strong> — Two or more tasks must use some resource that cannot be simultaneously used (e.g., a shared counter).</li></ol><p>Competition is usually provided by mutually exclusive access.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>بدون تزامن التنافس، يمكن أن تتداخل العمليات على المتغيرات المشتركة.</p><p>على سبيل المثال، إذا قامت المهمة A بزيادة متغير TOTAL وقامت المهمة B بضربه في 2 في نفس الوقت، فإن النتيجة النهائية تعتمد بشكل غير متوقع على الترتيب الدقيق لجلب وتخزين البيانات على مستوى تعليمات الآلة (Race condition).</p></template>
+    <template class="content-en"><p>Without competition synchronization, operations on shared variables can interleave unpredictably.</p><p>For example, if Task A adds 1 to TOTAL and Task B multiplies TOTAL by 2 simultaneously, the final result depends entirely on the exact order of machine-level fetch and store instructions (a race condition), leading to inconsistent states.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="3">
+<svg viewBox="0 0 800 760" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  
+  <defs>
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+    </marker>
+    <linearGradient id="highlight-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="var(--brand-800)" />
+      <stop offset="100%" stop-color="var(--brand-600)" />
+    </linearGradient>
+  </defs>
+
+  
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  
+  <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Need for Synchronization: Race Condition</text>
+  <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle">الحاجة للمزامنة: حالة السباق</text>
+
+  
+  <line x1="40" y1="120" x2="40" y2="640" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" />
+  <text x="25" y="380" transform="rotate(-90 25 380)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Time / الزمن</text>
+
+  
+  <rect x="310" y="100" width="180" height="540" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" rx="12" />
+  
+  
+  
+  <rect x="50" y="110" width="200" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+  <text x="150" y="132" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Task A / المهمة أ</text>
+  <text x="150" y="152" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">TOTAL + 1</text>
+
+  
+  <rect x="320" y="110" width="160" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="400" y="132" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Shared Memory</text>
+  <text x="400" y="152" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الذاكرة المشتركة</text>
+
+  
+  <rect x="550" y="110" width="200" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+  <text x="650" y="132" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Task B / المهمة ب</text>
+  <text x="650" y="152" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">TOTAL * 2</text>
+
+  
+  <rect x="340" y="180" width="120" height="30" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="400" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">TOTAL = 10</text>
+
+  
+  
+  
+  <rect x="50" y="230" width="200" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="150" y="252" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">Fetch TOTAL (A = 10)</text>
+  <text x="150" y="272" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">جلب القيمة</text>
+  
+  <line x1="310" y1="255" x2="260" y2="255" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-brand)" />
+  <text x="285" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle">Read</text>
+
+  
+  <rect x="550" y="300" width="200" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="650" y="322" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">Fetch TOTAL (B = 10)</text>
+  <text x="650" y="342" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">جلب القيمة</text>
+  
+  <line x1="490" y1="325" x2="540" y2="325" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-brand)" />
+  <text x="515" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle">Read</text>
+
+  
+  <rect x="50" y="370" width="200" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="150" y="392" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">A = 10 + 1 = 11</text>
+  <text x="150" y="412" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">إضافة 1</text>
+
+  
+  <rect x="550" y="440" width="200" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="650" y="462" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">B = 10 * 2 = 20</text>
+  <text x="650" y="482" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">ضرب في 2</text>
+
+  
+  <rect x="50" y="510" width="200" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="150" y="532" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">Store TOTAL = 11</text>
+  <text x="150" y="552" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">تخزين القيمة</text>
+  
+  <line x1="250" y1="535" x2="300" y2="535" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+  <text x="275" y="525" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle">Write</text>
+
+  <rect x="340" y="520" width="120" height="30" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="400" y="540" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="middle">TOTAL = 11</text>
+
+  
+  <rect x="550" y="580" width="200" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" />
+  <text x="650" y="602" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">Store TOTAL = 20</text>
+  <text x="650" y="622" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">تخزين القيمة</text>
+  
+  <line x1="550" y1="605" x2="500" y2="605" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+  <text x="525" y="595" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle">Write</text>
+
+  <rect x="340" y="590" width="120" height="30" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="400" y="610" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">TOTAL = 20</text>
+  
+  
+  <line x1="345" y1="535" x2="455" y2="535" stroke="var(--brand-500)" stroke-width="2" opacity="0.8" />
+  <text x="400" y="635" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Overwrites 11! / يكتب فوق 11!</text>
+
+  
+  <rect x="100" y="660" width="600" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6,6" />
+  <text x="400" y="685" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Race Condition: Task A's update was lost! Final value is 20.</text>
+  <text x="400" y="705" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">حالة سباق: تم فقدان تحديث المهمة أ! القيمة النهائية 20.</text>
+  <text x="400" y="725" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Expected / المتوقع : 22 (A then B) or 21 (B then A)</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Cooperation Synchronization</th><th>Competition Synchronization</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الهدف الأساسي</template>
+          <template class="content-en">Primary Goal</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">انتظار مهمة لأخرى لإكمال نشاط معين (مثل توفر بيانات).</template>
+          <template class="content-en">Waiting for another task to complete a specific activity (e.g., data availability).</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منع مهام متعددة من الوصول لنفس المورد في نفس الوقت.</template>
+          <template class="content-en">Preventing multiple tasks from accessing the same resource simultaneously.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مثال كلاسيكي</template>
+          <template class="content-en">Classic Example</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مشكلة المنتج والمستهلك (Producer-Consumer).</template>
+          <template class="content-en">Producer-Consumer problem.</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تحديث عداد مشترك (Shared counter).</template>
+          <template class="content-en">Updating a shared counter.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في مشكلة المنتج والمستهلك (Producer-Consumer)، أي نوع من المزامنة يتم استخدامه؟</template>
+      <template class="content-en">In the Producer-Consumer problem, which type of synchronization is used?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يتم استخدام كلا النوعين: تزامن التعاون (المستهلك ينتظر المنتج ليضع بيانات، والمنتج ينتظر مساحة فارغة) وتزامن التنافس (الوصول الحصري للذاكرة المؤقتة المشتركة أثناء الإضافة أو السحب).</p></template>
+      <template class="content-en"><p>Both types are used: Cooperation synchronization (consumer waits for producer to add data, producer waits for empty space) and Competition synchronization (mutually exclusive access to the shared buffer during deposit or fetch).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="semaphores" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> السيمافورات (Semaphores)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Semaphores</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>السيمافور هو هيكل بيانات (عداد + طابور) يُستخدم للمزامنة عبر عمليتين فقط: wait و release.</p></template>
+    <template class="content-en"><p>A semaphore is a data structure (counter + queue) used for synchronization via only two operations: wait and release.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>ابتكرها Dijkstra عام 1965. السيمافور هو هيكل بيانات يتكون من <b>عداد (counter)</b> و <b>طابور (queue)</b> لتخزين واصفات المهام.</p><p>يمتلك السيمافور عمليتين فقط:</p><ul><li><strong><b>wait</b></strong> — (تُسمى أصلاً P)</li><li><strong><b>release</b></strong> — (تُسمى أصلاً V).</li></ul><p>تُستخدم السيمافورات لتوفير كل من تزامن التعاون والتنافس. يجب أن تكون عمليات wait و release ذرية (atomic).</p></template>
+    <template class="content-en"><p>Introduced by Dijkstra in 1965. A semaphore is a data structure consisting of a <b>counter</b> and a <b>queue</b> for storing task descriptors.</p><p>Semaphores have only two operations:</p><ul><li><strong><b>wait</b></strong> — (originally called P)</li><li><strong><b>release</b></strong> — (originally called V).</li></ul><p>They can be used to provide both competition and cooperation synchronization. Note that wait and release must be atomic operations!</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في تزامن التعاون (مثل المخزن المؤقت المشترك)، نستخدم سيمافورين: `emptyspots` و `fullspots`. في تزامن التنافس، نستخدم سيمافورًا ثالثًا يسمى `access` بقيم 0 و 1 فقط (يُعرف ب<span class="smart-term" data-term-en="Binary Semaphore" data-ar="السيمافور الثنائي" data-en-def="A semaphore whose counter can only have the values 0 and 1, used for competition synchronization.">السيمافور الثنائي<span class="smart-term-tooltip"></span></span> - Binary Semaphore) لضمان الوصول الحصري.</p><p>من عيوب السيمافورات أن سوء استخدامها (مثل نسيان استدعاء wait أو release) يمكن أن يؤدي إلى أخطاء فادحة مثل طفح المخزن المؤقت (overflow) أو الجمود (deadlock).</p></template>
+    <template class="content-en"><p>For cooperation (e.g., shared buffer), we use two semaphores: `emptyspots` and `fullspots`. For competition, a third semaphore named `access` is used, which only takes values 0 and 1 (called a <span class="smart-term" data-term-en="Binary Semaphore" data-ar="السيمافور الثنائي" data-en-def="A semaphore whose counter can only have the values 0 and 1, used for competition synchronization.">Binary Semaphore<span class="smart-term-tooltip"></span></span>) to ensure mutual exclusion.</p><p>A major evaluation point is that misuse of semaphores causes catastrophic failures: leaving out a `wait` can cause buffer overflow, and leaving out a `release` can cause program deadlock.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>wait(aSemaphore)
+  if aSemaphore’s counter > 0 then 
+    decrement aSemaphore’s counter
+  else 
+    put the caller in aSemaphore’s queue
+    attempt to transfer control to a ready task 
+  end
+
+release(aSemaphore)
+  if aSemaphore’s queue is empty then
+    increment aSemaphore’s counter
+  else
+    put the calling task in the task ready queue
+    transfer control to a task from aSemaphore’s queue
+  end</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا لم تكن عمليتا wait و release ذريتين (atomic)؟</template>
+      <template class="content-en">What happens if the wait and release operations are not atomic?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>إذا لم تكن ذرية، فقد تقاطع مهمتان بعضهما البعض أثناء تعديل عداد السيمافور، مما يؤدي إلى حالة سباق (race condition) وتدمير آلية المزامنة بأكملها.</p></template>
+      <template class="content-en"><p>If they are not atomic, two tasks could interrupt each other while modifying the semaphore's counter, leading to a race condition and completely breaking the synchronization mechanism.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="monitors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> المراقبون (Monitors)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Monitors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المراقب هو نوع بيانات مجرد (ADT) يغلف البيانات المشتركة ويضمن وصولاً متزامنًا حصريًا تلقائيًا.</p></template>
+    <template class="content-en"><p>A monitor is an abstract data type (ADT) that encapsulates shared data and automatically guarantees mutually exclusive access.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المراقبون (موجودة في Ada, Java, C#) يقدمون طريقة أفضل لتوفير تزامن التنافس مقارنة بالسيمافورات.</p><p>الفكرة الأساسية هي <span class="smart-term" data-term-en="Encapsulation" data-ar="التغليف" data-en-def="Bundling data and the methods that operate on that data within a single unit, restricting direct access.">تغليف (encapsulate)<span class="smart-term-tooltip"></span></span> البيانات المشتركة وعملياتها لتقييد الوصول إليها. تضمن تطبيقات المراقب الوصول المتزامن من خلال السماح بوصول واحد فقط في كل مرة. يتم وضع الاستدعاءات لإجراءات المراقب في طابور ضمني (implicitly queued) إذا كان المراقب مشغولاً وقت الاستدعاء.</p></template>
+    <template class="content-en"><p>Monitors (found in Ada, Java, C#) provide a better way to handle competition synchronization than semaphores.</p><p>The core idea is to <span class="smart-term" data-term-en="Encapsulation" data-ar="التغليف" data-en-def="Bundling data and the methods that operate on that data within a single unit, restricting direct access.">encapsulate<span class="smart-term-tooltip"></span></span> the shared data and its operations to restrict access. Monitor implementations guarantee synchronized access by allowing only one access at a time. Calls to monitor procedures are implicitly queued if the monitor is busy at the time of the call.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>بينما يحل المراقب مشكلة تزامن التنافس بشكل أنيق وتلقائي، فإن تزامن التعاون بين العمليات لا يزال يمثل مهمة برمجية (يجب على المبرمج ضمان عدم حدوث underflow أو overflow).</p><p>من المثير للاهتمام أنه يمكن استخدام السيمافورات لتنفيذ المراقبين، ويمكن استخدام المراقبين لتنفيذ السيمافورات.</p></template>
+    <template class="content-en"><p>While monitors elegantly and automatically solve competition synchronization, cooperation synchronization between processes is still a programming task (the programmer must guarantee that a shared buffer does not experience underflow or overflow).</p><p>Interestingly, semaphores can be used to implement monitors, and monitors can be used to implement semaphores.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    
+    <rect x="320" y="30" width="460" height="400" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="550" y="65" font-size="22" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Monitor / المراقب</text>
+    
+    
+    <rect x="340" y="375" width="420" height="40" rx="8" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-dasharray="4 4" />
+    <text x="550" y="394" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">★ Mutual Exclusion: Only ONE process inside at a time ★</text>
+    <text x="550" y="410" font-size="13" fill="var(--text-secondary)" text-anchor="middle">استبعاد متبادل: عملية واحدة فقط بالداخل في أي وقت</text>
+
+    
+    <text x="195" y="90" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Entry Queue</text>
+    <text x="195" y="110" font-size="14" fill="var(--text-secondary)" text-anchor="middle">طابور الدخول</text>
+    <rect x="160" y="130" width="70" height="200" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    
+    
+    <line x1="160" y1="180" x2="230" y2="180" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="160" y1="230" x2="230" y2="230" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="160" y1="280" x2="230" y2="280" stroke="var(--border-color)" stroke-width="2" />
+    
+    <circle cx="195" cy="155" r="12" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <circle cx="195" cy="205" r="12" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <circle cx="195" cy="255" r="12" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <circle cx="195" cy="305" r="12" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="2 2" />
+
+    
+    <g font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        <rect x="30" y="135" width="80" height="40" rx="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="70" y="160">SUB 1</text>
+        
+        <rect x="30" y="185" width="80" height="40" rx="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="70" y="210">SUB 2</text>
+        
+        <rect x="30" y="235" width="80" height="40" rx="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="70" y="260">SUB 3</text>
+        
+        <rect x="30" y="285" width="80" height="40" rx="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="70" y="310">SUB 4</text>
+    </g>
+
+    
+    <path d="M 110 155 L 150 155" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 110 205 L 150 205" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 110 255 L 150 255" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 110 305 L 150 305" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    
+    <text x="275" y="185" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Mutual Exclusion</text>
+    <text x="275" y="275" font-size="13" fill="var(--text-secondary)" text-anchor="middle">استبعاد متبادل</text>
+    
+    
+    <rect x="265" y="225" width="20" height="14" rx="2" fill="var(--brand-500)" />
+    <path d="M 269 225 V 217 A 6 6 0 0 1 281 217 V 225" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+    
+    <path d="M 230 230 L 255 230" stroke="var(--brand-500)" stroke-width="2" />
+    <path d="M 295 230 L 320 230" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    
+    <path d="M 320 230 L 340 230" stroke="var(--brand-500)" stroke-width="2" />
+    <path d="M 340 230 L 340 160 L 350 160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 340 230 L 340 300 L 350 300" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow-muted)" />
+
+    
+    <rect x="360" y="100" width="180" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="450" y="125" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Procedure: Insert()</text>
+    <text x="450" y="145" font-size="14" fill="var(--text-secondary)" text-anchor="middle">إجراء: إدراج</text>
+    
+    
+    <rect x="380" y="165" width="140" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="450" y="185" font-size="13" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Active Process</text>
+    <text x="450" y="205" font-size="12" fill="var(--brand-500)" text-anchor="middle">عملية نشطة</text>
+
+    
+    <rect x="360" y="240" width="180" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="450" y="265" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Procedure: Remove()</text>
+    <text x="450" y="285" font-size="14" fill="var(--text-secondary)" text-anchor="middle">إجراء: إزالة</text>
+    
+    
+    <rect x="380" y="305" width="140" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4 4" />
+    <text x="450" y="325" font-size="13" fill="var(--text-muted)" text-anchor="middle">Inactive / غير نشط</text>
+
+    
+    <rect x="600" y="150" width="140" height="160" rx="8" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="670" y="180" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">BUFFER</text>
+    <text x="670" y="200" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الذاكرة المؤقتة</text>
+    
+    
+    <rect x="630" y="220" width="80" height="70" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="630" y1="243" x2="710" y2="243" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="630" y1="266" x2="710" y2="266" stroke="var(--border-color)" stroke-width="2" />
+    <circle cx="670" cy="232" r="6" fill="var(--brand-500)" />
+    <circle cx="670" cy="255" r="6" fill="var(--brand-500)" />
+    <circle cx="670" cy="278" r="6" fill="var(--text-muted)" opacity="0.3" />
+
+    
+    
+    <path d="M 540 160 L 590 160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="565" y="150" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Write</text>
+    <text x="565" y="175" font-size="12" fill="var(--text-secondary)" text-anchor="middle">كتابة</text>
+
+    
+    <path d="M 590 300 L 550 300" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow-muted)" />
+    <text x="570" y="290" font-size="13" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Read</text>
+    <text x="570" y="315" font-size="12" fill="var(--text-muted)" text-anchor="middle">قراءة</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Semaphores</th><th>Monitors</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التحكم في الوصول</template>
+          <template class="content-en">Access Control</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يدوي: يتطلب من المبرمج استدعاء wait و release بشكل صحيح.</template>
+          <template class="content-en">Manual: Requires programmer to correctly call wait and release.</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تلقائي: يغلف البيانات ويضمن الوصول الحصري ضمنيًا.</template>
+          <template class="content-en">Automatic: Encapsulates data and implicitly guarantees exclusive access.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مخاطر الأخطاء</template>
+          <template class="content-en">Error Risks</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">عالية: نسيان release يسبب جمود (Deadlock).</template>
+          <template class="content-en">High: Forgetting release causes Deadlock.</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منخفضة لتزامن التنافس، لكن تزامن التعاون لا يزال يتطلب حذراً.</template>
+          <template class="content-en">Low for competition, but cooperation still requires care.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر المراقب (Monitor) أكثر أمانًا من السيمافور (Semaphore) في تزامن التنافس؟</template>
+      <template class="content-en">Why is a Monitor considered safer than a Semaphore for competition synchronization?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن المراقب يفرض الوصول الحصري تلقائيًا من خلال التغليف، بينما في السيمافورات، يعتمد الأمر على المبرمج لتذكر كتابة استدعاءات wait و release بشكل صحيح، مما يجعله عرضة للأخطاء البشرية.</p></template>
+      <template class="content-en"><p>Because a monitor automatically enforces mutually exclusive access through encapsulation, whereas with semaphores, it relies on the programmer to correctly remember to write wait and release calls, making it prone to human error.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="message-passing" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تمرير الرسائل (Message Passing)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Message Passing</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نموذج عام للتزامن حيث تتواصل المهام عبر إرسال واستقبال الرسائل؛ يحدث النقل الفعلي في نقطة تسمى <span class="smart-term" data-term-en="Rendezvous" data-ar="نقطة الالتقاء" data-en-def="The actual message transmission event when both sender and receiver tasks are ready.">Rendezvous<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>A general concurrency model where tasks communicate by sending and receiving messages; the actual transmission happens at a <span class="smart-term" data-term-en="Rendezvous" data-ar="نقطة الالتقاء" data-en-def="The actual message transmission event when both sender and receiver tasks are ready.">Rendezvous<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تمرير الرسائل هو نموذج عام للتزامن يمكنه محاكاة كل من السيمافورات والمراقبين.</p><p>الفكرة المركزية هي أن تواصل المهام يشبه زيارة الطبيب: في معظم الأوقات تنتظر أنت الطبيب أو ينتظرك الطبيب، ولكن عندما يكون كلاكما جاهزًا، تلتقيان، وهذا ما يسمى <b>نقطة الالتقاء (Rendezvous)</b>. عندما يتم قبول رسالة مهمة المرسل من قبل مهمة المستقبل، يُسمى النقل الفعلي للرسالة rendezvous.</p></template>
+    <template class="content-en"><p>Message passing is a general model for concurrency that can model both semaphores and monitors.</p><p>The central idea: task communication is like seeing a doctor--most of the time she waits for you or you wait for her, but when you are both ready, you get together, or <b>rendezvous</b>. When a sender task’s message is accepted by a receiver task, the actual message transmission is called a <span class="smart-term" data-term-en="Rendezvous" data-ar="نقطة الالتقاء" data-en-def="The actual message transmission event when both sender and receiver tasks are ready.">rendezvous<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في لغة Ada، يتم دعم ذلك عبر جمل `accept`. المهمة التي تحتوي على جمل `accept` تسمى <b>مهمة خادم (Server task)</b>، بينما المهمة التي لا تحتوي عليها تسمى <b>مهمة ممثل (Actor task)</b>.</p><p>التواصل غير متماثل: يجب أن يعرف المرسل اسم نقطة الدخول (entry name) للمستقبل، ولكن ليس العكس. يمكن للمهام أن تمتلك نقاط دخول متعددة باستخدام جملة `select` (الانتظار الانتقائي - selective wait)، ويمكن حمايتها بشروط تسمى الحراس (Guarded accept clauses) باستخدام `when`.</p></template>
+    <template class="content-en"><p>In Ada, this is supported via `accept` clauses. A task with `accept` clauses is a <b>server task</b>; one without is an <b>actor task</b>.</p><p>Communication is asymmetric: the sender must know the entry name of the receiver, but not vice versa. Tasks can have multiple entry points using a `select` clause (selective wait), and these can be guarded using `when` clauses (Guarded accept clauses) to control cooperation synchronization.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>task body Teller is
+ loop
+  select 
+   accept Drive_Up(formal params) do
+    ...
+   end Drive_Up;
+  or
+   accept Walk_Up(formal params) do
+    ...
+   end Walk_Up;
+  end select;
+ end loop;
+end Teller;</code></pre>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <marker id="arrow-time" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+    </marker>
+  </defs>
+
+  
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  
+  <line x1="400" y1="60" x2="400" y2="480" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="6,6" />
+
+  
+  <line x1="25" y1="130" x2="25" y2="450" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-time)" />
+  <text x="25" y="475" fill="var(--text-muted)" font-size="13" text-anchor="middle">Time</text>
+  <text x="25" y="495" fill="var(--text-muted)" font-size="13" text-anchor="middle">الزمن</text>
+
+  
+  <line x1="775" y1="130" x2="775" y2="450" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-time)" />
+  <text x="775" y="475" fill="var(--text-muted)" font-size="13" text-anchor="middle">Time</text>
+  <text x="775" y="495" fill="var(--text-muted)" font-size="13" text-anchor="middle">الزمن</text>
+
+  
+  
+  
+
+  
+  <text x="200" y="40" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">(a) Task waits for Sender</text>
+  <text x="200" y="65" fill="var(--text-secondary)" font-size="15" text-anchor="middle">المهمة تنتظر المرسل</text>
+
+  
+  <text x="130" y="110" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">TASK_EXAMPLE</text>
+  <text x="270" y="110" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">SENDER</text>
+
+  
+  <rect x="120" y="130" width="20" height="60" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  
+  
+  <line x1="130" y1="190" x2="130" y2="290" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" />
+  <circle cx="130" cy="190" r="4" fill="var(--brand-400)" />
+  <text x="60" y="235" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Wait at accept</text>
+  <text x="60" y="255" fill="var(--text-muted)" font-size="13" text-anchor="middle">انتظار عند القبول</text>
+
+  
+  <rect x="260" y="130" width="20" height="160" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  <text x="340" y="205" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Executing</text>
+  <text x="340" y="225" fill="var(--text-muted)" font-size="13" text-anchor="middle">قيد التنفيذ</text>
+
+  
+  <line x1="260" y1="285" x2="140" y2="285" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <circle cx="260" cy="285" r="4" fill="var(--brand-500)" />
+  <text x="340" y="275" fill="var(--text-primary)" font-size="14" text-anchor="middle">Sends message</text>
+  <text x="340" y="295" fill="var(--text-muted)" font-size="13" text-anchor="middle">يرسل رسالة</text>
+
+  
+  <rect x="120" y="290" width="160" height="80" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" rx="6" />
+  <circle cx="130" cy="290" r="4" fill="var(--brand-500)" />
+  <circle cx="270" cy="290" r="4" fill="var(--brand-500)" />
+  <text x="200" y="325" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Rendezvous</text>
+  <text x="200" y="345" fill="var(--text-secondary)" font-size="14" text-anchor="middle">لقاء / تزامن</text>
+
+  
+  <rect x="120" y="370" width="20" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  <rect x="260" y="370" width="20" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  <text x="200" y="415" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Continue execution</text>
+  <text x="200" y="435" fill="var(--text-muted)" font-size="13" text-anchor="middle">متابعة التنفيذ</text>
+
+
+  
+  
+  
+
+  
+  <text x="600" y="40" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">(b) Sender waits for Task</text>
+  <text x="600" y="65" fill="var(--text-secondary)" font-size="15" text-anchor="middle">المرسل ينتظر المهمة</text>
+
+  
+  <text x="530" y="110" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">TASK_EXAMPLE</text>
+  <text x="670" y="110" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">SENDER</text>
+
+  
+  <rect x="520" y="130" width="20" height="160" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  <text x="460" y="205" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Busy</text>
+  <text x="460" y="225" fill="var(--text-muted)" font-size="13" text-anchor="middle">مشغول</text>
+  <text x="460" y="275" fill="var(--text-primary)" font-size="14" text-anchor="middle">Accept</text>
+  <text x="460" y="295" fill="var(--text-muted)" font-size="13" text-anchor="middle">قبول</text>
+
+  
+  <rect x="660" y="130" width="20" height="60" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  
+  
+  <line x1="670" y1="190" x2="670" y2="290" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" />
+  <circle cx="670" cy="190" r="4" fill="var(--brand-400)" />
+  <text x="740" y="235" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Suspended</text>
+  <text x="740" y="255" fill="var(--text-muted)" font-size="13" text-anchor="middle">معلق</text>
+
+  
+  <line x1="660" y1="190" x2="540" y2="285" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <circle cx="660" cy="190" r="4" fill="var(--brand-500)" />
+  <text x="740" y="175" fill="var(--text-primary)" font-size="14" text-anchor="middle">Sends message</text>
+  <text x="740" y="195" fill="var(--text-muted)" font-size="13" text-anchor="middle">يرسل رسالة</text>
+
+  
+  <rect x="520" y="290" width="160" height="80" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" rx="6" />
+  <circle cx="530" cy="290" r="4" fill="var(--brand-500)" />
+  <circle cx="670" cy="290" r="4" fill="var(--brand-500)" />
+  <text x="600" y="325" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Rendezvous</text>
+  <text x="600" y="345" fill="var(--text-secondary)" font-size="14" text-anchor="middle">لقاء / تزامن</text>
+
+  
+  <rect x="520" y="370" width="20" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  <rect x="660" y="370" width="20" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+  <text x="600" y="415" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Continue execution</text>
+  <text x="600" y="435" fill="var(--text-muted)" font-size="13" text-anchor="middle">متابعة التنفيذ</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر تمرير الرسائل نموذجًا أفضل للأنظمة الموزعة (Distributed Systems) مقارنة بالمراقبين؟</template>
+      <template class="content-en">Why is message passing considered a better model for distributed systems compared to monitors?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الأنظمة الموزعة لا تتشارك الذاكرة المادية. تمرير الرسائل لا يتطلب ذاكرة مشتركة، بل يعتمد على إرسال البيانات عبر الشبكة، مما يجعله مناسبًا تمامًا للبيئات الموزعة.</p></template>
+      <template class="content-en"><p>Because distributed systems do not share physical memory. Message passing does not require shared memory; it relies on sending data over a network, making it perfectly suited for distributed environments.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="java-threads" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> خيوط جافا (Java Threads)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Java Threads</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>في جافا، التزامن يتم عبر دوال `run` في كائنات `Thread`، وتُستخدم الكلمة المفتاحية `<span class="smart-term" data-term-en="synchronized" data-ar="متزامن (مُعدِّل جافا)" data-en-def="A Java modifier that disallows any other synchronized method from running on the object while it is in execution.">synchronized<span class="smart-term-tooltip"></span></span>` لتزامن التنافس.</p></template>
+    <template class="content-en"><p>In Java, concurrency is achieved via `run` methods in `Thread` objects, and the `<span class="smart-term" data-term-en="synchronized" data-ar="متزامن (مُعدِّل جافا)" data-en-def="A Java modifier that disallows any other synchronized method from running on the object while it is in execution.">synchronized<span class="smart-term-tooltip"></span></span>` keyword is used for competition synchronization.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الوحدات المتزامنة في جافا هي دوال تُسمى `run`. العملية التي تنفذ فيها هذه الدوال تسمى خيطًا (thread).</p><p>للتحكم في التنفيذ، تمتلك فئة `Thread` دوال مثل:</p><ul><li><strong>`yield`</strong> — (للتنازل الطوعي عن المعالج)</li><li><strong>`sleep`</strong> — (لحظر الخيط)</li><li><strong>`join`</strong> — (لإجبار دالة على تأخير تنفيذها حتى يكتمل خيط آخر).</li></ul><p>يتم توفير تزامن التنافس باستخدام المُعدِّل `<span class="smart-term" data-term-en="synchronized" data-ar="متزامن (مُعدِّل جافا)" data-en-def="A Java modifier that disallows any other synchronized method from running on the object while it is in execution.">synchronized<span class="smart-term-tooltip"></span></span>` على الدوال أو الكتل البرمجية، مما يمنع تداخلها.</p></template>
+    <template class="content-en"><p>The concurrent units in Java are methods named `run`. The process in which the run methods execute is called a thread.</p><p>To control execution, the `Thread` class has methods like:</p><ul><li><strong>`yield`</strong> — (voluntarily surrender processor)</li><li><strong>`sleep`</strong> — (block the thread)</li><li><strong>`join`</strong> — (delay execution until another thread completes).</li></ul><p>Competition synchronization is provided by the `<span class="smart-term" data-term-en="synchronized" data-ar="متزامن (مُعدِّل جافا)" data-en-def="A Java modifier that disallows any other synchronized method from running on the object while it is in execution.">synchronized<span class="smart-term-tooltip"></span></span>` modifier on methods or blocks, preventing them from interfering with each other.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم تحقيق تزامن التعاون في جافا عبر دوال `wait` و `notify` و `notifyAll`، والتي يتم تعريفها في الفئة الجذرية `Object` (لذا ترثها جميع الكائنات). يجب استدعاء `wait` داخل حلقة (loop).</p><p>تقوم `notify` بإيقاظ خيط واحد ينتظر، بينما توقظ `notifyAll` جميع الخيوط المنتظرة. دعم جافا للتزامن بسيط ولكنه فعال، رغم أنه ليس بقوة مهام لغة Ada.</p></template>
+    <template class="content-en"><p>Cooperation synchronization in Java is achieved via `wait`, `notify`, and `notifyAll` methods, which are defined in the root `Object` class (so all objects inherit them). The `wait` method must be called in a loop.</p><p>`notify` awakens one waiting thread, while `notifyAll` awakens all threads on the object's wait list. Java's support is relatively simple but effective, though not as powerful as Ada's tasks.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>class myThread extends Thread {
+  public void run () {...}
+}
+...
+Thread myTh = new myThread();
+myTh.start();</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يتم تعريف دوال `wait` و `notify` في فئة `Object` بدلاً من فئة `Thread` في جافا؟</template>
+      <template class="content-en">Why are `wait` and `notify` methods defined in the `Object` class rather than the `Thread` class in Java?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن المزامنة في جافا تتم على مستوى الكائنات (كل كائن لديه قفل داخلي - intrinsic lock). الخيوط تنتظر على قفل الكائن، وليس على خيط آخر.</p></template>
+      <template class="content-en"><p>Because synchronization in Java is based on object-level locks (intrinsic locks). Threads wait on a specific object's monitor/lock, not on another thread.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="csharp-threads" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> خيوط سي شارب (C# Threads)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> C# Threads</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>خيوط C# تشبه جافا ولكنها توفر آليات مزامنة أكثر تطوراً مثل `<span class="smart-term" data-term-en="Interlocked" data-ar="المتشابك (فئة C#)" data-en-def="A C# class used when the only operations that need to be synchronized are incrementing or decrementing an integer.">Interlocked<span class="smart-term-tooltip"></span></span>` و `lock` و `Monitor`.</p></template>
+    <template class="content-en"><p>C# threads are similar to Java but provide more sophisticated synchronization mechanisms like `<span class="smart-term" data-term-en="Interlocked" data-ar="المتشابك (فئة C#)" data-en-def="A C# class used when the only operations that need to be synchronized are incrementing or decrementing an integer.">Interlocked<span class="smart-term-tooltip"></span></span>`, `lock`, and `Monitor`.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتمد خيوط C# بشكل فضفاض على جافا ولكن مع اختلافات كبيرة. يمكن لأي دالة أن تعمل في خيط خاص بها. يتم إنشاء الخيط عبر كائن `Thread` ويبدأ تنفيذه بواسطة دالة `Start`.</p><p>توفر C# ثلاث طرق رئيسية للمزامنة:</p><ol><li><strong>فئة `<span class="smart-term" data-term-en="Interlocked" data-ar="المتشابك (فئة C#)" data-en-def="A C# class used when the only operations that need to be synchronized are incrementing or decrementing an integer.">Interlocked<span class="smart-term-tooltip"></span></span>`</strong> — (للعمليات البسيطة مثل زيادة/نقصان الأعداد الصحيحة).</li><li><strong>جملة `lock`</strong> — (لتحديد قسم حرج من الكود، مشابهة لـ synchronized في جافا).</li><li><strong>فئة `Monitor`</strong> — (توفر مزامنة أكثر تعقيدًا).</li></ol></template>
+    <template class="content-en"><p>C# threads are loosely based on Java but have significant differences. Any method can run in its own thread. A thread is created via a `Thread` object and started with the `Start` method.</p><p>C# provides three main ways to synchronize threads:</p><ol><li><strong>The `<span class="smart-term" data-term-en="Interlocked" data-ar="المتشابك (فئة C#)" data-en-def="A C# class used when the only operations that need to be synchronized are incrementing or decrementing an integer.">Interlocked<span class="smart-term-tooltip"></span></span>` class</strong> — (for simple integer increment/decrement).</li><li><strong>The `lock` statement</strong> — (to mark a critical section of code, similar to Java's synchronized).</li><li><strong>The `Monitor` class</strong> — (provides more sophisticated synchronization).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تُعتبر خيوط C# تقدمًا مقارنة بخيوط جافا.</p><p>على سبيل المثال، إنهاء الخيط (Thread termination) باستخدام `Abort` يُعتبر أنظف من جافا، وآليات المزامنة توفر مرونة أكبر للمبرمج للتعامل مع السيناريوهات المعقدة.</p></template>
+    <template class="content-en"><p>C#'s concurrency is evaluated as an advance over Java threads.</p><p>For example, thread termination (using `Abort`) is cleaner than in Java, and the synchronization mechanisms offer more flexibility for the programmer to handle complex scenarios.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>lock (expression) { 
+  // critical section 
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يُفضل استخدام `Interlocked` بدلاً من `lock` في C#؟</template>
+      <template class="content-en">When is it preferable to use `Interlocked` instead of `lock` in C#?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يُفضل استخدام `Interlocked` عندما تكون العملية المطلوبة بسيطة جداً مثل زيادة أو نقصان متغير رقمي، لأنها أسرع بكثير وتستهلك موارد أقل من إنشاء قفل كامل باستخدام `lock`.</p></template>
+      <template class="content-en"><p>It is preferable to use `Interlocked` when the operation is a simple atomic increment or decrement of a numeric variable, as it is much faster and has less overhead than acquiring a full lock using the `lock` statement.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="statement-level-concurrency" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">9</span> التزامن على مستوى الجملة (HPF)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">9</span> Statement-Level Concurrency (HPF)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>توجيه المترجم لتوزيع البيانات والعمليات على معالجات متعددة تلقائيًا، كما في High-Performance Fortran.</p></template>
+    <template class="content-en"><p>Directing the compiler to automatically distribute data and operations across multiple processors, as seen in High-Performance Fortran.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الهدف من التزامن على مستوى الجملة هو توفير آلية يمكن للمبرمج استخدامها لإبلاغ المترجم (compiler) بطرق تعيين البرنامج على معمارية متعددة المعالجات، مع تقليل الاتصال بين المعالجات. لغة <b>High-Performance Fortran (HPF)</b> توفر مجموعة من الامتدادات لهذا الغرض.</p><p>يمكن للمبرمج تحديد عدد المعالجات (`PROCESSORS`)، وتوزيع البيانات على ذواكر تلك المعالجات (`DISTRIBUTE` ككتل BLOCK أو دوري CYCLIC)، ومحاذاة البيانات (`ALIGN`).</p></template>
+    <template class="content-en"><p>The objective of statement-level concurrency is to provide a mechanism for the programmer to inform the compiler of ways it can map the program onto a multiprocessor architecture, minimizing communication among processors. <b>High-Performance Fortran (HPF)</b> provides extensions for this.</p><p>The programmer can specify the number of processors (`PROCESSORS`), the distribution of data over their memories (`DISTRIBUTE` as BLOCK or CYCLIC), and data alignment (`ALIGN`).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من أهم الجمل في HPF هي جملة `<span class="smart-term" data-term-en="FORALL" data-ar="لكل (تعليمة HPF)" data-en-def="An HPF statement used to specify a list of assignments that may be executed concurrently.">FORALL<span class="smart-term-tooltip"></span></span>`. تُستخدم لتحديد قائمة من الجمل التي يمكن تنفيذها بشكل متزامن.</p><p>على سبيل المثال، `FORALL (index = 1:1000) list_1(index) = list_2(index)` تحدد أن جميع عمليات التقييم للألف عنصر في الجانب الأيمن (RHS) يمكن أن تتم قبل حدوث أي عملية تعيين (assignment)، مما يسمح بتنفيذها بالتوازي على معالجات متعددة بكفاءة عالية.</p></template>
+    <template class="content-en"><p>A key statement in HPF is the `<span class="smart-term" data-term-en="FORALL" data-ar="لكل (تعليمة HPF)" data-en-def="An HPF statement used to specify a list of assignments that may be executed concurrently.">FORALL<span class="smart-term-tooltip"></span></span>` statement. It specifies a list of statements that may be executed concurrently.</p><p>For example, `FORALL (index = 1:1000) list_1(index) = list_2(index)` specifies that all 1,000 Right-Hand Sides (RHSs) of the assignments can be evaluated before any assignment takes place, allowing them to be executed in parallel across multiple processors highly efficiently.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn">📋 Copy</button></div>
+    <pre class="pseudo-block"><code>!HPF$ PROCESSORS procs (n)
+!HPF$ DISTRIBUTE (BLOCK) ONTO procs :: list_1
+FORALL (index = 1:1000) 
+ list_1(index) = list_2(index)</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يقلل التزامن على مستوى الجملة في HPF من عبء المبرمج مقارنة باستخدام خيوط جافا؟</template>
+      <template class="content-en">How does statement-level concurrency in HPF reduce the programmer's burden compared to using Java threads?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في HPF، يركز المبرمج فقط على وصف كيفية توزيع البيانات (Declarative)، ويترك للمترجم مهمة إنشاء الخيوط وإدارتها والمزامنة بينها، بينما في جافا يجب على المبرمج إدارة كل تفاصيل الخيوط والأقفال يدوياً.</p></template>
+      <template class="content-en"><p>In HPF, the programmer only declaratively specifies how data should be distributed, leaving the complex task of thread creation, management, and synchronization to the compiler. In Java, the programmer must manually manage all thread details and locks.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في الأسبوع الحادي عشر. اليوم ندخل عالم 'التزامن' (Concurrency)، وهو من أهم وأعقد المواضيع في علوم الحاسب. تخيل أنك طاهٍ في مطبخ؛ إذا كنت وحدك وتقوم بتقطيع البصل ثم تحريك الحساء بسرعة، فهذا 'تزامن منطقي'. أما إذا كان معك طهاة آخرون يعملون في نفس الوقت، فهذا 'تزامن مادي'. التحدي الأكبر عندما يحتاج طاهيان لنفس السكين (تزامن التنافس) أو عندما ينتظر طاهٍ زميله ليقشر البطاطس قبل أن يقليها (تزامن التعاون). لحل هذه المشاكل، اخترعنا أدوات: 'السيمافورات' وهي مثل إشارات المرور، لكنها عرضة للخطأ البشري. ثم جاءت 'المراقبون' (Monitors) لتوفر غرفاً مغلقة تضمن دخول شخص واحد فقط تلقائياً. وتعرفنا أيضاً على 'تمرير الرسائل' (Rendezvous) كطريقة تواصل راقية. في الامتحان، ركزوا جيداً على التمييز بين التعاون والتنافس، وافهموا كيف تطبق لغات مثل Java و C# هذه المفاهيم (مثل الكلمة المفتاحية synchronized و lock). ولا تنسوا أن التزامن يمكن أن يحدث حتى على مستوى الجملة البرمجية كما في لغة HPF.</template>
+    <template class="content-en">Welcome to Week 11. Today we enter the world of Concurrency, one of the most critical and complex topics in computer science. Imagine a kitchen: one chef rapidly switching between chopping onions and stirring soup is 'logical concurrency'. Multiple chefs working simultaneously is 'physical concurrency'. The real challenge arises when two chefs need the same knife (Competition Synchronization) or one waits for another to peel potatoes before frying them (Cooperation Synchronization). To solve this, we use tools: 'Semaphores' act like traffic lights but are prone to human error. 'Monitors' provide encapsulated VIP rooms ensuring only one enters automatically. We also explored 'Message Passing' (Rendezvous) as an elegant communication model. For the exam, focus heavily on distinguishing Cooperation vs. Competition, and understand how Java (`synchronized`) and C# (`lock`) implement these. Finally, remember that concurrency can even happen at the statement level, as seen with HPF's `FORALL`.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم التزامن حتى لو كان لدينا معالج واحد فقط؟</template>
+          <template class="content-en">Why use concurrency even if we only have one processor?</template>
+          <span class="content-target">لماذا نستخدم التزامن حتى لو كان لدينا معالج واحد فقط؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن البرامج المتزامنة يمكن أن تكون أسرع من المتسلسلة؛ فهي تستغل أوقات فراغ المعالج (مثل انتظار استجابة القرص الصلب أو الشبكة) لتنفيذ مهام أخرى بدلاً من البقاء في حالة خمول.</template>
+          <template class="content-en">Because concurrent programs can be faster than sequential ones; they utilize processor idle time (like waiting for disk or network I/O) to execute other tasks instead of sitting idle.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين المهمة الثقيلة (Heavyweight) والخفيفة (Lightweight)؟</template>
+          <template class="content-en">What is the fundamental difference between a heavyweight and a lightweight task?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين المهمة الثقيلة (Heavyweight) والخفيفة (Lightweight)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المهام الثقيلة (مثل العمليات Processes) تمتلك مساحة عناوين ذاكرة مستقلة، بينما المهام الخفيفة (مثل الخيوط Threads) تتشارك نفس مساحة العناوين، مما يجعل إنشاؤها والتبديل بينها أسرع بكثير.</template>
+          <template class="content-en">Heavyweight tasks (like OS processes) have their own independent memory address space, while lightweight tasks (like threads) share the same address space, making them much faster to create and switch between.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو السيمافور الثنائي (Binary Semaphore) وفي ماذا يُستخدم؟</template>
+          <template class="content-en">What is a binary semaphore and what is it used for?</template>
+          <span class="content-target">ما هو السيمافور الثنائي (Binary Semaphore) وفي ماذا يُستخدم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو سيمافور يمتلك عداده القيمتين 0 و 1 فقط. يُستخدم بشكل أساسي لتوفير تزامن التنافس (الوصول الحصري المتبادل) لمورد مشترك.</template>
+          <template class="content-en">It is a semaphore whose counter only takes the values 0 and 1. It is primarily used to provide competition synchronization (mutually exclusive access) to a shared resource.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل المراقب (Monitor) مشكلة نسيان المبرمج لاستدعاء release في السيمافورات؟</template>
+          <template class="content-en">How does a Monitor solve the problem of a programmer forgetting to call release in semaphores?</template>
+          <span class="content-target">كيف يحل المراقب (Monitor) مشكلة نسيان المبرمج لاستدعاء release في السيمافورات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المراقب يغلف البيانات المشتركة والدوال التي تتعامل معها، ويضمن لغوياً (من خلال المترجم) أن خيطاً واحداً فقط يمكنه تنفيذ أي دالة داخل المراقب في نفس الوقت، مما يلغي الحاجة لاستدعاءات القفل اليدوية.</template>
+          <template class="content-en">A monitor encapsulates the shared data and its methods, and linguistically guarantees (via the compiler) that only one thread can execute any method inside the monitor at a time, eliminating the need for manual lock calls.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني نقطة الالتقاء (Rendezvous) في تمرير الرسائل؟</template>
+          <template class="content-en">What does Rendezvous mean in message passing?</template>
+          <span class="content-target">ماذا تعني نقطة الالتقاء (Rendezvous) في تمرير الرسائل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي اللحظة التي يكون فيها المرسل جاهزاً لإرسال الرسالة والمستقبل جاهزاً لاستقبالها (عبر جملة accept). إذا وصل أحدهما قبل الآخر، فإنه يُعلق (Suspended) حتى يصل الطرف الثاني وتتم عملية النقل.</template>
+          <template class="content-en">It is the moment when the sender is ready to send and the receiver is ready to receive (via an accept clause). If one arrives early, it is suspended until the other arrives and the transmission occurs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في لغة Ada، ما الفرق بين مهمة الخادم (Server task) ومهمة الممثل (Actor task)؟</template>
+          <template class="content-en">In Ada, what is the difference between a server task and an actor task?</template>
+          <span class="content-target">في لغة Ada، ما الفرق بين مهمة الخادم (Server task) ومهمة الممثل (Actor task)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">مهمة الخادم تحتوي على جمل accept وتنتظر طلبات من مهام أخرى. مهمة الممثل لا تحتوي على جمل accept وتقوم فقط بإرسال الرسائل.</template>
+          <template class="content-en">A server task has accept clauses and waits for requests from other tasks. An actor task has no accept clauses and only sends messages.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تمنع جافا تداخل الخيوط عند الوصول لبيانات مشتركة؟</template>
+          <template class="content-en">How does Java prevent thread interference when accessing shared data?</template>
+          <span class="content-target">كيف تمنع جافا تداخل الخيوط عند الوصول لبيانات مشتركة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام المُعدِّل `synchronized` على الدوال أو الكتل البرمجية. هذا يضمن أن خيطاً واحداً فقط يمكنه تنفيذ الكود المتزامن على كائن معين في أي وقت.</template>
+          <template class="content-en">By using the `synchronized` modifier on methods or blocks. This ensures that only one thread can execute the synchronized code on a specific object at any given time.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي وظيفة دالة `yield()` في جافا؟</template>
+          <template class="content-en">What is the function of the `yield()` method in Java?</template>
+          <span class="content-target">ما هي وظيفة دالة `yield()` في جافا؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم لطلب تنازل الخيط الحالي طوعياً عن المعالج، مما يسمح للخيوط الأخرى الموجودة في حالة 'جاهزة' (Ready) بالعمل.</template>
+          <template class="content-en">It is a request from the running thread to voluntarily surrender the processor, allowing other threads in the 'Ready' state to run.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في C#، متى يجب استخدام `Interlocked` بدلاً من `Monitor`؟</template>
+          <template class="content-en">In C#, when should you use `Interlocked` instead of `Monitor`?</template>
+          <span class="content-target">في C#، متى يجب استخدام `Interlocked` بدلاً من `Monitor`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يجب استخدام `Interlocked` عندما تكون العملية الوحيدة التي تحتاج إلى مزامنة هي زيادة أو نقصان متغير رقمي (Integer)، لأنها أسرع وأقل استهلاكاً للموارد من استخدام `Monitor`.</template>
+          <template class="content-en">You should use `Interlocked` when the only operation needing synchronization is incrementing or decrementing an integer, because it is much faster and has less overhead than using a `Monitor`.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف من التزامن على مستوى الجملة (Statement-Level Concurrency) كما في لغة HPF؟</template>
+          <template class="content-en">What is the goal of Statement-Level Concurrency as seen in HPF?</template>
+          <span class="content-target">ما هو الهدف من التزامن على مستوى الجملة (Statement-Level Concurrency) كما في لغة HPF؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الهدف هو السماح للمبرمج بتوجيه المترجم (Compiler) حول كيفية توزيع البيانات والعمليات (مثل جملة FORALL) على معالجات متعددة تلقائياً، لتقليل الاتصال بين المعالجات وزيادة الأداء.</template>
+          <template class="content-en">The goal is to allow the programmer to instruct the compiler on how to automatically distribute data and operations (like the FORALL statement) across multiple processors, minimizing inter-processor communication and maximizing performance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "التزامن المادي (Physical Concurrency)",
+      "en": "Physical Concurrency"
+    },
+    "back": {
+      "definition": {
+        "ar": "استخدام معالجات مستقلة متعددة لتنفيذ خيوط تحكم متعددة في نفس الوقت.",
+        "en": "Multiple independent processors executing multiple threads of control simultaneously."
+      },
+      "example": {
+        "ar": "جهاز كمبيوتر بمعالج رباعي النواة ينفذ 4 برامج في نفس اللحظة.",
+        "en": "A quad-core processor running 4 programs at the exact same time."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "التزامن المنطقي (Logical Concurrency)",
+      "en": "Logical Concurrency"
+    },
+    "back": {
+      "definition": {
+        "ar": "مظهر التزامن الذي يتم تقديمه عن طريق مشاركة الوقت (time-sharing) لمعالج واحد.",
+        "en": "The appearance of physical concurrency presented by time-sharing one processor."
+      },
+      "example": {
+        "ar": "معالج واحد يبدل بسرعة بين تشغيل الموسيقى وتصفح الويب.",
+        "en": "A single processor rapidly switching between playing music and web browsing."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "الروتينات المساعدة (Coroutines)",
+      "en": "Coroutines"
+    },
+    "back": {
+      "definition": {
+        "ar": "شبه تزامن (quasi-concurrency) يمتلك خيط تحكم واحد فقط وينقل التحكم ذهاباً وإياباً.",
+        "en": "Quasi-concurrency that has a single thread of control, passing execution back and forth."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "المهمة الثقيلة (Heavyweight Task)",
+      "en": "Heavyweight Task"
+    },
+    "back": {
+      "definition": {
+        "ar": "مهمة تنفذ في مساحة عناوين (address space) خاصة بها ومستقلة.",
+        "en": "A task that executes in its own separate address space."
+      },
+      "example": {
+        "ar": "عملية (Process) كاملة في نظام التشغيل.",
+        "en": "A full OS Process."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "المهمة الخفيفة (Lightweight Task)",
+      "en": "Lightweight Task"
+    },
+    "back": {
+      "definition": {
+        "ar": "مهمة تتشارك نفس مساحة العناوين مع مهام أخرى، مما يجعلها أكثر كفاءة.",
+        "en": "A task that runs in the same address space as others, making it more efficient."
+      },
+      "example": {
+        "ar": "خيط (Thread) داخل عملية في جافا.",
+        "en": "A Thread within a Java process."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "تزامن التعاون (Cooperation Synchronization)",
+      "en": "Cooperation Synchronization"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلية حيث يجب أن تنتظر المهمة A حتى تكمل المهمة B نشاطًا معينًا قبل المتابعة.",
+        "en": "A mechanism where Task A must wait for Task B to complete a specific activity before continuing."
+      },
+      "example": {
+        "ar": "المستهلك ينتظر حتى يضع المنتج بيانات في المخزن المؤقت.",
+        "en": "A consumer waiting for a producer to put data in the buffer."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "تزامن التنافس (Competition Synchronization)",
+      "en": "Competition Synchronization"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلية تضمن الوصول الحصري المتبادل لمورد لا يمكن استخدامه في نفس الوقت من قبل مهام متعددة.",
+        "en": "A mechanism ensuring mutually exclusive access to a resource that cannot be simultaneously used."
+      },
+      "example": {
+        "ar": "مهمتان تحاولان تحديث نفس العداد المشترك.",
+        "en": "Two tasks trying to update the same shared counter."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "المجدول (Scheduler)",
+      "en": "Scheduler"
+    },
+    "back": {
+      "definition": {
+        "ar": "برنامج يحافظ على التحكم في تنفيذ المهام ويعينها للمعالجات المتاحة.",
+        "en": "A program that maintains task execution control and maps tasks onto available processors."
+      },
+      "example": {
+        "ar": "مجدول نظام التشغيل الذي يقرر أي خيط سيعمل تالياً.",
+        "en": "The OS scheduler deciding which thread runs next."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "الحالة المحظورة (Blocked State)",
+      "en": "Blocked State"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة المهمة التي كانت قيد التشغيل ولكن لا يمكنها المتابعة الآن (عادةً لانتظار حدث).",
+        "en": "The state of a task that has been running but cannot now continue (usually waiting for an event)."
+      },
+      "example": {
+        "ar": "خيط ينتظر إدخال المستخدم من لوحة المفاتيح.",
+        "en": "A thread waiting for user input from the keyboard."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "الجمود (Deadlock)",
+      "en": "Deadlock"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة تفقد فيها جميع المهام في بيئة متزامنة حيويتها (Liveness) وتتوقف بشكل دائم.",
+        "en": "A situation where all tasks in a concurrent environment lose their liveness and halt permanently."
+      },
+      "example": {
+        "ar": "المهمة A تنتظر المورد الذي تملكه B، والمهمة B تنتظر المورد الذي تملكه A.",
+        "en": "Task A waits for a resource held by B, while Task B waits for a resource held by A."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "السيمافور (Semaphore)",
+      "en": "Semaphore"
+    },
+    "back": {
+      "definition": {
+        "ar": "هيكل بيانات يتكون من عداد وطابور، يُستخدم للمزامنة عبر عمليتي wait و release.",
+        "en": "A data structure consisting of a counter and a queue, used for synchronization via wait and release operations."
+      },
+      "example": {
+        "ar": "استخدام سيمافور للتحكم في عدد السيارات المسموح لها بدخول موقف سيارات.",
+        "en": "Using a semaphore to control the number of cars allowed into a parking lot."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "السيمافور الثنائي (Binary Semaphore)",
+      "en": "Binary Semaphore"
+    },
+    "back": {
+      "definition": {
+        "ar": "سيمافور يمتلك عداده القيمتين 0 و 1 فقط، يُستخدم لتزامن التنافس (الوصول الحصري).",
+        "en": "A semaphore whose counter only has the values 0 and 1, used for competition synchronization."
+      },
+      "example": {
+        "ar": "قفل بسيط لمتغير مشترك.",
+        "en": "A simple lock for a shared variable."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "المراقب (Monitor)",
+      "en": "Monitor"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع بيانات مجرد يغلف البيانات المشتركة ويضمن وصولاً متزامنًا حصريًا تلقائيًا.",
+        "en": "An abstract data type that encapsulates shared data and automatically guarantees synchronized, mutually exclusive access."
+      },
+      "example": {
+        "ar": "كائن في جافا يحتوي على دوال synchronized.",
+        "en": "A Java object with synchronized methods."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "نقطة الالتقاء (Rendezvous)",
+      "en": "Rendezvous"
+    },
+    "back": {
+      "definition": {
+        "ar": "الحدث الذي يتم فيه قبول رسالة المرسل من قبل المستقبل ويحدث النقل الفعلي للبيانات.",
+        "en": "The event when a sender's message is accepted by a receiver and the actual message transmission occurs."
+      },
+      "example": {
+        "ar": "في لغة Ada، عندما يصل المرسل إلى استدعاء الدخول ويصل المستقبل إلى جملة accept.",
+        "en": "In Ada, when the sender reaches the entry call and the receiver reaches the accept clause."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "مهمة الخادم (Server Task)",
+      "en": "Server Task"
+    },
+    "back": {
+      "definition": {
+        "ar": "مهمة تحتوي على جمل accept وتنتظر استقبال الرسائل من مهام أخرى.",
+        "en": "A task that has accept clauses and waits to receive messages from other tasks."
+      },
+      "example": {
+        "ar": "مهمة تدير مخزنًا مؤقتًا وتقبل طلبات الإضافة والسحب.",
+        "en": "A task managing a buffer that accepts deposit and fetch requests."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "مهمة الممثل (Actor Task)",
+      "en": "Actor Task"
+    },
+    "back": {
+      "definition": {
+        "ar": "مهمة لا تحتوي على جمل accept وتقوم فقط بإرسال الرسائل إلى مهام أخرى.",
+        "en": "A task without accept clauses that only sends messages to other tasks."
+      },
+      "example": {
+        "ar": "مهمة تقوم بتوليد بيانات وإرسالها إلى الخادم.",
+        "en": "A task generating data and sending it to a server."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "المُعدِّل synchronized (في جافا)",
+      "en": "synchronized modifier (Java)"
+    },
+    "back": {
+      "definition": {
+        "ar": "مُعدِّل يمنع أي دالة متزامنة أخرى من العمل على نفس الكائن أثناء تنفيذه.",
+        "en": "A modifier that disallows any other synchronized method from running on the object while it is in execution."
+      },
+      "example": {
+        "ar": "`public synchronized void deposit(int i)`",
+        "en": "`public synchronized void deposit(int i)`"
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "جملة FORALL (في HPF)",
+      "en": "FORALL statement (HPF)"
+    },
+    "back": {
+      "definition": {
+        "ar": "جملة تحدد قائمة من التعيينات التي يمكن تقييمها وتنفيذها بشكل متزامن.",
+        "en": "A statement specifying a list of assignments that may be evaluated and executed concurrently."
+      },
+      "example": {
+        "ar": "`FORALL (index = 1:1000) list_1(index) = list_2(index)`",
+        "en": "`FORALL (index = 1:1000) list_1(index) = list_2(index)`"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من مستويات التزامن التالية لا يحتوي على قضايا لغوية (Language issues) ولذلك لا يتم تناوله في تصميم لغات البرمجة؟",
+      "en": "Which of the following levels of concurrency has no language issues and is therefore not addressed in programming language design?"
+    },
+    "options": {
+      "ar": [
+        "مستوى الجملة (Statement level)",
+        "مستوى الوحدة (Unit level)",
+        "مستوى تعليمات الآلة (Machine instruction level)",
+        "مستوى الخيوط (Thread level)"
+      ],
+      "en": [
+        "Statement level",
+        "Unit level",
+        "Machine instruction level",
+        "Thread level"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "التزامن على مستوى تعليمات الآلة ومستوى البرنامج لا يحتويان على قضايا لغوية، لذا لا يتم تناولهما في هذا السياق.",
+      "en": "Instruction- and program-level concurrency have no language issues, so they are not addressed here."
+    },
+    "hint": {
+      "ar": "فكر في المستوى الذي يتعامل معه المعالج مباشرة دون تدخل المترجم.",
+      "en": "Think about the level handled directly by the hardware without compiler intervention."
+    },
+    "difficulty": "easy",
+    "conceptId": "categories-of-concurrency"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو المصطلح الذي يصف مظهر التزامن المادي المقدم عن طريق مشاركة الوقت لمعالج واحد؟",
+      "en": "What term describes the appearance of physical concurrency presented by time-sharing one processor?"
+    },
+    "options": {
+      "ar": [
+        "التزامن المادي (Physical concurrency)",
+        "التزامن المنطقي (Logical concurrency)",
+        "الروتينات المساعدة (Coroutines)",
+        "المهام الثقيلة (Heavyweight tasks)"
+      ],
+      "en": [
+        "Physical concurrency",
+        "Logical concurrency",
+        "Coroutines",
+        "Heavyweight tasks"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التزامن المنطقي يعطي وهم التنفيذ المتوازي على معالج واحد من خلال التبديل السريع بين المهام.",
+      "en": "Logical concurrency gives the illusion of parallel execution on a single processor by rapidly switching between tasks."
+    },
+    "hint": {
+      "ar": "إنه ليس ماديًا (Physical).",
+      "en": "It is not Physical."
+    },
+    "difficulty": "easy",
+    "conceptId": "categories-of-concurrency"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في أي حالة تكون المهمة عندما تكون جاهزة للتشغيل ولكن لا يوجد معالج متاح؟",
+      "en": "In which state is a task when it is ready to run but no processor is currently available?"
+    },
+    "options": {
+      "ar": [
+        "جديدة (New)",
+        "محظورة (Blocked)",
+        "قيد التشغيل (Running)",
+        "جاهزة (Ready)"
+      ],
+      "en": [
+        "New",
+        "Blocked",
+        "Running",
+        "Ready"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "حالة 'جاهزة' تعني أن المهمة تمتلك كل ما تحتاجه للعمل باستثناء المعالج.",
+      "en": "The 'Ready' state means the task has everything it needs to run except the CPU."
+    },
+    "hint": {
+      "ar": "المهمة مستعدة للبدء فور توفر الموارد.",
+      "en": "The task is prepared to start as soon as resources are available."
+    },
+    "difficulty": "easy",
+    "conceptId": "task-execution-states"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ماذا يحدث إذا فقدت جميع المهام في بيئة متزامنة حيويتها (Liveness)؟",
+      "en": "What happens if all tasks in a concurrent environment lose their liveness?"
+    },
+    "options": {
+      "ar": [
+        "حالة سباق (Race condition)",
+        "جمود (Deadlock)",
+        "تزامن التعاون (Cooperation synchronization)",
+        "نقطة التقاء (Rendezvous)"
+      ],
+      "en": [
+        "Race condition",
+        "Deadlock",
+        "Cooperation synchronization",
+        "Rendezvous"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الجمود (Deadlock) هو الحالة التي تتوقف فيها جميع المهام عن التقدم لأن كل منها ينتظر الآخر.",
+      "en": "Deadlock is the state where all tasks stop making progress because they are waiting on each other."
+    },
+    "hint": {
+      "ar": "فكر في تقاطع طرق حيث لا يمكن لأي سيارة التحرك.",
+      "en": "Think of a traffic intersection where no car can move."
+    },
+    "difficulty": "medium",
+    "conceptId": "task-execution-states"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هما العمليتان الوحيدتان المسموح بهما على السيمافور؟",
+      "en": "What are the only two operations allowed on a semaphore?"
+    },
+    "options": {
+      "ar": [
+        "start و stop",
+        "wait و release",
+        "lock و unlock",
+        "accept و select"
+      ],
+      "en": [
+        "start and stop",
+        "wait and release",
+        "lock and unlock",
+        "accept and select"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "السيمافورات تمتلك عمليتين فقط: wait (لتقليل العداد أو الانتظار) و release (لزيادة العداد أو إيقاظ مهمة).",
+      "en": "Semaphores have only two operations: wait (decrement or block) and release (increment or wake)."
+    },
+    "hint": {
+      "ar": "كان يُطلق عليهما أصلاً P و V بواسطة Dijkstra.",
+      "en": "Originally called P and V by Dijkstra."
+    },
+    "difficulty": "easy",
+    "conceptId": "semaphores"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي الميزة الرئيسية للمراقبين (Monitors) مقارنة بالسيمافورات؟",
+      "en": "What is the main advantage of Monitors over Semaphores?"
+    },
+    "options": {
+      "ar": [
+        "أنها أسرع في التنفيذ.",
+        "أنها لا تتطلب طابور انتظار.",
+        "أنها تغلف البيانات المشتركة وتضمن الوصول الحصري تلقائيًا.",
+        "أنها تدعم التزامن المادي فقط."
+      ],
+      "en": [
+        "They are faster to execute.",
+        "They do not require a wait queue.",
+        "They encapsulate shared data and automatically guarantee exclusive access.",
+        "They only support physical concurrency."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المراقبون يقللون من أخطاء المبرمجين من خلال فرض الوصول الحصري تلقائيًا عبر التغليف.",
+      "en": "Monitors reduce programmer errors by automatically enforcing mutually exclusive access through encapsulation."
+    },
+    "hint": {
+      "ar": "فكر في مفهوم التغليف (Encapsulation) في البرمجة كائنية التوجه.",
+      "en": "Think about Encapsulation in OOP."
+    },
+    "difficulty": "medium",
+    "conceptId": "monitors"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في نموذج تمرير الرسائل، ماذا يُسمى الحدث الذي يتم فيه قبول رسالة المرسل من قبل المستقبل؟",
+      "en": "In the message passing model, what is the event called when a sender's message is accepted by a receiver?"
+    },
+    "options": {
+      "ar": [
+        "Deadlock",
+        "Rendezvous",
+        "Semaphore",
+        "Monitor"
+      ],
+      "en": [
+        "Deadlock",
+        "Rendezvous",
+        "Semaphore",
+        "Monitor"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نقطة الالتقاء (Rendezvous) هي اللحظة التي يتزامن فيها المرسل والمستقبل لنقل الرسالة.",
+      "en": "A rendezvous is the moment when both sender and receiver synchronize to transfer the message."
+    },
+    "hint": {
+      "ar": "كلمة فرنسية تعني 'لقاء'.",
+      "en": "A French word meaning 'meeting'."
+    },
+    "difficulty": "medium",
+    "conceptId": "message-passing"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "في جافا، أي دالة يجب استدعاؤها لبدء التنفيذ المتزامن لخيط جديد؟",
+      "en": "In Java, which method must be called to start the concurrent execution of a new thread?"
+    },
+    "options": {
+      "ar": [
+        "run()",
+        "start()",
+        "execute()",
+        "begin()"
+      ],
+      "en": [
+        "run()",
+        "start()",
+        "execute()",
+        "begin()"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دالة start() هي التي تطلب من نظام التشغيل إنشاء خيط جديد ثم تقوم باستدعاء run() داخله.",
+      "en": "The start() method requests the OS to create a new thread and then invokes run() within it."
+    },
+    "hint": {
+      "ar": "لا تستدعي run() مباشرة، بل استدعِ الدالة التي 'تبدأ' الخيط.",
+      "en": "Do not call run() directly; call the method that 'starts' the thread."
+    },
+    "difficulty": "medium",
+    "conceptId": "java-threads"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في C#، ما هي الفئة المستخدمة لمزامنة العمليات البسيطة مثل زيادة أو نقصان عدد صحيح؟",
+      "en": "In C#, which class is used to synchronize simple operations like incrementing or decrementing an integer?"
+    },
+    "options": {
+      "ar": [
+        "Monitor",
+        "lock",
+        "Interlocked",
+        "Thread"
+      ],
+      "en": [
+        "Monitor",
+        "lock",
+        "Interlocked",
+        "Thread"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "فئة Interlocked توفر عمليات ذرية سريعة للعمليات الحسابية البسيطة دون الحاجة لقفل كامل.",
+      "en": "The Interlocked class provides fast atomic operations for simple arithmetic without needing a full lock."
+    },
+    "hint": {
+      "ar": "الاسم يوحي بتشابك العمليات.",
+      "en": "The name suggests interlocking operations."
+    },
+    "difficulty": "hard",
+    "conceptId": "csharp-threads"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في High-Performance Fortran (HPF)، ما هي الجملة التي تحدد قائمة من التعيينات التي يمكن تنفيذها بشكل متزامن؟",
+      "en": "In High-Performance Fortran (HPF), which statement specifies a list of assignments that may be executed concurrently?"
+    },
+    "options": {
+      "ar": [
+        "DISTRIBUTE",
+        "ALIGN",
+        "PROCESSORS",
+        "FORALL"
+      ],
+      "en": [
+        "DISTRIBUTE",
+        "ALIGN",
+        "PROCESSORS",
+        "FORALL"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "جملة FORALL تسمح بتقييم جميع الجوانب اليمنى (RHS) قبل إجراء أي تعيين، مما يسهل التنفيذ المتوازي.",
+      "en": "The FORALL statement allows all RHSs to be evaluated before any assignment, facilitating parallel execution."
+    },
+    "hint": {
+      "ar": "تعني 'لكل' عنصر في المصفوفة.",
+      "en": "Means 'for all' elements."
+    },
+    "difficulty": "medium",
+    "conceptId": "statement-level-concurrency"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ</div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين التزامن المادي والمنطقي. تذكر: التزامن المنطقي يحدث على معالج واحد (وهم التوازي)، بينما التزامن المادي يتطلب معالجات متعددة فعلية.</template>
+      <template class="content-en">Confusing physical and logical concurrency. Remember: Logical concurrency happens on a single processor (illusion of parallel), while physical requires actual multiple processors.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ</div>
+    <div data-bilingual>
+      <template class="content-ar">في جافا، استدعاء دالة `run()` مباشرة بدلاً من `start()`. استدعاء `run()` سينفذ الكود في الخيط الحالي (تسلسلياً) ولن ينشئ خيطاً جديداً للتزامن.</template>
+      <template class="content-en">In Java, calling `run()` directly instead of `start()`. Calling `run()` executes the code in the current thread (sequentially) and does NOT create a new concurrent thread.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي</div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق بين التعاون والتنافس: التعاون هو 'انتظرني حتى أنتهي من إعداد البيانات'، التنافس هو 'ابتعد، أنا أستخدم هذا المورد الآن'.</template>
+      <template class="content-en">Cooperation vs Competition: Cooperation is 'wait for me to prepare the data', Competition is 'stay away, I am using this resource right now'.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر</div>
+    <div data-bilingual>
+      <template class="content-ar">السيمافورات والمراقبون متكافئان رياضياً. يمكنك استخدام السيمافورات لبرمجة مراقب، ويمكنك استخدام المراقب لبرمجة سيمافور. الاختلاف يكمن في مستوى التجريد والأمان الذي توفره اللغة.</template>
+      <template class="content-en">Semaphores and Monitors are mathematically equivalent. You can implement a monitor using semaphores, and vice versa. The difference lies in the level of abstraction and safety provided by the language.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M11.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M13.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

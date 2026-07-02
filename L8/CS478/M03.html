@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS478" data-module="3">
+<head>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الفصل الثامن: التصيير (Rendering) · CS478 · الحديقة الرقمية</title>
+
+  
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header class="site-header">
+  <div class="header-inner">
+    <nav class="header-nav">
+      <a href="index.html" class="nav-btn nav-btn--icon" title="Home"><i class="fa-solid fa-house"></i></a>
+      <a href="M02.html" class="nav-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="nav.prev">السابق</span>
+      </a>
+    </nav>
+    <div class="header-center">
+      <div class="subject-icon"><i class="fa-solid fa-project-diagram"></i></div>
+      <span class="module-badge font-display">MOD 3</span>
+      <span class="subject-name">CS478</span>
+    </div>
+    <div class="header-actions">
+      <a href="M04.html" class="nav-btn">
+        <span data-i18n="nav.next">التالي</span>
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="divider-v"></div>
+      <button class="toggle-btn" onclick="Garden.toggleLanguage()"><span id="lang-label">AR</span></button>
+      <button class="toggle-btn" onclick="Garden.cycleTheme()"><span id="theme-icon">🌙</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#rendering-basics" class="toc-link" data-bilingual>
+        <template class="content-ar">أساسيات التصيير (Rendering Basics)</template>
+        <template class="content-en">Rendering Basics</template>
+        <span class="content-target">أساسيات التصيير (Rendering Basics)</span>
+      </a>
+      <a href="#physics-of-light" class="toc-link" data-bilingual>
+        <template class="content-ar">محاكاة فيزياء الضوء (Simulating Physics of Light)</template>
+        <template class="content-en">Simulating Physics of Light</template>
+        <span class="content-target">محاكاة فيزياء الضوء (Simulating Physics of Light)</span>
+      </a>
+      <a href="#rendering-algorithms-families" class="toc-link" data-bilingual>
+        <template class="content-ar">عائلات خوارزميات التصيير (Rendering Algorithm Families)</template>
+        <template class="content-en">Rendering Algorithm Families</template>
+        <span class="content-target">عائلات خوارزميات التصيير (Rendering Algorithm Families)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 3</template>
+      <template class="content-en">Module 3</template>
+      <span class="content-target">الوحدة 3</span>
+    </span> · CS478
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الفصل الثامن: التصيير (Rendering)</h1>
+      <p class="hero-description">مقدمة في التصيير كعملية محاكاة لفيزياء الضوء، وأساسيات التصيير، وعائلتي خوارزميات التصيير الرئيسيتين: التنقيط (Rasterization) وتتبع الأشعة (Ray Tracing).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Chapter 8: Rendering</h1>
+      <p class="hero-description">Introduction to rendering as a simulation of the physics of light, basics of rendering, and the two main families of rendering algorithms: Rasterization and Ray Tracing.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">رسومات الحاسب</span>
+      <span class="tag">التصيير</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 15 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Computer Graphics</span>
+      <span class="tag">Rendering</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 15 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><span class="obj-icon">🎯</span> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم التصيير كمحاكاة لـ "فيزياء الضوء".</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على أساسيات التصيير: الإضاءة، الأسطح، الكاميرات، والصور.</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين العائلتين الرئيسيتين لخوارزميات التصيير.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand rendering as a simulation of the "physics of light".</span></li>
+      <li><span class="obj-icon">✦</span><span>Identify the basics of rendering: lights, surfaces, cameras & images.</span></li>
+      <li><span class="obj-icon">✦</span><span>Distinguish between the two families of rendering algorithms.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="rendering-basics" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> أساسيات التصيير (Rendering Basics)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Rendering Basics</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>التصيير هو عملية تحويل النماذج ثلاثية الأبعاد إلى صور ثنائية الأبعاد بناءً على نقطة عرض محددة.</p>
+    </template>
+    <template class="content-en">
+      <p>Rendering is the algorithm-driven process of generating 2D images from 3D models based on a selected viewpoint.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في مجال رسومات الحاسب، يعتبر التصيير أحد الفروع الرئيسية الثلاثة (إلى جانب <span class="smart-term" data-term-en="Modeling" data-ar="النمذجة" data-en-def="Computational representations of geometry to create 3D models.">النمذجة</span> و<span class="smart-term" data-term-en="Animation" data-ar="التحريك" data-en-def="Representing and editing motion with 3D models.">التحريك</span>).</p><p>يأخذ التصيير نموذجاً ثلاثي الأبعاد كمدخل، وبعد تحديد نقطة العرض (الكاميرا)، يقوم بتطبيق خوارزميات لإنتاج صورة ثنائية الأبعاد كمخرج.</p></template>
+    <template class="content-en"><p>In computer graphics, rendering is one of the three main subfields (alongside <span class="smart-term" data-term-en="Modeling" data-ar="النمذجة" data-en-def="Computational representations of geometry to create 3D models.">Modeling</span> and <span class="smart-term" data-term-en="Animation" data-ar="التحريك" data-en-def="Representing and editing motion with 3D models.">Animation</span>).</p><p>It takes a 3D model as input, and after selecting a viewpoint (camera), it applies algorithms to output a 2D image.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يعتمد التصيير بشكل أساسي على كيفية تفاعل الضوء مع الأجسام في المشهد الافتراضي.</p><p>بدون نقطة عرض محددة، لا يمكن للتصيير أن يعرف أي الأجزاء من النموذج الثلاثي الأبعاد يجب أن تظهر في الصورة النهائية.</p><p>تعتبر هذه العملية الجسر الذي يربط بين البيانات الرياضية المجردة (النماذج) والإدراك البصري البشري (الصور).</p></template>
+    <template class="content-en"><p>Rendering fundamentally relies on how light interacts with objects in a virtual scene.</p><p>Without a defined viewpoint, the rendering process cannot determine which parts of the 3D model should be visible in the final image.</p><p>This process acts as the bridge between abstract mathematical data (models) and human visual perception (images).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--brand-500)" />
+        </marker>
+        
+        <marker id="arrowhead-dashed" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="var(--text-muted)" />
+        </marker>
+        
+        <pattern id="grid" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="none" stroke="var(--border-color)" stroke-width="1" opacity="0.5"/>
+        </pattern>
+    </defs>
+
+    
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    
+    <g transform="translate(20, 0)">
+        
+        <g stroke="var(--text-muted)" stroke-width="2" opacity="0.6">
+            <line x1="60" y1="280" x2="60" y2="240" marker-end="url(#arrowhead-dashed)"/> 
+            <line x1="60" y1="280" x2="100" y2="280" marker-end="url(#arrowhead-dashed)"/> 
+            <line x1="60" y1="280" x2="40" y2="300" marker-end="url(#arrowhead-dashed)"/> 
+            <text x="60" y="230" font-size="13" fill="var(--text-muted)" text-anchor="middle">Y</text>
+            <text x="110" y="285" font-size="13" fill="var(--text-muted)" text-anchor="start">X</text>
+            <text x="30" y="310" font-size="13" fill="var(--text-muted)" text-anchor="end">Z</text>
+        </g>
+
+        
+        <g transform="translate(30, 80) rotate(20)">
+            <rect x="0" y="0" width="30" height="20" rx="3" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2"/>
+            <polygon points="30,5 45,-5 45,25 30,15" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2"/>
+            <circle cx="15" cy="10" r="4" fill="var(--brand-500)"/>
+        </g>
+        <text x="50" y="60" font-size="13" fill="var(--text-secondary)" text-anchor="middle" font-weight="bold">Viewpoint</text>
+        <text x="50" y="75" font-size="13" fill="var(--text-secondary)" text-anchor="middle">زاوية الرؤية</text>
+
+        
+        <path d="M 70 100 L 160 130" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+        <path d="M 70 100 L 160 270" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+
+        
+        <g stroke-linejoin="round">
+            
+            <g stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" opacity="0.8">
+                <path d="M 80 200 L 180 190" />
+                <path d="M 180 190 L 160 130" />
+                <path d="M 180 190 L 160 270" />
+                <path d="M 180 190 L 240 200" />
+                <path d="M 240 200 L 300 190" />
+                <path d="M 300 190 L 290 140" />
+                <path d="M 300 190 L 290 260" />
+            </g>
+
+            
+            <g stroke="var(--brand-500)" stroke-width="2" fill="none">
+                <path d="M 80 200 L 140 210" />
+                <path d="M 80 200 L 160 130" />
+                <path d="M 80 200 L 160 270" />
+                <path d="M 140 210 L 160 130" />
+                <path d="M 140 210 L 160 270" />
+                <path d="M 140 210 L 240 200" />
+                <path d="M 160 130 L 240 200" />
+                <path d="M 160 270 L 240 200" />
+                <path d="M 240 200 L 290 140" />
+                <path d="M 240 200 L 290 260" />
+                <path d="M 240 200 L 280 210" />
+                <path d="M 280 210 L 290 140" />
+                <path d="M 280 210 L 290 260" />
+            </g>
+
+            
+            <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5">
+                <circle cx="80" cy="200" r="3.5" />
+                <circle cx="160" cy="130" r="3.5" />
+                <circle cx="160" cy="270" r="3.5" />
+                <circle cx="140" cy="210" r="3.5" />
+                <circle cx="180" cy="190" r="3.5" stroke="var(--brand-400)"/>
+                <circle cx="240" cy="200" r="3.5" />
+                <circle cx="290" cy="140" r="3.5" />
+                <circle cx="290" cy="260" r="3.5" />
+                <circle cx="280" cy="210" r="3.5" />
+                <circle cx="300" cy="190" r="3.5" stroke="var(--brand-400)"/>
+            </g>
+        </g>
+
+        
+        <text x="180" y="340" font-size="18" fill="var(--text-primary)" text-anchor="middle" font-weight="bold">3D Wireframe Model</text>
+        <text x="180" y="365" font-size="16" fill="var(--text-secondary)" text-anchor="middle">نموذج شبكي ثلاثي الأبعاد</text>
+    </g>
+
+    
+    <g>
+        <path d="M 340 200 L 450 200" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrowhead)" />
+        <text x="400" y="165" font-size="15" fill="var(--text-primary)" text-anchor="middle" font-weight="bold">Select viewpoint + render</text>
+        <text x="400" y="185" font-size="13" fill="var(--text-secondary)" text-anchor="middle">تحديد زاوية الرؤية والتصيير</text>
+    </g>
+
+    
+    <g transform="translate(-40, 0)">
+        
+        <path d="M 610 300 L 670 300 L 680 315 L 600 315 Z" fill="var(--border-color)" opacity="0.5" />
+        
+        
+        <rect x="510" y="100" width="260" height="200" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        
+        
+        <g transform="translate(520, 110)">
+            
+            <path fill="var(--brand-500)" d="
+                M75 30 h30 v15 h-30 Z M195 30 h15 v15 h-15 Z
+                M60 45 h60 v15 h-60 Z M180 45 h30 v15 h-30 Z
+                M45 60 h90 v15 h-90 Z M165 60 h45 v15 h-45 Z
+                M30 75 h30 v15 h-30 Z M75 75 h135 v15 h-135 Z
+                M15 90 h180 v15 h-180 Z
+                M15 105 h180 v15 h-180 Z
+                M30 120 h180 v15 h-180 Z
+                M45 135 h90 v15 h-90 Z M165 135 h45 v15 h-45 Z
+                M60 150 h60 v15 h-60 Z M180 150 h30 v15 h-30 Z
+                M75 165 h30 v15 h-30 Z M195 165 h15 v15 h-15 Z
+            " />
+            
+            
+            <rect x="60" y="75" width="15" height="15" fill="var(--bg-elevated)" />
+
+            
+            <rect x="0" y="0" width="240" height="180" fill="url(#grid)" />
+        </g>
+
+        
+        <text x="640" y="340" font-size="18" fill="var(--text-primary)" text-anchor="middle" font-weight="bold">2D Pixelated Render</text>
+        <text x="640" y="365" font-size="16" fill="var(--text-secondary)" text-anchor="middle">تصيير بكسلي ثنائي الأبعاد</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر تحديد 'نقطة العرض' خطوة حتمية قبل بدء عملية التصيير؟</template>
+      <template class="content-en">Why is selecting a 'viewpoint' a mandatory step before the rendering process begins?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الصورة ثنائية الأبعاد هي إسقاط للمشهد ثلاثي الأبعاد، ونقطة العرض تحدد زاوية هذا الإسقاط وما هي الأجسام المرئية أو المحجوبة.</p></template>
+      <template class="content-en"><p>Because a 2D image is a projection of a 3D scene, and the viewpoint determines the angle of this projection and which objects are visible or occluded.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="physics-of-light" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> محاكاة فيزياء الضوء (Simulating Physics of Light)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Simulating Physics of Light</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>التصيير هو محاكاة لفيزياء الضوء حيث تبعث المصادر فوتونات، وتعكسها الأسطح، وتستقبلها الكاميرا.</p>
+    </template>
+    <template class="content-en">
+      <p>Rendering approximates real-world light physics: light sources emit photons, surfaces reflect them, and cameras receive them.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الهدف الأساسي من التصيير هو تقريب كيفية ظهور الأشياء في العالم الحقيقي.</p><p>يتم ذلك عبر محاكاة ثلاثة عناصر رئيسية:</p><ol><li><strong>مصدر الضوء:</strong> يقوم ببعث '<span class="smart-term" data-term-en="Photons" data-ar="الفوتونات" data-en-def="Particles of light emitted by sources, reflected by surfaces, and captured by sensors.">الفوتونات</span>' في المشهد.</li><li><strong>هندسة الأسطح:</strong> تتفاعل مع الضوء وتقوم بـ 'عكس' الفوتونات.</li><li><strong>مستشعر الكاميرا:</strong> يقوم بـ 'استقبال' الفوتونات لتكوين الصورة.</li></ol><p>لتبسيط هذه العملية المعقدة، تستخدم رسومات الحاسب 'البصريات الهندسية' (Ray optics) ونموذج الكاميرا ذات الثقب (Pinhole camera).</p></template>
+    <template class="content-en"><p>The primary goal of rendering is to approximate how things look in the real world.</p><p>This is achieved by simulating three main components:</p><ol><li><strong>Light source:</strong> Emits '<span class="smart-term" data-term-en="Photons" data-ar="الفوتونات" data-en-def="Particles of light emitted by sources, reflected by surfaces, and captured by sensors.">photons</span>' into the scene.</li><li><strong>Surface geometry:</strong> Interacts with light and 'reflects' photons.</li><li><strong>Camera sensor:</strong> 'Receives' photons to form the image.</li></ol><p>To simplify this complex process, computer graphics uses 'ray optics' (geometrical optics) and the pinhole camera (camera obscura) model.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>فيزياء الضوء الحقيقية معقدة جداً وتتضمن خصائص موجية للضوء مثل الحيود والتداخل.</p><p>لتسريع الحسابات، يتجاهل التصيير هذه الخصائص الموجية ويعامل الضوء كأشعة مستقيمة (Ray optics).</p><p>نموذج <span class="smart-term" data-term-en="Pinhole Camera" data-ar="الكاميرا ذات الثقب" data-en-def="A simple camera model without a lens but with a single small aperture, used to simplify light projection in graphics.">الكاميرا ذات الثقب</span> (Camera obscura) يبسط عملية الإسقاط، حيث تمر جميع أشعة الضوء عبر نقطة واحدة متناهية الصغر، مما يضمن أن كل نقطة في المشهد تسقط على نقطة واحدة فقط في مستشعر الصورة، مما يمنع التشويش.</p></template>
+    <template class="content-en"><p>Real-world light physics is incredibly complex and includes wave properties like diffraction and interference.</p><p>To make computations feasible, rendering ignores these wave properties and treats light as straight-line rays (Ray optics).</p><p>The <span class="smart-term" data-term-en="Pinhole Camera" data-ar="الكاميرا ذات الثقب" data-en-def="A simple camera model without a lens but with a single small aperture, used to simplify light projection in graphics.">pinhole camera</span> (camera obscura) model simplifies projection.</p><p>By forcing all light rays to pass through a single infinitely small point, it ensures that each point in the scene maps to exactly one point on the image sensor, preventing blur.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    
+    
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  
+  
+  
+  
+  
+  <polygon points="500,120 680,120 680,340 500,340" fill="var(--bg-elevated)" />
+  
+  
+  <rect x="650" y="122" width="28" height="216" fill="var(--bg-surface)" opacity="0.4" />
+  
+  
+  <path d="M 500 240 L 500 120 L 680 120 L 680 340 L 500 340 L 500 260" fill="none" stroke="var(--border-color)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" />
+  
+  
+  <circle cx="500" cy="240" r="2.5" fill="var(--text-secondary)" />
+  <circle cx="500" cy="260" r="2.5" fill="var(--text-secondary)" />
+
+  
+  <rect x="670" y="130" width="6" height="180" rx="3" fill="var(--brand-500)" opacity="0.8" />
+
+  
+  <line x1="380" y1="250" x2="680" y2="250" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="6,6" opacity="0.5" />
+  <text x="590" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Optical Axis / المحور البصري</text>
+
+  
+  
+  
+  
+  
+  <path d="M 200 340 L 440 320 L 440 332 L 200 352 Z" fill="var(--border-color)" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+  
+  
+  <path d="M 200 340 L 320 260 L 440 320 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+
+  
+  
+  
+  
+  
+  <circle cx="100" cy="150" r="24" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+  
+  
+  <circle cx="100" cy="150" r="10" fill="var(--brand-500)" filter="url(#glow)" />
+  
+  
+  <g stroke="var(--brand-400)" stroke-width="2" stroke-linecap="round" opacity="0.8">
+    <line x1="100" y1="116" x2="100" y2="102" />
+    <line x1="100" y1="184" x2="100" y2="198" />
+    <line x1="66" y1="150" x2="52" y2="150" />
+    <line x1="134" y1="150" x2="148" y2="150" />
+    <line x1="76" y1="126" x2="66" y2="116" />
+    <line x1="124" y1="174" x2="134" y2="184" />
+    <line x1="76" y1="174" x2="66" y2="184" />
+    <line x1="124" y1="126" x2="134" y2="116" />
+  </g>
+
+  
+  
+  
+  
+  
+  <line x1="300" y1="300" x2="280" y2="170" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5" />
+  
+  
+  <path d="M 268 276 A 40 40 0 0 1 293.4 260.5" fill="none" stroke="var(--text-muted)" stroke-width="1.5" />
+  <path d="M 293.4 260.5 A 40 40 0 0 1 338.8 290.4" fill="none" stroke="var(--text-muted)" stroke-width="1.5" />
+  <text x="275" y="255" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle" font-style="italic">i</text>
+  <text x="325" y="260" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle" font-style="italic">r</text>
+
+  
+  <path d="M 120 165 L 298 298.5" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  
+  
+  <path d="M 300 300 L 493 251.8" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  
+  
+  <path d="M 507 248.2 L 665 208.8" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+  
+  <circle cx="300" cy="300" r="12" fill="var(--brand-500)" opacity="0.2" />
+  <circle cx="300" cy="300" r="4" fill="var(--brand-500)" />
+
+  
+  <circle cx="670" cy="207.5" r="14" fill="var(--brand-500)" opacity="0.3" filter="url(#glow)" />
+  <circle cx="670" cy="207.5" r="5" fill="var(--brand-500)" />
+
+  
+  <circle cx="210" cy="232.5" r="5" fill="var(--brand-500)" filter="url(#glow)" />
+  <circle cx="400" cy="275" r="5" fill="var(--brand-500)" filter="url(#glow)" />
+  <circle cx="587.5" cy="228.5" r="5" fill="var(--brand-500)" filter="url(#glow)" />
+
+  
+  
+  
+
+  
+  <text x="100" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Light Source</text>
+  <text x="100" y="85" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">(emits)</text>
+  <text x="100" y="110" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">مصدر الضوء</text>
+
+  
+  <text x="320" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Surface (reflects)</text>
+  <text x="320" y="410" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">السطح (يعكس)</text>
+
+  
+  <text x="280" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Normal</text>
+  <text x="280" y="168" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">عمودي</text>
+
+  
+  <text x="590" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Camera Obscura</text>
+  <text x="590" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">قمرة مظلمة</text>
+
+  
+  <text x="430" y="180" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Pinhole</text>
+  <text x="430" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">ثقب الكاميرا</text>
+  <line x1="430" y1="215" x2="492" y2="245" stroke="var(--text-muted)" stroke-width="1.5" />
+  <circle cx="492" cy="245" r="2" fill="var(--text-muted)" />
+
+  
+  <text x="740" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Camera Sensor</text>
+  <text x="740" y="220" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">(receives)</text>
+  <text x="740" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">مستشعر الكاميرا</text>
+  <line x1="740" y1="255" x2="680" y2="280" stroke="var(--text-muted)" stroke-width="1.5" />
+  <circle cx="680" cy="280" r="2" fill="var(--text-muted)" />
+
+  
+  <text x="650" y="195" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="end">Photon Hit</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا لم نستخدم تبسيط 'البصريات الهندسية' في التصيير؟</template>
+      <template class="content-en">What would happen if we didn't use the 'ray optics' simplification in rendering?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستصبح الحسابات معقدة للغاية وبطيئة جداً لأننا سنضطر لمحاكاة الخصائص الموجية للضوء مثل التداخل والحيود، وهو أمر غير ضروري لمعظم التطبيقات المرئية.</p></template>
+      <template class="content-en"><p>Computations would become extremely complex and slow because we would have to simulate wave properties of light like interference and diffraction, which is unnecessary for most visual applications.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="rendering-algorithms-families" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> عائلات خوارزميات التصيير (Rendering Algorithm Families)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Rendering Algorithm Families</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash" data-i18n="layer.flash">⚡ سريع</button>
+    <button class="depth-tab" data-layer="full" data-i18n="layer.full">📖 كامل</button>
+    <button class="depth-tab" data-layer="deep" data-i18n="layer.deep">🔬 عميق</button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تنقسم خوارزميات التصيير إلى عائلتين رئيسيتين: التنقيط (Rasterization) وتتبع الأشعة (Ray Tracing)، والفرق بينهما هو ترتيب العمليات الحسابية لتحديد <span class="smart-term" data-term-en="Visibility" data-ar="الرؤية" data-en-def="The process of determining which parts of the scene geometry are visible from the camera's viewpoint.">الرؤية</span>.</p>
+    </template>
+    <template class="content-en">
+      <p>Rendering algorithms are divided into two main families: Rasterization and Ray Tracing. The difference lies in how they order computation to determine <span class="smart-term" data-term-en="Visibility" data-ar="الرؤية" data-en-def="The process of determining which parts of the scene geometry are visible from the camera's viewpoint.">visibility</span>.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لتحديد أي الأجسام مرئية للكاميرا، نستخدم إحدى طريقتين:</p><ol><li><strong>التنقيط (Rasterization):</strong> يمر على كل مثلث في المشهد ويسأل: 'ما هي البكسلات التي يغطيها هذا المثلث؟'</li><li><strong>تتبع الأشعة (Ray Tracing):</strong> يمر على كل بكسل في الشاشة ويسأل: 'ما هو المثلث المرئي من هذا البكسل؟'</li></ol></template>
+    <template class="content-en"><p>To determine which objects are visible to the camera, we use one of two approaches:</p><ol><li><strong>Rasterization:</strong> Iterates over each triangle in the scene and asks: 'Which pixels are covered by this triangle?'</li><li><strong>Ray Tracing:</strong> Iterates over each ray (pixel) on the screen and asks: 'Which triangle is visible from this pixel?'</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التنقيط (Rasterization) هو نهج 'مرتكز على الكائن' (Object-centric).</p><p>نظراً لأنه يعالج مثلثاً واحداً في كل مرة، فهو سريع جداً ومناسب للرسومات في الوقت الفعلي (مثل ألعاب الفيديو)، ولكنه يواجه صعوبة في محاكاة الانعكاسات والظلال المعقدة.</p><p>تتبع الأشعة (Ray Tracing) هو نهج 'مرتكز على الصورة' (Image-centric).</p><p>يقوم بإطلاق شعاع من الكاميرا عبر كل بكسل لمعرفة ما يصطدم به.</p><p>هذا النهج يحاكي فيزياء الضوء بشكل أكثر دقة، مما يجعله مثالياً للأفلام الواقعية، ولكنه يتطلب قوة حسابية هائلة.</p></template>
+    <template class="content-en"><p>Rasterization is an 'object-centric' approach.</p><p>Because it processes one triangle at a time, it is highly efficient and suitable for real-time graphics (like video games), but it struggles with complex global illumination effects like reflections and shadows.</p><p>Ray Tracing is an 'image-centric' approach.</p><p>It shoots a ray from the camera through each pixel to see what it hits.</p><p>This approach simulates light physics much more accurately, making it ideal for photorealistic movies, but it is computationally expensive.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        
+        <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 Z" fill="var(--brand-500)" />
+        </marker>
+        
+        <marker id="pointer-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 Z" fill="var(--text-muted)" />
+        </marker>
+        
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#000" flood-opacity="0.3" />
+        </filter>
+    </defs>
+
+    
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    
+    <line x1="400" y1="60" x2="400" y2="410" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,8" />
+
+    
+    
+    
+
+    
+    <text x="200" y="45" fill="var(--text-primary)" font-size="20" font-weight="bold" text-anchor="middle">Rasterization</text>
+    <text x="200" y="68" fill="var(--text-secondary)" font-size="16" text-anchor="middle">التنقيط</text>
+
+    <g id="left-rasterization">
+        
+        <rect x="110" y="120" width="180" height="180" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+
+        
+        <g fill="var(--brand-500)" opacity="0.4">
+            <rect x="170" y="120" width="30" height="30" />
+            <rect x="140" y="150" width="30" height="30" />
+            <rect x="170" y="150" width="30" height="30" />
+            <rect x="200" y="150" width="30" height="30" />
+            <rect x="140" y="180" width="30" height="30" />
+            <rect x="170" y="180" width="30" height="30" />
+            <rect x="200" y="180" width="30" height="30" />
+            <rect x="230" y="180" width="30" height="30" />
+            <rect x="140" y="210" width="30" height="30" />
+            <rect x="170" y="210" width="30" height="30" />
+            <rect x="200" y="210" width="30" height="30" />
+            <rect x="230" y="210" width="30" height="30" />
+            <rect x="140" y="240" width="30" height="30" />
+            <rect x="170" y="240" width="30" height="30" />
+            <rect x="200" y="240" width="30" height="30" />
+            <rect x="230" y="240" width="30" height="30" />
+            <rect x="260" y="240" width="30" height="30" />
+            <rect x="110" y="270" width="30" height="30" />
+            <rect x="140" y="270" width="30" height="30" />
+            <rect x="170" y="270" width="30" height="30" />
+            <rect x="200" y="270" width="30" height="30" />
+        </g>
+
+        
+        <path d="M140,120 L140,300 M170,120 L170,300 M200,120 L200,300 M230,120 L230,300 M260,120 L260,300" stroke="var(--border-color)" stroke-width="1" />
+        <path d="M110,150 L290,150 M110,180 L290,180 M110,210 L290,210 M110,240 L290,240 M110,270 L290,270" stroke="var(--border-color)" stroke-width="1" />
+
+        
+        <polygon points="185,135 130,280 270,250" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+        
+        
+        <circle cx="185" cy="135" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+        <circle cx="130" cy="280" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+        <circle cx="270" cy="250" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+
+        
+        
+        <line x1="130" y1="335" x2="150" y2="305" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#pointer-arrow)" />
+        <text x="130" y="355" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">Pixel Grid</text>
+        <text x="130" y="375" fill="var(--text-secondary)" font-size="14" text-anchor="middle">شبكة البكسل</text>
+
+        
+        <line x1="280" y1="335" x2="245" y2="275" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#pointer-arrow)" />
+        <text x="280" y="355" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">Covered Pixels</text>
+        <text x="280" y="375" fill="var(--text-secondary)" font-size="14" text-anchor="middle">البكسلات المغطاة</text>
+
+        
+        <line x1="280" y1="115" x2="220" y2="160" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#pointer-arrow)" />
+        <text x="280" y="90" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">Projected Triangle</text>
+        <text x="280" y="110" fill="var(--text-secondary)" font-size="14" text-anchor="middle">المثلث المسقط</text>
+    </g>
+
+    
+    
+    
+
+    
+    <text x="600" y="45" fill="var(--text-primary)" font-size="20" font-weight="bold" text-anchor="middle">Ray Tracing</text>
+    <text x="600" y="68" fill="var(--text-secondary)" font-size="16" text-anchor="middle">تتبع الأشعة</text>
+
+    <g id="right-ray-tracing">
+        
+        <polygon points="690,110 680,270 760,210" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" filter="url(#shadow)" />
+        
+        
+        <g id="image-plane">
+            
+            <polygon points="520,130 550,150 550,270 520,290" fill="var(--bg-elevated)" opacity="0.6" stroke="none" />
+            
+            
+            <polygon points="535,175 542.5,177.5 542.5,210 535,210" fill="var(--brand-500)" opacity="0.5" />
+            
+            
+            <path d="M527.5,135 L527.5,285 M535,140 L535,280 M542.5,145 L542.5,275" stroke="var(--border-color)" stroke-width="1.5" />
+            <path d="M520,170 L550,180 M520,210 L550,210 M520,250 L550,240" stroke="var(--border-color)" stroke-width="1.5" />
+            
+            
+            <polygon points="520,130 550,150 550,270 520,290" fill="none" stroke="var(--text-secondary)" stroke-width="2" />
+        </g>
+
+        
+        <line x1="442" y1="203" x2="696" y2="177" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow)" />
+        
+        
+        <circle cx="700" cy="176.5" r="4" fill="var(--brand-500)" />
+        <circle cx="700" cy="176.5" r="10" fill="var(--brand-500)" opacity="0.3" />
+
+        
+        <g transform="translate(430, 195)">
+            
+            <path d="M 6 0 L 8 -5 L 16 -5 L 18 0 Z" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" />
+            
+            <rect x="0" y="0" width="24" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2" />
+            
+            <circle cx="12" cy="8" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+            <circle cx="12" cy="8" r="2" fill="var(--text-primary)" />
+        </g>
+
+        
+        
+        <text x="442" y="245" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">Camera</text>
+        <text x="442" y="265" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الكاميرا</text>
+
+        
+        <line x1="540" y1="105" x2="540" y2="125" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#pointer-arrow)" />
+        <text x="540" y="80" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">Image Plane</text>
+        <text x="540" y="100" fill="var(--text-secondary)" font-size="14" text-anchor="middle">مستوى الصورة</text>
+
+        
+        <line x1="610" y1="145" x2="585" y2="185" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#pointer-arrow)" />
+        <text x="610" y="120" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">Ray</text>
+        <text x="610" y="140" fill="var(--text-secondary)" font-size="14" text-anchor="middle">شعاع</text>
+
+        
+        <line x1="730" y1="105" x2="710" y2="130" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#pointer-arrow)" />
+        <text x="730" y="80" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">3D Object</text>
+        <text x="730" y="100" fill="var(--text-secondary)" font-size="14" text-anchor="middle">كائن ثلاثي الأبعاد</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Rasterization</th>
+        <th>Ray Tracing</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">ترتيب العمليات (حلقة التكرار)</template>
+          <template class="content-en">Order of Computation (Loop)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لكل مثلث -&gt; ابحث عن البكسلات</template>
+          <template class="content-en">For each triangle -&gt; find pixels</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لكل بكسل -&gt; ابحث عن المثلث</template>
+          <template class="content-en">For each pixel -&gt; find triangle</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">السؤال الأساسي</template>
+          <template class="content-en">Core Question</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ما هي البكسلات التي يغطيها هذا المثلث؟</template>
+          <template class="content-en">Which pixels are covered by this triangle?</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ما هو المثلث المرئي من هذا البكسل؟</template>
+          <template class="content-en">Which triangle is visible from this pixel?</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر التنقيط (Rasterization) أسرع من تتبع الأشعة (Ray Tracing) في العادة؟</template>
+      <template class="content-en">Why is Rasterization generally faster than Ray Tracing?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن التنقيط يعالج الأشكال الهندسية مباشرة ويسقطها على الشاشة باستخدام عمليات رياضية بسيطة، بينما تتبع الأشعة يتطلب حساب تقاطعات معقدة لكل شعاع مع كل مجسم في المشهد.</p></template>
+      <template class="content-en"><p>Because rasterization directly projects geometry onto the screen using simple math, whereas ray tracing requires calculating complex intersections for every ray against potentially all objects in the scene.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <span class="professor-icon">🎓</span>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبنائي في هذا الملخص السريع للفصل الثامن. هذا الفصل قصير ولكنه يضع الأساس لكل ما سندرسه في التصيير. تذكروا دائماً أن التصيير هو الجسر بين عالم الرياضيات (النماذج 3D) وعالم الرؤية (الصور 2D). في الامتحان، ركزوا جداً على التفريق بين عائلتي الخوارزميات: التنقيط (Rasterization) وتتبع الأشعة (Ray Tracing). تذكروا أن الفرق الجوهري بينهما هو 'ترتيب العمليات' لتحديد الرؤية. التنقيط يمسك مثلثاً ويسأل 'أين أضعك على الشاشة؟'، بينما تتبع الأشعة يمسك بكسلاً ويسأل 'ماذا أرى من خلالك؟'. ولا تنسوا عناصر محاكاة الضوء الثلاثة: المصدر يبعث، السطح يعكس، والكاميرا تستقبل. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, students, to this quick summary of Chapter 8. This chapter is brief but lays the foundation for everything we will study in rendering. Always remember that rendering is the bridge between the math world (3D models) and the visual world (2D images). For the exam, focus heavily on distinguishing between the two algorithm families: Rasterization and Ray Tracing. Remember that the fundamental difference is the 'order of computation' for visibility. Rasterization grabs a triangle and asks 'Where do I put you on the screen?', while Ray Tracing grabs a pixel and asks 'What do I see through you?'. And don't forget the three elements of light simulation: the source emits, the surface reflects, and the camera receives. Good luck with your studies!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2 data-i18n="ask.title">❓ اسأل البروفيسور</h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الفروع الرئيسية الثلاثة لرسومات الحاسب؟</template>
+          <template class="content-en">What are the three main subfields of computer graphics?</template>
+          <span class="content-target">ما هي الفروع الرئيسية الثلاثة لرسومات الحاسب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">النمذجة (Modeling)، التصيير (Rendering)، والتحريك (Animation).</template>
+          <template class="content-en">Modeling, Rendering, and Animation.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نعرّف التصيير (Rendering) باختصار؟</template>
+          <template class="content-en">How do we briefly define Rendering?</template>
+          <span class="content-target">كيف نعرّف التصيير (Rendering) باختصار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو خوارزميات لتوليد صور ثنائية الأبعاد من نماذج ثلاثية الأبعاد بعد تحديد نقطة العرض.</template>
+          <template class="content-en">It is algorithms to generate 2D images from 3D models after selecting a viewpoint.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العناصر الثلاثة لمحاكاة فيزياء الضوء في التصيير؟</template>
+          <template class="content-en">What are the three elements of simulating light physics in rendering?</template>
+          <span class="content-target">ما هي العناصر الثلاثة لمحاكاة فيزياء الضوء في التصيير؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">مصدر الضوء (يبعث الفوتونات)، هندسة الأسطح (تعكس الفوتونات)، ومستشعر الكاميرا (يستقبل الفوتونات).</template>
+          <template class="content-en">Light source (emits photons), surface geometry (reflects photons), and camera sensor (receives photons).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التبسيط الفيزيائي الذي نستخدمه لتسريع حسابات الضوء؟</template>
+          <template class="content-en">What physical simplification do we use to speed up light calculations?</template>
+          <span class="content-target">ما هو التبسيط الفيزيائي الذي نستخدمه لتسريع حسابات الضوء؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدم البصريات الهندسية (Ray optics) التي تفترض أن الضوء يسير في خطوط مستقيمة، ونتجاهل الخصائص الموجية.</template>
+          <template class="content-en">We use geometrical optics (Ray optics) which assumes light travels in straight lines, ignoring wave properties.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو نموذج الكاميرا المستخدم عادة في رسومات الحاسب الأساسية؟</template>
+          <template class="content-en">What camera model is typically used in basic computer graphics?</template>
+          <span class="content-target">ما هو نموذج الكاميرا المستخدم عادة في رسومات الحاسب الأساسية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الكاميرا ذات الثقب (Pinhole camera) أو ما يعرف بـ Camera obscura.</template>
+          <template class="content-en">The Pinhole camera, also known as Camera obscura.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين التنقيط وتتبع الأشعة؟</template>
+          <template class="content-en">What is the main difference between Rasterization and Ray Tracing?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين التنقيط وتتبع الأشعة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الفرق هو في ترتيب العمليات الحسابية لتحديد الرؤية (Visibility).</template>
+          <template class="content-en">The difference is in how they order computation to determine visibility.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">اشرح حلقة التكرار في خوارزمية التنقيط (Rasterization).</template>
+          <template class="content-en">Explain the loop in the Rasterization algorithm.</template>
+          <span class="content-target">اشرح حلقة التكرار في خوارزمية التنقيط (Rasterization).</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تمر الخوارزمية على كل مثلث في المشهد وتسأل: 'ما هي البكسلات التي يغطيها هذا المثلث؟'</template>
+          <template class="content-en">The algorithm iterates over each triangle in the scene and asks: 'Which pixels are covered by this triangle?'</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">اشرح حلقة التكرار في خوارزمية تتبع الأشعة (Ray Tracing).</template>
+          <template class="content-en">Explain the loop in the Ray Tracing algorithm.</template>
+          <span class="content-target">اشرح حلقة التكرار في خوارزمية تتبع الأشعة (Ray Tracing).</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تمر الخوارزمية على كل بكسل في الشاشة (تطلق شعاعاً) وتسأل: 'ما هو المثلث المرئي من هذا البكسل؟'</template>
+          <template class="content-en">The algorithm iterates over each pixel on the screen (shoots a ray) and asks: 'Which triangle is visible from this pixel?'</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى تحديد 'نقطة العرض' (Viewpoint)؟</template>
+          <template class="content-en">Why do we need to select a 'Viewpoint'?</template>
+          <span class="content-target">لماذا نحتاج إلى تحديد 'نقطة العرض' (Viewpoint)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الصورة هي إسقاط ثنائي الأبعاد، ونقطة العرض تحدد زاوية هذا الإسقاط وما هي الأجسام التي ستظهر في الصورة.</template>
+          <template class="content-en">Because the image is a 2D projection, and the viewpoint determines the angle of this projection and which objects will appear in the image.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التحدي الأساسي الذي تحله خوارزميات التصيير؟</template>
+          <template class="content-en">What is the core challenge solved by rendering algorithms?</template>
+          <span class="content-target">ما هو التحدي الأساسي الذي تحله خوارزميات التصيير؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحديد الرؤية (Visibility)، أي معرفة أي الأجزاء من المشهد ثلاثي الأبعاد يجب أن تُرسم على الشاشة وأيها محجوب.</template>
+          <template class="content-en">Visibility determination, meaning knowing which parts of the 3D scene should be drawn on the screen and which are occluded.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2 data-i18n="fc.title">البطاقات التعليمية</h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو التصيير (Rendering)؟",
+      "en": "What is Rendering?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خوارزميات لتوليد صور ثنائية الأبعاد من نماذج ثلاثية الأبعاد.",
+        "en": "Algorithms to generate 2D images from 3D models."
+      },
+      "example": {
+        "ar": "تحويل مجسم سمكة 3D إلى صورة بكسلات 2D.",
+        "en": "Converting a 3D fish model into a 2D pixel image."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي النمذجة (Modeling)؟",
+      "en": "What is Modeling?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التمثيلات الحسابية للهندسة لإنشاء نماذج ثلاثية الأبعاد.",
+        "en": "Computational representations of geometry to create 3D models."
+      },
+      "example": {
+        "ar": "تصميم هيكل سيارة باستخدام المضلعات.",
+        "en": "Designing a car chassis using polygons."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو التحريك (Animation)؟",
+      "en": "What is Animation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل وتعديل الحركة باستخدام النماذج ثلاثية الأبعاد.",
+        "en": "Representing and editing motion with 3D models."
+      },
+      "example": {
+        "ar": "جعل شخصية ثلاثية الأبعاد تمشي.",
+        "en": "Making a 3D character walk."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو مدخل ومخرج عملية التصيير؟",
+      "en": "What are the input and output of the rendering process?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المدخل: نموذج 3D. المخرج: صورة 2D.",
+        "en": "Input: 3D model. Output: 2D image."
+      },
+      "example": {
+        "ar": "إدخال مشهد غرفة 3D والحصول على صورة فوتوغرافية لها.",
+        "en": "Inputting a 3D room scene and getting a photograph of it."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو دور نقطة العرض (Viewpoint) في التصيير؟",
+      "en": "What is the role of the Viewpoint in rendering?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحدد الزاوية والموقع الذي يتم من خلاله التقاط المشهد ثلاثي الأبعاد.",
+        "en": "It determines the angle and position from which the 3D scene is captured."
+      },
+      "example": {
+        "ar": "موقع الكاميرا الافتراضية في المشهد.",
+        "en": "The position of the virtual camera in the scene."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "كيف يحاكي التصيير فيزياء الضوء؟",
+      "en": "How does rendering simulate the physics of light?"
+    },
+    "back": {
+      "definition": {
+        "ar": "من خلال محاكاة مصادر الضوء، الأسطح العاكسة، ومستشعرات الكاميرا.",
+        "en": "By simulating light sources, reflecting surfaces, and camera sensors."
+      },
+      "example": {
+        "ar": "حساب مسار الضوء من المصباح إلى الطاولة ثم إلى الكاميرا.",
+        "en": "Calculating the light path from a lamp to a table then to the camera."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو دور مصدر الضوء (Light source) في التصيير؟",
+      "en": "What is the role of a Light source in rendering?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقوم ببعث الفوتونات في المشهد.",
+        "en": "It emits photons into the scene."
+      },
+      "example": {
+        "ar": "الشمس أو مصباح الغرفة.",
+        "en": "The sun or a room lamp."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو دور هندسة الأسطح (Surface geometry) في التصيير؟",
+      "en": "What is the role of Surface geometry in rendering?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقوم بعكس الفوتونات الساقطة عليها.",
+        "en": "It reflects the photons that hit it."
+      },
+      "example": {
+        "ar": "سطح مرآة يعكس الضوء بالكامل.",
+        "en": "A mirror surface reflecting light completely."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو دور مستشعر الكاميرا (Camera sensor) في التصيير؟",
+      "en": "What is the role of the Camera sensor in rendering?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقوم باستقبال الفوتونات لتكوين الصورة النهائية.",
+        "en": "It receives photons to form the final image."
+      },
+      "example": {
+        "ar": "شبكة البكسلات التي تسجل الألوان.",
+        "en": "The pixel grid that records colors."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو التبسيط المستخدم لفيزياء الضوء في رسومات الحاسب؟",
+      "en": "What simplification is used for light physics in computer graphics?"
+    },
+    "back": {
+      "definition": {
+        "ar": "البصريات الهندسية (Ray optics) وتجاهل الخصائص الموجية للضوء.",
+        "en": "Ray optics (geometrical optics), ignoring the wave properties of light."
+      },
+      "example": {
+        "ar": "افتراض أن الضوء يسير في خطوط مستقيمة دائماً.",
+        "en": "Assuming light always travels in straight lines."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي الكاميرا ذات الثقب (Pinhole camera)؟",
+      "en": "What is a Pinhole camera?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نموذج كاميرا بسيط (Camera obscura) يمرر الضوء عبر ثقب صغير جداً لتكوين صورة.",
+        "en": "A simple camera model (Camera obscura) that passes light through a tiny hole to form an image."
+      },
+      "example": {
+        "ar": "صندوق مظلم بثقب صغير يعرض صورة مقلوبة على الجدار الخلفي.",
+        "en": "A dark box with a small hole projecting an inverted image on the back wall."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو الفرق الأساسي بين عائلتي خوارزميات التصيير؟",
+      "en": "What is the main difference between the two families of rendering algorithms?"
+    },
+    "back": {
+      "definition": {
+        "ar": "كيفية ترتيب العمليات الحسابية لتحديد الرؤية (Visibility).",
+        "en": "How they order computation to determine visibility."
+      },
+      "example": {
+        "ar": "التكرار عبر المثلثات مقابل التكرار عبر البكسلات.",
+        "en": "Iterating over triangles vs. iterating over pixels."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف تعمل خوارزمية التنقيط (Rasterization)؟",
+      "en": "How does the Rasterization algorithm work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لكل مثلث في المشهد، تحدد ما هي البكسلات التي يغطيها.",
+        "en": "For each triangle in the scene, it determines which pixels are covered by it."
+      },
+      "example": {
+        "ar": "رسم مثلث أحمر وتلوين كل بكسل يقع داخله باللون الأحمر.",
+        "en": "Drawing a red triangle and coloring every pixel inside it red."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "كيف تعمل خوارزمية تتبع الأشعة (Ray Tracing)؟",
+      "en": "How does the Ray Tracing algorithm work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لكل بكسل في الشاشة، تطلق شعاعاً لتحديد المثلث المرئي منه.",
+        "en": "For each pixel on the screen, it shoots a ray to determine which triangle is visible."
+      },
+      "example": {
+        "ar": "إطلاق شعاع من الكاميرا عبر بكسل لمعرفة أول جسم يصطدم به.",
+        "en": "Shooting a ray from the camera through a pixel to see the first object it hits."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو تحديد الرؤية (Visibility determination)؟",
+      "en": "What is Visibility determination?"
+    },
+    "back": {
+      "definition": {
+        "ar": "العملية الحسابية لمعرفة أي الأجسام تظهر أمام الكاميرا وأيها محجوب.",
+        "en": "The computational process of knowing which objects appear in front of the camera and which are occluded."
+      },
+      "example": {
+        "ar": "معرفة أن الجدار يخفي الكرسي الذي خلفه.",
+        "en": "Knowing that a wall hides the chair behind it."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2 data-i18n="quiz.title">اختبر نفسك</h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span>🎯 <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()" data-i18n="quiz.hint">💡 تلميح</button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji">🏆</div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الهدف الأساسي من عملية التصيير (Rendering)؟",
+      "en": "What is the primary goal of the rendering process?"
+    },
+    "options": {
+      "ar": [
+        "توليد صور ثنائية الأبعاد من نماذج ثلاثية الأبعاد",
+        "إنشاء نماذج هندسية ثلاثية الأبعاد",
+        "تحريك الشخصيات في المشهد",
+        "ضغط حجم ملفات الصور"
+      ],
+      "en": [
+        "Generating 2D images from 3D models",
+        "Creating 3D geometric models",
+        "Animating characters in the scene",
+        "Compressing image file sizes"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "التصيير هو الخوارزمية التي تأخذ المشهد ثلاثي الأبعاد وتحوله إلى صورة ثنائية الأبعاد يمكن عرضها على الشاشة.",
+      "en": "Rendering is the algorithm that takes a 3D scene and converts it into a 2D image that can be displayed on a screen."
+    },
+    "hint": {
+      "ar": "تذكر المخطط الذي يحول مجسم السمكة إلى بكسلات.",
+      "en": "Remember the diagram converting the fish model into pixels."
+    },
+    "difficulty": "easy",
+    "conceptId": "rendering-basics"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في محاكاة فيزياء الضوء، ما هو دور هندسة الأسطح (Surface geometry)؟",
+      "en": "In simulating the physics of light, what is the role of surface geometry?"
+    },
+    "options": {
+      "ar": [
+        "تبعث الفوتونات",
+        "تعكس الفوتونات",
+        "تستقبل الفوتونات",
+        "تحدد نقطة العرض"
+      ],
+      "en": [
+        "Emits photons",
+        "Reflects photons",
+        "Receives photons",
+        "Selects the viewpoint"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الأسطح تتفاعل مع الضوء الساقط عليها وتقوم بعكسه نحو الكاميرا أو الأسطح الأخرى.",
+      "en": "Surfaces interact with the light falling on them and reflect it towards the camera or other surfaces."
+    },
+    "hint": {
+      "ar": "المصادر تبعث، والكاميرا تستقبل، فماذا تفعل الأجسام؟",
+      "en": "Sources emit, cameras receive, so what do objects do?"
+    },
+    "difficulty": "easy",
+    "conceptId": "physics-of-light"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "أي من الخوارزميات التالية تسأل: 'ما هي البكسلات التي يغطيها هذا المثلث؟'",
+      "en": "Which of the following algorithms asks: 'Which pixels are covered by this triangle?'"
+    },
+    "options": {
+      "ar": [
+        "تتبع الأشعة (Ray Tracing)",
+        "التنقيط (Rasterization)",
+        "النمذجة (Modeling)",
+        "التحريك (Animation)"
+      ],
+      "en": [
+        "Ray Tracing",
+        "Rasterization",
+        "Modeling",
+        "Animation"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التنقيط يمر على كل مثلث في المشهد ويحدد البكسلات التي تقع داخله على الشاشة.",
+      "en": "Rasterization iterates over each triangle in the scene and determines which pixels fall inside it on the screen."
+    },
+    "hint": {
+      "ar": "هذه الخوارزمية تركز على 'المثلثات' أولاً.",
+      "en": "This algorithm focuses on 'triangles' first."
+    },
+    "difficulty": "medium",
+    "conceptId": "rendering-algorithms-families"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من الخوارزميات التالية تسأل: 'ما هو المثلث المرئي من هذا البكسل؟'",
+      "en": "Which of the following algorithms asks: 'Which triangle is visible from this pixel?'"
+    },
+    "options": {
+      "ar": [
+        "التنقيط (Rasterization)",
+        "تتبع الأشعة (Ray Tracing)",
+        "البصريات الهندسية (Ray optics)",
+        "الكاميرا ذات الثقب (Pinhole camera)"
+      ],
+      "en": [
+        "Rasterization",
+        "Ray Tracing",
+        "Ray optics",
+        "Pinhole camera"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تتبع الأشعة يمر على كل بكسل ويطلق شعاعاً لمعرفة أول مثلث يصطدم به.",
+      "en": "Ray tracing iterates over each pixel and shoots a ray to find the first triangle it hits."
+    },
+    "hint": {
+      "ar": "هذه الخوارزمية تركز على 'البكسلات' (الأشعة) أولاً.",
+      "en": "This algorithm focuses on 'pixels' (rays) first."
+    },
+    "difficulty": "medium",
+    "conceptId": "rendering-algorithms-families"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو التبسيط الفيزيائي المستخدم في رسومات الحاسب لتسهيل حسابات الضوء؟",
+      "en": "What physical simplification is used in computer graphics to ease light calculations?"
+    },
+    "options": {
+      "ar": [
+        "ميكانيكا الكم",
+        "البصريات الموجية",
+        "البصريات الهندسية (Ray optics)",
+        "النسبية العامة"
+      ],
+      "en": [
+        "Quantum mechanics",
+        "Wave optics",
+        "Geometrical optics (Ray optics)",
+        "General relativity"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تستخدم رسومات الحاسب البصريات الهندسية لافتراض أن الضوء يسير في خطوط مستقيمة، متجاهلة الخصائص الموجية المعقدة.",
+      "en": "Computer graphics uses geometrical optics to assume light travels in straight lines, ignoring complex wave properties."
+    },
+    "hint": {
+      "ar": "نتعامل مع الضوء كـ 'أشعة'.",
+      "en": "We treat light as 'rays'."
+    },
+    "difficulty": "medium",
+    "conceptId": "physics-of-light"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الاسم الآخر لـ 'الكاميرا ذات الثقب' (Pinhole camera)؟",
+      "en": "What is another name for the 'Pinhole camera'?"
+    },
+    "options": {
+      "ar": [
+        "Camera obscura",
+        "DSLR",
+        "Ray tracer",
+        "Photon mapper"
+      ],
+      "en": [
+        "Camera obscura",
+        "DSLR",
+        "Ray tracer",
+        "Photon mapper"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الكاميرا ذات الثقب تُعرف تاريخياً وعلمياً باسم Camera obscura.",
+      "en": "The pinhole camera is historically and scientifically known as Camera obscura."
+    },
+    "hint": {
+      "ar": "مصطلح لاتيني يعني 'الغرفة المظلمة'.",
+      "en": "A Latin term meaning 'dark room'."
+    },
+    "difficulty": "easy",
+    "conceptId": "physics-of-light"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو الفرق الجوهري بين عائلتي خوارزميات التصيير (التنقيط وتتبع الأشعة)؟",
+      "en": "What is the fundamental difference between the two families of rendering algorithms (Rasterization and Ray Tracing)?"
+    },
+    "options": {
+      "ar": [
+        "نوع النماذج ثلاثية الأبعاد المدخلة",
+        "ترتيب العمليات الحسابية لتحديد الرؤية",
+        "لغة البرمجة المستخدمة",
+        "دقة الشاشة النهائية"
+      ],
+      "en": [
+        "The type of input 3D models",
+        "The order of computation to determine visibility",
+        "The programming language used",
+        "The final screen resolution"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الفرق يكمن في حلقة التكرار: هل نمر على المثلثات أولاً (التنقيط) أم على البكسلات أولاً (تتبع الأشعة).",
+      "en": "The difference lies in the loop: do we iterate over triangles first (Rasterization) or pixels first (Ray Tracing)."
+    },
+    "hint": {
+      "ar": "كيف نحدد ما هو مرئي؟",
+      "en": "How do we determine what is visible?"
+    },
+    "difficulty": "hard",
+    "conceptId": "rendering-algorithms-families"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي من الفروع التالية لرسومات الحاسب يهتم بـ 'التمثيلات الحسابية للهندسة'؟",
+      "en": "Which of the following computer graphics subfields deals with 'computational representations of geometry'?"
+    },
+    "options": {
+      "ar": [
+        "التصيير (Rendering)",
+        "التحريك (Animation)",
+        "النمذجة (Modeling)",
+        "التنقيط (Rasterization)"
+      ],
+      "en": [
+        "Rendering",
+        "Animation",
+        "Modeling",
+        "Rasterization"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "النمذجة هي المسؤولة عن إنشاء الأشكال الهندسية (النماذج ثلاثية الأبعاد) التي سيتم تصييرها لاحقاً.",
+      "en": "Modeling is responsible for creating the geometric shapes (3D models) that will later be rendered."
+    },
+    "hint": {
+      "ar": "الخطوة التي تسبق التصيير.",
+      "en": "The step that comes before rendering."
+    },
+    "difficulty": "easy",
+    "conceptId": "rendering-basics"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما الذي يجب تحديده أولاً قبل أن نتمكن من تصيير صورة من نموذج ثلاثي الأبعاد؟",
+      "en": "What must be selected first before we can render an image from a 3D model?"
+    },
+    "options": {
+      "ar": [
+        "لون الخلفية",
+        "نقطة العرض (Viewpoint)",
+        "سرعة الإطارات",
+        "نوع الشاشة"
+      ],
+      "en": [
+        "Background color",
+        "Viewpoint",
+        "Frame rate",
+        "Screen type"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بدون تحديد نقطة العرض (الكاميرا)، لا يمكن للخوارزمية معرفة الزاوية التي يجب إسقاط المشهد منها.",
+      "en": "Without selecting a viewpoint (camera), the algorithm cannot know from which angle to project the scene."
+    },
+    "hint": {
+      "ar": "من أين تنظر إلى المشهد؟",
+      "en": "From where are you looking at the scene?"
+    },
+    "difficulty": "medium",
+    "conceptId": "rendering-basics"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في سياق التصيير، ماذا يفعل مستشعر الكاميرا؟",
+      "en": "In the context of rendering, what does the camera sensor do?"
+    },
+    "options": {
+      "ar": [
+        "يبعث الفوتونات",
+        "يعكس الفوتونات",
+        "يستقبل الفوتونات",
+        "يولد النماذج ثلاثية الأبعاد"
+      ],
+      "en": [
+        "Emits photons",
+        "Reflects photons",
+        "Receives photons",
+        "Generates 3D models"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مستشعر الكاميرا هو الوجهة النهائية للضوء، حيث يستقبل الفوتونات لتسجيل الألوان وتكوين الصورة.",
+      "en": "The camera sensor is the final destination for light, receiving photons to record colors and form the image."
+    },
+    "hint": {
+      "ar": "الكاميرا تلتقط الضوء.",
+      "en": "The camera captures light."
+    },
+    "difficulty": "easy",
+    "conceptId": "physics-of-light"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2 data-i18n="vault.title">🔐 خزنة الامتحان</h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي | Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">التصيير ليس مجرد 'رسم'، بل هو محاكاة رياضية لفيزياء الضوء (انبعاث، انعكاس، استقبال) لإنتاج صورة واقعية من بيانات هندسية مجردة.</template>
+      <template class="content-en">Rendering is not just 'drawing'; it is a mathematical simulation of light physics (emission, reflection, reception) to produce a realistic image from abstract geometric data.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap">⚠️ فخ | Trap</div>
+    <div data-bilingual>
+      <template class="content-ar">احذر من الخلط بين التنقيط وتتبع الأشعة! التنقيط يبدأ بالمثلثات (لكل مثلث -&gt; أين البكسلات؟)، بينما تتبع الأشعة يبدأ بالبكسلات (لكل بكسل -&gt; أين المثلث؟).</template>
+      <template class="content-en">Don't confuse Rasterization and Ray Tracing loops! Rasterization starts with geometry (For each triangle -&gt; where are the pixels?), while Ray Tracing starts with the screen (For each pixel -&gt; where is the triangle?).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret">🤫 سر | Secret</div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام 'الكاميرا ذات الثقب' (Pinhole camera) في رسومات الحاسب هو حيلة رياضية تضمن أن كل نقطة في المشهد تسقط على بكسل واحد فقط، مما يمنع التشويش (Blur) الذي يحدث في الكاميرات الحقيقية ذات العدسات.</template>
+      <template class="content-en">Using a 'Pinhole camera' in CG is a mathematical trick ensuring every point in the scene maps to exactly one pixel, preventing the depth-of-field blur that occurs in real cameras with lenses.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key">🔑 مفهوم أساسي | Key Concept</div>
+    <div data-bilingual>
+      <template class="content-ar">تحديد الرؤية (Visibility) هو التحدي الأساسي في التصيير: يجب على الخوارزمية أن تعرف بدقة أي الأجسام تحجب الأجسام الأخرى من منظور الكاميرا.</template>
+      <template class="content-en">Visibility determination is the core challenge in rendering: the algorithm must accurately know which objects occlude others from the camera's perspective.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M02.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M04.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆</button>
+      </div>
+      <span class="footer-brand">🌱 CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>
