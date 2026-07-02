@@ -14,13 +14,13 @@
 
 
 
-const GH_PAGES_ROOT = 'https://libbard.github.io/Garden';
+const GH_PAGES_ROOT = 'https://libbard.github.io/Byte';
 
 function projectRoot(){
   const p = location.pathname;
   
-  const g = p.search(/\/Garden\//i);
-  if(g >= 0) return location.origin + p.slice(0, g) + '/Garden';
+  const g = p.search(/\/Byte\//i);
+  if(g >= 0) return location.origin + p.slice(0, g) + '/Byte';
   
   const lv = p.search(/\/L\d+\//i);
   if(lv >= 0) return location.origin + p.slice(0, lv);
@@ -2866,7 +2866,7 @@ function _printClassic() {
       <h1 class="doc-title">${ar?'خطة المذاكرة':'Study Plan'} · ${planLbl}</h1>
       <p class="doc-subtitle">${subtitleText}</p>
     </div>
-    <div class="header-right doc-branding">${ar?'الحديقة الرقمية':'Digital Garden'}</div>
+    <div class="header-right doc-branding">${ar?'بايت':'Byte'}</div>
   </div>
 
   ${allExams.length ? `<div class="doc-range-strip">
@@ -2881,7 +2881,7 @@ function _printClassic() {
 
   <!-- Footer -->
   <div class="doc-footer">
-    <span class="footer-brand">${ar?'الحديقة الرقمية':'Digital Garden'}</span> · ${ar?'مخطط المذاكرة الذكي':'Intelligent Study Planner'} · ${new Date().toLocaleDateString(ar?'ar':'en')}
+    <span class="footer-brand">${ar?'بايت':'Byte'}</span> · ${ar?'مخطط المذاكرة الذكي':'Intelligent Study Planner'} · ${new Date().toLocaleDateString(ar?'ar':'en')}
   </div>
 </div>
 <script>setTimeout(function(){window.print();},400);<\/script>

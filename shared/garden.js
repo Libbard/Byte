@@ -1300,6 +1300,21 @@
    
   window._gardenQuiz = {};
 
+   
+  function shuffleMcqOptions(q) {
+    if (!q || !q.options || !q.options.ar) return;
+    var n = q.options.ar.length;
+    if (n < 2) return;
+    var map = Array.from({ length: n }, function(_, i) { return i; });
+    for (var i = n - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = map[i]; map[i] = map[j]; map[j] = t;
+    }
+    q.options.ar = map.map(function(i) { return q.options.ar[i]; });
+    if (q.options.en) q.options.en = map.map(function(i) { return q.options.en[i]; });
+    q.correctIndex = map.indexOf(q.correctIndex);
+  }
+
   function initQuiz() {
     const el = document.getElementById('quiz-data');
     if (!el) return;
@@ -1342,6 +1357,7 @@
     if (hintBtn) { hintBtn.classList.remove('hidden'); hintBtn.onclick = () => showHint(); }
 
     if (opts) {
+      shuffleMcqOptions(item);  
       opts.innerHTML = (item.options?.[L] || []).map((o, i) =>
         `<button class="mcq-option" onclick="Garden.pick(${i})"><span class="mcq-label">${labels[i]}</span><span>${o}</span></button>`
       ).join('');
@@ -3653,6 +3669,18 @@
   function init() {
     setLanguage(currentLang);
     initDepthTabs(); initAccordion(); initFlashcards(); initQuiz();
+
+     
+    if (typeof renderMcq === 'function' && !window._gardenMcqHooked) {
+      window._gardenMcqHooked = true;
+      var _origMcq = renderMcq;
+      window.renderMcq = function(idx) {
+        var q = window.sessionMCQ && window.sessionMCQ[idx];
+        if (q && !q._shuffled) { shuffleMcqOptions(q); q._shuffled = true; }
+        return _origMcq.call(this, idx);
+      };
+    }
+
     initScrollAnimations(); initSmartSidebar(); initTOC(); initProgress(); initCopy(); initKeys();
     initSyntaxHighlight();
     initSM2Dashboard(); initActionLinks(); initNotes(); initVideos(); initMobileFabs();

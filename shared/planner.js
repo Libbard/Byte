@@ -2689,7 +2689,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
             <p class="doc-subtitle">${planTypeLabel[plan.plan_type] || ''} • ${totalDays} ${isAr ? 'يوم' : 'Days'} • ${sourceText}</p>
           </div>
           <div class="header-right doc-branding">
-            Digital Garden
+            Byte
           </div>
         </div>
         ${strategy ? `<div class="doc-strategy"><span class="strategy-icon">💡</span> ${strategy}</div>` : ''}
@@ -3173,7 +3173,7 @@ ${JSON.stringify(compactDays, null, 0)}`;
 <div id="print-container">
   ${htmlBody}
   <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #f1f5f9; color: #94a3b8; font-size: 9pt; font-weight: 600;">
-    Digital Garden · Intelligent Study Planner · ${new Date().toLocaleDateString(langAttr)}
+    Byte · Intelligent Study Planner · ${new Date().toLocaleDateString(langAttr)}
   </div>
 </div>
 </body>
