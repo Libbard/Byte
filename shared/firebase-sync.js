@@ -36,10 +36,22 @@
     
     /^study_plan_(midterm|final|general)$/,
     /^planner_config$/,
+    
+    /^my_semester$/,
+    /^semester_archive$/,
+    
+    /^gpa_grades$/,
+    /^gpa_settings$/,
+    
+    /^weekly_schedule$/,
+    
+    /^garden_active_level$/,
+    /^garden_level_deactivated$/,
   ];
   
   const NEVER_SYNC = new Set([
     'garden_lang', 'garden_theme', 'garden_font_size', 'garden_mobile_3d', 'garden_sync_key',
+    'garden_semester_meta', 'garden_level_meta',
   ]);
 
    

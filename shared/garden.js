@@ -4708,6 +4708,7 @@ ${baseRules}`) + regenSuffix;
     flip: flipCard, grade: gradeCard, resetFC, report: showSM2Report,
     practice: startPractice, renderPractice, renderFC: renderFlashcard,
     undo: undoGrade, bury: buryCard, filterFC, quickReview,
+    launchConfetti,
     changeDailyLimit,
     toggle3D: (v) => { setMobile3D(typeof v === 'boolean' ? v : !getMobile3D()); },
     getStreak: calculateStreak, getRetention: getRetentionRate,
@@ -5330,5 +5331,143 @@ ${baseRules}`) + regenSuffix;
     setTimeout(_applyDOMReadyPatches, 50);
   }
 
+})();
+ 
+
+ 
+;(function(){
+  'use strict';
+  var path = location.pathname;
+  var ctx = null;
+  try { ctx = sessionStorage.getItem('garden_nav_from_hub'); } catch(e) { return; }
+
+  
+  var isSubjectHub = /\/[A-Z]{2,5}\d{2,4}\/index\.html$/.test(path);
+  
+  var isLevelHub = /\/(L\d+|others)\/index\.html$/.test(path);
+  
+  var isModulePage = /\/[A-Z]{2,5}\d{2,4}\/M\d+\.html$/.test(path);
+  
+  var isReviewPage = /\/[A-Z]{2,5}\d{2,4}\/(midterm|final)-(review|quiz)\.html$/.test(path);
+
+   
+  function trackSemesterVisit() {
+    var isStudyPage = isSubjectHub || isLevelHub || isModulePage || isReviewPage ||
+                      path.indexOf('/hub/index.html') !== -1;
+    if (!isStudyPage) return;
+    var semRaw = null;
+    try { semRaw = localStorage.getItem('my_semester'); } catch(e) { return; }
+    if (!semRaw) return;
+    var sem = null;
+    try { sem = JSON.parse(semRaw); } catch(e) { return; }
+    if (!sem) return;
+
+    var metaRaw = null;
+    try { metaRaw = localStorage.getItem('garden_semester_meta'); } catch(e) {}
+    var meta = metaRaw ? (function(){ try { return JSON.parse(metaRaw); } catch(e) { return null; } })() : null;
+    if (!meta) meta = { visits: 0, last_visit: 0 };
+
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayTs = today.getTime();
+    var lastDay = meta.last_visit ? new Date(meta.last_visit) : new Date(0);
+    lastDay.setHours(0,0,0,0);
+    var lastDayTs = lastDay.getTime();
+
+    var changed = false;
+    if (lastDayTs !== todayTs) {
+      meta.visits = (meta.visits || 0) + 1;
+      meta.last_visit = Date.now();
+      changed = true;
+      
+      if (meta.visits >= 3 && sem.is_active !== true && sem.was_activated !== true) {
+        sem.is_active = true;
+        sem.was_activated = true;
+        sem.updated_at = new Date().toISOString();
+        try {
+          localStorage.setItem('my_semester', JSON.stringify(sem));
+          document.dispatchEvent(new CustomEvent('garden:semesterActivated'));
+        } catch(e) {}
+      }
+    }
+    if (changed) {
+      try { localStorage.setItem('garden_semester_meta', JSON.stringify(meta)); } catch(e) {}
+    }
+  }
+  trackSemesterVisit();
+
+   
+  function getLevelFromPath() {
+    var m = path.match(/\/(L\d+)\//);
+    if (m) return m[1];
+    if (path.indexOf('/others/') !== -1) return 'others';
+    return null;
+  }
+  function trackLevelVisit() {
+    var levelId = getLevelFromPath();
+    if (!levelId) return;
+    var metaRaw = null;
+    try { metaRaw = localStorage.getItem('garden_level_meta'); } catch(e) { return; }
+    var meta = metaRaw ? (function(){ try { return JSON.parse(metaRaw); } catch(e) { return null; } })() : null;
+    if (!meta) meta = {};
+    var lm = meta[levelId] || { visits: 0, last_visit: 0 };
+
+    var today = new Date(); today.setHours(0,0,0,0);
+    var lastDay = lm.last_visit ? new Date(lm.last_visit) : new Date(0);
+    lastDay.setHours(0,0,0,0);
+    if (lastDay.getTime() === today.getTime()) return; 
+
+    lm.visits = (lm.visits || 0) + 1;
+    lm.last_visit = Date.now();
+    meta[levelId] = lm;
+    try { localStorage.setItem('garden_level_meta', JSON.stringify(meta)); } catch(e) {}
+
+    
+    if (lm.visits >= 3) {
+      var activeLevel = null;
+      try { activeLevel = localStorage.getItem('garden_active_level'); } catch(e) {}
+      if (!activeLevel) {
+        var deactivated = [];
+        try { deactivated = JSON.parse(localStorage.getItem('garden_level_deactivated') || '[]'); } catch(e) {}
+        if (deactivated.indexOf(levelId) === -1) {
+          try {
+            localStorage.setItem('garden_active_level', levelId);
+            document.dispatchEvent(new CustomEvent('garden:levelActivated', { detail: { level: levelId } }));
+          } catch(e) {}
+        }
+      }
+    }
+  }
+  trackLevelVisit();
+
+  function applyNavContext() {
+    if (!ctx) return;
+    if (isSubjectHub) {
+      
+      var homeBtn = document.querySelector('.nav-btn--icon[title="Home"]');
+      if (homeBtn && homeBtn.getAttribute('href') === '../index.html') {
+        homeBtn.setAttribute('href', '../../hub/index.html');
+        homeBtn.setAttribute('title', 'فصلي الدراسي · My Semester');
+        var icon = homeBtn.querySelector('i');
+        if (icon) { icon.className = 'fa-solid fa-graduation-cap'; }
+      }
+    }
+    
+  }
+
+  
+  
+  if (isLevelHub || (path.endsWith('/index.html') && !isSubjectHub && !isLevelHub) || path.endsWith('/hub/index.html')) {
+    try { sessionStorage.removeItem('garden_nav_from_hub'); } catch(e) {}
+    ctx = null;
+  }
+
+  
+  if (ctx && (isSubjectHub || isModulePage)) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyNavContext);
+    } else {
+      applyNavContext();
+    }
+  }
 })();
  
