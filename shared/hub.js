@@ -24,6 +24,7 @@ const T = {
     markComplete: 'اكتملت ✓',
     markIncomplete: 'لم تكتمل',
     openCourse: 'فتح المادة',
+    courseCard: 'ℹ️ بطاقة المادة',
     archiveSemester: 'أرشفة الفصل',
     archiveConfirm: 'هل تريد أرشفة هذا الفصل وإنشاء فصل جديد فارغ؟',
     prevSemesters: '📦 الفصول السابقة',
@@ -76,6 +77,7 @@ const T = {
     markComplete: 'Completed ✓',
     markIncomplete: 'Not completed',
     openCourse: 'Open Course',
+    courseCard: 'ℹ️ Course Card',
     archiveSemester: 'Archive Semester',
     archiveConfirm: 'Archive this semester and create a new empty one?',
     prevSemesters: '📦 Previous Semesters',
@@ -122,6 +124,7 @@ let semester = null;
 let archive = [];
 let currentFilter = 'all';
 let currentSearch = '';
+let _doneCache = {};   
 
  
 function t(key) {
@@ -149,20 +152,8 @@ function gradientBg(color) {
 }
 
  
-function arabicCount(n, singular, dual, plural, isAdj) {
-  if (n === 0) return n + ' ' + plural;
-  if (n === 1) return isAdj ? ('1 ' + singular) : (singular + ' واحدة');
-  if (n === 2) return dual;
-  if (n >= 3 && n <= 10) return n + ' ' + plural;
-  return n + ' ' + singular;
-}
-function englishCount(n, singular, plural) {
-  return n + ' ' + (n === 1 ? singular : plural);
-}
 function smartCount(n, arForms, enForms, isAdj) {
-  return isAr()
-    ? arabicCount(n, arForms[0], arForms[1], arForms[2], isAdj)
-    : englishCount(n, enForms[0], enForms[1]);
+  return window.Garden.smartCount(n, arForms, enForms, isAdj);
 }
 
  
@@ -226,6 +217,10 @@ function animateNumber(el, target, suffix, duration) {
   if (!el) return;
   suffix = suffix || '';
   duration = duration || 800;
+   
+  el.textContent = target + suffix;
+  if (document.visibilityState !== 'visible') return;
+
   const start = 0;
   const startTime = performance.now();
   function tick(now) {
@@ -242,15 +237,21 @@ function animateNumber(el, target, suffix, duration) {
  
 function renderProgressRing(percent) {
   const fill = document.getElementById('progress-ring-fill');
+  if (!fill) return;
   const circumference = 2 * Math.PI * 33;
+  const finalOffset = circumference - (percent / 100) * circumference;
   fill.setAttribute('stroke-dasharray', circumference);
-  fill.setAttribute('stroke-dashoffset', circumference);
-  if (percent > 0) {
+
+   
+  if (percent > 0 && document.visibilityState === 'visible') {
+    fill.setAttribute('stroke-dashoffset', circumference);
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
-        fill.setAttribute('stroke-dashoffset', circumference - (percent / 100) * circumference);
+        fill.setAttribute('stroke-dashoffset', finalOffset);
       });
     });
+  } else {
+    fill.setAttribute('stroke-dashoffset', finalOffset);
   }
 }
 function formatDate(iso) {
@@ -296,16 +297,7 @@ async function init() {
 }
 
  
-function updateHeaderButtons() {
-  const langBtn = document.getElementById('lang-btn');
-  if (langBtn) langBtn.textContent = t('langBtn');
-  const themeIcon = document.getElementById('theme-icon');
-  if (themeIcon) {
-    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-    const icons = { dark: '🌙', dim: '🌆', light: '☀️' };
-    themeIcon.textContent = icons[cur] || '🌙';
-  }
-}
+function updateHeaderButtons() {   }
 
  
 function bindEvents() {
@@ -319,11 +311,21 @@ function bindEvents() {
       case 'show-create': showCreateSemesterModal(); break;
       case 'confirm-create': handleCreateSemester(); break;
       case 'show-add': showAddCourseModal(); break;
-      case 'add-course': addCourse(code); break;
+      case 'add-course': {
+         
+        const prevGrade = btn.getAttribute('data-completed-before');
+        if (prevGrade && !confirm(isAr()
+              ? `أتمَمْتَ ${code} سابقاً بدرجة ${prevGrade}. أتريد إضافتها لفصلك مجدداً؟`
+              : `You completed ${code} before with ${prevGrade}. Add it to your semester again?`)) break;
+        addCourse(code); break;
+      }
       case 'add-custom': handleAddCustom(); break;
       case 'remove-course': removeCourse(code); break;
       case 'toggle-complete': toggleComplete(code); break;
       case 'archive': archiveSemester(); break;
+      case 'restore-archived': restoreArchived(btn.getAttribute('data-id')); break;
+      case 'delete-archived': deleteArchived(btn.getAttribute('data-id')); break;
+      case 'remove-archived-course': removeArchivedCourse(btn.getAttribute('data-id'), btn.getAttribute('data-code')); break;
       case 'show-rename': showRenameModal(); break;
       case 'confirm-rename': handleRename(); break;
       case 'toggle-activity': toggleActivity(); break;
@@ -334,21 +336,26 @@ function bindEvents() {
     }
   }, true);
 
+   
+
   
   document.addEventListener('click', function(e) {
-    var a = e.target.closest('a[href]');
-    if (!a) return;
-    var href = a.getAttribute('href') || '';
-    if (href.startsWith('../L') || href.startsWith('../others/')) {
-      try { sessionStorage.setItem('garden_nav_from_hub', '1'); } catch(e2) {}
-    }
-  }, true);
+    var card = e.target.closest('.hub-course-card');
+    if (!card) return;
+    if (e.target.closest('[data-action]') || e.target.closest('a') || e.target.closest('button')) return;
+    var path = card.getAttribute('data-path');
+    if (!path) return;
+    window.location.href = path;   
+  });
 
   const searchEl = document.getElementById('hub-search');
   if (searchEl) {
+     
+    let _searchRaf = 0;
     searchEl.addEventListener('input', (e) => {
       currentSearch = e.target.value.trim().toLowerCase();
-      renderCatalog();
+      if (_searchRaf) cancelAnimationFrame(_searchRaf);
+      _searchRaf = requestAnimationFrame(() => { _searchRaf = 0; renderCatalog(); });
     });
   }
 
@@ -369,6 +376,14 @@ function bindEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeAllModals();
   });
+
+  
+  document.addEventListener('change', (e) => {
+    const gs = e.target.closest && e.target.closest('.archive-grade-select');
+    if (gs) { setArchivedGrade(gs.getAttribute('data-id'), gs.getAttribute('data-code'), gs.value); return; }
+    const ri = e.target.closest && e.target.closest('.archive-rename');
+    if (ri) { renameArchived(ri.getAttribute('data-id'), ri.value); }
+  }, true);
 }
 
  
@@ -484,14 +499,9 @@ function toggleComplete(code) {
 }
 
  
-function archiveSemester() {
-  if (!semester) return;
-  if (!confirm(t('archiveConfirm'))) return;
-
-  let totalCredits = 0;
-  let weightedSum = 0;
-  let hasGrades = false;
-  semester.courses.forEach(entry => {
+function computeSemesterGpa(sem) {
+  let totalCredits = 0, weightedSum = 0, hasGrades = false;
+  (sem.courses || []).forEach(entry => {
     const info = getCourseInfo(entry);
     const credits = info?.credits || entry.credits || 3;
     if (entry.grade && GPA_SCALE[entry.grade] !== undefined) {
@@ -500,22 +510,114 @@ function archiveSemester() {
       hasGrades = true;
     }
   });
-  const gpa = hasGrades ? (weightedSum / totalCredits) : null;
-
+  return { gpa: hasGrades ? (weightedSum / totalCredits) : null, totalCredits };
+}
+function saveArchive() {
+  try { localStorage.setItem('semester_archive', JSON.stringify(archive)); } catch (e) {}
+   
+  if (window.GardenData && window.GardenData.rebuildGrades) {
+    try { window.GardenData.rebuildGrades(); } catch (e) {}
+  }
+}
+function pushSemesterToArchive(sem) {
+  const { gpa, totalCredits } = computeSemesterGpa(sem);
   archive.push({
-    id: semester.id,
-    name: semester.name,
-    courses: semester.courses,
+    id: sem.id,
+    name: sem.name,
+    courses: sem.courses,
     gpa: gpa,
     total_credits: totalCredits,
-    created_at: semester.created_at,
+    created_at: sem.created_at,
     archived_at: new Date().toISOString()
   });
-  try { localStorage.setItem('semester_archive', JSON.stringify(archive)); } catch (e) {}
+  saveArchive();
+}
 
+ 
+function archiveSemester() {
+  if (!semester) return;
+  if (!confirm(t('archiveConfirm'))) return;
+  pushSemesterToArchive(semester);
   localStorage.removeItem('my_semester');
   localStorage.removeItem('garden_semester_meta');
   semester = null;
+  renderAll();
+}
+
+ 
+function findArchived(id) { return archive.find(a => a.id === id); }
+
+function recomputeArchived(item) {
+  const { gpa, totalCredits } = computeSemesterGpa(item);
+  item.gpa = gpa;
+  item.total_credits = totalCredits;
+}
+
+function setArchivedGrade(id, code, grade) {
+  const item = findArchived(id);
+  if (!item) return;
+  const c = (item.courses || []).find(x => x.code === code);
+  if (!c) return;
+  c.grade = grade || null;
+  if (grade) { c.completed = true; c.completed_at = c.completed_at || new Date().toISOString(); }
+  recomputeArchived(item);
+  saveArchive();
+  renderArchive();
+}
+
+function renameArchived(id, name) {
+  const item = findArchived(id);
+  if (!item) return;
+  name = (name || '').trim();
+  if (!name) return;
+  item.name = name;
+  saveArchive();
+}
+
+function removeArchivedCourse(id, code) {
+  const item = findArchived(id);
+  if (!item) return;
+  if (!confirm(t('removeConfirm'))) return;
+  item.courses = (item.courses || []).filter(c => c.code !== code);
+  recomputeArchived(item);
+  saveArchive();
+  renderArchive();
+}
+
+function deleteArchived(id) {
+  if (!confirm(isAr()
+      ? 'حذف هذا الفصل نهائياً من السجل؟ سيخرج من المعدل التراكمي.'
+      : 'Delete this semester permanently? It will be removed from your cumulative GPA.')) return;
+  archive = archive.filter(a => a.id !== id);
+  saveArchive();
+  renderArchive();
+}
+
+function restoreArchived(id) {
+  const item = findArchived(id);
+  if (!item) return;
+  if (!confirm(isAr()
+      ? 'استرجاع هذا الفصل ليصبح فصلك الحالي؟ (سيُؤرشف فصلك الحالي تلقائياً إن كان يحوي مواد)'
+      : 'Restore this semester as your current one? (Your current semester will be auto-archived if it has courses)')) return;
+  
+  if (semester && semester.courses && semester.courses.length > 0) {
+    pushSemesterToArchive(semester);
+  }
+  
+  semester = {
+    id: item.id,
+    name: item.name,
+    courses: item.courses || [],
+    is_active: true,
+    is_pinned: false,
+    was_activated: true,
+    created_at: item.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  archive = archive.filter(a => a.id !== id);
+  save();
+  saveArchive();
+  saveSemesterMeta({ visits: 0, last_visit: 0 });
   renderAll();
 }
 
@@ -614,10 +716,14 @@ function renderOverview() {
   if (detailEl) detailEl.textContent = done + ' / ' + total + ' ' + t('completed');
 
   if (statsEl) {
+    
+    const nounAr = ['مادة','مادتين','مواد'], nounEn = ['course','courses'];
+    const completedPhrase = smartCount(done, nounAr, nounEn) + ' ' + (isAr() ? 'مكتملة' : 'completed');
+    const remainingPhrase = smartCount(remaining, nounAr, nounEn) + ' ' + (isAr() ? 'متبقية' : 'remaining');
     statsEl.innerHTML =
-      '<span class="stat-courses"><i class="fa-solid fa-book"></i> ' + smartCount(total, ['مادة','مادتين','مواد'], ['course','courses']) + '</span>' +
-      '<span class="stat-completed"><i class="fa-solid fa-circle-check"></i> ' + smartCount(done, ['مكتملة','مكتملتين','مكتملة'], ['completed','completed'], true) + '</span>' +
-      '<span class="stat-remaining"><i class="fa-solid fa-clock"></i> ' + smartCount(remaining, ['متبقية','متبقيتين','متبقية'], ['remaining','remaining'], true) + '</span>' +
+      '<span class="stat-courses"><i class="fa-solid fa-book"></i> ' + smartCount(total, nounAr, nounEn) + '</span>' +
+      '<span class="stat-completed"><i class="fa-solid fa-circle-check"></i> ' + completedPhrase + '</span>' +
+      '<span class="stat-remaining"><i class="fa-solid fa-clock"></i> ' + remainingPhrase + '</span>' +
       '<span class="stat-credits"><i class="fa-solid fa-scale-balanced"></i> ' + smartCount(totalCredits, ['ساعة','ساعتين','ساعات'], ['credit','credits']) + '</span>';
   }
 }
@@ -726,8 +832,10 @@ function buildCourseCard(entry) {
   const progress = entry.custom ? { masteredCards: 0, dueCards: 0, quizzesDone: 0, totalQuizzes: 0 } : getCourseProgress(entry);
   const percent = entry.custom ? 0 : getCoursePercent(progress);
   const completedClass = entry.completed ? ' completed' : '';
+  const cardPath = path ? ('../' + path + 'index.html') : '';
+  const pathAttr = cardPath ? ' data-path="' + escapeHtml(cardPath) + '"' : '';
 
-  let html = '<div class="hub-course-card' + completedClass + '" data-code="' + escapeHtml(entry.code) + '" style="--card-accent:' + color + '; --card-glow:' + glow + '">';
+  let html = '<div class="hub-course-card' + completedClass + '" data-code="' + escapeHtml(entry.code) + '"' + pathAttr + ' style="--card-accent:' + color + '; --card-glow:' + glow + '">';
   html += '<div class="hub-card-header">';
   html += '<div class="hub-card-icon" style="background:' + gradientBg(color) + '"><i class="' + icon + '"></i></div>';
   html += '<div class="hub-card-info">';
@@ -754,6 +862,9 @@ function buildCourseCard(entry) {
   if (path) {
     html += '<a href="../' + path + 'index.html" class="hub-card-btn hub-card-btn-primary">' + escapeHtml(t('openCourse')) + '</a>';
   }
+  if (!entry.custom) {
+    html += '<a href="course.html?code=' + encodeURIComponent(entry.code) + '" class="hub-card-btn">' + escapeHtml(t('courseCard')) + '</a>';
+  }
   html += '<button class="hub-card-btn" data-action="toggle-complete" data-code="' + escapeHtml(entry.code) + '">' + (entry.completed ? escapeHtml(t('markIncomplete')) : escapeHtml(t('markComplete'))) + '</button>';
   html += '<button class="hub-card-btn hub-card-btn-danger" data-action="remove-course" data-code="' + escapeHtml(entry.code) + '">' + escapeHtml(t('removeCourse')) + '</button>';
   html += '</div>';
@@ -777,6 +888,9 @@ function showAddCourseModal() {
   modal.hidden = false;
   currentFilter = 'all';
   currentSearch = '';
+   
+  _doneCache = (window.GardenData && window.GardenData.completedCourses)
+    ? window.GardenData.completedCourses() : {};
   const searchEl = document.getElementById('hub-search');
   if (searchEl) searchEl.value = '';
   renderFilters();
@@ -834,11 +948,21 @@ function renderCatalog() {
     return;
   }
 
-  container.innerHTML = courses.map(c => {
+   
+  const done = _doneCache;
+
+  function catalogItemHtml(c) {
     const added = addedCodes.has(c.code);
-    const cls = added ? ' disabled' : '';
-    const badge = added ? '<span class="catalog-item-badge">' + escapeHtml(t('alreadyAdded')) + '</span>' : '';
-    const action = added ? '' : 'data-action="add-course" data-code="' + c.code + '"';
+    const prev = done[c.code];
+    const cls = added ? ' disabled' : (prev ? ' is-completed-before' : '');
+    const badge = added
+      ? '<span class="catalog-item-badge">' + escapeHtml(t('alreadyAdded')) + '</span>'
+      : (prev ? '<span class="catalog-item-badge catalog-item-badge--done" title="' +
+                escapeHtml(prev.semester) + '">✓ ' +
+                escapeHtml(isAr() ? 'أُتمّت سابقاً' : 'Completed before') +
+                ' (' + escapeHtml(prev.grade) + ')</span>' : '');
+    const action = added ? '' : 'data-action="add-course" data-code="' + c.code + '"' +
+                               (prev ? ' data-completed-before="' + escapeHtml(prev.grade) + '"' : '');
     return '<div class="catalog-item' + cls + '" ' + action + '>' +
       '<div class="catalog-item-icon" style="background:' + gradientBg(c.brand_color) + '"><i class="' + c.icon + '"></i></div>' +
       '<div class="catalog-item-info">' +
@@ -847,6 +971,38 @@ function renderCatalog() {
       '</div>' +
       badge +
       '</div>';
+  }
+
+  
+  const mainList = courses.filter(c => addedCodes.has(c.code) || !done[c.code]);
+  const prevList = courses.filter(c => !addedCodes.has(c.code) && done[c.code]);
+
+  container.innerHTML = mainList.map(catalogItemHtml).join('') +
+    (prevList.length
+      ? '<button type="button" class="catalog-prev-toggle" id="catalog-prev-toggle">' +
+          escapeHtml(isAr() ? 'إظهار ما سبق دراسته' : 'Show previously studied') + ' (' + prevList.length + ') <span class="catalog-prev-caret">▾</span></button>' +
+        '<div class="catalog-prev-list" id="catalog-prev-list" style="display:none">' + prevList.map(catalogItemHtml).join('') + '</div>'
+      : '');
+
+  const tg = document.getElementById('catalog-prev-toggle');
+  if (tg) tg.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const l = document.getElementById('catalog-prev-list');
+    const caret = tg.querySelector('.catalog-prev-caret');
+    const open = l.style.display === 'none';
+    l.style.display = open ? '' : 'none';
+    if (caret) caret.textContent = open ? '▴' : '▾';
+  });
+}
+
+ 
+function gradeOptionsHtml(selected) {
+   
+  const grades = ['', 'A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F', 'TR'];
+  return grades.map(g => {
+    const label = g === '' ? '—' : g;
+    const sel = (selected || '') === g ? ' selected' : '';
+    return '<option value="' + g + '"' + sel + '>' + label + '</option>';
   }).join('');
 }
 
@@ -865,16 +1021,64 @@ function renderArchive() {
   section.hidden = false;
   if (divider) divider.hidden = false;
 
-  list.innerHTML = archive.map(item => {
-    const gpaText = item.gpa !== null ? '<span class="archive-gpa">' + t('gpaLabel') + ': ' + item.gpa.toFixed(2) + '</span>' : '<span class="archive-gpa" style="color:var(--text-muted)">—</span>';
-    return '<div class="archive-item">' +
-      '<div>' +
-      '<div class="archive-item-name">' + escapeHtml(item.name) + '</div>' +
-      '<div class="archive-item-meta">' + smartCount((item.total_credits||0), ['ساعة','ساعتين','ساعات'], ['credit','credits']) + ' · ' + formatDate(item.archived_at) + '</div>' +
-      '</div>' +
-      gpaText +
+  
+  const openIds = new Set(Array.from(list.querySelectorAll('.archive-item-card[open]')).map(d => d.getAttribute('data-id')));
+  list.innerHTML = archive.map(buildArchiveItem).join('');
+  openIds.forEach(id => {
+    const d = list.querySelector('.archive-item-card[data-id="' + CSS.escape(id) + '"]');
+    if (d) d.open = true;
+  });
+}
+
+ 
+function buildArchiveItem(item) {
+  const id = escapeHtml(item.id);
+  const gpaText = (item.gpa !== null && item.gpa !== undefined)
+    ? '<span class="archive-gpa">' + t('gpaLabel') + ': ' + item.gpa.toFixed(2) + '</span>'
+    : '<span class="archive-gpa" style="color:var(--text-muted)">—</span>';
+
+  let rows = '';
+  (item.courses || []).forEach(entry => {
+    const info = getCourseInfo(entry);
+    let name, credits;
+    if (entry.custom) {
+      name = isAr() ? entry.name_ar : (entry.name_en || entry.name_ar);
+      credits = entry.credits || 3;
+    } else if (info) {
+      name = isAr() ? info.name_ar : info.name_en;
+      credits = info.credits;
+    } else {
+      name = entry.name_ar || entry.code;
+      credits = entry.credits || 3;
+    }
+    rows += '<div class="archive-course-row">' +
+      '<span class="archive-course-name" title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</span>' +
+      '<span class="archive-course-credits">' + credits + '</span>' +
+      '<select class="archive-grade-select" data-id="' + id + '" data-code="' + escapeHtml(entry.code) + '">' + gradeOptionsHtml(entry.grade) + '</select>' +
+      '<button class="archive-course-del" data-action="remove-archived-course" data-id="' + id + '" data-code="' + escapeHtml(entry.code) + '" title="' + escapeHtml(t('removeCourse')) + '"><i class="fa-solid fa-xmark"></i></button>' +
       '</div>';
-  }).join('');
+  });
+  if (!rows) rows = '<div class="archive-empty-note">' + (isAr() ? 'لا مواد' : 'No courses') + '</div>';
+
+  return '<details class="archive-item-card" data-id="' + id + '">' +
+    '<summary class="archive-summary">' +
+      '<span class="archive-caret"><i class="fa-solid fa-chevron-down"></i></span>' +
+      '<span class="archive-summary-main">' +
+        '<span class="archive-item-name">' + escapeHtml(item.name) + '</span>' +
+        '<span class="archive-item-meta">' + smartCount((item.total_credits || 0), ['ساعة','ساعتين','ساعات'], ['credit','credits']) + ' · ' + formatDate(item.archived_at) + '</span>' +
+      '</span>' +
+      gpaText +
+    '</summary>' +
+    '<div class="archive-body">' +
+      '<label class="archive-field-label">' + (isAr() ? 'اسم الفصل' : 'Semester name') + '</label>' +
+      '<input type="text" class="hub-input archive-rename" data-id="' + id + '" value="' + escapeHtml(item.name) + '">' +
+      '<div class="archive-courses">' + rows + '</div>' +
+      '<div class="archive-actions">' +
+        '<button class="hub-btn hub-btn-secondary hub-btn-sm" data-action="restore-archived" data-id="' + id + '"><i class="fa-solid fa-rotate-left"></i> ' + (isAr() ? 'استرجاع' : 'Restore') + '</button>' +
+        '<button class="hub-btn hub-btn-danger hub-btn-sm" data-action="delete-archived" data-id="' + id + '"><i class="fa-solid fa-trash-can"></i> ' + (isAr() ? 'حذف' : 'Delete') + '</button>' +
+      '</div>' +
+    '</div>' +
+  '</details>';
 }
 
  

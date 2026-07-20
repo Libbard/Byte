@@ -28,6 +28,10 @@ function projectRoot(){
   const oth = p.search(/\/others\//i);
   if(oth >= 0) return location.origin + p.slice(0, oth);
   
+  
+  const hb = p.search(/\/hub\//i);
+  if(hb >= 0) return location.origin + p.slice(0, hb);
+  
   return location.origin + p.replace(/\/[^/]*$/, '');
 }
 
@@ -54,12 +58,13 @@ const PROJECT_CFG_URLS = cfgURLs('config/project.json', [
   '../../config/project.json',    
   '../../../config/project.json'  
 ]);
-const AI_WORKER_URL    = 'https://garden-planner.xxli50xx.workers.dev';
 const FB_DEBOUNCE      = 2000;
 const MAX_UNDO         = 15;
 
 
+ 
 function getLvl(){
+  if(location.pathname.includes('/hub/')) return 'HUB';
   const m=location.pathname.match(/\/L(\d+)\//i);
   if(m) return m[1];
   if(location.pathname.includes('/others/')) return 'others';
@@ -68,11 +73,18 @@ function getLvl(){
 const LEVEL = getLvl();
 function sKey()  { return `planner_v2_L${LEVEL}`; }
 function prgKey(){ return `planner_v2_progress_L${LEVEL}`; }
-function lgcKey(){ return `planner_legacy_pref_L${LEVEL}`; }
 function lang()  { return localStorage.getItem('garden_lang')||'ar'; }
 function isAr()  { return lang()==='ar'; }
 function tx(a,e) { return isAr()?a:e; }
 function uid()   { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+ 
+const SESSION_FORMS_AR=['جلسة','جلستان','جلسات'];
+const SESSION_FORMS_EN=['session','sessions'];
+function nWord(n,ar,en){
+  if(window.Garden?.smartCount) return window.Garden.smartCount(n,ar,en);
+  return n+' '+(isAr()?ar[2]:en[1]);
+}
 
 
 function applyLang(){
@@ -400,6 +412,36 @@ function allCourses(){
 function isCourseElective(cid){
   return !!(S.cMap?.courses?.[cid]?.is_elective);
 }
+function isCustomCourse(cid){
+  return (S.data?.custom_courses||[]).some(c=>c.id===cid);
+}
+
+ 
+function dueForItems(items){
+  if(!items||!items.length) return 0;
+  const now=Date.now();
+  const seen=new Set();
+  let count=0;
+  items.forEach(it=>{
+    if(!it||it.type!=='module'||!it.course_id||!it.module_id) return;
+    const cid=it.course_id;
+    if(isCustomCourse(cid)) return;           
+    const n=parseInt(String(it.module_id).replace(/^M/i,''),10);
+    if(isNaN(n)) return;
+    const key=`garden_${cid}_m${n}_fc`;
+    if(seen.has(key)) return;                 
+    seen.add(key);
+    let raw;
+    try{ raw=localStorage.getItem(key); }catch(_){ return; }
+    if(!raw) return;
+    try{
+      Object.values(JSON.parse(raw)).forEach(card=>{
+        if(card&&typeof card==='object'&&card.nextReview&&card.nextReview<=now) count++;
+      });
+    }catch(_){}
+  });
+  return count;
+}
 
 function activeCoursesForPlan(planType){
   planType=planType||S.activePlan;
@@ -418,6 +460,27 @@ function availableCurriculumCourses(){
   return list;
 }
 function getMd(cid,mid){ return S.cMap?.courses?.[cid]?.modules?.[mid]||null; }
+ 
+function isCustomCourse(cid){
+  return String(cid).startsWith('__') || (S.data?.custom_courses||[]).some(x=>x.id===cid);
+}
+ 
+function cardBackEmpty(cid,mid,title,md){
+  const enrichMissing = !md || !(md.topics && md.topics.length);
+  if(enrichMissing && !isCustomCourse(cid)){
+    console.info('[planner-v2] لا بيانات إثرائية للوحدة:', cid, mid, '(md محمّل:', !!md, '· topics:', (md&&md.topics&&md.topics.length)||0, ')');
+    return `<div class="card-back-empty">
+      <span style="font-size:2.5rem;display:block;margin-bottom:.5rem">⚠️</span>
+      <div style="font-weight:700;color:var(--text-primary);margin-bottom:.3rem">${title}</div>
+      <div style="font-size:.85rem;color:var(--text-muted)">${tx('لا بيانات إثرائية لهذه الوحدة — حدّث الصفحة','No enrichment data for this module — refresh the page')}</div>
+    </div>`;
+  }
+  return `<div class="card-back-empty">
+    <span style="font-size:2.5rem;display:block;margin-bottom:.5rem">📚</span>
+    <div style="font-weight:700;color:var(--text-primary);margin-bottom:.3rem">${title}</div>
+    <div style="font-size:.85rem;color:var(--text-muted)">${tx('لا توجد تفاصيل لهذه الوحدة','No details for this module')}</div>
+  </div>`;
+}
 function mTitle(cid,mid){
   const md=getMd(cid,mid);if(!md){const cc=(S.data?.custom_courses||[]).find(x=>x.id===cid);if(cc){const idx=parseInt(mid.replace(/^M/i,''))-1;const m=(cc.modules||[])[idx];if(m)return typeof m==='string'?m:(m.name||mid);}return mid;}
   return isAr()?(md.title||mid):(md.title_en||md.title||mid);
@@ -749,12 +812,15 @@ function renderWeek(){
     const hrsWarn=limitH&&hrs>limitH;
 
     const examTag=cExam?`<div class="pv2-exam-tag">📝 ${cExam[0]}</div>`:(isExam?`<div class="pv2-exam-tag">${tx('الاختبار','Exam')}</div>`:'');
+    const dueCards=dueForItems(items);
+    const dueTip=tx('فلاش كاردز مستحقة لوحدات هذا اليوم','Flashcards due for this day’s modules');
 
     html+=`<div class="${cls}" data-date="${d}">
       <div class="pv2-day-header">
         <div class="pv2-day-name">${dNameS(d)}</div>
         <div class="pv2-day-date">${fmt(d)}</div>
         ${examTag}
+        ${dueCards>0?`<div class="pv2-day-due" title="${dueTip}">🃏 ${dueCards}</div>`:''}
         ${hrs>0?`<div class="pv2-day-hrs${hrsWarn?' warn':''}">${fmtH(hrs)}</div>`:''}
       </div>
       <div class="pv2-day-body" ondragover="PV2._dragOver(event)" ondrop="PV2._drop(event,'${d}')" ondragleave="PV2._dragLeave(event)">
@@ -1471,50 +1537,9 @@ function _doSchedule(){
 }
 
 
-async function aiGenerate(){
-  const p=cPlan();
-  if(!p.start_date){alert(tx('أعدّ الخطة أولاً','Set up the plan first'));return;}
-  const courses=activeCoursesForPlan(S.activePlan);if(!courses.length){alert(tx('لا توجد مواد','No courses'));return;}
 
-  
-  const config={plan_type:S.activePlan,daily_sessions:2,modules_per_session:1,start_date:p.start_date,
-    rest_days:['friday','saturday'],busy_dates:[],hours_per_day:S.data.settings?.hours_per_day||null,
-    courses:Object.fromEntries(courses.map(c=>([c.id,{active:true,exam_date:p.course_exams?.[c.id]||p.end_date||'',included_modules:c.mods.map(m=>m.id),self_rating:Object.fromEntries(c.mods.map(m=>[m.id,getModStatus(c.id,m.id)==='mastered'?'mastered':'not_studied']))}])))};
 
-  modal(`<div style="text-align:center;padding:2rem"><div style="font-size:2.5rem">🤖</div><div style="font-weight:800;font-size:1rem;margin:.75rem 0">${tx('الذكاء الاصطناعي يُعدّ الجدول...','AI is building your schedule...')}</div><div class="pv2-loading-spinner" style="margin:.5rem auto"></div></div>`);
-
-  try{
-    const richCurriculum={};
-    for(const[id,data]of Object.entries(config.courses)){const cd=S.cMap?.courses?.[id];if(cd)richCurriculum[id]={name:cd.name_en||cd.name,modules:Object.fromEntries(Object.entries(cd.modules||{}).map(([mid,md])=>[mid,{title:md.title_en||md.title,difficulty:md.module_difficulty||5,hours:md.study_hours_estimate||2}]))};}
-    const prompt={curriculum:richCurriculum,config,request:tx('أنشئ جدول مذاكرة يوزّع المودلات بشكل متوازن مع مراعاة الصعوبة وتواريخ الاختبارات','Create a balanced study schedule distributing modules by difficulty and exam dates')};
-    const res=await fetch(AI_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'schedule',payload:prompt})});
-    if(!res.ok)throw new Error('AI request failed');
-    const aiData=await res.json();
-    
-    if(aiData?.days&&Array.isArray(aiData.days)){
-      snap();
-      for(const day of aiData.days){
-        if(!day.date||!day.sessions)continue;
-        const dateStr=day.date;
-        for(const session of day.sessions){
-          if(session.mode==='exam')continue;
-          if(session.session_type==='core'&&session.course_id&&session.module_id){
-            const mid=(session.module_id||'').replace(/ \(\d+\/\d+\)/,'').trim().split(' + ')[0];
-            if(mid)placeM(dateStr,session.course_id,mid,session.part||1,session.total_parts||1);
-          }
-        }
-      }
-      saveData();closeModal();render();
-    }else{
-      
-      closeModal();_doScheduleAuto();
-    }
-  }catch(err){
-    console.warn('AI failed, using smart schedule:',err);
-    closeModal();_doScheduleAuto();
-    alert(tx('⚠️ فشل الذكاء، تم التوزيع الذكي المحلي بدلاً.','⚠️ AI failed, used smart local schedule.'));
-  }
-}
+function aiGenerate(){ return smartSchedule(); }
 
 function _doScheduleAuto(){
   
@@ -1639,25 +1664,25 @@ function _studyCardView(activeDays,todayS){
     if(mustKnow.length){
       backSections+=`<div class="card-back-group card-back-group--know">
         <div class="card-back-group-header"><span class="card-back-group-icon">🎯</span><span class="card-back-group-title">${tx('يجب أن تعرف','Must Know')}</span><span class="card-back-group-count">${mustKnow.length}</span></div>
-        <ul class="card-back-list">${mustKnow.slice(0,5).map(x=>`<li>${x}</li>`).join('')}</ul>
+        <ul class="card-back-list">${mustKnow.map(x=>`<li>${x}</li>`).join('')}</ul>
       </div>`;
     }
     if(mustMem.length){
       backSections+=`<div class="card-back-group card-back-group--mem">
         <div class="card-back-group-header"><span class="card-back-group-icon">📝</span><span class="card-back-group-title">${tx('يجب أن تحفظ','Must Memorize')}</span><span class="card-back-group-count">${mustMem.length}</span></div>
-        <ul class="card-back-list">${mustMem.slice(0,5).map(x=>`<li>${x}</li>`).join('')}</ul>
+        <ul class="card-back-list">${mustMem.map(x=>`<li>${x}</li>`).join('')}</ul>
       </div>`;
     }
     if(commonMistakes.length){
       backSections+=`<div class="card-back-group card-back-group--mistake">
         <div class="card-back-group-header"><span class="card-back-group-icon">⚠️</span><span class="card-back-group-title">${tx('أخطاء شائعة','Common Mistakes')}</span><span class="card-back-group-count">${commonMistakes.length}</span></div>
-        <ul class="card-back-list">${commonMistakes.slice(0,3).map(x=>`<li>${x}</li>`).join('')}</ul>
+        <ul class="card-back-list">${commonMistakes.map(x=>`<li>${x}</li>`).join('')}</ul>
       </div>`;
     }
     if(!backSections&&topicNames.length){
       backSections+=`<div class="card-back-group card-back-group--topics">
         <div class="card-back-group-header"><span class="card-back-group-icon">📌</span><span class="card-back-group-title">${tx('المواضيع','Topics')}</span><span class="card-back-group-count">${topicNames.length}</span></div>
-        <ul class="card-back-list">${topicNames.slice(0,6).map(n=>`<li>${n}</li>`).join('')}</ul>
+        <ul class="card-back-list">${topicNames.map(n=>`<li>${n}</li>`).join('')}</ul>
       </div>`;
     }
     if(note){
@@ -1667,11 +1692,7 @@ function _studyCardView(activeDays,todayS){
       </div>`;
     }
     if(!backSections){
-      backSections=`<div class="card-back-empty">
-        <span style="font-size:2.5rem;display:block;margin-bottom:.5rem">📚</span>
-        <div style="font-weight:700;color:var(--text-primary);margin-bottom:.3rem">${title}</div>
-        <div style="font-size:.85rem;color:var(--text-muted)">${tx('لا توجد تفاصيل لهذه الوحدة','No details for this module')}</div>
-      </div>`;
+      backSections=cardBackEmpty(item.course_id,item.module_id,title,md);
     }
     const backContent=backSections;
     
@@ -1945,6 +1966,60 @@ function prevStep() {
   if (wizardStep > 1) { wizardStep--; _updateWizard(); }
 }
 
+ 
+function useMySemesterCourses() {
+  let sem = null;
+  try { sem = JSON.parse(localStorage.getItem('my_semester') || 'null'); } catch (_) {}
+  const wanted = new Set((sem?.courses || [])
+    .map(c => c && c.code)
+    .filter(code => code && !String(code).startsWith('__CUSTOM_') && !String(code).startsWith('__MANUAL_')));
+
+  if (!wanted.size) {
+    _showWizardError(tx('لا توجد مواد في فصلك المخصّص بعد — أضِفها من صفحة «فصلي».',
+                        'No courses in your semester yet — add them from the “My Semester” page.'));
+    return;
+  }
+
+  const allIds = Object.keys(S.cMap?.courses || {})
+    .concat((S.data?.custom_courses || []).map(c => c.id));
+
+  const p = cPlan();
+  if (!p.excluded_courses) p.excluded_courses = [];
+  if (!p.course_exams) p.course_exams = {};
+  if (!S.data._seenElectives) S.data._seenElectives = [];
+
+  let matched = 0;
+  allIds.forEach(cid => {
+    const isElective = isCourseElective(cid);
+    if (wanted.has(cid)) {
+      matched++;
+      p.excluded_courses = p.excluded_courses.filter(x => x !== cid);
+      if (S.data._deletedCourses) S.data._deletedCourses = S.data._deletedCourses.filter(x => x !== cid);
+      if (isElective && !S.data._seenElectives.includes(cid)) S.data._seenElectives.push(cid);
+      if (p.course_exams[cid] === undefined) p.course_exams[cid] = '';
+    } else {
+      if (!p.excluded_courses.includes(cid)) p.excluded_courses.push(cid);
+      delete p.course_exams[cid];
+      if (isElective) S.data._seenElectives = S.data._seenElectives.filter(x => x !== cid);
+    }
+  });
+
+  saveData();
+  _buildCourseList();
+
+   
+  const missing = wanted.size - matched;
+  if (!matched) {
+    _showWizardError(tx('لا توجد مواد من فصلك ضمن منهج هذا المستوى.',
+                        'None of your semester courses belong to this level.'));
+  } else if (missing > 0) {
+    _showWizardError(tx(`طُوبقت ${matched} من ${wanted.size} — الباقي ليس ضمن منهج هذا المستوى.`,
+                        `Matched ${matched} of ${wanted.size} — the rest aren’t in this level.`));
+  } else {
+    _hideWizardError();
+  }
+}
+
 function _showWizardError(msg) {
   const box = document.getElementById('error-box');
   if (box) { box.textContent = msg; box.style.display = 'block'; }
@@ -2213,8 +2288,7 @@ function finishSetup(mode) {
   S.weekStart = wkStart(cPlan().start_date);
   S.monthDate = moStart(cPlan().start_date);
   render();
-  if (mode === 'smart') setTimeout(() => smartSchedule(), 300);
-  else if (mode === 'ai') setTimeout(() => aiGenerate(), 300);
+  if (mode === 'smart' || mode === 'ai') setTimeout(() => smartSchedule(), 300);
 }
 
 
@@ -2228,14 +2302,18 @@ function showPrintOptions() {
     <h3 class="pv2-modal-title">🖨️ ${tx('طباعة الجدول','Print Plan')}</h3>
     <button class="pv2-modal-close" onclick="PV2.closeModal()">✕</button>
   </div>
-  <p style="color:var(--text-secondary);font-size:.88rem;margin-bottom:1rem">${tx('اختر نوع التقرير','Choose the report type')}</p>
+  <p style="color:var(--text-secondary);font-size:.88rem;margin-bottom:.7rem">${tx('اختر نوع التقرير','Choose the report type')}</p>
+  <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:1rem">${tx('اسم الخطة (اختياري)','Plan name (optional)')}
+    <input id="pv2-print-title" type="text" maxlength="60" placeholder="${tx('مثال: خطتي للفاينل 💪','e.g. My final plan 💪')}" value="${_escP(cPlan().print_title||'')}"
+      style="width:100%;margin-top:.35rem;padding:.5rem .7rem;border:1px solid var(--border-color);border-radius:var(--radius-md);background:var(--bg-elevated);color:var(--text-primary);font-family:inherit;font-size:.85rem">
+  </label>
   <div class="pv2-export-options">
-    <button class="pv2-export-card" onclick="PV2.closeModal();PV2._doPrint('classic')">
+    <button class="pv2-export-card" onclick="PV2._doPrint('classic')">
       <div class="pv2-export-icon">📋</div>
       <div class="pv2-export-title">${tx('قائمة أسبوعية','Weekly List')}</div>
       <div class="pv2-export-desc">${tx('بطاقات مفصلة حسب الأسبوع','Detailed cards by week')}</div>
     </button>
-    <button class="pv2-export-card" onclick="PV2.closeModal();PV2._doPrint('calendar')">
+    <button class="pv2-export-card" onclick="PV2._doPrint('calendar')">
       <div class="pv2-export-icon">📅</div>
       <div class="pv2-export-title">${tx('جدول التقويم','Calendar Grid')}</div>
       <div class="pv2-export-desc">${tx('جدول مضغوط لكل المواد','Compact grid per course')}</div>
@@ -2246,10 +2324,22 @@ function showPrintOptions() {
   </p>`);
 }
 
+ 
+function _readPrintTitle() {
+  const inp = document.getElementById('pv2-print-title');
+  if (!inp) return;
+  const v = inp.value.trim();
+  const p = cPlan();
+  if ((p.print_title || '') !== v) { p.print_title = v; saveData(); }
+}
 function _doPrint(mode) {
+  _readPrintTitle();          
+  closeModal();
   if (mode === 'classic') _printClassic();
   else _printCalendar();
 }
+
+ 
 
 function _printClassic() {
   const p = cPlan(); const ar = isAr();
@@ -2529,14 +2619,18 @@ function _printClassic() {
 
     .print-container { max-width: 100%; margin: 0 auto; }
 
-    /* Document header */
+    /* Document header (م06: عنوان مركزي + علامة زاوية) */
     .doc-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      position: relative;
+      text-align: center;
       padding-bottom: 12px;
       border-bottom: 2px solid #e2e8f0;
       margin-bottom: 16px;
+    }
+    .doc-brand {
+      position: absolute; top: 0; inset-inline-end: 0;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 9pt; font-weight: 800; color: #0f766e; opacity: .9;
     }
     .doc-title {
       font-size: 24pt;
@@ -2860,13 +2954,11 @@ function _printClassic() {
 </head>
 <body>
 <div class="print-container">
-  <!-- Header -->
+  
   <div class="doc-header">
-    <div class="header-left">
-      <h1 class="doc-title">${ar?'خطة المذاكرة':'Study Plan'} · ${planLbl}</h1>
-      <p class="doc-subtitle">${subtitleText}</p>
-    </div>
-    <div class="header-right doc-branding">${ar?'بايت':'Byte'}</div>
+    <div class="doc-brand">${_printBrandSVG(15)} <span>${ar?'الحديقة الرقمية':'Digital Garden'}</span></div>
+    <h1 class="doc-title">${_escP(_planPrintTitle(p, (ar?'خطة المذاكرة':'Study Plan') + ' · ' + planLbl))}</h1>
+    <p class="doc-subtitle">${subtitleText}</p>
   </div>
 
   ${allExams.length ? `<div class="doc-range-strip">
@@ -2881,7 +2973,7 @@ function _printClassic() {
 
   <!-- Footer -->
   <div class="doc-footer">
-    <span class="footer-brand">${ar?'بايت':'Byte'}</span> · ${ar?'مخطط المذاكرة الذكي':'Intelligent Study Planner'} · ${new Date().toLocaleDateString(ar?'ar':'en')}
+    <span class="footer-brand">${ar?'الحديقة الرقمية':'Digital Garden'}</span> · ${ar?'مخطط المذاكرة الذكي':'Intelligent Study Planner'} · ${new Date().toLocaleDateString(ar?'ar':'en')}
   </div>
 </div>
 <script>setTimeout(function(){window.print();},400);<\/script>
@@ -2889,6 +2981,26 @@ function _printClassic() {
 </html>`);
   win.document.close();
 }
+ 
+function balanceWeeks(n){
+  if(n<=5) return [n];
+  if(n===6) return [6];                 
+  const pages=Math.ceil(n/5);           
+  const base=Math.floor(n/pages);
+  let rem=n-base*pages;
+  const out=[];
+  for(let i=0;i<pages;i++){ out.push(base+(rem>0?1:0)); if(rem>0)rem--; }
+  return out;
+}
+ 
+function _printBrandSVG(px){
+  const s=px||16;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;flex-shrink:0"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M50 88 V64" stroke="#10b981" stroke-width="8"/><path d="M50 64 L22 42 M50 64 L78 42 M50 64 V34" stroke="#a78bfa" stroke-width="7"/></g><circle cx="50" cy="64" r="12" fill="#a78bfa"/><circle cx="22" cy="42" r="9" fill="#a78bfa"/><circle cx="78" cy="42" r="9" fill="#a78bfa"/><circle cx="50" cy="26" r="14" fill="#10b981"/></svg>`;
+}
+function _escP(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+ 
+function _planPrintTitle(p, def){ const t=(p&&p.print_title||'').trim(); return t || def; }
+
 function _printCalendar() {
   const p = cPlan(); const ar = isAr();
   const planLbl = S.activePlan === 'midterm' ? (ar?'خطة الميدتيرم':'Midterm Study Plan') : (ar?'خطة الفاينل':'Final Study Plan');
@@ -2901,8 +3013,15 @@ function _printCalendar() {
   });
   if (!courses.length) { alert(tx('لا توجد مواد في الجدول','No courses in schedule')); return; }
 
-  const startStr = p.start_date || today();
-  const endStr = p.end_date || addD(startStr, 30);
+   
+  const planStart = p.start_date || today();
+  const planEnd = p.end_date || addD(planStart, 30);
+  const moEndLast = (function (s) {            
+    const d = dObj(s); d.setMonth(d.getMonth() + 1); d.setDate(0); return toStr(d);
+  })(planEnd);
+  const startStr = wkStart(moStart(planStart));   
+  let endStr = moEndLast;
+  { const wsEnd = wkStart(moEndLast); endStr = addD(wsEnd, 6); }   
 
   
   const allDates = [];
@@ -3011,11 +3130,12 @@ function _printCalendar() {
   }).join('');
 
   
-  let tbodyHTML = '';
+  const weekTbodies = [];
   for (const wk of weeks) {
     const wkLabel = wkLabels[wk.num - 1];
     const wkPal = weekPalette[Math.min(wk.num - 1, weekPalette.length - 1)];
     let wkCellPlaced = false;
+    let wkHTML = '';
 
     
     let totalRowsForWeek = 0;
@@ -3055,7 +3175,7 @@ function _printCalendar() {
         const examCourseName = courses.find(c=>c.id===ec.id)?.name || '';
         const examLabelText = ar ? `${ec.id} ${examCourseName} — اختبار` : `${ec.id} ${examCourseName} EXAM`;
 
-        tbodyHTML += `<tr class="exam-row" style="background:${st.examBg};">
+        wkHTML += `<tr class="exam-row" style="background:${st.examBg};">
           ${wkCell}
           <td class="date-cell"><strong>${dom(d)}</strong> <span class="date-mon">${monthShort}</span></td>
           <td class="day-cell">${dayNamesShort[dayIdx]}</td>
@@ -3072,7 +3192,7 @@ function _printCalendar() {
 
       
       if (!hasItems && hasDayNote) {
-        tbodyHTML += `<tr class="rest-row">
+        wkHTML += `<tr class="rest-row">
           ${wkCell}
           <td class="date-cell"><strong>${dom(d)}</strong> <span class="date-mon">${monthShort}</span></td>
           <td class="day-cell">${dayNamesShort[dayIdx]}</td>
@@ -3122,7 +3242,7 @@ function _printCalendar() {
         return `<td class="course-cell">${inner}</td>`;
       }).join('');
 
-      tbodyHTML += `<tr${isWeekend ? ' class="weekend-row"' : ''}>
+      wkHTML += `<tr${isWeekend ? ' class="weekend-row"' : ''}>
         ${wkCell}
         <td class="date-cell"><strong>${dom(d)}</strong> <span class="date-mon">${monthShort}</span></td>
         <td class="day-cell">${dayNamesShort[dayIdx]}</td>
@@ -3131,19 +3251,21 @@ function _printCalendar() {
 
       
       if (hasDayNote) {
-        tbodyHTML += `<tr class="day-note-secondary">
+        wkHTML += `<tr class="day-note-secondary">
           <td colspan="${courses.length + 2}" class="day-note-cell" style="text-align:${ar?'right':'left'}">
             <span class="note-pill"><i class="fa-regular fa-lightbulb"></i> ${entry.day_note}</span>
           </td>
         </tr>`;
       }
     }
+    weekTbodies.push(wkHTML);
   }
+  const tbodyHTML = weekTbodies.join('');   
 
-  
-  const startMon = MON_EN[dObj(startStr).getMonth()].slice(0,3);
-  const endMon = MON_EN[dObj(endStr).getMonth()].slice(0,3);
-  const planRangeLabel = `${startMon} ${dom(startStr)} – ${endMon} ${dom(endStr)}`;
+   
+  const startMon = isAr() ? MON_AR[dObj(planStart).getMonth()] : MON_EN[dObj(planStart).getMonth()].slice(0,3);
+  const endMon = isAr() ? MON_AR[dObj(planEnd).getMonth()] : MON_EN[dObj(planEnd).getMonth()].slice(0,3);
+  const planRangeLabel = `${dom(planStart)} ${startMon} – ${dom(planEnd)} ${endMon}`;
 
   
   const examListHTML = courses.filter(c => examDays[c.id]).map(c => {
@@ -3232,10 +3354,30 @@ function _printCalendar() {
   ];
   const footerQuote = ar ? pickRandom(FOOTER_QUOTES_AR) : pickRandom(FOOTER_QUOTES_EN);
 
+  
+  const docTitle = _planPrintTitle(p, planLbl);
+  const chunkSizes = balanceWeeks(weeks.length);
+  const colgroupHTML = `<colgroup><col style="width:20pt"><col style="width:38pt"><col style="width:${ar?'42pt':'30pt'}">${courses.map(()=>'<col>').join('')}</colgroup>`;
+  const theadHTML = `<thead><tr><th class="th-meta th-week-col"></th><th class="th-meta">${ar?'التاريخ':'Date'}</th><th class="th-meta">${ar?'اليوم':'Day'}</th>${courseHeadersHTML}</tr></thead>`;
+  const oneTable = rows => `<table>${colgroupHTML}${theadHTML}<tbody>${rows}</tbody></table>`;
+  let tablesBlock;
+  if (chunkSizes.length <= 1) {
+    
+    tablesBlock = oneTable(tbodyHTML) + `<div class="layout-spacer"></div>`;
+  } else {
+    
+    let wi = 0; const sections = [];
+    chunkSizes.forEach(sz => {
+      const rows = weekTbodies.slice(wi, wi + sz).join(''); wi += sz;
+      sections.push(`<section class="week-page">${oneTable(rows)}</section>`);
+    });
+    tablesBlock = sections.join('');
+  }
+
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html dir="${ar?'rtl':'ltr'}" lang="${ar?'ar':'en'}"><head>
   <meta charset="UTF-8">
-  <title>${planLbl}</title>
+  <title>${_escP(docTitle)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Amiri:ital,wght@0,700;1,700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
@@ -3259,6 +3401,11 @@ function _printCalendar() {
     table { flex: 0 0 auto; }
     .layout-spacer { flex: 1 1 auto; min-height: 0; }
 
+    /* م04: مجموعة أسابيع/صفحة — كل قسم جدول مستقل ينكسر بعده */
+    .week-page { break-after: page; page-break-after: always; }
+    .week-page:last-of-type { break-after: auto; page-break-after: auto; }
+    .week-page table { width: 100%; }
+
     /* ─── Page header — centered title with decorative arrows ─── */
     .pg-header {
       text-align: center;
@@ -3266,6 +3413,12 @@ function _printCalendar() {
       padding: 2pt 0 3pt;
       margin-bottom: 3pt;
       min-height: 24pt;
+    }
+    /* م06: علامة الحديقة الرقمية — زاوية صغيرة، العنوان يبقى مركزياً */
+    .pg-brand {
+      position: absolute; top: 1pt; inset-inline-end: 0;
+      display: inline-flex; align-items: center; gap: 3pt;
+      font-size: 7pt; font-weight: 700; color: #0f766e; opacity: .85;
     }
     .pg-title {
       font-size: 20pt;
@@ -3679,36 +3832,18 @@ function _printCalendar() {
     }
   </style></head><body>
 
-  <!-- Title -->
+  
   <header class="pg-header">
-    <h1 class="pg-title">${planLbl}</h1>
+    <div class="pg-brand">${_printBrandSVG(14)} <span>${ar?'الحديقة الرقمية':'Digital Garden'}</span></div>
+    <h1 class="pg-title">${_escP(docTitle)}</h1>
     <div class="pg-range">${planRangeLabel}</div>
   </header>
 
-  <!-- Course cards row -->
+  
   <div class="course-cards-row">${courseCardsHTML}</div>
 
-  <!-- Main Table -->
-  <table>
-    <colgroup>
-      <col style="width:20pt">
-      <col style="width:38pt">
-      <col style="width:${ar?'42pt':'30pt'}">
-      ${courses.map(()=>'<col>').join('')}
-    </colgroup>
-    <thead>
-      <tr>
-        <th class="th-meta th-week-col"></th>
-        <th class="th-meta">${ar?'التاريخ':'Date'}</th>
-        <th class="th-meta">${ar?'اليوم':'Day'}</th>
-        ${courseHeadersHTML}
-      </tr>
-    </thead>
-    <tbody>${tbodyHTML}</tbody>
-  </table>
-
-  <!-- Flexible spacer: absorbs leftover height so the table stays compact -->
-  <div class="layout-spacer"></div>
+  
+  ${tablesBlock}
 
   <!-- Footer cards -->
   <div class="footer-grid">
@@ -3747,61 +3882,225 @@ function _printCalendar() {
   win.document.close();
 }
 
+ 
+function hubSemesterCodes(){
+  let sem=null;
+  try{ sem=JSON.parse(localStorage.getItem('my_semester')||'null'); }catch(_){ return []; }
+  return (sem?.courses||[])
+    .filter(c=>c&&c.code&&!String(c.code).startsWith('__CUSTOM_')&&!String(c.code).startsWith('__MANUAL_'))
+    .map(c=>c.code);
+}
 
-function hasLegacyPlan(){
+async function loadHubCurriculum(bust){
+  const out={courses:{}};
+  const codes=hubSemesterCodes();
+  if(!codes.length) return out;
+
   
-  
-  
-  
-  const keys=[`study_plan_L${LEVEL}_midterm`,`study_plan_L${LEVEL}_final`,`study_plan_L${LEVEL}_general`];
-  if(LEVEL==='5') keys.push('study_plan_midterm','study_plan_final','study_plan_general');
-  return keys.some(k=>{
-    const raw=localStorage.getItem(k);
-    if(!raw)return false;
-    try{const p=JSON.parse(raw);return !!(p&&(p.days||p.plan_summary));}catch(_){localStorage.removeItem(k);return false;}
-  });
-}
-function checkLegacy(){
-  const hasOld=hasLegacyPlan();
-  
-  
-  
-  if(localStorage.getItem(lgcKey())==='legacy'){
-    if(hasOld){activateLegacy();return true;}
-    localStorage.setItem(lgcKey(),'new');
+  let catalog=null;
+  for(const u of cfgURLs('shared/data/courses_catalog.json',['../shared/data/courses_catalog.json'])){
+    try{const r=await fetch(u+bust);if(r.ok){catalog=await r.json();break;}}catch(_){}
   }
+  const pathOf={};
+  (catalog?.courses||[]).forEach(c=>{ if(c&&c.code)pathOf[c.code]=c.path||''; });
+
   
-  if(hasOld){const b=document.getElementById('legacy-banner');if(b){b.style.display='';b.innerHTML=`<div class="pv2-legacy-banner-inner"><span>🗂️ ${tx('لديك خطة بالنمط القديم.','You have old format plans.')}</span><div style="display:flex;gap:.5rem"><button onclick="PV2._goLegacy()">${tx('تجربة النمط القديم','Try Old Mode')}</button><button onclick="PV2._dismissLegacy()" style="background:none;border:none;color:var(--text-muted);cursor:pointer">✕</button></div></div>`;}}
-  return false;
+  const levelOf={}, levels=new Set();
+  codes.forEach(code=>{
+    const m=String(pathOf[code]||'').match(/^(L\d+|others)\//);
+    const lv=m?m[1]:null;
+    if(lv){ levelOf[code]=lv; levels.add(lv); }
+  });
+
+  for(const lv of levels){
+    const rel = lv==='others' ? 'others/data/curriculum_map.json' : `${lv}/data/curriculum_map.json`;
+    let map=null;
+    for(const u of cfgURLs(rel,[`../${rel}`])){
+      try{const r=await fetch(u+bust);if(r.ok){map=await r.json();break;}}catch(_){}
+    }
+    if(!map?.courses) continue;
+    codes.forEach(code=>{
+      if(levelOf[code]===lv && map.courses[code] && !out.courses[code]){
+        out.courses[code]=map.courses[code];
+      }
+    });
+  }
+  return out;
 }
-function _goLegacy(){localStorage.setItem(lgcKey(),'legacy');activateLegacy();}
-function _dismissLegacy(){const b=document.getElementById('legacy-banner');if(b)b.style.display='none';}
-function activateLegacy(){
-  ['pv2-planning','pv2-setup','pv2-study','pv2-loading'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
-  document.getElementById('mode-toggle').style.display='none';
-  const b=document.getElementById('legacy-banner');if(b){b.style.display='';b.innerHTML=`<div class="pv2-legacy-banner-inner"><span>🗂️ ${tx('النمط القديم مفعّل.','Old mode active.')}</span><button onclick="PV2._returnNew()">${tx('العودة للنمط الجديد','Return to New Mode')}</button></div>`;}
-  const css=document.createElement('link');css.rel='stylesheet';css.href='../../shared/planner.css';document.head.appendChild(css);
-  const root=document.createElement('div');root.id='legacy-planner-root';
-  root.innerHTML=`<div class="planner-app" id="planner-app"><div class="error-box" id="error-box"></div><div class="continue-prompt" id="continue-prompt" style="display:none"><div class="continue-buttons"><button class="btn-primary" onclick="Planner.continuePlan()">${tx('استكمال','Continue')}</button><button class="btn-secondary" onclick="Planner.newPlan()">${tx('جديد','New')}</button></div></div><section id="step-plan-type" class="step active"></section><section id="step-courses" class="step"><div class="course-list" id="course-list"></div></section><section id="step-sessions" class="step"></section><section id="step-display" class="step"><div class="loading-screen" id="loading-screen"></div><div id="plan-content" style="display:none"></div></section></div>`;
-  document.querySelector('.pv2-app').appendChild(root);
-  const s=document.createElement('script');s.src='../../shared/planner.js';document.body.appendChild(s);
+
+ 
+function hubMigrateScan(){
+  const codes=new Set(hubSemesterCodes());
+  const byLevel={}; let total=0;
+  if(!codes.size) return {byLevel,total};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||!/^planner_v2_L(\d+|others)$/.test(k)) continue;   
+    let d=null; try{ d=JSON.parse(localStorage.getItem(k)); }catch(_){ continue; }
+    if(!d?.plans) continue;
+    const lvl=k.replace('planner_v2_L','');
+    let n=0;
+    for(const pt of Object.keys(d.plans)){
+      const entries=d.plans[pt]?.entries||{};
+      for(const date of Object.keys(entries)){
+        n+=(entries[date].items||[]).filter(it=>it&&codes.has(it.course_id)).length;
+      }
+    }
+    if(n){ byLevel[lvl]=n; total+=n; }
+  }
+  return {byLevel,total};
 }
-function _returnNew(){localStorage.setItem(lgcKey(),'new');location.reload();}
+
+ 
+function hubItemExists(items,it){
+  return (items||[]).some(x=>
+    x.type===it.type && x.course_id===it.course_id &&
+    (x.type!=='module' || (
+      x.module_id===it.module_id && (x.part||1)===(it.part||1) &&
+      (x.instance_kind||'study')===(it.instance_kind||'study') &&
+      (x.instance_n||0)===(it.instance_n||0)
+    )) &&
+    (x.type!=='event' || x.event_type===it.event_type)
+  );
+}
+
+ 
+function updateHubMigrateBtn(){
+  const btn=document.getElementById('pv2-migrate-btn');
+  if(!btn) return;                                  
+  const {total}=hubMigrateScan();
+  if(!total){ btn.style.display='none'; return; }   
+  btn.style.display='';
+  let badge=btn.querySelector('.pv2-tool-badge');
+  if(!badge){ badge=document.createElement('span'); badge.className='pv2-tool-badge'; btn.appendChild(badge); }
+  badge.textContent=total;
+}
+
+function showHubMigrate(){
+  const {byLevel,total}=hubMigrateScan();
+  if(!total){
+    modal(`<h3 class="pv2-modal-title">↗️ ${tx('لا شيء لنقله','Nothing to migrate')}</h3>
+      <p class="pv2-modal-text">${tx('هذا الزر ينقل جلساتك القديمة من بلانرات المستويات (L3..L8) إلى بلانر فصلك — ولا توجد لديك جلسات هناك حالياً.',
+        'This button moves your old sessions from the level planners (L3..L8) into your semester planner — you have none there right now.')}</p>
+      <div class="pv2-modal-actions"><button class="pv2-btn" onclick="PV2.closeModal()">${tx('حسناً','OK')}</button></div>`);
+    return;
+  }
+  const lines=Object.entries(byLevel)
+    .map(([lv,n])=>`<li>${tx('سيُنقل','Will move')} <b>${nWord(n,SESSION_FORMS_AR,SESSION_FORMS_EN)}</b> ${tx('من','from')} L${lv}</li>`).join('');
+  modal(`<h3 class="pv2-modal-title">⬆️ ${tx('نقل خططي إلى فصلي','Move my plans here')}</h3>
+    <ul class="pv2-modal-text" style="line-height:2">${lines}</ul>
+    <p class="pv2-modal-text" style="opacity:.75;font-size:.8rem">
+      ${tx('تُنقل بتواريخها نفسها وتُحذف من مصدرها. جلسات المواد الأخرى تبقى مكانها.',
+           'Moved with their dates and removed from the source. Other courses stay put.')}</p>
+    <div class="pv2-modal-actions">
+      <button class="pv2-btn" onclick="PV2.closeModal()">${tx('إلغاء','Cancel')}</button>
+      <button class="pv2-btn pv2-btn--primary" onclick="PV2._doHubMigrate()">${tx('انقل','Move')} (${total})</button>
+    </div>`);
+}
+
+function _doHubMigrate(){
+  const codes=new Set(hubSemesterCodes());
+  let moved=0, skipped=0;
+  const touched=[];
+
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||!/^planner_v2_L(\d+|others)$/.test(k)) continue;
+    let src=null; try{ src=JSON.parse(localStorage.getItem(k)); }catch(_){ continue; }
+    if(!src?.plans) continue;
+    let srcChanged=false;
+
+    for(const pt of Object.keys(src.plans)){
+      const plan=src.plans[pt]; const entries=plan?.entries||{};
+      if(!S.data.plans[pt]) continue;                       
+      for(const date of Object.keys(entries)){
+        const items=entries[date].items||[];
+        const keep=[];
+        for(const it of items){
+          if(!it||!codes.has(it.course_id)){ keep.push(it); continue; }
+          const tgt=S.data.plans[pt].entries=S.data.plans[pt].entries||{};
+          tgt[date]=tgt[date]||{items:[]};
+          tgt[date].items=tgt[date].items||[];
+          if(hubItemExists(tgt[date].items,it)){ skipped++; srcChanged=true; continue; } 
+          tgt[date].items.push({...it,id:uid()});           
+          moved++; srcChanged=true;
+        }
+        entries[date].items=keep;
+        if(!keep.length) delete entries[date];              
+      }
+       
+      const sce=plan.course_exams||{};
+      for(const cid of Object.keys(sce)){
+        if(!codes.has(cid)) continue;
+        S.data.plans[pt].course_exams=S.data.plans[pt].course_exams||{};
+        if(!S.data.plans[pt].course_exams[cid]&&sce[cid]) S.data.plans[pt].course_exams[cid]=sce[cid];
+        delete sce[cid]; srcChanged=true;
+      }
+    }
+
+    if(srcChanged){
+      try{
+        localStorage.setItem(k,JSON.stringify(src));
+        hubRecomputeProgress(k.replace('planner_v2_',''),src);   
+        touched.push(k);
+      }catch(_){}
+    }
+  }
+
+  saveData();                       
+  render();
+  updateHubMigrateBtn();            
+  const movedTxt=nWord(moved,SESSION_FORMS_AR,SESSION_FORMS_EN);
+  modal(`<h3 class="pv2-modal-title">✅ ${tx('تمّ النقل','Moved')}</h3>
+    <p class="pv2-modal-text">${tx(`نُقلت ${movedTxt} إلى خطة فصلك.`,`Moved ${movedTxt} into your semester plan.`)}
+    ${skipped?tx(` وتُخطّيت ${skipped} لوجود نظيرها.`,` Skipped ${skipped} duplicates.`):''}</p>
+    <div class="pv2-modal-actions"><button class="pv2-btn pv2-btn--primary" onclick="PV2.closeModal()">${tx('تمام','Done')}</button></div>`);
+}
+
+ 
+function hubRecomputeProgress(levelKey,data){
+  let total=0,done=0;
+  for(const pt of Object.keys(data.plans||{})){
+    const entries=data.plans[pt]?.entries||{};
+    for(const d of Object.keys(entries)){
+      for(const it of (entries[d].items||[])){
+        if(it.type==='module'){ total++; if(it.completed)done++; }
+      }
+    }
+  }
+  try{
+    localStorage.setItem(`planner_v2_progress_${levelKey}`,
+      JSON.stringify({total,done,pct:total?Math.round(done/total*100):0,updated:Date.now()}));
+  }catch(_){}
+}
 
 
 async function init(){
   document.getElementById('pv2-loading').style.display='';
-  if(checkLegacy())return;
 
-  
-  
-  const cmapRel = LEVEL === 'others' ? 'others/data/curriculum_map.json' : `L${LEVEL}/data/curriculum_map.json`;
-  const curriculumURLs = cfgURLs(cmapRel, [
-    '../data/curriculum_map.json'   
-  ]);
+   
+  try {
+    if (new URLSearchParams(location.search).get('from') === 'schedule') {
+      var _bb = document.getElementById('pv2-backbar');
+      if (_bb) _bb.style.display = '';
+    }
+  } catch (e) {}
+
   const cmapCacheBust = '?v=' + (window._gardenVersion || Date.now());
-  for(const u of curriculumURLs){
-    try{const r=await fetch(u + cmapCacheBust);if(r.ok){S.cMap=await r.json();break;}}catch(_){}
+
+  if(LEVEL === 'HUB'){
+     
+    S.cMap = await loadHubCurriculum(cmapCacheBust);
+  } else {
+    
+    
+    const cmapRel = LEVEL === 'others' ? 'others/data/curriculum_map.json' : `L${LEVEL}/data/curriculum_map.json`;
+    const curriculumURLs = cfgURLs(cmapRel, [
+      '../data/curriculum_map.json'   
+    ]);
+    for(const u of curriculumURLs){
+      try{const r=await fetch(u + cmapCacheBust);if(r.ok){S.cMap=await r.json();break;}}catch(_){}
+    }
   }
   
   for(const u of PROJECT_CFG_URLS){
@@ -3960,6 +4259,8 @@ async function init(){
   if(!p.start_date){showSetup();}
   else if(S.appMode==='track'){showStudyUI();render();}
   else{showPlanUI();render();}
+
+  if(LEVEL==='HUB') updateHubMigrateBtn();   
 
   
   S._selectedMod=null;
@@ -4379,7 +4680,9 @@ window.PV2={
   exportPrint,
   doUndo,closeModal,
   _moDayClick,
-  _goLegacy,_dismissLegacy,_returnNew,
+  useMySemesterCourses,
+  
+  showHubMigrate,_doHubMigrate,
   _startManual,_startSmart,_startAI,
   
   renderMobileDrawer,_drawerSelectCourse,initDrawerInteractions,_drawerTapModule,_drawerTapReview,
@@ -4399,7 +4702,7 @@ window.PV2={
   toggleCourseSelection,updateCourseExam,_toggleWizardModMastered,
   _toggleElectivesSection,
   
-  showPrintOptions,_doPrint,_printClassic,_printCalendar,
+  showPrintOptions,_doPrint,_readPrintTitle,_printClassic,_printCalendar,
   
   excludeCourseFromPlan,restoreCourse,toggleRestoreSection,
   getProgress:()=>JSON.parse(localStorage.getItem(prgKey())||'{}'),

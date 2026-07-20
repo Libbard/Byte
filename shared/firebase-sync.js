@@ -30,9 +30,9 @@
     /^study_plan_L\d+_(midterm|final|general)$/,
     
     /^planner_config_L\d+$/,
-    
-    /^planner_v2_L\d+$/,
-    /^planner_v2_progress_L\d+$/,
+     
+    /^planner_v2_L(\d+|HUB)$/,
+    /^planner_v2_progress_L(\d+|HUB)$/,
     
     /^study_plan_(midterm|final|general)$/,
     /^planner_config$/,
@@ -44,14 +44,26 @@
     /^gpa_settings$/,
     
     /^weekly_schedule$/,
+     
     
-    /^garden_active_level$/,
-    /^garden_level_deactivated$/,
+    /^dashboard_prefs$/,
+    /^student_profile$/,
+    /^quick_notes$/,
+    
+    /^course_meta_[A-Z0-9_]+$/,
+    
+    /^my_tasks$/,
+    
+    /^gpa_plan$/,
   ];
   
   const NEVER_SYNC = new Set([
     'garden_lang', 'garden_theme', 'garden_font_size', 'garden_mobile_3d', 'garden_sync_key',
-    'garden_semester_meta', 'garden_level_meta',
+    'garden_semester_meta',
+    
+    'dash_view',
+    
+    'gpa_scenario',
   ]);
 
    
@@ -67,7 +79,6 @@
   let userKey = null;
   let syncStatus = 'offline';   
   let pushTimer = null;
-  let fabBtn = null;
   let statusDot = null;
   let isSyncing = false;
 
@@ -150,51 +161,9 @@
     const style = document.createElement('style');
     style.id = 'garden-sync-css';
     style.textContent = `
-/* ── Sync FAB ── */
-.sync-fab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 42px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  opacity: 0.45;
-  transition: all 0.25s ease;
-  font-size: 1rem;
-  -webkit-tap-highlight-color: transparent;
-  position: relative;
-  flex-shrink: 0;
-}
-[dir="rtl"] .sync-fab {
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-  border-right: none;
-  box-shadow: -2px 2px 8px var(--shadow-base);
-}
-[dir="ltr"] .sync-fab {
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  border-left: none;
-  box-shadow: 2px 2px 8px var(--shadow-base);
-}
-.sync-fab:hover, .sync-fab:active { opacity: 1; width: 46px; }
-.sync-fab .sync-status-dot {
-  position: absolute;
-  bottom: 6px;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--gray-500);
-  transition: background 0.3s;
-}
-[dir="rtl"] .sync-fab .sync-status-dot { left: 5px; }
-[dir="ltr"] .sync-fab .sync-status-dot { right: 5px; }
-.sync-fab .sync-status-dot.synced,
+/* ── حالة نقطة المزامنة (زر هيدر سطح المكتب) — و-05: أُزيل .sync-fab الميت ── */
 .sync-header-btn .sync-status-dot.synced { background: #10b981; }
-
-.sync-fab .sync-status-dot.loading,
 .sync-header-btn .sync-status-dot.loading { background: #fbbf24; animation: syncPulse 1s ease-in-out infinite; }
-
-.sync-fab .sync-status-dot.error,
 .sync-header-btn .sync-status-dot.error { background: #ef4444; }
 
 /* ── Desktop header sync icon ── */
@@ -854,9 +823,14 @@
         </div>
 
         <!-- تغيير مفتاحي -->
-        <button class="sync-btn sync-btn-danger" id="sync-change-key-btn">
+        <button class="sync-btn sync-btn-secondary" id="sync-change-key-btn">
           ${t('changeKeyBtn')}
         </button>
+
+        
+        ${key ? `<button class="sync-btn sync-btn-danger" id="sync-disconnect-btn">
+          ${isRTL() ? '⏻ إيقاف المزامنة على هذا الجهاز' : '⏻ Stop sync on this device'}
+        </button>` : ''}
 
         <button class="sync-btn sync-btn-secondary" id="sync-close-btn" style="margin-top:0.25rem">
           ${t('closeBtn')}
@@ -914,60 +888,26 @@
     });
 
     
+    const disconnectBtn = overlay.querySelector('#sync-disconnect-btn');
+    if (disconnectBtn) disconnectBtn.addEventListener('click', () => {
+      if (!confirm(isRTL()
+        ? 'إيقاف المزامنة وفصل هذا الجهاز؟ بياناتك المحلية تبقى كما هي، ويمكنك إعادة الربط لاحقاً بالمفتاح نفسه.'
+        : 'Stop sync and disconnect this device? Your local data stays intact; you can reconnect later with the same key.')) return;
+      localStorage.removeItem(SYNC_KEY_LS);
+      userKey = null; db = null;
+      setStatus('offline');
+      overlay.remove();
+      showToast(isRTL() ? 'أُوقفت المزامنة على هذا الجهاز' : 'Sync stopped on this device', 'success');
+       
+      setTimeout(() => window.location.reload(), 900);
+    });
+
+    
     overlay.querySelector('#sync-close-btn').addEventListener('click', () => overlay.remove());
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   }
 
    
-  function addMobileFAB() {
-    if (window.innerWidth > 1024) return;
-
-    function _inject() {
-      if (document.getElementById('sync-mob-fab')) return;
-
-      const btn = document.createElement('button');
-      btn.className = 'mobile-fab sync-fab';
-      btn.id = 'sync-mob-fab';
-      btn.innerHTML = '☁️';
-      btn.title = t('modalTitle');
-
-      const dot = document.createElement('span');
-      dot.className = 'sync-status-dot ' + syncStatus;
-      btn.appendChild(dot);
-      statusDot = dot;
-      fabBtn = btn;
-
-      btn.addEventListener('click', showSyncModal);
-
-      
-      const existing = document.getElementById('mobile-fabs');
-      if (existing) {
-        existing.appendChild(btn);
-      } else {
-        
-        const ctn = document.createElement('div');
-        ctn.className = 'mobile-fab-container';
-        ctn.id = 'sync-fabs-container';
-        ctn.appendChild(btn);
-        document.body.appendChild(ctn);
-
-        
-        let lastY = window.scrollY;
-        window.addEventListener('scroll', () => {
-          const y = window.scrollY;
-          ctn.classList.toggle('scrolling-down', y > lastY && y > 150);
-          lastY = y;
-        }, { passive: true });
-      }
-    }
-
-    
-    if (document.readyState === 'complete') {
-      setTimeout(_inject, 100);
-    } else {
-      window.addEventListener('load', () => setTimeout(_inject, 100));
-    }
-  }
 
    
   function addDesktopHeaderBtn() {
@@ -1042,21 +982,14 @@
    
   function boot() {
     injectCSS();
-    addMobileFAB();
+     
     addDesktopHeaderBtn();
 
     const key = getKey();
-    if (!key) {
-      
-      
-      if (localStorage.getItem(SYNC_SEEN_LS))    return;
-      if (localStorage.getItem(SYNC_DECLINED_LS)) return;
-      
-      localStorage.setItem(SYNC_SEEN_LS, '1');
-      setTimeout(showFirstRunModal, 1200);
-    } else {
+    if (key) {
       initSync();
     }
+     
   }
 
   if (document.readyState === 'loading') {

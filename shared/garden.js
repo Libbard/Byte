@@ -3,8 +3,15 @@
 ; (function () {
   'use strict';
 
+   
+  const _thisScript = document.currentScript;
+  const ROOT = (_thisScript && _thisScript.src)
+    ? _thisScript.src.replace(/shared\/garden\.js(\?.*)?$/, '')
+    : '';
+
   const THEMES = ['dark', 'dim', 'light'];
-  const THEME_ICONS = { dark: '🌫️', dim: '️☀️', light: '🌙' };
+   
+  const THEME_ICONS = { dark: '🌫️', dim: '☀️', light: '🌙' };
 
   let currentLang = localStorage.getItem('garden_lang') || 'ar';
   let currentTheme = localStorage.getItem('garden_theme') || 'dark';
@@ -153,8 +160,15 @@
       const termEn = term.getAttribute('data-term-en') || '';
       updateTooltipContent(tip, termEn, enDef, lang);
     });
+    
+    
+    if (typeof initSmartTermTooltips === 'function') initSmartTermTooltips();
+     
+    const langText = lang === 'ar' ? 'EN' : 'AR';
     const ll = document.getElementById('lang-label');
-    if (ll) ll.textContent = lang === 'ar' ? 'EN' : 'AR';
+    if (ll) ll.textContent = langText;
+    const lb = document.getElementById('lang-btn');
+    if (lb) lb.textContent = langText;
 
     if (window._gardenFC.cards) { const wasFlipped = document.getElementById('fc-card')?.classList.contains('flipped'); renderFlashcard(); if (wasFlipped) flipCard(); }
     if (window._gardenQuiz.questions) renderQuestion();
@@ -2242,11 +2256,16 @@
    
   function buildSelectionTooltip(tip) {
     const isPaused = sessionStorage.getItem('garden_notes_paused') === '1';
+     
+    const explainBtn = _isContentPage()
+      ? `<button class="notes-tip-btn notes-tip-explain" id="tip-explain" title="${nL('اشرح بالذكاء','Explain')}"><i class="fa-solid fa-wand-magic-sparkles"></i><span>${nL('اشرح','Explain')}</span></button>`
+      : '';
     tip.innerHTML = `
       <div class="notes-tip-main">
         <button class="notes-tip-btn notes-tip-color" id="tip-color" title="${nL('تلوين النص','Highlight')}"><i class="fa-solid fa-highlighter"></i><span>${nL('تلوين','Highlight')}</span></button>
         <button class="notes-tip-btn notes-tip-copy"  id="tip-copy"  title="${nL('نسخ النص','Copy')}"><i class="fa-solid fa-copy"></i><span>${nL('نسخ','Copy')}</span></button>
         <button class="notes-tip-btn notes-tip-note"  id="tip-note"  title="${nL('إضافة ملاحظة','Add note')}"><i class="fa-solid fa-pen-to-square"></i><span>${nL('ملاحظة','Note')}</span></button>
+        ${explainBtn}
         <button class="notes-tip-pause" id="tip-pause" title="${nL('إخفاء مؤقت','Dismiss for session')}"><i class="fa-solid fa-eye-slash"></i></button>
       </div>
       <div class="notes-tip-colors notes-cp" id="tip-colors" style="display:none;">
@@ -2277,6 +2296,22 @@
       main.style.display = 'none';
       colors.style.display = 'block';
       requestAnimationFrame(() => repositionTooltip());
+    });
+
+    const explainEl = tip.querySelector('#tip-explain');
+    if (explainEl) explainEl.addEventListener('click', () => {
+      const range = _gardenSelRange ? _gardenSelRange.cloneRange() : null;
+      const text = (range ? range.toString() : (window._gardenNotesSelection || '')).trim();
+      if (!text) return;
+      let title = '';
+      const node = range ? range.startContainer : null;
+      const host = node ? (node.nodeType === 1 ? node : node.parentElement) : null;
+      const card = host && host.closest ? host.closest('.concept-card, .vault-section, .objectives-card, .accordion-item, .professor-card') : null;
+      if (card) { const hh = card.querySelector('h2, h3'); title = hh ? hh.textContent.trim().slice(0, 80) : ''; }
+      if (!title) title = (document.title.split('·')[0] || '').trim();
+      hideNotesTooltip();
+      try { window.getSelection()?.removeAllRanges(); } catch (_) {}
+      showAiModal({ title, content: text, background: '', activeLayer: '', allLayersText: '', svgBlock: '', type: 'selection', hasSVG: false, hasAlgo: false, svgOnly: false });
     });
 
     tip.querySelector('#tip-pause').addEventListener('click', (e) => {
@@ -2372,6 +2407,8 @@
     if (manP) manP.style.display = 'none';
     if (primR) primR.style.display = '';
     placeFloating(tip, _tooltipRect || rect, 8);
+    
+    document.body.classList.add('garden-selbar-open');
   }
 
   function hideNotesTooltip() {
@@ -2379,6 +2416,7 @@
     if (tip) tip.style.display = 'none';
     _tooltipRect = null;
     document.querySelectorAll('.notes-preview-overlay').forEach(d => d.remove());
+    document.body.classList.remove('garden-selbar-open');
   }
 
   function showMobileNoteSaveBar(text) {
@@ -3405,55 +3443,12 @@
    
   function initMobileFabs() {
     if (window.innerWidth > 1024) return;
-    const hasCards = !!document.getElementById('flashcard-data');
+     
     const hasNotes = !!document.querySelector('.sidebar-notes-btn');
-    if (!hasCards && !hasNotes) return;
-    const L = () => document.documentElement.lang || 'ar';
+    if (!hasNotes) return;
     const ctn = document.createElement('div');
     ctn.className = 'mobile-fab-container';
     ctn.id = 'mobile-fabs';
-
-    
-    if (hasCards) {
-      const fab = document.createElement('button');
-      fab.className = 'mobile-fab';
-      fab.innerHTML = '\ud83d\udcc7';
-      const badge = document.createElement('span');
-      badge.className = 'fab-badge'; badge.id = 'fab-cards-badge'; badge.textContent = '0';
-      fab.appendChild(badge);
-      fab.addEventListener('click', () => {
-        const old = document.getElementById('fab-card-sheet');
-        if (old) { old.remove(); return; }
-        const isAr = L() === 'ar';
-        const dueEl = document.getElementById('fc-due-count');
-        const dueN = dueEl ? dueEl.textContent : '0';
-        const sheet = document.createElement('div');
-        sheet.id = 'fab-card-sheet'; sheet.className = 'mobile-bottom-sheet';
-        sheet.innerHTML =
-          '<div class="mbs-handle"></div>' +
-          '<div class="mbs-row">' +
-          '<span class="mbs-icon">\ud83d\udcc7</span>' +
-          '<div class="mbs-info"><span class="mbs-count">' + dueN + '</span> ' +
-          '<span class="mbs-label">' + (isAr ? '\u0628\u0637\u0627\u0642\u0629 \u0644\u0644\u0645\u0631\u0627\u062c\u0639\u0629' : 'cards due') + '</span></div>' +
-          '<button class="mbs-go" id="mbs-go-cards">' + (isAr ? '\u0627\u0628\u062f\u0623 \u25b6' : 'Start \u25b6') + '</button>' +
-          '</div>' +
-          '<button class="mbs-dismiss" id="mbs-dismiss">\ud83d\udccc ' + (isAr ? '\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u0632\u0631 \u0627\u0644\u0639\u0627\u0626\u0645' : 'Hide floating button') + '</button>';
-        document.body.appendChild(sheet);
-        requestAnimationFrame(() => sheet.classList.add('open'));
-        sheet.querySelector('#mbs-go-cards').onclick = () => {
-          sheet.remove();
-          document.getElementById('flashcards')?.scrollIntoView({ behavior: 'smooth' });
-        };
-        sheet.querySelector('#mbs-dismiss').onclick = () => { sheet.remove(); ctn.classList.add('docked'); };
-        sheet.querySelector('.mbs-handle').onclick = () => sheet.remove();
-        setTimeout(() => { if (sheet.parentNode) sheet.remove(); }, 8000);
-      });
-      ctn.appendChild(fab);
-      const syncBadge = () => { const d = document.getElementById('fc-due-count'); if (d) badge.textContent = d.textContent; };
-      syncBadge();
-      const dueEl = document.getElementById('fc-due-count');
-      if (dueEl) new MutationObserver(syncBadge).observe(dueEl, { childList: true, characterData: true, subtree: true });
-    }
 
     
     if (hasNotes) {
@@ -3570,11 +3565,19 @@
   }
 
    
+  let _smartTipActive = null;
+  let _smartTipDocBound = false;
   function initSmartTermTooltips() {
-    let activeTip = null;
+    
+    const liveTips = new Set();
+    document.querySelectorAll('.smart-term').forEach(term => { if (term._gardenTip) liveTips.add(term._gardenTip); });
+    document.querySelectorAll('body > .smart-term-tooltip').forEach(tip => {
+      if (!liveTips.has(tip)) { if (_smartTipActive === tip) _smartTipActive = null; tip.remove(); }
+    });
 
     
     document.querySelectorAll('.smart-term').forEach(term => {
+      if (term._gardenTip && term._gardenTip.isConnected) return;
       const termEn = term.getAttribute('data-term-en') || '';
       const enDef = term.getAttribute('data-en-def') || '';
       if (!termEn && !enDef) return; 
@@ -3599,15 +3602,18 @@
       
       term.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if (activeTip === tip) { hideTip(tip); activeTip = null; }
-        else { if (activeTip) hideTip(activeTip); showTip(term, tip); activeTip = tip; }
+        if (_smartTipActive === tip) { hideTip(tip); _smartTipActive = null; }
+        else { if (_smartTipActive) hideTip(_smartTipActive); showTip(term, tip); _smartTipActive = tip; }
       }, { passive: false });
     });
 
     
-    document.addEventListener('touchstart', (e) => {
-      if (activeTip && !e.target.closest('.smart-term')) { hideTip(activeTip); activeTip = null; }
-    });
+    if (!_smartTipDocBound) {
+      _smartTipDocBound = true;
+      document.addEventListener('touchstart', (e) => {
+        if (_smartTipActive && !e.target.closest('.smart-term')) { hideTip(_smartTipActive); _smartTipActive = null; }
+      });
+    }
   }
 
   function updateTooltipContent(tip, termEn, enDef, lang) {
@@ -3686,7 +3692,7 @@
     initSM2Dashboard(); initActionLinks(); initNotes(); initVideos(); initMobileFabs();
     initAlgoPalette();
     initTableWrap(); initScrollToTop(); initFontSize(); initAlgoLoader();
-    initAiSystem();
+    if (_isContentPage()) initAiSystem();   
     initInfoBtnToggle();
     initSmartTermTooltips();
   }
@@ -3799,6 +3805,21 @@
   };
 
    
+  let AI_CATALOG = null;
+  function loadAiCatalog() {
+    if (AI_CATALOG !== null) return;
+    AI_CATALOG = {}; 
+    try {
+      const gs = document.querySelector('script[src*="garden.js"]');
+      const base = gs && gs.src ? gs.src.replace(/garden\.js[^/]*$/, '') : 'shared/';
+      fetch(base + 'courses_catalog.json')
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => { if (j && typeof j === 'object') AI_CATALOG = j; })
+        .catch(() => { });
+    } catch (e) { }
+  }
+
+   
   function extractSVGComment(card) {
     try {
       const iter = document.createNodeIterator(card, NodeFilter.SHOW_COMMENT);
@@ -3827,7 +3848,10 @@
    
   function extractCardContent(card) {
     const L = currentLang;
-    const result = { title: '', content: '', type: 'concept', hasSVG: false, hasAlgo: false };
+    
+    
+    
+    const result = { title: '', content: '', background: '', activeLayer: '', allLayersText: '', svgBlock: '', type: 'concept', hasSVG: false, hasAlgo: false, svgOnly: false };
 
     
     if (card.classList.contains('vault-section') || card.closest('.vault-section')) {
@@ -3866,19 +3890,37 @@
       en: { flash: '⚡ Flash', full: '📖 Full', deep: '🔬 Deep' },
     };
     const labels = LAYER_LABELS[L] || LAYER_LABELS.ar;
-    const parts = [];
+    const focusParts = [];
+    const bgParts = [];
+    const allChunks = [];
 
     card.querySelectorAll('.depth-layer').forEach(layer => {
       const layerName = layer.getAttribute('data-layer') || layer.className.match(/layer--(\w+)/)?.[1] || '';
       const tpl = layer.querySelector(`.content-${L}`) || layer.querySelector('.content-ar');
       const text = tpl ? stripHTML(tpl.innerHTML) : layer.textContent.trim();
-      if (text && layerName && labels[layerName]) {
-        parts.push(`[${labels[layerName]}]\n${text}`);
+      if (!(text && layerName && labels[layerName])) return;
+      const chunk = `[${labels[layerName]}]\n${text}`;
+      allChunks.push(chunk);
+      
+      if (layer.classList.contains('active')) {
+        focusParts.push(chunk);
+        result.activeLayer = layerName;
+      } else {
+        bgParts.push(chunk);
       }
     });
 
-    if (parts.length) {
-      result.content = parts.join('\n\n');
+    if (allChunks.length) result.allLayersText = allChunks.join('\n\n');
+
+    
+    if (!focusParts.length && bgParts.length) {
+      focusParts.push(...bgParts);
+      bgParts.length = 0;
+    }
+
+    if (focusParts.length) {
+      result.content = focusParts.join('\n\n');
+      result.background = bgParts.join('\n\n');
     } else if (result.type === 'vault') {
       
       const entries = [];
@@ -3917,9 +3959,18 @@
     if (card.querySelector('.svg-diagram, .concept-diagram')) {
       const svgDesc = extractSVGComment(card);
       if (svgDesc) {
-        
-        result.content += `\n\n[سياق الرسمة — للفهم المفاهيمي فقط، لا تُعد وصفها]:\n${svgDesc}`;
         result.hasSVG = true;
+        
+        const svgBlock = `[سياق الرسمة — للفهم المفاهيمي فقط، لا تُعد وصفها]:\n${svgDesc}`;
+        result.svgBlock = svgBlock;
+        if (!result.content.trim()) {
+          
+          result.svgOnly = true;
+          result.content = svgBlock;
+        } else {
+          
+          result.background += (result.background ? '\n\n' : '') + svgBlock;
+        }
       }
     }
 
@@ -3968,29 +4019,168 @@
 - Never copy text verbatim
 - No intro or closing sentence`;
 
+  
+  const _BASE_RULES_AR_XL = `قواعد صارمة:
+- اكتب بالعربية الفصحى البسيطة حصراً
+- لا تتجاوز 300 كلمة نهائياً (حد صارم)
+- أدرج مثالاً محسوساً محلولاً خطوة بخطوة إن كان الموضوع يحتمله
+- لا تكرر محتوى البطاقة حرفياً
+- لا تضف مقدمة أو خاتمة`;
+
+  const _BASE_RULES_EN_XL = `Rules (strict):
+- Write in English only
+- Max 260 words total (hard cap)
+- Include a small worked example step by step if the topic allows it
+- Never copy card text verbatim
+- No intro or closing sentence`;
+
    
-  function buildPrompt(cardData, regenVariant) {
+  function trimAtSentence(text, limit, L) {
+    const t = (text || '').trim();
+    if (t.length <= limit) return t;
+    const cut = t.substring(0, limit);
+    
+    let idx = Math.max(
+      cut.lastIndexOf('. '), cut.lastIndexOf('.\n'),
+      cut.lastIndexOf('؟'), cut.lastIndexOf('!'),
+      cut.lastIndexOf('\n')
+    );
+    
+    if (idx < limit * 0.5) idx = cut.lastIndexOf(' ');
+    if (idx <= 0) idx = limit - 1;
+    return cut.substring(0, idx + 1).trim() + (L === 'ar' ? ' …[اقتُطع]' : ' …[trimmed]');
+  }
+
+   
+  function composeCardData(raw, scope) {
+    if (scope === 'card' && raw.allLayersText) {
+      const d = Object.assign({}, raw);
+      d.content = raw.allLayersText;
+      d.background = raw.svgBlock || '';
+      d.svgOnly = false;
+      return d;
+    }
+    if (scope === 'svg' && raw.svgBlock) {
+      const d = Object.assign({}, raw);
+      d.content = raw.svgBlock;
+      d.background = raw.content; 
+      d.svgOnly = true; 
+      return d;
+    }
+    return raw; 
+  }
+
+   
+  const AI_STYLES = {
+    simplify: {
+      ar: `أستاذ CS بارع في التبسيط، مهمتك جعل الفكرة بديهية لطالب تاه في المصطلحات. اشرح في 3 أقسام مرقمة:
+🪄 التشبيه: تشبيه واحد ممتد من الحياة اليومية يطابق الفكرة بدقة — ابنِ الصورة كاملة (3-4 جمل)
+🔁 من التشبيه إلى المفهوم: اربط كل عنصر في تشبيهك بمقابله التقني الصحيح واحداً واحداً
+📌 الجملة الدقيقة: صياغة تقنية صحيحة واحدة يحفظها الطالب بعد أن فهم`,
+      en: `CS professor who excels at simplification; make the idea intuitive for a student lost in jargon. Explain in 3 numbered sections:
+🪄 The Analogy: one extended everyday-life analogy that precisely mirrors the idea — build the full picture (3-4 sentences)
+🔁 Analogy to Concept: map each element of your analogy to its correct technical counterpart, one by one
+📌 The Precise Sentence: one technically correct formulation to keep after understanding`,
+    },
+    example: {
+      ar: `أستاذ CS يشرح بالأمثلة لا بالتنظير. اشرح عبر مثال واحد صغير محسوس في 3 أقسام مرقمة:
+🧮 المثال: معطيات صغيرة محددة (أرقام أو جدول مصغر أو حالة واقعية مصغرة)
+⚙️ الحل خطوة بخطوة: طبّق المفهوم على المثال خطوة خطوة واذكر ناتج كل خطوة
+📌 التعميم: جملة واحدة تحوّل ما حدث في المثال إلى القاعدة العامة`,
+      en: `CS professor who teaches by example, not theory. Explain through one small concrete worked example in 3 numbered sections:
+🧮 The Example: small specific inputs (numbers, a mini table, or a miniature real case)
+⚙️ Step-by-step Solution: apply the concept to the example step by step, stating each step's result
+📌 Generalization: one sentence turning what happened in the example into the general rule`,
+    },
+    why: {
+      ar: `أستاذ CS يجيب عن سؤال الطالب الخفي: "لماذا يوجد هذا أصلاً؟". اشرح في 3 أقسام مرقمة:
+❓ المشكلة قبل الحل: ما الذي كان ينكسر أو يستحيل قبل وجود هذا المفهوم
+💡 لماذا هذا التصميم تحديداً: المنطق الذي جعل الحل بهذا الشكل وليس بشكل آخر أبسط
+⚖️ الثمن المدفوع: جملة واحدة عمّا نخسره أو نعقّده مقابل هذه الفائدة`,
+      en: `CS professor answering the student's hidden question: "why does this even exist?". Explain in 3 numbered sections:
+❓ The Problem Before: what used to break or be impossible before this concept existed
+💡 Why This Design: the reasoning that made the solution take this exact shape and not a simpler one
+⚖️ The Price Paid: one sentence on what we lose or complicate in exchange for this benefit`,
+    },
+    exam: {
+      ar: `أستاذ CS خبير بأسئلة امتحانات الجامعة. جهّز الطالب لهذا الموضوع تحديداً في 3 أقسام مرقمة:
+📋 أشكال السؤال المتوقعة: صيغتان مختلفتان يُسأل بهما هذا الموضوع (تعريف/مقارنة/سيناريو)
+✍️ الإجابة النموذجية: سطران جاهزان للكتابة حرفياً في ورقة الإجابة
+⚠️ الفخ: الخطأ الذي يخسر به الطلاب درجاتهم في هذا الموضوع بالذات`,
+      en: `CS professor expert in university exam questions. Prepare the student for this exact topic in 3 numbered sections:
+📋 Expected Question Forms: two different phrasings this topic is asked in (definition/comparison/scenario)
+✍️ Model Answer: two lines ready to write verbatim on the answer sheet
+⚠️ The Trap: the exact mistake students lose marks on for this specific topic`,
+    },
+  };
+
+   
+  function tinyHash(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+  }
+
+   
+  function saveAiFeedback(vote, meta) {
+    try {
+      const KEY = 'garden_ai_feedback';
+      const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+      arr.push(Object.assign({ ts: Date.now(), vote }, meta));
+      while (arr.length > 200) arr.shift();
+      localStorage.setItem(KEY, JSON.stringify(arr));
+    } catch (e) { }
+    if (typeof window.gtag === 'function') {
+      try { window.gtag('event', 'ai_explain_feedback', Object.assign({ vote }, meta)); } catch (e) { }
+    }
+  }
+
+   
+  function buildPrompt(cardData, opts) {
+    opts = opts || {};
+    const regenVariant = opts.regen || false;
+    const prevText = opts.prevText || '';
     const subjectCode = document.documentElement.getAttribute('data-subject') || '';
     const moduleNum = document.documentElement.getAttribute('data-module') || '';
     const L = currentLang;
 
-    const courseName = L === 'ar'
-      ? (AI_COURSE_NAMES[subjectCode]?.ar || subjectCode)
-      : (AI_COURSE_NAMES[subjectCode]?.en || subjectCode);
-
-    const ctxLine = L === 'ar'
-      ? `المادة: ${subjectCode} — ${courseName} | الوحدة: ${moduleNum}`
-      : `Course: ${subjectCode} — ${courseName} | Module: ${moduleNum}`;
+    
+    const cat = (AI_CATALOG && AI_CATALOG[subjectCode]) || {};
+    const nameEn = (cat.name_en || '').trim() || AI_COURSE_NAMES[subjectCode]?.en || '';
+    const courseLabel = nameEn ? `${nameEn} (${subjectCode})` : subjectCode;
+    let ctxLine = L === 'ar'
+      ? `المادة: ${courseLabel} | الوحدة: ${moduleNum}`
+      : `Course: ${courseLabel} | Module: ${moduleNum}`;
 
     
-    const CONTENT_LIMIT = 1500;
+    const textbook = (cat.textbook || '').trim();
+    if (textbook) {
+      ctxLine += L === 'ar'
+        ? `\nالكتاب المقرر (المرجع العلمي المعتمد — استند إلى مصطلحاته ومنهجه): ${textbook}`
+        : `\nCourse textbook (authoritative reference — align terminology and approach with it): ${textbook}`;
+    }
+
+    
+    const FOCUS_LIMIT = 2000;
+    const TOTAL_LIMIT = 2600;
     const rawContent = (cardData.content || '').trim();
-    const content = rawContent.length > CONTENT_LIMIT
-      ? rawContent.substring(0, CONTENT_LIMIT) + (L === 'ar' ? '\n[محتوى مقتطع]' : '\n[content trimmed]')
-      : rawContent;
+    const focus = trimAtSentence(rawContent, FOCUS_LIMIT, L);
+    
+    let bg = (cardData.background || '').trim();
+    const bgBudget = TOTAL_LIMIT - focus.length;
+    bg = (bg && bgBudget > 250) ? trimAtSentence(bg, bgBudget, L) : '';
+    const content = focus + (bg
+      ? (L === 'ar'
+        ? '\n\n[خلفية إضافية — للسياق فقط، ركّز الشرح على المحتوى الأساسي أعلاه]:\n'
+        : '\n\n[Extra background — context only; focus the explanation on the main content above]:\n') + bg
+      : '');
 
     
-    const baseRules = L === 'ar' ? _BASE_RULES_AR : _BASE_RULES_EN;
+    const isComplex = cardData.hasAlgo || cardData.svgOnly ||
+      cardData.activeLayer === 'deep' || rawContent.length > 900;
+    const baseRules = L === 'ar'
+      ? (isComplex ? _BASE_RULES_AR_XL : _BASE_RULES_AR)
+      : (isComplex ? _BASE_RULES_EN_XL : _BASE_RULES_EN);
 
     
     const regenSuffix = regenVariant
@@ -4004,7 +4194,37 @@
     
     
     
-    if (cardData.hasSVG) {
+    const styleTpl = (opts.style && opts.style !== 'auto') ? AI_STYLES[opts.style] : null;
+    if (styleTpl) {
+      systemPrompt = (L === 'ar' ? styleTpl.ar : styleTpl.en) + '\n' + baseRules + regenSuffix;
+      userMsg = L === 'ar'
+        ? `${ctxLine}\nالموضوع: ${cardData.title}\n\n${content}`
+        : `${ctxLine}\nTopic: ${cardData.title}\n\n${content}`;
+
+    
+    
+    
+    } else if (cardData.type === 'selection') {
+      systemPrompt = (L === 'ar'
+        ? `أستاذ CS. الطالب ظلّل هذا المقطع تحديداً من صفحة الدرس لأنه لم يفهمه. اشرح المقطع نفسه لا الموضوع العام. 3 أقسام مرقمة:
+🔍 المعنى المباشر: ماذا يقول هذا المقطع بالضبط بكلمات أبسط
+💡 لماذا يهم: دور هذه الجزئية في الفكرة الأكبر للدرس
+📌 الخلاصة: جملة واحدة يستبدل بها الطالب المقطع في ذهنه
+${baseRules}`
+        : `CS professor. The student highlighted this exact passage from the lesson because they didn't understand it. Explain the passage itself, not the general topic. 3 numbered sections:
+🔍 Direct Meaning: what exactly this passage says, in simpler words
+💡 Why it Matters: this piece's role in the lesson's bigger idea
+📌 Takeaway: one sentence the student can mentally substitute for the passage
+${baseRules}`) + regenSuffix;
+
+      userMsg = L === 'ar'
+        ? `${ctxLine}\nمن بطاقة: ${cardData.title}\n\n[المقطع المُظلَّل]:\n${content}`
+        : `${ctxLine}\nFrom card: ${cardData.title}\n\n[Highlighted passage]:\n${content}`;
+
+    
+    
+    
+    } else if (cardData.svgOnly) {
       systemPrompt = (L === 'ar'
         ? `أستاذ CS متخصص. الطالب يرى الرسمة أمامه مباشرةً — لا تعد وصف عناصرها البصرية مطلقاً.
 استخدم سياق الرسمة المرفق كمرجع فقط لتبني عليه الشرح المفاهيمي.
@@ -4168,18 +4388,36 @@ ${baseRules}`) + regenSuffix;
         : `${ctxLine}\nTopic: ${cardData.title}\n\n${content}`;
     }
 
+    
+    if (opts.question) {
+      userMsg += (L === 'ar'
+        ? `\n\n[سؤال الطالب — أجب عنه تحديداً وبوضوح ضمن الشرح]:\n`
+        : `\n\n[Student's question — answer it specifically and clearly within the explanation]:\n`) + String(opts.question).trim().substring(0, 300);
+    }
+
+    
+    if (regenVariant && prevText) {
+      userMsg += (L === 'ar'
+        ? `\n\n[شرحك السابق لنفس البطاقة — ممنوع تكرار زواياه أو أمثلته أو جمله]:\n`
+        : `\n\n[Your previous explanation of this card — do not reuse its angles, examples, or sentences]:\n`) + trimAtSentence(prevText, 600, L);
+    }
+
     return { systemPrompt, userMsg };
   }
 
    
-  function aiCacheKey(title, content) {
+  function aiCacheKey(title, content, layer, variant) {
     const s = document.documentElement.getAttribute('data-subject') || '';
     const m = document.documentElement.getAttribute('data-module') || '';
     
     const keyBase = (title && title.length > 5)
       ? title.substring(0, 50)
       : (content || '').substring(0, 60);
-    return AI_CACHE_PREFIX + s + '_' + m + '_' + currentLang + '_' + keyBase.replace(/\s+/g, '_');
+    
+    return AI_CACHE_PREFIX + s + '_' + m + '_' + currentLang
+      + (layer ? '_' + layer : '')
+      + (variant ? '_' + variant : '')
+      + '_' + keyBase.replace(/\s+/g, '_');
   }
 
   function getAiCache(key) {
@@ -4202,7 +4440,7 @@ ${baseRules}`) + regenSuffix;
   }
 
    
-  async function callAI(systemPrompt, userMsg) {
+  async function callAI(messages, onDelta, onThinking) {
     if (!GARDEN_AI_ENDPOINT) return { error: true, text: '' };
 
     try {
@@ -4210,11 +4448,10 @@ ${baseRules}`) + regenSuffix;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMsg }
-          ],
-          max_tokens: 1000
+          messages,
+          
+          max_tokens: 2000,
+          stream: !!onDelta
         })
       });
 
@@ -4222,6 +4459,39 @@ ${baseRules}`) + regenSuffix;
         const err = await res.json().catch(() => ({}));
         console.error('AI Proxy error:', res.status, err);
         return { error: true, text: '', errorData: err };
+      }
+
+      const ctype = res.headers.get('Content-Type') || '';
+      if (onDelta && ctype.includes('text/event-stream') && res.body) {
+        
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '', full = '', thinkingNotified = false;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop(); 
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith('data:')) continue;
+            const payload = t.slice(5).trim();
+            if (payload === '[DONE]') continue;
+            try {
+              const j = JSON.parse(payload);
+              const delta = j.choices?.[0]?.delta || {};
+              
+              if (delta.reasoning_content && !full && !thinkingNotified) {
+                thinkingNotified = true;
+                if (typeof onThinking === 'function') onThinking();
+              }
+              const dc = delta.content || '';
+              if (dc) { full += dc; onDelta(full); }
+            } catch (e) {   }
+          }
+        }
+        return { error: false, text: full };
       }
 
       const data = await res.json();
@@ -4251,10 +4521,38 @@ ${baseRules}`) + regenSuffix;
     
     document.querySelector('.ai-modal-overlay')?.remove();
 
-    const { systemPrompt, userMsg } = buildPrompt(cardData);
-    const fullPromptText = systemPrompt + '\n\n' + userMsg;
-    const cacheKey = aiCacheKey(cardData.title, cardData.content);
-    const cached = getAiCache(cacheKey);
+    
+    const intent = { scope: 'layer', style: 'auto', question: '' };
+    let lastAiText = '';
+    let busy = false;
+    let sysPromptNow = '';   
+    let thread = [];         
+    const MAX_FOLLOWUPS = 4;
+
+    const hasLayers = !!cardData.allLayersText;
+    const hasDiagram = !!cardData.svgBlock;
+
+    
+    const scopeChips = [];
+    if (hasLayers) {
+      scopeChips.push({ id: 'layer', label: aiT('الطبقة الحالية', 'Current layer') });
+      scopeChips.push({ id: 'card', label: aiT('البطاقة كلها', 'Whole card') });
+      if (hasDiagram) scopeChips.push({ id: 'svg', label: aiT('🖼️ الرسمة', '🖼️ Diagram') });
+    }
+
+    const styleChips = [
+      { id: 'auto', label: aiT('✨ تلقائي', '✨ Smart') },
+      { id: 'simplify', label: aiT('🪄 بسّطها لي', '🪄 Simplify it') },
+      { id: 'example', label: aiT('🧮 مثال محلول', '🧮 Worked example') },
+      { id: 'why', label: aiT('🤔 لماذا؟', '🤔 Why?') },
+      { id: 'exam', label: aiT('🎯 للامتحان', '🎯 Exam prep') },
+    ];
+
+    const chips = (list, group, activeId) => list.map(c =>
+      `<button class="ai-chip${c.id === activeId ? ' active' : ''}" data-group="${group}" data-id="${c.id}">${c.label}</button>`
+    ).join('');
+
+    const REGEN_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`;
 
     const overlay = document.createElement('div');
     overlay.className = 'ai-modal-overlay';
@@ -4264,20 +4562,29 @@ ${baseRules}`) + regenSuffix;
           <h3>${_AI_ICON_HEADER} ${aiT('DeepSeek يشرح', 'AI Explanation')}</h3>
           <button class="ai-modal-close" id="ai-close">✕</button>
         </div>
+        <div class="ai-intent-bar">
+          ${scopeChips.length ? `<div class="ai-chip-row"><span class="ai-chip-label">${aiT('ماذا أشرح؟', 'Explain what?')}</span>${chips(scopeChips, 'scope', intent.scope)}</div>` : ''}
+          <div class="ai-chip-row"><span class="ai-chip-label">${aiT('كيف؟', 'How?')}</span>${chips(styleChips, 'style', intent.style)}</div>
+          <div class="ai-q-row">
+            <input type="text" class="ai-q-input" id="ai-question" maxlength="300" placeholder="${aiT('ما الذي لم تفهمه بالضبط؟ (اختياري)', 'What exactly is unclear? (optional)')}">
+            <button class="ai-q-send" id="ai-ask">${aiT('اشرح', 'Explain')}</button>
+          </div>
+        </div>
         <div class="ai-modal-body" id="ai-body">
-          ${cached
-        ? `<div class="ai-cached-badge">⚡ ${aiT('محفوظ مسبقاً', 'Cached')}</div><div class="ai-result">${formatAiText(cached)}</div>`
-        : `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${aiT('جاري الشرح...', 'Generating explanation...')}</span></div>`
-      }
+          <div id="ai-thread"></div>
+          <div class="ai-composer" id="ai-composer" style="display:none">
+            <div class="ai-feedback-row" id="ai-fb"></div>
+            <div class="ai-followup-row" id="ai-fu-row"></div>
+          </div>
         </div>
         <div class="ai-modal-footer" id="ai-footer">
-          <button class="ai-action-btn" id="ai-copy-prompt">
+          <button class="ai-action-btn" id="ai-copy-prompt" title="${aiT('نسخ البرومبت', 'Copy prompt')}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            ${aiT('نسخ البرومبت', 'Copy Prompt')}
+            ${aiT('نسخ', 'Copy')}
           </button>
           ${GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--regen" id="ai-regen" title="${aiT('تجاهل الكاش وتوليد شرح جديد', 'Bypass cache and generate a fresh explanation')}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-            ${aiT('إعادة التوليد', 'Regenerate')}
+            ${REGEN_ICON}
+            ${aiT('توليد', 'Regen')}
           </button>` : ''}
           <a class="ai-action-btn" href="https://chat.deepseek.com/" target="_blank" rel="noopener">
             ${_AI_ICON_DEEPSEEK} DeepSeek
@@ -4288,15 +4595,19 @@ ${baseRules}`) + regenSuffix;
           <a class="ai-action-btn" href="https://gemini.google.com/" target="_blank" rel="noopener">
             ${_AI_ICON_GEMINI} Gemini
           </a>
-          ${!cached && GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--primary" id="ai-retry" style="display:none">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-            ${aiT('إعادة المحاولة', 'Retry')}
+          ${GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--primary" id="ai-retry" style="display:none" title="${aiT('إعادة المحاولة', 'Retry')}">
+            ${REGEN_ICON}
+            ${aiT('محاولة', 'Retry')}
           </button>` : ''}
         </div>
       </div>`;
 
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.classList.add('open'));
+
+    const body = overlay.querySelector('#ai-body');
+    const threadEl = overlay.querySelector('#ai-thread');
+    const composer = overlay.querySelector('#ai-composer');
 
     
     const close = () => {
@@ -4309,101 +4620,355 @@ ${baseRules}`) + regenSuffix;
       if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
     });
 
+     
+    function currentKey() {
+      const variant = intent.scope + '-' + intent.style
+        + (intent.question ? '-q' + tinyHash(intent.question) : '');
+      return aiCacheKey(cardData.title, cardData.content, cardData.activeLayer, variant);
+    }
+    function currentPrompt(regen) {
+      const composed = composeCardData(cardData, intent.scope);
+      return buildPrompt(composed, {
+        regen: !!regen,
+        prevText: regen ? lastAiText : '',
+        style: intent.style,
+        question: intent.question,
+      });
+    }
+
+     
+    function threadWindow() {
+      let hist = thread;
+      if (hist.length > 6) hist = hist.slice(0, 2).concat(hist.slice(-4));
+      return hist;
+    }
+
+     
+    function currentMessages() {
+      if (thread.length && sysPromptNow) {
+        return [{ role: 'system', content: sysPromptNow }].concat(threadWindow());
+      }
+      const p = currentPrompt(false);
+      return [{ role: 'system', content: p.systemPrompt }, { role: 'user', content: p.userMsg }];
+    }
+
+     
+    function scrollBottom() { if (body) body.scrollTop = body.scrollHeight; }
+
+    function newHolder() {
+      const holder = document.createElement('div');
+      holder.className = 'ai-answer-holder';
+      threadEl.appendChild(holder);
+      return holder;
+    }
+
+    function typesetIn(el) {
+      if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+        MathJax.typesetPromise([el]).catch(() => { });
+      }
+    }
+
+    function errorHTML(result) {
+      const errMsg = result.errorData?.message_ar && currentLang === 'ar'
+        ? result.errorData.message_ar
+        : result.errorData?.message_en || aiT('النموذج يتعرض لضغط عالي حالياً.', 'AI model is under heavy load.');
+      return `
+        <div class="ai-error">
+          <div class="ai-error-icon">⚠️</div>
+          <div class="ai-error-msg">${errMsg}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted)">${aiT('يمكنك نسخ البرومبت وإرساله يدوياً عبر الأزرار أدناه', 'You can copy the prompt and send it manually using the buttons below')}</div>
+        </div>`;
+    }
+
+    function restoreRegenBtn() {
+      const regenBtn = overlay.querySelector('#ai-regen');
+      if (regenBtn) {
+        regenBtn.disabled = false;
+        regenBtn.innerHTML = `${REGEN_ICON} ${aiT('إعادة التوليد', 'Regenerate')}`;
+      }
+    }
+
+     
+    function runAI(messages, holder, opts, onOk) {
+      holder.innerHTML = `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${opts.loadingMsg || aiT('جاري الشرح...', 'Generating explanation...')}</span></div>`;
+      let streamEl = null;
+      const onThinking = () => {
+        const span = holder.querySelector('.ai-loading span');
+        if (span) span.textContent = aiT('🤔 يفكر بعمق في شرحك...', '🤔 Thinking deeply about your explanation...');
+      };
+      const onDelta = (full) => {
+        if (!document.body.contains(holder)) return;
+        if (!streamEl) {
+          holder.innerHTML = '';
+          streamEl = document.createElement('div');
+          streamEl.className = 'ai-result ai-streaming';
+          holder.appendChild(streamEl);
+        }
+        streamEl.textContent = full; 
+        scrollBottom();
+      };
+      callAI(messages, onDelta, onThinking).then(result => {
+        busy = false;
+        restoreRegenBtn();
+        if (!document.body.contains(overlay)) return;
+        if (result.error || !result.text) {
+          holder.innerHTML = errorHTML(result);
+          const retryBtn = overlay.querySelector('#ai-retry');
+          if (retryBtn) retryBtn.style.display = '';
+        } else {
+          holder.innerHTML = (opts.badge || '') + `<div class="ai-result">${formatAiText(result.text)}</div>`;
+          typesetIn(holder);
+          onOk(result.text);
+        }
+        scrollBottom();
+      });
+    }
+
+     
+    function generate(opts) {
+      opts = opts || {};
+      if (busy || !body) return;
+      thread = [];
+      composer.style.display = 'none';
+      resetFeedback();
+      resetFollowupRow();
+      threadEl.innerHTML = '';
+      const key = currentKey();
+
+      const p = currentPrompt(!!opts.regen);
+      sysPromptNow = p.systemPrompt;
+
+      if (!opts.force) {
+        const hit = getAiCache(key);
+        if (hit) {
+          lastAiText = hit;
+          thread = [{ role: 'user', content: p.userMsg }, { role: 'assistant', content: hit }];
+          const holder = newHolder();
+          holder.innerHTML = `<div class="ai-cached-badge">⚡ ${aiT('محفوظ مسبقاً', 'Cached')}</div><div class="ai-result">${formatAiText(hit)}</div>`;
+          typesetIn(holder);
+          composer.style.display = '';
+          return;
+        }
+      }
+
+      if (!GARDEN_AI_ENDPOINT) {
+        threadEl.innerHTML = `
+          <div class="ai-error">
+            <div class="ai-error-icon">📋</div>
+            <div class="ai-error-msg">${aiT('انسخ البرومبت وأرسله لأي نموذج ذكاء اصطناعي', 'Copy the prompt and send it to any AI model')}</div>
+          </div>`;
+        return;
+      }
+
+      busy = true;
+      if (opts.regen) {
+        try { localStorage.removeItem(key); } catch (e) { }
+        const regenBtn = overlay.querySelector('#ai-regen');
+        if (regenBtn) {
+          regenBtn.disabled = true;
+          regenBtn.innerHTML = `<span class="ai-regen-spin">↻</span> ${aiT('جاري التوليد...', 'Generating...')}`;
+        }
+      }
+
+      const holder = newHolder();
+      runAI(
+        [{ role: 'system', content: p.systemPrompt }, { role: 'user', content: p.userMsg }],
+        holder,
+        {
+          badge: opts.regen ? `<div class="ai-fresh-badge">✨ ${aiT('شرح جديد', 'Fresh explanation')}</div>` : '',
+          loadingMsg: opts.regen ? aiT('جاري توليد شرح جديد...', 'Generating a fresh explanation...') : aiT('جاري الشرح...', 'Generating explanation...'),
+        },
+        (text) => {
+          setAiCache(key, text);
+          lastAiText = text;
+          thread = [{ role: 'user', content: p.userMsg }, { role: 'assistant', content: text }];
+          composer.style.display = '';
+        }
+      );
+    }
+
+     
+    function followUp(msgText, displayText) {
+      if (busy || !msgText || !thread.length) return;
+      busy = true;
+      const q = document.createElement('div');
+      q.className = 'ai-user-q';
+      q.textContent = displayText || msgText;
+      threadEl.appendChild(q);
+      scrollBottom();
+
+      
+      const messages = [{ role: 'system', content: sysPromptNow }]
+        .concat(threadWindow(), [{ role: 'user', content: msgText }]);
+
+      const holder = newHolder();
+      runAI(messages, holder, { loadingMsg: aiT('جاري الرد...', 'Answering...') }, (ans) => {
+        thread.push({ role: 'user', content: msgText }, { role: 'assistant', content: ans });
+        lastAiText = ans;
+        if ((thread.length - 2) / 2 >= MAX_FOLLOWUPS) limitComposer();
+      });
+    }
+
+     
+    function bindFeedback() {
+      overlay.querySelectorAll('.ai-fb-btn').forEach(b => b.addEventListener('click', () => {
+        const vote = b.getAttribute('data-v');
+        saveAiFeedback(vote, {
+          s: document.documentElement.getAttribute('data-subject') || '',
+          m: document.documentElement.getAttribute('data-module') || '',
+          t: (cardData.title || '').substring(0, 40),
+          intent: intent.scope + '-' + intent.style,
+          turns: Math.max(0, (thread.length - 2) / 2),
+          ctype: cardData.type,
+        });
+        const fb = overlay.querySelector('#ai-fb');
+        if (fb) fb.innerHTML = vote === 'up'
+          ? `<span class="ai-fb-thanks">💚 ${aiT('شكراً! تقييمك يحسّن الشرح', 'Thanks! Your rating improves explanations')}</span>`
+          : `<span class="ai-fb-thanks">${aiT('جرّب «لم أفهم بعد» أو غيّر الأسلوب من الأعلى 👆', 'Try "Still unclear" or switch the style above 👆')}</span>`;
+      }));
+    }
+    function resetFeedback() {
+      const fb = overlay.querySelector('#ai-fb');
+      if (!fb) return;
+      fb.innerHTML = `
+        <span class="ai-fb-label">${aiT('هل أفادك الشرح؟', 'Was this helpful?')}</span>
+        <button class="ai-fb-btn" data-v="up" aria-label="${aiT('مفيد', 'Helpful')}">👍</button>
+        <button class="ai-fb-btn" data-v="down" aria-label="${aiT('غير مفيد', 'Not helpful')}">👎</button>`;
+      bindFeedback();
+    }
+
+     
+    function resetFollowupRow() {
+      const row = overlay.querySelector('#ai-fu-row');
+      if (!row) return;
+      row.innerHTML = `
+        <button class="ai-confused-btn" id="ai-confused">😵‍💫 ${aiT('لم أفهم بعد', 'Still unclear')}</button>
+        <input type="text" class="ai-q-input" id="ai-fu-input" maxlength="300" placeholder="${aiT('اسأل سؤال متابعة...', 'Ask a follow-up...')}">
+        <button class="ai-q-send" id="ai-fu-send">${aiT('أرسل', 'Send')}</button>`;
+      const fuInput = row.querySelector('#ai-fu-input');
+      const sendFu = () => {
+        const v = fuInput.value.trim();
+        if (!v) return;
+        fuInput.value = '';
+        followUp(v);
+      };
+      row.querySelector('#ai-fu-send').addEventListener('click', sendFu);
+      fuInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendFu(); });
+      row.querySelector('#ai-confused').addEventListener('click', () => {
+        followUp(
+          aiT(
+            'لم أفهم شرحك السابق. انزل مستوى: أعد الشرح بأسلوب أبسط بكثير، بتشبيه أسهل ومثال أصغر خطوة بخطوة، وكأنك تشرح لمبتدئ تماماً.',
+            "I didn't understand your previous explanation. Go a level down: re-explain much more simply, with an easier analogy and a smaller step-by-step example, as if to a complete beginner."
+          ),
+          aiT('😵‍💫 لم أفهم بعد — بسّط أكثر', "😵‍💫 Still unclear — simplify more")
+        );
+      });
+    }
+    function limitComposer() {
+      const row = overlay.querySelector('#ai-fu-row');
+      if (row) row.innerHTML = `<span class="ai-fu-limit">${aiT('وصلت لحد المتابعة — استخدم «إعادة التوليد» لبدء شرح جديد', 'Follow-up limit reached — use "Regenerate" to start fresh')}</span>`;
+    }
+
+     
+    overlay.querySelectorAll('.ai-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (busy) return;
+        const group = chip.getAttribute('data-group');
+        const id = chip.getAttribute('data-id');
+        if ((group === 'scope' ? intent.scope : intent.style) === id) return;
+        overlay.querySelectorAll(`.ai-chip[data-group="${group}"]`).forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        if (group === 'scope') intent.scope = id; else intent.style = id;
+        generate();
+      });
+    });
+
+    const qInput = overlay.querySelector('#ai-question');
+    const askNow = () => {
+      if (busy) return;
+      intent.question = qInput.value.trim();
+      generate();
+    };
+    overlay.querySelector('#ai-ask').addEventListener('click', askNow);
+    qInput.addEventListener('keydown', e => { if (e.key === 'Enter') askNow(); });
+
     
     overlay.querySelector('#ai-copy-prompt')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(fullPromptText).then(() => {
+      const ROLE_LABEL = { system: '[System]', user: '[User]', assistant: '[Assistant]' };
+      const textOut = currentMessages()
+        .map(m => `${ROLE_LABEL[m.role] || '[' + m.role + ']'}:\n${m.content}`)
+        .join('\n\n');
+      navigator.clipboard.writeText(textOut).then(() => {
         const btn = overlay.querySelector('#ai-copy-prompt');
         if (btn) { const old = btn.innerHTML; btn.innerHTML = `✅ ${aiT('تم النسخ!', 'Copied!')}`; setTimeout(() => btn.innerHTML = old, 1500); }
       });
     });
 
-     
-    function doRegen() {
-      const body = overlay.querySelector('#ai-body');
-      const regenBtn = overlay.querySelector('#ai-regen');
-      if (!body) return;
-      try { localStorage.removeItem(cacheKey); } catch (e) { }
-      if (regenBtn) {
-        regenBtn.disabled = true;
-        regenBtn.innerHTML = `<span class="ai-regen-spin">↻</span> ${aiT('جاري التوليد...', 'Generating...')}`;
-      }
-      body.innerHTML = `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${aiT('جاري توليد شرح جديد...', 'Generating a fresh explanation...')}</span></div>`;
-      
-      const regenPrompt = buildPrompt(cardData, true);
-      callAI(regenPrompt.systemPrompt, regenPrompt.userMsg).then(result => {
-        if (!body) return;
-        if (regenBtn) {
-          regenBtn.disabled = false;
-          regenBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> ${aiT('إعادة التوليد', 'Regenerate')}`;
-        }
-        if (result.error) {
-          const errMsg = result.errorData?.message_ar && currentLang === 'ar'
-            ? result.errorData.message_ar
-            : result.errorData?.message_en || aiT('فشل التوليد. حاول مرة أخرى.', 'Generation failed. Try again.');
-          body.innerHTML = `<div class="ai-error"><div class="ai-error-icon">⚠️</div><div class="ai-error-msg">${errMsg}</div></div>`;
-        } else {
-          setAiCache(cacheKey, result.text);
-          body.innerHTML = `<div class="ai-fresh-badge">✨ ${aiT('شرح جديد', 'Fresh explanation')}</div><div class="ai-result">${formatAiText(result.text)}</div>`;
-        }
-      });
-    }
-    overlay.querySelector('#ai-regen')?.addEventListener('click', doRegen);
+    overlay.querySelector('#ai-regen')?.addEventListener('click', () => generate({ regen: true, force: true }));
+    overlay.querySelector('#ai-retry')?.addEventListener('click', () => generate({ force: true }));
 
     
-    if (!cached && GARDEN_AI_ENDPOINT) {
-      callAI(systemPrompt, userMsg).then(result => {
-        const body = overlay.querySelector('#ai-body');
-        if (!body) return;
-        if (result.error) {
-          const errMsg = result.errorData?.message_ar && currentLang === 'ar'
-            ? result.errorData.message_ar
-            : result.errorData?.message_en || aiT('النموذج يتعرض لضغط عالي حالياً.', 'AI model is under heavy load.');
-          body.innerHTML = `
-            <div class="ai-error">
-              <div class="ai-error-icon">⚠️</div>
-              <div class="ai-error-msg">${errMsg}</div>
-              <div style="font-size:0.8rem;color:var(--text-muted)">${aiT('يمكنك نسخ البرومبت وإرساله يدوياً عبر الأزرار أدناه', 'You can copy the prompt and send it manually using the buttons below')}</div>
-            </div>`;
-          const retryBtn = overlay.querySelector('#ai-retry');
-          if (retryBtn) retryBtn.style.display = '';
-        } else {
-          setAiCache(cacheKey, result.text);
-          body.innerHTML = `<div class="ai-result">${formatAiText(result.text)}</div>`;
-        }
-      });
-    } else if (!cached && !GARDEN_AI_ENDPOINT) {
-      const body = overlay.querySelector('#ai-body');
-      if (body) body.innerHTML = `
-        <div class="ai-error">
-          <div class="ai-error-icon">📋</div>
-          <div class="ai-error-msg">${aiT('انسخ البرومبت وأرسله لأي نموذج ذكاء اصطناعي', 'Copy the prompt and send it to any AI model')}</div>
-        </div>`;
-    }
-
-    
-    overlay.querySelector('#ai-retry')?.addEventListener('click', () => {
-      const body = overlay.querySelector('#ai-body');
-      if (body) body.innerHTML = `<div class="ai-loading"><div class="ai-loading-spinner"></div><span>${aiT('جاري الشرح...', 'Generating explanation...')}</span></div>`;
-      callAI(systemPrompt, userMsg).then(result => {
-        if (!body) return;
-        if (result.error) {
-          body.innerHTML = `<div class="ai-error"><div class="ai-error-icon">⚠️</div><div class="ai-error-msg">${aiT('لم ينجح الاتصال. حاول لاحقاً.', 'Connection failed. Try later.')}</div></div>`;
-        } else {
-          setAiCache(cacheKey, result.text);
-          body.innerHTML = `<div class="ai-result">${formatAiText(result.text)}</div>`;
-        }
-      });
-    });
+    generate();
   }
 
    
   function formatAiText(text) {
-    return text
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const inline = s => esc(s)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')
-      .replace(/^/, '<p>').replace(/$/, '</p>');
+      .replace(/`([^`]+)`/g, '<code dir="ltr">$1</code>');
+
+    const lines = (text || '').replace(/\r\n/g, '\n').split('\n');
+    let html = '';
+    let para = [];
+    let list = null; 
+    let inCode = false, codeBuf = [];
+
+    const flushPara = () => { if (para.length) { html += '<p>' + para.join('<br>') + '</p>'; para = []; } };
+    const flushList = () => { if (list) { html += `<${list.type}>` + list.items.map(i => `<li>${i}</li>`).join('') + `</${list.type}>`; list = null; } };
+
+    for (const rawLine of lines) {
+      const t = rawLine.trim();
+      
+      if (/^```/.test(t)) {
+        if (inCode) {
+          html += `<pre dir="ltr"><code>${esc(codeBuf.join('\n'))}</code></pre>`;
+          codeBuf = []; inCode = false;
+        } else {
+          flushPara(); flushList(); inCode = true;
+        }
+        continue;
+      }
+      if (inCode) { codeBuf.push(rawLine); continue; }
+      if (!t) { flushPara(); flushList(); continue; }
+      
+      const h = t.match(/^#{1,4}\s+(.*)/);
+      if (h) { flushPara(); flushList(); html += `<h4>${inline(h[1])}</h4>`; continue; }
+      
+      const ul = t.match(/^[-*•]\s+(.*)/);
+      const ol = t.match(/^\d+[.)]\s+(.*)/);
+      if (ul || ol) {
+        flushPara();
+        const type = ul ? 'ul' : 'ol';
+        if (!list || list.type !== type) { flushList(); list = { type, items: [] }; }
+        list.items.push(inline((ul || ol)[1]));
+        continue;
+      }
+      flushList();
+      para.push(inline(t));
+    }
+    if (inCode && codeBuf.length) html += `<pre dir="ltr"><code>${esc(codeBuf.join('\n'))}</code></pre>`;
+    flushPara(); flushList();
+    return html || '<p></p>';
+  }
+
+   
+  function renderAiResult(bodyEl, html) {
+    if (!bodyEl) return;
+    bodyEl.innerHTML = html;
+    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+      MathJax.typesetPromise([bodyEl]).catch(() => { });
+    }
   }
 
    
@@ -4418,7 +4983,8 @@ ${baseRules}`) + regenSuffix;
       
       if (document.documentElement.getAttribute('data-page') === 'quiz' &&
         !card.classList.contains('accordion-item')) return;
-      if (!card.style.position || card.style.position === 'static') {
+       
+      if (getComputedStyle(card).position === 'static') {
         card.style.position = 'relative'; 
       }
       const btn = document.createElement('button');
@@ -4461,8 +5027,25 @@ ${baseRules}`) + regenSuffix;
   }
 
    
+   
+   
+
+   
+  function _isContentPage() {
+    var root = document.documentElement;
+    var p = root.getAttribute('data-page');
+    if (p === 'review' || p === 'quiz') return true;
+    if (root.hasAttribute('data-subject') && root.hasAttribute('data-module')) return true;
+     
+    var gh = document.querySelector('[data-gh-variant]');
+    if (gh && gh.getAttribute('data-gh-variant') === 'module') return true;
+    return false;
+  }
   function initAiSystem() {
+    if (!_isContentPage()) return;   
     initAiExplain();
+    loadAiCatalog(); 
+     
   }
 
   if (document.readyState === 'loading') {
@@ -4504,7 +5087,8 @@ ${baseRules}`) + regenSuffix;
       
       var pathMatch = location.pathname.match(/\/L(\d+)\/|\/level(\d+)\//i);
       var currentLevel = pathMatch ? (pathMatch[1] || pathMatch[2]) : null;
-      var levels = currentLevel ? [currentLevel] : ['3', '4', '5', '6', '7', '8'];
+       
+      var levels = currentLevel ? [currentLevel] : ['HUB', 'others', '3', '4', '5', '6', '7', '8'];
 
       
       var combined = {
@@ -4553,7 +5137,12 @@ ${baseRules}`) + regenSuffix;
           combined.totalSessions += totalSessions;
           combined.doneSessions += doneSessions;
           if (!combined.planType) combined.planType = activeType;
-          if (!combined.planUrl) combined.planUrl = '/L' + lv + '/planner/index.html';
+           
+          if (!combined.planUrl) {
+            combined.planUrl = (lv === 'HUB')
+              ? ROOT + 'hub/planner.html'
+              : ROOT + 'L' + lv + '/planner/index.html';
+          }
         } catch (e) {   }
       }
 
@@ -4609,7 +5198,7 @@ ${baseRules}`) + regenSuffix;
             if (!combined.planUrl) {
               var lvMatch = legacyKeys[i].match(/L(\d+)/);
               var lvL = lvMatch ? lvMatch[1] : '5';
-              combined.planUrl = '/L' + lvL + '/planner/index.html';
+              combined.planUrl = ROOT + 'L' + lvL + '/planner/index.html';
             }
           } catch (e) {   }
         }
@@ -4653,7 +5242,8 @@ ${baseRules}`) + regenSuffix;
         return;
       }
 
-      banner.style.display = '';
+       
+      banner.style.display = 'flex';
 
       var planTypeLabel = '';
       if (data.planType === 'midterm') planTypeLabel = isAr ? 'ميدتيرم' : 'Midterm';
@@ -4672,7 +5262,8 @@ ${baseRules}`) + regenSuffix;
       var subEl = document.getElementById('today-banner-subtitle');
       if (subEl) {
         subEl.textContent = isAr
-          ? (planTypeLabel + ' · الإجمالي: ' + data.doneSessions + ' من ' + data.totalSessions + ' جلسة')
+          ? (planTypeLabel + ' · الإجمالي: ' + data.doneSessions + ' من ' + data.totalSessions + ' ' +
+             countWord(data.totalSessions, ['جلسة', 'جلستين', 'جلسات'], ['session', 'sessions']))
           : (planTypeLabel + ' · Total: ' + data.doneSessions + ' of ' + data.totalSessions + ' sessions');
       }
 
@@ -4703,8 +5294,138 @@ ${baseRules}`) + regenSuffix;
     window.Planner.refreshBanner = _updateTodayBanner;
   })();
 
+   
+  function garden_lang() {
+    return document.documentElement.getAttribute('lang') || 'ar';
+  }
+  function arabicCount(n, singular, dual, plural, isAdj) {
+    if (n === 0) return n + ' ' + plural;
+    if (n === 1) return isAdj ? ('1 ' + singular) : (singular + ' واحدة');
+    if (n === 2) return dual;
+    if (n >= 3 && n <= 10) return n + ' ' + plural;
+    return n + ' ' + singular;
+  }
+  function englishCount(n, singular, plural) {
+    return n + ' ' + (n === 1 ? singular : plural);
+  }
+  function smartCount(n, arForms, enForms, isAdj) {
+    return (garden_lang() === 'ar')
+      ? arabicCount(n, arForms[0], arForms[1], arForms[2], isAdj)
+      : englishCount(n, enForms[0], enForms[1]);
+  }
+  function countWord(n, arForms, enForms) {
+    if (garden_lang() === 'ar') {
+      if (n === 1) return arForms[0];
+      if (n === 2) return arForms[1];
+      if (n >= 3 && n <= 10) return arForms[2];
+      return arForms[0];
+    }
+    return (n === 1) ? enForms[0] : enForms[1];
+  }
+
+   
+
+   
+  var NAV_STACK_KEY = 'garden_nav_stack';
+  function _navStackRead() {
+    try { return JSON.parse(sessionStorage.getItem(NAV_STACK_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function _navStackWrite(a) {
+    try { sessionStorage.setItem(NAV_STACK_KEY, JSON.stringify(a.slice(-50))); } catch (e) {}
+  }
+  function _pushNavStack() {
+    var here = location.href;
+    var st = _navStackRead();
+    if (st.length && st[st.length - 1] === here) return;   
+    st.push(here);
+    _navStackWrite(st);
+  }
+  function hasBackTarget() { return _navStackRead().length > 1; }
+   
+  function goBack() {
+    var st = _navStackRead();
+    if (st.length < 2) return false;
+    st.pop();
+    var target = st[st.length - 1];
+    _navStackWrite(st);
+    location.href = target;
+    return true;
+  }
+   
+  _pushNavStack();
+
+  function _navL(ar, en) { return (currentLang === 'ar') ? ar : en; }
+
+   
+  function ensureNavAffordances() {
+    var nav = document.querySelector('.header-nav');
+    if (!nav) return;
+
+    
+    if (!nav.querySelector('.g-nav-home')) {
+      var home = document.createElement('a');
+      home.className = 'nav-btn nav-btn--icon g-nav-home';
+      home.href = ROOT + 'index.html';
+      home.innerHTML = '<img src="' + ROOT + 'shared/icons/logo-mark.svg" alt="" width="17" height="17" aria-hidden="true">';
+      home.title = _navL('الحديقة الرقمية — الرئيسية', 'Digital Garden — Home');
+      home.setAttribute('aria-label', home.title);
+      home.setAttribute('data-ar-title', 'الحديقة الرقمية — الرئيسية');
+      home.setAttribute('data-en-title', 'Digital Garden — Home');
+      nav.insertBefore(home, nav.firstChild);
+    }
+
+    
+    if (!nav.querySelector('.g-nav-back')) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'nav-btn nav-btn--icon g-nav-back';
+      back.innerHTML = '<i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>';
+      back.title = _navL('رجوع خطوة', 'Back one step');
+      back.setAttribute('aria-label', back.title);
+      back.setAttribute('data-ar-title', 'رجوع خطوة');
+      back.setAttribute('data-en-title', 'Back one step');
+      back.addEventListener('click', function () { goBack(); });
+       
+      if (!hasBackTarget()) back.style.display = 'none';
+      var homeEl = nav.querySelector('.g-nav-home');
+      nav.insertBefore(back, homeEl ? homeEl.nextSibling : nav.firstChild);
+    }
+
+    
+    var up2 = nav.querySelector('.nav-btn--icon[title="Home"]');
+    if (up2) {
+      up2.title = _navL('صفحة المادة', 'Course page');
+      up2.setAttribute('aria-label', up2.title);
+      up2.setAttribute('data-ar-title', 'صفحة المادة');
+      up2.setAttribute('data-en-title', 'Course page');
+    }
+  }
+
+   
+
+   
+  function _bootPage() {
+    applyTheme(currentTheme);
+     
+  }
+
+   
+  document.addEventListener('click', function (e) {
+    var inp = e.target.closest && e.target.closest('input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week]');
+    if (!inp || inp.disabled || inp.readOnly) return;
+    if (typeof inp.showPicker === 'function') { try { inp.showPicker(); } catch (_) {} }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bootPage);
+  } else {
+    _bootPage();
+  }
+
   window.Garden = {
     cycleTheme, toggleLanguage, setLanguage, applyTheme,
+    goBack, hasBackTarget, ensureNavAffordances,
+    smartCount, countWord,
     flip: flipCard, grade: gradeCard, resetFC, report: showSM2Report,
     practice: startPractice, renderPractice, renderFC: renderFlashcard,
     undo: undoGrade, bury: buryCard, filterFC, quickReview,
@@ -5338,13 +6059,14 @@ ${baseRules}`) + regenSuffix;
 ;(function(){
   'use strict';
   var path = location.pathname;
-  var ctx = null;
-  try { ctx = sessionStorage.getItem('garden_nav_from_hub'); } catch(e) { return; }
 
+   
   
-  var isSubjectHub = /\/[A-Z]{2,5}\d{2,4}\/index\.html$/.test(path);
+  var isSubjectHub = /\/[A-Z]{2,5}\d{2,4}\/(index\.html)?$/.test(path);
   
-  var isLevelHub = /\/(L\d+|others)\/index\.html$/.test(path);
+  var isLevelHub = /\/(L\d+|others)\/(index\.html)?$/.test(path);
+  
+  var isHubIndex = /\/hub\/(index\.html)?$/.test(path);
   
   var isModulePage = /\/[A-Z]{2,5}\d{2,4}\/M\d+\.html$/.test(path);
   
@@ -5352,8 +6074,8 @@ ${baseRules}`) + regenSuffix;
 
    
   function trackSemesterVisit() {
-    var isStudyPage = isSubjectHub || isLevelHub || isModulePage || isReviewPage ||
-                      path.indexOf('/hub/index.html') !== -1;
+     
+    var isStudyPage = isSubjectHub || isLevelHub || isModulePage || isReviewPage || isHubIndex;
     if (!isStudyPage) return;
     var semRaw = null;
     try { semRaw = localStorage.getItem('my_semester'); } catch(e) { return; }
@@ -5396,78 +6118,19 @@ ${baseRules}`) + regenSuffix;
   trackSemesterVisit();
 
    
-  function getLevelFromPath() {
-    var m = path.match(/\/(L\d+)\//);
-    if (m) return m[1];
-    if (path.indexOf('/others/') !== -1) return 'others';
-    return null;
-  }
-  function trackLevelVisit() {
-    var levelId = getLevelFromPath();
-    if (!levelId) return;
-    var metaRaw = null;
-    try { metaRaw = localStorage.getItem('garden_level_meta'); } catch(e) { return; }
-    var meta = metaRaw ? (function(){ try { return JSON.parse(metaRaw); } catch(e) { return null; } })() : null;
-    if (!meta) meta = {};
-    var lm = meta[levelId] || { visits: 0, last_visit: 0 };
 
-    var today = new Date(); today.setHours(0,0,0,0);
-    var lastDay = lm.last_visit ? new Date(lm.last_visit) : new Date(0);
-    lastDay.setHours(0,0,0,0);
-    if (lastDay.getTime() === today.getTime()) return; 
+   
 
-    lm.visits = (lm.visits || 0) + 1;
-    lm.last_visit = Date.now();
-    meta[levelId] = lm;
-    try { localStorage.setItem('garden_level_meta', JSON.stringify(meta)); } catch(e) {}
+   
+  var isDashboard = !isSubjectHub && !isLevelHub && !isHubIndex &&
+                    (path === '/' || /\/index\.html$/.test(path) || /\/$/.test(path));
 
-    
-    if (lm.visits >= 3) {
-      var activeLevel = null;
-      try { activeLevel = localStorage.getItem('garden_active_level'); } catch(e) {}
-      if (!activeLevel) {
-        var deactivated = [];
-        try { deactivated = JSON.parse(localStorage.getItem('garden_level_deactivated') || '[]'); } catch(e) {}
-        if (deactivated.indexOf(levelId) === -1) {
-          try {
-            localStorage.setItem('garden_active_level', levelId);
-            document.dispatchEvent(new CustomEvent('garden:levelActivated', { detail: { level: levelId } }));
-          } catch(e) {}
-        }
-      }
-    }
-  }
-  trackLevelVisit();
-
-  function applyNavContext() {
-    if (!ctx) return;
-    if (isSubjectHub) {
-      
-      var homeBtn = document.querySelector('.nav-btn--icon[title="Home"]');
-      if (homeBtn && homeBtn.getAttribute('href') === '../index.html') {
-        homeBtn.setAttribute('href', '../../hub/index.html');
-        homeBtn.setAttribute('title', 'فصلي الدراسي · My Semester');
-        var icon = homeBtn.querySelector('i');
-        if (icon) { icon.className = 'fa-solid fa-graduation-cap'; }
-      }
-    }
-    
-  }
-
-  
-  
-  if (isLevelHub || (path.endsWith('/index.html') && !isSubjectHub && !isLevelHub) || path.endsWith('/hub/index.html')) {
-    try { sessionStorage.removeItem('garden_nav_from_hub'); } catch(e) {}
-    ctx = null;
-  }
-
-  
-  if (ctx && (isSubjectHub || isModulePage)) {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', applyNavContext);
-    } else {
-      applyNavContext();
-    }
+   
+  if (isLevelHub || isDashboard || isHubIndex) {
+    try {
+      sessionStorage.removeItem('garden_nav_from_hub');
+      sessionStorage.removeItem('garden_nav_from_dashboard');
+    } catch (e) {}
   }
 })();
  
