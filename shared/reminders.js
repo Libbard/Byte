@@ -170,7 +170,7 @@
     var d = new Date(ms);
     var opts = { weekday: 'long', hour: 'numeric', minute: '2-digit' };
     try {
-      return d.toLocaleString(lang() === 'ar' ? 'ar-SA' : 'en-GB', opts);
+      return d.toLocaleString(lang() === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', opts);
     } catch (e) { return d.toLocaleString(); }
   }
 

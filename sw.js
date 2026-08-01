@@ -1,8 +1,13 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v23';  
-var _OLD_CACHE_NOTE = 'byte-v21';  
+var CACHE_NAME = 'byte-v46';  
+var _OLD_CACHE_NOTE_22 = 'byte-v45';  
+var _OLD_CACHE_NOTE_21 = 'byte-v44';
+var _OLD_CACHE_NOTE_20 = 'byte-v43';  
+var _OLD_CACHE_NOTE_19 = 'byte-v42';  
+var _OLD_CACHE_NOTE_18 = 'byte-v41';  
+var _OLD_CACHE_NOTE = 'byte-v40';  
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',
@@ -11,11 +16,10 @@ var PRECACHE_URLS = [
    
   'shared/courses_catalog.json',
    
+  'shared/data/curriculum_index.json',
+   
   'shared/garden-header.css',
   'shared/garden-header.js',
-   
-  'shared/planner-v2.css',
-  'shared/planner-v2.js',
   'shared/dashboard.css',
   'shared/dashboard.js',
   'shared/onboarding.css',
@@ -29,6 +33,11 @@ var PRECACHE_URLS = [
   'shared/gpa-forecast.js',
   'shared/schedule.css',
   'shared/schedule.js',
+   
+  'shared/schedule-plan.css',
+  'shared/schedule-plan.js',
+  'shared/schedule-print.js',
+  'shared/schedule-motivation.js',
   'shared/bottom-nav.css',
   'shared/bottom-nav.js',
   'shared/export-png.js',

@@ -41,6 +41,8 @@
     if (!p.hidden || typeof p.hidden !== 'object') p.hidden = {};
     
     if (typeof p.hideCompletedLevels !== 'boolean') p.hideCompletedLevels = false;
+     
+    if (!p.courseStyle || typeof p.courseStyle !== 'object') p.courseStyle = {};
     prefs = p;
     return p;
   }
@@ -86,15 +88,17 @@
                                         : tx('مساء الخير', 'Good evening');
         
         var greeting = name ? greet + tx('، ', ', ') + esc(name) : greet;
-        var g = new Intl.DateTimeFormat(isAr() ? 'ar-SA' : 'en-GB',
+        
+        var g = new Intl.DateTimeFormat(isAr() ? 'ar-SA-u-ca-gregory' : 'en-GB',
           { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
+        
         
         var h = '';
         try {
-          h = new Intl.DateTimeFormat(isAr() ? 'ar-SA-u-ca-islamic' : 'en-u-ca-islamic',
+          h = new Intl.DateTimeFormat(isAr() ? 'ar-SA-u-ca-islamic-umalqura' : 'en-u-ca-islamic-umalqura',
             { day: 'numeric', month: 'long' }).format(now);
         } catch (e) {}
-        return head('👋', tx('أهلاً', 'Welcome')) +
+        return head('<i class="fa-solid fa-hand-sparkles"></i>', tx('أهلاً', 'Welcome')) +
           '<div class="widget-body">' +
             '<div style="font-size:1.05rem;font-weight:800;color:var(--text-primary)">' + greeting + '</div>' +
             '<div class="widget-sub">' + esc(g) + (h ? ' · ' + esc(h) : '') + '</div>' +
@@ -109,14 +113,16 @@
       render: function () {
         var p = D.semesterProgress();
         if (!p.exists) {
-          return head('🎓', tx('فصلي', 'My semester'), 'hub/index.html') +
-            emptyState('🎓', tx('لا يوجد فصل بعد', 'No semester yet'), tx('أنشئ فصلك', 'Create semester'), 'go-hub');
+          return head('<i class="fa-solid fa-graduation-cap"></i>', tx('فصلي', 'My semester'), 'hub/index.html') +
+            emptyState('<i class="fa-solid fa-graduation-cap"></i>', tx('لا يوجد فصل بعد', 'No semester yet'), tx('أنشئ فصلك', 'Create semester'), 'go-hub');
         }
-        return head('🎓', tx('تقدّم الفصل', 'Semester progress'), 'hub/index.html') +
+        return head('<i class="fa-solid fa-graduation-cap"></i>', tx('تقدّم الفصل', 'Semester progress'), 'hub/index.html') +
           '<div class="widget-body">' +
             '<div class="widget-metric">' + p.pct + '%</div>' +
+             
             '<div class="widget-sub">' + esc(p.name || tx('فصلي', 'My semester')) + ' · ' +
-              p.done + '/' + p.total + ' ' + esc(tx('مكتملة', 'done')) + '</div>' +
+              esc(tx('أكملت ' + p.done + ' من ' + smartCount(p.total, ['مادة', 'مادتين', 'مواد'], ['course', 'courses']),
+                     p.done + ' of ' + smartCount(p.total, ['مادة', 'مادتين', 'مواد'], ['course', 'courses']) + ' completed')) + '</div>' +
             '<div class="widget-bar"><div class="widget-bar-fill" data-bar="' + p.pct + '"></div></div>' +
           '</div>';
       }
@@ -127,13 +133,13 @@
       render: function () {
         var g = D.gpaSummary();
         if (!g.exists) {
-          return head('📊', tx('المعدل', 'GPA'), 'hub/gpa.html') +
-            emptyState('📊', tx('لم تُسجّل درجات بعد', 'No grades recorded yet'), tx('احسب معدلك', 'Calculate GPA'), 'go-gpa');
+          return head('<i class="fa-solid fa-chart-simple"></i>', tx('المعدل', 'GPA'), 'hub/gpa.html') +
+            emptyState('<i class="fa-solid fa-chart-simple"></i>', tx('لم تُسجّل درجات بعد', 'No grades recorded yet'), tx('احسب معدلك', 'Calculate GPA'), 'go-gpa');
         }
         var pct = Math.max(0, Math.min(1, g.cgpa / 4));
         var r = 30, c = 2 * Math.PI * r;
         var off = c - pct * c;
-        return head('📊', tx('المعدل التراكمي', 'Cumulative GPA'), 'hub/gpa.html') +
+        return head('<i class="fa-solid fa-chart-simple"></i>', tx('المعدل التراكمي', 'Cumulative GPA'), 'hub/gpa.html') +
           '<div class="widget-body"><div class="widget-ring">' +
             '<svg viewBox="0 0 68 68" aria-hidden="true">' +
               '<circle class="widget-ring-bg" cx="34" cy="34" r="' + r + '"></circle>' +
@@ -151,7 +157,7 @@
       ar: 'اليوم', en: 'Today',
       render: function () {
         var s = D.todaySchedule();
-        var pl = D.plannerToday();
+        var pl = D.todaySessions();
         var items = [];
 
         s.exams.forEach(function (e) {
@@ -163,27 +169,34 @@
         s.blocks.forEach(function (b) {
           items.push({ t: b.start_time || '', n: (b.course_code || '') + ' · ' + tx('مذاكرة', 'Study'), c: 'var(--st-ok)' });
         });
+         
+        intensiveToday().forEach(function (x) {
+          items.push({ t: x.start_time || '', n: x.label, c: 'var(--st-accent)', done: x.done });
+        });
+         
         items.sort(function (a, b) { return String(a.t).localeCompare(String(b.t)); });
 
          
         var plLine = pl.exists && pl.todayTotal
-          ? '<a class="widget-sub" href="hub/planner.html" style="margin-top:.45rem;display:block;text-decoration:none">📋 ' +
+          ? '<a class="widget-sub" href="hub/schedule.html" style="margin-top:.45rem;display:block;text-decoration:none">'+'<i class="fa-solid fa-calendar-check"></i>'+' ' +
               esc(tx('خطتي', 'My plan')) + ' · ' + esc(tx('جلسات اليوم', 'today')) + ': ' + pl.todayDone + '/' + pl.todayTotal + '</a>'
           : '';
 
         if (!items.length && !(pl.exists && pl.todayTotal)) {
-          return head('🗓️', tx('اليوم', 'Today'), 'hub/schedule.html') +
-            emptyState('🗓️', tx('لا شيء مجدول اليوم', 'Nothing scheduled today'), tx('افتح الجدول', 'Open schedule'), 'go-schedule');
+          return head('<i class="fa-solid fa-calendar-day"></i>', tx('اليوم', 'Today'), 'hub/schedule.html') +
+            emptyState('<i class="fa-solid fa-calendar-day"></i>', tx('لا شيء مجدول اليوم', 'Nothing scheduled today'), tx('افتح الجدول', 'Open schedule'), 'go-schedule');
         }
         var list = items.slice(0, 4).map(function (i) {
-          return '<a class="widget-item" href="hub/schedule.html">' +
+          return '<a class="widget-item" href="hub/schedule.html"' + (i.done ? ' style="opacity:.5"' : '') + '>' +
             '<span class="widget-item-dot" style="background:' + i.c + '"></span>' +
             '<span class="widget-item-time">' + esc(i.t) + '</span>' +
-            '<span class="widget-item-name">' + esc(i.n) + '</span></a>';
+            '<span class="widget-item-name">' + esc(i.n) + '</span>' +
+            (i.done ? '<span class="widget-item-done" style="color:var(--st-ok);font-weight:800">✓</span>' : '') +
+            '</a>';
         }).join('');
         var more = items.length > 4
           ? '<div class="widget-sub" style="margin-top:.3rem">+' + (items.length - 4) + ' ' + esc(tx('أخرى', 'more')) + '</div>' : '';
-        return head('🗓️', tx('اليوم', 'Today'), 'hub/schedule.html') +
+        return head('<i class="fa-solid fa-calendar-day"></i>', tx('اليوم', 'Today'), 'hub/schedule.html') +
           '<div class="widget-body"><div class="widget-list">' + list + '</div>' + more + plLine + '</div>';
       }
     },
@@ -199,7 +212,7 @@
         }
         if (!p.due) {
           return head('🃏', tx('المستحقّة', 'Due cards')) +
-            emptyState('✅', tx('لا بطاقات مستحقّة — أحسنت!', 'No cards due — nice work!'));
+            emptyState('<i class="fa-solid fa-circle-check"></i>', tx('لا بطاقات مستحقّة — أحسنت!', 'No cards due — nice work!'));
         }
         var withDue = p.courses.filter(function (c) { return c.due > 0; })
                                .sort(function (a, b) { return b.due - a.due; });
@@ -224,8 +237,8 @@
         var t = D.tasks();
         var open = (t || []).filter(function (x) { return x && !x.done; });
         if (!open.length) {
-          return head('⏰', tx('القادم', 'Upcoming')) +
-            emptyState('⏰', tx('لا مهام قادمة', 'No upcoming tasks'), tx('أضف مهمة', 'Add task'), 'new-task');
+          return head('<i class="fa-solid fa-clock"></i>', tx('القادم', 'Upcoming')) +
+            emptyState('<i class="fa-solid fa-clock"></i>', tx('لا مهام قادمة', 'No upcoming tasks'), tx('أضف مهمة', 'Add task'), 'new-task');
         }
         open.sort(function (a, b) { return String(a.due || '').localeCompare(String(b.due || '')); });
          
@@ -240,7 +253,7 @@
             '<span class="widget-item-name">' + esc(x.title || '') + '</span>' +
             '<span style="color:' + u.color + ';font-size:.66rem;font-weight:800">' + esc(label) + '</span></div>';
         }).join('');
-        return head('⏰', tx('القادم', 'Upcoming')) +
+        return head('<i class="fa-solid fa-clock"></i>', tx('القادم', 'Upcoming')) +
           '<div class="widget-body"><div class="widget-list">' + list + '</div></div>';
       }
     },
@@ -260,7 +273,7 @@
           return '<button class="wn-item" data-act="note-edit" data-id="' + esc(n.id) + '">' +
             '<span class="wn-body">' + esc(body.slice(0, 90)) + '</span>' + rem + '</button>';
         }).join('') : '<div class="widget-sub">' + esc(tx('لا ملاحظات بعد — أضِف واحدة', 'No notes yet — add one')) + '</div>';
-        return head('📝', tx('ملاحظات سريعة', 'Quick notes')) +
+        return head('<i class="fa-solid fa-note-sticky"></i>', tx('ملاحظات سريعة', 'Quick notes')) +
           '<div class="widget-body">' +
             '<div class="wn-list">' + list + '</div>' +
             '<div class="wn-foot">' +
@@ -273,8 +286,33 @@
   };
 
    
+  function intensiveToday() {
+    var sch = null;
+    try { sch = JSON.parse(localStorage.getItem('weekly_schedule') || 'null'); } catch (e) { return []; }
+    var it = sch && sch.intensive;
+    var plan = (it && it.active && it.plans) ? it.plans[it.active] : null;
+    if (!plan || !plan.sessions || !plan.sessions.length) return [];
+
+    var now = new Date();
+    var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    return plan.sessions.filter(function (s) { return s.date === today; }).map(function (s) {
+      var num = parseInt(String(s.module || '').replace('M', ''), 10);
+      var what = s.kind === 'buffer' ? tx('مراجعة ما قبل الاختبار', 'Pre-exam review')
+               : s.kind === 'spaced' ? tx('مراجعة متباعدة', 'Spaced review')
+               : (tx('الوحدة ', 'Module ') + (num || '—') + (s.total_parts > 1 ? ' (' + s.part + '/' + s.total_parts + ')' : ''));
+      return { start_time: s.start_time || '', done: !!s.done, label: (s.course || '') + ' · ' + what };
+    });
+  }
+   
+  function clearIntensiveSlot() {
+    var slot = el('ip-home-slot');
+    if (slot) slot.innerHTML = '';
+  }
+
+   
 
   function renderWidgets() {
+    clearIntensiveSlot();
     var grid = el('widgets-grid');
     if (!grid) return;
     var html = '';
@@ -287,12 +325,12 @@
       html += '<article class="widget' + (hidden ? ' is-hidden-widget' : '') + '" data-widget="' + id + '" draggable="false"' +
         (focusable ? ' tabindex="0" role="link"' : '') + '>' +
         '<div class="widget-cust">' +
-          '<button data-act="w-hide" data-id="' + id + '" title="' + esc(tx('إظهار/إخفاء', 'Show/hide')) + '">' + (hidden ? '👁' : '🚫') + '</button>' +
+          '<button data-act="w-hide" data-id="' + id + '" title="' + esc(tx('إظهار/إخفاء', 'Show/hide')) + '">' + (hidden ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>') + '</button>' +
           '<button data-act="w-up" data-id="' + id + '" title="' + esc(tx('تقديم', 'Move up')) + '">↑</button>' +
           '<button data-act="w-down" data-id="' + id + '" title="' + esc(tx('تأخير', 'Move down')) + '">↓</button>' +
         '</div>' +
         (function () { try { return w.render(); } catch (e) {
-          return head('⚠️', id) + '<div class="widget-body"><div class="widget-sub">' +
+          return head('<i class="fa-solid fa-triangle-exclamation"></i>', id) + '<div class="widget-body"><div class="widget-sub">' +
             esc(tx('تعذّر عرض هذه الودجة', 'This widget failed to render')) + '</div></div>';
         } })() +
         '</article>';
@@ -342,21 +380,106 @@
 
    
 
+   
+  var STYLE_COLORS = ['#a78bfa', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4', '#8b5cf6', '#64748b'];
+  var STYLE_ICONS = ['fa-solid fa-book', 'fa-solid fa-flask', 'fa-solid fa-calculator', 'fa-solid fa-code',
+    'fa-solid fa-brain', 'fa-solid fa-globe', 'fa-solid fa-pen-fancy', 'fa-solid fa-chart-column',
+    'fa-solid fa-microchip', 'fa-solid fa-database', 'fa-solid fa-palette', 'fa-solid fa-scale-balanced'];
+
+  function courseStyle(code) {
+    var info = D.courseInfo(code);
+    var mine = (prefs && prefs.courseStyle && prefs.courseStyle[code]) || {};
+    return {
+      color: mine.color || (info && info.brand_color) || '#a78bfa',
+      icon: mine.icon || (info && info.icon) || 'fa-solid fa-book'
+    };
+  }
+
+  function openCourseStyle(code) {
+    var cur = courseStyle(code);
+    var ov = el('dash-style-modal');
+    if (!ov) return;
+    ov.querySelector('[data-style-body]').innerHTML =
+      '<div class="dash-style-row">' + STYLE_COLORS.map(function (c) {
+        return '<button class="dash-style-color' + (c === cur.color ? ' active' : '') +
+          '" data-color="' + c + '" style="background:' + c + '" aria-label="' + c + '"></button>';
+      }).join('') + '</div>' +
+      '<div class="dash-style-row">' + STYLE_ICONS.map(function (i) {
+        return '<button class="dash-style-icon' + (i === cur.icon ? ' active' : '') +
+          '" data-icon="' + i + '"><i class="' + i + '"></i></button>';
+      }).join('') + '</div>';
+    ov.style.display = '';
+    ov.setAttribute('data-code', code);
+  }
+
+   
+  function bindSettingsAcc() {
+    var accs = document.querySelectorAll('.dash-settings .dash-acc');
+    if (!accs.length) return;
+    Array.prototype.forEach.call(accs, function (a) {
+      var head = a.querySelector('.dash-acc-head');
+      if (!head) return;
+      head.addEventListener('click', function () {
+        var open = a.classList.contains('is-open');
+        Array.prototype.forEach.call(accs, function (x) { x.classList.remove('is-open'); });
+        if (!open) a.classList.add('is-open');
+        syncAccSummaries();
+      });
+    });
+    syncAccSummaries();
+  }
+  function syncAccSummaries() {
+    var s = el('acc-sum-profile');
+    if (s) {
+      var nm = (el('set-name') && el('set-name').value) || '';
+      var lv = (el('set-level') && el('set-level').value) || '';
+      s.textContent = [nm, lv ? tx('المستوى ' + lv, 'Level ' + lv) : ''].filter(Boolean).join(' · ');
+    }
+    var r = el('acc-sum-rem');
+    if (r) {
+      var on = el('rem-master') && el('rem-master').getAttribute('aria-checked') === 'true';
+      r.textContent = on ? tx('مفعّلة', 'On') : tx('مطفأة', 'Off');
+    }
+    var y = el('acc-sum-sync');
+    if (y) {
+      var t = el('sync-state-text');
+      y.textContent = (t && t.textContent !== '—') ? t.textContent : tx('غير مضبوطة', 'Not set up');
+    }
+  }
+
+  function bindStyleModal() {
+    var ov = el('dash-style-modal');
+    if (!ov) return;
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.closest('[data-style-close]')) { ov.style.display = 'none'; return; }
+      var b = e.target.closest('[data-color], [data-icon]');
+      if (!b) return;
+      var code = ov.getAttribute('data-code');
+      if (!code) return;
+      var cur = prefs.courseStyle[code] || (prefs.courseStyle[code] = {});
+      if (b.hasAttribute('data-color')) cur.color = b.getAttribute('data-color');
+      else cur.icon = b.getAttribute('data-icon');
+      savePrefs();
+      openCourseStyle(code);      
+      renderCourses();
+    });
+  }
+
   function renderCourses() {
     var grids = [el('dash-courses'), el('dash-courses-full')].filter(Boolean);
     if (!grids.length) return;
     var p = D.semesterProgress();
     if (!p.exists) {
       var empty = '<div class="widget" style="grid-column:1/-1">' +
-        emptyState('🎓', tx('لا مواد في فصلك بعد', 'No courses in your semester yet'),
+        emptyState('<i class="fa-solid fa-graduation-cap"></i>', tx('لا مواد في فصلك بعد', 'No courses in your semester yet'),
                    tx('أنشئ فصلك', 'Create semester'), 'go-hub') + '</div>';
       grids.forEach(function (g) { g.innerHTML = empty; });
       return;
     }
      
     var html = p.courses.map(function (c) {
-      var info = D.courseInfo(c.code);
-      var color = (info && info.brand_color) || '#a78bfa';
+      var st = courseStyle(c.code);
+      var color = st.color;
       var href = c.path || 'hub/index.html';
       var isReal = D.isRealCourse(c.code);
        
@@ -366,10 +489,15 @@
       return '<div class="dash-course-card" style="--course-color:' + esc(color) + '" data-course="' + esc(c.code) + '" ' +
         'tabindex="0" role="link" aria-label="' + esc(isAr() ? c.name_ar : c.name_en) + '">' +
         '<div class="dash-course-top">' +
+           
+          '<span class="dash-course-icon"><i class="' + esc(st.icon) + '"></i></span>' +
           codeCell +
           (isReal ? '<a class="dash-course-info" href="hub/course.html?code=' + encodeURIComponent(c.code) + '" ' +
             'title="' + esc(tx('بطاقة المادة', 'Course card')) + '" aria-label="' + esc(tx('بطاقة المادة', 'Course card')) + '" ' +
-            'data-ar="ℹ️ بطاقة المادة" data-en="ℹ️ Course card">' + esc(tx('ℹ️ بطاقة المادة', 'ℹ️ Course card')) + '</a>' : '') +
+            'data-ar="بطاقة المادة" data-en="Course card">' + esc(tx('بطاقة المادة', 'Course card')) + '</a>'
+            : '<button class="dash-course-style" data-act="course-style" data-id="' + esc(c.code) + '" ' +
+              'title="' + esc(tx('لون المادة وأيقونتها', 'Course color & icon')) + '" aria-label="' +
+              esc(tx('لون المادة وأيقونتها', 'Course color & icon')) + '"><i class="fa-solid fa-palette"></i></button>') +
         '</div>' +
         '<a class="dash-course-name" href="' + esc(href) + '">' + esc(isAr() ? c.name_ar : c.name_en) + '</a>' +
         '<div class="dash-course-foot">' +
@@ -416,7 +544,7 @@
     if (_cfg.collections && _cfg.collections.others) {
       var o = _cfg.collections.others;
       html += '<a class="dash-level-card is-collection" href="others/index.html" style="--level-color:#8b5cf6" data-level="others">' +
-        '<span class="dash-level-num">📚</span>' +
+        '<span class="dash-level-num"><i class="fa-solid fa-layer-group"></i></span>' +
         '<span class="dash-level-info">' +
           '<span class="dash-level-title">' + esc(tx('مقررات أخرى', 'Other courses')) + '</span>' +
           '<span class="dash-level-meta">' +
@@ -488,11 +616,11 @@
       ? '<button class="tk-check" data-act="tk-toggle" data-id="' + esc(t.id) + '" ' +
         'aria-label="' + esc(tx('إكمال', 'Complete')) + '"' + (t.done ? ' aria-pressed="true"' : '') + '>' +
         (t.done ? '✓' : '') + '</button>'
-      : '<span class="tk-check tk-check-locked" aria-hidden="true">' + (t.source === 'exam' ? '📝' : '📅') + '</span>';
+      : '<span class="tk-check tk-check-locked" aria-hidden="true">' + (t.source === 'exam' ? '<i class="fa-solid fa-file-pen"></i>' : '<i class="fa-solid fa-calendar-days"></i>') + '</span>';
 
     var actions = t.editable
-      ? '<button class="tk-act" data-act="tk-edit" data-id="' + esc(t.id) + '" aria-label="' + esc(tx('تعديل', 'Edit')) + '">✏️</button>' +
-        '<button class="tk-act" data-act="tk-del" data-id="' + esc(t.id) + '" aria-label="' + esc(tx('حذف', 'Delete')) + '">🗑</button>'
+      ? '<button class="tk-act" data-act="tk-edit" data-id="' + esc(t.id) + '" aria-label="' + esc(tx('تعديل', 'Edit')) + '"><i class="fa-solid fa-pen"></i></button>' +
+        '<button class="tk-act" data-act="tk-del" data-id="' + esc(t.id) + '" aria-label="' + esc(tx('حذف', 'Delete')) + '"><i class="fa-solid fa-trash"></i></button>'
       : '<a class="tk-act" href="' + (t.source === 'exam' ? 'hub/schedule.html' : 'hub/course.html?code=' + encodeURIComponent(t.course || '')) + '" ' +
         'aria-label="' + esc(tx('فتح المصدر', 'Open source')) + '">↗</a>';
 
@@ -535,7 +663,7 @@
               : tkFilter === 'week' ? tx('لا شيء مستحقّ هذا الأسبوع', 'Nothing due this week')
               : tx('لا مهام بعد — أضف أول مهمة', 'No tasks yet — add your first');
       box.innerHTML = '<div class="widget" style="max-width:560px">' +
-        emptyState('⏰', msg, tkFilter === 'all' ? tx('مهمة جديدة', 'New task') : '', 'add-task') + '</div>';
+        emptyState('<i class="fa-solid fa-clock"></i>', msg, tkFilter === 'all' ? tx('مهمة جديدة', 'New task') : '', 'add-task') + '</div>';
       return;
     }
 
@@ -666,7 +794,7 @@
       '<button class="nl-text" data-act="note-edit" data-id="' + esc(n.id) + '">' + esc(body.slice(0, 140)) + rem + '</button>' +
       '<span class="nl-acts">' +
         '<button data-act="note-toggle-arch" data-id="' + esc(n.id) + '" title="' + esc(n.archived ? tx('استرجاع', 'Restore') : tx('أرشفة', 'Archive')) + '">' + (n.archived ? '↩' : '🗄') + '</button>' +
-        '<button data-act="note-del" data-id="' + esc(n.id) + '" title="' + esc(tx('حذف', 'Delete')) + '">🗑</button>' +
+        '<button data-act="note-del" data-id="' + esc(n.id) + '" title="' + esc(tx('حذف', 'Delete')) + '"><i class="fa-solid fa-trash"></i></button>' +
       '</span></div>';
   }
   function refreshNotesListModal() {
@@ -940,6 +1068,7 @@
       }
       return;
     }
+    if (act === 'course-style') { openCourseStyle(id); return; }
     if (act === 'go-hub') location.href = 'hub/index.html';
     else if (act === 'go-gpa') location.href = 'hub/gpa.html';
     else if (act === 'go-schedule') location.href = 'hub/schedule.html';
@@ -1047,6 +1176,8 @@
     document.addEventListener('click', onAction);
     document.addEventListener('click', onCardNav);
     document.addEventListener('keydown', onCardKey);
+    bindStyleModal();
+    bindSettingsAcc();
 
     document.querySelectorAll('.dash-side-item[data-view]').forEach(function (b) {
       b.addEventListener('click', function () { showView(b.getAttribute('data-view')); });
@@ -1079,6 +1210,16 @@
 
     document.addEventListener('garden:languageChanged', function () {
       renderWidgets(); renderCourses(); renderLevels(); renderTasks();
+      applyTitles();
+    });
+    applyTitles();
+  }
+
+   
+  function applyTitles() {
+    document.querySelectorAll('[data-title-ar]').forEach(function (el2) {
+      var t = isAr() ? el2.getAttribute('data-title-ar') : el2.getAttribute('data-title-en');
+      if (t) { el2.setAttribute('title', t); el2.setAttribute('aria-label', t); }
     });
   }
 

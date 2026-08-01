@@ -258,7 +258,7 @@ function formatDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   return isAr()
-    ? d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' })
+    ? d.toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric' })
     : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -432,14 +432,13 @@ function addCourse(code) {
 
  
 function handleAddCustom() {
-  const arInput = document.getElementById('custom-name-ar');
-  const enInput = document.getElementById('custom-name-en');
+  
+  const nameInput = document.getElementById('custom-name');
   const creditsInput = document.getElementById('custom-credits');
-  const nameAr = (arInput?.value || '').trim();
-  const nameEn = (enInput?.value || '').trim() || nameAr;
+  const name = (nameInput?.value || '').trim();
   const credits = parseInt(creditsInput?.value || '3', 10) || 3;
-  if (!nameAr) { arInput?.focus(); return; }
-  addCustomCourse(nameAr, nameEn, credits);
+  if (!name) { nameInput?.focus(); return; }
+  addCustomCourse(name, name, credits);
   closeAllModals();
 }
 
@@ -811,7 +810,7 @@ function buildCourseCard(entry) {
   if (entry.custom) {
     icon = entry.icon || 'fa-solid fa-book';
     color = entry.brand_color || '#64748b';
-    glow = 'rgba(100,116,139,0.12)';    name = isAr() ? entry.name_ar : (entry.name_en || entry.name_ar);
+    glow = 'rgba(100,116,139,0.12)';    name = isAr() ? (entry.name_ar || entry.name_en) : (entry.name_en || entry.name_ar);
     levelLabel = t('customCourse');
     credits = entry.credits || 3;
     path = null;
@@ -1042,7 +1041,7 @@ function buildArchiveItem(item) {
     const info = getCourseInfo(entry);
     let name, credits;
     if (entry.custom) {
-      name = isAr() ? entry.name_ar : (entry.name_en || entry.name_ar);
+      name = isAr() ? (entry.name_ar || entry.name_en) : (entry.name_en || entry.name_ar);
       credits = entry.credits || 3;
     } else if (info) {
       name = isAr() ? info.name_ar : info.name_en;

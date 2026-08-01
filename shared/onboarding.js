@@ -165,10 +165,10 @@
   }
 
   function welcomeBody() {
+     
     var feats = [
       ['📚', tx('مواد تفاعلية', 'Interactive courses')],
       ['🗓️', tx('جدول', 'Schedule')],
-      ['📋', tx('بلانر', 'Planner')],
       ['📈', tx('المعدل', 'GPA')],
       ['☁️', tx('مزامنة', 'Sync')]
     ];

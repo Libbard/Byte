@@ -4,9 +4,15 @@
   'use strict';
 
   var thisScript = document.currentScript;
-  var ROOT = (thisScript && thisScript.src)
-    ? thisScript.src.replace(/shared\/search\.js(\?.*)?$/, '')
-    : '';
+   
+  function _deriveRoot() {
+    if (thisScript && thisScript.src) return thisScript.src.replace(/shared\/search\.js(\?.*)?$/, '');
+    var s = document.querySelector('script[src*="shared/search.js"]');
+    if (s && s.src) return s.src.replace(/shared\/search\.js(\?.*)?$/, '');
+    if (window.GARDEN_HEADER_ROOT) return window.GARDEN_HEADER_ROOT;
+    return '';
+  }
+  var ROOT = _deriveRoot();
 
   var INDEX_URL = ROOT + 'shared/data/search_index.json';
   var MAX_RESULTS = 24;

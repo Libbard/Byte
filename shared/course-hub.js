@@ -104,13 +104,13 @@
         '<div class="ch-card-head">' +
           '<span class="ch-card-title">' + esc(ins.name || tx('بلا اسم', 'Unnamed')) + '</span>' +
           '<span class="ch-card-actions">' +
-            '<button class="ch-icon-btn" data-act="ins-edit" data-id="' + esc(ins.id) + '" title="' + esc(tx('تعديل', 'Edit')) + '">✏️</button>' +
-            '<button class="ch-icon-btn danger" data-act="ins-del" data-id="' + esc(ins.id) + '" title="' + esc(tx('حذف', 'Delete')) + '">🗑</button>' +
+            '<button class="ch-icon-btn" data-act="ins-edit" data-id="' + esc(ins.id) + '" title="' + esc(tx('تعديل', 'Edit')) + '"><i class="fa-solid fa-pen"></i></button>' +
+            '<button class="ch-icon-btn danger" data-act="ins-del" data-id="' + esc(ins.id) + '" title="' + esc(tx('حذف', 'Delete')) + '"><i class="fa-solid fa-trash"></i></button>' +
           '</span>' +
         '</div>' +
         (ins.email ? '<div class="ch-row"><i class="fa-solid fa-envelope"></i>' +
           '<a class="ch-row-val" href="mailto:' + esc(ins.email) + '" style="color:var(--c);text-decoration:none">' + esc(ins.email) + '</a>' +
-          '<button class="ch-icon-btn" data-act="copy" data-val="' + esc(ins.email) + '" title="' + esc(tx('نسخ', 'Copy')) + '">📋</button></div>' : '') +
+          '<button class="ch-icon-btn" data-act="copy" data-val="' + esc(ins.email) + '" title="' + esc(tx('نسخ', 'Copy')) + '"><i class="fa-solid fa-copy"></i></button></div>' : '') +
         (ins.office_hours ? '<div class="ch-row"><i class="fa-regular fa-clock"></i><span class="ch-row-val">' + esc(ins.office_hours) + '</span></div>' : '') +
         (ins.location ? '<div class="ch-row"><i class="fa-solid fa-location-dot"></i><span class="ch-row-val">' + esc(ins.location) + '</span></div>' : '') +
         (ins.note ? '<div class="ch-row"><i class="fa-regular fa-note-sticky"></i><span class="ch-row-val">' + esc(ins.note) + '</span></div>' : '') +
@@ -119,7 +119,7 @@
 
     if (editing.ins === 'new') html += insForm({ id: 'new' });
     if (!meta.instructors.length && editing.ins !== 'new') {
-      html = empty('👨‍🏫', tx('لم تُضِف دكتور المادة بعد — أضِف المحاضر والمعيد وساعاتهما المكتبية.',
+      html = empty('<i class="fa-solid fa-chalkboard-user"></i>', tx('لم تُضِف دكتور المادة بعد — أضِف المحاضر والمعيد وساعاتهما المكتبية.',
                               'No instructor yet — add the lecturer, TA and their office hours.'));
     }
     html += '<button class="ch-add-btn" data-act="ins-new">+ ' + esc(tx('إضافة دكتور / معيد', 'Add instructor / TA')) + '</button>';
@@ -164,14 +164,14 @@
     if (editing.date) html += dateForm(list.find(function (d) { return d.id === editing.date; }) || { id: 'new' });
 
     if (!list.length && !editing.date) {
-      html += empty('📅', tx('لا مواعيد بعد — أضِف اختباراتك وتسليماتك لتظهر في الجدول واللوحة.',
+      html += empty('<i class="fa-solid fa-calendar-days"></i>', tx('لا مواعيد بعد — أضِف اختباراتك وتسليماتك لتظهر في الجدول واللوحة.',
                              'No dates yet — add exams and deliverables to see them on the schedule and dashboard.'));
     } else {
       html += list.map(function (d) {
         if (editing.date === d.id) return '';
         var dt = d.date ? new Date(d.date + 'T00:00:00') : null;
         var day = dt ? dt.getDate() : '—';
-        var mon = dt ? new Intl.DateTimeFormat(isAr() ? 'ar-SA' : 'en', { month: 'short' }).format(dt) : '';
+        var mon = dt ? new Intl.DateTimeFormat(isAr() ? 'ar-SA-u-ca-gregory' : 'en', { month: 'short' }).format(dt) : '';
         var cd = countdown(d.date);
         var isExam = d.src === 'schedule';
          
@@ -182,8 +182,8 @@
             esc(d.title || '') +
             '<span class="ch-source">' + esc(isExam ? tx('الجدول', 'Schedule') : tx('بطاقة المادة', 'Card')) + '</span>' +
             '<div class="ch-date-meta">' +
-              (d.time ? '🕐 ' + esc(d.time) + ' ' : '') +
-              (d.location ? '📍 ' + esc(d.location) + ' ' : '') +
+              (d.time ? '<i class="fa-solid fa-clock"></i> ' + esc(d.time) + ' ' : '') +
+              (d.location ? '<i class="fa-solid fa-location-dot"></i> ' + esc(d.location) + ' ' : '') +
               (d.note ? '· ' + esc(d.note) : '') +
             '</div>' +
           '</div>' +
@@ -193,9 +193,9 @@
               (isExam ? '' :
                 '<button class="ch-icon-btn" data-act="date-done" data-id="' + esc(d.id) + '" ' +
                   'aria-pressed="' + (d.done ? 'true' : 'false') + '" ' +
-                  'aria-label="' + esc(tx('إتمام', 'Complete')) + '">' + (d.done ? '✅' : '⬜') + '</button>') +
-              '<button class="ch-icon-btn" data-act="date-edit" data-id="' + esc(d.id) + '">✏️</button>' +
-              '<button class="ch-icon-btn danger" data-act="date-del" data-id="' + esc(d.id) + '" data-src="' + d.src + '">🗑</button>' +
+                  'aria-label="' + esc(tx('إتمام', 'Complete')) + '">' + (d.done ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle"></i>') + '</button>') +
+              '<button class="ch-icon-btn" data-act="date-edit" data-id="' + esc(d.id) + '"><i class="fa-solid fa-pen"></i></button>' +
+              '<button class="ch-icon-btn danger" data-act="date-del" data-id="' + esc(d.id) + '" data-src="' + d.src + '"><i class="fa-solid fa-trash"></i></button>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -267,10 +267,10 @@
     if (editing.note) html += noteForm(meta.notes.find(function (n) { return n.id === editing.note; }) || { id: 'new' });
 
     if (!meta.notes.length && !editing.note) {
-      html += empty('📝', tx('لا ملاحظات بعد — دوّن ما يقوله الدكتور في المحاضرة.',
+      html += empty('<i class="fa-solid fa-note-sticky"></i>', tx('لا ملاحظات بعد — دوّن ما يقوله الدكتور في المحاضرة.',
                              'No notes yet — jot down what the professor says in class.'));
     } else if (!list.length) {
-      html += empty('🔍', tx('لا نتائج مطابقة.', 'No matches.'));
+      html += empty('<i class="fa-solid fa-magnifying-glass"></i>', tx('لا نتائج مطابقة.', 'No matches.'));
     } else {
       html += list.map(function (n) {
         if (editing.note === n.id) return '';
@@ -278,8 +278,8 @@
           '<div class="ch-card-head">' +
             '<span class="ch-card-title">' + esc(n.title || tx('بلا عنوان', 'Untitled')) + '</span>' +
             '<span class="ch-card-actions">' +
-              '<button class="ch-icon-btn" data-act="note-edit" data-id="' + esc(n.id) + '">✏️</button>' +
-              '<button class="ch-icon-btn danger" data-act="note-del" data-id="' + esc(n.id) + '">🗑</button>' +
+              '<button class="ch-icon-btn" data-act="note-edit" data-id="' + esc(n.id) + '"><i class="fa-solid fa-pen"></i></button>' +
+              '<button class="ch-icon-btn danger" data-act="note-del" data-id="' + esc(n.id) + '"><i class="fa-solid fa-trash"></i></button>' +
             '</span>' +
           '</div>' +
           '<div class="ch-note-body">' + esc(n.body || '') + '</div>' +
@@ -308,18 +308,18 @@
       if (editing.link === l.id) return linkForm(l);
       return '<div class="ch-card"><div class="ch-card-head">' +
         '<a class="ch-card-title" href="' + esc(l.url) + '" target="_blank" rel="noopener" style="color:var(--c);text-decoration:none">' +
-          '🔗 ' + esc(l.label || l.url) + '</a>' +
+          '<i class="fa-solid fa-link"></i> ' + esc(l.label || l.url) + '</a>' +
         '<span class="ch-card-actions">' +
-          '<button class="ch-icon-btn" data-act="copy" data-val="' + esc(l.url) + '">📋</button>' +
-          '<button class="ch-icon-btn" data-act="link-edit" data-id="' + esc(l.id) + '">✏️</button>' +
-          '<button class="ch-icon-btn danger" data-act="link-del" data-id="' + esc(l.id) + '">🗑</button>' +
+          '<button class="ch-icon-btn" data-act="copy" data-val="' + esc(l.url) + '"><i class="fa-solid fa-copy"></i></button>' +
+          '<button class="ch-icon-btn" data-act="link-edit" data-id="' + esc(l.id) + '"><i class="fa-solid fa-pen"></i></button>' +
+          '<button class="ch-icon-btn danger" data-act="link-del" data-id="' + esc(l.id) + '"><i class="fa-solid fa-trash"></i></button>' +
         '</span></div>' +
         '<div class="ch-row"><span class="ch-row-val" style="font-size:.7rem;color:var(--text-muted)">' + esc(l.url) + '</span></div>' +
       '</div>';
     }).join('');
     if (editing.link === 'new') html += linkForm({ id: 'new' });
     if (!meta.links.length && editing.link !== 'new') {
-      html = empty('🔗', tx('لا روابط بعد — أضِف Blackboard وقروب المادة والمراجع.',
+      html = empty('<i class="fa-solid fa-link"></i>', tx('لا روابط بعد — أضِف Blackboard وقروب المادة والمراجع.',
                             'No links yet — add Blackboard, the course group and references.'));
     }
     html += '<button class="ch-add-btn" data-act="link-new">+ ' + esc(tx('إضافة رابط', 'Add link')) + '</button>';
@@ -475,7 +475,7 @@
   function init() {
     if (!CODE) {
       document.querySelector('.ch-wrap').innerHTML =
-        empty('❓', tx('لم تُحدَّد مادة. افتح البطاقة من اللوحة أو من صفحة فصلي.',
+        empty('<i class="fa-solid fa-circle-question"></i>', tx('لم تُحدَّد مادة. افتح البطاقة من اللوحة أو من صفحة فصلي.',
                        'No course specified. Open the card from the dashboard or My Semester.'));
       return;
     }

@@ -22,7 +22,8 @@
       '.sw-update-toast {',
       '  position: fixed;',
       '  bottom: 1.5rem;',
-      '  inset-inline-start: 50%;',
+       
+      '  left: 50%;',
       '  transform: translateX(-50%) translateY(12px);',
       '  z-index: 3001;',
       '  display: flex;',

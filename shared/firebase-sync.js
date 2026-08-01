@@ -27,16 +27,6 @@
     /^garden_[A-Z0-9]+_activity$/,
     /^garden_daily_new_limit$/,
     
-    /^study_plan_L\d+_(midterm|final|general)$/,
-    
-    /^planner_config_L\d+$/,
-     
-    /^planner_v2_L(\d+|HUB)$/,
-    /^planner_v2_progress_L(\d+|HUB)$/,
-    
-    /^study_plan_(midterm|final|general)$/,
-    /^planner_config$/,
-    
     /^my_semester$/,
     /^semester_archive$/,
     
@@ -918,8 +908,6 @@
     const targets = [
       '.module-header-actions',
       '.dash-actions',
-      '.planner-header-actions',
-      '.planner-actions',
     ];
 
     let container = null;

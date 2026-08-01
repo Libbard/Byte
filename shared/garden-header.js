@@ -30,13 +30,29 @@
       .then(function () { _catCbs.forEach(function (o) { var c = _cat[o.code]; o.cb(c ? { icon: c.icon, color: c.brand_color } : null); }); _catCbs = []; });
   }
 
+   
+  var _upFallback = '';
+  function upTarget() { return _upFallback || (ROOT + 'index.html'); }
   function goBack() {
-    if (window.Garden && Garden.goBack) { Garden.goBack(); return; }
-    if (history.length > 1) history.back();
+    if (window.Garden && Garden.goBack && Garden.hasBackTarget && Garden.hasBackTarget()) { Garden.goBack(); return; }
+    if (window.Garden && Garden.goBack && !Garden.hasBackTarget) { Garden.goBack(); return; }
+    if (window.Garden && Garden.goUp) { Garden.goUp(upTarget()); return; }
+    location.href = upTarget();
   }
   function hasBack() {
     if (window.Garden && Garden.hasBackTarget) return Garden.hasBackTarget();
     return history.length > 1;
+  }
+   
+  function upIsSelf() {
+    if (window.Garden && Garden.isSelfHref) return Garden.isSelfHref(upTarget());
+    try {
+      var u = new URL(upTarget(), location.href), h = new URL(location.href);
+      u.hash = ''; h.hash = '';
+      if (/\/$/.test(u.pathname)) u.pathname += 'index.html';
+      if (/\/$/.test(h.pathname)) h.pathname += 'index.html';
+      return u.href === h.href;
+    } catch (e) { return false; }
   }
 
    
@@ -44,6 +60,65 @@
     if (variant === 'module') return true;
     var p = document.documentElement.getAttribute('data-page');
     return p === 'review' || p === 'quiz';
+  }
+
+   
+  function _injectSearchJs(input) {
+    if (window.__gardenSearchInjected) {
+      
+      try { if (window.GardenSearch && document.activeElement === input) window.GardenSearch.load(); } catch (e) {}
+      return;
+    }
+    window.__gardenSearchInjected = true;
+    window.GARDEN_HEADER_ROOT = ROOT;            
+    var s = document.createElement('script');
+    s.src = ROOT + 'shared/search.js';
+    s.onload = function () {
+      
+      
+      try { if (window.GardenSearch && document.activeElement === input) window.GardenSearch.load(); } catch (e) {}
+    };
+    document.head.appendChild(s);
+  }
+
+   
+  var PH_LONG = { ar: 'ابحث في المواد والوحدات والمفاهيم وملاحظاتك…', en: 'Search courses, modules, concepts and your notes…' };
+  var PH_SHORT = { ar: 'ابحث…', en: 'Search…' };
+  function syncSearchPlaceholder() {
+    var ph = document.getElementById('gs-ph');
+    if (!ph) return;
+    var p = window.innerWidth <= 640 ? PH_SHORT : PH_LONG;
+    ph.setAttribute('data-ar', p.ar);
+    ph.setAttribute('data-en', p.en);
+    ph.textContent = isAr() ? p.ar : p.en;
+  }
+
+  function _buildHeaderSearch(host) {
+    var box = document.createElement('div');
+    box.className = 'dash-search g-search-slot';
+    box.id = 'gs-box';
+    box.setAttribute('data-gh-slot', 'search');
+    box.innerHTML =
+      '<i class="fa-solid fa-magnifying-glass dash-search-icon" aria-hidden="true"></i>' +
+      '<input type="search" id="gs-input" class="dash-search-input" autocomplete="off" aria-label="' + esc(L('بحث شامل', 'Search')) + '">' +
+      '<span class="dash-search-ph-mask" aria-hidden="true"><span class="dash-search-ph" id="gs-ph"' +
+        ' data-ar="ابحث في المواد والوحدات والمفاهيم وملاحظاتك…"' +
+        ' data-en="Search courses, modules, concepts and your notes…">' +
+        esc(L('ابحث في المواد والوحدات والمفاهيم وملاحظاتك…', 'Search courses, modules, concepts and your notes…')) + '</span></span>' +
+      '<span class="dash-search-kbd">Ctrl K</span>' +
+      '<div class="gs-panel" id="gs-panel" hidden></div>';
+    var input = box.querySelector('#gs-input');
+
+     
+    input.addEventListener('focus', function () { _injectSearchJs(input); }, { once: true });
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        _injectSearchJs(input);
+        input.focus();
+      }
+    });
+    return box;
   }
 
   function build() {
@@ -88,8 +163,13 @@
     back.setAttribute('aria-label', L('رجوع', 'Back'));
     back.setAttribute('data-ar-label', 'رجوع');
     back.setAttribute('data-en-label', 'Back');
+    _upFallback = upHref || (ROOT + 'index.html');
     back.addEventListener('click', goBack);
-    if (!hasBack()) back.style.display = 'none';
+     
+    if (!hasBack()) {
+      if (upIsSelf()) back.style.display = 'none';
+      else back.setAttribute('data-gh-up-only', '1');
+    }
     host.appendChild(back);
 
      
@@ -150,6 +230,7 @@
 
      
     if (searchSlot) { searchSlot.classList.add('g-search-slot'); host.appendChild(searchSlot); }
+    else if (variant === 'top' || variant === 'level') { host.appendChild(_buildHeaderSearch(host)); }
     else { var sp = document.createElement('div'); sp.className = 'g-spacer'; host.appendChild(sp); }
 
      
@@ -166,14 +247,6 @@
     if (actionsSlot) { actionsSlot.classList.add('g-actions'); menu.appendChild(actionsSlot); }
 
      
-    if (variant === 'level' && !actionsSlot) {
-      var planHref = host.getAttribute('data-gh-plan') || 'planner/index.html';
-      var plan = document.createElement('a');
-      plan.className = 'g-menu-item toggle-btn g-plan';
-      plan.href = planHref;
-      plan.innerHTML = '<span aria-hidden="true">📋</span> <span data-ar="خطتي" data-en="My plan">' + esc(L('خطتي', 'My plan')) + '</span>';
-      menu.appendChild(plan);
-    }
 
      
     if (isContentVariant(variant) && !document.getElementById('font-size-group')) {
@@ -195,6 +268,9 @@
     themeBtn.className = 'g-menu-item toggle-btn';
     themeBtn.type = 'button';
     themeBtn.setAttribute('data-gh-theme', '');
+     
+    themeBtn.setAttribute('data-title-ar', 'الثيم');
+    themeBtn.setAttribute('data-title-en', 'Theme');
     themeBtn.title = L('الثيم', 'Theme');
     themeBtn.innerHTML = '<span id="theme-icon">🌙</span>';
     themeBtn.addEventListener('click', function () { if (window.Garden && Garden.cycleTheme) Garden.cycleTheme(); });
@@ -204,7 +280,8 @@
     var langBtn = document.createElement('button');
     langBtn.className = 'toggle-btn g-lang';
     langBtn.type = 'button';
-    langBtn.title = 'Language';
+     
+    langBtn.title = isAr() ? 'English' : 'العربية';
     langBtn.innerHTML = '<span id="lang-btn">' + esc(isAr() ? 'EN' : 'AR') + '</span>';
     langBtn.addEventListener('click', function () { if (window.Garden && Garden.toggleLanguage) Garden.toggleLanguage(); });
 
@@ -250,7 +327,10 @@
     }
     _syncFont();
     relabel();
-    document.addEventListener('garden:languageChanged', function () { relabel(); _syncFont(); });
+    syncSearchPlaceholder();
+    document.addEventListener('garden:languageChanged', function () { relabel(); _syncFont(); syncSearchPlaceholder(); });
+    var _phT = null;
+    window.addEventListener('resize', function () { clearTimeout(_phT); _phT = setTimeout(syncSearchPlaceholder, 180); });
   }
 
    
@@ -262,7 +342,7 @@
     var path = location.pathname;
     var cur = /hub\/schedule/.test(path) ? 'schedule'
             : /hub\/gpa/.test(path) ? 'gpa'
-            : /hub\/(index|course|planner)/.test(path) ? 'semester'
+            : /hub\/(index|course)/.test(path) ? 'semester'
             : /\/(L\d+|others)\//.test(path) ? 'levels'
             : '';
      
@@ -358,6 +438,17 @@
       var v = el.getAttribute(ar ? 'data-ar-label' : 'data-en-label');
       if (v) { el.title = v; el.setAttribute('aria-label', v); }
     });
+     
+    var tb = host.querySelector('[data-gh-theme]');
+    if (tb) tb.title = ar ? 'الثيم' : 'Theme';
+    var mb = host.querySelector('.g-more');
+    if (mb) mb.title = ar ? 'المزيد' : 'More';
+    host.querySelectorAll('.g-title-link').forEach(function (el) {
+      el.title = ar ? 'بطاقة المادة' : 'Course card';
+    });
+     
+    var lgb = host.querySelector('.g-lang');
+    if (lgb) lgb.title = ar ? 'English' : 'العربية';
   }
 
   window.GardenHeader = {

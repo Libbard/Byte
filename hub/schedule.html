@@ -5,7 +5,7 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HGTK36LR0M');</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الجدول الأسبوعي · Weekly Schedule</title>
+  <title>الجدول الدراسي · Study Schedule</title>
   <script>
     (function(){
       var t=localStorage.getItem('garden_theme')||'dark';
@@ -21,7 +21,9 @@
   <link rel="stylesheet" href="../shared/reminders.css">
   <link rel="stylesheet" href="../shared/skin.css">
   <link rel="stylesheet" href="../shared/garden-header.css">
+  <script src="../shared/schedule-motivation.js" defer></script>
   <link rel="stylesheet" href="../shared/schedule.css">
+  <link rel="stylesheet" href="../shared/schedule-plan.css">
   <link rel="stylesheet" href="../shared/bottom-nav.css">
   <link rel="stylesheet" href="../shared/vendor/fontawesome/css/all.min.css">
 
@@ -34,149 +36,155 @@
   <meta name="theme-color" content="#a78bfa">
   
 </head>
-<body data-page-title="الجدول الأسبوعي" data-page-title-en="Weekly Schedule">
+<body data-page-title="الجدول الدراسي" data-page-title-en="Study Schedule">
   
   <header data-gh>
     <div class="sch-actions" data-gh-slot="actions">
-      <a class="toggle-btn" href="planner.html" id="sch-my-plan" title="خطتي / My plan" aria-label="خطتي / My plan" data-ar-label="خطتي" data-en-label="My plan" style="text-decoration:none">📋</a>
       
-      <button class="toggle-btn" id="btn-print-sch" title="طباعة / Print" aria-label="طباعة / Print"><i class="fa-solid fa-print"></i></button>
-      <button class="toggle-btn" id="btn-settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
+      <button class="toggle-btn" id="btn-print-sch" data-title-ar="طباعة" data-title-en="Print"><i class="fa-solid fa-print"></i></button>
+      <button class="toggle-btn" id="btn-settings" data-title-ar="إعدادات الجدول" data-title-en="Schedule settings"><i class="fa-solid fa-gear"></i></button>
     </div>
   </header>
 
   <div class="sch-container">
 
+    
+    <div class="sch-pulse" id="sch-pulse" style="display:none">
+      <div class="sch-pulse-main">
+        <div class="sch-pulse-orb" id="pulse-orb"><i class="fa-solid fa-bolt"></i></div>
+        <div class="sch-pulse-txt">
+          <div class="sch-pulse-kicker"><span class="sch-pulse-dot"></span><span id="pulse-kick"></span></div>
+          <div class="sch-pulse-title" id="pulse-title"></div>
+          <div class="sch-pulse-sub" id="pulse-sub"></div>
+          <div class="sch-pulse-bar" id="pulse-bar-wrap" hidden><i id="pulse-bar"></i></div>
+        </div>
+      </div>
+      <div class="sch-pulse-next" id="pulse-next"></div>
+      <div class="sch-pulse-stats" id="pulse-stats"></div>
+    </div>
+
     <div class="sch-toolbar-row">
-      
       <div class="sch-view-toggle">
         <button class="sch-view-btn active" data-view="week" data-ar="أسبوعي" data-en="Weekly"></button>
         <button class="sch-view-btn" data-view="day" data-ar="يومي" data-en="Daily"></button>
         <button class="sch-view-btn" data-view="month" data-ar="شهري" data-en="Monthly"></button>
-        <button class="sch-view-btn" data-view="overview" data-ar="المواد" data-en="Courses"></button>
-        
-        <a class="sch-view-btn sch-view-exam" href="planner.html?from=schedule" title="جلسات الاختبارات / Exam sessions" data-ar="جلسات الاختبارات" data-en="Exam sessions"></a>
       </div>
-
       
-      <label class="sch-planfilter" id="plan-filter-wrap" title="يفلتر جلسات خطط المذاكرة (ميد/فاينل) — لا المحاضرات">
-        <span data-ar="العرض:" data-en="Show:"></span>
-        <select class="sch-planfilter-sel" id="plan-filter">
-          <option value="active" data-ar="الخطة النشطة" data-en="Active plan"></option>
-          <option value="midterm" data-ar="ميد" data-en="Midterm"></option>
-          <option value="final" data-ar="فاينل" data-en="Final"></option>
-          <option value="all" data-ar="الكل" data-en="All"></option>
-        </select>
-      </label>
+      <button class="sch-btn sch-btn-secondary sch-btn-xs" id="btn-agenda" type="button"
+              data-title-ar="عرض الأحداث قائمةً بأوقاتها" data-title-en="Show events as a timed list"
+        ><i class="fa-solid fa-list-ul"></i><span data-ar="أجندة" data-en="Agenda"></span></button>
+      
+      <button class="sch-btn sch-btn-secondary sch-btn-xs" id="btn-span" type="button"
+              data-title-ar="مدى ساعات اليوم" data-title-en="Day hour range"></button>
     </div>
 
     
-    <div class="sch-today" id="today-panel" style="display:none">
-      <div class="sch-today-head">
-        <span class="sch-today-title" id="today-title"></span>
-        <button class="sch-today-toggle" id="today-collapse" title="طيّ/فتح">▾</button>
-      </div>
-      <div class="sch-today-body" id="today-body"></div>
-    </div>
+    <div class="sch-chips" id="course-chips"></div>
 
     
     <div class="sch-week-nav" id="week-nav">
-      <button class="sch-nav-btn" id="btn-prev-week"><i class="fa-solid fa-chevron-right"></i></button>
-      <button class="sch-nav-label" id="week-label"></button>
-      <button class="sch-nav-btn" id="btn-next-week"><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="sch-nav-btn" id="btn-prev-week" data-title-ar="السابق" data-title-en="Previous"><i class="fa-solid fa-chevron-right"></i></button>
+      <span class="sch-nav-label">
+        <span class="sch-wk-num" id="wk-num"></span>
+        <span class="sch-wk-date" id="wk-date"></span>
+      </span>
+      <button class="sch-nav-btn" id="btn-next-week" data-title-ar="التالي" data-title-en="Next"><i class="fa-solid fa-chevron-left"></i></button>
       <button class="sch-today-btn" id="btn-today" data-ar="اليوم" data-en="Today"></button>
     </div>
 
     
+    <div class="sch-month-nav" id="month-nav" style="display:none">
+      <button class="sch-nav-btn" id="btn-prev-month" data-title-ar="الشهر السابق" data-title-en="Previous month"><i class="fa-solid fa-chevron-right"></i></button>
+      <span class="sch-month-label" id="month-label"></span>
+      <button class="sch-nav-btn" id="btn-next-month" data-title-ar="الشهر التالي" data-title-en="Next month"><i class="fa-solid fa-chevron-left"></i></button>
+    </div>
+
     <div class="sch-focus-banner" id="focus-banner" style="display:none">
       <span class="sch-focus-text" id="focus-banner-text"></span>
       <button class="sch-btn sch-btn-secondary sch-btn-xs" id="btn-toggle-lectures"></button>
     </div>
+    <div class="sch-outrange" id="outrange-banner" style="display:none"></div>
+    <div class="sch-dayfilter" id="dayfilter-bar" style="display:none"></div>
 
     
-    <div class="sch-planempty-bar" id="plan-empty-bar" style="display:none">
-      <span class="sch-planempty-text" id="plan-empty-text"></span>
-      <span class="sch-planempty-actions" id="plan-empty-actions"></span>
-    </div>
+    <div class="sch-daystrip" id="day-strip" style="display:none"></div>
 
     
-    <div class="sch-timetable-wrapper" id="timetable-wrapper">
-      <div class="sch-timetable" id="timetable">
-        
+    <div class="sch-grid-wrap" id="grid-wrap">
+      <div class="sch-grid-inner">
+        <div class="sch-head-row" id="head-row"></div>
+        <div class="sch-allday-row" id="allday-row" style="display:none"></div>
+        <div class="sch-body" id="grid-body"></div>
       </div>
     </div>
 
     
-    <div class="sch-print-appendix" id="print-appendix"></div>
+    <div id="agenda-wrap" style="display:none"></div>
 
     
     <div class="sch-month-wrapper" id="month-wrapper" style="display:none">
-      <div class="sch-month-nav">
-        <button class="sch-nav-btn" id="btn-prev-month"><i class="fa-solid fa-chevron-right"></i></button>
-        <span class="sch-month-label" id="month-label"></span>
-        <button class="sch-nav-btn" id="btn-next-month"><i class="fa-solid fa-chevron-left"></i></button>
-      </div>
-      <div class="sch-month-grid" id="month-grid">
-        
-      </div>
+      <div class="sch-month-grid" id="month-grid"></div>
+      <div class="sch-legend" id="month-legend"></div>
     </div>
 
-    
-    <div class="sch-overview-wrapper" id="overview-wrapper" style="display:none">
-      <div class="sch-overview-grid" id="overview-grid"></div>
-    </div>
-
-    
-    <button class="sch-fab" id="btn-add-event">
+    <button class="sch-fab" id="btn-add-event" data-title-ar="إضافة حدث" data-title-en="Add event">
       <i class="fa-solid fa-plus"></i>
     </button>
   </div>
 
   
-  <div class="sch-modal-overlay" id="modal-planner-detail" style="display:none">
-    <div class="sch-modal">
-      <div class="sch-editor-head">
-        <h3 id="pd-title"></h3>
-        <button class="sch-editor-close" id="btn-close-pd" title="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div id="pd-body"></div>
-      <div class="sch-modal-actions">
-        <button class="sch-btn sch-btn-secondary" id="btn-pd-close2" data-ar="إغلاق" data-en="Close"></button>
-      </div>
+  <div class="sch-modal-overlay" id="modal-choose-type" style="display:none">
+    <div class="sch-modal sch-modal-compact">
+      <button class="sch-choose-btn" id="choose-lecture"><i class="fa-solid fa-chalkboard-user"></i> <span data-ar="محاضرة" data-en="Lecture"></span></button>
+      <button class="sch-choose-btn" id="choose-study"><i class="fa-solid fa-book-open"></i> <span data-ar="مذاكرة" data-en="Study"></span></button>
+      <button class="sch-choose-btn" id="choose-exam"><i class="fa-solid fa-file-pen"></i> <span data-ar="اختبار" data-en="Exam"></span></button>
+      <button class="sch-choose-btn" id="choose-general"><i class="fa-solid fa-bookmark"></i> <span data-ar="عام (مهمة · ملاحظة · حدث)" data-en="General (task · note · event)"></span></button>
+      <button class="sch-choose-btn is-plan" id="choose-plan"><i class="fa-solid fa-bolt"></i> <span data-ar="خطة مذاكرة مكثّفة" data-en="Intensive study plan"></span></button>
     </div>
   </div>
 
   
   <div class="sch-modal-overlay" id="modal-add-lecture" style="display:none">
     <div class="sch-modal">
-      <h3 data-ar="إضافة محاضرة" data-en="Add Lecture"></h3>
+      <h3 data-ar="محاضرة" data-en="Lecture"></h3>
       <label class="sch-label" data-ar="المادة" data-en="Course"></label>
       <select class="sch-select" id="lec-course"></select>
       <label class="sch-label" data-ar="اليوم" data-en="Day"></label>
       <select class="sch-select" id="lec-day"></select>
       <div class="sch-time-row">
         <div><label class="sch-label" data-ar="من" data-en="From"></label>
-          <div class="sch-timepick"><select class="tp-h" aria-label="ساعة"></select><span class="tp-colon">:</span><select class="tp-m" aria-label="دقيقة"></select><select class="tp-mer" aria-label="ص/م"><option value="ص">ص</option><option value="م">م</option></select><input type="hidden" id="lec-start" value="15:00"></div>
+          <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="lec-start" value="15:00"></div>
         </div>
         <div><label class="sch-label" data-ar="إلى" data-en="To"></label>
-          <div class="sch-timepick"><select class="tp-h" aria-label="ساعة"></select><span class="tp-colon">:</span><select class="tp-m" aria-label="دقيقة"></select><select class="tp-mer" aria-label="ص/م"><option value="ص">ص</option><option value="م">م</option></select><input type="hidden" id="lec-end" value="16:30"></div>
+          <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="lec-end" value="15:50"></div>
         </div>
       </div>
-      <label class="sch-label" data-ar="القاعة (اختياري)" data-en="Room (optional)"></label>
-      <input type="text" class="sch-input" id="lec-room" placeholder="B204">
-      <label class="sch-label" data-ar="النوع" data-en="Type"></label>
-      <select class="sch-select" id="lec-type">
-        <option value="lecture" data-ar="محاضرة" data-en="Lecture">محاضرة</option>
-        <option value="lab" data-ar="معمل" data-en="Lab">معمل</option>
-        <option value="tutorial" data-ar="تمارين" data-en="Tutorial">تمارين</option>
-        <option value="section" data-ar="شعبة" data-en="Section">شعبة</option>
-      </select>
+      <div class="sch-time-row" style="margin-top:.4rem">
+        <div>
+          
+          <label class="sch-label" data-ar="الشكل" data-en="Form"></label>
+          <select class="sch-select" id="lec-kind">
+            <option value="lecture" data-ar="محاضرة" data-en="Lecture"></option>
+            <option value="lab" data-ar="معمل" data-en="Lab"></option>
+          </select>
+        </div>
+        <div>
+          <label class="sch-label" data-ar="الحضور" data-en="Attendance"></label>
+          <select class="sch-select" id="lec-attend">
+            <option value="in_person" data-ar="حضوري" data-en="In-person"></option>
+            <option value="remote" data-ar="عن بُعد" data-en="Remote"></option>
+          </select>
+        </div>
+      </div>
+      <div id="lec-room-wrap">
+        <label class="sch-label" data-ar="القاعة (اختياري)" data-en="Room (optional)"></label>
+        <input type="text" class="sch-input" id="lec-room" placeholder="B204">
+      </div>
       <div class="sch-modal-actions" id="lec-main-actions">
         <button class="sch-btn sch-btn-primary" id="btn-save-lecture" data-ar="حفظ" data-en="Save"></button>
         <button class="sch-btn sch-btn-secondary" id="btn-cancel-lecture" data-ar="إلغاء" data-en="Cancel"></button>
         <button class="sch-btn sch-btn-danger" id="del-lecture" style="display:none" data-ar="حذف" data-en="Delete"></button>
       </div>
-      
       <div class="sch-del-scope" id="lec-del-scope" style="display:none">
         <p class="sch-del-scope-q" data-ar="حذف هذه المحاضرة:" data-en="Delete this lecture:"></p>
         <div class="sch-modal-actions">
@@ -191,31 +199,39 @@
   
   <div class="sch-modal-overlay" id="modal-add-study" style="display:none">
     <div class="sch-modal">
-      <h3 data-ar="إضافة بلوك مذاكرة" data-en="Add Study Block"></h3>
+      <h3 data-ar="وقت مذاكرة" data-en="Study time"></h3>
       <label class="sch-label" data-ar="المادة" data-en="Course"></label>
       <select class="sch-select" id="study-course"></select>
       <label class="sch-label" data-ar="اليوم" data-en="Day"></label>
       <select class="sch-select" id="study-day"></select>
-      <label class="sch-label" data-ar="وقت البداية" data-en="Start Time"></label>
-      <div class="sch-timepick"><select class="tp-h" aria-label="ساعة"></select><span class="tp-colon">:</span><select class="tp-m" aria-label="دقيقة"></select><select class="tp-mer" aria-label="ص/م"><option value="ص">ص</option><option value="م">م</option></select><input type="hidden" id="study-start" value="14:00"></div>
-      <label class="sch-label" data-ar="المدة (دقيقة)" data-en="Duration (min)"></label>
-      <input type="number" class="sch-input" id="study-duration" value="60" min="15" max="300" step="15">
+      <div class="sch-time-row">
+        <div><label class="sch-label" data-ar="وقت البداية" data-en="Start time"></label>
+          <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="study-start" value="16:00"></div>
+        </div>
+        <div><label class="sch-label" data-ar="المدة (دقيقة)" data-en="Duration (min)"></label>
+          <input type="number" class="sch-input" id="study-duration" value="60" min="15" max="300" step="15">
+        </div>
+      </div>
+      
       <label class="sch-label" data-ar="النوع" data-en="Type"></label>
-      <select class="sch-select" id="study-type">
-        <option value="study">📚 مذاكرة / Study</option>
-        <option value="review">🔁 مراجعة / Review</option>
-        <option value="flashcards">🃏 فلاش كاردز / Flashcards</option>
+      <select class="sch-select" id="study-kind">
+        <option value="study" data-ar="مذاكرة" data-en="Study"></option>
+        <option value="review" data-ar="مراجعة" data-en="Review"></option>
+        <option value="custom" data-ar="أخرى…" data-en="Other…"></option>
       </select>
+      <div id="study-custom-wrap" style="display:none">
+        <label class="sch-label" data-ar="اسم النوع" data-en="Type name"></label>
+        <input type="text" class="sch-input" id="study-custom" data-ph-ar="مثال: حلّ تمارين" data-ph-en="e.g. Problem solving">
+      </div>
       <label class="sch-label" data-ar="ملاحظة (اختياري)" data-en="Note (optional)"></label>
-      <textarea class="sch-input" id="study-notes" rows="2" placeholder="..."></textarea>
+      <textarea class="sch-input" id="study-notes" rows="2"></textarea>
       <label class="sch-label" data-ar="رابط يوتيوب / مصدر (اختياري)" data-en="YouTube / link (optional)"></label>
       <input type="url" class="sch-input" id="study-youtube" placeholder="https://youtu.be/...">
       <label class="sch-label"><input type="checkbox" id="study-recurring" checked> <span data-ar="تكرار أسبوعي" data-en="Recurring weekly"></span></label>
-      
       <div id="study-single-week" style="display:none">
         <label class="sch-label" data-ar="تاريخ هذه النسخة" data-en="Date of this instance"></label>
         <input type="date" class="sch-input" id="study-week-date">
-        <p class="sch-editor-hint" data-ar="إلغاء التكرار ينشئ نسخة مفردة في أسبوع هذا التاريخ ويُبقي السلسلة المتكررة سليمة." data-en="Un-recurring creates a single instance in that date's week and keeps the recurring series intact."></p>
+        <p class="sch-editor-hint" data-ar="إلغاء التكرار ينشئ نسخة مفردة في أسبوع هذا التاريخ ويُبقي السلسلة المتكرّرة سليمة." data-en="Un-recurring creates a single instance in that date's week and keeps the recurring series intact."></p>
       </div>
       <div class="sch-modal-actions">
         <button class="sch-btn sch-btn-primary" id="btn-save-study" data-ar="حفظ" data-en="Save"></button>
@@ -228,30 +244,30 @@
   
   <div class="sch-modal-overlay" id="modal-add-exam" style="display:none">
     <div class="sch-modal">
-      <h3 data-ar="إضافة اختبار" data-en="Add Exam"></h3>
+      <h3 data-ar="اختبار" data-en="Exam"></h3>
       <label class="sch-label" data-ar="المادة" data-en="Course"></label>
       <select class="sch-select" id="exam-course"></select>
       <label class="sch-label" data-ar="التاريخ" data-en="Date"></label>
       <input type="date" class="sch-input" id="exam-date">
       <div class="sch-time-row">
         <div><label class="sch-label" data-ar="من" data-en="From"></label>
-          <div class="sch-timepick"><select class="tp-h" aria-label="ساعة"></select><span class="tp-colon">:</span><select class="tp-m" aria-label="دقيقة"></select><select class="tp-mer" aria-label="ص/م"><option value="ص">ص</option><option value="م">م</option></select><input type="hidden" id="exam-start" value="15:00"></div>
+          <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="exam-start" value="15:00"></div>
         </div>
         <div><label class="sch-label" data-ar="إلى" data-en="To"></label>
-          <div class="sch-timepick"><select class="tp-h" aria-label="ساعة"></select><span class="tp-colon">:</span><select class="tp-m" aria-label="دقيقة"></select><select class="tp-mer" aria-label="ص/م"><option value="ص">ص</option><option value="م">م</option></select><input type="hidden" id="exam-end" value="16:30"></div>
+          <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="exam-end" value="16:30"></div>
         </div>
       </div>
       <label class="sch-label" data-ar="النوع" data-en="Type"></label>
-      <select class="sch-select" id="exam-type">
-        <option value="exam" data-ar="اختبار" data-en="Exam">اختبار</option>
-        <option value="midterm" data-ar="نصفي" data-en="Midterm">نصفي</option>
-        <option value="final" data-ar="نهائي" data-en="Final">نهائي</option>
-        <option value="quiz" data-ar="كويز" data-en="Quiz">كويز</option>
+      <select class="sch-select" id="exam-kind">
+        <option value="exam" data-ar="اختبار" data-en="Exam"></option>
+        <option value="midterm" data-ar="نصفي" data-en="Midterm"></option>
+        <option value="final" data-ar="نهائي" data-en="Final"></option>
+        <option value="quiz" data-ar="كويز" data-en="Quiz"></option>
       </select>
       <label class="sch-label" data-ar="القاعة (اختياري)" data-en="Room (optional)"></label>
       <input type="text" class="sch-input" id="exam-room" placeholder="B204">
       <label class="sch-label" data-ar="ملاحظة (اختياري)" data-en="Note (optional)"></label>
-      <textarea class="sch-input" id="exam-notes" rows="2" placeholder="..."></textarea>
+      <textarea class="sch-input" id="exam-notes" rows="2"></textarea>
       <div class="sch-modal-actions">
         <button class="sch-btn sch-btn-primary" id="btn-save-exam" data-ar="حفظ" data-en="Save"></button>
         <button class="sch-btn sch-btn-secondary" id="btn-cancel-exam" data-ar="إلغاء" data-en="Cancel"></button>
@@ -261,67 +277,53 @@
   </div>
 
   
-  
-  <div class="sch-modal-overlay" id="modal-choose-type" style="display:none">
-    <div class="sch-modal sch-modal-compact">
-      <button class="sch-choose-btn" id="choose-lecture"><i class="fa-solid fa-chalkboard-user"></i> <span data-ar="محاضرة" data-en="Lecture"></span></button>
-      <button class="sch-choose-btn" id="choose-study"><i class="fa-solid fa-book-open"></i> <span data-ar="📖 مذاكرة" data-en="📖 Study"></span></button>
-      <button class="sch-choose-btn" id="choose-exam"><i class="fa-solid fa-file-pen"></i> <span data-ar="اختبار" data-en="Exam"></span></button>
-    </div>
-  </div>
-
-  
-  <div class="sch-modal-overlay" id="modal-study-kind" style="display:none">
-    <div class="sch-modal sch-modal-compact">
-      <button class="sch-choose-btn" id="study-kind-planned">
-        <i class="fa-solid fa-calendar-day"></i>
-        <span>
-          <b data-ar="مرتبطة بتاريخ" data-en="On a specific date"></b><br>
-          <small data-ar="جلسة خطة — وحدة محدّدة في يوم محدّد" data-en="Plan session — a module on a given day"></small>
-        </span>
-      </button>
-      <button class="sch-choose-btn" id="study-kind-routine">
-        <i class="fa-solid fa-repeat"></i>
-        <span>
-          <b data-ar="متكرّرة أسبوعياً" data-en="Every week"></b><br>
-          <small data-ar="روتين ثابت — كل أسبوع في الوقت نفسه" data-en="Fixed routine — same time weekly"></small>
-        </span>
-      </button>
-    </div>
-  </div>
-
-  
-  <div class="sch-modal-overlay" id="modal-add-planner" style="display:none">
+  <div class="sch-modal-overlay" id="modal-add-general" style="display:none">
     <div class="sch-modal">
-      <h3 data-ar="إضافة جلسة بلانر" data-en="Add Planner Session"></h3>
-      <label class="sch-label" data-ar="المادة" data-en="Course"></label>
-      <select class="sch-select" id="ps-course"></select>
-      <label class="sch-label" data-ar="الخطة" data-en="Plan"></label>
-      <select class="sch-select" id="ps-plan">
-        <option value="midterm" data-ar="ميدتيرم" data-en="Midterm">ميدتيرم</option>
-        <option value="final" data-ar="فاينل" data-en="Final">فاينل</option>
-      </select>
-      <label class="sch-label" data-ar="التاريخ" data-en="Date"></label>
-      <input type="date" class="sch-input" id="ps-date">
-      <label class="sch-label" data-ar="الوحدة" data-en="Module"></label>
-      <select class="sch-select" id="ps-module"></select>
+      <h3 data-ar="حدث عام" data-en="General event"></h3>
       <label class="sch-label" data-ar="النوع" data-en="Type"></label>
-      <select class="sch-select" id="ps-kind">
-        <option value="study" data-ar="مذاكرة" data-en="Study">مذاكرة</option>
-        <option value="review" data-ar="مراجعة" data-en="Review">مراجعة</option>
+      <select class="sch-select" id="gen-kind">
+        <option value="task" data-ar="مهمة" data-en="Task"></option>
+        <option value="note" data-ar="ملاحظة" data-en="Note"></option>
+        <option value="event" data-ar="حدث" data-en="Event"></option>
       </select>
-      
-      <label class="sch-label" data-ar="الوقت (اختياري)" data-en="Time (optional)"></label>
-      <div class="sch-time-row" style="display:flex;gap:.4rem">
-        <input type="time" class="sch-input" id="ps-time" style="flex:1">
-        <input type="number" class="sch-input" id="ps-dur" min="15" step="15" placeholder="90" style="width:90px">
+      <div id="gen-existing-wrap" style="display:none">
+        <label class="sch-label" data-ar="اربط بعنصر مسجَّل" data-en="Link an existing item"></label>
+        <select class="sch-select" id="gen-existing"></select>
       </div>
-      <p class="sch-editor-hint" data-ar="اتركه فارغاً لجلسة بلا وقت محدّد — تظهر في حزام اليوم." data-en="Leave empty for an untimed session — it shows in the day lane."></p>
-      <p class="sch-editor-hint" id="ps-hint" style="display:none"></p>
+      <label class="sch-label" data-ar="العنوان" data-en="Title"></label>
+      <input type="text" class="sch-input" id="gen-title">
+      <label class="sch-label" data-ar="المادة (اختياري)" data-en="Course (optional)"></label>
+      <select class="sch-select" id="gen-course"></select>
+      <label class="sch-label" data-ar="التاريخ" data-en="Date"></label>
+      <input type="date" class="sch-input" id="gen-date">
+      <label class="sch-label"><input type="checkbox" id="gen-timed" checked> <span data-ar="له وقت محدّد" data-en="Has a specific time"></span></label>
+      <div id="gen-time-wrap">
+        <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="gen-start" value="15:00"></div>
+        <p class="sch-editor-hint" data-ar="بوقت محدّد يظهر في الشبكة في وقته، وبلا وقت يظهر نقطةً في صفّ «طوال اليوم»." data-en="With a time it is drawn in the grid at that time; without one it becomes a dot in the all-day row."></p>
+      </div>
+      <label class="sch-label" data-ar="ملاحظة (اختياري)" data-en="Note (optional)"></label>
+      <textarea class="sch-input" id="gen-notes" rows="2"></textarea>
+      <label class="sch-label" data-ar="رابط (اختياري)" data-en="Link (optional)"></label>
+      <input type="url" class="sch-input" id="gen-link">
       <div class="sch-modal-actions">
-        <button class="sch-btn sch-btn-primary" id="btn-save-planner" data-ar="حفظ" data-en="Save"></button>
-        <button class="sch-btn sch-btn-secondary" id="btn-cancel-planner" data-ar="إلغاء" data-en="Cancel"></button>
+        <button class="sch-btn sch-btn-primary" id="btn-save-general" data-ar="حفظ" data-en="Save"></button>
+        <button class="sch-btn sch-btn-secondary" id="btn-cancel-general" data-ar="إلغاء" data-en="Cancel"></button>
+        <button class="sch-btn sch-btn-danger" id="del-general" style="display:none" data-ar="حذف" data-en="Delete"></button>
       </div>
+    </div>
+  </div>
+
+  
+  <div class="sch-sheet-overlay" id="modal-sheet" style="display:none">
+    <div class="sch-sheet">
+      <div class="sch-sheet-head">
+        <button class="sch-sheet-close" id="sheet-close" data-title-ar="إغلاق" data-title-en="Close"><i class="fa-solid fa-xmark"></i></button>
+        <span class="sch-sheet-kind" id="sheet-kind"></span>
+        <div class="sch-sheet-title" id="sheet-title"></div>
+        <div class="sch-sheet-course" id="sheet-course"></div>
+      </div>
+      <div class="sch-sheet-body" id="sheet-body"></div>
+      <div class="sch-sheet-actions" id="sheet-actions"></div>
     </div>
   </div>
 
@@ -329,42 +331,51 @@
   <div class="sch-modal-overlay" id="modal-editor" style="display:none">
     <div class="sch-modal sch-modal-editor">
       <div class="sch-editor-head">
-        <h3 data-ar="محرّر الجدول" data-en="Schedule Editor"></h3>
-        <button class="sch-editor-close" id="btn-close-editor" title="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+        <h3 data-ar="إعدادات الجدول" data-en="Schedule settings"></h3>
+        <button class="sch-editor-close" id="btn-close-editor" data-title-ar="إغلاق" data-title-en="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      
       <div class="sch-editor-section">
-        <label class="sch-label" data-ar="أيام الدراسة" data-en="Study Days"></label>
+        <label class="sch-label" data-ar="أيام الدراسة" data-en="Study days"></label>
         <div class="sch-day-toggles" id="editor-days"></div>
 
         <div class="sch-time-row" style="margin-top:.6rem">
           <div>
-            <label class="sch-label" data-ar="بداية الفصل" data-en="Semester Start"></label>
+            <label class="sch-label" data-ar="بداية الفصل" data-en="Semester start"></label>
             <input type="date" class="sch-input" id="editor-start">
           </div>
           <div>
-            <label class="sch-label" data-ar="نوع الفصل" data-en="Term Type"></label>
+            <label class="sch-label" data-ar="نوع الفصل" data-en="Term type"></label>
             <select class="sch-select" id="editor-term-type">
-              <option value="normal" data-ar="عادي (4 أشهر)" data-en="Normal (4 mo)">عادي (4 أشهر)</option>
-              <option value="summer" data-ar="صيفي (3 أشهر)" data-en="Summer (3 mo)">صيفي (3 أشهر)</option>
+              <option value="normal" data-ar="عادي (4 أشهر)" data-en="Normal (4 mo)"></option>
+              <option value="summer" data-ar="صيفي (3 أشهر)" data-en="Summer (3 mo)"></option>
             </select>
           </div>
         </div>
         <div class="sch-time-row" style="margin-top:.4rem">
           <div>
-            <label class="sch-label" data-ar="نهاية الفصل (تلقائي)" data-en="Semester End (auto)"></label>
+            <label class="sch-label" data-ar="نهاية الفصل (تلقائي)" data-en="Semester end (auto)"></label>
             <input type="date" class="sch-input" id="editor-end">
           </div>
-          
+          <div></div>
         </div>
-        <p class="sch-editor-hint" data-ar="ترقيم الأسابيع يبدأ من بداية الفصل (أول الأسبوع = الأحد). نهاية الفصل تُحسب تلقائياً وتقبل التعديل." data-en="Week numbering starts from the semester start (week begins Sunday). End date is auto-computed and editable."></p>
+        <p class="sch-editor-hint" data-ar="ترقيم الأسابيع يبدأ من بداية الفصل (أول الأسبوع = الأحد)، والمحاضرات المتكرّرة لا تُعرض خارج مدى الفصل." data-en="Week numbering starts at the semester start (week begins Sunday), and recurring lectures are not shown outside the term range."></p>
+
+        <div class="sch-time-row" style="margin-top:.4rem">
+          <div>
+            <label class="sch-label" data-ar="بداية ساعات الدراسة" data-en="Study hours start"></label>
+            <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="editor-day-start" value="15:00"></div>
+          </div>
+          <div>
+            <label class="sch-label" data-ar="نهايتها" data-en="Study hours end"></label>
+            <div class="sch-timepick"><select class="tp-h" data-title-ar="الساعة" data-title-en="Hour"></select><span class="tp-colon">:</span><select class="tp-m" data-title-ar="الدقيقة" data-title-en="Minute"></select><select class="tp-mer"></select><input type="hidden" id="editor-day-end" value="22:00"></div>
+          </div>
+        </div>
       </div>
 
-      
       <div class="sch-editor-section">
-        <label class="sch-label" data-ar="طبقات تركيز الاختبارات" data-en="Exam Focus Layers"></label>
-        <p class="sch-editor-hint" data-ar="في أسابيع الاختبارات تُخفى المحاضرات المتكررة تلقائياً للتركيز على المذاكرة (يمكن إظهارها لأسبوع بعينه)." data-en="During exam weeks, recurring lectures are auto-hidden to focus on studying (you can reveal them per week)."></p>
+        <label class="sch-label" data-ar="طبقات تركيز الاختبارات" data-en="Exam focus layers"></label>
+        <p class="sch-editor-hint" data-ar="في أسابيع الاختبارات تُخفى المحاضرات المتكرّرة تلقائياً للتركيز على المذاكرة (يمكن إظهارها لأسبوع بعينه)." data-en="During exam weeks, recurring lectures are auto-hidden to focus on studying (you can reveal them per week)."></p>
         <div class="sch-time-row">
           <div><label class="sch-label" data-ar="ميدتيرم — من" data-en="Midterm — from"></label><input type="date" class="sch-input" id="editor-mid-start"></div>
           <div><label class="sch-label" data-ar="إلى" data-en="to"></label><input type="date" class="sch-input" id="editor-mid-end"></div>
@@ -375,14 +386,28 @@
         </div>
       </div>
 
-      
       <div class="sch-editor-section">
         <div class="sch-editor-subhead">
           <span data-ar="محاضرات كل مادة" data-en="Lectures per course"></span>
-          <button class="sch-btn sch-btn-secondary sch-btn-xs" id="btn-auto-arrange" data-ar="ترتيب تلقائي" data-en="Auto-arrange" title="توزيع الأوقات تلقائياً 3م فصاعداً"></button>
+          <button class="sch-btn sch-btn-secondary sch-btn-xs" id="btn-auto-arrange" data-ar="ترتيب تلقائي" data-en="Auto-arrange"
+                  data-title-ar="توزيع الأوقات تتابعاً من بداية ساعات الدراسة" data-title-en="Lay times out consecutively from the study-hours start"></button>
         </div>
-        <p class="sch-editor-hint" data-ar="المحاضرات مسائية (3م–10م) ومدة كل محاضرة 50 دقيقة افتراضياً. عادةً يومان بالأسبوع لكل مادة." data-en="Evening lectures (3–10pm), 50 min each by default. Usually 2 days/week per course."></p>
         <div id="editor-courses"></div>
+      </div>
+
+      
+      <div class="sch-editor-section" id="editor-plans"></div>
+
+      <div class="sch-editor-section">
+        <div class="sch-editor-subhead"><span data-ar="المواد المؤرشفة" data-en="Archived courses"></span></div>
+        <p class="sch-editor-hint" data-ar="حذف مادة من فصلك لا يحذف أحداثها — تُنقل هنا، فإمّا تستعيدها أو تحذفها نهائياً." data-en="Removing a course from your semester does not delete its events — they move here to restore or delete forever."></p>
+        <div id="editor-archive"></div>
+      </div>
+
+      <div class="sch-editor-section">
+        <div class="sch-editor-subhead"><span data-ar="تنظيف الأحداث" data-en="Clean up events"></span></div>
+        <p class="sch-editor-hint" data-ar="حذف بالجملة بفلاتر النوع والمادة والمدى الزمني، مع عدّاد قبل التنفيذ." data-en="Bulk delete filtered by type, course and date range, with a live count before you confirm."></p>
+        <button class="sch-btn sch-btn-danger sch-btn-block" id="btn-open-purge" data-ar="فتح أداة التنظيف" data-en="Open cleanup tool"></button>
       </div>
 
       <div class="sch-modal-actions">
@@ -392,13 +417,115 @@
     </div>
   </div>
 
+  
+  <div class="sch-modal-overlay" id="modal-purge" style="display:none">
+    <div class="sch-modal">
+      <h3 data-ar="تنظيف الأحداث" data-en="Clean up events"></h3>
+      <label class="sch-label" data-ar="الأنواع (بلا تحديد = الكل)" data-en="Types (none selected = all)"></label>
+      <div class="sch-purge-grid" id="purge-types"></div>
+      <label class="sch-label" data-ar="المواد (بلا تحديد = الكل)" data-en="Courses (none selected = all)"></label>
+      <div class="sch-purge-grid" id="purge-courses"></div>
+      <div class="sch-time-row">
+        <div><label class="sch-label" data-ar="من تاريخ" data-en="From date"></label><input type="date" class="sch-input" id="purge-from"></div>
+        <div><label class="sch-label" data-ar="إلى تاريخ" data-en="To date"></label><input type="date" class="sch-input" id="purge-to"></div>
+      </div>
+      <p class="sch-editor-hint" data-ar="الأحداث المتكرّرة بلا تاريخ لا تدخل عند تحديد مدى زمني — لأنها تقع في كل أسابيع الفصل." data-en="Recurring events have no single date, so they are excluded when a date range is set."></p>
+      <div class="sch-purge-count" id="purge-count"></div>
+      <div class="sch-modal-actions">
+        <button class="sch-btn sch-btn-danger" id="purge-run" data-ar="حذف المحدَّد" data-en="Delete selected"></button>
+        <button class="sch-btn sch-btn-secondary" id="purge-cancel" data-ar="إلغاء" data-en="Cancel"></button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="sch-modal-overlay" id="modal-archive" style="display:none">
+    <div class="sch-modal">
+      <h3 data-ar="أحداث سابقة لهذه المادة" data-en="Earlier events for this course"></h3>
+      <p class="sch-legacy-box" id="archive-text"></p>
+      <div class="sch-modal-actions">
+        <button class="sch-btn sch-btn-primary" id="archive-restore" data-ar="🔄 استعادة" data-en="🔄 Restore"></button>
+        <button class="sch-btn sch-btn-secondary" id="archive-fresh" data-ar="🗑️ بدء من جديد" data-en="🗑️ Start fresh"></button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="sch-modal-overlay" id="modal-legacy" style="display:none">
+    <div class="sch-modal">
+      <h3 data-ar="نعتذر — أُعيد بناء نظام خطة المذاكرة" data-en="Sorry — the study-plan system was rebuilt"></h3>
+      <p class="sch-legacy-box" data-ar="نظام خطة المذاكرة السابق أُعيد بناؤه من الصفر داخل الجدول، ولم يعد بالإمكان قراءة خططك القديمة. ستحتاج إلى إعادة تصميم خطتك من جديد — والأدوات الجديدة أسرع وأدقّ. بياناتك القديمة ما زالت محفوظة على جهازك ولن نحذف منها شيئاً إلا إذا طلبت ذلك صراحةً." data-en="The previous study-plan system was rebuilt from scratch inside the schedule, and your old plans can no longer be read. You will need to design your plan again — the new tools are faster and more precise. Your old data is still stored on your device and nothing will be deleted unless you explicitly ask."></p>
+      <p class="sch-editor-hint" id="legacy-count"></p>
+      <div class="sch-modal-actions">
+        <button class="sch-btn sch-btn-danger" id="legacy-wipe" data-ar="🗑️ امسح بياناتي القديمة" data-en="🗑️ Wipe my old data"></button>
+        <button class="sch-btn sch-btn-secondary" id="legacy-close" data-ar="إغلاق (احتفظ بها)" data-en="Close (keep them)"></button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="sch-modal-overlay" id="modal-plan" style="display:none">
+    <div class="sch-modal sch-modal-plan">
+      <div class="sch-editor-head">
+        <h3 data-ar="خطة مذاكرة مكثّفة" data-en="Intensive study plan"></h3>
+        <button class="sch-editor-close" id="plan-wizard-x" data-title-ar="إغلاق" data-title-en="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="plan-wizard"></div>
+    </div>
+  </div>
+
+  
+  <div class="sch-modal-overlay" id="modal-plan-panel" style="display:none">
+    <div class="sch-modal sch-modal-plan">
+      <div class="sch-editor-head">
+        <h3 data-ar="الخطط المكثّفة" data-en="Intensive plans"></h3>
+        <button class="sch-editor-close" id="plan-panel-x" data-title-ar="إغلاق" data-title-en="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="plan-panel"></div>
+    </div>
+  </div>
+
+  
+  <div class="sch-modal-overlay" id="modal-print" style="display:none">
+    <div class="sch-modal">
+      <h3 data-ar="طباعة" data-en="Print"></h3>
+      <label class="sch-label" data-ar="ماذا تطبع؟" data-en="What to print?"></label>
+      <select class="sch-select" id="print-mode">
+        <option value="weeks" data-ar="أسابيع" data-en="Weeks"></option>
+        <option value="months" data-ar="أشهر" data-en="Months"></option>
+        <option value="agenda" data-ar="أجندة (قائمة بالأوقات)" data-en="Agenda (timed list)"></option>
+        <option value="plan" data-ar="خطة مكثّفة" data-en="Intensive plan"></option>
+      </select>
+      <div id="print-weeks-wrap">
+        <label class="sch-label" data-ar="نطاق الأسابيع" data-en="Week range"></label>
+        <select class="sch-select" id="print-week-scope">
+          <option value="current" data-ar="الأسبوع المعروض" data-en="Current week"></option>
+          <option value="range" data-ar="مدى من..إلى" data-en="From..to range"></option>
+          <option value="term" data-ar="الفصل كاملاً" data-en="Whole term"></option>
+        </select>
+        <div class="sch-time-row" id="print-range-wrap" style="display:none">
+          <div><label class="sch-label" data-ar="من" data-en="From"></label><input type="date" class="sch-input" id="print-from"></div>
+          <div><label class="sch-label" data-ar="إلى" data-en="To"></label><input type="date" class="sch-input" id="print-to"></div>
+        </div>
+      </div>
+      <div id="print-months-wrap" style="display:none">
+        <label class="sch-label" data-ar="عدد الأشهر ابتداءً من المعروض" data-en="Months starting from the shown one"></label>
+        <input type="number" class="sch-input" id="print-month-count" value="1" min="1" max="6">
+      </div>
+      <p class="sch-editor-hint" data-ar="الطباعة تحترم فلتر المواد الظاهر في الصفحة، وتخرج وثيقة A4 متجهة في نافذة جديدة (العربية موصولة بلا تقطيع)." data-en="Printing respects the on-page course filter and produces a vector A4 document in a new window."></p>
+      <div class="sch-modal-actions">
+        <button class="sch-btn sch-btn-primary" id="print-run" data-ar="طباعة" data-en="Print"></button>
+        <button class="sch-btn sch-btn-secondary" id="print-cancel" data-ar="إلغاء" data-en="Cancel"></button>
+      </div>
+    </div>
+  </div>
+
   <script src="../shared/garden.js"></script>
   <script src="../shared/garden-header.js"></script>
-  <script src="../shared/vendor/html2canvas.min.js"></script>
-  <script src="../shared/vendor/jspdf.umd.min.js"></script>
-  <script src="../shared/export.js"></script>
   <script src="../shared/garden-data.js"></script>
   <script src="../shared/schedule.js"></script>
+  <script src="../shared/schedule-print.js"></script>
+  <script src="../shared/schedule-plan.js"></script>
   <script src="../shared/bottom-nav.js"></script>
   <script src="../shared/sw-register.js"></script>
   <script src="../shared/reminders-db.js"></script>

@@ -158,8 +158,8 @@
     
     if (semCourse.custom) {
       return {
-        name_ar: semCourse.name_ar || 'مادة مخصصة',
-        name_en: semCourse.name_en || 'Custom Course',
+        name_ar: semCourse.name_ar || semCourse.name_en || 'مادة مخصصة',
+        name_en: semCourse.name_en || semCourse.name_ar || 'Custom Course',
         credits: semCourse.credits || 3
       };
     }
@@ -175,8 +175,8 @@
     }
     
     return {
-      name_ar: semCourse.name_ar || semCourse.code,
-      name_en: semCourse.name_en || semCourse.code,
+      name_ar: semCourse.name_ar || semCourse.name_en || semCourse.code,
+      name_en: semCourse.name_en || semCourse.name_ar || semCourse.code,
       credits: semCourse.credits || 3
     };
   }
@@ -567,11 +567,12 @@
 
    
   function addManualCourse() {
-    var nameAr = document.getElementById('manual-name-ar').value.trim();
-    var nameEn = document.getElementById('manual-name-en').value.trim();
+    
+    var name = document.getElementById('manual-name').value.trim();
     var credits = parseInt(document.getElementById('manual-credits').value) || 3;
 
-    if (!nameAr && !nameEn) return;
+    if (!name) return;
+    var nameAr = name, nameEn = name;
 
     var currentSem = gradesData.semesters.find(function (s) { return s.is_current; });
     if (!currentSem) {
@@ -590,8 +591,7 @@
 
     saveGrades();
     closeModal('modal-add-manual');
-    document.getElementById('manual-name-ar').value = '';
-    document.getElementById('manual-name-en').value = '';
+    document.getElementById('manual-name').value = '';
     document.getElementById('manual-credits').value = '3';
     render();
   }

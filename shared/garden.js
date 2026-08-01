@@ -114,10 +114,23 @@
   }
 
    
+   
+  const THEME_META_COLOR = { light: '#a78bfa', dark: '#111827', dim: '#0f111a' };
+  function updateThemeColorMeta(theme) {
+    const color = THEME_META_COLOR[theme] || THEME_META_COLOR.dark;
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      (document.head || document.documentElement).appendChild(meta);
+    }
+    meta.setAttribute('content', color);
+  }
   function applyTheme(theme) {
     currentTheme = theme;
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('garden_theme', theme);
+    updateThemeColorMeta(theme);
     const icon = document.getElementById('theme-icon');
     if (icon) icon.textContent = THEME_ICONS[theme] || '🌙';
   }
@@ -1239,7 +1252,7 @@
           ${nextDueDate ? `<div class="sm2-report-section">
             <div class="sm2-rsec-title"><span>🔔</span>${isAr ? 'الزيارة القادمة المقررة' : 'Your Next Scheduled Visit'}</div>
             <div class="sm2-rnext-date">
-              <div class="sm2-rnd-big">${nextDueDate.toLocaleDateString(isAr ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              <div class="sm2-rnd-big">${nextDueDate.toLocaleDateString(isAr ? 'ar-SA-u-ca-gregory' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
               <div class="sm2-rnd-sub">${(() => {
           const diff = Math.round((nextDueDate - today) / 86400000);
           if (diff <= 0) return isAr ? 'البطاقات متاحة الآن' : 'Cards available now';
@@ -1938,6 +1951,27 @@
     }
   }
   let _gardenSelRange = null;   
+  
+  
+  
+  let _gardenSelAnchor = null;
+  let _gardenSelText = '';
+  function _captureSelection(range, text) {
+    _gardenSelRange = range;
+    _gardenSelText = text || '';
+    try { _gardenSelAnchor = range ? computeAnchor(range.cloneRange()) : null; }
+    catch (_) { _gardenSelAnchor = null; }
+  }
+  
+  
+  function _resolveSel() {
+    const range = _gardenSelRange ? _gardenSelRange.cloneRange() : null;
+    const live = range ? range.toString().trim() : '';
+    const text = _gardenSelText || live || (window._gardenNotesSelection || '').trim();
+    const anchor = _gardenSelAnchor
+      || (range ? computeAnchor(range) : (text ? { text: text, occurrence: 0, blockIndex: -1 } : null));
+    return { text: text, anchor: anchor };
+  }
 
   function nL(ar, en) { return currentLang === 'ar' ? ar : en; }
 
@@ -2199,7 +2233,7 @@
         const sel = window.getSelection();
         const text = sel?.toString().trim();
         if (text && text.length >= 1 && text.length < 500) {
-          _gardenSelRange = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+          _captureSelection(sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null, text);
           const rect = _gardenSelRange ? _gardenSelRange.getBoundingClientRect() : null;
           showNotesTooltip(rect, text);
         } else { hideNotesTooltip(); }
@@ -2215,7 +2249,7 @@
         const sel = window.getSelection();
         const text = sel?.toString().trim();
         if (text && text.length >= 1 && text.length < 500 && mainContent?.contains(sel.anchorNode)) {
-          _gardenSelRange = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+          _captureSelection(sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null, text);
           showMobileNoteSaveBar(text);
         } else { hideMobileNoteSaveBar(); }
       }, 800);
@@ -2282,10 +2316,8 @@
       window.getSelection()?.removeAllRanges();
     });
     tip.querySelector('#tip-note').addEventListener('click', () => {
-      const range = _gardenSelRange ? _gardenSelRange.cloneRange() : null;
-      const text = (range ? range.toString() : (window._gardenNotesSelection || '')).trim();
+      const { text, anchor } = _resolveSel();
       if (!text) return;
-      const anchor = range ? computeAnchor(range) : { text: text, occurrence: 0, blockIndex: -1 };
       hideNotesTooltip();
       window.getSelection()?.removeAllRanges();
       openNoteEditor({ free: false, highlightText: text, anchor: anchor });
@@ -2324,10 +2356,8 @@
 
     const goBack = () => { colors.style.display = 'none'; main.style.display = 'flex'; };
     wireColorPicker(colors, (colorKey) => {
-      const range = _gardenSelRange ? _gardenSelRange.cloneRange() : null;
-      const text = (range ? range.toString() : (window._gardenNotesSelection || '')).trim();
+      const { text, anchor } = _resolveSel();
       if (!text) return;
-      const anchor = range ? computeAnchor(range) : { text: text, occurrence: 0, blockIndex: -1 };
       createHighlightOnly(text, anchor, colorKey);
       hideNotesTooltip();
       window.getSelection()?.removeAllRanges();
@@ -2441,13 +2471,11 @@
       '</div>';
     bar.style.display = 'flex';
 
-    const getRange = () => _gardenSelRange ? _gardenSelRange.cloneRange() : null;
     bar.querySelector('#mnb-save').onclick = () => {
-      const range = getRange();
-      const anchor = range ? computeAnchor(range) : { text: text, occurrence: 0, blockIndex: -1 };
+      const r = _resolveSel();
       hideMobileNoteSaveBar();
       window.getSelection()?.removeAllRanges();
-      openNoteEditor({ free: false, highlightText: text, anchor: anchor });
+      openNoteEditor({ free: false, highlightText: r.text || text, anchor: r.anchor || { text: text, occurrence: 0, blockIndex: -1 } });
     };
     bar.querySelector('#mnb-copy').onclick = () => { copyText(text); hideMobileNoteSaveBar(); window.getSelection()?.removeAllRanges(); };
     bar.querySelector('#mnb-color').onclick = () => {
@@ -2455,9 +2483,10 @@
       c.style.display = c.style.display === 'none' ? 'block' : 'none';
     };
     wireColorPicker(bar.querySelector('#mnb-colors'), (colorKey) => {
-      const range = getRange();
-      const anchor = range ? computeAnchor(range) : { text: text, occurrence: 0, blockIndex: -1 };
-      createHighlightOnly(text, anchor, colorKey);
+      const r = _resolveSel();
+      const text2 = r.text || text;
+      const anchor = r.anchor || { text: text2, occurrence: 0, blockIndex: -1 };
+      createHighlightOnly(text2, anchor, colorKey);
       hideMobileNoteSaveBar();
       window.getSelection()?.removeAllRanges();
     });
@@ -4580,24 +4609,24 @@ ${baseRules}`) + regenSuffix;
         <div class="ai-modal-footer" id="ai-footer">
           <button class="ai-action-btn" id="ai-copy-prompt" title="${aiT('نسخ البرومبت', 'Copy prompt')}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            ${aiT('نسخ', 'Copy')}
+            <span class="ai-btn-label">${aiT('نسخ', 'Copy')}</span>
           </button>
           ${GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--regen" id="ai-regen" title="${aiT('تجاهل الكاش وتوليد شرح جديد', 'Bypass cache and generate a fresh explanation')}">
             ${REGEN_ICON}
-            ${aiT('توليد', 'Regen')}
+            <span class="ai-btn-label">${aiT('توليد', 'Regen')}</span>
           </button>` : ''}
-          <a class="ai-action-btn" href="https://chat.deepseek.com/" target="_blank" rel="noopener">
-            ${_AI_ICON_DEEPSEEK} DeepSeek
+          <a class="ai-action-btn" href="https://chat.deepseek.com/" target="_blank" rel="noopener" title="DeepSeek">
+            ${_AI_ICON_DEEPSEEK} <span class="ai-btn-label">DeepSeek</span>
           </a>
-          <a class="ai-action-btn" href="https://chatgpt.com/" target="_blank" rel="noopener">
-            ${_AI_ICON_CHATGPT} ChatGPT
+          <a class="ai-action-btn" href="https://chatgpt.com/" target="_blank" rel="noopener" title="ChatGPT">
+            ${_AI_ICON_CHATGPT} <span class="ai-btn-label">ChatGPT</span>
           </a>
-          <a class="ai-action-btn" href="https://gemini.google.com/" target="_blank" rel="noopener">
-            ${_AI_ICON_GEMINI} Gemini
+          <a class="ai-action-btn" href="https://gemini.google.com/" target="_blank" rel="noopener" title="Gemini">
+            ${_AI_ICON_GEMINI} <span class="ai-btn-label">Gemini</span>
           </a>
           ${GARDEN_AI_ENDPOINT ? `<button class="ai-action-btn ai-action-btn--primary" id="ai-retry" style="display:none" title="${aiT('إعادة المحاولة', 'Retry')}">
             ${REGEN_ICON}
-            ${aiT('محاولة', 'Retry')}
+            <span class="ai-btn-label">${aiT('محاولة', 'Retry')}</span>
           </button>` : ''}
         </div>
       </div>`;
@@ -4989,8 +5018,11 @@ ${baseRules}`) + regenSuffix;
       }
       const btn = document.createElement('button');
       btn.className = 'ai-explain-btn';
-      btn.setAttribute('aria-label', aiT('DeepSeek يشرح', 'AI Explanation'));
-      btn.title = aiT('DeepSeek يشرح', 'AI Explanation');
+      
+      
+      btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>';
+      btn.setAttribute('aria-label', aiT('اشرح بالذكاء', 'Explain'));
+      btn.title = aiT('اشرح بالذكاء', 'Explain');
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const data = extractCardContent(card);
@@ -5071,200 +5103,138 @@ ${baseRules}`) + regenSuffix;
 
    
   (function () {
-    function _todayStr() {
-      const d = new Date();
-      return d.getFullYear() + '-' +
-        String(d.getMonth() + 1).padStart(2, '0') + '-' +
-        String(d.getDate()).padStart(2, '0');
+    var SCHEDULE_KEY = 'weekly_schedule';
+    var DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+    function _pad2(n) { return n < 10 ? ('0' + n) : String(n); }
+
+    function _todayStr(d) {
+      d = d || new Date();
+      return d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate());
     }
 
-    function _getPlannerBannerData() {
-      const today = _todayStr();
+     
+    function _weekIdOf(d) {
+      var dt = new Date(d);
+      dt.setHours(0, 0, 0, 0);
+      dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7);
+      var week1 = new Date(dt.getFullYear(), 0, 4);
+      var weekNum = 1 + Math.round(((dt - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+      return dt.getFullYear() + '-W' + _pad2(weekNum);
+    }
 
-      
-      
-      
-      
-      var pathMatch = location.pathname.match(/\/L(\d+)\/|\/level(\d+)\//i);
-      var currentLevel = pathMatch ? (pathMatch[1] || pathMatch[2]) : null;
-       
-      var levels = currentLevel ? [currentLevel] : ['HUB', 'others', '3', '4', '5', '6', '7', '8'];
+     
+    function _getTodayBannerData() {
+      var raw;
+      try { raw = localStorage.getItem(SCHEDULE_KEY); } catch (e) { raw = null; }
+      if (!raw) return { hasData: false };
+      var sch;
+      try { sch = JSON.parse(raw); } catch (e) { return { hasData: false }; }
+      if (!sch || typeof sch !== 'object') return { hasData: false };
 
-      
-      var combined = {
-        hasPlan: false,
-        todaySessions: 0, todayDone: 0,
-        totalSessions: 0, doneSessions: 0,
-        progressPct: 0, planUrl: null, planType: null,
-        version: null,
-        level: currentLevel
-      };
+      var lectures = sch.lectures || [];
+      var studyBlocks = sch.study_blocks || [];
+      var exams = sch.exams || [];
+      if (!lectures.length && !studyBlocks.length && !exams.length) return { hasData: false };
 
-      for (var li = 0; li < levels.length; li++) {
-        var lv = levels[li];
-        var v2Raw = localStorage.getItem('planner_v2_L' + lv);
-        if (!v2Raw) continue;
-        try {
-          var v2Data = JSON.parse(v2Raw);
-          if (!v2Data || v2Data.version !== 2 || !v2Data.plans) continue;
+      var now = new Date();
+      var today = _todayStr(now);
+      var dayKey = DAYS_ORDER[now.getDay()];
+      var wid = _weekIdOf(now);
+      var overrides = (sch.week_overrides && sch.week_overrides[wid]) || {};
+      var cancelled = overrides.cancelled_lectures || [];
+      var completed = overrides.completed_events || [];
 
-          var activeType = v2Data.active_plan || 'midterm';
-          var activePlan = v2Data.plans[activeType];
-          if (!activePlan || !activePlan.entries) continue;
-
-          
-          var todayEntry = activePlan.entries[today];
-          var todayMods = todayEntry && todayEntry.items
-            ? todayEntry.items.filter(function (i) { return i.type === 'module'; })
-            : [];
-          var todayTotal = todayMods.length;
-          var todayDone = todayMods.filter(function (i) { return i.completed; }).length;
-
-          
-          var totalSessions = 0, doneSessions = 0;
-          Object.keys(activePlan.entries).forEach(function (d) {
-            var mods = (activePlan.entries[d].items || []).filter(function (i) { return i.type === 'module'; });
-            totalSessions += mods.length;
-            doneSessions += mods.filter(function (i) { return i.completed; }).length;
-          });
-
-          if (todayTotal === 0 && totalSessions === 0) continue;
-
-          combined.hasPlan = true;
-          combined.version = 2;
-          combined.todaySessions += todayTotal;
-          combined.todayDone += todayDone;
-          combined.totalSessions += totalSessions;
-          combined.doneSessions += doneSessions;
-          if (!combined.planType) combined.planType = activeType;
-           
-          if (!combined.planUrl) {
-            combined.planUrl = (lv === 'HUB')
-              ? ROOT + 'hub/planner.html'
-              : ROOT + 'L' + lv + '/planner/index.html';
-          }
-        } catch (e) {   }
-      }
-
-      
-      
-      
-      if (!combined.hasPlan) {
-        const legacyKeys = [];
-        levels.forEach(function (lv) {
-          legacyKeys.push(
-            'study_plan_L' + lv + '_midterm',
-            'study_plan_L' + lv + '_final',
-            'study_plan_L' + lv + '_general'
-          );
+      var todayEvents = [];
+      lectures.forEach(function (l) {
+        if (!l || l.day !== dayKey || !l.recurring) return;
+        if (cancelled.indexOf(l.id) !== -1) return;
+        todayEvents.push({
+          id: l.id, start: l.start_time || '', course: l.course_code || '',
+          done: completed.indexOf(l.id) !== -1
         });
-        
-        if (!currentLevel) {
-          legacyKeys.push('study_plan_midterm', 'study_plan_final', 'study_plan_general');
-        }
+      });
+      studyBlocks.forEach(function (b) {
+        if (!b || b.day !== dayKey) return;
+        if (b.week_id != null && b.week_id !== wid) return;
+        todayEvents.push({
+          id: b.id, start: b.start_time || '', course: b.course_code || '',
+          done: completed.indexOf(b.id) !== -1
+        });
+      });
+      exams.forEach(function (ex) {
+        if (!ex || ex.date !== today) return;
+        todayEvents.push({
+          id: ex.id, start: ex.start_time || '', course: ex.course_code || '',
+          done: !!ex.completed_at
+        });
+      });
 
-        for (var i = 0; i < legacyKeys.length; i++) {
-          var raw = localStorage.getItem(legacyKeys[i]);
-          if (!raw) continue;
-          try {
-            var plan = JSON.parse(raw);
-            if (!plan || !Array.isArray(plan.days)) continue;
+      todayEvents.sort(function (a, b) { return String(a.start).localeCompare(String(b.start)); });
 
-            var todayDay = null;
-            for (var j = 0; j < plan.days.length; j++) {
-              if (plan.days[j].date === today) { todayDay = plan.days[j]; break; }
-            }
+      var doneCount = 0;
+      todayEvents.forEach(function (e) { if (e.done) doneCount++; });
 
-            var todaySessions = todayDay ? (todayDay.sessions || []) : [];
-            var todayTotalL = todaySessions.length;
-            var todayDoneL = todaySessions.filter(function (s) { return s.completed; }).length;
-
-            var totalSessionsL = 0, doneSessionsL = 0;
-            plan.days.forEach(function (d) {
-              var ss = d.sessions || [];
-              totalSessionsL += ss.length;
-              doneSessionsL += ss.filter(function (s) { return s.completed; }).length;
-            });
-
-            if (todayTotalL === 0 && totalSessionsL === 0) continue;
-
-            combined.hasPlan = true;
-            combined.version = 1;
-            combined.todaySessions += todayTotalL;
-            combined.todayDone += todayDoneL;
-            combined.totalSessions += totalSessionsL;
-            combined.doneSessions += doneSessionsL;
-            if (!combined.planType) combined.planType = plan.plan_type;
-            if (!combined.planUrl) {
-              var lvMatch = legacyKeys[i].match(/L(\d+)/);
-              var lvL = lvMatch ? lvMatch[1] : '5';
-              combined.planUrl = ROOT + 'L' + lvL + '/planner/index.html';
-            }
-          } catch (e) {   }
+      
+      var nowHM = _pad2(now.getHours()) + ':' + _pad2(now.getMinutes());
+      var next = null;
+      for (var i = 0; i < todayEvents.length; i++) {
+        if (!todayEvents[i].done && todayEvents[i].start >= nowHM) { next = todayEvents[i]; break; }
+      }
+      if (!next) {
+        for (var j = 0; j < todayEvents.length; j++) {
+          if (!todayEvents[j].done) { next = todayEvents[j]; break; }
         }
       }
 
-      if (!combined.hasPlan) return { hasPlan: false };
-
-      combined.progressPct = combined.totalSessions > 0
-        ? Math.round((combined.doneSessions / combined.totalSessions) * 100) : 0;
-
-      var isAr = (document.documentElement.lang || localStorage.getItem('garden_lang') || 'ar') === 'ar';
-      var n = combined.todaySessions;
-      combined.todaySessionsFormatted = isAr
-        ? (n === 0 ? 'لا جلسات اليوم' : n === 1 ? 'جلسة واحدة' : n === 2 ? 'جلستين' : n + ' جلسات')
-        : (n + ' Session' + (n === 1 ? '' : 's'));
-
-      return combined;
+      return {
+        hasData: true,
+        todayTotal: todayEvents.length,
+        todayDone: doneCount,
+        progressPct: todayEvents.length ? Math.round((doneCount / todayEvents.length) * 100) : 0,
+        next: next,
+        scheduleUrl: ROOT + 'hub/schedule.html'
+      };
     }
 
     
-    if (!window.Planner) {
-      window.Planner = {};
-    }
-    
-    if (!window.Planner.getTodayBannerData) {
-      window.Planner.getTodayBannerData = _getPlannerBannerData;
-    }
+    if (!window.GardenToday) window.GardenToday = {};
+    window.GardenToday.getTodayBannerData = _getTodayBannerData;
 
      
     function _updateTodayBanner() {
       var banner = document.getElementById('today-banner');
       if (!banner) return; 
-      var data = _getPlannerBannerData();
+      var data = _getTodayBannerData();
       var isAr = (document.documentElement.lang || localStorage.getItem('garden_lang') || 'ar') === 'ar';
 
-      if (!data.hasPlan) {
+      if (!data.hasData) {
         
         banner.style.display = 'none';
-        var badge0 = document.getElementById('today-sessions-badge');
-        if (badge0) badge0.style.display = 'none';
         return;
       }
 
        
       banner.style.display = 'flex';
 
-      var planTypeLabel = '';
-      if (data.planType === 'midterm') planTypeLabel = isAr ? 'ميدتيرم' : 'Midterm';
-      else if (data.planType === 'final') planTypeLabel = isAr ? 'فاينل' : 'Final';
-      else if (data.planType === 'general') planTypeLabel = isAr ? 'عام' : 'General';
-
       var titleEl = document.getElementById('today-banner-title');
       if (titleEl) {
-        titleEl.textContent = data.todaySessions > 0
+        titleEl.textContent = data.todayTotal > 0
           ? (isAr
-            ? ('📅 جلسة اليوم: ' + data.todayDone + ' من ' + data.todaySessions + ' مكتملة')
-            : ('📅 Today: ' + data.todayDone + ' of ' + data.todaySessions + ' sessions done'))
-          : (isAr ? '📅 خطة مذاكرة نشطة' : '📅 Active study plan');
+            ? ('📅 اليوم: ' + data.todayDone + ' من ' + data.todayTotal + ' مكتمل')
+            : ('📅 Today: ' + data.todayDone + ' of ' + data.todayTotal + ' done'))
+          : (isAr ? '📅 لا أحداث اليوم' : '📅 No events today');
       }
 
       var subEl = document.getElementById('today-banner-subtitle');
       if (subEl) {
-        subEl.textContent = isAr
-          ? (planTypeLabel + ' · الإجمالي: ' + data.doneSessions + ' من ' + data.totalSessions + ' ' +
-             countWord(data.totalSessions, ['جلسة', 'جلستين', 'جلسات'], ['session', 'sessions']))
-          : (planTypeLabel + ' · Total: ' + data.doneSessions + ' of ' + data.totalSessions + ' sessions');
+        if (data.next) {
+          subEl.textContent = isAr
+            ? ('القادم: ' + (data.next.course || '') + (data.next.start ? ' الساعة ' + data.next.start : ''))
+            : ('Next: ' + (data.next.course || '') + (data.next.start ? ' at ' + data.next.start : ''));
+        } else {
+          subEl.textContent = isAr ? 'الجدول الأسبوعي' : 'Weekly schedule';
+        }
       }
 
       var pctEl = document.getElementById('today-banner-pct');
@@ -5273,12 +5243,7 @@ ${baseRules}`) + regenSuffix;
       var fillEl = document.getElementById('today-banner-bar-fill');
       if (fillEl) fillEl.style.width = data.progressPct + '%';
 
-      var badge = document.getElementById('today-sessions-badge');
-      if (badge) {
-        var pending = data.todaySessions - data.todayDone;
-        if (pending > 0) { badge.textContent = pending; badge.style.display = ''; }
-        else { badge.style.display = 'none'; }
-      }
+       
     }
 
     
@@ -5291,7 +5256,7 @@ ${baseRules}`) + regenSuffix;
     
     window.addEventListener('focus', _updateTodayBanner);
     
-    window.Planner.refreshBanner = _updateTodayBanner;
+    window.GardenToday.refreshBanner = _updateTodayBanner;
   })();
 
    
@@ -5327,6 +5292,15 @@ ${baseRules}`) + regenSuffix;
 
    
   var NAV_STACK_KEY = 'garden_nav_stack';
+   
+  function _canonUrl(h) {
+    try {
+      var u = new URL(h, location.href);
+      u.hash = '';
+      if (/\/$/.test(u.pathname)) u.pathname += 'index.html';
+      return u.href;
+    } catch (e) { return String(h || ''); }
+  }
   function _navStackRead() {
     try { return JSON.parse(sessionStorage.getItem(NAV_STACK_KEY) || '[]'); } catch (e) { return []; }
   }
@@ -5334,9 +5308,15 @@ ${baseRules}`) + regenSuffix;
     try { sessionStorage.setItem(NAV_STACK_KEY, JSON.stringify(a.slice(-50))); } catch (e) {}
   }
   function _pushNavStack() {
-    var here = location.href;
+    var here = location.href, canon = _canonUrl(here);
     var st = _navStackRead();
-    if (st.length && st[st.length - 1] === here) return;   
+    if (st.length && _canonUrl(st[st.length - 1]) === canon) return;   
+     
+    if (st.length >= 2 && _canonUrl(st[st.length - 2]) === canon) {
+      st.pop();
+      _navStackWrite(st);
+      return;
+    }
     st.push(here);
     _navStackWrite(st);
   }
@@ -5351,6 +5331,19 @@ ${baseRules}`) + regenSuffix;
     location.href = target;
     return true;
   }
+   
+  function goUp(href) {
+    var abs = _canonUrl(href);
+    var st = _navStackRead();
+    st.pop();                                       
+    if (!st.length || _canonUrl(st[st.length - 1]) !== abs) st.push(abs);
+    _navStackWrite(st);
+    location.href = href;
+    return true;
+  }
+   
+  function isSelfHref(href) { return _canonUrl(href) === _canonUrl(location.href); }
+
    
   _pushNavStack();
 
@@ -5404,8 +5397,19 @@ ${baseRules}`) + regenSuffix;
    
 
    
+   
+  function _fixFooterBrand() {
+    var el = document.querySelector('.footer-brand');
+    if (!el) return;
+    var p = location.pathname;
+    var m = p.match(/\/L(\d+)\//);
+    var label = m ? 'CS Level ' + m[1] : (/\/others\//.test(p) ? 'General Courses' : null);
+    if (!label) return;                       
+    el.textContent = '🌱 ' + label + ' · Digital Garden';
+  }
   function _bootPage() {
     applyTheme(currentTheme);
+    _fixFooterBrand();
      
   }
 
@@ -5424,7 +5428,7 @@ ${baseRules}`) + regenSuffix;
 
   window.Garden = {
     cycleTheme, toggleLanguage, setLanguage, applyTheme,
-    goBack, hasBackTarget, ensureNavAffordances,
+    goBack, hasBackTarget, goUp, isSelfHref, ensureNavAffordances,
     smartCount, countWord,
     flip: flipCard, grade: gradeCard, resetFC, report: showSM2Report,
     practice: startPractice, renderPractice, renderFC: renderFlashcard,

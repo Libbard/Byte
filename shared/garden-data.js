@@ -195,8 +195,8 @@
       out.due += due;
       out.courses.push({
         code: c.code,
-        name_ar: (info && info.name_ar) || c.name_ar || c.name || c.code,
-        name_en: (info && info.name_en) || c.name_en || c.name || c.code,
+        name_ar: (info && info.name_ar) || c.name_ar || c.name_en || c.name || c.code,
+        name_en: (info && info.name_en) || c.name_en || c.name_ar || c.name || c.code,
         credits: (info && info.credits) || c.credits || 3,
         path: info && info.path,
         completed: !!c.completed,
@@ -245,8 +245,8 @@
    
   function gradeCourseInfo(c) {
     if (c.custom || !isRealCourse(c.code)) {
-      return { name_ar: c.name_ar || c.name || 'مادة مخصصة',
-               name_en: c.name_en || c.name || 'Custom Course',
+      return { name_ar: c.name_ar || c.name_en || c.name || 'مادة مخصصة',
+               name_en: c.name_en || c.name_ar || c.name || 'Custom Course',
                credits: c.credits || 3 };
     }
     var info = courseInfo(c.code);
@@ -255,8 +255,8 @@
                
                credits: (c.credits != null) ? c.credits : ((info.credits != null) ? info.credits : 3) };
     }
-    return { name_ar: c.name_ar || c.name || c.code,
-             name_en: c.name_en || c.name || c.code, credits: c.credits || 3 };
+    return { name_ar: c.name_ar || c.name_en || c.name || c.code,
+             name_en: c.name_en || c.name_ar || c.name || c.code, credits: c.credits || 3 };
   }
 
    
@@ -449,39 +449,40 @@
    
 
    
-  function plannerToday(level, date) {
-    var ds = todayStr(date);
-    var out = { exists: false, todayTotal: 0, todayDone: 0, total: 0, done: 0, pct: 0, planType: null };
-     
-    var levels = level ? [String(level)] : ['HUB', 'others', '3', '4', '5', '6', '7', '8'];
+  function _weekIdOf(d) {
+    var dt = new Date(d);
+    dt.setHours(0, 0, 0, 0);
+    dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7);
+    var week1 = new Date(dt.getFullYear(), 0, 4);
+    var weekNum = 1 + Math.round(((dt - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    return dt.getFullYear() + '-W' + (weekNum < 10 ? '0' + weekNum : String(weekNum));
+  }
 
-    for (var i = 0; i < levels.length; i++) {
-      var d = readJSON('planner_v2_L' + levels[i], null);
-      if (!d || d.version !== 2 || !d.plans) continue;
-      var type = d.active_plan || 'midterm';
-      var plan = d.plans[type];
-      if (!plan || !plan.entries) continue;
+   
+  function todaySessions(level, date) {
+    var out = { exists: false, todayTotal: 0, todayDone: 0, total: 0, done: 0, pct: 0 };
+    var t = todaySchedule(date);
+    if (!t.exists) return out;
+    out.exists = true;
 
-      var todayEntry = plan.entries[ds];
-      var mods = (todayEntry && todayEntry.items)
-        ? todayEntry.items.filter(function (it) { return it && it.type === 'module'; })
-        : [];
-      out.todayTotal += mods.length;
-      out.todayDone += mods.filter(function (it) { return it.completed; }).length;
+    var d = date || new Date();
+    var s = readJSON(LS.schedule, null) || {};
+    var wid = _weekIdOf(d);
+    var ov = (s.week_overrides && s.week_overrides[wid]) || {};
+    var completed = ov.completed_events || [];
 
-      Object.keys(plan.entries).forEach(function (k) {
-        var items = (plan.entries[k] && plan.entries[k].items) || [];
-        items.forEach(function (it) {
-          if (it && it.type === 'module') {
-            out.total++;
-            if (it.completed) out.done++;
-          }
-        });
-      });
-      out.exists = true;
-      out.planType = type;
-    }
-    out.pct = out.total ? Math.round((out.done / out.total) * 100) : 0;
+    var all = t.lectures.concat(t.blocks);
+    all.forEach(function (ev) {
+      if (ev && completed.indexOf(ev.id) !== -1) out.todayDone++;
+    });
+    t.exams.forEach(function (ex) {
+      if (ex && ex.completed_at) out.todayDone++;
+    });
+
+    out.todayTotal = t.count;
+    out.total = out.todayTotal;
+    out.done = out.todayDone;
+    out.pct = out.todayTotal ? Math.round((out.todayDone / out.todayTotal) * 100) : 0;
     return out;
   }
 
@@ -536,6 +537,38 @@
     t.done = !t.done;
     writeTasks(list);
     return t;
+  }
+
+   
+  function writeNotes(list) {
+    try { localStorage.setItem(LS.notes, JSON.stringify(list)); return true; }
+    catch (e) { return false; }
+  }
+  function upsertNote(note) {
+    var list = quickNotes();
+    if (!Array.isArray(list)) list = [];
+    var i = note.id ? list.findIndex(function (x) { return x && x.id === note.id; }) : -1;
+    var base = (i > -1) ? list[i] : {
+      id: 'note_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      created_at: Date.now(), archived: false
+    };
+    if (note.title !== undefined) base.title = String(note.title || '').trim();
+    if (note.body !== undefined) base.body = String(note.body || '');
+    if (note.remind_at !== undefined) base.remind_at = note.remind_at || '';
+    if (note.archived !== undefined) base.archived = !!note.archived;
+    base.updated_at = Date.now();
+    if (i > -1) list[i] = base; else list.push(base);
+    writeNotes(list);
+    return base;
+  }
+  function setNoteReminder(id, remindAt) {
+    var list = quickNotes();
+    var n = list.find(function (x) { return x && x.id === id; });
+    if (!n) return null;
+    n.remind_at = remindAt || '';
+    n.updated_at = Date.now();
+    writeNotes(list);
+    return n;
   }
 
    
@@ -715,7 +748,7 @@
     completedCourses: completedCourses,
     dispName: dispName,
     todaySchedule: todaySchedule,
-    plannerToday: plannerToday,
+    todaySessions: todaySessions,
 
     scheduleRaw: scheduleRaw,
     courseExams: courseExams,
@@ -727,6 +760,8 @@
 
     profile: profile,
     quickNotes: quickNotes,
+    upsertNote: upsertNote,
+    setNoteReminder: setNoteReminder,
     prefs: prefs,
 
     tasks: tasks,

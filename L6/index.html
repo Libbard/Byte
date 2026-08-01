@@ -510,7 +510,7 @@
 </head>
 
 <body data-page-title="المستوى 6" data-page-title-en="Level 6">
-  <header data-gh data-gh-variant="level" data-gh-up="../index.html"><div class="dash-top-actions" data-gh-slot="actions"><a class="toggle-btn" id="planner-link" href="planner/index.html" style="position:relative;text-decoration:none;" title="📋 خطتي / My plan">📋<span id="today-sessions-badge" style="display:none;position:absolute;top:-4px;inset-inline-end:-4px;width:18px;height:18px;border-radius:50%;background:#a78bfa;color:#fff;font-size:0.6rem;font-weight:900;line-height:18px;text-align:center;"></span></a></div></header>
+  <header data-gh data-gh-variant="level" data-gh-up="../index.html"></header>
   <div class="page-layout">
 
     
@@ -555,7 +555,7 @@
       </div>
 
       
-      <a href="planner/index.html" class="today-banner fade-up" id="today-banner">
+      <a href="../hub/schedule.html" class="today-banner fade-up" id="today-banner">
         <div class="today-banner-body">
           <div class="today-banner-title" id="today-banner-title">جلسات اليوم</div>
           <div class="today-banner-subtitle" id="today-banner-subtitle"></div>
@@ -807,85 +807,17 @@
     })();
 
     
-    function updateTodayBanner() {
-      try {
-        var isAr = (localStorage.getItem('garden_lang') || 'ar') === 'ar';
+    
+    
 
-        var lvMatch = window.location.pathname.match(/\/L(\d+)\//i);
-        var currentLv = lvMatch ? lvMatch[1] : null;
-        var keys = [];
-        if (currentLv) {
-          keys.push('study_plan_L'+currentLv+'_midterm');
-          keys.push('study_plan_L'+currentLv+'_final');
-          keys.push('study_plan_L'+currentLv+'_general');
-        }
-        keys.push('study_plan_midterm', 'study_plan_final', 'study_plan_general');
-
-        var plan = null;
-        for (var k = 0; k < keys.length; k++) {
-          var raw = localStorage.getItem(keys[k]);
-          if (raw) { try { plan = JSON.parse(raw); if (plan && plan.days) break; } catch (e) { } }
-        }
-        if (!plan || !plan.days) return;
-
-        var now = new Date();
-        var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-        var todayDay = plan.days.find(function (d) { return d.date === todayStr; });
-        var sessions = todayDay ? (todayDay.sessions || []) : [];
-        var todayTotal = sessions.length;
-        var todayDone = sessions.filter(function (s) { return s.completed; }).length;
-        var pending = todayTotal - todayDone;
-
-        var allDays = plan.days || [];
-        var totalSessions = allDays.reduce(function (sum, d) { return sum + (d.sessions ? d.sessions.length : 0); }, 0);
-        var doneSessions = allDays.reduce(function (sum, d) {
-          return sum + (d.sessions ? d.sessions.filter(function (s) { return s.completed; }).length : 0);
-        }, 0);
-        var pct = totalSessions > 0 ? Math.round((doneSessions / totalSessions) * 100) : 0;
-
-        var planLabels = { midterm: isAr ? 'ميدتيرم' : 'Midterm', final: isAr ? 'فاينل' : 'Final', general: isAr ? 'عام' : 'General' };
-        var planLabel = planLabels[plan.plan_type] || '';
-
-        var banner = document.getElementById('today-banner');
-        if (!banner) return;
-        banner.style.display = 'flex';
-
-        var titleEl = document.getElementById('today-banner-title');
-        var subEl = document.getElementById('today-banner-subtitle');
-        var pctEl = document.getElementById('today-banner-pct');
-        var fillEl = document.getElementById('today-banner-bar-fill');
-
-        if (titleEl) titleEl.textContent = todayTotal > 0
-          ? (isAr
-            ? ('📅 جلسة اليوم: ' + todayDone + ' من ' + todayTotal + ' مكتملة')
-            : ('📅 Today: ' + todayDone + ' of ' + todayTotal + ' sessions done'))
-          : (isAr ? '📅 خطة مذاكرة نشطة' : '📅 Active study plan');
-
-        if (subEl) subEl.textContent = isAr
-          ? (planLabel + ' · الإجمالي: ' + doneSessions + ' من ' + totalSessions + ' جلسة')
-          : (planLabel + ' · Total: ' + doneSessions + ' of ' + totalSessions + ' sessions');
-
-        if (pctEl) pctEl.textContent = pct + '%';
-        if (fillEl) fillEl.style.width = pct + '%';
-
-        
-        var badge = document.getElementById('today-sessions-badge');
-        if (badge && pending > 0) { badge.textContent = pending; badge.style.display = ''; }
-      } catch (e) { }
-    }
-    updateTodayBanner();
 
     
-    function updatePlannerTooltip() {
-      var isAr = (localStorage.getItem('garden_lang') || 'ar') === 'ar';
-      var el = document.getElementById('planner-link');
-      if (el) el.title = isAr ? '📅 الجدول الدراسي' : '📅 Study Planner';
-    }
-    updatePlannerTooltip();
-
-    
-    document.addEventListener('languageChanged', function() { updateTodayBanner(); updatePlannerTooltip(); });
-    document.addEventListener('garden:languageChanged', function() { updateTodayBanner(); updatePlannerTooltip(); });
+    document.addEventListener('languageChanged', function() {
+      if (window.GardenToday && window.GardenToday.refreshBanner) window.GardenToday.refreshBanner();
+    });
+    document.addEventListener('garden:languageChanged', function() {
+      if (window.GardenToday && window.GardenToday.refreshBanner) window.GardenToday.refreshBanner();
+    });
   </script>
 </body>
 
