@@ -847,4 +847,13 @@
 
    
   try { migrateTimedNotes(); } catch (e) {}
+
+   
+  window.addEventListener('garden:syncCompleted', function () {
+    try {
+      if (migrateTimedNotes() > 0) {
+        window.dispatchEvent(new CustomEvent('garden:notesMigrated'));
+      }
+    } catch (e) {}
+  });
 })();

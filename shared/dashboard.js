@@ -1047,10 +1047,13 @@
   }
 
    
+   
+  var SYNC_TS_PREFIX = '__syncT_';
   function exportData() {
     var out = {};
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
+      if (k && k.indexOf(SYNC_TS_PREFIX) === 0) continue;
       out[k] = localStorage.getItem(k);
     }
     var blob = new Blob([JSON.stringify({ _byte_backup: 1, at: new Date().toISOString(), data: out }, null, 2)],
@@ -1069,7 +1072,10 @@
         var j = JSON.parse(r.result);
         if (!j || !j._byte_backup || !j.data) throw new Error('bad');
         var n = 0;
-        Object.keys(j.data).forEach(function (k) { localStorage.setItem(k, j.data[k]); n++; });
+        Object.keys(j.data).forEach(function (k) {
+          if (k.indexOf(SYNC_TS_PREFIX) === 0) return;   
+          localStorage.setItem(k, j.data[k]); n++;
+        });
         toast(tx('استُورد ' + n + ' مفتاحاً — يُعاد التحميل…', 'Imported ' + n + ' keys — reloading…'));
         setTimeout(function () { location.reload(); }, 900);
       } catch (e) {
@@ -1278,6 +1284,11 @@
     if (tf) tf.addEventListener('click', onTaskFilter);
     var nf = el('nl-filters');
     if (nf) nf.addEventListener('click', onNotesFilter);
+
+     
+    window.addEventListener('garden:notesMigrated', function () {
+      renderWidgets(); renderTasks(); refreshNotesListModal();
+    });
     var tg = el('tk-group');
     if (tg) tg.addEventListener('change', function () { tkGroup = tg.checked; renderTasks(); });
 

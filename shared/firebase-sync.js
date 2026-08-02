@@ -65,6 +65,17 @@
   const AUTO_PUSH_DEBOUNCE_MS = 1500; 
 
    
+  const TS_PREFIX = '__syncT_';
+  const _rawSet = Storage.prototype.setItem;
+  function stampLocal(key, t) {
+    try { _rawSet.call(localStorage, TS_PREFIX + key, String(t || Date.now())); } catch (e) {}
+  }
+  function localStamp(key) {
+    const v = Number(localStorage.getItem(TS_PREFIX + key) || 0);
+    return isFinite(v) ? v : 0;
+  }
+
+   
   let db = null;
   let userKey = null;
   let syncStatus = 'offline';   
@@ -510,6 +521,8 @@
 
       
       await ref.set({ sync: payload, last_seen: now }, { merge: true });
+       
+      syncableKeys.forEach(k => { if (payload[_fireKey(k)]) stampLocal(k, now); });
       setStatus('synced');
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
@@ -549,21 +562,25 @@
         if (localRaw === null) {
           
           localStorage.setItem(lsKey, remoteV);
+          stampLocal(lsKey, remoteT);
           changed = true;
           return;
         }
 
-        
-        let localT = 0;
-        try {
-          const parsed = JSON.parse(localRaw);
-          if (parsed && typeof parsed === 'object' && parsed.updated_at) {
-            localT = new Date(parsed.updated_at).getTime();
-          }
-        } catch (e) {   }
+         
+        let localT = localStamp(lsKey);
+        if (!localT) {
+          try {
+            const parsed = JSON.parse(localRaw);
+            if (parsed && typeof parsed === 'object' && parsed.updated_at) {
+              localT = new Date(parsed.updated_at).getTime();
+            }
+          } catch (e) {   }
+        }
 
         if (remoteT > localT) {
           localStorage.setItem(lsKey, remoteV);
+          stampLocal(lsKey, remoteT);   
           changed = true;
         } else if (localT > remoteT) {
           localHasNewer = true;
@@ -649,13 +666,21 @@
       if (this === localStorage && !NEVER_SYNC.has(key) && !isSyncing) {
         const isSyncable = FIXED_SYNC_KEYS.includes(key) ||
           DYNAMIC_PATTERNS.some(p => p.test(key));
-        if (isSyncable) schedulePush();
+         
+        if (isSyncable) { stampLocal(key, Date.now()); schedulePush(); }
       }
     };
 
     Storage.prototype.removeItem = function (key) {
       origRemove.call(this, key);
-      if (this === localStorage && !isSyncing) schedulePush();
+      if (this === localStorage && !isSyncing) {
+         
+        if (!NEVER_SYNC.has(key) &&
+            (FIXED_SYNC_KEYS.includes(key) || DYNAMIC_PATTERNS.some(p => p.test(key)))) {
+          stampLocal(key, Date.now());
+        }
+        schedulePush();
+      }
     };
   }
 
