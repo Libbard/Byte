@@ -81,6 +81,8 @@
 
    
   function fmtLead(min) {
+     
+    if (!min) return tx('في وقتها تماماً', 'at the time');
     if (min % 1440 === 0 && min >= 1440) {
       var d = min / 1440;
       return (window.Garden && Garden.smartCount)
@@ -99,38 +101,222 @@
   }
 
    
-  function setLead(sel, value) {
-    var v = String(parseInt(value) || 0);
-    var found = Array.prototype.some.call(sel.options, function (o) {
-      return o.value === v && !o.hasAttribute('data-custom');
+  function serverTest(btn) {
+    if (!window.GardenPush || !GardenPush.supported()) {
+      alert(tx('الدفع من الخادم غير مهيّأ في هذا المتصفح (أو العنوان غير مضبوط في endpoints.js).',
+               'Server push is not available in this browser (or the endpoint is unset in endpoints.js).'));
+      return;
+    }
+    var label = btn ? btn.querySelector('span') : null;
+    var was = label ? label.textContent : '';
+    if (label) label.textContent = tx('جارٍ الإرسال…', 'Sending…');
+    if (btn) btn.disabled = true;
+
+    R.requestPermission().then(function (p) {
+      if (p !== 'granted') {
+        alert(p === 'needs-install'
+          ? tx('ثبّت الموقع كتطبيق أولاً (شارك ← إضافة إلى الشاشة الرئيسية).',
+               'Install the site as an app first (Share ← Add to Home Screen).')
+          : tx('لا إذن بالإشعارات على هذا الجهاز — اسمح بها من إعدادات المتصفح.',
+               'Notification permission is missing on this device — allow it in browser settings.'));
+        return null;
+      }
+      return GardenPush.serverTest();
+    }).then(function (r) {
+      if (!r) return;
+      if (r.ok) {
+        var n = r.devices || 1;
+        alert(tx('أُرسل الطلب ✓ — ستصل النبضة خلال دقيقة إلى ' + n + ' جهاز مشترك.\n\n'
+               + 'إن وصلت لجهازٍ دون آخر، فالجهاز الآخر لم يشترك: افتح الموقع فيه وفعّل التنبيهات '
+               + 'وتأكد أن مفتاح المزامنة نفسه.',
+                 'Sent ✓ — the wake will reach ' + n + ' subscribed device(s) within a minute.\n\n'
+               + 'If one device gets it and another does not, that device is not subscribed: open the site there, '
+               + 'turn reminders on, and confirm it uses the same sync key.'));
+        return;
+      }
+      var why = String(r.reason || '');
+      var msg;
+      if (why === 'no_devices') {
+        msg = tx('لا جهاز مشترك في هذه الخزنة بعد. فعّل التنبيهات في هذا الجهاز أولاً ثم أعد المحاولة.',
+                 'No subscribed devices in this vault yet. Turn reminders on here first, then retry.');
+      } else if (why === 'test_rate_limited') {
+        msg = tx('تجاوزت خمس تجارب في الساعة — انتظر قليلاً.', 'More than five tests per hour — wait a bit.');
+      } else if (/Registration failed|push service/i.test(why)) {
+         
+        msg = tx('المتصفح لم يستطع التسجيل في خدمة الدفع. الغالب أن إضافةً مانعة للإعلانات '
+               + 'أو جدار حماية يحجب نطاق googleapis.com (وهو ما يحجب مزامنة فايربيس أيضاً). '
+               + 'عطّل المانع لهذا الموقع ثم أعد المحاولة.',
+                 'The browser could not register with the push service. Most likely an ad blocker or firewall '
+               + 'is blocking googleapis.com (which also blocks Firebase sync). Disable it for this site and retry.');
+      } else if (why === 'http-403') {
+        msg = tx('رفض الخادم الأصل — تأكد أن ALLOWED_ORIGINS في كلاودفلير يطابق نطاق الموقع تماماً.',
+                 'The server rejected the origin — check ALLOWED_ORIGINS in Cloudflare matches the site origin exactly.');
+      } else if (why === 'http-404') {
+        msg = tx('مسار غير موجود على الخادم — الغالب شرطة مائلة زائدة في endpoints.js أو ووركر قديم.',
+                 'Path not found on the server — likely a trailing slash in endpoints.js or an outdated Worker.');
+      } else {
+        msg = tx('تعذّرت التجربة: ', 'Test failed: ') + why;
+      }
+      alert(msg);
+    }).catch(function (e) {
+      alert(tx('تعذّرت التجربة: ', 'Test failed: ') + String(e && e.message || e));
+    }).then(function () {
+      if (label) label.textContent = was;
+      if (btn) btn.disabled = false;
     });
-    var existingCustom = sel.querySelector('[data-custom]');
+  }
+
+   
+
+  var LEAD_PRESETS = [
+    { v: 0,     ar: 'في وقتها تماماً',   en: 'At the time' },
+    { v: 15,    ar: 'قبلها بـ 15 دقيقة', en: '15 minutes before' },
+    { v: 30,    ar: 'قبلها بـ 30 دقيقة', en: '30 minutes before' },
+    { v: 60,    ar: 'قبلها بساعة',       en: '1 hour before' },
+    { v: 180,   ar: 'قبلها بـ 3 ساعات',  en: '3 hours before' },
+    { v: 720,   ar: 'قبلها بـ 12 ساعة',  en: '12 hours before' },
+    { v: 1440,  ar: 'قبلها بيوم',        en: '1 day before' },
+    { v: 10080, ar: 'قبلها بأسبوع',      en: '1 week before' }
+  ];
+
+   
+  var LEAD_UNITS = [
+    { v: 10080, ar: 'أسبوع',  en: 'weeks' },
+    { v: 1440,  ar: 'يوم',    en: 'days' },
+    { v: 60,    ar: 'ساعة',   en: 'hours' },
+    { v: 1,     ar: 'دقيقة',  en: 'minutes' }
+  ];
+
+  var LEAD_MAX = 60 * 24 * 60;   
+
+  function isPreset(min) {
+    return LEAD_PRESETS.some(function (p) { return p.v === min; });
+  }
+
+  function splitLead(min) {
+    for (var i = 0; i < LEAD_UNITS.length; i++) {
+      var u = LEAD_UNITS[i];
+      if (min >= u.v && min % u.v === 0) return { n: min / u.v, unit: u.v };
+    }
+    return { n: min || 1, unit: 1 };
+  }
+
+  function opt(value, ar, en) {
+    var o = document.createElement('option');
+    o.value = String(value);
+     
+    o.setAttribute('data-ar', ar);
+    o.setAttribute('data-en', en);
+    o.textContent = tx(ar, en);
+    return o;
+  }
+
+  function buildLeadControl(host, ch) {
+    host.textContent = '';
+
+    var lab = document.createElement('label');
+    lab.setAttribute('data-ar', 'ينبّهني');
+    lab.setAttribute('data-en', 'Notify me');
+    lab.textContent = tx('ينبّهني', 'Notify me');
+    lab.htmlFor = 'rem-lead-' + ch;
+    host.appendChild(lab);
+
+    var sel = document.createElement('select');
+    sel.className = 'rem-lead-select';
+    sel.id = 'rem-lead-' + ch;
+    sel.setAttribute('data-lead', ch);
+    LEAD_PRESETS.forEach(function (p) { sel.appendChild(opt(p.v, p.ar, p.en)); });
+    sel.appendChild(opt('custom', 'مخصّص…', 'Custom…'));
+    host.appendChild(sel);
 
      
-    if (!found && existingCustom && existingCustom.value === v) {
-      existingCustom.textContent = fmtLead(parseInt(v));
-      sel.value = v;
+    var wrap = document.createElement('span');
+    wrap.className = 'rem-lead-custom';
+    wrap.setAttribute('data-lead-custom', ch);
+    wrap.hidden = true;
+
+    var pre = document.createElement('span');
+    pre.className = 'rem-lead-pre';
+    pre.setAttribute('data-ar', 'قبلها بـ');
+    pre.setAttribute('data-en', 'before by');
+    pre.textContent = tx('قبلها بـ', 'before by');
+    wrap.appendChild(pre);
+
+    var num = document.createElement('input');
+    num.type = 'number'; num.min = '1'; num.max = '999'; num.step = '1';
+    num.className = 'rem-lead-num';
+    num.setAttribute('data-lead-num', ch);
+    num.setAttribute('aria-label', tx('عدد', 'Amount'));
+    wrap.appendChild(num);
+
+    var unit = document.createElement('select');
+    unit.className = 'rem-lead-unit';
+    unit.setAttribute('data-lead-unit', ch);
+    unit.setAttribute('aria-label', tx('الوحدة', 'Unit'));
+    LEAD_UNITS.forEach(function (u) { unit.appendChild(opt(u.v, u.ar, u.en)); });
+    wrap.appendChild(unit);
+
+    host.appendChild(wrap);
+
+     
+    if (ch === 'notes') {
+      var hint = document.createElement('small');
+      hint.className = 'rem-lead-hint';
+      hint.setAttribute('data-ar', 'من وقت التذكير الذي حدّدته في الملاحظة');
+      hint.setAttribute('data-en', 'from the reminder time you set on the note');
+      hint.textContent = tx('من وقت التذكير الذي حدّدته في الملاحظة',
+                            'from the reminder time you set on the note');
+      host.appendChild(hint);
+    }
+  }
+
+  function renderLead(ch, minutes) {
+    var host = document.querySelector('[data-lead-for="' + ch + '"]');
+    if (!host) return;
+    if (!host.querySelector('[data-lead]')) buildLeadControl(host, ch);
+
+    var min = Math.max(0, Math.min(LEAD_MAX, parseInt(minutes) || 0));
+    var sel = host.querySelector('[data-lead]');
+    var wrap = host.querySelector('[data-lead-custom]');
+    var num = host.querySelector('[data-lead-num]');
+    var unit = host.querySelector('[data-lead-unit]');
+
+    if (isPreset(min)) {
+      sel.value = String(min);
+      wrap.hidden = true;
+       
+      var seed = splitLead(min || 60);
+      num.value = String(seed.n);
+      unit.value = String(seed.unit);
       return;
     }
 
-    if (!found) {
-      if (existingCustom) existingCustom.remove();
-      var opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = fmtLead(parseInt(v));
-      opt.setAttribute('data-custom', '1');
-       
-      var before = Array.prototype.find.call(sel.options, function (o) {
-        return parseInt(o.value) > parseInt(v);
-      });
-      sel.insertBefore(opt, before || null);
-    } else {
-       
-      Array.prototype.slice.call(sel.querySelectorAll('[data-custom]')).forEach(function (o) {
-        if (o.value !== v) o.remove();
-      });
-    }
-    sel.value = v;
+     
+    sel.value = 'custom';
+    wrap.hidden = false;
+    var d = splitLead(min);
+    num.value = String(d.n);
+    unit.value = String(d.unit);
+  }
+
+   
+  function saveLead(ch, min, rerender) {
+    var patch = { lead: {} };
+    patch.lead[ch] = min;
+    return window.Reminders.save(patch).then(function () {
+      if (rerender) renderLead(ch, min);
+      renderUpcoming();
+    });
+  }
+
+   
+  function readCustom(ch) {
+    var host = document.querySelector('[data-lead-for="' + ch + '"]');
+    if (!host) return null;
+    var n = parseInt(host.querySelector('[data-lead-num]').value);
+    var u = parseInt(host.querySelector('[data-lead-unit]').value) || 1;
+    if (!isFinite(n) || n < 1) return null;
+    return Math.min(LEAD_MAX, n * u);
   }
 
    
@@ -153,9 +339,9 @@
       if (row) row.setAttribute('data-off', s.channels[k] ? '0' : '1');
     });
 
-    ['lectures', 'exams', 'tasks'].forEach(function (k) {
-      var sel = document.querySelector('[data-lead="' + k + '"]');
-      if (sel) setLead(sel, s.lead[k]);
+     
+    ['lectures', 'exams', 'tasks', 'notes'].forEach(function (k) {
+      renderLead(k, s.lead[k]);
     });
 
     var rt = el('rem-review-time'); if (rt) rt.value = s.reviewTime || '20:00';
@@ -321,11 +507,29 @@
 
      
     panel.addEventListener('change', function (e) {
+       
       var lead = e.target.closest('[data-lead]');
       if (lead) {
-        var patch = { lead: {} };
-        patch.lead[lead.getAttribute('data-lead')] = parseInt(lead.value) || 0;
-        R.save(patch).then(renderUpcoming);
+        var ch = lead.getAttribute('data-lead');
+        if (lead.value === 'custom') {
+           
+          var host = lead.closest('[data-lead-for]');
+          host.querySelector('[data-lead-custom]').hidden = false;
+          host.querySelector('[data-lead-num]').focus();
+          var seeded = readCustom(ch);
+          if (seeded !== null) saveLead(ch, seeded, false);
+          return;
+        }
+        saveLead(ch, parseInt(lead.value) || 0, true);
+        return;
+      }
+
+       
+      var custom = e.target.closest('[data-lead-num], [data-lead-unit]');
+      if (custom) {
+        var ck = custom.getAttribute('data-lead-num') || custom.getAttribute('data-lead-unit');
+        var val = readCustom(ck);
+        if (val !== null) saveLead(ck, val, false);
         return;
       }
       if (e.target.id === 'rem-review-time') {
@@ -363,6 +567,8 @@
       } else if (act === 'rem-refresh') {
          
         R.refresh().then(renderAll);
+      } else if (act === 'rem-test-server') {
+        serverTest(b);
       }
     });
 

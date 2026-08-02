@@ -269,7 +269,8 @@
         var recent = all.slice(0, 3);
         var list = recent.length ? recent.map(function (n) {
           var body = (n.body || '').trim() || tx('(فارغة)', '(empty)');
-          var rem = n.remind_at ? '<span class="wn-rem">⏰ ' + esc(String(n.remind_at).slice(0, 10)) + '</span>' : '';
+           
+    var rem = n.remind_at ? '<span class="wn-rem">⏰ ' + esc(String(n.remind_at).replace('T', ' ')) + '</span>' : '';
           return '<button class="wn-item" data-act="note-edit" data-id="' + esc(n.id) + '">' +
             '<span class="wn-body">' + esc(body.slice(0, 90)) + '</span>' + rem + '</button>';
         }).join('') : '<div class="widget-sub">' + esc(tx('لا ملاحظات بعد — أضِف واحدة', 'No notes yet — add one')) + '</div>';
@@ -750,7 +751,11 @@
     var n = id ? loadNotesArr().find(function (x) { return String(x.id) === String(id); }) : null;
     el('note-f-id').value = n ? n.id : '';
     el('note-f-body').value = n ? (n.body || '') : '';
-    el('note-f-remind').value = n && n.remind_at ? String(n.remind_at).slice(0, 10) : '';
+     
+    var rAt = n && n.remind_at ? String(n.remind_at) : '';
+    el('note-f-remind').value = rAt.slice(0, 10);
+    var rt = el('note-f-remind-time');
+    if (rt) rt.value = rAt.length > 10 ? rAt.slice(11, 16) : '';
     el('note-modal-title').textContent = n ? tx('تعديل الملاحظة', 'Edit note') : tx('ملاحظة جديدة', 'New note');
     var arch = m.querySelector('[data-act="note-archive"]');
     if (arch) arch.style.display = n ? '' : 'none';
@@ -764,6 +769,10 @@
     var id = el('note-f-id').value;
     var body = el('note-f-body').value.trim();
     var remind = el('note-f-remind').value;
+     
+    var rtEl = el('note-f-remind-time');
+    var rTime = rtEl ? rtEl.value : '';
+    if (remind && rTime) remind = remind + 'T' + rTime;
     if (!body && !remind) { closeNoteModal(); return; }
     var arr = loadNotesArr();
     var n = id ? arr.find(function (x) { return String(x.id) === String(id); }) : null;
@@ -797,7 +806,8 @@
   }
   function noteRowHtml(n) {
     var body = (n.body || '').trim() || tx('(فارغة)', '(empty)');
-    var rem = n.remind_at ? '<span class="wn-rem">⏰ ' + esc(String(n.remind_at).slice(0, 10)) + '</span>' : '';
+     
+    var rem = n.remind_at ? '<span class="wn-rem">⏰ ' + esc(String(n.remind_at).replace('T', ' ')) + '</span>' : '';
     return '<div class="nl-row' + (n.archived ? ' is-arch' : '') + '">' +
       '<button class="nl-text" data-act="note-edit" data-id="' + esc(n.id) + '">' + esc(body.slice(0, 140)) + rem + '</button>' +
       '<span class="nl-acts">' +

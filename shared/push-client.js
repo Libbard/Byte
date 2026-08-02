@@ -2,11 +2,13 @@
 ;(function () {
   'use strict';
 
-  var ENDPOINT = (window.GardenEndpoints && window.GardenEndpoints.push) || '';
-  var PUBLIC_KEY = 'BHC2o0fR-Y1xT2JG_1wW_4trj8QNmJyzfXlHQHzNyZyI6PkLZ1gAnumHSI6XqIDtwT7G_oURepoHnHXJkAKexAw';
+   
+  var ENDPOINT = String((window.GardenEndpoints && window.GardenEndpoints.push) || '')
+    .replace(/\/+$/, '');
 
   var DEVICE_LS = 'garden_push_device';
   var STATE_LS = 'garden_push_state';   
+  var KEY_LS = 'garden_push_serverkey'; 
   var MAX_WAKES = 60;
 
    
@@ -55,6 +57,44 @@
     });
   }
 
+   
+  var serverKey = null;
+
+  function cachedKey() {
+    try {
+      var k = localStorage.getItem(KEY_LS);
+      return validKey(k) ? k : null;
+    } catch (e) { return null; }
+  }
+
+  function validKey(k) {
+     
+    return typeof k === 'string' && /^B[A-Za-z0-9_-]{85,87}$/.test(k);
+  }
+
+  function fetchKey() {
+    if (serverKey) return Promise.resolve(serverKey);
+    if (!ENDPOINT) return Promise.reject(new Error('no-endpoint'));
+    return fetch(ENDPOINT + '/v1/key', { method: 'GET' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('key-http-' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        var k = String((j && j.publicKey) || '');
+        if (!validKey(k)) throw new Error('key-invalid');
+        serverKey = k;
+        try { localStorage.setItem(KEY_LS, k); } catch (e) {}
+        return k;
+      })
+      .catch(function (e) {
+         
+        var c = cachedKey();
+        if (c) { serverKey = c; return c; }
+        throw e;
+      });
+  }
+
   function swReg() {
     if (!('serviceWorker' in navigator)) return Promise.reject(new Error('no-sw'));
      
@@ -78,17 +118,18 @@
       return Promise.resolve({ ok: false, reason: 'not-granted' });
     }
 
-    return swReg().then(function (reg) {
+    return Promise.all([swReg(), fetchKey()]).then(function (r) {
+      var reg = r[0], key = r[1];
       return reg.pushManager.getSubscription().then(function (existing) {
         if (existing) {
            
           var cur = existing.options && existing.options.applicationServerKey;
-          if (cur && !sameKey(cur, PUBLIC_KEY)) {
-            return existing.unsubscribe().then(function () { return fresh(reg); });
+          if (cur && !sameKey(cur, key)) {
+            return existing.unsubscribe().then(function () { return fresh(reg, key); });
           }
           return existing;
         }
-        return fresh(reg);
+        return fresh(reg, key);
       });
     }).then(function (sub) {
       var j = sub.toJSON();
@@ -102,11 +143,11 @@
     });
   }
 
-  function fresh(reg) {
+  function fresh(reg, key) {
      
     return reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlB64ToU8(PUBLIC_KEY)
+      applicationServerKey: urlB64ToU8(key)
     });
   }
 
@@ -147,18 +188,31 @@
       .slice(0, MAX_WAKES);
   }
 
+   
+  var REUPLOAD_MS = 2 * 60 * 60 * 1000;
+
+  function lastUpload() {
+    try {
+      var o = JSON.parse(localStorage.getItem(STATE_LS) || 'null');
+      return (o && typeof o === 'object') ? o : null;
+    } catch (e) { return null; }
+  }
+
   function syncWakes(items) {
     if (!supported()) return Promise.resolve({ ok: false, reason: 'unsupported' });
     var wakes = wakeTimes(items);
     var sig = vaultId() + '|' + wakes.join(',');
-    var last = null;
-    try { last = localStorage.getItem(STATE_LS); } catch (e) {}
-    if (sig === last) return Promise.resolve({ ok: true, skipped: true });
+    var last = lastUpload();
+    if (last && last.sig === sig && (Date.now() - (last.at || 0)) < REUPLOAD_MS) {
+      return Promise.resolve({ ok: true, skipped: true });
+    }
 
     return post('/v1/wakes', { vault_id: vaultId(), device_id: deviceId(), wakes: wakes })
       .then(function (r) {
          
-        try { localStorage.setItem(STATE_LS, sig); } catch (e) {}
+        try {
+          localStorage.setItem(STATE_LS, JSON.stringify({ sig: sig, at: Date.now() }));
+        } catch (e) {}
         return { ok: true, accepted: r && r.accepted };
       })
       .catch(function (e) {
@@ -167,13 +221,28 @@
       });
   }
 
+   
+  function serverTest() {
+    if (!supported()) return Promise.resolve({ ok: false, reason: 'unsupported' });
+     
+    return subscribe().then(function (s) {
+      if (!s.ok) return { ok: false, reason: s.reason };
+      return post('/v1/test', { vault_id: vaultId(), device_id: deviceId() })
+        .then(function (r) { return { ok: !!(r && r.ok), devices: r && r.devices, reason: r && r.error }; })
+        .catch(function (e) { return { ok: false, reason: String(e && e.message || e) }; });
+    });
+  }
+
   window.GardenPush = {
     supported: supported,
     subscribe: subscribe,
     unsubscribe: unsubscribe,
     syncWakes: syncWakes,
+    serverTest: serverTest,
     vaultId: vaultId,
     deviceId: deviceId,
-    publicKey: PUBLIC_KEY
+     
+    publicKey: function () { return serverKey || cachedKey(); },
+    fetchKey: fetchKey
   };
 })();

@@ -37,7 +37,9 @@
       lead: {
         lectures: 15,
         exams: 1440,        
-        tasks: 720          
+        tasks: 720,         
+         
+        notes: 0
       },
       reviewTime: '20:00',
       quiet: { on: false, from: '00:00', to: '07:00' },
@@ -312,7 +314,7 @@
       }
 
       var leadMin = (channel === 'exams') ? s.lead.exams
-        : (channel === 'notes') ? 0
+        : (channel === 'notes') ? (s.lead.notes || 0)
         : s.lead.tasks;
       var fireAt = eventMs - (leadMin || 0) * 60000;
       if (fireAt > horizon) return;   
@@ -794,9 +796,8 @@
     ReminderDB.setMeta('root', rootPath());
 
     if (!settings.enabled) return;
-     
-    if (capability().permission !== 'granted') { settings.enabled = false; return; }
 
+     
     sync().then(catchUp);
   }
 

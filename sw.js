@@ -1,12 +1,14 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v49'; 
+var CACHE_NAME = 'byte-v51';
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',
   'shared/garden.js',
   'shared/garden-data.js',
+   
+  'shared/reminders-boot.js',
    
   'shared/courses_catalog.json',
    
@@ -200,10 +202,13 @@ function fallbackNotice(lang, root, queue, now) {
   return self.registration.showNotification(
     swTx('الحديقة الرقمية', 'Digital Garden', lang),
     {
+       
       body: next
-        ? swTx('افتح الموقع لتحديث تنبيهاتك.', 'Open the site to refresh your reminders.', lang)
-        : swTx('لا شيء مستحقّ الآن — افتح الموقع للمزامنة.', 'Nothing due right now — open the site to sync.', lang),
-      tag: 'rem-wake', renotify: false, silent: true,
+        ? swTx('استيقظ الموقع بنجاح ✓ — افتح الحديقة لتحديث تنبيهاتك.',
+               'Woke up successfully ✓ — open the Garden to refresh your reminders.', lang)
+        : swTx('استيقظ الموقع بنجاح ✓ — لا تنبيه مستحقّ على هذا الجهاز الآن.',
+               'Woke up successfully ✓ — nothing due on this device right now.', lang),
+      tag: 'rem-wake', renotify: true,
       icon: (root || '/') + 'shared/icons/icon-192.png',
       badge: (root || '/') + 'shared/icons/favicon-32.png',
       dir: lang === 'ar' ? 'rtl' : 'ltr', lang: lang,

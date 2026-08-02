@@ -6138,3 +6138,17 @@ ${baseRules}`) + regenSuffix;
   }
 })();
  
+
+ 
+;(function () {
+  'use strict';
+   
+  var sc = document.currentScript;
+  var root = (sc && sc.src) ? sc.src.replace(/shared\/garden\.js(\?.*)?$/, '') : '';
+  if (!root || root === (sc && sc.src)) return;    
+  if (window.Reminders) return;                    
+  var el = document.createElement('script');
+  el.src = root + 'shared/reminders-boot.js';
+  el.async = true;
+  (document.head || document.documentElement).appendChild(el);
+})();
