@@ -5,10 +5,12 @@
   var LS_KEY = 'garden_reminders';
   var TICK_MS = 30 * 1000;
   var HORIZON_DAYS = 14;      
-  var MAX_QUEUE = 60;         
+   
+  var MAX_QUEUE = 200;
+  var MAX_PREVIEW = 8;        
   var MAX_TRIGGERS = 30;      
   var GRACE_MS = 5 * 60 * 1000; 
-  var SOON_MS = 10 * 1000;      
+   
 
   var DAYS_ORDER = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
@@ -97,6 +99,8 @@
     if (self.ReminderDB) {
       ReminderDB.setMeta('lang', lang());
       ReminderDB.setMeta('snooze', settings.snooze);
+       
+      ReminderDB.setMeta('root', rootPath());
     }
     return sync();
   }
@@ -112,10 +116,17 @@
     var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+     
+    var hasPush = hasSW && ('PushManager' in self)
+      && !!(self.GardenPush && GardenPush.supported());
+
     return {
       supported: hasAPI && hasSW,
       permission: hasAPI ? Notification.permission : 'unsupported',
-      background: hasTrigger,      
+       
+      background: hasTrigger || hasPush,
+      push: hasPush,
+      trigger: hasTrigger,
       installed: standalone,
       iOS: iOS,
        
@@ -355,7 +366,8 @@
     var now = Date.now();
     if (item.fireAt >= now - GRACE_MS) return item;   
     if (item.eventAt > now) {                          
-      item.fireAt = now + SOON_MS;
+       
+      item.fireAt = now;
       item.late = true;
       return item;
     }
@@ -375,9 +387,6 @@
     out = out.map(clampFire).filter(Boolean);
 
      
-    var late = out.filter(function (i) { return i.late; })
-                  .sort(function (a, b) { return a.eventAt - b.eventAt; });
-    late.forEach(function (i, idx) { i.fireAt += idx * 15000; });
 
     out.sort(function (a, b) { return a.fireAt - b.fireAt; });
     return out.slice(0, MAX_QUEUE);
@@ -490,8 +499,11 @@
   var tickTimer = null;
   var lastSig = null;
 
+   
   function signature(items) {
-    return items.map(function (i) { return i.id + '@' + i.fireAt; }).join('|');
+    return items.map(function (i) {
+      return i.id + '@' + (i.late ? 'late' : i.fireAt);
+    }).join('|');
   }
 
    
@@ -500,15 +512,34 @@
     var items = buildQueue();
     var sig = signature(items);
     if (sig === lastSig) return Promise.resolve(false);
-    lastSig = sig;
-    return ReminderDB.replaceQueue(items).then(function () { return true; });
+     
+    return ReminderDB.replaceQueue(items).then(function () {
+      lastSig = sig;
+       
+      if (self.GardenPush && load().enabled) {
+        try { GardenPush.syncWakes(items); } catch (e) {}
+      }
+      return true;
+    }).catch(function (e) {
+      lastSig = null;                 
+      throw e;
+    });
   }
+
+   
+  var MAX_PER_TICK = 3;
 
   function fireDue() {
     var now = Date.now();
-    return ReminderDB.getQueue().then(function (q) {
-      var due = q.filter(function (i) { return i.fireAt <= now && i.fireAt > now - 60 * 60 * 1000; });
+    return Promise.all([ReminderDB.getQueue(), ReminderDB.firedMap()]).then(function (r) {
+      var q = r[0] || [], fired = r[1] || {};
        
+      var due = q.filter(function (i) {
+        return i.fireAt <= now && i.fireAt > now - 60 * 60 * 1000 && !fired[i.id];
+      }).sort(function (a, b) {
+        return (a.eventAt || a.fireAt) - (b.eventAt || b.fireAt);   
+      }).slice(0, MAX_PER_TICK);
+
       return Promise.all(due.map(fireNow));
     }).catch(function () {});
   }
@@ -554,7 +585,13 @@
     if (!s.enabled || capability().permission !== 'granted') {
        
       if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
-      return ReminderDB.clearAll().then(clearArmed);
+      lastSig = null;                 
+       
+      if (self.GardenPush) { try { GardenPush.unsubscribe(); } catch (e) {} }
+       
+      return ReminderDB.clearAll()
+        .then(clearArmed)
+        .then(function () { emit('reminders:synced'); });
     }
 
     if (syncing) return syncing;
@@ -568,6 +605,8 @@
     }
 
     lastSig = null;                    
+     
+    if (self.GardenPush) { try { GardenPush.subscribe(); } catch (e) {} }
     syncing = refreshQueue()
       .then(function () { return ReminderDB.getQueue(); })
       .then(function (q) { return armTriggers(q); })
@@ -672,13 +711,61 @@
 
    
 
+   
+  function previewList(limit) {
+    var now = Date.now();
+    try {
+      return buildQueue()
+        .filter(function (i) { return i.fireAt >= now; })
+        .slice(0, limit || MAX_PREVIEW);
+    } catch (e) { return []; }
+  }
+
   function upcoming(limit) {
+    var s = load();
+    var live = (s.enabled && capability().permission === 'granted');
+    if (!live) return Promise.resolve(previewList(limit));
+
     return ReminderDB.getQueue().then(function (q) {
       var now = Date.now();
-      return q.filter(function (i) { return i.fireAt >= now; })
-              .sort(function (a, b) { return a.fireAt - b.fireAt; })
-              .slice(0, limit || 8);
-    }).catch(function () { return []; });
+      var out = q.filter(function (i) { return i.fireAt >= now; })
+                 .sort(function (a, b) { return a.fireAt - b.fireAt; });
+       
+      if (!out.length) return previewList(limit);
+      return out.slice(0, limit || MAX_PREVIEW);
+    }).catch(function () { return previewList(limit); });
+  }
+
+   
+  function refresh() {
+    var s = load();
+    if (s.enabled && capability().permission === 'granted') return sync();
+    lastSig = null;                   
+    return Promise.resolve().then(function () { emit('reminders:synced'); });
+  }
+
+   
+  function diagnose() {
+    var s = load();
+    var cap = capability();
+    var built = 0, err = null;
+    try { built = buildQueue().length; } catch (e) { err = String(e); }
+    var reason = 'ok';
+    if (!cap.supported) reason = 'unsupported';
+    else if (cap.needsInstall) reason = 'needs-install';
+    else if (cap.permission === 'denied') reason = 'denied';
+    else if (cap.permission !== 'granted') reason = 'not-granted';
+    else if (!s.enabled) reason = 'disabled';
+    else if (!built) reason = 'no-events';
+    return {
+      reason: reason,
+      enabled: !!s.enabled,
+      permission: cap.permission,
+      background: !!cap.background,
+      built: built,
+      buildError: err,
+      hasData: !!(window.GardenData && GardenData.allDeadlines)
+    };
   }
 
    
@@ -704,6 +791,7 @@
     if (!self.ReminderDB) return;
     ReminderDB.setMeta('lang', lang());
     ReminderDB.setMeta('snooze', settings.snooze);
+    ReminderDB.setMeta('root', rootPath());
 
     if (!settings.enabled) return;
      
@@ -739,7 +827,8 @@
     capability: capability,
     requestPermission: requestPermission,
     sync: sync,
-    refresh: sync,        
+    refresh: refresh,     
+    diagnose: diagnose,
     tick: tick,
     catchUp: catchUp,
     upcoming: upcoming,

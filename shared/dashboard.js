@@ -437,8 +437,13 @@
     }
     var r = el('acc-sum-rem');
     if (r) {
-      var on = el('rem-master') && el('rem-master').getAttribute('aria-checked') === 'true';
-      r.textContent = on ? tx('مفعّلة', 'On') : tx('مطفأة', 'Off');
+       
+      var on = !!(window.Reminders && Reminders.settings && Reminders.settings().enabled);
+      var okPerm = !(window.Reminders && Reminders.capability
+        && Reminders.capability().permission !== 'granted');
+      r.textContent = on
+        ? (okPerm ? tx('مفعّلة', 'On') : tx('مفعّلة — الإذن ناقص', 'On — permission missing'))
+        : tx('مطفأة', 'Off');
     }
     var y = el('acc-sum-sync');
     if (y) {
@@ -446,6 +451,9 @@
       y.textContent = (t && t.textContent !== '—') ? t.textContent : tx('غير مضبوطة', 'Not set up');
     }
   }
+   
+  document.addEventListener('reminders:synced', syncAccSummaries);
+  document.addEventListener('garden:languageChanged', syncAccSummaries);
 
   function bindStyleModal() {
     var ov = el('dash-style-modal');

@@ -56,10 +56,11 @@
       nn = tx('جهازك يدعم التسليم المسبق، فتصل التنبيهات في وقتها حتى لو لم يكن الموقع مفتوحاً.',
               'Your device supports scheduled delivery, so reminders arrive on time even with the site closed.');
     } else {
-      state = 'partial'; ic = 'fa-bell';
-      tt = tx('تعمل — عند فتح الموقع', 'Working — while the site is open');
-      nn = tx('متصفحك لا يدعم التسليم المسبق، فالتنبيه يصل ما دام الموقع أو التطبيق مفتوحاً. وما يفوتك يُعرض لك ملخصاً عند أول فتح — لا يضيع.',
-              'Your browser doesn\'t support scheduled delivery, so reminders arrive while the site or app is open. Anything missed is summarized for you next time — nothing is lost.');
+       
+      state = 'partial'; ic = 'fa-triangle-exclamation';
+      tt = tx('تعمل — لكن فقط والموقع مفتوح', 'Working — but only while the site is open');
+      nn = tx('لا يصلك شيء والموقع مغلق. ليس خللاً في إعدادك: المتصفحات أزالت الواجهة التي كانت تسمح بذلك، فلا سبيل إليه إلا بتنبيهات الدفع من خادم — وهي قيد الإنجاز. حتى ذلك الحين: التنبيه يصل ما دام تبويب الموقع مفتوحاً، وما يفوتك يُعرض ملخصاً عند أول فتح فلا يضيع.',
+              'Nothing arrives while the site is closed. This is not a misconfiguration: browsers removed the API that allowed it, so it now requires server push — which is being built. Until then, reminders arrive while a tab is open, and anything missed is summarized next time, so nothing is lost.');
       if (!cap.installed) {
         var b = document.createElement('button');
         b.className = 'dash-btn';
@@ -180,6 +181,34 @@
   }
 
    
+
+   
+  var EMPTY_MSG = {
+    unsupported: function () {
+      return tx('متصفحك لا يدعم التنبيهات.', 'Your browser doesn\'t support notifications.');
+    },
+    'needs-install': function () {
+      return tx('ثبّت الموقع على الشاشة الرئيسية أولاً — الآيفون لا يسمح بالإشعارات قبل ذلك.',
+                'Install the site to your Home Screen first — iOS won\'t allow notifications otherwise.');
+    },
+    denied: function () {
+      return tx('الإشعارات محظورة لهذا الموقع من إعدادات المتصفح — اسمح بها ثم أعد الحساب.',
+                'Notifications are blocked in your browser settings — allow them, then recalculate.');
+    },
+    'not-granted': function () {
+      return tx('فعّل المفتاح أعلاه ليطلب المتصفح إذنك مرة واحدة.',
+                'Turn on the switch above — your browser will ask permission once.');
+    },
+    disabled: function () {
+      return tx('لا أحداث خلال أسبوعين — أضف محاضرة أو مهمة أو موعداً وستظهر هنا فوراً.',
+                'No events in the next two weeks — add a lecture, task, or deadline and it appears here.');
+    },
+    'no-events': function () {
+      return tx('لا أحداث خلال أسبوعين — أضف محاضرة أو مهمة أو موعداً وستظهر هنا فوراً.',
+                'No events in the next two weeks — add a lecture, task, or deadline and it appears here.');
+    }
+  };
+
   function renderUpcoming() {
     var R = window.Reminders;
     var box = el('rem-upcoming');
@@ -187,15 +216,26 @@
 
     R.upcoming(8).then(function (list) {
       box.innerHTML = '';
+      var dg = R.diagnose ? R.diagnose() : { reason: 'ok' };
+
       if (!list.length) {
         var e = document.createElement('div');
         e.className = 'rem-up-empty';
-        e.textContent = R.settings().enabled
-          ? tx('لا تنبيهات قادمة خلال أسبوعين — أضف محاضرات أو مهام أو مواعيد.',
-               'No reminders in the next two weeks — add lectures, tasks, or deadlines.')
-          : tx('فعّل التنبيهات لترى ما سيصلك.', 'Turn reminders on to see what\'s coming.');
+         
+        e.textContent = EMPTY_MSG[dg.reason] ? EMPTY_MSG[dg.reason]()
+          : tx('لا تنبيهات قادمة خلال أسبوعين — أضف محاضرات أو مهام أو مواعيد.',
+               'No reminders in the next two weeks — add lectures, tasks, or deadlines.');
         box.appendChild(e);
         return;
+      }
+
+       
+      if (dg.reason !== 'ok') {
+        var pv = document.createElement('div');
+        pv.className = 'rem-up-preview';
+        pv.textContent = tx('معاينة — هذه ما سيصلك بعد التفعيل. لا يُسلَّم شيء الآن.',
+                            'Preview — this is what you\'d get once enabled. Nothing is delivered yet.');
+        box.appendChild(pv);
       }
       list.forEach(function (it) {
         var row = document.createElement('div');
@@ -310,10 +350,19 @@
                                        'Notifications are blocked for this site — allow them in browser settings.'));
           else if (p === 'needs-install') alert(tx('ثبّت الموقع كتطبيق أولاً (شارك ← إضافة إلى الشاشة الرئيسية).',
                                                    'Install the site as an app first (Share ← Add to Home Screen).'));
+           
+          else if (p === 'granted' && !R.settings().enabled) {
+            if (confirm(tx('وصلك الإشعار التجريبي — لكن التنبيهات ما زالت مطفأة، فلن يصلك شيء في مواعيده. أفعّلها الآن؟',
+                           'The test arrived — but reminders are still off, so nothing scheduled will reach you. Turn them on now?'))) {
+              R.save({ enabled: true }).then(renderAll);
+              return;
+            }
+          }
           renderAll();
         });
       } else if (act === 'rem-refresh') {
-        R.sync().then(renderAll);
+         
+        R.refresh().then(renderAll);
       }
     });
 

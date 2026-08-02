@@ -1,13 +1,7 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v46';  
-var _OLD_CACHE_NOTE_22 = 'byte-v45';  
-var _OLD_CACHE_NOTE_21 = 'byte-v44';
-var _OLD_CACHE_NOTE_20 = 'byte-v43';  
-var _OLD_CACHE_NOTE_19 = 'byte-v42';  
-var _OLD_CACHE_NOTE_18 = 'byte-v41';  
-var _OLD_CACHE_NOTE = 'byte-v40';  
+var CACHE_NAME = 'byte-v49'; 
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',
@@ -44,6 +38,8 @@ var PRECACHE_URLS = [
   'shared/sw-register.js',
   'shared/search.js',
    
+  'shared/endpoints.js',
+  'shared/push-client.js',
   'shared/reminders-db.js',
   'shared/reminders.js',
   'shared/reminders-ui.js',
@@ -131,6 +127,89 @@ function rebuildOptions(item, lang, snoozeOpts, root) {
 function tellClients(msg) {
   return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     .then(function (list) { list.forEach(function (c) { c.postMessage(msg); }); });
+}
+
+ 
+self.addEventListener('push', function (event) {
+  event.waitUntil(handleWake());
+});
+
+function handleWake() {
+  var now = Date.now();
+  var GRACE = 10 * 60 * 1000;   
+  var lang = 'ar', snoozeOpts = null, root = null;
+
+  return Promise.all([
+    self.ReminderDB.getMeta('lang'),
+    self.ReminderDB.getMeta('snooze'),
+    self.ReminderDB.getMeta('root'),
+    self.ReminderDB.getQueue(),
+    self.ReminderDB.firedMap()
+  ]).then(function (r) {
+    lang = r[0] || 'ar';
+    snoozeOpts = r[1];
+    root = r[2] || '/';
+    var queue = r[3] || [];
+    var fired = r[4] || {};
+
+     
+    var due = queue.filter(function (i) {
+      return i && typeof i.fireAt === 'number'
+        && i.fireAt <= now && i.fireAt > now - GRACE
+        && !fired[i.id];
+    }).sort(function (a, b) { return a.fireAt - b.fireAt; });
+
+    if (!due.length) return fallbackNotice(lang, root, queue, now);
+
+    return Promise.all(due.slice(0, 3).map(function (item) {
+      return self.registration
+        .showNotification(item.title, rebuildOptions(item, lang, snoozeOpts, root))
+        .then(function () { return self.ReminderDB.markFired(item.id, 'push'); })
+        .catch(function () {});
+    })).then(function () {
+       
+      if (due.length > 3) {
+        var n = due.length - 3;
+        return self.registration.showNotification(
+          swTx('و' + n + ' تنبيهاً آخر', n + ' more reminders', lang),
+          {
+            body: swTx('افتح الحديقة لعرضها', 'Open the Garden to view them', lang),
+            tag: 'rem-more', renotify: false,
+            icon: root + 'shared/icons/icon-192.png',
+            badge: root + 'shared/icons/favicon-32.png',
+            dir: lang === 'ar' ? 'rtl' : 'ltr', lang: lang,
+            data: { id: 'rem-more', url: 'index.html', root: root, fireAt: now }
+          }
+        ).then(function () {
+          return Promise.all(due.slice(3).map(function (i) {
+            return self.ReminderDB.markFired(i.id, 'push-collapsed');
+          }));
+        });
+      }
+    }).then(function () { return tellClients({ type: 'reminder-pushed' }); });
+  }).catch(function () {
+     
+    return fallbackNotice('ar', '/', [], now);
+  });
+}
+
+ 
+function fallbackNotice(lang, root, queue, now) {
+  var next = (queue || []).filter(function (i) { return i && i.fireAt > now; })
+    .sort(function (a, b) { return a.fireAt - b.fireAt; })[0];
+  return self.registration.showNotification(
+    swTx('الحديقة الرقمية', 'Digital Garden', lang),
+    {
+      body: next
+        ? swTx('افتح الموقع لتحديث تنبيهاتك.', 'Open the site to refresh your reminders.', lang)
+        : swTx('لا شيء مستحقّ الآن — افتح الموقع للمزامنة.', 'Nothing due right now — open the site to sync.', lang),
+      tag: 'rem-wake', renotify: false, silent: true,
+      icon: (root || '/') + 'shared/icons/icon-192.png',
+      badge: (root || '/') + 'shared/icons/favicon-32.png',
+      dir: lang === 'ar' ? 'rtl' : 'ltr', lang: lang,
+      data: { id: 'rem-wake', url: 'index.html', root: root, fireAt: now }
+    }
+  ).catch(function () {});
 }
 
 self.addEventListener('notificationclick', function (event) {
