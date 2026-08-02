@@ -141,13 +141,22 @@
                  'No subscribed devices in this vault yet. Turn reminders on here first, then retry.');
       } else if (why === 'test_rate_limited') {
         msg = tx('تجاوزت خمس تجارب في الساعة — انتظر قليلاً.', 'More than five tests per hour — wait a bit.');
-      } else if (/Registration failed|push service/i.test(why)) {
+      } else if (/Registration failed|push service|AbortError/i.test(why)) {
          
-        msg = tx('المتصفح لم يستطع التسجيل في خدمة الدفع. الغالب أن إضافةً مانعة للإعلانات '
-               + 'أو جدار حماية يحجب نطاق googleapis.com (وهو ما يحجب مزامنة فايربيس أيضاً). '
-               + 'عطّل المانع لهذا الموقع ثم أعد المحاولة.',
-                 'The browser could not register with the push service. Most likely an ad blocker or firewall '
-               + 'is blocking googleapis.com (which also blocks Firebase sync). Disable it for this site and retry.');
+        msg = tx('متصفحك لم يستطع التسجيل لدى خدمة الدفع — والعطل خارج موقعنا تماماً.\n\n'
+               + 'الأسباب بترتيب الاحتمال:\n'
+               + '١) متصفح Brave: خدمة الدفع مُعطّلة فيه افتراضياً. افتح brave://settings/privacy '
+               + 'وفعّل «Use Google services for push messaging» ثم أعد تشغيل المتصفح.\n'
+               + '٢) إضافة مانعة للإعلانات تحجب googleapis.com — وهي نفسها التي تحجب فايربيس عندك.\n'
+               + '٣) جدار حماية أو VPN يحجب fcmregistrations.googleapis.com.\n\n'
+               + 'جرّب في نافذة تصفّح خفيّ بلا إضافات للتأكد.',
+                 'Your browser could not register with the push service — this failure is outside our site.\n\n'
+               + 'Most likely causes:\n'
+               + '1) Brave: push messaging is off by default. Open brave://settings/privacy and enable '
+               + '"Use Google services for push messaging", then restart the browser.\n'
+               + '2) An ad blocker blocking googleapis.com — the same one blocking Firebase for you.\n'
+               + '3) A firewall or VPN blocking fcmregistrations.googleapis.com.\n\n'
+               + 'Try an incognito window with extensions disabled to confirm.');
       } else if (why === 'http-403') {
         msg = tx('رفض الخادم الأصل — تأكد أن ALLOWED_ORIGINS في كلاودفلير يطابق نطاق الموقع تماماً.',
                  'The server rejected the origin — check ALLOWED_ORIGINS in Cloudflare matches the site origin exactly.');
@@ -259,15 +268,6 @@
     host.appendChild(wrap);
 
      
-    if (ch === 'notes') {
-      var hint = document.createElement('small');
-      hint.className = 'rem-lead-hint';
-      hint.setAttribute('data-ar', 'من وقت التذكير الذي حدّدته في الملاحظة');
-      hint.setAttribute('data-en', 'from the reminder time you set on the note');
-      hint.textContent = tx('من وقت التذكير الذي حدّدته في الملاحظة',
-                            'from the reminder time you set on the note');
-      host.appendChild(hint);
-    }
   }
 
   function renderLead(ch, minutes) {
@@ -355,14 +355,15 @@
     });
 
      
+     
     var hint = el('rem-snooze-hint');
     if (hint) {
       var slots = Math.max(0, (cap.maxActions || 2) - 1);
       hint.textContent = slots <= 1
-        ? tx('نظامك يعرض زرّ غفوة واحداً مع زر «تم» — أول مدة مختارة هي المستخدَمة.',
-             'Your system shows one snooze button plus “Done” — the first selected duration is used.')
-        : tx('نظامك يعرض ' + slots + ' أزرار غفوة مع زر «تم».',
-             'Your system shows ' + slots + ' snooze buttons plus “Done”.');
+        ? tx('نظامك يُظهر زرّ غفوة واحداً — تُستخدَم أول مدة مختارة.',
+             'Your system shows one snooze button — the first selected duration is used.')
+        : tx('نظامك يُظهر ' + slots + ' أزرار غفوة.',
+             'Your system shows ' + slots + ' snooze buttons.');
     }
   }
 
@@ -403,6 +404,10 @@
     R.upcoming(8).then(function (list) {
       box.innerHTML = '';
       var dg = R.diagnose ? R.diagnose() : { reason: 'ok' };
+
+       
+      var cnt = el('rem-up-count');
+      if (cnt) cnt.textContent = list.length ? String(list.length) : '—';
 
       if (!list.length) {
         var e = document.createElement('div');
