@@ -41,11 +41,24 @@
       tt = tx('الإشعارات محظورة', 'Notifications are blocked');
       nn = tx('حظرتَ الإشعارات لهذا الموقع سابقاً. افتح إعدادات الموقع في المتصفح (أيقونة القفل بجانب العنوان) واسمح بالإشعارات.',
               'You previously blocked notifications for this site. Open site settings in your browser (the lock icon by the address bar) and allow notifications.');
+    } else if (cap.permission !== 'granted' && s.enabled) {
+       
+      state = 'partial'; ic = 'fa-clock-rotate-left';
+      tt = tx('انتهى إذن الإشعارات بإغلاق المتصفح', 'The notification permission expired when you closed the browser');
+      nn = tx('تنبيهاتك مفعّلة هنا، لكن المتصفح لم يعد يسمح بها — وهذا يحدث حين يُمنح الإذن بخيار «السماح هذه المرة فقط». اضغط الزرّ أدناه واختر هذه المرة «السماح» أو «السماح دائماً» ليبقى بعد الإغلاق.',
+              'Reminders are on here, but the browser no longer allows them — this happens when permission was granted with “Allow this time”. Press the button below and choose “Allow” or “Always allow” so it survives closing.');
+      var pb = document.createElement('button');
+      pb.className = 'dash-btn';
+      pb.textContent = tx('اسمح بالإشعارات دائماً', 'Allow notifications always');
+      pb.addEventListener('click', function () {
+        R.requestPermission().then(function () { renderAll(); renderUpcoming(); });
+      });
+      acts.appendChild(pb);
     } else if (cap.permission !== 'granted') {
       state = 'off'; ic = 'fa-bell';
       tt = tx('التنبيهات غير مفعَّلة', 'Reminders are off');
-      nn = tx('فعّل المفتاح أدناه وسيطلب المتصفح إذنك مرة واحدة.',
-              'Turn on the switch below — your browser will ask permission once.');
+      nn = tx('فعّل المفتاح أدناه وسيطلب المتصفح إذنك مرة واحدة — اختر «السماح» لا «هذه المرة فقط».',
+              'Turn on the switch below — your browser will ask once. Choose “Allow”, not “Allow this time”.');
     } else if (!s.enabled) {
       state = 'off'; ic = 'fa-bell';
       tt = tx('الإذن ممنوح — التنبيهات متوقفة', 'Permission granted — reminders paused');
@@ -102,13 +115,27 @@
 
    
    
-  function detectBrave() {
-    var box = el('rem-brave-help');
-    if (!box || !navigator.brave || !navigator.brave.isBrave) return;
+  function markBrave() {
+    var sec = el('rem-ts-brave');
+    if (!sec || !navigator.brave || !navigator.brave.isBrave) return;
     navigator.brave.isBrave().then(function (yes) {
        
-      if (yes) box.hidden = false;
+      if (!yes) return;
+      sec.classList.add('is-yours');
+       
+      var d = el('rem-tshoot');
+      if (d && !d.open && window.Reminders && Reminders.capability().permission !== 'granted') {
+        d.open = true;
+        sec.open = true;
+      }
     }).catch(function () {});
+  }
+
+   
+  function renderPermHint() {
+    var box = el('rem-perm-hint');
+    if (!box || !window.Reminders) return;
+    box.hidden = Reminders.capability().permission === 'granted';
   }
 
   function serverTest(btn) {
@@ -139,10 +166,13 @@
       if (!r) return;
       if (r.ok) {
         var n = r.devices || 1;
-        alert(tx('أُرسل الطلب ✓ — ستصل النبضة خلال دقيقة إلى ' + n + ' جهاز مشترك.\n\n'
+         
+        alert(tx('أُرسل الطلب ✓ — تصل النبضة خلال دقيقة إلى دقيقتين إلى ' + n + ' جهاز مشترك.\n\n'
+               + 'التأخّر طبيعي: الخادم يفحص المواعيد كل دقيقة، ثم تمرّ النبضة بخدمة الدفع في متصفحك.\n\n'
                + 'إن وصلت لجهازٍ دون آخر، فالجهاز الآخر لم يشترك: افتح الموقع فيه وفعّل التنبيهات '
                + 'وتأكد أن مفتاح المزامنة نفسه.',
-                 'Sent ✓ — the wake will reach ' + n + ' subscribed device(s) within a minute.\n\n'
+                 'Sent ✓ — the wake reaches ' + n + ' subscribed device(s) within one to two minutes.\n\n'
+               + 'The delay is normal: the server scans due times every minute, then the ping travels through your browser’s push service.\n\n'
                + 'If one device gets it and another does not, that device is not subscribed: open the site there, '
                + 'turn reminders on, and confirm it uses the same sync key.'));
         return;
@@ -152,8 +182,20 @@
       if (why === 'no_devices') {
         msg = tx('لا جهاز مشترك في هذه الخزنة بعد. فعّل التنبيهات في هذا الجهاز أولاً ثم أعد المحاولة.',
                  'No subscribed devices in this vault yet. Turn reminders on here first, then retry.');
-      } else if (why === 'test_rate_limited') {
-        msg = tx('تجاوزت خمس تجارب في الساعة — انتظر قليلاً.', 'More than five tests per hour — wait a bit.');
+      } else if (why === 'test_rate_limited' || why === 'http-429' || why === 'rate_limited') {
+         
+        var sec = r.retryAfter || 0;
+        var when = sec > 60
+          ? tx('بعد نحو ' + Math.ceil(sec / 60) + ' دقيقة', 'in about ' + Math.ceil(sec / 60) + ' minutes')
+          : (sec ? tx('بعد ' + sec + ' ثانية', 'in ' + sec + ' seconds') : tx('بعد قليل', 'shortly'));
+        msg = tx('حدُّ التجربة خمس مرات في الساعة، وقد استُهلك — ليست هذه علامةَ عطل.\n\n'
+               + 'أعد المحاولة ' + when + '.\n\n'
+               + 'الحدُّ موجود لأن كل ضغطةٍ توقظ أجهزتك كلها فعلاً. ولاختبار الجهاز الحالي وحده '
+               + 'استعمل «جرّب تنبيهاً الآن» — فهو بلا حدّ.',
+                 'The test is capped at five per hour and the cap is used up — this is not a fault.\n\n'
+               + 'Try again ' + when + '.\n\n'
+               + 'The cap exists because every press really does wake all your devices. To test this device alone, '
+               + 'use “Send a test” — it has no cap.');
       } else if (/Registration failed|push service|AbortError/i.test(why)) {
          
         msg = tx('متصفحك لم يستطع التسجيل لدى خدمة الدفع — والعطل خارج موقعنا تماماً.\n\n'
@@ -471,7 +513,7 @@
     });
   }
 
-  function renderAll() { renderStatus(); renderControls(); renderUpcoming(); }
+  function renderAll() { renderStatus(); renderPermHint(); renderControls(); renderUpcoming(); }
 
    
   function bind() {
@@ -596,10 +638,10 @@
     });
     document.addEventListener('garden:languageChanged', renderAll);
      
-    document.addEventListener('reminders:synced', detectBrave);
+    document.addEventListener('reminders:synced', markBrave);
 
     renderAll();
-    detectBrave();
+    markBrave();
   }
 
   if (document.readyState === 'loading') {

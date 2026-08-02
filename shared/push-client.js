@@ -52,8 +52,14 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     }).then(function (r) {
-      if (!r.ok) throw new Error('http-' + r.status);
-      return r.json();
+       
+      return r.json().catch(function () { return null; }).then(function (j) {
+        if (r.ok) return j || {};
+        var e = new Error((j && j.error) || ('http-' + r.status));
+        e.status = r.status;
+        e.body = j;
+        throw e;
+      });
     });
   }
 
@@ -191,16 +197,6 @@
    
 
    
-  function wakeTimes(items) {
-    var now = Date.now();
-    var set = {};
-    (items || []).forEach(function (i) {
-      if (!i || typeof i.fireAt !== 'number' || i.fireAt <= now) return;
-      set[Math.floor(i.fireAt / 60000) * 60000] = 1;
-    });
-    return Object.keys(set).map(Number).sort(function (a, b) { return a - b; })
-      .slice(0, MAX_WAKES);
-  }
 
    
   var REUPLOAD_MS = 2 * 60 * 60 * 1000;
@@ -212,16 +208,40 @@
     } catch (e) { return null; }
   }
 
+   
+  function remPayload(items) {
+    var now = Date.now();
+    var out = [];
+    (items || []).forEach(function (i) {
+      if (!i || typeof i.fireAt !== 'number' || i.fireAt <= now) return;
+      if (!i.id || !i.title) return;
+      var url = String((i.data && i.data.url) || i.url || '');
+      if (/[:\\]/.test(url) || url.indexOf('//') === 0) url = '';
+      out.push({
+        id: String(i.id).replace(/[^A-Za-z0-9:._-]/g, '_').slice(0, 64),
+         
+        at: Math.floor(i.fireAt / 60000) * 60000,
+        title: String(i.title).slice(0, 120),
+        body: String(i.body || '').slice(0, 240),
+        url: url.replace(/^\/+/, '')
+      });
+    });
+    return out.sort(function (a, b) { return a.at - b.at; }).slice(0, MAX_WAKES);
+  }
+
   function syncWakes(items) {
     if (!supported()) return Promise.resolve({ ok: false, reason: 'unsupported' });
-    var wakes = wakeTimes(items);
-    var sig = vaultId() + '|' + wakes.join(',');
+    var rems = remPayload(items);
+     
+    var sig = vaultId() + '|' + rems.map(function (r) {
+      return r.id + '@' + r.at + '#' + r.title.length + ':' + r.body.length;
+    }).join(',');
     var last = lastUpload();
     if (last && last.sig === sig && (Date.now() - (last.at || 0)) < REUPLOAD_MS) {
       return Promise.resolve({ ok: true, skipped: true });
     }
 
-    return post('/v1/wakes', { vault_id: vaultId(), device_id: deviceId(), wakes: wakes })
+    return post('/v1/reminders', { vault_id: vaultId(), device_id: deviceId(), reminders: rems })
       .then(function (r) {
          
         try {
@@ -243,7 +263,14 @@
       if (!s.ok) return { ok: false, reason: s.reason };
       return post('/v1/test', { vault_id: vaultId(), device_id: deviceId() })
         .then(function (r) { return { ok: !!(r && r.ok), devices: r && r.devices, reason: r && r.error }; })
-        .catch(function (e) { return { ok: false, reason: String(e && e.message || e) }; });
+         
+        .catch(function (e) {
+          return {
+            ok: false,
+            reason: String(e && e.message || e),
+            retryAfter: (e && e.body && e.body.retry_after) || 0
+          };
+        });
     });
   }
 

@@ -1,7 +1,7 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v54';
+var CACHE_NAME = 'byte-v56';
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',
@@ -133,8 +133,64 @@ function tellClients(msg) {
 
  
 self.addEventListener('push', function (event) {
-  event.waitUntil(handleWake());
+   
+  var payload = null;
+  try { payload = event.data ? event.data.json() : null; } catch (e) { payload = null; }
+  event.waitUntil(
+    (payload && payload.r && payload.r.length)
+      ? showFromPayload(payload).catch(function () { return handleWake(); })
+      : handleWake()
+  );
 });
+
+ 
+function showFromPayload(p) {
+  var now = Date.now();
+  return Promise.all([
+    self.ReminderDB.getMeta('lang'),
+    self.ReminderDB.getMeta('snooze'),
+    self.ReminderDB.getMeta('root')
+  ]).then(function (m) {
+    var lang = m[0] || 'ar';
+    var snoozeOpts = m[1];
+    var root = m[2] || '/';
+
+    var items = p.r.slice(0, 3).map(function (r) {
+      return {
+        id: String(r.i || ('push:' + now)),
+        title: String(r.t || ''),
+        body: String(r.b || ''),
+         
+        url: String(r.u || 'index.html').replace(/^\/+/, '').replace(/[:\\]/g, ''),
+        fireAt: Number(r.a) || now,
+        eventAt: Number(r.a) || now
+      };
+    }).filter(function (i) { return i.title; });
+
+    if (!items.length) return Promise.reject(new Error('empty-payload'));
+
+    return Promise.all(items.map(function (item) {
+      return self.registration
+        .showNotification(item.title, rebuildOptions(item, lang, snoozeOpts, root))
+        .then(function () { return self.ReminderDB.markFired(item.id, 'push-payload'); })
+        .catch(function () {});
+    })).then(function () {
+      var extra = (p.n || items.length) - items.length;
+      if (extra <= 0) return;
+      return self.registration.showNotification(
+        swTx('و' + extra + ' تنبيهاً آخر', extra + ' more reminders', lang),
+        {
+          body: swTx('افتح الحديقة لعرضها', 'Open the Garden to view them', lang),
+          tag: 'rem-more', renotify: false,
+          icon: root + 'shared/icons/icon-192.png',
+          badge: root + 'shared/icons/favicon-32.png',
+          dir: lang === 'ar' ? 'rtl' : 'ltr', lang: lang,
+          data: { id: 'rem-more', url: 'index.html', root: root, fireAt: now }
+        }
+      );
+    }).then(function () { return tellClients({ type: 'reminder-pushed' }); });
+  });
+}
 
  
 self.addEventListener('pushsubscriptionchange', function (event) {
