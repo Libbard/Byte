@@ -101,7 +101,21 @@
   }
 
    
+   
+  function detectBrave() {
+    var box = el('rem-brave-help');
+    if (!box || !navigator.brave || !navigator.brave.isBrave) return;
+    navigator.brave.isBrave().then(function (yes) {
+       
+      var cap = window.Reminders ? Reminders.capability() : {};
+      if (yes && !(cap.permission === 'granted' && cap.push)) box.hidden = false;
+    }).catch(function () {});
+  }
+
   function serverTest(btn) {
+     
+    var R = window.Reminders;
+    if (!R) return;
     if (!window.GardenPush || !GardenPush.supported()) {
       alert(tx('الدفع من الخادم غير مهيّأ في هذا المتصفح (أو العنوان غير مضبوط في endpoints.js).',
                'Server push is not available in this browser (or the endpoint is unset in endpoints.js).'));
@@ -582,8 +596,11 @@
       renderUpcoming();
     });
     document.addEventListener('garden:languageChanged', renderAll);
+     
+    document.addEventListener('reminders:synced', detectBrave);
 
     renderAll();
+    detectBrave();
   }
 
   if (document.readyState === 'loading') {

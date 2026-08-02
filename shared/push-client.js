@@ -233,8 +233,15 @@
     });
   }
 
+   
+  function status() {
+    return post('/v1/status', { vault_id: vaultId(), device_id: deviceId() })
+      .catch(function (e) { return { ok: false, reason: String(e && e.message || e) }; });
+  }
+
   window.GardenPush = {
     supported: supported,
+    status: status,
     subscribe: subscribe,
     unsubscribe: unsubscribe,
     syncWakes: syncWakes,
