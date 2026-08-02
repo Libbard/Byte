@@ -589,7 +589,7 @@
       if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
       lastSig = null;                 
        
-      if (self.GardenPush) { try { GardenPush.unsubscribe(); } catch (e) {} }
+      if (!s.enabled && self.GardenPush) { try { GardenPush.unsubscribe(); } catch (e) {} }
        
       return ReminderDB.clearAll()
         .then(clearArmed)

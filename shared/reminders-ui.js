@@ -107,8 +107,7 @@
     if (!box || !navigator.brave || !navigator.brave.isBrave) return;
     navigator.brave.isBrave().then(function (yes) {
        
-      var cap = window.Reminders ? Reminders.capability() : {};
-      if (yes && !(cap.permission === 'granted' && cap.push)) box.hidden = false;
+      if (yes) box.hidden = false;
     }).catch(function () {});
   }
 

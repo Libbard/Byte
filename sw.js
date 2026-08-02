@@ -1,7 +1,7 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v53';
+var CACHE_NAME = 'byte-v54';
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',
@@ -135,6 +135,46 @@ function tellClients(msg) {
 self.addEventListener('push', function (event) {
   event.waitUntil(handleWake());
 });
+
+ 
+self.addEventListener('pushsubscriptionchange', function (event) {
+  event.waitUntil(resubscribe(event));
+});
+
+function resubscribe(event) {
+  return self.ReminderDB.getMeta('push').then(function (m) {
+    if (!m || !m.endpoint || !m.vault || !m.device || !m.key) return null;
+
+     
+    var ready = (event && event.newSubscription)
+      ? Promise.resolve(event.newSubscription)
+      : self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: swB64ToU8(m.key)
+        });
+
+    return ready.then(function (sub) {
+      var j = sub.toJSON();
+      return fetch(String(m.endpoint).replace(/\/+$/, '') + '/v1/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vault_id: m.vault,
+          device_id: m.device,
+          subscription: { endpoint: j.endpoint, keys: j.keys }
+        })
+      });
+    });
+  }).catch(function () {   });
+}
+
+function swB64ToU8(b64) {
+  var pad = '='.repeat((4 - (b64.length % 4)) % 4);
+  var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  var out = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
 
 function handleWake() {
   var now = Date.now();

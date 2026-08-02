@@ -111,6 +111,13 @@
   }
 
    
+  function pushMeta(o) {
+    try {
+      if (self.ReminderDB && ReminderDB.setMeta) ReminderDB.setMeta('push', o);
+    } catch (e) {}
+  }
+
+   
 
   function subscribe() {
     if (!supported()) return Promise.resolve({ ok: false, reason: 'unsupported' });
@@ -133,6 +140,13 @@
       });
     }).then(function (sub) {
       var j = sub.toJSON();
+       
+      pushMeta({
+        endpoint: ENDPOINT,
+        vault: vaultId(),
+        device: deviceId(),
+        key: serverKey || cachedKey() || ''
+      });
       return post('/v1/subscribe', {
         vault_id: vaultId(),
         device_id: deviceId(),
