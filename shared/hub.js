@@ -359,19 +359,33 @@ function bindEvents() {
     });
   }
 
+   
+  const suggestOpen = (el) => !!(el && el.parentNode &&
+    el.parentNode.querySelector('.bi-sugg-item.is-on'));
+
   const nameInput = document.getElementById('semester-name-input');
   if (nameInput) {
     nameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); handleCreateSemester(); }
+      if (e.key !== 'Enter' || suggestOpen(e.target)) return;
+      e.preventDefault(); handleCreateSemester();
+    });
+  }
+  const nameInputEn = document.getElementById('semester-name-en');
+  if (nameInputEn) {
+    nameInputEn.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || suggestOpen(e.target)) return;
+      e.preventDefault(); handleCreateSemester();
     });
   }
 
-  const renameInput = document.getElementById('rename-input');
-  if (renameInput) {
-    renameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); handleRename(); }
+  ['rename-input', 'rename-input-en'].forEach((id) => {
+    const ri = document.getElementById(id);
+    if (!ri) return;
+    ri.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || suggestOpen(e.target)) return;
+      e.preventDefault(); handleRename();
     });
-  }
+  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeAllModals();
@@ -387,19 +401,29 @@ function bindEvents() {
 }
 
  
+function biNames(idAr, idEn) {
+  const ar = (document.getElementById(idAr)?.value || '').trim();
+  const en = (document.getElementById(idEn)?.value || '').trim();
+  if (window.GardenBiName) return window.GardenBiName.resolve(ar, en);
+  return (ar || en) ? { name_ar: ar || en, name_en: en || ar, name: ar || en } : null;
+}
+
 function handleCreateSemester() {
-  const input = document.getElementById('semester-name-input');
-  const name = (input?.value || '').trim();
-  if (!name) { input?.focus(); return; }
-  createSemester(name);
+  const v = biNames('semester-name-input', 'semester-name-en');
+  if (!v) { document.getElementById('semester-name-input')?.focus(); return; }
+  createSemester(v);
   closeAllModals();
 }
 
-function createSemester(name) {
+function createSemester(v) {
+   
+  if (typeof v === 'string') v = { name_ar: v, name_en: v, name: v };
   const now = new Date().toISOString();
   semester = {
     id: 'sem_' + Date.now(),
-    name: name,
+    name: v.name,
+    name_ar: v.name_ar,
+    name_en: v.name_en,
     courses: [],
     is_active: false,
     is_pinned: false,
@@ -523,6 +547,9 @@ function pushSemesterToArchive(sem) {
   archive.push({
     id: sem.id,
     name: sem.name,
+     
+    name_ar: sem.name_ar || sem.name,
+    name_en: sem.name_en || sem.name,
     courses: sem.courses,
     gpa: gpa,
     total_credits: totalCredits,
@@ -564,12 +591,22 @@ function setArchivedGrade(id, code, grade) {
   renderArchive();
 }
 
+ 
+function dispSemName(item) {
+  return (window.GardenData && GardenData.dispName)
+    ? GardenData.dispName(item) : (item && item.name) || '';
+}
+
+ 
 function renameArchived(id, name) {
   const item = findArchived(id);
   if (!item) return;
   name = (name || '').trim();
   if (!name) return;
-  item.name = name;
+  if (!item.name_ar) item.name_ar = item.name || name;
+  if (!item.name_en) item.name_en = item.name || name;
+  if (isAr()) { item.name_ar = name; item.name = name; }
+  else { item.name_en = name; }
   saveArchive();
 }
 
@@ -691,7 +728,9 @@ function renderOverview() {
   const detailEl = document.getElementById('progress-detail');
   if (!nameEl) return;
 
-  nameEl.textContent = semester.name;
+   
+  nameEl.textContent = (window.GardenData && GardenData.dispName)
+    ? GardenData.dispName(semester) : semester.name;
 
   const total = semester.courses.length;
   const done = semester.courses.filter(c => c.completed).length;
@@ -876,8 +915,12 @@ function showCreateSemesterModal() {
   const modal = document.getElementById('modal-create-semester');
   if (!modal) return;
   const input = document.getElementById('semester-name-input');
+  const inputEn = document.getElementById('semester-name-en');
   modal.hidden = false;
-  if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+  if (input) input.value = '';
+  if (inputEn) inputEn.value = '';
+  bindBiName('semester-name-input', 'semester-name-en');
+  if (input) setTimeout(() => input.focus(), 50);
 }
 
  
@@ -1063,14 +1106,14 @@ function buildArchiveItem(item) {
     '<summary class="archive-summary">' +
       '<span class="archive-caret"><i class="fa-solid fa-chevron-down"></i></span>' +
       '<span class="archive-summary-main">' +
-        '<span class="archive-item-name">' + escapeHtml(item.name) + '</span>' +
+        '<span class="archive-item-name">' + escapeHtml(dispSemName(item)) + '</span>' +
         '<span class="archive-item-meta">' + smartCount((item.total_credits || 0), ['ساعة','ساعتين','ساعات'], ['credit','credits']) + ' · ' + formatDate(item.archived_at) + '</span>' +
       '</span>' +
       gpaText +
     '</summary>' +
     '<div class="archive-body">' +
       '<label class="archive-field-label">' + (isAr() ? 'اسم الفصل' : 'Semester name') + '</label>' +
-      '<input type="text" class="hub-input archive-rename" data-id="' + id + '" value="' + escapeHtml(item.name) + '">' +
+      '<input type="text" class="hub-input archive-rename" data-id="' + id + '" value="' + escapeHtml(dispSemName(item)) + '">' +
       '<div class="archive-courses">' + rows + '</div>' +
       '<div class="archive-actions">' +
         '<button class="hub-btn hub-btn-secondary hub-btn-sm" data-action="restore-archived" data-id="' + id + '"><i class="fa-solid fa-rotate-left"></i> ' + (isAr() ? 'استرجاع' : 'Restore') + '</button>' +
@@ -1085,22 +1128,34 @@ function showRenameModal() {
   const modal = document.getElementById('modal-rename');
   if (!modal || !semester) return;
   const input = document.getElementById('rename-input');
+  const inputEn = document.getElementById('rename-input-en');
   modal.hidden = false;
-  if (input) {
-    input.value = semester.name || '';
-    setTimeout(() => { input.focus(); input.select(); }, 50);
-  }
+  const cur = window.GardenBiName ? window.GardenBiName.read(semester)
+    : { ar: semester.name || '', en: '' };
+  if (input) input.value = cur.ar;
+  if (inputEn) inputEn.value = cur.en;
+  bindBiName('rename-input', 'rename-input-en');
+  if (input) setTimeout(() => { input.focus(); input.select(); }, 50);
 }
 
 function handleRename() {
   if (!semester) return;
-  const input = document.getElementById('rename-input');
-  const name = (input?.value || '').trim();
-  if (!name) { input?.focus(); return; }
-  semester.name = name;
+  const v = biNames('rename-input', 'rename-input-en');
+  if (!v) { document.getElementById('rename-input')?.focus(); return; }
+  semester.name = v.name;
+  semester.name_ar = v.name_ar;
+  semester.name_en = v.name_en;
   save();
   renderOverview();
   closeAllModals();
+}
+
+ 
+function bindBiName(idAr, idEn) {
+  const a = document.getElementById(idAr), b = document.getElementById(idEn);
+  if (!a || !b || !window.GardenBiName || a.dataset.biBound) return;
+  a.dataset.biBound = '1';
+  window.GardenBiName.attach({ ar: a, en: b, suggest: true });
 }
 
  

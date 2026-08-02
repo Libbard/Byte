@@ -1,12 +1,14 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v56';
+var CACHE_NAME = 'byte-v58';
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',
   'shared/garden.js',
   'shared/garden-data.js',
+   
+  'shared/bilingual-name.js',
    
   'shared/reminders-boot.js',
    
@@ -34,6 +36,8 @@ var PRECACHE_URLS = [
   'shared/schedule-plan.js',
   'shared/schedule-print.js',
   'shared/schedule-motivation.js',
+   
+  'shared/legacy-data.js',
   'shared/bottom-nav.css',
   'shared/bottom-nav.js',
   'shared/export-png.js',

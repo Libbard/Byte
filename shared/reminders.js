@@ -29,17 +29,15 @@
       channels: {
         lectures: true,     
         exams: true,        
+         
         tasks: true,        
-        notes: true,        
         review: false       
       },
        
       lead: {
         lectures: 15,
         exams: 1440,        
-        tasks: 720,         
-         
-        notes: 0
+        tasks: 720          
       },
       reviewTime: '20:00',
       quiet: { on: false, from: '00:00', to: '07:00' },
@@ -298,9 +296,8 @@
     list.forEach(function (t) {
       if (!t || t.done || !t.due) return;
 
-      var channel = (t.source === 'note') ? 'notes'
-        : (t.source === 'exam' || t.type === 'exam' || t.type === 'midterm' || t.type === 'final') ? 'exams'
-        : 'tasks';
+      var channel = (t.source === 'exam' || t.type === 'exam' || t.type === 'midterm' || t.type === 'final')
+        ? 'exams' : 'tasks';
       if (!s.channels[channel]) return;
 
       var when = toLocalTime(t.due);
@@ -313,9 +310,7 @@
         eventMs = d.getTime();
       }
 
-      var leadMin = (channel === 'exams') ? s.lead.exams
-        : (channel === 'notes') ? (s.lead.notes || 0)
-        : s.lead.tasks;
+      var leadMin = (channel === 'exams') ? s.lead.exams : s.lead.tasks;
       var fireAt = eventMs - (leadMin || 0) * 60000;
       if (fireAt > horizon) return;   
 
@@ -330,7 +325,7 @@
         body: tx('الموعد ', 'Due ') + fmtWhen(eventMs),
         fireAt: applyQuiet(fireAt),
         eventAt: eventMs,
-        url: t.source === 'note' ? 'index.html#notes' : 'index.html#tasks',
+        url: 'index.html#tasks',
         course: t.course || null
       });
     });

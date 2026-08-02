@@ -59,6 +59,16 @@
   }
 
    
+  function biRead(obj) {
+    return window.GardenBiName ? window.GardenBiName.read(obj)
+      : { ar: (obj && obj.name) || '', en: '' };
+  }
+  function biResolve(ar, en) {
+    return window.GardenBiName ? window.GardenBiName.resolve(ar, en)
+      : ((ar || en) ? { name_ar: ar || en, name_en: en || ar, name: ar || en } : null);
+  }
+
+   
   function buildFromReality() {
     var prof = readJSON('student_profile', {}) || {};
     var arch = readJSON('semester_archive', []) || [];
@@ -70,8 +80,10 @@
     });
     var sem = readJSON('my_semester', null) || {};
     var current = (sem.courses || []).map(function (c) { return c && c.code; }).filter(Boolean);
+    var pn = biRead(prof), sn = biRead(sem);
     return {
-      name: prof.name || '',
+      nameAr: pn.ar, nameEn: pn.en,
+      semAr: sn.ar, semEn: sn.en,
       startYear: prof.start_year || null,
       term: (sem.term === 'summer') ? 'summer' : 'regular',
       completed: completed,
@@ -83,9 +95,14 @@
   function open(step, data, fromReality) {
     catalogReady(function () {
       var base = fromReality ? buildFromReality() : (data || {});
+      var pn0 = biRead(readJSON('student_profile', {}) || {});
+      var sn0 = biRead(readJSON('my_semester', {}) || {});
       W = {
         step: step || 0,
-        name: base.name || (readJSON('student_profile', {}) || {}).name || '',
+        nameAr: base.nameAr || pn0.ar,
+        nameEn: base.nameEn || pn0.en,
+        semAr: base.semAr || sn0.ar,
+        semEn: base.semEn || sn0.en,
         startYear: base.startYear || null,
         term: base.term || 'regular',
         currentLevel: (base.currentLevel != null) ? base.currentLevel : null,  
@@ -101,7 +118,9 @@
   function persistProgress() {
     var st = loadState();
     st.step = W.step;
-    st.data = { name: W.name, startYear: W.startYear, term: W.term, currentLevel: W.currentLevel, completed: W.completed, current: W.current };
+    st.data = { nameAr: W.nameAr, nameEn: W.nameEn, semAr: W.semAr, semEn: W.semEn,
+                startYear: W.startYear, term: W.term, currentLevel: W.currentLevel,
+                completed: W.completed, current: W.current };
     saveState(st);
   }
 
@@ -162,6 +181,23 @@
       '</div>';
     document.body.appendChild(o);
     wire(o);
+    bindBiFields();
+  }
+
+   
+  function bindBiFields() {
+    if (!window.GardenBiName) return;
+    var n1 = document.getElementById('onb-name'), n2 = document.getElementById('onb-name-en');
+    if (n1 && n2) window.GardenBiName.attach({ ar: n1, en: n2, suggest: false });
+
+    var s1 = document.getElementById('onb-sem'), s2 = document.getElementById('onb-sem-en');
+    if (s1 && s2) {
+       
+      window.GardenBiName.attach({
+        ar: s1, en: s2, suggest: true,
+        primary: (W.term === 'summer') ? 'summer' : effectiveLevel()
+      });
+    }
   }
 
   function welcomeBody() {
@@ -179,9 +215,17 @@
       }).join('') + '</div>';
   }
 
+   
   function nameBody() {
-    return '<input class="onb-input" id="onb-name" type="text" maxlength="40" value="' + esc(W.name) + '" ' +
-      'placeholder="' + esc(tx('اكتب اسمك', 'Type your name')) + '" autocomplete="off">';
+    return (window.GardenBiName ? window.GardenBiName.fieldHtml({
+      idAr: 'onb-name', idEn: 'onb-name-en', cls: 'onb-input', max: 40,
+      valAr: W.nameAr, valEn: W.nameEn,
+      phAr: tx('اكتب اسمك', 'Your name in Arabic'),
+      phEn: 'Your name in English'
+    }) : '<input class="onb-input" id="onb-name" type="text" maxlength="40" value="' + esc(W.nameAr) + '" ' +
+      'placeholder="' + esc(tx('اكتب اسمك', 'Type your name')) + '" autocomplete="off">') +
+      '<p class="onb-hint">' + esc(tx('يكفي أن تملأ أحدهما — والآخر يأخذ نسخته تلقائياً.',
+        'Fill either one — the other copies automatically.')) + '</p>';
   }
 
   function yearBody() {
@@ -247,6 +291,17 @@
 
     var html = termToggle;
 
+     
+    html += '<label class="onb-field-lbl">' + esc(tx('اسم الفصل', 'Semester name')) + '</label>' +
+      (window.GardenBiName ? window.GardenBiName.fieldHtml({
+        idAr: 'onb-sem', idEn: 'onb-sem-en', cls: 'onb-input', max: 60,
+        valAr: W.semAr, valEn: W.semEn,
+        phAr: tx('مثال: المستوى الرابع', 'e.g. المستوى الرابع'),
+        phEn: 'e.g. Level 4'
+      }) : '') +
+      '<p class="onb-hint">' + esc(tx('اضغط الحقل لتظهر التسميات الجاهزة — واختيار واحدة يملأ اللغتين.',
+        'Tap the field for ready-made labels — picking one fills both languages.')) + '</p>';
+
     
     function eligible(c) {
       var g = W.completed[c.code];
@@ -289,7 +344,7 @@
     var doneCount = Object.keys(W.completed).length;
     var termTxt = W.term === 'summer' ? tx('فصل صيفي', 'summer term') : tx('فصل عادي', 'regular term');
     return '<p class="onb-lead">' + esc(tx('حفظنا بياناتك: ', 'Saved: ')) +
-      esc(W.name || tx('طالب', 'Student')) + ' · ' +
+      esc((isAr() ? (W.nameAr || W.nameEn) : (W.nameEn || W.nameAr)) || tx('طالب', 'Student')) + ' · ' +
       esc(termTxt) + ' · ' +
       esc(tx(doneCount + ' مادة مُتمّة', doneCount + ' completed courses')) + ' · ' +
       esc(tx(W.current.length + ' مادة حالية', W.current.length + ' current courses')) + '</p>' +
@@ -300,7 +355,10 @@
    
   function collect() {
     var name = STEPS[W.step];
-    if (name === 'name') { var i = document.getElementById('onb-name'); if (i) W.name = i.value.trim(); }
+    if (name === 'name') {
+      var i = document.getElementById('onb-name'); if (i) W.nameAr = i.value.trim();
+      var ie = document.getElementById('onb-name-en'); if (ie) W.nameEn = ie.value.trim();
+    }
     else if (name === 'year') { var y = document.getElementById('onb-year'); if (y && y.value) W.startYear = parseInt(y.value, 10); }
     else if (name === 'levels') {
       document.querySelectorAll('.onb-ck').forEach(function (ck) {
@@ -314,6 +372,8 @@
       });
     }
     else if (name === 'current') {
+      var sa = document.getElementById('onb-sem'); if (sa) W.semAr = sa.value.trim();
+      var se = document.getElementById('onb-sem-en'); if (se) W.semEn = se.value.trim();
       var cl = document.getElementById('onb-curlevel'); if (cl) { W.currentLevel = parseInt(cl.value, 10); W.levelTouched = true; }
       W.current = [];
       document.querySelectorAll('.onb-cur-ck').forEach(function (ck) { if (ck.checked) W.current.push(ck.getAttribute('data-code')); });
@@ -349,7 +409,8 @@
   function commit() {
     
     var prof = readJSON('student_profile', {}) || {};
-    prof.name = W.name || prof.name || '';
+    var pv = biResolve(W.nameAr, W.nameEn);
+    if (pv) { prof.name = pv.name; prof.name_ar = pv.name_ar; prof.name_en = pv.name_en; }
     if (W.startYear) prof.start_year = W.startYear;
     writeJSON('student_profile', prof);
 
@@ -373,6 +434,8 @@
       return byCode[code] || { code: code, added_at: new Date().toISOString(), completed: false };
     });
     sem.term = (W.term === 'summer') ? 'summer' : 'regular';
+    var sv = biResolve(W.semAr, W.semEn);
+    if (sv) { sem.name = sv.name; sem.name_ar = sv.name_ar; sem.name_en = sv.name_en; }
     writeJSON('my_semester', sem);
 
     
@@ -399,7 +462,10 @@
       if (act === 'back') { collect(); W.step = Math.max(0, W.step - 1); render(); }
       else if (act === 'next') {
         collect();
-        if (STEPS[W.step] === 'name' && !W.name) { var i = document.getElementById('onb-name'); if (i) i.focus(); return; }
+         
+        if (STEPS[W.step] === 'name' && !W.nameAr && !W.nameEn) {
+          var i = document.getElementById('onb-name'); if (i) i.focus(); return;
+        }
         
         if (STEPS[W.step] === 'current' && W.term === 'summer' && W.current.length > 3) {
           alert(tx('الفصل الصيفي يسمح بثلاث مواد كحدٍّ أقصى.', 'Summer term allows up to 3 courses.'));

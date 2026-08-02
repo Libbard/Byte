@@ -395,7 +395,7 @@
     });
 
      
-    ['lectures', 'exams', 'tasks', 'notes'].forEach(function (k) {
+    ['lectures', 'exams', 'tasks'].forEach(function (k) {
       renderLead(k, s.lead[k]);
     });
 

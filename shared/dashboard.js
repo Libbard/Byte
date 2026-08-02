@@ -81,7 +81,8 @@
       ar: 'ترحيب', en: 'Welcome',
       render: function () {
         var p = D.profile();
-        var name = (p && p.name) ? p.name : '';
+         
+        var name = D.dispName ? (D.dispName(p) || '') : ((p && p.name) || '');
         var now = new Date();
         var greet = now.getHours() < 12 ? tx('صباح الخير', 'Good morning')
                   : now.getHours() < 18 ? tx('مساء الخير', 'Good afternoon')
@@ -157,7 +158,6 @@
       ar: 'اليوم', en: 'Today',
       render: function () {
         var s = D.todaySchedule();
-        var pl = D.todaySessions();
         var items = [];
 
         s.exams.forEach(function (e) {
@@ -177,12 +177,8 @@
         items.sort(function (a, b) { return String(a.t).localeCompare(String(b.t)); });
 
          
-        var plLine = pl.exists && pl.todayTotal
-          ? '<a class="widget-sub" href="hub/schedule.html" style="margin-top:.45rem;display:block;text-decoration:none">'+'<i class="fa-solid fa-calendar-check"></i>'+' ' +
-              esc(tx('خطتي', 'My plan')) + ' · ' + esc(tx('جلسات اليوم', 'today')) + ': ' + pl.todayDone + '/' + pl.todayTotal + '</a>'
-          : '';
 
-        if (!items.length && !(pl.exists && pl.todayTotal)) {
+        if (!items.length) {
           return head('<i class="fa-solid fa-calendar-day"></i>', tx('اليوم', 'Today'), 'hub/schedule.html') +
             emptyState('<i class="fa-solid fa-calendar-day"></i>', tx('لا شيء مجدول اليوم', 'Nothing scheduled today'), tx('افتح الجدول', 'Open schedule'), 'go-schedule');
         }
@@ -197,7 +193,7 @@
         var more = items.length > 4
           ? '<div class="widget-sub" style="margin-top:.3rem">+' + (items.length - 4) + ' ' + esc(tx('أخرى', 'more')) + '</div>' : '';
         return head('<i class="fa-solid fa-calendar-day"></i>', tx('اليوم', 'Today'), 'hub/schedule.html') +
-          '<div class="widget-body"><div class="widget-list">' + list + '</div>' + more + plLine + '</div>';
+          '<div class="widget-body"><div class="widget-list">' + list + '</div>' + more + '</div>';
       }
     },
 
@@ -432,7 +428,8 @@
   function syncAccSummaries() {
     var s = el('acc-sum-profile');
     if (s) {
-      var nm = (el('set-name') && el('set-name').value) || '';
+      var nm = (el('set-name') && el('set-name').value) ||
+               (el('set-name-en') && el('set-name-en').value) || '';
       var lv = (el('set-level') && el('set-level').value) || '';
       s.textContent = [nm, lv ? tx('المستوى ' + lv, 'Level ' + lv) : ''].filter(Boolean).join(' · ');
     }
@@ -450,6 +447,14 @@
     if (y) {
       var t = el('sync-state-text');
       y.textContent = (t && t.textContent !== '—') ? t.textContent : tx('غير مضبوطة', 'Not set up');
+    }
+    var g = el('acc-sum-legacy');
+    if (g && window.ByteLegacy) {
+      var ls = window.ByteLegacy.summary();
+      g.textContent = !ls.exists ? ''
+        : window.ByteLegacy.hasContent(ls)
+          ? tx('فيها عملٌ محفوظ', 'Contains saved work')
+          : tx('بقايا فارغة', 'Empty leftovers');
     }
   }
    
@@ -776,7 +781,22 @@
     if (!body && !remind) { closeNoteModal(); return; }
     var arr = loadNotesArr();
     var n = id ? arr.find(function (x) { return String(x.id) === String(id); }) : null;
-    if (n) { n.body = body; n.remind_at = remind || null; n.updated_at = Date.now(); }
+
+     
+    if (remind && D.convertNoteToTask) {
+      var src = n || { id: 'n' + Date.now(), created_at: Date.now() };
+      src.body = body;
+      src.remind_at = remind;
+      if (!n && _noteCtx && _noteCtx.course) src.course = _noteCtx.course;
+      _noteCtx = null;
+      D.convertNoteToTask(src);
+      closeNoteModal();
+      renderWidgets(); renderTasks(); refreshNotesListModal();
+      toast(tx('حُوّلت إلى مهمة · أخرى', 'Moved to tasks · Other'));
+      return;
+    }
+
+    if (n) { n.body = body; n.remind_at = null; n.updated_at = Date.now(); }
     else {
        
       var now = Date.now();
@@ -815,20 +835,41 @@
         '<button data-act="note-del" data-id="' + esc(n.id) + '" title="' + esc(tx('حذف', 'Delete')) + '"><i class="fa-solid fa-trash"></i></button>' +
       '</span></div>';
   }
+   
+  var nlFilter = 'active';
+  function setNotesFilter(f) {
+    nlFilter = f;
+    var box = el('nl-filters');
+    if (box) {
+      box.querySelectorAll('[data-nl-filter]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-nl-filter') === f);
+      });
+    }
+    refreshNotesListModal();
+  }
   function refreshNotesListModal() {
     var box = el('notes-list-body'); if (!box || el('notes-list-modal').hidden) return;
+    var byRecent = function (a, b) { return (b.updated_at || 0) - (a.updated_at || 0); };
     var arr = loadNotesArr();
-    var active = arr.filter(function (n) { return !n.archived; }).sort(function (a, b) { return (b.updated_at || 0) - (a.updated_at || 0); });
-    var arch = arr.filter(function (n) { return n.archived; }).sort(function (a, b) { return (b.updated_at || 0) - (a.updated_at || 0); });
-    var html = active.length ? active.map(noteRowHtml).join('') : '<div class="widget-sub">' + esc(tx('لا ملاحظات نشطة', 'No active notes')) + '</div>';
-    if (arch.length) {
-      html += '<div class="nl-sep" data-ar="المؤرشفة" data-en="Archived">' + esc(tx('المؤرشفة', 'Archived')) + '</div>' + arch.map(noteRowHtml).join('');
+    var active = arr.filter(function (n) { return !n.archived; }).sort(byRecent);
+    var arch = arr.filter(function (n) { return n.archived; }).sort(byRecent);
+
+    var html = '';
+    if (nlFilter === 'arch') {
+      html = arch.length ? arch.map(noteRowHtml).join('')
+        : '<div class="widget-sub">' + esc(tx('لا ملاحظات مؤرشفة', 'No archived notes')) + '</div>';
+    } else {
+      html = active.length ? active.map(noteRowHtml).join('')
+        : '<div class="widget-sub">' + esc(tx('لا ملاحظات نشطة', 'No active notes')) + '</div>';
+      if (nlFilter === 'all' && arch.length) {
+        html += '<div class="nl-sep" data-ar="المؤرشفة" data-en="Archived">' + esc(tx('المؤرشفة', 'Archived')) + '</div>' + arch.map(noteRowHtml).join('');
+      }
     }
     box.innerHTML = html;
   }
   function openNotesList() {
     var m = el('notes-list-modal'); if (!m) return;
-    m.hidden = false; refreshNotesListModal();
+    m.hidden = false; setNotesFilter(nlFilter);
   }
   function closeNotesList() { var m = el('notes-list-modal'); if (m) m.hidden = true; }
 
@@ -924,11 +965,30 @@
 
   function fillSettings() {
     var p = D.profile();
-    if (el('set-name')) el('set-name').value = (p && p.name) || '';
+    var pn = window.GardenBiName ? window.GardenBiName.read(p) : { ar: (p && p.name) || '', en: '' };
+    if (el('set-name')) el('set-name').value = pn.ar;
+    if (el('set-name-en')) el('set-name-en').value = pn.en;
+    if (window.GardenBiName && el('set-name') && el('set-name-en') && !el('set-name').dataset.biBound) {
+      el('set-name').dataset.biBound = '1';
+      window.GardenBiName.attach({ ar: el('set-name'), en: el('set-name-en'), suggest: false });
+    }
     if (el('set-level')) el('set-level').value = (p && p.level) || '';
     if (el('set-theme')) el('set-theme').value = localStorage.getItem('garden_theme') || 'dark';
     if (el('set-font')) el('set-font').value = localStorage.getItem('garden_font_size') || 'md';
     fillSyncSection();
+    fillLegacySection();
+  }
+
+   
+  function fillLegacySection() {
+    var box = el('dash-legacy'), acc = el('acc-legacy');
+    if (!box || !window.ByteLegacy) return;
+    window.ByteLegacy.mount(box, {
+      hideHost: acc,
+      toast: toast,
+      onWipe: function () { syncAccSummaries(); }
+    });
+    syncAccSummaries();
   }
 
    
@@ -966,7 +1026,13 @@
 
   function saveSettings() {
     var p = D.profile() || {};
-    p.name = el('set-name') ? el('set-name').value.trim() : '';
+     
+    var v = window.GardenBiName
+      ? window.GardenBiName.resolve(el('set-name') ? el('set-name').value : '',
+                                    el('set-name-en') ? el('set-name-en').value : '')
+      : null;
+    if (v) { p.name = v.name; p.name_ar = v.name_ar; p.name_en = v.name_en; }
+    else { p.name = ''; p.name_ar = ''; p.name_en = ''; }
     p.level = el('set-level') ? el('set-level').value : '';
     try { localStorage.setItem('student_profile', JSON.stringify(p)); } catch (e) {}
     var th = el('set-theme') ? el('set-theme').value : null;
@@ -1157,10 +1223,17 @@
     var b = e.target.closest('.tk-filter');
     if (!b) return;
     tkFilter = b.getAttribute('data-filter');
-    document.querySelectorAll('.tk-filter').forEach(function (x) {
+     
+    e.currentTarget.querySelectorAll('.tk-filter').forEach(function (x) {
       x.classList.toggle('active', x === b);
     });
     renderTasks();
+  }
+
+  function onNotesFilter(e) {
+    var b = e.target.closest('[data-nl-filter]');
+    if (!b) return;
+    setNotesFilter(b.getAttribute('data-nl-filter'));
   }
 
    
@@ -1203,6 +1276,8 @@
 
     var tf = el('tk-filters');
     if (tf) tf.addEventListener('click', onTaskFilter);
+    var nf = el('nl-filters');
+    if (nf) nf.addEventListener('click', onNotesFilter);
     var tg = el('tk-group');
     if (tg) tg.addEventListener('change', function () { tkGroup = tg.checked; renderTasks(); });
 

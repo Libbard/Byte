@@ -180,7 +180,8 @@
     if (!sem || !sem.courses || !sem.courses.length) return out;
 
     out.exists = true;
-    out.name = sem.name || '';
+     
+    out.name = dispName(sem) || '';
     out.total = sem.courses.length;
     out.done = sem.courses.filter(function (c) { return c && c.completed; }).length;
 
@@ -335,7 +336,7 @@
       if (!sc) return;               
       points += sp; credits += sc;
       out.push({
-        id: sem.id, name: sem.name || '',
+        id: sem.id, name: dispName(sem) || '',
         kind: sem.is_current ? 'current' : 'past',
         semGPA: sp / sc, cumGPA: points / credits,
         credits: sc, totalCredits: credits, totalPoints: points
@@ -444,6 +445,16 @@
     meta.updated_at = Date.now();
     try { localStorage.setItem(metaKey(code), JSON.stringify(meta)); return true; }
     catch (e) { return false; }
+  }
+
+   
+  function toggleCourseDate(code, id) {
+    var m = courseMeta(code);
+    var d = m.dates.filter(function (x) { return x && x.id === id; })[0];
+    if (!d) return null;
+    d.done = !d.done;
+    saveCourseMeta(code, m);
+    return d;
   }
 
    
@@ -572,6 +583,60 @@
   }
 
    
+  var NOTES_BACKUP = 'quick_notes_premigration';
+
+   
+  function noteToTaskFields(n) {
+    var body = String(n.body || '').trim();
+    var title = String(n.title || '').trim();
+    if (!title) {
+      title = body.split('\n')[0].trim();
+      if (title.length > 80) title = title.slice(0, 79) + '…';
+    }
+    return {
+       
+      id: 'task_note_' + n.id,
+      course: n.course || null,
+      title: title,
+      type: 'other',
+      due: n.remind_at || '',
+      done: false,
+      note: body,
+      created_at: n.created_at || Date.now()
+    };
+  }
+
+   
+  function convertNoteToTask(note) {
+    if (!note || !note.remind_at) return null;
+    var f = noteToTaskFields(note);
+    var prev = tasks().filter(function (t) { return t.id === f.id; })[0];
+     
+    var rec = prev || upsertTask(f);
+    if (note.id) {
+      writeNotes(quickNotes().filter(function (x) { return x && x.id !== note.id; }));
+    }
+    return rec;
+  }
+
+   
+  function migrateTimedNotes() {
+    var list = quickNotes();
+    if (!Array.isArray(list) || !list.length) return 0;
+    var timed = list.filter(function (n) { return n && n.remind_at && !n.archived; });
+    if (!timed.length) return 0;
+     
+    try {
+      if (!localStorage.getItem(NOTES_BACKUP)) {
+        localStorage.setItem(NOTES_BACKUP, JSON.stringify({ at: Date.now(), notes: list }));
+      }
+    } catch (e) {}
+    var n = 0;
+    timed.forEach(function (note) { if (convertNoteToTask(note)) n++; });
+    return n;
+  }
+
+   
 
   function gpaPlan() {
     var p = readJSON(LS.gpaPlan, null);
@@ -606,7 +671,7 @@
       points += sp; credits += sc;
       out.plannedCredits += sc;
       out.semesters.push({
-        id: sem.id, name: sem.name || '',
+        id: sem.id, name: dispName(sem) || '',
         semGPA: sc ? sp / sc : 0, cumGPA: credits ? points / credits : 0,
         credits: sc, graded: sc > 0
       });
@@ -682,14 +747,6 @@
     });
 
      
-    quickNotes().forEach(function (n) {
-      if (!n || !n.remind_at || n.archived) return;
-      out.push({
-        id: n.id, source: 'note', editable: false,
-        course: null, title: (n.title || n.body || '').slice(0, 60), type: 'note',
-        due: n.remind_at, done: false, note: n.body || ''
-      });
-    });
 
     out.sort(function (a, b) {
       if (!a.due) return 1;
@@ -757,11 +814,14 @@
 
     courseMeta: courseMeta,
     saveCourseMeta: saveCourseMeta,
+    toggleCourseDate: toggleCourseDate,
 
     profile: profile,
     quickNotes: quickNotes,
     upsertNote: upsertNote,
     setNoteReminder: setNoteReminder,
+    convertNoteToTask: convertNoteToTask,
+    migrateTimedNotes: migrateTimedNotes,
     prefs: prefs,
 
     tasks: tasks,
@@ -784,4 +844,7 @@
 
    
   ready().then(rebuildGrades);
+
+   
+  try { migrateTimedNotes(); } catch (e) {}
 })();

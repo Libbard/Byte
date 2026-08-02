@@ -58,10 +58,10 @@
     final:   { ar:'نهائي', en:'Final' },
     quiz:    { ar:'كويز',  en:'Quiz' }
   };
+   
   var GEN_KIND = {
-    task:  { ar:'مهمة',   en:'Task' },
-    note:  { ar:'ملاحظة', en:'Note' },
-    event: { ar:'حدث',    en:'Event' }
+    task:  { ar:'مهمة', en:'Task' },
+    event: { ar:'حدث',  en:'Event' }
   };
 
   
@@ -562,10 +562,9 @@
       var due = String(d.due || '');
       var hasTime = due.length > 10;
       var s = hasTime ? parseHM(due.slice(11, 16)) : null;
-      var sub = d.source === 'note' ? 'note' : 'task';
       out.push(normalizeEvent({
         uid: 'mirror:' + d.source + ':' + d.id, id: d.id, src: d.source, kind: 'general',
-        sub: sub, course_code: d.course || '',
+        sub: 'task', course_code: d.course || '',
         title: d.title || courseShort(d.course) || L(GEN_KIND.task),
         start: s, end: (s === null ? null : s + 60), allDay: (s === null),
         room: '', notes: d.note || '', youtube: '', date: dstr, weekId: weekId,
@@ -612,6 +611,11 @@
       save();
     } else if (ev.src === 'task') {
       if (window.GardenData && window.GardenData.toggleTask) window.GardenData.toggleTask(ev.id);
+    } else if (ev.src === 'course') {
+       
+      if (window.GardenData && window.GardenData.toggleCourseDate) {
+        window.GardenData.toggleCourseDate(ev.course_code, ev.id);
+      }
     } else if (ev.src === 'intensive') {
       var p = activePlan();
       if (p) {
@@ -2025,15 +2029,9 @@
     var kind = document.getElementById('gen-kind').value;
     var box = document.getElementById('gen-existing-wrap');
     var sel = document.getElementById('gen-existing');
-    if (kind === 'event' || !window.GardenData) { box.style.display = 'none'; return; }
-    var list = [];
-    if (kind === 'task') {
-      list = (window.GardenData.tasks() || []).filter(function (t) { return !t.done; })
-        .map(function (t) { return { id: t.id, label: t.title || '—' }; });
-    } else {
-      list = (window.GardenData.quickNotes() || []).filter(function (n) { return !n.archived; })
-        .map(function (n) { return { id: n.id, label: (n.title || n.body || '—').slice(0, 60) }; });
-    }
+    if (kind !== 'task' || !window.GardenData) { box.style.display = 'none'; return; }
+    var list = (window.GardenData.tasks() || []).filter(function (t) { return !t.done; })
+      .map(function (t) { return { id: t.id, label: t.title || '—' }; });
     sel.innerHTML = '<option value="">' + (isAr() ? '— إنشاء جديد —' : '— Create new —') + '</option>';
     list.forEach(function (it) {
       var o = document.createElement('option');
@@ -2262,11 +2260,6 @@
       if (id) payload.id = id;
       if (title) payload.title = title;
       window.GardenData.upsertTask(payload);
-    } else if (kind === 'note' && existing && window.GardenData && window.GardenData.setNoteReminder) {
-      window.GardenData.setNoteReminder(existing, due);
-    } else if (kind === 'note' && !existing && window.GardenData && window.GardenData.upsertNote) {
-      if (!title) { alert(isAr() ? 'اكتب عنوان الملاحظة' : 'Enter a note title'); return; }
-      window.GardenData.upsertNote({ title: title, body: notes, remind_at: due });
     } else {
       if (!title) { alert(isAr() ? 'اكتب عنوان الحدث' : 'Enter an event title'); return; }
       if (editingEvent && editingEvent.src === 'general') {
@@ -2414,8 +2407,10 @@
   
   
    
+   
   function legacyKeys() {
-    var P1 = 'plan' + 'ner_v2_', P2 = 'study_plan_';
+    if (window.ByteLegacy) return window.ByteLegacy.keys();
+    var P1 = 'plan' + 'ner_', P2 = 'study_' + 'plan_';
     var out = [];
     try {
       for (var i = 0; i < localStorage.length; i++) {
@@ -2433,9 +2428,20 @@
       ? ('وجدنا ' + keys.length + ' مفتاحاً محفوظاً من النظام السابق.')
       : ('We found ' + keys.length + ' saved keys from the previous system.');
     document.getElementById('modal-legacy').style.display = '';
+
+     
+    var expBtn = document.getElementById('legacy-export');
+    if (expBtn) expBtn.onclick = function () {
+      if (window.ByteLegacy) window.ByteLegacy.exportFile();
+    };
     document.getElementById('legacy-wipe').onclick = function () {
-      var ks = legacyKeys(), n = ks.length;
-      ks.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+      if (!confirm(isAr() ? 'حذفٌ نهائيّ لا رجعة فيه. هل صدّرتَ نسخةً؟'
+                          : 'Permanent, irreversible delete. Did you export a copy?')) return;
+      var n = window.ByteLegacy ? window.ByteLegacy.wipe() : (function () {
+        var ks = legacyKeys();
+        ks.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+        return ks.length;
+      })();
       alert(isAr() ? ('حُذف ' + n + ' مفتاحاً.') : ('Deleted ' + n + ' keys.'));
       finishLegacy();
     };
