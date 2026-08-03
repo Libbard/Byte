@@ -6,6 +6,10 @@
   var D = window.GardenData;
   var LS_PREFS = 'dashboard_prefs';
 
+   
+  var COMMUNITY_CHAT_URL = 'https://t.me/Computing_and_Informatics';
+  var COMMUNITY_ARCHIVE_URL = 'https://t.me/computing';
+
   function isAr() { return (localStorage.getItem('garden_lang') || 'ar') === 'ar'; }
   function tx(ar, en) { return isAr() ? ar : en; }
   function esc(s) {
@@ -27,7 +31,7 @@
   }
 
    
-  var DEFAULT_ORDER = ['welcome', 'semester', 'gpa', 'today', 'due', 'tasks', 'notes'];
+  var DEFAULT_ORDER = ['welcome', 'semester', 'gpa', 'today', 'due', 'tasks', 'notes', 'community'];
   var prefs = null;
 
   function loadPrefs() {
@@ -79,6 +83,7 @@
 
     welcome: {
       ar: 'ترحيب', en: 'Welcome',
+      plain: true,                 
       render: function () {
         var p = D.profile();
          
@@ -279,6 +284,29 @@
             '</div>' +
           '</div>';
       }
+    },
+
+     
+    community: {
+      ar: 'مجتمع الكلية', en: 'College community',
+      plain: true, dismissible: true,
+      render: function () {
+         
+        var mark = '<i class="fa-brands fa-telegram" aria-hidden="true"></i>';
+        return head('<i class="fa-solid fa-user-group"></i>', tx('مجتمع الكلية', 'College community')) +
+          '<div class="widget-body cm-body">' +
+            '<div class="cm-title">' + esc(tx('قروب كلية الحوسبة والمعلوماتية',
+              'Computing & Informatics group')) + '</div>' +
+            '<div class="widget-sub">' + esc(tx('اسأل زملاءك، وتابع إعلانات الكلية وملفّاتها أولاً بأول.',
+              'Ask your peers, and keep up with college announcements and files.')) + '</div>' +
+            '<div class="cm-links">' +
+              '<a class="cm-btn cm-btn--chat" href="' + COMMUNITY_CHAT_URL + '" target="_blank" rel="noopener noreferrer">' +
+                mark + '<span>' + esc(tx('انضم للدردشة', 'Join the chat')) + '</span></a>' +
+              '<a class="cm-btn cm-btn--archive" href="' + COMMUNITY_ARCHIVE_URL + '" target="_blank" rel="noopener noreferrer">' +
+                mark + '<span>' + esc(tx('الأرشيف والأخبار', 'Archive & news')) + '</span></a>' +
+            '</div>' +
+          '</div>';
+      }
     }
   };
 
@@ -318,9 +346,14 @@
       if (!w) return;
       var hidden = !!prefs.hidden[id];
       if (hidden && !document.body.classList.contains('dash-customizing')) return;
-      var focusable = (id !== 'welcome');   
+      var focusable = !w.plain;   
       html += '<article class="widget' + (hidden ? ' is-hidden-widget' : '') + '" data-widget="' + id + '" draggable="false"' +
         (focusable ? ' tabindex="0" role="link"' : '') + '>' +
+         
+        (w.dismissible ? '<button type="button" class="widget-eye" data-act="w-dismiss" data-id="' + id + '"' +
+          ' title="' + esc(tx('إخفاء البطاقة', 'Hide card')) + '"' +
+          ' aria-label="' + esc(tx('إخفاء البطاقة', 'Hide card')) + '">' +
+          '<i class="fa-solid fa-eye-slash" aria-hidden="true"></i></button>' : '') +
         '<div class="widget-cust">' +
           '<button data-act="w-hide" data-id="' + id + '" title="' + esc(tx('إظهار/إخفاء', 'Show/hide')) + '">' + (hidden ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>') + '</button>' +
           '<button data-act="w-up" data-id="' + id + '" title="' + esc(tx('تقديم', 'Move up')) + '">↑</button>' +
@@ -1085,15 +1118,28 @@
     r.readAsText(file);
   }
 
-  function toast(msg) {
+   
+  function toast(msg, actionText, onUndo) {
     var t = document.createElement('div');
-    t.textContent = msg;
     t.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:3000;' +
+      'display:flex;align-items:center;gap:.75rem;' +
       'background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:9999px;' +
       'padding:.5rem 1.1rem;font-size:.82rem;font-weight:700;color:var(--text-primary);' +
       'box-shadow:0 8px 24px var(--shadow-base)';
+    var label = document.createElement('span');
+    label.textContent = msg;
+    t.appendChild(label);
+    if (actionText && onUndo) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = actionText;
+      b.style.cssText = 'font:inherit;font-weight:800;color:#a78bfa;background:none;border:0;' +
+        'padding:0;cursor:pointer';
+      b.addEventListener('click', function () { t.remove(); onUndo(); });
+      t.appendChild(b);
+    }
     document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, 2400);
+    setTimeout(function () { t.remove(); }, actionText && onUndo ? 5000 : 2400);
   }
 
    
@@ -1164,6 +1210,13 @@
     else if (act === 'go-schedule') location.href = 'hub/schedule.html';
     else if (act === 'go-settings') showView('settings');
     else if (act === 'w-hide') { prefs.hidden[id] = !prefs.hidden[id]; savePrefs(); renderWidgets(); }
+    else if (act === 'w-dismiss') {
+       
+      prefs.hidden[id] = true; savePrefs(); renderWidgets();
+      toast(tx('أُخفيت البطاقة', 'Card hidden'), tx('تراجع', 'Undo'), function () {
+        prefs.hidden[id] = false; savePrefs(); renderWidgets();
+      });
+    }
     else if (act === 'w-up') moveWidget(id, -1);
     else if (act === 'w-down') moveWidget(id, 1);
     else if (act === 'toggle-cust') {

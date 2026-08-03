@@ -7,7 +7,7 @@ window.GardenEndpoints = {
   push: 'https://garden-push.xxli50xx.workers.dev',
 
    
-  sync: 'https://byte-sync.xxli50xx.workers.dev',
+  sync: 'https://api.libbard.cc',
 
    
   publicData: '',
