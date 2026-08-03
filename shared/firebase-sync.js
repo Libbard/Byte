@@ -45,6 +45,8 @@
     /^my_tasks$/,
     
     /^gpa_plan$/,
+     
+    /^__tomb_(quick_notes|my_tasks)$/,
   ];
   
   const NEVER_SYNC = new Set([
@@ -73,6 +75,73 @@
   function localStamp(key) {
     const v = Number(localStorage.getItem(TS_PREFIX + key) || 0);
     return isFinite(v) ? v : 0;
+  }
+
+   
+  const MERGE_BY_ID = new Set(['quick_notes', 'my_tasks']);
+  const TOMB_PREFIX = '__tomb_';
+  const TOMB_TTL_MS = 90 * 24 * 3600 * 1000;   
+
+  function _itemStamp(x, fallback) {
+    const v = x && x.updated_at;
+    const n = (typeof v === 'number') ? v : (v ? Date.parse(v) : NaN);
+    return (isFinite(n) && n > 0) ? n : fallback;
+  }
+
+  function _readTomb(raw) {
+    try {
+      const o = JSON.parse(raw || '{}');
+      return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+    } catch (e) { return {}; }
+  }
+
+   
+  function mergeTombs(aRaw, bRaw) {
+    const a = _readTomb(aRaw), b = _readTomb(bRaw);
+    const out = {}, floor = Date.now() - TOMB_TTL_MS;
+    for (const src of [a, b]) {
+      for (const id in src) {
+        const t = Number(src[id]) || 0;
+        if (t > floor && t > (out[id] || 0)) out[id] = t;
+      }
+    }
+    return out;
+  }
+
+  function mergeById(localRaw, localT, remoteRaw, remoteT, tomb) {
+    let a, b;
+    try { a = JSON.parse(localRaw); b = JSON.parse(remoteRaw); } catch (e) { return null; }
+    if (!Array.isArray(a) || !Array.isArray(b)) return null;   
+    const dead = tomb || {};
+
+    const map = new Map();
+    const put = (side, x) => {
+      if (!x || x.id == null) return;
+      const id = String(x.id);
+      const e = map.get(id) || {};
+      e[side] = x;
+      map.set(id, e);
+    };
+    a.forEach(x => put('l', x));
+    b.forEach(x => put('r', x));
+
+    const out = [];
+    for (const [id, e] of map) {
+      let win, at;
+      if (e.l && e.r) {
+        const lt = _itemStamp(e.l, localT), rt = _itemStamp(e.r, remoteT);
+        win = lt >= rt ? e.l : e.r;
+        at = Math.max(lt, rt);
+      } else {
+        win = e.l || e.r;
+        at = _itemStamp(win, e.l ? localT : remoteT);
+      }
+       
+      if ((dead[id] || 0) >= at) continue;
+      out.push(win);
+    }
+    out.sort((x, y) => String(x.id).localeCompare(String(y.id)));
+    return JSON.stringify(out);
   }
 
    
@@ -511,18 +580,18 @@
       const syncableKeys = getSyncableKeys();
       if (syncableKeys.length === 0) { setStatus('synced'); return; }
 
+       
       const payload = {};
       syncableKeys.forEach(k => {
         const raw = localStorage.getItem(k);
-        if (raw !== null) {
-          payload[_fireKey(k)] = { v: raw, t: now };
-        }
+        if (raw === null) return;
+        let t = localStamp(k);
+        if (!t) { t = now; stampLocal(k, now); }   
+        payload[_fireKey(k)] = { v: raw, t: t };
       });
 
       
       await ref.set({ sync: payload, last_seen: now }, { merge: true });
-       
-      syncableKeys.forEach(k => { if (payload[_fireKey(k)]) stampLocal(k, now); });
       setStatus('synced');
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
@@ -576,6 +645,38 @@
               localT = new Date(parsed.updated_at).getTime();
             }
           } catch (e) {   }
+        }
+
+         
+        if (lsKey.indexOf(TOMB_PREFIX) === 0) {
+          const union = JSON.stringify(mergeTombs(localRaw, remoteV));
+          if (union !== localRaw) {
+            localStorage.setItem(lsKey, union);
+            stampLocal(lsKey, Math.max(localT, remoteT));
+            changed = true;
+          }
+          if (union !== remoteV) localHasNewer = true;
+          return;
+        }
+
+         
+        if (MERGE_BY_ID.has(lsKey)) {
+           
+          const tombRemote = (remote[_fireKey(TOMB_PREFIX + lsKey)] || {}).v;
+          const tomb = mergeTombs(localStorage.getItem(TOMB_PREFIX + lsKey), tombRemote);
+          const merged = mergeById(localRaw, localT, remoteV, remoteT, tomb);
+          if (merged !== null) {
+            if (merged !== localRaw) {
+              localStorage.setItem(lsKey, merged);
+               
+              stampLocal(lsKey, Math.max(localT, remoteT));
+              changed = true;
+            }
+             
+            if (merged !== remoteV) localHasNewer = true;
+            return;
+          }
+           
         }
 
         if (remoteT > localT) {
@@ -657,11 +758,61 @@
   }
 
    
+  function trackCollection(key, nextRaw) {
+    let before, after;
+    try {
+      before = JSON.parse(localStorage.getItem(key) || '[]');
+      after = JSON.parse(nextRaw);
+    } catch (e) { return nextRaw; }
+    if (!Array.isArray(before) || !Array.isArray(after)) return nextRaw;
+
+    const prev = {};
+    before.forEach(x => { if (x && x.id != null) prev[String(x.id)] = JSON.stringify(x); });
+
+    const now = Date.now();
+    let touched = false;
+    const alive = new Set();
+    after.forEach(x => {
+      if (!x || x.id == null) return;
+      const id = String(x.id);
+      alive.add(id);
+      const was = prev[id];
+      if (was === undefined) {                      
+        if (!x.updated_at) { x.updated_at = now; touched = true; }
+      } else if (JSON.stringify(x) !== was) {       
+        x.updated_at = now; touched = true;
+      }
+    });
+
+    const gone = Object.keys(prev).filter(id => !alive.has(id));
+    if (gone.length) {
+      const tk = TOMB_PREFIX + key;
+      const tomb = _readTomb(localStorage.getItem(tk));
+      gone.forEach(id => { tomb[id] = now; });
+       
+      const floor = now - TOMB_TTL_MS;
+      for (const id in tomb) if ((Number(tomb[id]) || 0) <= floor) delete tomb[id];
+      try {
+         
+        _rawSet.call(localStorage, tk, JSON.stringify(tomb));
+        stampLocal(tk, now);
+        schedulePush();
+      } catch (e) {   }
+    }
+
+    return touched ? JSON.stringify(after) : nextRaw;
+  }
+
+   
   function patchLocalStorage() {
     const origSet = Storage.prototype.setItem;
     const origRemove = Storage.prototype.removeItem;
 
     Storage.prototype.setItem = function (key, value) {
+       
+      if (this === localStorage && !isSyncing && MERGE_BY_ID.has(key)) {
+        value = trackCollection(key, value);
+      }
       origSet.call(this, key, value);
       if (this === localStorage && !NEVER_SYNC.has(key) && !isSyncing) {
         const isSyncable = FIXED_SYNC_KEYS.includes(key) ||
