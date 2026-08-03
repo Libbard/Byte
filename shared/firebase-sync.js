@@ -6,7 +6,19 @@
    
   const WORKER_URL = 'https://garden-ai.xxli50xx.workers.dev';
 
+   
+  function syncEndpoint() {
+    const e = (window.GardenEndpoints && window.GardenEndpoints.sync) || '';
+    return String(e).replace(/\/+$/, '');
+  }
+
   async function getFirebaseConfig() {
+    const own = syncEndpoint();
+    if (own) {
+      const r = await fetch(own + '/v1/config');
+      if (!r.ok) throw new Error('byte-config-' + r.status);
+      return r.json();
+    }
     const res = await fetch(`${WORKER_URL}/api/firebase-config`);
     return res.json();
   }
@@ -63,7 +75,50 @@
   const SYNC_DECLINED_LS = 'garden_sync_declined'; 
   const SYNC_SEEN_LS = 'garden_sync_modal_seen';   
   const KEY_REGEX = /^[A-Z]{3}[0-9]{5,}$/;
-  const COLLECTION = 'users';
+   
+  function collectionName() { return syncEndpoint() ? 'vaults' : 'users'; }
+
+   
+  function usingOracle() { return !!syncEndpoint(); }
+  let storeReady = false;
+  let pushPending = false;   
+
+   
+
+  function vaultUrl(docId) {
+    return syncEndpoint() + '/v1/vault/' + encodeURIComponent(docId);
+  }
+
+   
+  async function storeGet(docId) {
+    if (usingOracle()) {
+      const r = await fetch(vaultUrl(docId), { cache: 'no-store' });
+      if (!r.ok) throw new Error('oracle-get-' + r.status);
+      const j = await r.json();
+      return { exists: !!j.exists, sync: j.sync || {}, data: j };
+    }
+    const snap = await db.collection(collectionName()).doc(docId).get();
+    const d = snap.exists ? (snap.data() || {}) : {};
+    return { exists: !!snap.exists, sync: d.sync || {}, data: d };
+  }
+
+   
+  async function storeMerge(docId, payload, extra) {
+    if (usingOracle()) {
+      const r = await fetch(vaultUrl(docId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sync: payload })
+      });
+      if (!r.ok) throw new Error('oracle-post-' + r.status);
+      return r.json();
+    }
+    await db.collection(collectionName()).doc(docId).set(
+      Object.assign({ sync: payload, last_seen: Date.now() }, extra || {}),
+      { merge: true }
+    );
+    return null;
+  }
   const AUTO_PUSH_DEBOUNCE_MS = 1500; 
 
    
@@ -620,6 +675,8 @@
 
   async function upgradeLegacyVault() {
     const oldId = getKey();
+     
+    if (usingOracle()) throw new Error('not-applicable-on-oracle');
     if (!db) throw new Error('offline');
     if (!oldId || currentVaultSecret()) throw new Error('not-legacy');
 
@@ -630,15 +687,15 @@
     const newId = await vaultDocId(secret);
 
      
-    const snap = await db.collection(COLLECTION).doc(oldId).get();
+    const snap = await db.collection(collectionName()).doc(oldId).get();
     const data = snap.exists ? (snap.data() || {}) : {};
-    await db.collection(COLLECTION).doc(newId).set(
+    await db.collection(collectionName()).doc(newId).set(
       Object.assign({}, data, { migrated_from: oldId, migrated_at: Date.now() }),
       { merge: true }
     );
 
      
-    await db.collection(COLLECTION).doc(oldId).set(
+    await db.collection(collectionName()).doc(oldId).set(
       { moved_to: newId, moved_at: Date.now() }, { merge: true }
     );
 
@@ -654,9 +711,9 @@
    
   async function pendingVaultMove() {
     const id = getKey();
-    if (!db || !id || currentVaultSecret()) return null;
+    if (usingOracle() || !db || !id || currentVaultSecret()) return null;
     try {
-      const snap = await db.collection(COLLECTION).doc(id).get();
+      const snap = await db.collection(collectionName()).doc(id).get();
       const to = snap.exists && snap.data() && snap.data().moved_to;
       return (to && to !== id) ? String(to) : null;
     } catch (e) { return null; }
@@ -678,7 +735,10 @@
 
    
   async function loadFirebase(callback) {
-    if (window.firebase?.firestore) { callback(); return; }
+     
+    if (usingOracle()) { storeReady = true; callback(); return; }
+
+    if (window.firebase?.firestore) { storeReady = !!db; callback(); return; }
 
     const BASE = `https://www.gstatic.com/firebasejs/${FIREBASE_VER}/`;
     let loaded = 0;
@@ -695,6 +755,7 @@
           const config = await getFirebaseConfig();
           if (!firebase.apps.length) firebase.initializeApp(config);
           db = firebase.firestore();
+          storeReady = true;
           
           
           db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
@@ -751,12 +812,10 @@
 
    
   async function pushAll(key) {
-    if (!db || !key) return;
+    if (!storeReady || !key) return;
     setStatus('loading');
     try {
       const now = Date.now();
-      const batch = db.batch();
-      const ref = db.collection(COLLECTION).doc(key);
 
       const syncableKeys = getSyncableKeys();
       if (syncableKeys.length === 0) { setStatus('synced'); return; }
@@ -771,20 +830,22 @@
         payload[_fireKey(k)] = { v: raw, t: t };
       });
 
-      
-      await ref.set({ sync: payload, last_seen: now }, { merge: true });
+       
+      await storeMerge(key, payload);
 
        
       const mirror = legacyMirror();
       if (mirror && mirror !== key) {
         try {
-          await db.collection(COLLECTION).doc(mirror)
-            .set({ sync: payload, last_seen: now, mirrored_from: key }, { merge: true });
+          await storeMerge(mirror, payload, { mirrored_from: key });
         } catch (e) { console.warn('[Sync] legacy mirror failed:', e); }
       }
       setStatus('synced');
+      pushPending = false;
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
+       
+      pushPending = true;
       console.warn('[Sync] Push failed:', e);
       setStatus('error');
     }
@@ -792,18 +853,18 @@
 
    
   async function pullAll(key) {
-    if (!db || !key) return;
+    if (!storeReady || !key) return;
     setStatus('loading');
     isSyncing = true;
     try {
-      const doc = await db.collection(COLLECTION).doc(key).get();
+      const doc = await storeGet(key);
       if (!doc.exists) {
         
         await pushAll(key);
         return;
       }
 
-      const remote = doc.data()?.sync || {};
+      const remote = doc.sync || {};
       let changed = false;
       let localHasNewer = false;
 
@@ -912,14 +973,14 @@
 
    
   async function importFromKey(otherKey) {
-    if (!db || !otherKey) return false;
+    if (!storeReady || !otherKey) return false;
     setStatus('loading');
     isSyncing = true;
     try {
-      const doc = await db.collection(COLLECTION).doc(otherKey).get();
+      const doc = await storeGet(otherKey);
       if (!doc.exists) { setStatus('synced'); return false; }
 
-      const remote = doc.data()?.sync || {};
+      const remote = doc.sync || {};
       if (Object.keys(remote).length === 0) { setStatus('synced'); return false; }
 
       
@@ -950,7 +1011,7 @@
 
    
   function schedulePush() {
-    if (!userKey || !db) return;
+    if (!userKey || !storeReady) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => pushAll(userKey), AUTO_PUSH_DEBOUNCE_MS);
   }
@@ -1225,7 +1286,7 @@
 
     
     overlay.querySelector('#sync-now-btn').addEventListener('click', async () => {
-      if (key && db) await pullAll(key);
+      if (key && storeReady) await pullAll(key);
     });
 
     
@@ -1335,15 +1396,23 @@
       patchLocalStorage();
       await pullAll(userKey);
 
-      
+       
       setInterval(() => {
-        if (document.hasFocus()) pullAll(userKey);
+        if (!document.hasFocus()) return;
+        if (pushPending) pushAll(userKey).then(() => pullAll(userKey));
+        else pullAll(userKey);
       }, 5 * 60 * 1000);
 
       
       window.addEventListener('focus', () => {
         const last = Number(localStorage.getItem('garden_sync_last') || 0);
+        if (pushPending) { pushAll(userKey).then(() => pullAll(userKey)); return; }
         if (Date.now() - last > 60000) pullAll(userKey);
+      });
+
+       
+      window.addEventListener('online', () => {
+        if (pushPending) pushAll(userKey).then(() => pullAll(userKey));
       });
     });
   }
@@ -1351,7 +1420,7 @@
    
   window.GardenSync = {
     showModal: showSyncModal,
-    syncNow: () => userKey && db && pullAll(userKey),
+    syncNow: () => userKey && storeReady && pullAll(userKey),
     getKey,
     setStatus,
 
