@@ -84,7 +84,18 @@
   let forceFirestore = false;
   function usingOracle() { return !!syncEndpoint() && !forceFirestore; }
   let storeReady = false;
-  let pushPending = false;   
+   
+  const PUSH_PENDING_LS = '__pushPending';
+  let pushPending = (function () {
+    try { return localStorage.getItem(PUSH_PENDING_LS) === '1'; } catch (e) { return false; }
+  })();
+  function setPushPending(v) {
+    pushPending = !!v;
+    try {
+      if (v) localStorage.setItem(PUSH_PENDING_LS, '1');
+      else localStorage.removeItem(PUSH_PENDING_LS);
+    } catch (e) {}
+  }
 
    
 
@@ -866,11 +877,11 @@
         } catch (e) { console.warn('[Sync] legacy mirror failed:', e); }
       }
       setStatus('synced');
-      pushPending = false;
+      setPushPending(false);
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
        
-      pushPending = true;
+      setPushPending(true);
       console.warn('[Sync] Push failed:', e);
       setStatus('error');
     }
@@ -1411,7 +1422,7 @@
   const MIGRATED_LS = 'garden_oracle_imported';
 
   async function importLegacyOnce(key) {
-    if (!usingOracle() || localStorage.getItem(MIGRATED_LS) === '1') return;
+    if (!usingOracle() || localStorage.getItem(MIGRATED_LS) === '1') return false;
     try {
       forceFirestore = true;                      
       storeReady = false;
@@ -1425,6 +1436,7 @@
       storeReady = true;                          
     }
     await pushAll(key);                           
+    return true;
   }
 
   async function initSync() {
@@ -1440,8 +1452,16 @@
     loadFirebase(async () => {
       patchLocalStorage();
        
-      await importLegacyOnce(userKey);
-      await pullAll(userKey);
+      const justImported = await importLegacyOnce(userKey);
+
+       
+      const PULL_FRESH_MS = 60 * 1000;
+      const lastPull = Number(localStorage.getItem('garden_sync_last') || 0);
+      if (justImported || pushPending || Date.now() - lastPull > PULL_FRESH_MS) {
+        await pullAll(userKey);
+      } else {
+        setStatus('synced');
+      }
 
        
       setInterval(() => {

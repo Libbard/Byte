@@ -209,18 +209,33 @@
   }
 
    
+   
+  var EARLY_MINUTES = 3;
+
+  function spreadSlot(seed) {
+     
+    var h = 0x811c9dc5;
+    for (var i = 0; i < seed.length; i++) {
+      h ^= seed.charCodeAt(i);
+      h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+    }
+    return h % EARLY_MINUTES;          
+  }
+
   function remPayload(items) {
     var now = Date.now();
+    var dev = deviceId();
     var out = [];
     (items || []).forEach(function (i) {
       if (!i || typeof i.fireAt !== 'number' || i.fireAt <= now) return;
       if (!i.id || !i.title) return;
       var url = String((i.data && i.data.url) || i.url || '');
       if (/[:\\]/.test(url) || url.indexOf('//') === 0) url = '';
+      var id = String(i.id).replace(/[^A-Za-z0-9:._-]/g, '_').slice(0, 64);
       out.push({
-        id: String(i.id).replace(/[^A-Za-z0-9:._-]/g, '_').slice(0, 64),
+        id: id,
          
-        at: Math.floor(i.fireAt / 60000) * 60000,
+        at: Math.floor(i.fireAt / 60000) * 60000 - spreadSlot(dev + '|' + id) * 60000,
         title: String(i.title).slice(0, 120),
         body: String(i.body || '').slice(0, 240),
         url: url.replace(/^\/+/, '')
