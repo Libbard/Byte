@@ -1,7 +1,7 @@
  
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'byte-v66';
+var CACHE_NAME = 'byte-v67';
 var PRECACHE_URLS = [
   'shared/garden.css',
   'shared/skin.css',

@@ -1146,9 +1146,9 @@
 
         <label class="sync-input-label">${t('keyLabel')}</label>
         <div class="sync-first-random-row">
+          
           <input class="sync-input" id="sync-first-input"
                  placeholder="${t('keyPlaceholder')}"
-                 
                  maxlength="32" value="${suggested}"
                  autocomplete="off" autocorrect="off" spellcheck="false">
           <button class="sync-btn sync-btn-secondary sync-btn-sm" id="sync-random-btn">
@@ -1281,9 +1281,10 @@
         <div class="sync-import-section">
           <label class="sync-input-label">${t('changeBody')}</label>
           <div class="sync-first-random-row" style="margin-bottom:0.3rem">
+            
             <input class="sync-input" id="sync-import-input"
                    placeholder="${t('changeInput')}"
-                   maxlength="12"
+                   maxlength="32"
                    autocomplete="off" autocorrect="off" spellcheck="false">
             <button class="sync-btn sync-btn-secondary sync-btn-sm" id="sync-import-btn">
               ${t('importBtn')}
