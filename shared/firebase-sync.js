@@ -70,11 +70,44 @@
   const TS_PREFIX = '__syncT_';
   const _rawSet = Storage.prototype.setItem;
   function stampLocal(key, t) {
-    try { _rawSet.call(localStorage, TS_PREFIX + key, String(t || Date.now())); } catch (e) {}
+    try { _rawSet.call(localStorage, TS_PREFIX + key, String(t || hlcNow())); } catch (e) {}
   }
   function localStamp(key) {
     const v = Number(localStorage.getItem(TS_PREFIX + key) || 0);
     return isFinite(v) ? v : 0;
+  }
+
+   
+  const HLC_LS = '__hlc';
+  let _hlc = (function () {
+    try { const v = Number(localStorage.getItem(HLC_LS) || 0); return isFinite(v) ? v : 0; }
+    catch (e) { return 0; }
+  })();
+
+  function _hlcSave() {
+    try { _rawSet.call(localStorage, HLC_LS, String(_hlc)); } catch (e) {}
+  }
+
+   
+  function hlcObserve(t) {
+    const n = Number(t);
+    if (isFinite(n) && n > _hlc) { _hlc = n; _hlcSave(); }
+  }
+
+   
+  function hlcNow() {
+    const p = Date.now();
+    _hlc = (p > _hlc) ? p : _hlc + 1;
+    _hlcSave();
+    return _hlc;
+  }
+
+   
+  function hlcObserveItems(raw) {
+    try {
+      const arr = JSON.parse(raw || '[]');
+      if (Array.isArray(arr)) arr.forEach(x => { if (x) hlcObserve(x.updated_at); });
+    } catch (e) {}
   }
 
    
@@ -130,7 +163,13 @@
       let win, at;
       if (e.l && e.r) {
         const lt = _itemStamp(e.l, localT), rt = _itemStamp(e.r, remoteT);
-        win = lt >= rt ? e.l : e.r;
+        if (lt !== rt) {
+          win = lt > rt ? e.l : e.r;
+        } else {
+           
+          const ls = JSON.stringify(e.l), rs = JSON.stringify(e.r);
+          win = ls >= rs ? e.l : e.r;
+        }
         at = Math.max(lt, rt);
       } else {
         win = e.l || e.r;
@@ -586,7 +625,7 @@
         const raw = localStorage.getItem(k);
         if (raw === null) return;
         let t = localStamp(k);
-        if (!t) { t = now; stampLocal(k, now); }   
+        if (!t) { t = hlcNow(); stampLocal(k, t); }   
         payload[_fireKey(k)] = { v: raw, t: t };
       });
 
@@ -624,6 +663,14 @@
         const localRaw = localStorage.getItem(lsKey);
         const remoteT = entry.t || 0;
         const remoteV = entry.v;
+
+         
+        hlcObserve(remoteT);
+        if (MERGE_BY_ID.has(lsKey)) hlcObserveItems(remoteV);
+        else if (lsKey.indexOf(TOMB_PREFIX) === 0) {
+          const rt = _readTomb(remoteV);
+          for (const id in rt) hlcObserve(rt[id]);
+        }
 
         
         if (localRaw === remoteV) return;
@@ -769,7 +816,8 @@
     const prev = {};
     before.forEach(x => { if (x && x.id != null) prev[String(x.id)] = JSON.stringify(x); });
 
-    const now = Date.now();
+     
+    const now = hlcNow();
     let touched = false;
     const alive = new Set();
     after.forEach(x => {
@@ -818,7 +866,7 @@
         const isSyncable = FIXED_SYNC_KEYS.includes(key) ||
           DYNAMIC_PATTERNS.some(p => p.test(key));
          
-        if (isSyncable) { stampLocal(key, Date.now()); schedulePush(); }
+        if (isSyncable) { stampLocal(key, hlcNow()); schedulePush(); }
       }
     };
 
@@ -828,7 +876,7 @@
          
         if (!NEVER_SYNC.has(key) &&
             (FIXED_SYNC_KEYS.includes(key) || DYNAMIC_PATTERNS.some(p => p.test(key)))) {
-          stampLocal(key, Date.now());
+          stampLocal(key, hlcNow());
         }
         schedulePush();
       }
