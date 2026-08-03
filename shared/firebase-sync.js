@@ -111,6 +111,30 @@
   }
 
    
+  function hlcSeedFromLocal() {
+    if (_hlc) return;                      
+    let hi = 0;
+    const bump = t => { const n = Number(t); if (isFinite(n) && n > hi) hi = n; };
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (k.indexOf(TS_PREFIX) === 0) bump(localStorage.getItem(k));
+        else if (MERGE_BY_ID.has(k)) {
+          try {
+            const arr = JSON.parse(localStorage.getItem(k) || '[]');
+            if (Array.isArray(arr)) arr.forEach(x => { if (x) bump(x.updated_at); });
+          } catch (e) {}
+        } else if (k.indexOf(TOMB_PREFIX) === 0) {
+          const t = _readTomb(localStorage.getItem(k));
+          for (const id in t) bump(t[id]);
+        }
+      }
+    } catch (e) {}
+    if (hi > _hlc) { _hlc = hi; _hlcSave(); }
+  }
+
+   
   const MERGE_BY_ID = new Set(['quick_notes', 'my_tasks']);
   const TOMB_PREFIX = '__tomb_';
   const TOMB_TTL_MS = 90 * 24 * 3600 * 1000;   
@@ -196,12 +220,12 @@
     ar: {
       firstTitle: '☁️ مزامنة الأجهزة',
       firstBody: 'أنشئ مفتاحاً شخصياً لحفظ بياناتك على السحابة ومزامنتها بين أجهزتك — بدون تسجيل.',
-      keyLabel: 'مفتاحك (3 أحرف + 5 أرقام على الأقل)',
-      keyPlaceholder: 'مثال: ABD92847',
+      keyLabel: 'مفتاح خزنتك — انسخه واحفظه',
+      keyPlaceholder: 'الصق مفتاحاً موجوداً، أو استعمل المولَّد',
       randomBtn: '🎲 توليد عشوائي',
       saveBtn: '☁️ حفظ وتفعيل المزامنة',
       skipBtn: 'تخطي — تعمل بدون مزامنة',
-      keyError: 'المفتاح يجب أن يكون 3 أحرف كبيرة + 5 أرقام على الأقل (مثال: ABD92847)',
+      keyError: 'مفتاح غير صالح. استعمل زرّ التوليد، أو الصق مفتاح خزنتك كاملاً.',
       modalTitle: '☁️ مزامنة الأجهزة',
       yourKey: 'مفتاحك الحالي',
       copyBtn: '📋 نسخ',
@@ -228,12 +252,12 @@
     en: {
       firstTitle: '☁️ Device Sync',
       firstBody: 'Create a personal key to save your data to the cloud and sync across devices — no registration needed.',
-      keyLabel: 'Your key (3 letters + 5+ digits)',
-      keyPlaceholder: 'Example: ABD92847',
+      keyLabel: 'Your vault key — copy and keep it',
+      keyPlaceholder: 'Paste an existing key, or use the generator',
       randomBtn: '🎲 Random',
       saveBtn: '☁️ Save & Enable Sync',
       skipBtn: 'Skip — work without sync',
-      keyError: 'Key must be 3 uppercase letters + 5+ digits (e.g. ABD92847)',
+      keyError: 'Invalid key. Use the generate button, or paste your full vault key.',
       modalTitle: '☁️ Device Sync',
       yourKey: 'Your current key',
       copyBtn: '📋 Copy',
@@ -518,8 +542,9 @@
    
   function getKey() { return localStorage.getItem(SYNC_KEY_LS) || null; }
 
-  function validateKey(k) { return KEY_REGEX.test(k); }
+  function validateKey(k) { return KEY_REGEX.test(k) || VAULT_REGEX.test(normalizeVault(k)); }
 
+   
   function generateRandomKey() {
     const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     const digits = '0123456789';
@@ -532,6 +557,123 @@
   function saveKey(k) {
     localStorage.setItem(SYNC_KEY_LS, k);
     userKey = k;
+  }
+
+   
+  const VAULT_SECRET_LS = 'garden_vault_secret';
+  const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const VAULT_REGEX = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+
+  function normalizeVault(s) {
+    return String(s || '').toUpperCase().replace(/[\s-]/g, '')
+       
+      .replace(/O/g, '0').replace(/[IL]/g, '1').replace(/U/g, 'V');
+  }
+
+  function newVaultSecret() {
+    const b = new Uint8Array(16);                 
+    crypto.getRandomValues(b);
+    let bits = 0, val = 0, out = '';
+    for (let i = 0; i < b.length; i++) {
+      val = (val << 8) | b[i]; bits += 8;
+      while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; }
+    }
+    if (bits > 0) out += B32[(val << (5 - bits)) & 31];
+    return out.slice(0, 26);
+  }
+
+  function prettyVault(s) {
+    return normalizeVault(s).replace(/(.{5})(?=.)/g, '$1-');   
+  }
+
+   
+  async function vaultDocId(secret) {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('garden-vault:' + normalizeVault(secret)));
+    return 'v' + [...new Uint8Array(d)].slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+   
+  async function adoptVaultSecret(secret) {
+    const s = normalizeVault(secret);
+    if (!VAULT_REGEX.test(s)) throw new Error('bad-secret');
+    const id = await vaultDocId(s);
+    localStorage.setItem(VAULT_SECRET_LS, s);
+    saveKey(id);
+    return { secret: s, docId: id };
+  }
+
+  function currentVaultSecret() {
+    const s = normalizeVault(localStorage.getItem(VAULT_SECRET_LS));
+    return VAULT_REGEX.test(s) ? s : null;
+  }
+
+   
+  const LEGACY_DOC_LS = 'garden_vault_legacy';
+  const LEGACY_UNTIL_LS = 'garden_vault_legacy_until';
+  const DUAL_WRITE_MS = 14 * 24 * 3600 * 1000;
+
+  function legacyMirror() {
+    const id = localStorage.getItem(LEGACY_DOC_LS);
+    const until = Number(localStorage.getItem(LEGACY_UNTIL_LS) || 0);
+    return (id && until > Date.now()) ? id : null;
+  }
+
+  async function upgradeLegacyVault() {
+    const oldId = getKey();
+    if (!db) throw new Error('offline');
+    if (!oldId || currentVaultSecret()) throw new Error('not-legacy');
+
+     
+    await pullAll(oldId);
+
+    const secret = newVaultSecret();
+    const newId = await vaultDocId(secret);
+
+     
+    const snap = await db.collection(COLLECTION).doc(oldId).get();
+    const data = snap.exists ? (snap.data() || {}) : {};
+    await db.collection(COLLECTION).doc(newId).set(
+      Object.assign({}, data, { migrated_from: oldId, migrated_at: Date.now() }),
+      { merge: true }
+    );
+
+     
+    await db.collection(COLLECTION).doc(oldId).set(
+      { moved_to: newId, moved_at: Date.now() }, { merge: true }
+    );
+
+    localStorage.setItem(LEGACY_DOC_LS, oldId);
+    localStorage.setItem(LEGACY_UNTIL_LS, String(Date.now() + DUAL_WRITE_MS));
+    localStorage.setItem(VAULT_SECRET_LS, secret);
+    saveKey(newId);
+    await pullAll(newId);
+
+    return { secret: secret, pretty: prettyVault(secret), docId: newId, mirrorUntil: Date.now() + DUAL_WRITE_MS };
+  }
+
+   
+  async function pendingVaultMove() {
+    const id = getKey();
+    if (!db || !id || currentVaultSecret()) return null;
+    try {
+      const snap = await db.collection(COLLECTION).doc(id).get();
+      const to = snap.exists && snap.data() && snap.data().moved_to;
+      return (to && to !== id) ? String(to) : null;
+    } catch (e) { return null; }
+  }
+
+   
+  async function consumeVaultLink() {
+    const m = String(location.hash || '').match(/vault=([0-9A-Za-z-]{20,40})/);
+    if (!m) return false;
+    try {
+      await adoptVaultSecret(m[1]);
+      history.replaceState(null, '', location.pathname + location.search);
+      return true;
+    } catch (e) {
+      history.replaceState(null, '', location.pathname + location.search);
+      return false;
+    }
   }
 
    
@@ -631,6 +773,15 @@
 
       
       await ref.set({ sync: payload, last_seen: now }, { merge: true });
+
+       
+      const mirror = legacyMirror();
+      if (mirror && mirror !== key) {
+        try {
+          await db.collection(COLLECTION).doc(mirror)
+            .set({ sync: payload, last_seen: now, mirrored_from: key }, { merge: true });
+        } catch (e) { console.warn('[Sync] legacy mirror failed:', e); }
+      }
       setStatus('synced');
       localStorage.setItem('garden_sync_last', String(now));
     } catch (e) {
@@ -889,7 +1040,7 @@
     overlay.className = 'sync-overlay';
     overlay.id = 'sync-first-overlay';
 
-    const suggested = generateRandomKey();
+    const suggested = newVaultSecret();
 
     overlay.innerHTML = `
       <div class="sync-modal" role="dialog" aria-modal="true">
@@ -900,7 +1051,8 @@
         <div class="sync-first-random-row">
           <input class="sync-input" id="sync-first-input"
                  placeholder="${t('keyPlaceholder')}"
-                 maxlength="12" value="${suggested}"
+                 
+                 maxlength="32" value="${suggested}"
                  autocomplete="off" autocorrect="off" spellcheck="false">
           <button class="sync-btn sync-btn-secondary sync-btn-sm" id="sync-random-btn">
             ${t('randomBtn')}
@@ -932,19 +1084,26 @@
     });
 
     randBtn.addEventListener('click', () => {
-      input.value = generateRandomKey();
+      input.value = newVaultSecret();          
       errorEl.textContent = '';
       input.classList.remove('error');
     });
 
     saveBtn.addEventListener('click', async () => {
       const k = input.value.trim();
-      if (!validateKey(k)) {
+      const asVault = normalizeVault(k);
+
+       
+      if (VAULT_REGEX.test(asVault)) {
+        try { await adoptVaultSecret(asVault); }
+        catch (e) { errorEl.textContent = t('keyError'); input.classList.add('error'); return; }
+      } else if (KEY_REGEX.test(k)) {
+        saveKey(k);
+      } else {
         errorEl.textContent = t('keyError');
         input.classList.add('error');
         return;
       }
-      saveKey(k);
       overlay.remove();
       await initSync();
     });
@@ -1163,8 +1322,14 @@
 
    
   async function initSync() {
+     
+    try { await consumeVaultLink(); } catch (e) {}
+
     userKey = getKey();
     if (!userKey) return; 
+
+     
+    hlcSeedFromLocal();
 
     loadFirebase(async () => {
       patchLocalStorage();
@@ -1189,6 +1354,25 @@
     syncNow: () => userKey && db && pullAll(userKey),
     getKey,
     setStatus,
+
+     
+    vaultSecret: currentVaultSecret,
+    vaultPretty: () => { const s = currentVaultSecret(); return s ? prettyVault(s) : null; },
+    newVaultSecret,
+    adoptVaultSecret,
+     
+    vaultLink: () => {
+      const s = currentVaultSecret();
+      if (!s) return null;
+      return location.origin + location.pathname.replace(/[^/]*$/, '') + 'index.html#vault=' + s;
+    },
+    isLegacyKey: () => { const k = getKey(); return !!k && !currentVaultSecret() && KEY_REGEX.test(k); },
+
+     
+    upgradeVault: upgradeLegacyVault,
+    pendingMove: pendingVaultMove,
+    followMove: async (toId) => { saveKey(String(toId)); await pullAll(getKey()); return getKey(); },
+    mirrorUntil: () => Number(localStorage.getItem(LEGACY_UNTIL_LS) || 0)
   };
 
    
@@ -1197,8 +1381,10 @@
      
     addDesktopHeaderBtn();
 
-    const key = getKey();
-    if (key) {
+     
+    if (/vault=/.test(location.hash)) {
+      consumeVaultLink().then(ok => { if (ok || getKey()) initSync(); });
+    } else if (getKey()) {
       initSync();
     }
      
