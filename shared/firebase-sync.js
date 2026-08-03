@@ -13,7 +13,8 @@
   }
 
   async function getFirebaseConfig() {
-    const own = syncEndpoint();
+     
+    const own = usingOracle() ? syncEndpoint() : '';
     if (own) {
       const r = await fetch(own + '/v1/config');
       if (!r.ok) throw new Error('byte-config-' + r.status);
@@ -76,10 +77,12 @@
   const SYNC_SEEN_LS = 'garden_sync_modal_seen';   
   const KEY_REGEX = /^[A-Z]{3}[0-9]{5,}$/;
    
-  function collectionName() { return syncEndpoint() ? 'vaults' : 'users'; }
+  function collectionName() { return usingOracle() ? 'vaults' : 'users'; }
 
    
-  function usingOracle() { return !!syncEndpoint(); }
+   
+  let forceFirestore = false;
+  function usingOracle() { return !!syncEndpoint() && !forceFirestore; }
   let storeReady = false;
   let pushPending = false;   
 
@@ -90,9 +93,31 @@
   }
 
    
+  const VAULT_MAP_LS = 'garden_vault_docid:';
+  const ORACLE_ID = /^v[0-9a-f]{32}$/;
+
+  async function oracleDocId(docId) {
+    const id = String(docId || '');
+    if (ORACLE_ID.test(id)) return id;                       
+    const cached = localStorage.getItem(VAULT_MAP_LS + id);
+    if (cached && ORACLE_ID.test(cached)) return cached;
+
+    const r = await fetch(syncEndpoint() + '/v1/legacy-map', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ legacy_key: id })
+    });
+    if (!r.ok) throw new Error('legacy-map-' + r.status);
+    const j = await r.json();
+    if (!j || !ORACLE_ID.test(j.vault_id || '')) throw new Error('legacy-map-shape');
+    localStorage.setItem(VAULT_MAP_LS + id, j.vault_id);
+    return j.vault_id;
+  }
+
+   
   async function storeGet(docId) {
     if (usingOracle()) {
-      const r = await fetch(vaultUrl(docId), { cache: 'no-store' });
+      const r = await fetch(vaultUrl(await oracleDocId(docId)), { cache: 'no-store' });
       if (!r.ok) throw new Error('oracle-get-' + r.status);
       const j = await r.json();
       return { exists: !!j.exists, sync: j.sync || {}, data: j };
@@ -105,7 +130,7 @@
    
   async function storeMerge(docId, payload, extra) {
     if (usingOracle()) {
-      const r = await fetch(vaultUrl(docId), {
+      const r = await fetch(vaultUrl(await oracleDocId(docId)), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sync: payload })
@@ -1382,6 +1407,26 @@
   }
 
    
+   
+  const MIGRATED_LS = 'garden_oracle_imported';
+
+  async function importLegacyOnce(key) {
+    if (!usingOracle() || localStorage.getItem(MIGRATED_LS) === '1') return;
+    try {
+      forceFirestore = true;                      
+      storeReady = false;
+      await new Promise((res) => { loadFirebase(res); });
+      if (db) await pullAll(key);                 
+      localStorage.setItem(MIGRATED_LS, '1');
+    } catch (e) {
+      console.warn('[Sync] legacy import skipped:', e);
+    } finally {
+      forceFirestore = false;
+      storeReady = true;                          
+    }
+    await pushAll(key);                           
+  }
+
   async function initSync() {
      
     try { await consumeVaultLink(); } catch (e) {}
@@ -1394,6 +1439,8 @@
 
     loadFirebase(async () => {
       patchLocalStorage();
+       
+      await importLegacyOnce(userKey);
       await pullAll(userKey);
 
        
