@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS476" data-module="5">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بنى الأنظمة الموزعة · CS476 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS476" data-page-title-en="CS476">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M04.html" data-gh-next="M06.html" data-gh-card="../../hub/course.html?code=CS476"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#architectural-styles" class="toc-link" data-bilingual>
+        <template class="content-ar">الأنماط المعمارية</template>
+        <template class="content-en">Architectural Styles</template>
+        <span class="content-target">الأنماط المعمارية</span>
+      </a>
+      <a href="#layered-architecture" class="toc-link" data-bilingual>
+        <template class="content-ar">البنية الطبقية</template>
+        <template class="content-en">Layered Architecture</template>
+        <span class="content-target">البنية الطبقية</span>
+      </a>
+      <a href="#restful-architectures" class="toc-link" data-bilingual>
+        <template class="content-ar">بنى RESTful</template>
+        <template class="content-en">RESTful Architectures</template>
+        <span class="content-target">بنى RESTful</span>
+      </a>
+      <a href="#coordination-and-pubsub" class="toc-link" data-bilingual>
+        <template class="content-ar">التنسيق ونشر/اشتراك</template>
+        <template class="content-en">Coordination and Publish/Subscribe</template>
+        <span class="content-target">التنسيق ونشر/اشتراك</span>
+      </a>
+      <a href="#middleware-wrappers-interceptors" class="toc-link" data-bilingual>
+        <template class="content-ar">البرمجيات الوسيطة: الأغلفة والمعترضات</template>
+        <template class="content-en">Middleware: Wrappers and Interceptors</template>
+        <span class="content-target">البرمجيات الوسيطة: الأغلفة والمعترضات</span>
+      </a>
+      <a href="#client-server-multitiered" class="toc-link" data-bilingual>
+        <template class="content-ar">بنى الخادم والعميل والأنظمة متعددة الطبقات</template>
+        <template class="content-en">Client-Server and Multi-tiered Architectures</template>
+        <span class="content-target">بنى الخادم والعميل والأنظمة متعددة الطبقات</span>
+      </a>
+      <a href="#p2p-architectures" class="toc-link" data-bilingual>
+        <template class="content-ar">بنى الند للند (P2P)</template>
+        <template class="content-en">Peer-to-Peer (P2P) Architectures</template>
+        <span class="content-target">بنى الند للند (P2P)</span>
+      </a>
+      <a href="#cloud-and-edge-computing" class="toc-link" data-bilingual>
+        <template class="content-ar">الحوسبة السحابية وحوسبة الحافة</template>
+        <template class="content-en">Cloud and Edge Computing</template>
+        <span class="content-target">الحوسبة السحابية وحوسبة الحافة</span>
+      </a>
+      <a href="#blockchains-and-consensus" class="toc-link" data-bilingual>
+        <template class="content-ar">سلاسل الكتل (Blockchains) والإجماع الموزع</template>
+        <template class="content-en">Blockchains and Distributed Consensus</template>
+        <span class="content-target">سلاسل الكتل (Blockchains) والإجماع الموزع</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS476
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">بنى الأنظمة الموزعة</h1>
+      <p class="hero-description">تغطي هذه الوحدة الأنماط المعمارية، البرمجيات الوسيطة، الأنظمة الطبقية، أنظمة الند للند، الحوسبة السحابية وحوسبة الحافة، بالإضافة إلى تقنيات سلسلة الكتل (البلوك تشين).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Architectures of Distributed Systems</h1>
+      <p class="hero-description">This module covers architectural styles, middleware, layered systems, peer-to-peer architectures, cloud and edge computing, and blockchain technologies.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الأنظمة الموزعة</span>
+      <span class="tag">الأنماط المعمارية</span>
+      <span class="tag">البرمجيات الوسيطة</span>
+      <span class="tag">الند للند</span>
+      <span class="tag">الحوسبة السحابية</span>
+      <span class="tag">سلسلة الكتل</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Distributed Systems</span>
+      <span class="tag">Architectural Styles</span>
+      <span class="tag">Middleware</span>
+      <span class="tag">P2P</span>
+      <span class="tag">Cloud Computing</span>
+      <span class="tag">Blockchain</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم مفهوم الأنماط المعمارية في الأنظمة الموزعة.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على البرمجيات الوسيطة ودورها في الأنظمة الموزعة.</span></li>
+      <li><span class="obj-icon">✦</span><span>دراسة بنى الأنظمة الطبقية وكيفية تنظيمها.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Learn the Concept of Architectural styles.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn Middleware and distributed systems.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn about Layered-system architectures.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="architectural-styles" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الأنماط المعمارية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Architectural Styles</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>النمط المعماري هو طريقة تنظيم المكونات وطرق تواصلها لتشكيل نظام متكامل، يشبه المخطط الهندسي للمبنى.</p></template>
+    <template class="content-en"><p>An architectural style formulates how components and connectors are configured into a system, much like a blueprint for a building.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُصاغ الأنماط المعمارية بناءً على عدة عناصر أساسية:</p><ul><li>مكونات (قابلة للاستبدال) ذات واجهات محددة بوضوح.</li><li>الطريقة التي تتصل بها المكونات مع بعضها البعض.</li><li>البيانات المتبادلة بين المكونات.</li><li>كيفية تكوين هذه المكونات والموصلات معاً في نظام واحد.</li></ul><p><b>الموصل (Connector):</b> هو آلية تتوسط الاتصال أو التنسيق أو التعاون بين المكونات. من أمثلتها: استدعاء الإجراءات عن بُعد (RPC)، المراسلة، أو البث (streaming).</p></template>
+    <template class="content-en"><p>A style is formulated in terms of several key elements:</p><ul><li>(Replaceable) components with well-defined interfaces.</li><li>The way that components are connected to each other.</li><li>The data exchanged between components.</li><li>How these components and connectors are jointly configured into a system.</li></ul><p><b>Connector:</b> A mechanism that mediates communication, coordination, or cooperation among components. Examples include facilities for (remote) procedure call, messaging, or streaming.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يسمح تحديد الأنماط المعمارية بفصل الاهتمامات (Separation of Concerns)، مما يسهل صيانة النظام وتطويره.</p><p>المكونات القابلة للاستبدال تعني أن النظام مرن ويمكن ترقيته دون إعادة بناء كاملة.</p><p>الموصلات تلعب دوراً حاسماً في إخفاء تعقيدات الشبكة عن المكونات، مما يوفر تجريداً عالياً للاتصال.</p><p>يرتبط هذا المفهوم بشكل وثيق بتصميم واجهات برمجة التطبيقات (APIs) حيث يجب أن تكون الواجهات محددة بوضوح لضمان التوافقية.</p></template>
+    <template class="content-en"><p>Defining architectural styles allows for separation of concerns, making the system easier to maintain and evolve.</p><p>Replaceable components ensure the system is flexible and can be upgraded without a complete rebuild.</p><p>Connectors play a crucial role in hiding network complexities from the components, providing a high-level abstraction for communication.</p><p>This concept is closely tied to API design, where interfaces must be well-defined to ensure interoperability across distributed nodes.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نعتبر الموصلات (Connectors) كيانات مستقلة بدلاً من دمجها داخل المكونات نفسها؟</template>
+      <template class="content-en">Why do we treat connectors as independent entities rather than embedding them within the components themselves?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لفصل منطق الاتصال عن منطق العمل (Business Logic)، مما يسهل تغيير طريقة الاتصال (مثلاً من RPC إلى المراسلة) دون تعديل المكونات.</p></template>
+      <template class="content-en"><p>To separate communication logic from business logic, making it easier to change the communication method (e.g., from RPC to messaging) without modifying the components.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="layered-architecture" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> البنية الطبقية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Layered Architecture</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تنظيم النظام في طبقات متتالية حيث تعتمد كل طبقة على الخدمات التي تقدمها الطبقة التي تحتها، مثل طبقات الكعكة.</p></template>
+    <template class="content-en"><p>Organizing a system into sequential layers where each layer relies on the services provided by the layer below it, like a layer cake.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتضمن البنية الطبقية تنظيمات مختلفة للاتصال:</p><ul><li><strong>استدعاء لأسفل مع طلب/استجابة (Request/Response downcall)</strong> — الطبقة العليا تستدعي الطبقة السفلى وتنتظر الرد.</li><li><strong>استدعاء في اتجاه واحد (One-way call)</strong> — الطبقة العليا ترسل بيانات للطبقة السفلى دون انتظار رد.</li><li><strong>استدعاء لأعلى (Upcall)</strong> — الطبقة السفلى تستدعي الطبقة العليا (عادة عبر معالجات الأحداث أو Handlers).</li></ul><p>في التطبيقات، نجد التنظيم التقليدي ثلاثي الطبقات:</p><ol><li><strong>طبقة واجهة التطبيق (Application-interface layer)</strong> — تحتوي على وحدات للتفاعل مع المستخدمين أو التطبيقات الخارجية.</li><li><strong>طبقة المعالجة (Processing layer)</strong> — تحتوي على وظائف التطبيق (المنطق) بدون بيانات محددة.</li><li><strong>طبقة البيانات (Data layer)</strong> — تحتوي على البيانات التي يريد العميل معالجتها.</li></ol></template>
+    <template class="content-en"><p>Layered architecture includes different organizations for communication:</p><ul><li><strong>Request/Response downcall</strong> — A higher layer calls a lower layer and waits for a response.</li><li><strong>One-way call</strong> — A higher layer sends data to a lower layer without waiting for a reply.</li><li><strong><span class="smart-term" data-term-en="Upcall" data-ar="الاستدعاء لأعلى" data-en-def="A mechanism where a lower layer invokes a function or handler in a higher layer.">Upcall<span class="smart-term-tooltip"></span></span></strong> — A lower layer calls a higher layer (usually via event handlers).</li></ul><p>In applications, we often see the traditional three-layered view:</p><ol><li><strong>Application-interface layer</strong> — Contains units for interfacing to users or external applications.</li><li><strong>Processing layer</strong> — Contains the functions of an application, i.e., without specific data.</li><li><strong>Data layer</strong> — Contains the data that a client wants to manipulate through the application components.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الاستدعاء لأعلى (Upcalls) يكسر التدفق التقليدي من أعلى لأسفل، وهو ضروري للأنظمة التفاعلية التي تعتمد على الأحداث (Event-driven)، ولكنه قد يعقد تتبع الأخطاء.</p><p>التقسيم الثلاثي (واجهة، معالجة، بيانات) هو الأساس لنمط MVC (Model-View-Controller) المستخدم بكثرة في تطوير الويب.</p><p>في بروتوكولات الاتصال، توفر كل طبقة (N) خدمة للطبقة (N+1) باستخدام بروتوكول للتواصل مع الطبقة (N) في الطرف الآخر.</p></template>
+    <template class="content-en"><p>Upcalls break the traditional top-down flow and are essential for event-driven, reactive systems, though they can complicate debugging and control flow tracking.</p><p>The three-layered split (interface, processing, data) forms the foundation for patterns like MVC (Model-View-Controller) widely used in web development.</p><p>In communication protocols, each layer N provides a service to layer N+1 while using a protocol to communicate with layer N on the remote party.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Create a diagram showing three layered organizations: (a) Request/Response downcall (Layer N pointing down to Layer N-1, down to Layer 1), (b) One-way call (Layer N pointing down to N-1, down to N-3), and (c) Upcall (Layer N-2 pointing up to Layer N-1 with a 'Handle' and 'Upcall' label). Use dark background #0d1117, accent colors for layers, and clear directional arrows. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Standard Arrowhead -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+        <!-- Dashed/Response Arrowhead -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-400)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Column Bounding Boxes -->
+    <rect x="20" y="20" width="270" height="480" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="5,5" />
+    <rect x="310" y="20" width="300" height="480" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="5,5" />
+    <rect x="630" y="20" width="250" height="480" rx="12" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="5,5" />
+
+    <!-- Titles -->
+    <!-- Column A -->
+    <text x="155" y="55" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">(a) Request/Response</text>
+    <text x="155" y="75" fill="var(--text-secondary)" font-size="14" text-anchor="middle">طلب واستجابة</text>
+
+    <!-- Column B -->
+    <text x="460" y="55" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">(b) One-way Call</text>
+    <text x="460" y="75" fill="var(--text-secondary)" font-size="14" text-anchor="middle">نداء في اتجاه واحد</text>
+
+    <!-- Column C -->
+    <text x="755" y="55" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">(c) Upcall</text>
+    <text x="755" y="75" fill="var(--text-secondary)" font-size="14" text-anchor="middle">نداء لأعلى</text>
+
+    <!-- ========================================== -->
+    <!-- COLUMN A: Request/Response Downcall        -->
+    <!-- ========================================== -->
+    
+    <!-- Layer N -->
+    <rect x="65" y="100" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="155" y="125" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N</text>
+    <text x="155" y="145" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N</text>
+
+    <!-- Layer N-1 -->
+    <rect x="65" y="200" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="155" y="225" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N-1</text>
+    <text x="155" y="245" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N-1</text>
+
+    <!-- Dots -->
+    <circle cx="155" cy="310" r="4" fill="var(--text-muted)" />
+    <circle cx="155" cy="330" r="4" fill="var(--text-muted)" />
+    <circle cx="155" cy="350" r="4" fill="var(--text-muted)" />
+
+    <!-- Layer 1 -->
+    <rect x="65" y="400" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="155" y="425" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer 1</text>
+    <text x="155" y="445" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة 1</text>
+
+    <!-- Arrows Col A -->
+    <!-- Request N to N-1 -->
+    <path d="M 115 160 L 115 190" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="75" y="175" fill="var(--text-primary)" font-size="14" text-anchor="middle">Request</text>
+    <text x="75" y="193" fill="var(--text-secondary)" font-size="13" text-anchor="middle">طلب</text>
+
+    <!-- Response N-1 to N -->
+    <path d="M 195 200 L 195 170" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrow-dashed)" />
+    <text x="235" y="175" fill="var(--text-primary)" font-size="14" text-anchor="middle">Response</text>
+    <text x="235" y="193" fill="var(--text-secondary)" font-size="13" text-anchor="middle">استجابة</text>
+
+    <!-- Request N-1 to Layer 1 -->
+    <path d="M 115 260 L 115 390" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <!-- Response Layer 1 to N-1 -->
+    <path d="M 195 400 L 195 270" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrow-dashed)" />
+
+
+    <!-- ========================================== -->
+    <!-- COLUMN B: One-way Call                     -->
+    <!-- ========================================== -->
+    
+    <!-- Layer N -->
+    <rect x="370" y="100" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="460" y="125" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N</text>
+    <text x="460" y="145" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N</text>
+
+    <!-- Layer N-1 -->
+    <rect x="370" y="200" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="460" y="225" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N-1</text>
+    <text x="460" y="245" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N-1</text>
+
+    <!-- Layer N-2 (Bypassed / Faded) -->
+    <rect x="370" y="300" width="180" height="60" rx="8" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" />
+    <text x="460" y="325" fill="var(--text-muted)" font-size="16" font-weight="bold" text-anchor="middle">Layer N-2</text>
+    <text x="460" y="345" fill="var(--text-muted)" font-size="14" text-anchor="middle">الطبقة N-2</text>
+
+    <!-- Layer N-3 -->
+    <rect x="370" y="400" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="460" y="425" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N-3</text>
+    <text x="460" y="445" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N-3</text>
+
+    <!-- Arrows Col B -->
+    <!-- Call N to N-1 -->
+    <path d="M 460 160 L 460 190" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="500" y="175" fill="var(--text-primary)" font-size="14" text-anchor="middle">Call</text>
+    <text x="500" y="193" fill="var(--text-secondary)" font-size="13" text-anchor="middle">نداء</text>
+
+    <!-- One-way Call N-1 to N-3 (Bypass N-2) -->
+    <path d="M 460 260 L 460 270 Q 460 280 470 280 L 560 280 Q 570 280 570 290 L 570 370 Q 570 380 560 380 L 470 380 Q 460 380 460 390 L 460 390" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="590" y="325" fill="var(--text-primary)" font-size="14" text-anchor="middle">One-way</text>
+    <text x="590" y="343" fill="var(--text-secondary)" font-size="13" text-anchor="middle">اتجاه واحد</text>
+
+
+    <!-- ========================================== -->
+    <!-- COLUMN C: Upcall                           -->
+    <!-- ========================================== -->
+    
+    <!-- Layer N -->
+    <rect x="665" y="100" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="755" y="125" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N</text>
+    <text x="755" y="145" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N</text>
+
+    <!-- Layer N-1 (Handler) -->
+    <rect x="665" y="200" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="755" y="225" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N-1</text>
+    <text x="755" y="245" fill="var(--brand-500)" font-size="14" font-weight="bold" text-anchor="middle">Handle / معالجة</text>
+
+    <!-- Layer N-2 -->
+    <rect x="665" y="300" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="755" y="325" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Layer N-2</text>
+    <text x="755" y="345" fill="var(--text-secondary)" font-size="14" text-anchor="middle">الطبقة N-2</text>
+
+    <!-- Arrows Col C -->
+    <!-- Upcall N-2 to N-1 -->
+    <path d="M 755 300 L 755 270" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="805" y="280" fill="var(--text-primary)" font-size="14" text-anchor="middle">Upcall</text>
+    <text x="805" y="298" fill="var(--text-secondary)" font-size="13" text-anchor="middle">نداء لأعلى</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يختلف الاستدعاء لأعلى (Upcall) عن الاستدعاء لأسفل (Downcall) من حيث التحكم في التنفيذ؟</template>
+      <template class="content-en">How does an Upcall differ from a Downcall in terms of execution control?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في الاستدعاء لأسفل، الطبقة العليا هي التي تبادر وتتحكم في التدفق. في الاستدعاء لأعلى، الطبقة السفلى (مثل نظام التشغيل أو الشبكة) هي التي تقاطع أو تنبه الطبقة العليا عند حدوث حدث معين.</p></template>
+      <template class="content-en"><p>In a downcall, the higher layer initiates and controls the flow. In an upcall, the lower layer (like an OS or network) interrupts or notifies the higher layer when a specific event occurs.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="restful-architectures" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> بنى RESTful</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> RESTful Architectures</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نظرة للنظام الموزع كمجموعة من الموارد (Resources) التي يتم إدارتها عبر عمليات قياسية بسيطة (مثل أفعال HTTP).</p></template>
+    <template class="content-en"><p>Viewing a distributed system as a collection of resources managed individually by components using standard operations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتمد بنية RESTful على المبادئ التالية:</p><ol><li>يتم تحديد الموارد من خلال نظام تسمية موحد (مثل URI).</li><li>تقدم جميع الخدمات نفس الواجهة القياسية.</li><li>الرسائل المرسلة من وإلى الخدمة تصف نفسها بالكامل (Self-described).</li><li>بعد تنفيذ عملية في الخدمة، ينسى المكون كل شيء عن المتصل (عدم حفظ الحالة - Stateless).</li></ol><p><b>العمليات الأساسية:</b></p><ul><li><strong>PUT</strong> — إنشاء مورد جديد.</li><li><strong>GET</strong> — استرجاع حالة المورد.</li><li><strong>DELETE</strong> — حذف مورد.</li><li><strong>POST</strong> — تعديل مورد بنقل حالة جديدة.</li></ul><p>مثال: خدمة التخزين البسيطة من أمازون (Amazon S3) حيث توضع الكائنات (الملفات) في دلاء (Buckets) ويتم الوصول إليها عبر طلبات HTTP.</p></template>
+    <template class="content-en"><p>RESTful architectures are based on the following principles:</p><ol><li>Resources are identified through a single naming scheme (e.g., URIs).</li><li>All services offer the same interface.</li><li>Messages sent to or from a service are fully self-described.</li><li>After executing an operation at a service, that component forgets everything about the caller (<span class="smart-term" data-term-en="Statelessness" data-ar="انعدام الحالة" data-en-def="A property where the server forgets everything about the caller after executing an operation.">Statelessness<span class="smart-term-tooltip"></span></span>).</li></ol><p><b>Basic operations:</b></p><ul><li><strong>PUT</strong> — Create a new resource.</li><li><strong>GET</strong> — Retrieve the state of a resource in some representation.</li><li><strong>DELETE</strong> — Delete a resource.</li><li><strong>POST</strong> — Modify a resource by transferring a new state.</li></ul><p>Example: Amazon's Simple Storage Service (S3) where objects (files) are placed into buckets (directories) and accessed via HTTP requests.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>ميزة RESTful الأساسية هي البساطة وقابلية التوسع بسبب غياب الحالة (Statelessness)، مما يسمح لأي خادم بمعالجة أي طلب دون الحاجة لمعرفة الطلبات السابقة.</p><p>المشكلة (Issue) في RESTful هي أن الواجهة بسيطة جداً، مما يعني أن الكثير من التعقيد يجب أن يتم التعامل معه في مساحة المعلمات (Parameter space) داخل الرسالة نفسها.</p><p>مقارنة بواجهات SOAP المعقدة (مثل GetBucketAccessControlPolicy)، تستخدم REST عمليات قياسية وتعتمد على مسار المورد لتحديد الهدف.</p></template>
+    <template class="content-en"><p>The core advantage of RESTful architectures is simplicity and scalability due to statelessness, allowing any server to handle any request without needing context of previous requests.</p><p>The catch (Issue) with RESTful approaches is that because the interface is so simple, much of the complexity must be handled in the parameter space within the message payload.</p><p>Compared to complex SOAP interfaces (e.g., GetBucketAccessControlPolicy), REST uses standard operations and relies on the resource URI to determine the target.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر عدم حفظ الحالة (Statelessness) ميزة في الأنظمة الموزعة الكبيرة؟</template>
+      <template class="content-en">Why is statelessness considered an advantage in large distributed systems?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يسهل توزيع الحمل (Load Balancing)؛ حيث يمكن توجيه أي طلب إلى أي خادم متاح دون القلق بشأن مزامنة حالة الجلسة بين الخوادم.</p></template>
+      <template class="content-en"><p>Because it simplifies load balancing; any request can be routed to any available server without worrying about synchronizing session state across servers.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="coordination-and-pubsub" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> التنسيق ونشر/اشتراك</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Coordination and Publish/Subscribe</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التنسيق يحدد كيف تتواصل المكونات زمنياً ومرجعياً. النشر/الاشتراك هو نموذج يفك الارتباط بين مرسل البيانات ومستقبلها.</p></template>
+    <template class="content-en"><p>Coordination defines how components communicate temporally and referentially. Publish/subscribe decouples data senders from receivers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن تصنيف التنسيق بناءً على الارتباط (Coupling):</p><ul><li><strong>ارتباط مرجعي وزمني (Direct)</strong> — اتصال مباشر.</li><li><strong>ارتباط مرجعي و<span class="smart-term" data-term-en="Temporal Decoupling" data-ar="فك الارتباط الزمني" data-en-def="Sender and receiver do not need to be active at the same time.">فك ارتباط زمني<span class="smart-term-tooltip"></span></span> (Mailbox)</strong> — صندوق بريد.</li><li><strong>فك ارتباط مرجعي وارتباط زمني (Event-based)</strong> — مبني على الأحداث.</li><li><strong>فك ارتباط مرجعي وزمني (Shared data space)</strong> — مساحة بيانات مشتركة.</li></ul><p><b>مساحة مجموعات Linda (Linda tuple space):</b> مثال على مساحة البيانات المشتركة. توفر 3 عمليات بسيطة:</p><ol><li><strong><code>in(t)</code></strong> — إزالة مجموعة تطابق القالب t (عملية حظر - Blocking).</li><li><strong><code>rd(t)</code></strong> — الحصول على نسخة من مجموعة تطابق القالب t (عملية حظر).</li><li><strong><code>out(t)</code></strong> — إضافة مجموعة t إلى مساحة المجموعات.</li></ol><p><b>النشر والاشتراك (Publish and Subscribe):</b></p><ul><li><strong>اشتراك قائم على الموضوع (Topic-based)</strong> — تحديد سلسلة "سمة = قيمة".</li><li><strong>اشتراك قائم على المحتوى (Content-based)</strong> — تحديد "سمة تنتمي إلى نطاق".</li></ul></template>
+    <template class="content-en"><p>Coordination can be classified based on coupling:</p><ul><li><strong>Referentially & Temporally coupled</strong> — Direct communication.</li><li><strong>Referentially coupled & <span class="smart-term" data-term-en="Temporal Decoupling" data-ar="فك الارتباط الزمني" data-en-def="Sender and receiver do not need to be active at the same time.">Temporally decoupled<span class="smart-term-tooltip"></span></span></strong> — Mailbox.</li><li><strong>Referentially decoupled & Temporally coupled</strong> — Event-based.</li><li><strong>Referentially & Temporally decoupled</strong> — Shared data space.</li></ul><p><b>Linda tuple space:</b> An example of a shared data space. It provides 3 simple operations:</p><ol><li><strong><code>in(t)</code></strong> — remove a tuple matching template t (blocking operation).</li><li><strong><code>rd(t)</code></strong> — obtain a copy of a tuple matching template t (blocking operation).</li><li><strong><code>out(t)</code></strong> — add tuple t to the tuple space.</li></ol><p><b>Publish and Subscribe:</b></p><ul><li><strong>Topic-based subscription</strong> — specify an "attribute = value" series.</li><li><strong>Content-based subscription</strong> — specify an "attribute ∈ range" series.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في مساحة Linda، استدعاء <code>out(t)</code> مرتين متتاليتين يؤدي إلى تخزين نسختين من المجموعة، مما يعني أن مساحة المجموعات تُصمم كـ Multiset (مجموعة متعددة).</p><p>العمليات <code>in</code> و <code>rd</code> هي عمليات حظر (Blocking)، مما يعني أن المتصل سيتوقف عن العمل حتى تتوفر مجموعة مطابقة.</p><p>في أنظمة النشر/الاشتراك، الاشتراكات القائمة على المحتوى (Content-based) توفر مرونة عالية ولكنها تعاني من مشاكل خطيرة في قابلية التوسع (Scalability) لأن مطابقة الأحداث مع النطاقات المعقدة تتطلب موارد حسابية عالية لكل رسالة.</p></template>
+    <template class="content-en"><p>In Linda, calling <code>out(t)</code> twice in a row leads to storing two copies of tuple t, meaning the tuple space is modeled as a multiset.</p><p>Both <code>in</code> and <code>rd</code> are blocking operations: the caller will be blocked until a matching tuple is found or becomes available.</p><p>In pub/sub systems, Content-based subscriptions offer high flexibility but can easily have serious scalability problems because matching events against complex ranges requires significant computational overhead per message.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Direct</th><th>Mailbox</th><th>Event-based</th><th>Shared data space</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الارتباط الزمني (Temporal)</template>
+          <template class="content-en">Temporal Coupling</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرتبط</template>
+          <template class="content-en">Coupled</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مفكوك الارتباط</template>
+          <template class="content-en">Decoupled</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرتبط</template>
+          <template class="content-en">Coupled</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مفكوك الارتباط</template>
+          <template class="content-en">Decoupled</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الارتباط المرجعي (Referential)</template>
+          <template class="content-en">Referential Coupling</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرتبط</template>
+          <template class="content-en">Coupled</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرتبط</template>
+          <template class="content-en">Coupled</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مفكوك الارتباط</template>
+          <template class="content-en">Decoupled</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مفكوك الارتباط</template>
+          <template class="content-en">Decoupled</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تواجه الاشتراكات القائمة على المحتوى (Content-based) مشاكل في قابلية التوسع مقارنة بالقائمة على الموضوع (Topic-based)؟</template>
+      <template class="content-en">Why do content-based subscriptions face scalability problems compared to topic-based ones?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن التوجيه القائم على الموضوع يمكن تحسينه بسهولة باستخدام جداول تجزئة (Hash tables) بسيطة، بينما القائم على المحتوى يتطلب تقييم تعبيرات منطقية معقدة لكل رسالة تمر عبر البرمجيات الوسيطة.</p></template>
+      <template class="content-en"><p>Because topic-based routing can be easily optimized using simple hash tables, whereas content-based routing requires evaluating complex logical expressions for every message passing through the middleware.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="middleware-wrappers-interceptors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> البرمجيات الوسيطة: الأغلفة والمعترضات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Middleware: Wrappers and Interceptors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>البرمجيات الوسيطة هي نظام التشغيل للأنظمة الموزعة. تستخدم الأغلفة (Wrappers) والمعترضات (Interceptors) لربط التطبيقات المختلفة وتعديل تدفق التحكم.</p></template>
+    <template class="content-en"><p>Middleware is the OS of distributed systems. It uses wrappers and interceptors to connect different applications and modify control flow.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تحتوي <span class="smart-term" data-term-en="Middleware" data-ar="البرمجيات الوسيطة" data-en-def="The OS of distributed systems; provides common services to applications.">البرمجيات الوسيطة<span class="smart-term-tooltip"></span></span> على مكونات ووظائف شائعة الاستخدام لا تحتاج التطبيقات إلى تنفيذها بشكل منفصل.</p><p><b>تنظيم الأغلفة (Organizing wrappers):</b> لربط N من التطبيقات، يوجد حلان:</p><ol><li><strong>واحد لواحد (1-on-1)</strong> — يتطلب N × (N - 1) = O(N²) من الأغلفة.</li><li><strong>عبر <span class="smart-term" data-term-en="Broker" data-ar="الوسيط" data-en-def="A central component that reduces connection complexity among multiple applications to O(N).">وسيط (Broker)<span class="smart-term-tooltip"></span></span></strong> — يتطلب 2N = O(N) من الأغلفة.</li></ol><p><b>المعترضات (Interceptors):</b> آلية لاعتراض التدفق المعتاد للتحكم. يمكن أن تكون:</p><ul><li><strong>معترض على مستوى الطلب (Request-level interceptor)</strong> — يعترض الاستدعاء قبل وصوله للبرمجيات الوسيطة للكائن.</li><li><strong>معترض على مستوى الرسالة (Message-level interceptor)</strong> — يعترض الرسالة قبل إرسالها عبر نظام التشغيل المحلي.</li></ul></template>
+    <template class="content-en"><p>Middleware contains commonly used components and functions that need not be implemented by applications separately.</p><p><b>Organizing wrappers:</b> To connect N applications, there are two solutions:</p><ol><li><strong>1-on-1</strong> — requires N × (N - 1) = O(N²) wrappers.</li><li><strong><span class="smart-term" data-term-en="Broker" data-ar="الوسيط" data-en-def="A central component that reduces connection complexity among multiple applications to O(N).">Broker<span class="smart-term-tooltip"></span></span></strong> — requires 2N = O(N) wrappers.</li></ol><p><b>Interceptors:</b> A mechanism to intercept the usual flow of control. They can be:</p><ul><li><strong>Request-level interceptor</strong> — Intercepts the call before it reaches the object middleware.</li><li><strong>Message-level interceptor</strong> — Intercepts the message before it is sent via the local OS.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام الوسيط (Broker) يقلل التعقيد بشكل كبير من تربيعي إلى خطي، مما يجعله النمط المفضل في أنظمة تكامل تطبيقات المؤسسات (EAI).</p><p>المعترضات توفر طريقة قوية لتنفيذ وظائف متعامدة (Orthogonal features) مثل التشفير، التسجيل (Logging)، أو المصادقة دون تعديل كود التطبيق الأساسي أو كود البرمجيات الوسيطة الأساسي.</p></template>
+    <template class="content-en"><p>Using a Broker drastically reduces complexity from quadratic to linear, making it the preferred pattern in Enterprise Application Integration (EAI) systems.</p><p>Interceptors provide a powerful way to implement orthogonal features like encryption, logging, or authentication without modifying the core application or middleware code.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Diagram showing Intercept the usual flow of control. A Client application calls B.doit(val). The call goes to an Application stub, then is intercepted by a 'Request-level interceptor', then goes to Object middleware 'invoke(B, &doit, val)', then intercepted by 'Message-level interceptor', then to Local OS 'send(B, &quot;doit&quot;, val)', and finally to object B. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 800" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- Arrowhead for Intercepted Flow (Solid) -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Arrowhead for Usual Flow (Dashed) -->
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+
+        <!-- Drop shadow for elevated nodes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.05" flood-color="#000000" />
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Main Title -->
+    <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        Control Flow Interception in Middleware / اعتراض مسار التحكم في البرمجيات الوسيطة
+    </text>
+
+    <!-- ================= PANELS ================= -->
+    <!-- Client Machine Panel -->
+    <rect x="40" y="60" width="720" height="550" rx="12" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,8" />
+    <rect x="60" y="50" width="230" height="24" fill="var(--bg-surface)" />
+    <text x="70" y="66" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)">
+        Client Machine / جهاز العميل
+    </text>
+
+    <!-- Server Machine Panel -->
+    <rect x="40" y="650" width="360" height="120" rx="12" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,8" />
+    <rect x="60" y="640" width="230" height="24" fill="var(--bg-surface)" />
+    <text x="70" y="656" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)">
+        Server Machine / جهاز الخادم
+    </text>
+
+    <!-- ================= LEGEND ================= -->
+    <rect x="540" y="80" width="200" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)" />
+    
+    <line x1="555" y1="100" x2="595" y2="100" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+    <text x="605" y="104" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-primary)">Intercepted Flow</text>
+    
+    <line x1="555" y1="125" x2="595" y2="125" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-muted)" />
+    <text x="605" y="129" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-primary)">Usual Flow</text>
+
+    <!-- ================= FLOW LINES ================= -->
+    <!-- Client App to Stub -->
+    <line x1="220" y1="150" x2="220" y2="195" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+    
+    <!-- Stub to Middleware (Usual Flow) -->
+    <line x1="220" y1="270" x2="220" y2="365" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,6" marker-end="url(#arrow-muted)" />
+    
+    <!-- Middleware to OS (Usual Flow) -->
+    <line x1="220" y1="430" x2="220" y2="525" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,6" marker-end="url(#arrow-muted)" />
+    
+    <!-- OS to Object B (Network) -->
+    <line x1="220" y1="590" x2="220" y2="685" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+
+    <!-- Stub to Request Interceptor -->
+    <path d="M 340 240 C 420 240, 420 305, 485 305" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+    
+    <!-- Request Interceptor to Middleware -->
+    <path d="M 500 335 C 420 335, 420 400, 355 400" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+    
+    <!-- Middleware to Message Interceptor -->
+    <path d="M 340 400 C 420 400, 420 465, 485 465" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+    
+    <!-- Message Interceptor to OS -->
+    <path d="M 500 495 C 420 495, 420 560, 355 560" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+
+    <!-- ================= PATH LABELS ================= -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-primary)" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        
+        <!-- Client App -> Stub -->
+        <text x="235" y="180" font-family="monospace" font-weight="bold" fill="var(--brand-500)">B.doit(val)</text>
+        
+        <!-- Stub -> Req Interceptor -->
+        <text x="420" y="245" text-anchor="middle" font-weight="bold">Intercept Request</text>
+        <text x="420" y="265" text-anchor="middle" fill="var(--text-secondary)">اعتراض الطلب</text>
+        
+        <!-- Req Interceptor -> Middleware -->
+        <text x="420" y="355" text-anchor="middle" font-family="monospace" font-weight="bold" fill="var(--brand-500)">invoke(B, &amp;doit, val)</text>
+        
+        <!-- Middleware -> Msg Interceptor -->
+        <text x="420" y="405" text-anchor="middle" font-weight="bold">Intercept Message</text>
+        <text x="420" y="425" text-anchor="middle" fill="var(--text-secondary)">اعتراض الرسالة</text>
+        
+        <!-- Msg Interceptor -> OS -->
+        <text x="420" y="515" text-anchor="middle" font-family="monospace" font-weight="bold" fill="var(--brand-500)">send(B, &quot;doit&quot;, val)</text>
+        
+        <!-- OS -> Object B -->
+        <text x="235" y="630" font-weight="bold">Network Transfer</text>
+        <text x="235" y="650" fill="var(--text-secondary)">نقل عبر الشبكة</text>
+    </g>
+
+    <!-- ================= NODES ================= -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        
+        <!-- 1. Client Application -->
+        <rect x="100" y="90" width="240" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        <g transform="translate(115, 108)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+        </g>
+        <text x="235" y="115" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Client Application</text>
+        <text x="235" y="135" font-size="13" fill="var(--text-secondary)" text-anchor="middle">تطبيق العميل</text>
+
+        <!-- 2. Application Stub -->
+        <rect x="100" y="210" width="240" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        <g transform="translate(115, 228)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v6M8 2v6M10 14v8M6 8h8v6H6z"/>
+        </g>
+        <text x="235" y="235" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Application Stub</text>
+        <text x="235" y="255" font-size="13" fill="var(--text-secondary)" text-anchor="middle">كعب التطبيق (Stub)</text>
+
+        <!-- 3. Object Middleware -->
+        <rect x="100" y="370" width="240" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        <g transform="translate(115, 388)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 12 12 17 22 12"></polyline>
+            <polyline points="2 17 12 22 22 17"></polyline>
+        </g>
+        <text x="235" y="395" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Object Middleware</text>
+        <text x="235" y="415" font-size="13" fill="var(--text-secondary)" text-anchor="middle">البرمجيات الوسيطة للكائنات</text>
+
+        <!-- 4. Local OS -->
+        <rect x="100" y="530" width="240" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        <g transform="translate(115, 548)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+        </g>
+        <text x="235" y="555" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Local OS</text>
+        <text x="235" y="575" font-size="13" fill="var(--text-secondary)" text-anchor="middle">نظام التشغيل المحلي</text>
+
+        <!-- 5. Object B (Server Side) -->
+        <rect x="100" y="690" width="240" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        <g transform="translate(115, 708)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </g>
+        <text x="235" y="715" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Object B</text>
+        <text x="235" y="735" font-size="13" fill="var(--text-secondary)" text-anchor="middle">الكائن B</text>
+
+        <!-- ================= INTERCEPTORS (HIGHLIGHTED) ================= -->
+        <!-- Request-level Interceptor -->
+        <rect x="500" y="290" width="240" height="60" rx="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)" />
+        <g transform="translate(515, 308)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </g>
+        <text x="635" y="315" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Request-level Interceptor</text>
+        <text x="635" y="335" font-size="13" fill="var(--text-secondary)" text-anchor="middle">معترض مستوى الطلب</text>
+
+        <!-- Message-level Interceptor -->
+        <rect x="500" y="450" width="240" height="60" rx="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)" />
+        <g transform="translate(515, 468)" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </g>
+        <text x="635" y="475" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Message-level Interceptor</text>
+        <text x="635" y="495" font-size="13" fill="var(--text-secondary)" text-anchor="middle">معترض مستوى الرسالة</text>
+
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون استخدام معترض على مستوى الرسالة أفضل من معترض على مستوى الطلب؟</template>
+      <template class="content-en">When is it better to use a message-level interceptor rather than a request-level interceptor?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عندما نحتاج إلى إجراء تعديلات على مستوى الشبكة مثل ضغط البيانات أو تشفير الحزم، حيث نتعامل مع تدفق البايتات بدلاً من كائنات التطبيق.</p></template>
+      <template class="content-en"><p>When we need to perform network-level modifications like data compression or packet encryption, dealing with byte streams rather than application objects.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="client-server-multitiered" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> بنى الخادم والعميل والأنظمة متعددة الطبقات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Client-Server and Multi-tiered Architectures</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نموذج يعتمد على عمليات تقدم خدمات (خوادم) وعمليات تستهلكها (عملاء)، ويمكن توزيعه عبر طبقات مادية متعددة.</p></template>
+    <template class="content-en"><p>A model based on processes offering services (servers) and processes using them (clients), which can be distributed across multiple physical tiers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b>خصائص نموذج العميل-الخادم الأساسي:</b></p><ul><li>العملاء والخوادم يمكن أن يكونوا على أجهزة مختلفة.</li><li>يتبع العملاء نموذج الطلب/الرد (Request/Reply) لاستخدام الخدمات.</li></ul><p><b>الأنظمة المركزية متعددة الطبقات (Multi-tiered):</b></p><ul><li><strong>طبقة واحدة (Single-tiered)</strong> — محطة طرفية غبية / حاسوب مركزي (Mainframe).</li><li><strong>طبقتان (Two-tiered)</strong> — عميل / خادم واحد.</li><li><strong><span class="smart-term" data-term-en="Three-tiered architecture" data-ar="بنية ثلاثية الطبقات" data-en-def="An architecture where user interface, processing, and data layers are hosted on separate machines.">ثلاث طبقات (Three-tiered)<span class="smart-term-tooltip"></span></span></strong> — كل طبقة منطقية (واجهة، معالجة، بيانات) تعمل على جهاز منفصل. في هذه الحالة، يعمل خادم التطبيق (AS) كعميل لخادم البيانات (DS) وكخادم لعميل الواجهة (C).</li></ul><p><b>مثال: نظام ملفات الشبكة (NFS):</b></p><ul><li>يوفر كل خادم NFS عرضاً موحداً لنظام الملفات المحلي الخاص به.</li><li>يستخدم نموذج الوصول عن بُعد (Remote access) بدلاً من نموذج الرفع/التنزيل (Upload/download) المستخدم في FTP.</li></ul></template>
+    <template class="content-en"><p><b>Basic Client-Server Model Characteristics:</b></p><ul><li>Clients and servers can be on different machines.</li><li>Clients follow a request/reply model regarding using services.</li></ul><p><b>Multi-tiered centralized system architectures:</b></p><ul><li><strong>Single-tiered</strong> — dumb terminal/mainframe configuration.</li><li><strong>Two-tiered</strong> — client/single server configuration.</li><li><strong><span class="smart-term" data-term-en="Three-tiered architecture" data-ar="بنية ثلاثية الطبقات" data-en-def="An architecture where user interface, processing, and data layers are hosted on separate machines.">Three-tiered<span class="smart-term-tooltip"></span></span></strong> — each layer on a separate machine. Here, the Application Server (AS) acts as a client to the Data Server (DS) and a server to the Client (C).</li></ul><p><b>Example: The Network File System (NFS):</b></p><ul><li>Each NFS server provides a standardized view of its local file system.</li><li>It uses a remote access model rather than the upload/download model used by FTP or Dropbox.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في البنية ثلاثية الطبقات، كسر النظام إلى أجهزة منفصلة يسمح بتوسيع كل طبقة بشكل مستقل (مثلاً، إضافة خوادم معالجة أكثر دون تغيير خادم قاعدة البيانات).</p><p>نموذج الوصول عن بُعد في NFS يعني أن الملف يبقى على الخادم وتتم العمليات عبر الشبكة، مما يقلل من استهلاك مساحة التخزين لدى العميل ولكنه يتطلب اتصالاً مستمراً وموثوقاً بالشبكة، عكس نموذج FTP الذي ينسخ الملف بالكامل.</p></template>
+    <template class="content-en"><p>In a three-tiered architecture, breaking the system into separate machines allows each tier to scale independently (e.g., adding more processing servers without changing the database server).</p><p>The remote access model in NFS means the file stays on the server and operations are done over the network. This saves client storage but requires a continuous, reliable network connection, unlike FTP which copies the entire file.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في البنية ثلاثية الطبقات، كيف يمكن لعملية أن تكون عميلاً وخادماً في نفس الوقت؟</template>
+      <template class="content-en">In a three-tiered architecture, how can a process be both a client and a server at the same time?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>خادم التطبيق (Application Server) يتلقى الطلبات من المستخدم (فيعمل كخادم)، ثم يرسل طلبات لقاعدة البيانات لجلب البيانات (فيعمل كعميل).</p></template>
+      <template class="content-en"><p>The Application Server receives requests from the user interface (acting as a server), and then sends requests to the database to fetch data (acting as a client).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="p2p-architectures" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> بنى الند للند (P2P)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Peer-to-Peer (P2P) Architectures</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أنظمة تكون فيها جميع العمليات متساوية، حيث تعمل كل عملية كعميل وخادم في نفس الوقت (Servant).</p></template>
+    <template class="content-en"><p>Systems where all processes are equal, acting as both client and server at the same time (Servant).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تنقسم أنظمة P2P إلى عدة أنواع:</p><ol><li><strong>P2P المهيكل (Structured P2P)</strong> — يستخدم فهرس خالي من الدلالات (Semantic-free index). يتم ربط كل عنصر بيانات بمفتاح باستخدام دالة تجزئة (Hash function). مثال: <b>Chord</b>، حيث تُنظم العقد في حلقة منطقية بمعرفات m-bit. يتم تخزين البيانات ذات المفتاح k في العقدة ذات المعرف id ≥ k (تسمى <span class="smart-term" data-term-en="Successor" data-ar="اللاحق" data-en-def="In Chord, the node with the smallest identifier id ≥ k responsible for storing key k.">اللاحق - successor<span class="smart-term-tooltip"></span></span>).</li><li><strong>P2P غير المهيكل (Unstructured P2P)</strong> — تحتفظ كل عقدة بقائمة عشوائية من الجيران (Random graph). البحث يتم عبر:<ul><li><strong>الفيضان (Flooding)</strong> — إرسال الطلب لجميع الجيران (محدود بـ Time-To-Live).</li><li><strong>المشي العشوائي (Random walk)</strong> — إرسال الطلب لجار واحد عشوائي متتالي.</li></ul></li><li><strong>شبكات العقد الفائقة (Super-peer networks)</strong> — كسر التماثل لتحسين الأداء. استخدام خوادم فهرسة أو وسطاء (Brokers) لتحديد مكان تخزين البيانات.</li></ol><p><b>حالة BitTorrent:</b> للبحث عن ملف F، يتم جلب ملف تورنت يحتوي على مرجع للمتتبع (Tracker). المتتبع يحتفظ بسجل للعقد النشطة (<span class="smart-term" data-term-en="Swarm" data-ar="السرب" data-en-def="In BitTorrent, the collection of active nodes that have chunks of a specific file.">السرب - Swarm<span class="smart-term-tooltip"></span></span>). تنضم العقدة للسرب وتتبادل أجزاء الملف مع الأقران.</p></template>
+    <template class="content-en"><p>P2P systems are divided into several types:</p><ol><li><strong>Structured P2P</strong> — Uses a semantic-free index. Each data item is associated with a key using a hash function. Example: <b>Chord</b>, where nodes are logically organized in a ring with m-bit identifiers. Data with key k is stored at the node with the smallest id ≥ k (called the <span class="smart-term" data-term-en="Successor" data-ar="اللاحق" data-en-def="In Chord, the node with the smallest identifier id ≥ k responsible for storing key k.">successor<span class="smart-term-tooltip"></span></span>).</li><li><strong>Unstructured P2P</strong> — Each node maintains an ad hoc list of neighbors (Random graph). Searching is done via:<ul><li><strong>Flooding</strong> — passing request to all neighbors (limited by Time-To-Live).</li><li><strong>Random walk</strong> — passing request to a randomly chosen neighbor sequentially.</li></ul></li><li><strong>Super-peer networks</strong> — Breaking symmetry to improve performance. Using index servers or brokers to decide where to store data efficiently.</li></ol><p><b>The BitTorrent case:</b> To search for file F, a torrent file is retrieved containing a reference to a tracker. The tracker keeps an account of active nodes (the <span class="smart-term" data-term-en="Swarm" data-ar="السرب" data-en-def="In BitTorrent, the collection of active nodes that have chunks of a specific file.">swarm<span class="smart-term-tooltip"></span></span>). A node joins the swarm and trades chunks of the file with peers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في نظام Chord، يتم استخدام روابط اختصار (Shortcut links) لتسريع عملية البحث في الحلقة، مما يقلل تعقيد البحث من O(N) إلى O(log N).</p><p>الفيضان (Flooding) في P2P غير المهيكل يستهلك عرض نطاق ترددي هائل، لذا يُستخدم Time-To-Live (TTL) لمنع الرسائل من الدوران إلى الأبد في الشبكة.</p><p>شبكات العقد الفائقة (Super-peers) تمثل حلاً هجيناً يجمع بين لامركزية P2P وكفاءة الأنظمة المركزية، حيث تتولى العقد القوية مهام التوجيه والفهرسة.</p></template>
+    <template class="content-en"><p>In Chord, shortcut links (finger tables) are used to speed up lookups in the ring, reducing search complexity from O(N) to O(log N).</p><p>Flooding in unstructured P2P consumes massive bandwidth, hence Time-To-Live (TTL) is strictly required to prevent messages from looping forever.</p><p>Super-peer networks represent a hybrid approach, combining the decentralization of P2P with the efficiency of centralized systems, where powerful nodes handle routing and indexing.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>دالة التجزئة المستخدمة في P2P المهيكل لربط البيانات بمفاتيح.</strong></template>
+      <template class="content-en"><strong>Hash function used in structured P2P to associate data items with keys.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$key(data\ item) = hash(data\ item's\ value)$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: Diagram of a Chord ring. Nodes are arranged in a circle with IDs from 0 to 31. Show a data item with key k=3 being routed. The lookup(3) starts at node 9, jumps to 28, then to 1, then to 4. Node 4 is the successor of key 3. Show shortcut links (chords) crossing the interior of the ring. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <title>Chord Ring Routing Diagram</title>
+  <desc>Diagram of a Chord ring showing the routing of lookup(3) starting from node 9, jumping to 28, then 1, and finally 4.</desc>
+
+  <defs>
+    <!-- Arrowhead marker for routing paths -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    <!-- Arrowhead marker for the storage pointer -->
+    <marker id="arrow-pointer" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-600)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Legend Box -->
+  <rect x="20" y="20" width="360" height="150" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+  <text x="40" y="50" font-size="16" font-weight="bold" fill="var(--text-primary)">Routing lookup(3)</text>
+  <text x="360" y="50" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="end">مسار البحث</text>
+  
+  <text x="40" y="80" font-size="14" fill="var(--text-secondary)">[1] N9 → N28 (Closest predecessor)</text>
+  <text x="360" y="80" font-size="14" fill="var(--text-secondary)" text-anchor="end">أقرب عقدة سابقة</text>
+  
+  <text x="40" y="110" font-size="14" fill="var(--text-secondary)">[2] N28 → N1</text>
+  
+  <text x="40" y="140" font-size="14" fill="var(--text-secondary)">[3] N1 → N4 (Successor of 3)</text>
+  <text x="360" y="140" font-size="14" fill="var(--text-secondary)" text-anchor="end">العقدة التالية</text>
+
+  <!-- N9 Finger Table Box -->
+  <rect x="580" y="400" width="200" height="180" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+  <text x="680" y="425" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">N9 Finger Table</text>
+  <text x="680" y="445" font-size="13" fill="var(--text-secondary)" text-anchor="middle">جدول التوجيه</text>
+  <line x1="580" y1="455" x2="780" y2="455" stroke="var(--border-color)" stroke-width="1" />
+  
+  <text x="600" y="475" font-size="13" font-weight="bold" fill="var(--text-primary)">i</text>
+  <text x="650" y="475" font-size="13" font-weight="bold" fill="var(--text-primary)">start</text>
+  <text x="730" y="475" font-size="13" font-weight="bold" fill="var(--text-primary)">succ</text>
+  
+  <text x="600" y="495" font-size="13" fill="var(--text-secondary)">1</text>
+  <text x="650" y="495" font-size="13" fill="var(--text-secondary)">10</text>
+  <text x="730" y="495" font-size="13" fill="var(--text-secondary)">14</text>
+  
+  <text x="600" y="515" font-size="13" fill="var(--text-secondary)">2</text>
+  <text x="650" y="515" font-size="13" fill="var(--text-secondary)">11</text>
+  <text x="730" y="515" font-size="13" fill="var(--text-secondary)">14</text>
+  
+  <text x="600" y="535" font-size="13" fill="var(--text-secondary)">3</text>
+  <text x="650" y="535" font-size="13" fill="var(--text-secondary)">13</text>
+  <text x="730" y="535" font-size="13" fill="var(--text-secondary)">14</text>
+  
+  <text x="600" y="555" font-size="13" fill="var(--text-secondary)">4</text>
+  <text x="650" y="555" font-size="13" fill="var(--text-secondary)">17</text>
+  <text x="730" y="555" font-size="13" fill="var(--text-secondary)">21</text>
+  
+  <!-- Highlighted row used for routing -->
+  <rect x="585" y="562" width="190" height="22" fill="var(--brand-500)" opacity="0.1" rx="4" />
+  <text x="600" y="578" font-size="13" font-weight="bold" fill="var(--brand-600)">5</text>
+  <text x="650" y="578" font-size="13" font-weight="bold" fill="var(--brand-600)">25</text>
+  <text x="730" y="578" font-size="13" font-weight="bold" fill="var(--brand-600)">28</text>
+
+  <!-- Routing Arrows (Drawn before nodes so they sit underneath) -->
+  <!-- 1. N9 to N28 -->
+  <path d="M 596.4 352.5 L 272.6 179.5" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  <circle cx="434.5" cy="266.0" r="12" fill="var(--brand-500)" />
+  <text x="434.5" y="266.0" text-anchor="middle" dominant-baseline="central" fill="var(--bg-surface)" font-size="13" font-weight="bold">1</text>
+
+  <!-- 2. N28 to N1 -->
+  <path d="M 265.5 158.0 L 412.3 113.5" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  <circle cx="338.9" cy="135.8" r="12" fill="var(--brand-500)" />
+  <text x="338.9" y="135.8" text-anchor="middle" dominant-baseline="central" fill="var(--bg-surface)" font-size="13" font-weight="bold">2</text>
+
+  <!-- 3. N1 to N4 -->
+  <path d="M 462.3 114.6 L 527.4 149.3" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  <circle cx="494.9" cy="132.0" r="12" fill="var(--brand-500)" />
+  <text x="494.9" y="132.0" text-anchor="middle" dominant-baseline="central" fill="var(--bg-surface)" font-size="13" font-weight="bold">3</text>
+
+  <!-- "Stored at" Arc (Key 3 to Node 4) -->
+  <path d="M 544.4 103.8 A 260 260 0 0 1 577.3 129.9" fill="none" stroke="var(--brand-600)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-pointer)" />
+
+  <!-- Main Ring Group -->
+  <g transform="translate(400, 320)">
+    <!-- The Ring -->
+    <circle cx="0" cy="0" r="220" fill="none" stroke="var(--border-color)" stroke-width="2" />
+
+    <!-- 32 Ticks and Labels -->
+    <g id="ticks">
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(0)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(0) translate(0, -245) rotate(0)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">0</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(11.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(11.25) translate(0, -245) rotate(-11.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">1</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(22.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(22.5) translate(0, -245) rotate(-22.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">2</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(33.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(33.75) translate(0, -245) rotate(-33.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">3</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(45)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(45) translate(0, -245) rotate(-45)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">4</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(56.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(56.25) translate(0, -245) rotate(-56.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">5</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(67.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(67.5) translate(0, -245) rotate(-67.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">6</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(78.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(78.75) translate(0, -245) rotate(-78.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">7</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(90)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(90) translate(0, -245) rotate(-90)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">8</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(101.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(101.25) translate(0, -245) rotate(-101.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">9</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(112.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(112.5) translate(0, -245) rotate(-112.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">10</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(123.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(123.75) translate(0, -245) rotate(-123.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">11</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(135)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(135) translate(0, -245) rotate(-135)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">12</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(146.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(146.25) translate(0, -245) rotate(-146.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">13</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(157.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(157.5) translate(0, -245) rotate(-157.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">14</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(168.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(168.75) translate(0, -245) rotate(-168.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">15</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(180)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(180) translate(0, -245) rotate(-180)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">16</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(191.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(191.25) translate(0, -245) rotate(-191.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">17</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(202.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(202.5) translate(0, -245) rotate(-202.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">18</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(213.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(213.75) translate(0, -245) rotate(-213.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">19</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(225)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(225) translate(0, -245) rotate(-225)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">20</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(236.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(236.25) translate(0, -245) rotate(-236.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">21</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(247.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(247.5) translate(0, -245) rotate(-247.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">22</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(258.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(258.75) translate(0, -245) rotate(-258.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">23</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(270)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(270) translate(0, -245) rotate(-270)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">24</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(281.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(281.25) translate(0, -245) rotate(-281.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">25</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(292.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(292.5) translate(0, -245) rotate(-292.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">26</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(303.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(303.75) translate(0, -245) rotate(-303.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">27</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(315)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(315) translate(0, -245) rotate(-315)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">28</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(326.25)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(326.25) translate(0, -245) rotate(-326.25)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">29</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(337.5)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(337.5) translate(0, -245) rotate(-337.5)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">30</text></g>
+      
+      <line x1="0" y1="-215" x2="0" y2="-225" transform="rotate(348.75)" stroke="var(--border-color)" stroke-width="2" />
+      <g transform="rotate(348.75) translate(0, -245) rotate(-348.75)"><text text-anchor="middle" dominant-baseline="central" font-size="13" fill="var(--text-muted)">31</text></g>
+    </g>
+
+    <!-- Active Nodes -->
+    <!-- Node 1 -->
+    <g transform="rotate(11.25) translate(0, -220) rotate(-11.25)">
+      <circle r="22" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="bold" fill="var(--text-primary)">N1</text>
+    </g>
+
+    <!-- Node 4 -->
+    <g transform="rotate(45) translate(0, -220) rotate(-45)">
+      <circle r="22" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="bold" fill="var(--text-primary)">N4</text>
+    </g>
+
+    <!-- Node 9 -->
+    <g transform="rotate(101.25) translate(0, -220) rotate(-101.25)">
+      <circle r="22" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="bold" fill="var(--text-primary)">N9</text>
+    </g>
+
+    <!-- Node 14 -->
+    <g transform="rotate(157.5) translate(0, -220) rotate(-157.5)">
+      <circle r="22" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="bold" fill="var(--text-primary)">N14</text>
+    </g>
+
+    <!-- Node 21 -->
+    <g transform="rotate(236.25) translate(0, -220) rotate(-236.25)">
+      <circle r="22" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="bold" fill="var(--text-primary)">N21</text>
+    </g>
+
+    <!-- Node 28 -->
+    <g transform="rotate(315) translate(0, -220) rotate(-315)">
+      <circle r="22" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="bold" fill="var(--text-primary)">N28</text>
+    </g>
+
+    <!-- Key k=3 -->
+    <g transform="rotate(33.75) translate(0, -220) rotate(-33.75)">
+      <rect x="-16" y="-16" width="32" height="32" fill="var(--brand-600)" rx="6" transform="rotate(45)" />
+      <text text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="bold" fill="var(--bg-surface)">k=3</text>
+    </g>
+
+    <!-- Label for "Stored at N4" -->
+    <g transform="rotate(39.375) translate(0, -275) rotate(-39.375)">
+      <text text-anchor="middle" fill="var(--brand-600)" font-size="13" font-weight="bold">Stored at N4</text>
+      <text y="18" text-anchor="middle" fill="var(--brand-600)" font-size="13" font-weight="bold">مخزن في</text>
+    </g>
+  </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Structured P2P</th><th>Unstructured P2P</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">طريقة البحث</template>
+          <template class="content-en">Search Method</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">توجيه بناءً على مفتاح (Hash)</template>
+          <template class="content-en">Key-based routing (Hash)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">الفيضان أو المشي العشوائي</template>
+          <template class="content-en">Flooding or Random walk</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تنظيم الشبكة</template>
+          <template class="content-en">Network Organization</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">طوبولوجيا محددة (مثل حلقة Chord)</template>
+          <template class="content-en">Specific topology (e.g., Chord ring)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">رسم بياني عشوائي (Random graph)</template>
+          <template class="content-en">Random graph</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم دالة تجزئة (Hash function) في P2P المهيكل بدلاً من أسماء الملفات المباشرة؟</template>
+      <template class="content-en">Why do we use a hash function in structured P2P instead of direct file names?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لضمان توزيع متساوٍ وعشوائي للبيانات عبر جميع العقد في الشبكة (Load balancing)، ولإنشاء فهرس خالي من الدلالات يسهل توجيهه رياضياً.</p></template>
+      <template class="content-en"><p>To ensure an even and random distribution of data across all nodes (load balancing), and to create a semantic-free index that is easy to route mathematically.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="cloud-and-edge-computing" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> الحوسبة السحابية وحوسبة الحافة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Cloud and Edge Computing</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>السحابة تقدم موارد حوسبة كخدمات عبر 4 طبقات. حوسبة الحافة تقرب الخوادم من المستخدمين لتقليل التأخير وزيادة الموثوقية.</p></template>
+    <template class="content-en"><p>Cloud offers computing resources as services across 4 layers. Edge computing brings servers closer to users to reduce latency and increase reliability.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b>طبقات الحوسبة السحابية الأربع:</b></p><ol><li><strong>الأجهزة (Hardware)</strong> — المعالجات، الموجهات، أنظمة التبريد (لا يراها العملاء).</li><li><strong>البنية التحتية (Infrastructure)</strong> — تنشر تقنيات المحاكاة الافتراضية (Virtualization) لإدارة الخوادم ووحدات التخزين الافتراضية (مثل Amazon EC2).</li><li><strong>المنصة (Platform)</strong> — توفر تجريدات عالية المستوى للتخزين وغيرها (مثل Amazon S3، Google App Engine).</li><li><strong>التطبيق (Application)</strong> — التطبيقات الفعلية مثل حزم الأوفيس (مثل Google Docs، YouTube).</li></ol><p><b>بنية خادم ال<span class="smart-term" data-term-en="Edge of the network" data-ar="حافة الشبكة" data-en-def="The boundary between enterprise networks and the actual Internet.">حافة<span class="smart-term-tooltip"></span></span> (Edge-server architecture):</b></p><p>أنظمة تُنشر على الإنترنت حيث توضع الخوادم على "حافة" الشبكة (الحدود بين شبكات المؤسسات والإنترنت الفعلي).</p><p><b>أسباب امتلاك بنية تحتية للحافة:</b></p><ul><li><strong>زمن الوصول وعرض النطاق (Latency and bandwidth)</strong> — مهم لتطبيقات الوقت الفعلي (مثل الواقع المعزز/الافتراضي).</li><li><strong>الموثوقية (Reliability)</strong> — توفير ضمانات اتصال عالية في الحالات الحرجة حيث قد يكون الاتصال بالسحابة غير موثوق.</li><li><strong>الأمان والخصوصية (Security and privacy)</strong> — معالجة البيانات محلياً قد تكون أسهل أمنياً من السحابة (رغم أن الافتراض بأن القرب يعني أماناً أفضل هو افتراض خاطئ غالباً).</li></ul></template>
+    <template class="content-en"><p><b>Four layers of Cloud computing:</b></p><ol><li><strong>Hardware</strong> — Processors, routers, power, cooling (customers never see these).</li><li><strong>Infrastructure</strong> — Deploys virtualization techniques to allocate/manage virtual storage and servers (e.g., Amazon EC2).</li><li><strong>Platform</strong> — Provides higher-level abstractions for storage and such (e.g., Amazon S3, Google App Engine).</li><li><strong>Application</strong> — Actual applications like office suites (e.g., Google Docs, YouTube).</li></ol><p><b>Edge-server architecture:</b></p><p>Systems deployed on the Internet where servers are placed at the <span class="smart-term" data-term-en="Edge of the network" data-ar="حافة الشبكة" data-en-def="The boundary between enterprise networks and the actual Internet.">edge of the network<span class="smart-term-tooltip"></span></span>: the boundary between enterprise networks and the actual Internet.</p><p><b>Reasons for edge infrastructure:</b></p><ul><li><strong>Latency and bandwidth</strong> — Crucial for real-time apps (AR/VR).</li><li><strong>Reliability</strong> — High connectivity guarantees for critical situations where cloud connection might fail.</li><li><strong>Security and privacy</strong> — Handling data locally (though the assumption that nearby assets are inherently safer is generally false, cloud data operations can be trickier).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التمييز بين IaaS (البنية التحتية) و PaaS (المنصة) يكمن في مستوى التجريد؛ IaaS يعطيك جهازاً افتراضياً كاملاً، بينما PaaS يعطيك بيئة لتشغيل الكود أو تخزين الكائنات دون إدارة نظام التشغيل.</p><p>في حوسبة الحافة، المفهوم الخاطئ الشائع هو أن الأمان يتحسن تلقائياً بمجرد إبقاء البيانات محلياً. في الواقع، مراكز بيانات السحابة غالباً ما تمتلك إجراءات أمنية أقوى بكثير من الشبكات المحلية، لكن الحافة تحل مشكلة سيادة البيانات (Data Sovereignty).</p></template>
+    <template class="content-en"><p>The distinction between IaaS (Infrastructure) and PaaS (Platform) lies in the level of abstraction; IaaS gives you a full VM, while PaaS gives you an environment to run code or store objects without managing the OS.</p><p>In edge computing, a common misconception is that security automatically improves by keeping data local. In reality, cloud data centers often have far stronger security measures than local networks, but edge computing solves Data Sovereignty issues.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تُعتبر تطبيقات الواقع الافتراضي (VR) المحرك الأساسي لتبني حوسبة الحافة؟</template>
+      <template class="content-en">Why are Virtual Reality (VR) applications a primary driver for adopting edge computing?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن تطبيقات الواقع الافتراضي تتطلب زمن وصول (Latency) منخفض جداً لتجنب دوار الحركة لدى المستخدم، وهو ما لا يمكن للسحابة المركزية البعيدة توفيره دائماً.</p></template>
+      <template class="content-en"><p>Because VR applications require extremely low latency to prevent user motion sickness, which distant centralized clouds cannot always guarantee.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="blockchains-and-consensus" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">9</span> سلاسل الكتل (Blockchains) والإجماع الموزع</h2></template>
+    <template class="content-en"><h2><span class="concept-number">9</span> Blockchains and Distributed Consensus</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>سلسلة الكتل هي سجل بيانات غير قابل للتعديل يُضاف إليه فقط (Append-only). التحدي الأكبر هو الاتفاق (الإجماع) على من يحق له إضافة الكتلة التالية.</p></template>
+    <template class="content-en"><p>A blockchain is an immutable, append-only ledger. The main challenge is reaching consensus on who is allowed to append the next block.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b>ملاحظات أساسية حول Blockchains:</b></p><ul><li>تُنظم الكتل في سلسلة غير قابلة للتزوير وتدعم الإضافة فقط (Append-only).</li><li>كل كتلة <span class="smart-term" data-term-en="Immutable" data-ar="غير قابل للتغيير" data-en-def="Data that cannot be altered after it is created.">غير قابلة للتغيير (Immutable)<span class="smart-term-tooltip"></span></span> مما يتطلب نسخاً متماثلاً ضخماً (Massive replication).</li><li>العقبة الحقيقية تكمن في تحديد من يُسمح له بإضافة كتلة إلى السلسلة.</li></ul><p><b>طرق إضافة كتلة (الإجماع الموزع - Distributed consensus):</b></p><ol><li><strong>حل مركزي (Centralized)</strong> — كيان واحد يقرر من يضيف الكتلة. (لا يتناسب مع أهداف البلوك تشين).</li><li><strong>حل موزع / مصرح به (Distributed / Permissioned)</strong> — مجموعة صغيرة مختارة من الخوادم تصل لإجماع. لا يلزم الوثوق بأي منها طالما أن ثلثيها (2/3) يتصرفون بشكل صحيح. يستوعب بضع عشرات من الخوادم فقط.</li><li><strong>حل لامركزي / غير مصرح به (Decentralized / Permissionless)</strong> — يشارك الجميع في انتخاب قائد (Leader election). القائد المنتخب فقط هو من يضيف الكتلة. هذا الحل معقد جداً لضمان العدالة والأمان على نطاق واسع.</li></ol></template>
+    <template class="content-en"><p><b>Key observations on Blockchains:</b></p><ul><li>Blocks are organized into an unforgeable append-only chain.</li><li>Each block is <span class="smart-term" data-term-en="Immutable" data-ar="غير قابل للتغيير" data-en-def="Data that cannot be altered after it is created.">immutable<span class="smart-term-tooltip"></span></span>, leading to massive replication.</li><li>The real snag lies in who is allowed to append a block to a chain.</li></ul><p><b>Appending a block (Distributed consensus):</b></p><ol><li><strong>Centralized solution</strong> — A single entity decides. (Does not fit blockchain design goals).</li><li><strong>Distributed solution (Permissioned)</strong> — A selected, relatively small group of servers jointly reach consensus. None needs to be trusted as long as roughly two-thirds behave correctly. Accommodates only a few tens of servers.</li><li><strong>Decentralized solution (<span class="smart-term" data-term-en="Permissionless" data-ar="غير مصرح به (مفتوح)" data-en-def="A decentralized network where anyone can join and participate in the consensus process.">Permissionless<span class="smart-term-tooltip"></span></span>)</strong> — Participants collectively engage in a leader election. Only the elected leader appends the block. Large-scale leader election is far from trivial.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في الأنظمة المصرح بها (Permissioned)، يتم استخدام خوارزميات التسامح مع الأخطاء البيزنطية (BFT) والتي تتطلب أن يكون 2/3 من العقد صادقة، ولكن تعقيد رسائلها يمنع توسعها لأكثر من عشرات العقد.</p><p>في الأنظمة غير المصرح بها (Permissionless) مثل البيتكوين، يتم حل مشكلة انتخاب القائد عبر إثبات العمل (Proof of Work)، حيث يكون القائد هو أول من يحل لغزاً رياضياً معقداً، مما يتيح التوسع لآلاف العقد ولكن بتكلفة طاقة عالية.</p></template>
+    <template class="content-en"><p>In Permissioned systems, Byzantine Fault Tolerance (BFT) algorithms are typically used, requiring 2/3 of nodes to be honest. However, their message complexity prevents scaling beyond a few tens of nodes.</p><p>In Permissionless systems like Bitcoin, the leader election problem is solved via Proof of Work, where the leader is the first to solve a cryptographic puzzle. This allows scaling to thousands of nodes but at a high energy cost.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Permissioned (Distributed)</th><th>Permissionless (Decentralized)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">قابلية التوسع (عدد العقد)</template>
+          <template class="content-en">Scalability (Node count)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">بضع عشرات من الخوادم</template>
+          <template class="content-en">A few tens of servers</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">نطاق واسع جداً</template>
+          <template class="content-en">Large-scale</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">آلية اختيار القائد</template>
+          <template class="content-en">Leader Selection Mechanism</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">إجماع مشترك (يتطلب 2/3 ثقة)</template>
+          <template class="content-en">Joint consensus (requires 2/3 trust)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">انتخاب قائد (Leader election)</template>
+          <template class="content-en">Leader election</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن استخدام الإجماع الموزع (Permissioned) في شبكات البلوك تشين العامة مثل البيتكوين؟</template>
+      <template class="content-en">Why can't Distributed (Permissioned) consensus be used in public blockchains like Bitcoin?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الإجماع المصرح به لا يتوسع جيداً (يقتصر على بضع عشرات من الخوادم) ويتطلب معرفة مسبقة بهويات المشاركين، بينما الشبكات العامة تتطلب مشاركة مفتوحة لآلاف العقد المجهولة.</p></template>
+      <template class="content-en"><p>Because permissioned consensus does not scale well (limited to a few tens of servers) and requires prior knowledge of participant identities, whereas public networks require open participation for thousands of anonymous nodes.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في هذه الوحدة الدسمة. تخيلوا أننا نبني مدينة ضخمة؛ الأنماط المعمارية هي المخطط الهندسي للمدينة. تحدثنا عن كيف تتواصل المباني (المكونات) عبر الطرق (الموصلات). ثم تعمقنا في كيف يمكن تنظيم هذه المباني في طبقات، أو جعلها تتحدث بلغة بسيطة وموحدة عبر RESTful. لم ننسَ كيف ننسق العمل بين العمال دون أن يلتقوا (Linda Tuple Space). الأهم للامتحان: ركزوا جيداً على الفرق بين P2P المهيكل (Chord واللاحق) وغير المهيكل (الفيضان)، وتأكدوا من فهمكم لتعقيد الأغلفة (O(N) للوسيط مقابل O(N^2) للمباشر). أخيراً، تذكروا أن البلوك تشين ليس سوى قاعدة بيانات لا تقبل الحذف، والتحدي كله يكمن في 'من يكتب السطر التالي؟' (الإجماع). راجعوا هذه النقاط وستكونون بأمان تام في الاختبار!</template>
+    <template class="content-en">Welcome, future engineers, to this dense module. Imagine we are building a massive city; architectural styles are the blueprints. We discussed how buildings (components) communicate via roads (connectors). We then explored organizing these into layers, or making them speak a simple, unified language via RESTful. We didn't forget how to coordinate workers who never meet (Linda Tuple Space). Crucial for the exam: focus heavily on the difference between structured P2P (Chord and the successor) and unstructured (Flooding). Make sure you understand wrapper complexity (O(N) for Broker vs O(N^2) for 1-on-1). Finally, remember that a blockchain is just an append-only database, and the entire challenge is 'who writes the next line?' (Consensus). Review these points, and you'll ace the exam!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين الاستدعاء لأسفل (Downcall) والاستدعاء لأعلى (Upcall)؟</template>
+          <template class="content-en">What is the main difference between a Downcall and an Upcall?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين الاستدعاء لأسفل (Downcall) والاستدعاء لأعلى (Upcall)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الاستدعاء لأسفل هو التدفق الطبيعي حيث تطلب الطبقة العليا خدمة من الطبقة السفلى. الاستدعاء لأعلى يحدث عندما تقاطع الطبقة السفلى الطبقة العليا لتنبيهها بحدث ما (عبر Handlers).</template>
+          <template class="content-en">A downcall is the normal flow where a higher layer requests a service from a lower layer. An upcall happens when a lower layer interrupts a higher layer to notify it of an event (via Handlers).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نفضل استخدام الوسيط (Broker) على الربط المباشر (1-on-1) في البرمجيات الوسيطة؟</template>
+          <template class="content-en">Why do we prefer using a Broker over 1-on-1 connection in middleware?</template>
+          <span class="content-target">لماذا نفضل استخدام الوسيط (Broker) على الربط المباشر (1-on-1) في البرمجيات الوسيطة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الربط المباشر يتطلب O(N^2) من الأغلفة، مما يجعله غير قابل للتوسع. بينما الوسيط يقلل التعقيد إلى O(N).</template>
+          <template class="content-en">Because 1-on-1 requires O(N^2) wrappers, making it unscalable. A broker reduces the complexity to O(N).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل نظام Chord مشكلة البحث في شبكات P2P؟</template>
+          <template class="content-en">How does the Chord system solve the search problem in P2P networks?</template>
+          <span class="content-target">كيف يحل نظام Chord مشكلة البحث في شبكات P2P؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يستخدم دالة تجزئة لتعيين مفاتيح للبيانات ومعرفات للعقد، وينظمها في حلقة منطقية. يتم تخزين البيانات في العقدة 'اللاحقة' (أول عقدة معرفها أكبر من أو يساوي المفتاح).</template>
+          <template class="content-en">It uses a hash function to assign keys to data and IDs to nodes, organizing them in a logical ring. Data is stored at the 'successor' node (the first node with an ID ≥ the key).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مشكلة الاشتراكات القائمة على المحتوى (Content-based)؟</template>
+          <template class="content-en">What is the problem with Content-based subscriptions?</template>
+          <span class="content-target">ما هي مشكلة الاشتراكات القائمة على المحتوى (Content-based)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعاني من مشاكل خطيرة في قابلية التوسع لأن مطابقة كل رسالة مع نطاقات معقدة تستهلك موارد حسابية كبيرة مقارنة بالمطابقة البسيطة في القائمة على الموضوع.</template>
+          <template class="content-en">They suffer from serious scalability problems because matching every message against complex ranges consumes significant computational resources compared to simple matching in topic-based.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو دور المتتبع (Tracker) في نظام BitTorrent؟</template>
+          <template class="content-en">What is the role of the Tracker in the BitTorrent system?</template>
+          <span class="content-target">ما هو دور المتتبع (Tracker) في نظام BitTorrent؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو خادم مركزي لا يخزن الملفات، بل يحتفظ بقائمة دقيقة للعقد النشطة (السرب) التي تمتلك أجزاء من الملف المطلوب، ليرشد العميل إليها.</template>
+          <template class="content-en">It is a centralized server that doesn't store files, but keeps an accurate list of active nodes (the swarm) that have chunks of the requested file, guiding the client to them.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا يعني وضع الخوادم على 'الحافة' (Edge) بالضرورة أماناً أفضل؟</template>
+          <template class="content-en">Why doesn't placing servers at the 'Edge' necessarily mean better security?</template>
+          <span class="content-target">لماذا لا يعني وضع الخوادم على 'الحافة' (Edge) بالضرورة أماناً أفضل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن مراكز البيانات السحابية المركزية تمتلك عادة فرق أمان متخصصة وإجراءات حماية مادية ورقمية أقوى بكثير من الشبكات المحلية للمؤسسات.</template>
+          <template class="content-en">Because centralized cloud data centers usually have dedicated security teams and much stronger physical and digital protection measures than local enterprise networks.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين الإجماع المصرح به (Permissioned) وغير المصرح به (Permissionless) في البلوك تشين؟</template>
+          <template class="content-en">What is the difference between Permissioned and Permissionless consensus in Blockchain?</template>
+          <span class="content-target">ما الفرق بين الإجماع المصرح به (Permissioned) وغير المصرح به (Permissionless) في البلوك تشين؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المصرح به يعتمد على مجموعة صغيرة معروفة مسبقاً ويتطلب صدق 2/3 منها. غير المصرح به مفتوح للجميع ويعتمد على انتخاب قائد (مثل التعدين) لإضافة الكتل.</template>
+          <template class="content-en">Permissioned relies on a small, pre-known group and requires 2/3 to be honest. Permissionless is open to anyone and relies on leader election (like mining) to append blocks.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العمليات الثلاث الأساسية في مساحة Linda؟</template>
+          <template class="content-en">What are the three basic operations in the Linda tuple space?</template>
+          <span class="content-target">ما هي العمليات الثلاث الأساسية في مساحة Linda؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">in(t) لقراءة وإزالة مجموعة (حظر)، rd(t) لقراءة نسخة فقط (حظر)، و out(t) لإضافة مجموعة جديدة للمساحة.</template>
+          <template class="content-en">in(t) to read and remove a tuple (blocking), rd(t) to read a copy only (blocking), and out(t) to add a new tuple to the space.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو مبدأ انعدام الحالة (Statelessness) في RESTful؟</template>
+          <template class="content-en">What is the principle of Statelessness in RESTful?</template>
+          <span class="content-target">ما هو مبدأ انعدام الحالة (Statelessness) في RESTful؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعني أن الخادم ينسى كل شيء عن العميل بمجرد انتهاء تنفيذ الطلب، مما يسهل توسيع النظام وتوزيع الأحمال.</template>
+          <template class="content-en">It means the server forgets everything about the client once the request execution is finished, which simplifies system scaling and load balancing.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يختلف نموذج الوصول عن بُعد في NFS عن نموذج الرفع/التنزيل في FTP؟</template>
+          <template class="content-en">How does the remote access model in NFS differ from the upload/download model in FTP?</template>
+          <span class="content-target">كيف يختلف نموذج الوصول عن بُعد في NFS عن نموذج الرفع/التنزيل في FTP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">في NFS، يبقى الملف على الخادم وتتم العمليات عبر الشبكة. في FTP، يتم نسخ الملف بالكامل إلى جهاز العميل للعمل عليه محلياً.</template>
+          <template class="content-en">In NFS, the file stays on the server and operations are performed over the network. In FTP, the entire file is copied to the client's machine to be worked on locally.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الموصل (Connector) في الأنماط المعمارية؟",
+      "en": "What is a Connector in architectural styles?"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلية تتوسط الاتصال أو التنسيق أو التعاون بين المكونات.",
+        "en": "A mechanism that mediates communication, coordination, or cooperation among components."
+      },
+      "example": {
+        "ar": "استدعاء الإجراءات عن بُعد (RPC) أو المراسلة.",
+        "en": "Remote procedure call (RPC) or messaging."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو الاستدعاء لأعلى (Upcall) في البنية الطبقية؟",
+      "en": "What is an Upcall in layered architecture?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تقوم طبقة سفلى باستدعاء طبقة عليا، عادة عبر معالجات الأحداث (Handlers).",
+        "en": "When a lower layer calls a higher layer, usually via event handlers."
+      },
+      "example": {
+        "ar": "نظام التشغيل ينبه التطبيق بوصول حزمة شبكة.",
+        "en": "OS notifying an application of an incoming network packet."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي الطبقات الثلاث في التطبيقات التقليدية؟",
+      "en": "What are the three layers in traditional application layering?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طبقة واجهة التطبيق، طبقة المعالجة، وطبقة البيانات.",
+        "en": "Application-interface layer, Processing layer, and Data layer."
+      },
+      "example": {
+        "ar": "واجهة المستخدم، خوارزمية الترتيب، وقاعدة البيانات في محرك بحث.",
+        "en": "User interface, ranking algorithm, and database in a search engine."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو مبدأ التغليف (Encapsulation) في النمط القائم على الكائنات؟",
+      "en": "What is Encapsulation in the object-based style?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إخفاء التنفيذ الداخلي للبيانات وتقديم طرق (Methods) للتعامل معها.",
+        "en": "Objects encapsulate data and offer methods on that data without revealing the internal implementation."
+      },
+      "example": {
+        "ar": "استدعاء دالة عبر الشبكة دون معرفة كيف كُتبت الدالة.",
+        "en": "Calling a method over a network without knowing its internal code."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي العمليات الأساسية الأربع في بنية RESTful؟",
+      "en": "What are the 4 basic operations in RESTful architectures?"
+    },
+    "back": {
+      "definition": {
+        "ar": "PUT (إنشاء)، GET (استرجاع)، DELETE (حذف)، POST (تعديل).",
+        "en": "PUT (create), GET (retrieve), DELETE (delete), POST (modify)."
+      },
+      "example": {
+        "ar": "استخدام GET لقراءة ملف من Amazon S3.",
+        "en": "Using GET to read an object from Amazon S3."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو الارتباط المرجعي (Referential coupling)؟",
+      "en": "What is Referential coupling?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما يحتاج المرسل والمستقبل إلى معرفة بعضهما البعض بشكل صريح للتواصل.",
+        "en": "When the sender and receiver must explicitly know each other to communicate."
+      },
+      "example": {
+        "ar": "الاتصال المباشر (Direct) أو عبر صندوق البريد (Mailbox).",
+        "en": "Direct communication or Mailbox."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي مساحة مجموعات Linda (Linda tuple space)؟",
+      "en": "What is the Linda tuple space?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نموذج تنسيق يعتمد على مساحة بيانات مشتركة مفكوكة الارتباط زمنياً ومرجعياً.",
+        "en": "A coordination model based on a shared data space that is temporally and referentially decoupled."
+      },
+      "example": {
+        "ar": "استخدام عمليات in, rd, out للتعامل مع المجموعات.",
+        "en": "Using in, rd, out operations to manipulate tuples."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما الفرق بين الاشتراك القائم على الموضوع والقائم على المحتوى؟",
+      "en": "What is the difference between topic-based and content-based subscription?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الموضوع يحدد قيمة دقيقة (سمة=قيمة)، بينما المحتوى يحدد نطاقاً (سمة تنتمي لنطاق).",
+        "en": "Topic-based specifies an exact 'attribute=value', while content-based specifies an 'attribute ∈ range'."
+      },
+      "example": {
+        "ar": "الموضوع: السعر=100. المحتوى: السعر بين 50 و 150.",
+        "en": "Topic: price=100. Content: price between 50 and 150."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي البرمجيات الوسيطة (Middleware)؟",
+      "en": "What is Middleware?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام التشغيل للأنظمة الموزعة، يحتوي على مكونات شائعة الاستخدام لربط التطبيقات.",
+        "en": "The OS of distributed systems, containing commonly used components to connect applications."
+      },
+      "example": {
+        "ar": "استخدام وسيط (Broker) لربط عدة تطبيقات.",
+        "en": "Using a Broker to connect multiple applications."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لربط N تطبيقات باستخدام وسيط (Broker) مقابل 1-on-1؟",
+      "en": "What is the complexity of connecting N applications using a Broker vs 1-on-1?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الوسيط يتطلب O(N) أغلفة، بينما 1-on-1 يتطلب O(N²).",
+        "en": "Broker requires O(N) wrappers, while 1-on-1 requires O(N²)."
+      },
+      "example": {
+        "ar": "لـ 10 تطبيقات: الوسيط يحتاج 20 غلاف، 1-on-1 يحتاج 90.",
+        "en": "For 10 apps: Broker needs 20 wrappers, 1-on-1 needs 90."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو المعترض (Interceptor)؟",
+      "en": "What is an Interceptor?"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلية لاعتراض التدفق المعتاد للتحكم، إما على مستوى الطلب أو مستوى الرسالة.",
+        "en": "A mechanism to intercept the usual flow of control, either at the request level or message level."
+      },
+      "example": {
+        "ar": "اعتراض رسالة لتشفيرها قبل إرسالها عبر الشبكة.",
+        "en": "Intercepting a message to encrypt it before sending it over the network."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "كيف يعمل نظام P2P المهيكل (Structured P2P)؟",
+      "en": "How does Structured P2P work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يستخدم فهرس خالي من الدلالات ودالة تجزئة لربط البيانات بمفاتيح وتوزيعها منطقياً.",
+        "en": "It uses a semantic-free index and a hash function to associate data with keys and distribute them logically."
+      },
+      "example": {
+        "ar": "نظام Chord الذي ينظم العقد في حلقة.",
+        "en": "The Chord system which organizes nodes in a ring."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو اللاحق (Successor) في نظام Chord؟",
+      "en": "What is a Successor in the Chord system?"
+    },
+    "back": {
+      "definition": {
+        "ar": "العقدة ذات المعرف الأصغر الذي يكون أكبر من أو يساوي مفتاح البيانات (id ≥ k).",
+        "en": "The node with the smallest identifier id ≥ k, responsible for storing data item with key k."
+      },
+      "example": {
+        "ar": "إذا كان المفتاح 3، والعقد المتاحة 1, 4, 9، فإن اللاحق هو العقدة 4.",
+        "en": "If key is 3, and available nodes are 1, 4, 9, the successor is node 4."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي طرق البحث في P2P غير المهيكل؟",
+      "en": "What are the search methods in Unstructured P2P?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الفيضان (Flooding) والمشي العشوائي (Random walk).",
+        "en": "Flooding and Random walk."
+      },
+      "example": {
+        "ar": "إرسال طلب لجميع الجيران (فيضان) مع تحديد Time-To-Live.",
+        "en": "Sending a request to all neighbors (flooding) with a Time-To-Live limit."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو دور المتتبع (Tracker) في BitTorrent؟",
+      "en": "What is the role of a Tracker in BitTorrent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خادم يحتفظ بسجل دقيق للعقد النشطة (السرب) التي تمتلك أجزاء من الملف.",
+        "en": "A server keeping an accurate account of active nodes (the swarm) that have chunks of a file."
+      },
+      "example": {
+        "ar": "عند فتح ملف تورنت، يتصل العميل بالمتتبع لمعرفة من يملك الملف.",
+        "en": "When opening a torrent file, the client contacts the tracker to find who has the file."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي طبقة المنصة (Platform) في الحوسبة السحابية؟",
+      "en": "What is the Platform layer in Cloud computing?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طبقة توفر تجريدات عالية المستوى للتخزين والخدمات دون الحاجة لإدارة البنية التحتية.",
+        "en": "A layer providing higher-level abstractions for storage and services without managing infrastructure."
+      },
+      "example": {
+        "ar": "Amazon S3 أو Google App Engine.",
+        "en": "Amazon S3 or Google App Engine."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هي حوسبة الحافة (Edge Computing)؟",
+      "en": "What is Edge Computing?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نشر الخوادم على حافة الشبكة (قرب المستخدمين) لتقليل التأخير وزيادة الموثوقية.",
+        "en": "Deploying servers at the edge of the network (near users) to reduce latency and increase reliability."
+      },
+      "example": {
+        "ar": "خوادم محلية لمعالجة بيانات الواقع المعزز بسرعة.",
+        "en": "Local servers processing AR data quickly."
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما هي الخاصية الأساسية لسلسلة الكتل (Blockchain)؟",
+      "en": "What is the core property of a Blockchain?"
+    },
+    "back": {
+      "definition": {
+        "ar": "سجل غير قابل للتزوير يدعم الإضافة فقط (Append-only) والكتل فيه غير قابلة للتغيير.",
+        "en": "An unforgeable append-only chain where each block is immutable."
+      },
+      "example": {
+        "ar": "دفتر الأستاذ الموزع في البيتكوين.",
+        "en": "The distributed ledger in Bitcoin."
+      }
+    }
+  },
+  {
+    "id": 19,
+    "front": {
+      "ar": "ما الفرق بين الإجماع المصرح به (Permissioned) وغير المصرح به (Permissionless)؟",
+      "en": "What is the difference between Permissioned and Permissionless consensus?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المصرح به يعتمد على مجموعة صغيرة مختارة (يتطلب 2/3 ثقة)، بينما غير المصرح به يعتمد على انتخاب قائد لامركزي.",
+        "en": "Permissioned relies on a small selected group (requires 2/3 trust), while permissionless relies on decentralized leader election."
+      },
+      "example": {
+        "ar": "Hyperledger (مصرح به) مقابل Bitcoin (غير مصرح به).",
+        "en": "Hyperledger (permissioned) vs Bitcoin (permissionless)."
+      }
+    }
+  },
+  {
+    "id": 20,
+    "front": {
+      "ar": "لماذا تعاني الاشتراكات القائمة على المحتوى من مشاكل قابلية التوسع؟",
+      "en": "Why do content-based subscriptions suffer from scalability problems?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأن مطابقة الأحداث مع نطاقات معقدة تتطلب معالجة حسابية عالية لكل رسالة.",
+        "en": "Because matching events against complex ranges requires high computational processing for every message."
+      },
+      "example": {
+        "ar": "التحقق مما إذا كان السعر يقع بين قيمتين لكل تحديث سهم.",
+        "en": "Checking if a price falls between two values for every stock update."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من العمليات التالية في مساحة Linda تعتبر عملية حظر (Blocking)؟",
+      "en": "Which of the following operations in the Linda tuple space are blocking operations?"
+    },
+    "options": {
+      "ar": [
+        "out(t) فقط",
+        "in(t) و rd(t)",
+        "rd(t) و out(t)",
+        "جميع العمليات"
+      ],
+      "en": [
+        "Only out(t)",
+        "in(t) and rd(t)",
+        "rd(t) and out(t)",
+        "All operations"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "العمليتان in و rd توقفان المتصل حتى يتم العثور على مجموعة مطابقة.",
+      "en": "Both in and rd block the caller until a matching tuple is found."
+    },
+    "hint": {
+      "ar": "تذكر أن القراءة والإزالة تتطلبان وجود البيانات أولاً.",
+      "en": "Remember that reading and removing require the data to exist first."
+    },
+    "difficulty": "medium",
+    "conceptId": "coordination-and-pubsub"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في بنية RESTful، ما هي العملية المستخدمة لتعديل مورد بنقل حالة جديدة؟",
+      "en": "In RESTful architecture, which operation is used to modify a resource by transferring a new state?"
+    },
+    "options": {
+      "ar": [
+        "PUT",
+        "GET",
+        "DELETE",
+        "POST"
+      ],
+      "en": [
+        "PUT",
+        "GET",
+        "DELETE",
+        "POST"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "عملية POST تُستخدم لتعديل مورد، بينما PUT تُستخدم لإنشاء مورد جديد.",
+      "en": "POST is used to modify a resource, while PUT is used to create a new resource."
+    },
+    "hint": {
+      "ar": "فكر في العملية التي تنقل حالة جديدة.",
+      "en": "Think of the operation that transfers a new state."
+    },
+    "difficulty": "easy",
+    "conceptId": "restful-architectures"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لربط N تطبيقات باستخدام وسيط (Broker)؟",
+      "en": "What is the complexity of connecting N applications using a Broker?"
+    },
+    "options": {
+      "ar": [
+        "O(N^2)",
+        "O(log N)",
+        "O(N)",
+        "O(1)"
+      ],
+      "en": [
+        "O(N^2)",
+        "O(log N)",
+        "O(N)",
+        "O(1)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "استخدام الوسيط يتطلب 2N من الأغلفة، مما يعني تعقيداً خطياً O(N).",
+      "en": "Using a broker requires 2N wrappers, which is O(N) linear complexity."
+    },
+    "hint": {
+      "ar": "الوسيط يقلل التعقيد التربيعي إلى خطي.",
+      "en": "A broker reduces quadratic complexity to linear."
+    },
+    "difficulty": "medium",
+    "conceptId": "middleware-wrappers-interceptors"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "في نظام Chord، أين يتم تخزين عنصر البيانات ذو المفتاح k؟",
+      "en": "In the Chord system, where is the data item with key k stored?"
+    },
+    "options": {
+      "ar": [
+        "في العقدة ذات المعرف الأكبر",
+        "في العقدة ذات المعرف الأصغر الذي يكون أكبر من أو يساوي k",
+        "في العقدة ذات المعرف الأصغر الذي يكون أصغر من k",
+        "في خادم مركزي"
+      ],
+      "en": [
+        "At the node with the largest identifier",
+        "At the node with the smallest identifier id ≥ k",
+        "At the node with the smallest identifier id < k",
+        "At a centralized server"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم تخزينه في اللاحق (Successor)، وهو العقدة ذات المعرف الأصغر الذي يحقق id ≥ k.",
+      "en": "It is stored at the successor, which is the node with the smallest identifier id ≥ k."
+    },
+    "hint": {
+      "ar": "ابحث عن تعريف اللاحق (Successor).",
+      "en": "Look for the definition of the successor."
+    },
+    "difficulty": "hard",
+    "conceptId": "p2p-architectures"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من طرق البحث التالية تُستخدم في P2P غير المهيكل وتعتمد على إرسال الطلب لجميع الجيران؟",
+      "en": "Which of the following search methods is used in Unstructured P2P and relies on passing the request to all neighbors?"
+    },
+    "options": {
+      "ar": [
+        "المشي العشوائي (Random walk)",
+        "التوجيه بالمفاتيح (Key routing)",
+        "الفيضان (Flooding)",
+        "الاستدعاء لأعلى (Upcall)"
+      ],
+      "en": [
+        "Random walk",
+        "Key routing",
+        "Flooding",
+        "Upcall"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الفيضان (Flooding) يرسل الطلب لجميع الجيران، ويتم حده باستخدام Time-To-Live.",
+      "en": "Flooding passes the request to all neighbors and is limited by a Time-To-Live."
+    },
+    "hint": {
+      "ar": "الكلمة تعني غمر كل شيء حولك.",
+      "en": "The word implies overwhelming everything around you."
+    },
+    "difficulty": "easy",
+    "conceptId": "p2p-architectures"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الدور الأساسي للمتتبع (Tracker) في شبكة BitTorrent؟",
+      "en": "What is the primary role of a Tracker in a BitTorrent network?"
+    },
+    "options": {
+      "ar": [
+        "تخزين الملفات بالكامل",
+        "الاحتفاظ بسجل دقيق للعقد النشطة (السرب)",
+        "تشفير البيانات بين الأقران",
+        "توجيه الاستدعاءات عن بُعد"
+      ],
+      "en": [
+        "Storing the complete files",
+        "Keeping an accurate account of active nodes (the swarm)",
+        "Encrypting data between peers",
+        "Routing remote procedure calls"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المتتبع لا يخزن الملفات، بل يحتفظ بقائمة العقد النشطة التي تمتلك أجزاء من الملف.",
+      "en": "The tracker does not store files; it keeps a list of active nodes that have chunks of the file."
+    },
+    "hint": {
+      "ar": "إنه 'يتتبع' من يملك ماذا.",
+      "en": "It 'tracks' who has what."
+    },
+    "difficulty": "medium",
+    "conceptId": "p2p-architectures"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في الحوسبة السحابية، أي طبقة توفر تجريدات عالية المستوى للتخزين مثل Amazon S3؟",
+      "en": "In cloud computing, which layer provides higher-level abstractions for storage like Amazon S3?"
+    },
+    "options": {
+      "ar": [
+        "الأجهزة (Hardware)",
+        "البنية التحتية (Infrastructure)",
+        "المنصة (Platform)",
+        "التطبيق (Application)"
+      ],
+      "en": [
+        "Hardware",
+        "Infrastructure",
+        "Platform",
+        "Application"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "طبقة المنصة (Platform) توفر واجهات برمجة تطبيقات (APIs) للتخزين والخدمات دون إدارة الخوادم الافتراضية.",
+      "en": "The Platform layer provides APIs for storage and services without managing virtual servers."
+    },
+    "hint": {
+      "ar": "إنها الطبقة التي تقع فوق البنية التحتية وتحت التطبيق.",
+      "en": "It's the layer above Infrastructure and below Application."
+    },
+    "difficulty": "medium",
+    "conceptId": "cloud-and-edge-computing"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي من الحجج التالية يُعتبر غالباً افتراضاً خاطئاً حول حوسبة الحافة؟",
+      "en": "Which of the following arguments is often considered a false assumption about edge computing?"
+    },
+    "options": {
+      "ar": [
+        "أنها تقلل زمن الوصول (Latency)",
+        "أنها تزيد من الموثوقية في الحالات الحرجة",
+        "أن الأصول تكون محمية بشكل أفضل بمجرد وجودها محلياً",
+        "أنها توفر عرض نطاق ترددي أفضل"
+      ],
+      "en": [
+        "It reduces latency",
+        "It increases reliability in critical situations",
+        "Assets are better protected simply by being local",
+        "It provides better bandwidth"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الافتراض بأن البيانات تكون أكثر أماناً لمجرد أنها محلية هو افتراض خاطئ، حيث أن السحابة غالباً ما تمتلك أماناً أقوى.",
+      "en": "The assumption that data is safer just because it is local is false, as the cloud often has stronger security."
+    },
+    "hint": {
+      "ar": "فكر في الأمان والخصوصية.",
+      "en": "Think about security and privacy."
+    },
+    "difficulty": "hard",
+    "conceptId": "cloud-and-edge-computing"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في الإجماع الموزع المصرح به (Permissioned) لسلسلة الكتل، ما هي نسبة العقد التي يجب أن تتصرف بشكل صحيح للوصول إلى إجماع؟",
+      "en": "In Permissioned distributed consensus for blockchains, what fraction of nodes must behave correctly to reach consensus?"
+    },
+    "options": {
+      "ar": [
+        "النصف (1/2)",
+        "الثلثين (2/3)",
+        "الجميع (100%)",
+        "الربع (1/4)"
+      ],
+      "en": [
+        "One half (1/2)",
+        "Two-thirds (2/3)",
+        "Everyone (100%)",
+        "One quarter (1/4)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتطلب الإجماع المصرح به أن يتصرف حوالي ثلثي (2/3) الخوادم وفقاً لمواصفاتها.",
+      "en": "Permissioned consensus requires roughly two-thirds (2/3) of the servers to behave according to their specifications."
+    },
+    "hint": {
+      "ar": "أكثر من النصف بقليل، نسبة شائعة في خوارزميات التسامح مع الأخطاء البيزنطية.",
+      "en": "Slightly more than half, a common ratio in Byzantine Fault Tolerance."
+    },
+    "difficulty": "hard",
+    "conceptId": "blockchains-and-consensus"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هو نموذج الاتصال الذي يمثل فك ارتباط مرجعي وزمني معاً؟",
+      "en": "Which communication model represents both referential and temporal decoupling?"
+    },
+    "options": {
+      "ar": [
+        "الاتصال المباشر (Direct)",
+        "صندوق البريد (Mailbox)",
+        "مبني على الأحداث (Event-based)",
+        "مساحة البيانات المشتركة (Shared data space)"
+      ],
+      "en": [
+        "Direct",
+        "Mailbox",
+        "Event-based",
+        "Shared data space"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "مساحة البيانات المشتركة (مثل Linda) تفك الارتباط المرجعي (لا يعرفون بعضهم) والزمني (لا يعملون في نفس الوقت).",
+      "en": "Shared data space (like Linda) decouples referentially (they don't know each other) and temporally (they don't run at the same time)."
+    },
+    "hint": {
+      "ar": "نموذج Linda هو مثال على هذا النوع.",
+      "en": "The Linda model is an example of this type."
+    },
+    "difficulty": "medium",
+    "conceptId": "coordination-and-pubsub"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">يعتقد الكثيرون أن حوسبة الحافة (Edge Computing) تُستخدم فقط لتقليل زمن الوصول (Latency). هذا فخ! الموثوقية (Reliability) في الحالات الحرجة هي دافع قوي آخر، حيث تضمن استمرار العمل حتى لو انقطع الاتصال بالسحابة المركزية.</template>
+      <template class="content-en">Many believe Edge Computing is only used to reduce latency. This is a trap! Reliability in critical situations is another strong driver, ensuring operations continue even if the connection to the central cloud drops.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في أنظمة P2P المهيكلة (مثل Chord)، لا يتم تخزين البيانات في العقدة التي تطابق المفتاح تماماً (لأنها قد لا تكون موجودة)، بل في 'اللاحق' (Successor)، وهو أول عقدة تصادفها في الحلقة بمعرف أكبر من أو يساوي المفتاح.</template>
+      <template class="content-en">In structured P2P systems (like Chord), data isn't stored at the node that exactly matches the key (as it might not exist), but at the 'Successor', which is the first node encountered in the ring with an ID greater than or equal to the key.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق الجوهري بين IaaS و PaaS في السحابة: IaaS (البنية التحتية) تمنحك جهازاً افتراضياً تديره بالكامل، بينما PaaS (المنصة) تمنحك بيئة جاهزة (مثل Amazon S3) حيث لا تهتم بنظام التشغيل بل بالبيانات أو الكود فقط.</template>
+      <template class="content-en">The fundamental difference between IaaS and PaaS in the cloud: IaaS (Infrastructure) gives you a fully managed virtual machine, while PaaS (Platform) gives you a ready environment (like Amazon S3) where you don't care about the OS, only the data or code.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">احذر الخلط بين RESTful و SOAP. RESTful يعتمد على انعدام الحالة (Statelessness) وعمليات HTTP القياسية، بينما SOAP يعتمد على واجهات معقدة ومخصصة (مثل GetBucketAccessControlPolicy).</template>
+      <template class="content-en">Beware of confusing RESTful with SOAP. RESTful relies on statelessness and standard HTTP operations, whereas SOAP relies on complex, custom interfaces (like GetBucketAccessControlPolicy).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في البلوك تشين، الإجماع المصرح به (Permissioned) سريع ولكنه محدود التوسع (عشرات العقد)، بينما الإجماع غير المصرح به (Permissionless) يتوسع لآلاف العقد ولكنه يتطلب آلية معقدة لانتخاب القائد (مثل إثبات العمل).</template>
+      <template class="content-en">In Blockchain, Permissioned consensus is fast but limited in scale (tens of nodes), while Permissionless consensus scales to thousands of nodes but requires a complex leader election mechanism (like Proof of Work).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M04.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M06.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

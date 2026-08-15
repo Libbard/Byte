@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS242" data-module="6">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>آلات الدفع السفلي (Pushdown Automata) · CS242 · الحديقة الرقمية</title>
+
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS242" data-page-title-en="CS242">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M05.html" data-gh-next="M07.html" data-gh-card="../../hub/course.html?code=CS242"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#pda-introduction" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة في آلات الدفع السفلي (PDA)</template>
+        <template class="content-en">Introduction to Pushdown Automata (PDA)</template>
+        <span class="content-target">مقدمة في آلات الدفع السفلي (PDA)</span>
+      </a>
+      <a href="#formal-definition-pda" class="toc-link" data-bilingual>
+        <template class="content-ar">التعريف الرسمي لآلة الدفع السفلي</template>
+        <template class="content-en">Formal Definition of a PDA</template>
+        <span class="content-target">التعريف الرسمي لآلة الدفع السفلي</span>
+      </a>
+      <a href="#transition-actions" class="toc-link" data-bilingual>
+        <template class="content-ar">عمليات دالة الانتقال</template>
+        <template class="content-en">Transition Function Actions</template>
+        <span class="content-target">عمليات دالة الانتقال</span>
+      </a>
+      <a href="#instantaneous-description" class="toc-link" data-bilingual>
+        <template class="content-ar">الوصف اللحظي (ID)</template>
+        <template class="content-en">Instantaneous Description (ID)</template>
+        <span class="content-target">الوصف اللحظي (ID)</span>
+      </a>
+      <a href="#acceptance-criteria" class="toc-link" data-bilingual>
+        <template class="content-ar">معايير القبول في آلات الدفع السفلي</template>
+        <template class="content-en">Acceptance Criteria in PDAs</template>
+        <span class="content-target">معايير القبول في آلات الدفع السفلي</span>
+      </a>
+      <a href="#equivalence-acceptance" class="toc-link" data-bilingual>
+        <template class="content-ar">تكافؤ طرق القبول</template>
+        <template class="content-en">Equivalence of Acceptance Types</template>
+        <span class="content-target">تكافؤ طرق القبول</span>
+      </a>
+      <a href="#cfg-to-pda" class="toc-link" data-bilingual>
+        <template class="content-ar">تحويل القواعد الخالية من السياق إلى آلة دفع سفلي</template>
+        <template class="content-en">Converting CFG to PDA</template>
+        <span class="content-target">تحويل القواعد الخالية من السياق إلى آلة دفع سفلي</span>
+      </a>
+      <a href="#pda-to-cfg" class="toc-link" data-bilingual>
+        <template class="content-ar">تحويل آلة الدفع السفلي إلى قواعد خالية من السياق</template>
+        <template class="content-en">Converting PDA to CFG</template>
+        <span class="content-target">تحويل آلة الدفع السفلي إلى قواعد خالية من السياق</span>
+      </a>
+      <a href="#deterministic-pda" class="toc-link" data-bilingual>
+        <template class="content-ar">آلات الدفع السفلي الحتمية (DPDA)</template>
+        <template class="content-en">Deterministic Pushdown Automata (DPDA)</template>
+        <span class="content-target">آلات الدفع السفلي الحتمية (DPDA)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS242
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">آلات الدفع السفلي (Pushdown Automata)</h1>
+      <p class="hero-description">دراسة آلات الدفع السفلي، تعريفها الرسمي، لغاتها، وتكافؤها مع القواعد الخالية من السياق (CFGs)، بالإضافة إلى الفرق بين الآلات الحتمية وغير الحتمية.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Pushdown Automata (PDA)</h1>
+      <p class="hero-description">Study of Pushdown Automata, their formal definition, languages, equivalence with Context-Free Grammars (CFGs), and the difference between deterministic and non-deterministic PDAs.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">آلات الدفع السفلي</span>
+      <span class="tag">القواعد الخالية من السياق</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Pushdown Automata</span>
+      <span class="tag">Context-Free Grammars</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح مفهوم آلات الدفع السفلي (PDA) ومكوناتها الأساسية.</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين القبول بالحالة النهائية والقبول بالمكدس الفارغ وإثبات تكافؤهما.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحويل القواعد الخالية من السياق (CFGs) إلى آلات دفع سفلي (PDAs) والعكس.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم الفرق الجوهري بين آلات الدفع السفلي الحتمية (DPDA) وغير الحتمية (NPDA).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain the concept of Pushdown Automata (PDA) and its core components.</span></li>
+      <li><span class="obj-icon">✦</span><span>Distinguish between acceptance by final state and empty stack, and prove their equivalence.</span></li>
+      <li><span class="obj-icon">✦</span><span>Convert Context-Free Grammars (CFGs) to Pushdown Automata (PDAs) and vice versa.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the fundamental difference between Deterministic (DPDA) and Non-Deterministic Pushdown Automata (NPDA).</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="pda-introduction" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مقدمة في آلات الدفع السفلي (PDA)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Introduction to Pushdown Automata (PDA)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>آلة الدفع السفلي هي آلة حالات منتهية (NFA) مزودة بذاكرة إضافية على شكل <span class="smart-term" data-term-en="Stack" data-ar="المكدس" data-en-def="A Last-In-First-Out (LIFO) data structure used by PDAs for memory.">مكدس (Stack)<span class="smart-term-tooltip"></span></span>.</p>
+    </template>
+    <template class="content-en">
+      <p>A PDA is essentially an epsilon-NFA with the addition of a <span class="smart-term" data-term-en="Stack" data-ar="المكدس" data-en-def="A Last-In-First-Out (LIFO) data structure used by PDAs for memory.">stack<span class="smart-term-tooltip"></span></span> memory.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>آلات الدفع السفلي (PDA) تمثل النموذج الحسابي للغات الخالية من السياق (CFLs).</p><p>على عكس الآلات المنتهية (FA) التي تمتلك ذاكرة محدودة جداً، تستخدم الـ PDA مكدساً (Stack) يسمح لها بتذكر كمية غير محدودة من المعلومات، ولكن يمكن الوصول إليها فقط بطريقة (ما يدخل أخيراً يخرج أولاً - LIFO).</p><p>هذا يسمح لها بالتعرف على لغات مثل الأقواس المتطابقة أو السلاسل المتناظرة.</p></template>
+    <template class="content-en"><p>Pushdown Automata (PDA) are the computational model for Context-Free Languages (CFLs).</p><p>Unlike Finite Automata (FA) which have strictly finite memory, a PDA uses a stack that allows it to remember an infinite amount of information, accessed strictly in a Last-In-First-Out (LIFO) manner.</p><p>This enables it to recognize languages like balanced parentheses or palindromes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>وجود المكدس يحل مشكلة العد والمطابقة التي تعجز عنها الآلات المنتهية.</p><p>ومع ذلك، فإن تقييد الوصول إلى قمة المكدس فقط يجعل الـ PDA غير قادرة على التعرف على لغات تتطلب مطابقة متعددة الأطراف مثل {0^n 1^n 2^n}.</p></template>
+    <template class="content-en"><p>The presence of the stack solves the counting and matching problem that FAs cannot handle.</p><p>However, the restriction of only accessing the top of the stack means PDAs cannot recognize languages that require multi-way matching, such as {0^n 1^n 2^n}.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[5]: A block diagram showing an 'Input String' feeding into a central block labeled 'epsilon-NFA'. Below the central block, a vertical stack data structure is shown with bidirectional arrows indicating push/pop operations. An arrow points out from the central block labeled 'Accept/reject'. Style: educational, dark background #0d1117, accent color #00bcd4. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg viewBox="0 0 800 550" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <!-- Arrowhead for standard paths -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Arrowhead for read head -->
+    <marker id="arrow-read" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-400)" />
+    </marker>
+
+    <!-- Gradient for the central epsilon-NFA block -->
+    <linearGradient id="nfa-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-800)" />
+      <stop offset="100%" stop-color="var(--brand-600)" />
+    </linearGradient>
+
+    <!-- Subtle drop shadow for elevated elements -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- ========================================== -->
+  <!-- INPUT STRING (TAPE)                        -->
+  <!-- ========================================== -->
+  <g id="input-string">
+    <!-- Tape Labels -->
+    <text x="120" y="125" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Input String</text>
+    <text x="120" y="145" fill="var(--text-secondary)" font-size="14" text-anchor="middle">سلسلة الإدخال</text>
+
+    <!-- Tape Cells -->
+    <rect x="40" y="160" width="40" height="40" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="60" y="186" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">a</text>
+
+    <rect x="80" y="160" width="40" height="40" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="100" y="186" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">b</text>
+
+    <rect x="120" y="160" width="40" height="40" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="140" y="186" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">a</text>
+
+    <rect x="160" y="160" width="40" height="40" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="180" y="186" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">b</text>
+
+    <!-- Tape Continuation (Dashed) -->
+    <path d="M 200 160 L 220 160 M 200 200 L 220 200" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4,4" />
+
+    <!-- Read Head Pointer -->
+    <path d="M 60 240 L 60 208" stroke="var(--brand-400)" stroke-width="3" marker-end="url(#arrow-read)" />
+    <text x="60" y="260" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Read Head</text>
+    <text x="60" y="280" fill="var(--text-muted)" font-size="13" text-anchor="middle">رأس القراءة</text>
+
+    <!-- Arrow from Tape to NFA -->
+    <path d="M 230 180 L 285 180" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  </g>
+
+  <!-- ========================================== -->
+  <!-- CENTRAL BLOCK (epsilon-NFA)                -->
+  <!-- ========================================== -->
+  <g id="central-block">
+    <rect x="300" y="120" width="200" height="120" rx="16" fill="url(#nfa-grad)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    <text x="400" y="160" fill="var(--text-primary)" font-size="24" font-weight="bold" text-anchor="middle">ε-NFA</text>
+    <text x="400" y="185" fill="var(--text-primary)" font-size="16" text-anchor="middle">Control Unit</text>
+    <text x="400" y="215" fill="var(--text-primary)" font-size="15" text-anchor="middle">وحدة التحكم</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- OUTPUT (ACCEPT / REJECT)                   -->
+  <!-- ========================================== -->
+  <g id="output-section">
+    <!-- Arrow from NFA to Output -->
+    <path d="M 500 180 L 675 180" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <!-- Output Arrow Labels -->
+    <text x="590" y="165" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Accept / Reject</text>
+    <text x="590" y="205" fill="var(--text-secondary)" font-size="15" text-anchor="middle">قبول / رفض</text>
+
+    <!-- Output Terminal Box -->
+    <rect x="690" y="150" width="90" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <text x="735" y="175" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Result</text>
+    <text x="735" y="195" fill="var(--text-secondary)" font-size="14" text-anchor="middle">النتيجة</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- STACK DATA STRUCTURE                       -->
+  <!-- ========================================== -->
+  <g id="stack-structure">
+    <!-- Push Arrow (Down) -->
+    <path d="M 430 250 L 430 300" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="445" y="270" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="start">Push</text>
+    <text x="445" y="290" fill="var(--text-secondary)" font-size="14" text-anchor="start">دفع</text>
+
+    <!-- Pop Arrow (Up) -->
+    <path d="M 370 300 L 370 250" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="355" y="270" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="end">Pop</text>
+    <text x="355" y="290" fill="var(--text-secondary)" font-size="14" text-anchor="end">سحب</text>
+
+    <!-- Stack Container (U-Shape) -->
+    <path d="M 350 310 L 350 450 A 10 10 0 0 0 360 460 L 440 460 A 10 10 0 0 0 450 450 L 450 310" fill="none" stroke="var(--brand-500)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Stack Elements -->
+    <!-- Bottom Element (Z0) -->
+    <rect x="355" y="420" width="90" height="35" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="400" y="444" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">Z₀</text>
+
+    <!-- Middle Element (A) -->
+    <rect x="355" y="380" width="90" height="35" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="400" y="404" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">A</text>
+
+    <!-- Top Element (B) -->
+    <rect x="355" y="340" width="90" height="35" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="400" y="364" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">B</text>
+
+    <!-- Stack Labels -->
+    <text x="400" y="495" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">Stack</text>
+    <text x="400" y="520" fill="var(--text-secondary)" font-size="16" text-anchor="middle">المكدس</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا تستطيع آلة الدفع السفلي التعرف على اللغة {0^n 1^n 2^n}؟</template>
+      <template class="content-en">Why can't a PDA recognize the language {0^n 1^n 2^n}?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن المكدس يسمح بمطابقة عنصرين فقط (مثل 0 مع 1). بمجرد إخراج الأصفار لمطابقة الآحاد، يفرغ المكدس ولا يتبقى شيء لمطابقة الاثنينات.</p></template>
+      <template class="content-en"><p>Because a stack only easily allows matching two quantities (e.g., 0s with 1s). Once the 0s are popped to match the 1s, the stack is empty and there is no record left to match the 2s.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="formal-definition-pda" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> التعريف الرسمي لآلة الدفع السفلي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Formal Definition of a PDA</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تُعرّف آلة الدفع السفلي كـ 7 عناصر: الحالات، أبجدية الإدخال، أبجدية المكدس، <span class="smart-term" data-term-en="Transition Function" data-ar="دالة الانتقال" data-en-def="Defines the next state and stack operation based on current state, input, and stack top.">دالة الانتقال<span class="smart-term-tooltip"></span></span>، حالة البداية، رمز المكدس الابتدائي، وحالات القبول.</p>
+    </template>
+    <template class="content-en">
+      <p>A PDA is defined as a 7-tuple: states, input alphabet, stack alphabet, <span class="smart-term" data-term-en="Transition Function" data-ar="دالة الانتقال" data-en-def="Defines the next state and stack operation based on current state, input, and stack top.">transition function<span class="smart-term-tooltip"></span></span>, start state, initial stack symbol, and accepting states.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التعريف الرسمي لآلة الدفع السفلي هو P = (Q, Σ, Γ, δ, q0, Z0, F)، حيث:</p><ul><li><strong>Q</strong>: مجموعة منتهية من الحالات.</li><li><strong>Σ</strong>: أبجدية الإدخال.</li><li><strong>Γ</strong>: أبجدية المكدس.</li><li><strong>δ</strong>: دالة الانتقال.</li><li><strong>q0</strong>: حالة البداية.</li><li><strong>Z0</strong>: رمز المكدس الابتدائي.</li><li><strong>F</strong>: مجموعة حالات القبول.</li></ul></template>
+    <template class="content-en"><p>The formal definition of a PDA is P = (Q, Σ, Γ, δ, q0, Z0, F), where:</p><ul><li><strong>Q</strong>: A finite set of states.</li><li><strong>Σ</strong>: A finite set of input symbols.</li><li><strong>Γ</strong>: A finite set of stack symbols.</li><li><strong>δ</strong>: The transition function.</li><li><strong>q0</strong>: The start state.</li><li><strong>Z0</strong>: Initial stack symbol.</li><li><strong>F</strong>: The set of accepting states.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>دالة الانتقال δ تأخذ ثلاثة مدخلات: الحالة الحالية، رمز الإدخال (أو إبسيلون)، ورمز قمة المكدس.</p><p>وتُرجع مجموعة من الأزواج (الحالة الجديدة، السلسلة البديلة لقمة المكدس).</p><p>هذا يعكس الطبيعة غير الحتمية للآلة.</p></template>
+    <template class="content-en"><p>The transition function δ takes three arguments: current state, input symbol (or epsilon), and top stack symbol.</p><p>It returns a set of pairs (new state, replacement string for the stack top).</p><p>This reflects the non-deterministic nature of the PDA.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>دالة الانتقال لآلة الدفع السفلي غير الحتمية.</strong></template>
+      <template class="content-en"><strong>The transition function for a non-deterministic PDA.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\delta: Q \times (\Sigma \cup \{\epsilon\}) \times \Gamma \rightarrow \mathcal{P}(Q \times \Gamma^*)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو دور الرمز Z0 في المكدس؟</template>
+      <template class="content-en">What is the role of the Z0 symbol in the stack?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يعمل كعلامة لقاع المكدس، مما يسمح للآلة بمعرفة متى يصبح المكدس فارغاً من الرموز المدخلة.</p></template>
+      <template class="content-en"><p>It acts as a bottom-of-stack marker, allowing the PDA to detect when the stack is empty of pushed symbols.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="transition-actions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> عمليات دالة الانتقال</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Transition Function Actions</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يمكن للآلة استبدال قمة المكدس بسلسلة جديدة: إبسيلون (<span class="smart-term" data-term-en="Pop" data-ar="حذف (إخراج)" data-en-def="Removing the top element from the stack (Y = ε).">حذف<span class="smart-term-tooltip"></span></span>)، نفس الرمز (تجاهل)، أو سلسلة أطول (<span class="smart-term" data-term-en="Push" data-ar="إضافة (إدخال)" data-en-def="Adding one or more elements to the top of the stack.">إضافة<span class="smart-term-tooltip"></span></span>).</p>
+    </template>
+    <template class="content-en">
+      <p>The PDA replaces the stack top with a string: epsilon (<span class="smart-term" data-term-en="Pop" data-ar="حذف (إخراج)" data-en-def="Removing the top element from the stack (Y = ε).">pop<span class="smart-term-tooltip"></span></span>), the same symbol (no-op), or a longer string (<span class="smart-term" data-term-en="Push" data-ar="إضافة (إدخال)" data-en-def="Adding one or more elements to the top of the stack.">push<span class="smart-term-tooltip"></span></span>).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند تنفيذ انتقال δ(q, a, X) = {(p, Y)}، يتم استبدال الرمز X الموجود في قمة المكدس بالسلسلة Y.</p><ol><li><strong>إذا كانت Y = ε</strong>، فهذا يعني عملية حذف (Pop).</li><li><strong>إذا كانت Y = X</strong>، يبقى المكدس كما هو.</li><li><strong>إذا كانت Y = Z1Z2...Zk</strong>، يتم حذف X وإضافة الرموز الجديدة بحيث يصبح Z1 هو القمة الجديدة (عملية Push متعددة).</li></ol></template>
+    <template class="content-en"><p>When executing a transition δ(q, a, X) = {(p, Y)}, the top stack symbol X is replaced by the string Y.</p><ol><li><strong>If Y = ε</strong>, this is a Pop operation.</li><li><strong>If Y = X</strong>, the stack top is unchanged.</li><li><strong>If Y = Z1Z2...Zk</strong>, X is popped and replaced by Y in reverse order, making Z1 the new stack top (multiple Push operations).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم دفع السلسلة Y بترتيب عكسي لضمان أن الرمز الأول في السلسلة (Z1) يصبح هو القمة الجديدة للمكدس، مما يسهل محاكاة الاشتقاق الأيسر في القواعد الخالية من السياق.</p></template>
+    <template class="content-en"><p>The string Y is pushed in reverse order to ensure that the first symbol of the string (Z1) becomes the new top of the stack, which perfectly aligns with simulating leftmost derivations in CFGs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[4]: A diagram showing a state transition from node 'q' to node 'p' with an edge labeled 'a, X / Y'. Next to it, a visual representation of a stack where the top element 'X' is removed and replaced by the string 'Y'. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <!-- Arrowhead for solid lines -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+    
+    <!-- Arrowhead for dashed annotation lines -->
+    <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)"/>
+    </marker>
+
+    <!-- Gradient for highlighted stack elements -->
+    <linearGradient id="highlight-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-600)"/>
+      <stop offset="100%" stop-color="var(--brand-800)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+  <!-- Main Title -->
+  <text x="425" y="45" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    Pushdown Automaton (PDA) Transition / انتقال آلة الدفع السفلي
+  </text>
+  <text x="425" y="75" font-size="16" fill="var(--text-secondary)" text-anchor="middle">
+    State transition reads 'a', pops 'X' from stack, and pushes 'Y'
+  </text>
+
+  <!-- LEFT PANEL: State Diagram -->
+  <rect x="40" y="110" width="360" height="300" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="220" y="145" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    State Diagram / مخطط الحالة
+  </text>
+
+  <!-- Nodes -->
+  <circle cx="120" cy="290" r="30" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="3"/>
+  <text x="120" y="297" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">q</text>
+
+  <circle cx="320" cy="290" r="30" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="3"/>
+  <text x="320" y="297" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">p</text>
+
+  <!-- Edge -->
+  <path d="M 150 290 L 290 290" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Edge Label (a, X / Y) -->
+  <text x="185" y="275" font-size="24" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">a</text>
+  <text x="200" y="275" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">,</text>
+  <text x="220" y="275" font-size="24" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">X</text>
+  <text x="240" y="275" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">/</text>
+  <text x="260" y="275" font-size="24" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Y</text>
+
+  <!-- Annotations for Edge Label -->
+  <!-- Input 'a' -->
+  <path d="M 185 250 L 185 215 L 140 215" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4"/>
+  <text x="140" y="185" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+    <tspan x="140" dy="0">Input</tspan>
+    <tspan x="140" dy="20">(المدخل)</tspan>
+  </text>
+
+  <!-- Pop 'X' -->
+  <path d="M 220 250 L 220 175" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4"/>
+  <text x="220" y="140" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+    <tspan x="220" dy="0">Pop</tspan>
+    <tspan x="220" dy="20">(إزالة)</tspan>
+  </text>
+
+  <!-- Push 'Y' -->
+  <path d="M 260 250 L 260 215 L 300 215" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4"/>
+  <text x="300" y="185" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+    <tspan x="300" dy="0">Push</tspan>
+    <tspan x="300" dy="20">(إضافة)</tspan>
+  </text>
+
+
+  <!-- RIGHT PANEL: Stack Memory -->
+  <rect x="430" y="110" width="380" height="300" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="620" y="145" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    Stack Memory / ذاكرة المكدس
+  </text>
+
+  <!-- Before Stack -->
+  <path d="M 480 230 L 480 370 L 560 370 L 560 230" fill="none" stroke="var(--border-color)" stroke-width="4" stroke-linejoin="round"/>
+  
+  <rect x="485" y="240" width="70" height="40" rx="4" fill="url(#highlight-grad)"/>
+  <text x="520" y="267" font-size="20" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">X</text>
+  
+  <rect x="485" y="285" width="70" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="520" y="312" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Z</text>
+  
+  <rect x="485" y="330" width="70" height="35" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="520" y="355" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">...</text>
+
+  <text x="520" y="395" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Before / قبل</text>
+
+  <!-- Pop Action Arrow -->
+  <path d="M 520 235 L 520 185" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="520" y="150" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    <tspan x="520" dy="0">Pop X</tspan>
+    <tspan x="520" dy="20">(إزالة)</tspan>
+  </text>
+
+  <!-- Transition Arrow between stacks -->
+  <path d="M 580 305 L 660 305" fill="none" stroke="var(--text-secondary)" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="620" y="275" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+    <tspan x="620" dy="0">Transition</tspan>
+    <tspan x="620" dy="20">(انتقال)</tspan>
+  </text>
+
+  <!-- After Stack -->
+  <path d="M 680 230 L 680 370 L 760 370 L 760 230" fill="none" stroke="var(--border-color)" stroke-width="4" stroke-linejoin="round"/>
+  
+  <rect x="685" y="240" width="70" height="40" rx="4" fill="url(#highlight-grad)"/>
+  <text x="720" y="267" font-size="20" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">Y</text>
+  
+  <rect x="685" y="285" width="70" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="720" y="312" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Z</text>
+  
+  <rect x="685" y="330" width="70" height="35" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="720" y="355" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">...</text>
+
+  <text x="720" y="395" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">After / بعد</text>
+
+  <!-- Push Action Arrow -->
+  <path d="M 720 180 L 720 235" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="720" y="150" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    <tspan x="720" dy="0">Push Y</tspan>
+    <tspan x="720" dy="20">(إضافة)</tspan>
+  </text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكن لآلة الدفع السفلي قراءة قمة المكدس دون تغييرها؟</template>
+      <template class="content-en">How can a PDA read the top of the stack without changing it?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عن طريق جعل سلسلة الاستبدال مطابقة تماماً للرمز المقروء (أي Y = X).</p></template>
+      <template class="content-en"><p>By making the replacement string exactly the same as the popped symbol (i.e., Y = X).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="instantaneous-description" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الوصف اللحظي (ID)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Instantaneous Description (ID)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الوصف اللحظي هو لقطة لحالة الآلة تتضمن: الحالة الحالية، المدخلات المتبقية، ومحتوى المكدس.</p>
+    </template>
+    <template class="content-en">
+      <p>An ID is a snapshot of the PDA's configuration: current state, remaining input, and stack contents.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُستخدم الوصف اللحظي (ID) لتمثيل تكوين آلة الدفع السفلي في أي لحظة معينة، ويُكتب على شكل ثلاثية: (q, w, y)، حيث:</p><ul><li><strong>q</strong>: الحالة الحالية.</li><li><strong>w</strong>: الجزء المتبقي من سلسلة الإدخال الذي لم يُقرأ بعد.</li><li><strong>y</strong>: محتويات المكدس الحالية (من القمة إلى القاع).</li></ul><p>نستخدم <span class="smart-term" data-term-en="Turnstile Notation" data-ar="رمز الباب الدوار (⊢)" data-en-def="A symbol used to denote a computational step or sequence of steps in an automaton.">رمز الباب الدوار (Turnstile) ⊢<span class="smart-term-tooltip"></span></span> لتمثيل انتقال واحد، و ⊢* لتمثيل سلسلة من الانتقالات.</p></template>
+    <template class="content-en"><p>An Instantaneous Description (ID) represents the configuration of a PDA at any given instance, written as a triplet: (q, w, y), where:</p><ul><li><strong>q</strong>: current state.</li><li><strong>w</strong>: remainder of the input (unconsumed part).</li><li><strong>y</strong>: current stack contents from top to bottom.</li></ul><p>We use the <span class="smart-term" data-term-en="Turnstile Notation" data-ar="رمز الباب الدوار (⊢)" data-en-def="A symbol used to denote a computational step or sequence of steps in an automaton.">turnstile notation ⊢<span class="smart-term-tooltip"></span></span> to represent one move, and ⊢* to represent a sequence of moves.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الوصف اللحظي ضروري لإثبات النظريات حول آلات الدفع السفلي، لأنه يوفر طريقة رياضية دقيقة لتتبع مسار الحساب بأكمله، خاصة في ظل وجود عدم الحتمية حيث يمكن أن تتفرع مسارات الحساب.</p></template>
+    <template class="content-en"><p>IDs are essential for proving theorems about PDAs because they provide a rigorous mathematical way to track the entire computation path, especially crucial given the non-determinism where computation paths can branch.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>انتقال واحد في الوصف اللحظي.</strong></template>
+      <template class="content-en"><strong>A single move in ID notation.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$(q, aw, XB) \vdash (p, w, AB)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يعني التعبير (q, ε, ε) في الوصف اللحظي؟</template>
+      <template class="content-en">What does the expression (q, ε, ε) mean in an ID?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يعني أن الآلة في الحالة q، وقد استهلكت كامل سلسلة الإدخال، والمكدس أصبح فارغاً تماماً.</p></template>
+      <template class="content-en"><p>It means the PDA is in state q, the entire input string has been consumed, and the stack is completely empty.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="acceptance-criteria" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> معايير القبول في آلات الدفع السفلي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Acceptance Criteria in PDAs</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يمكن للآلة قبول السلسلة إما بالوصول إلى حالة نهائية، أو بتفريغ المكدس بالكامل بعد قراءة المدخلات.</p>
+    </template>
+    <template class="content-en">
+      <p>A PDA can accept a string either by reaching a final state, or by completely emptying its stack after reading the input.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك طريقتان لتصميم آلة الدفع السفلي لقبول اللغات:</p><ol><li><b>القبول بالحالة النهائية L(P):</b> تُقبل السلسلة إذا تم استهلاكها بالكامل وانتهت الآلة في إحدى حالات القبول (بغض النظر عن محتوى المكدس).</li><li><b>القبول بالمكدس الفارغ N(P):</b> تُقبل السلسلة إذا تم استهلاكها بالكامل وأصبح المكدس فارغاً تماماً (بغض النظر عن الحالة الحالية، ولا حاجة لتحديد حالات نهائية).</li></ol></template>
+    <template class="content-en"><p>There are two ways to design a PDA to accept languages:</p><ol><li><b>Acceptance by Final State L(P):</b> A string is accepted if it is fully consumed and the PDA ends in an accepting state (regardless of stack contents).</li><li><b>Acceptance by Empty Stack N(P):</b> A string is accepted if it is fully consumed and the stack becomes completely empty (regardless of the current state, no final states need to be specified).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>رياضياً، الفئتان متكافئتان تماماً.</p><p>أي لغة يمكن قبولها بالحالة النهائية يمكن تصميم آلة أخرى تقبلها بالمكدس الفارغ، والعكس صحيح.</p><p>هذا التكافؤ يسهل البراهين، حيث نستخدم القبول بالمكدس الفارغ عند الربط مع القواعد الخالية من السياق.</p></template>
+    <template class="content-en"><p>Mathematically, both classes are strictly equivalent.</p><p>Any language accepted by final state can be accepted by an empty stack PDA, and vice versa.</p><p>This equivalence simplifies proofs, as empty stack acceptance naturally aligns with CFG derivations.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>تعريف القبول بالحالة النهائية.</strong></template>
+      <template class="content-en"><strong>Definition of acceptance by final state.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$L(P) = \{w \mid (q_0, w, Z_0) \vdash^* (q, \epsilon, A), q \in F\}$$</div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Final State L(P)</th><th>Empty Stack N(P)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">شرط القبول</template>
+          <template class="content-en">Acceptance Condition</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الوصول لحالة تنتمي لـ F</template>
+          <template class="content-en">Reach a state in F</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تفريغ المكدس بالكامل</template>
+          <template class="content-en">Completely empty the stack</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الحاجة لحالات نهائية</template>
+          <template class="content-en">Need for Final States</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مطلوبة (مجموعة F)</template>
+          <template class="content-en">Required (Set F)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">غير مطلوبة</template>
+          <template class="content-en">Not required</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التوافق مع CFG</template>
+          <template class="content-en">Alignment with CFG</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يتطلب تحويل إضافي</template>
+          <template class="content-en">Requires extra conversion</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يتوافق بشكل طبيعي</template>
+          <template class="content-en">Naturally aligns</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل تحتاج آلة تقبل بالمكدس الفارغ إلى تحديد حالات نهائية (F)؟</template>
+      <template class="content-en">Does a PDA that accepts by empty stack need to specify final states (F)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، مجموعة الحالات النهائية غير ضرورية ويمكن تركها فارغة، لأن شرط القبول يعتمد فقط على فراغ المكدس.</p></template>
+      <template class="content-en"><p>No, the set of final states is unnecessary and can be empty, because the acceptance condition depends solely on the stack being empty.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="equivalence-acceptance" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تكافؤ طرق القبول</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Equivalence of Acceptance Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يمكن تحويل أي آلة تقبل بالمكدس الفارغ إلى آلة تقبل بالحالة النهائية، والعكس صحيح.</p>
+    </template>
+    <template class="content-en">
+      <p>Any PDA accepting by empty stack can be converted to one accepting by final state, and vice versa.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><b>من مكدس فارغ (PN) إلى حالة نهائية (PF):</b> نضيف رمز مكدس جديد X0 كقاع وهمي، وحالة بداية جديدة، وحالة نهائية جديدة. عندما تفرغ الآلة الأصلية مكدسها، سترى الآلة الجديدة X0، فتنتقل عبر إبسيلون إلى الحالة النهائية.</li><li><b>من حالة نهائية (PF) إلى مكدس فارغ (PN):</b> نضيف رمز مكدس جديد X0 وحالة بداية جديدة. عندما تصل الآلة الأصلية إلى حالة نهائية، ننتقل عبر إبسيلون إلى حالة تفريغ جديدة (pe) تقوم بحذف كل ما تبقى في المكدس.</li></ul></template>
+    <template class="content-en"><ul><li><b>From Empty Stack (PN) to Final State (PF):</b> Add a new bottom stack symbol X0, a new start state, and a new final state. When the original PDA empties its stack, the new PDA sees X0 and makes an epsilon-transition to the final state.</li><li><b>From Final State (PF) to Empty Stack (PN):</b> Add a new bottom symbol X0 and a new start state. Whenever the original PDA reaches a final state, make an epsilon-transition to a new 'eraser' state (pe) that pops everything remaining on the stack.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الرمز X0 ضروري في كلتا الحالتين.</p><p>في التحويل الأول، يمنع الآلة من التوقف المبكر ويسمح باكتشاف الفراغ.</p><p>في التحويل الثاني، يمنع الآلة من تفريغ المكدس عن طريق الخطأ قبل الوصول إلى حالة نهائية حقيقية.</p></template>
+    <template class="content-en"><p>The new symbol X0 is crucial in both constructions.</p><p>In PN->PF, it prevents premature halting and allows detecting the empty state.</p><p>In PF->PN, it prevents the PDA from accidentally emptying its stack midway without actually entering a final state.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Two side-by-side diagrams. Left: Converting PN to PF, showing a new start state transitioning to the old start state pushing X0, and old states transitioning to a new final state when X0 is seen. Right: Converting PF to PN, showing old final states transitioning to a new 'eraser' state (pe) that loops to pop all symbols. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Standard Arrowhead -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 2 L 10 5 L 0 8 z" fill="var(--brand-500)" />
+        </marker>
+        <!-- Dashed Arrowhead for internal operations -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 2 L 10 5 L 0 8 z" fill="var(--brand-400)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Center Divider -->
+    <line x1="500" y1="30" x2="500" y2="420" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+
+    <!-- ========================================== -->
+    <!-- LEFT DIAGRAM: PN to PF                     -->
+    <!-- ========================================== -->
+
+    <!-- Titles -->
+    <text x="250" y="50" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">PN to PF</text>
+    <text x="250" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">Empty Stack to Final State / تحويل إلى حالة نهائية</text>
+
+    <!-- Original PDA Box -->
+    <rect x="120" y="130" width="220" height="180" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,4" />
+    <text x="230" y="290" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Original PDA (PN) / الآلة الأصلية</text>
+
+    <!-- States -->
+    <!-- p0 (New Start) -->
+    <circle cx="60" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="60" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">p₀</text>
+    <text x="60" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">New Start</text>
+
+    <!-- q0 (Old Start) -->
+    <circle cx="170" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="170" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">q₀</text>
+
+    <!-- q (Any State) -->
+    <circle cx="290" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="290" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">q</text>
+    <text x="290" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Any state</text>
+
+    <!-- pf (New Final) -->
+    <circle cx="420" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <circle cx="420" cy="210" r="15" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="420" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">p_f</text>
+    <text x="420" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">New Final</text>
+
+    <!-- Transitions -->
+    <!-- Start Arrow -->
+    <line x1="15" y1="210" x2="35" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="25" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Start</text>
+
+    <!-- p0 to q0 -->
+    <line x1="80" y1="210" x2="145" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="112" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">ε, ε → X₀</text>
+
+    <!-- q0 to q (Internal Operations) -->
+    <line x1="190" y1="210" x2="265" y2="210" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed)" />
+    <text x="227" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">operations</text>
+
+    <!-- q to pf -->
+    <line x1="310" y1="210" x2="395" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="352" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">ε, X₀ → ε</text>
+
+    <!-- Explanation Footer -->
+    <text x="250" y="350" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">1. Push X₀ | 2. Run PDA | 3. Accept if X₀ is top</text>
+    <text x="250" y="375" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">١. إضافة X₀ | ٢. تشغيل الآلة | ٣. القبول عند رؤية X₀</text>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT DIAGRAM: PF to PN                    -->
+    <!-- ========================================== -->
+
+    <!-- Titles -->
+    <text x="750" y="50" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">PF to PN</text>
+    <text x="750" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">Final State to Empty Stack / تحويل إلى مكدس فارغ</text>
+
+    <!-- Original PDA Box -->
+    <rect x="620" y="130" width="220" height="180" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,4" />
+    <text x="730" y="290" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Original PDA (PF) / الآلة الأصلية</text>
+
+    <!-- States -->
+    <!-- p0 (New Start) -->
+    <circle cx="560" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="560" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">p₀</text>
+    <text x="560" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">New Start</text>
+
+    <!-- q0 (Old Start) -->
+    <circle cx="670" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="670" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">q₀</text>
+
+    <!-- qf (Old Final) -->
+    <circle cx="790" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <circle cx="790" cy="210" r="15" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="790" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">q_f</text>
+    <text x="790" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Old Final</text>
+
+    <!-- pe (Eraser State) -->
+    <circle cx="920" cy="210" r="20" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="920" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">p_e</text>
+    <text x="920" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Eraser</text>
+
+    <!-- Transitions -->
+    <!-- Start Arrow -->
+    <line x1="515" y1="210" x2="535" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="525" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Start</text>
+
+    <!-- p0 to q0 -->
+    <line x1="580" y1="210" x2="645" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="612" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">ε, ε → X₀</text>
+
+    <!-- q0 to qf (Internal Operations) -->
+    <line x1="690" y1="210" x2="765" y2="210" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed)" />
+    <text x="727" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">operations</text>
+
+    <!-- qf to pe -->
+    <line x1="810" y1="210" x2="895" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="852" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">ε, ε → ε</text>
+
+    <!-- pe Loop (Pop all) -->
+    <path d="M 910 193 C 890 130, 950 130, 930 193" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="920" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">ε, Y → ε</text>
+    <text x="920" y="105" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Pop all / تفريغ</text>
+
+    <!-- Explanation Footer -->
+    <text x="750" y="350" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">1. Push X₀ | 2. Run PDA | 3. Go to p_e | 4. Pop all</text>
+    <text x="750" y="375" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">١. إضافة X₀ | ٢. تشغيل الآلة | ٣. الانتقال لـ p_e | ٤. تفريغ المكدس</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نحتاج إلى حالة 'تفريغ' (Eraser state) عند التحويل من PF إلى PN؟</template>
+      <template class="content-en">Why do we need an 'eraser' state when converting from PF to PN?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الآلة الأصلية قد تصل إلى حالة نهائية بينما المكدس لا يزال ممتلئاً. لكي تقبل الآلة الجديدة (PN) السلسلة، يجب عليها تفريغ هذا المكدس يدوياً.</p></template>
+      <template class="content-en"><p>Because the original PDA might reach a final state while the stack still has symbols. For the new PDA (PN) to accept, it must manually pop all remaining symbols to empty the stack.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="cfg-to-pda" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> تحويل القواعد الخالية من السياق إلى آلة دفع سفلي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Converting CFG to PDA</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يمكن بناء آلة دفع سفلي تحاكي <span class="smart-term" data-term-en="Leftmost Derivation" data-ar="الاشتقاق الأيسر" data-en-def="A derivation in which the leftmost non-terminal is always the one replaced.">الاشتقاق الأيسر<span class="smart-term-tooltip"></span></span> لأي قاعدة خالية من السياق باستخدام حالة واحدة فقط.</p>
+    </template>
+    <template class="content-en">
+      <p>A PDA can be built to simulate the <span class="smart-term" data-term-en="Leftmost Derivation" data-ar="الاشتقاق الأيسر" data-en-def="A derivation in which the leftmost non-terminal is always the one replaced.">leftmost derivation<span class="smart-term-tooltip"></span></span> of any CFG using only a single state.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الفكرة الأساسية هي أن الآلة تحاكي الاشتقاق الأيسر (Leftmost Derivation). خطوات البناء:</p><ol><li>الآلة تحتوي على حالة واحدة فقط (q).</li><li>لكل متغير A في القاعدة، نضيف انتقال إبسيلون يستبدل A في قمة المكدس بالطرف الأيمن من القاعدة (α).</li><li>لكل رمز طرفي (Terminal) a، نضيف انتقالاً يطابق الرمز a في المدخلات مع الرمز a في قمة المكدس ويقوم بحذفه (Pop).</li></ol><p>الآلة الناتجة تقبل بالمكدس الفارغ.</p></template>
+    <template class="content-en"><p>The main idea is that the PDA simulates a leftmost derivation. Construction steps:</p><ol><li>The PDA has only one state (q).</li><li>For every variable A in the grammar, add an epsilon-transition that replaces A on the stack top with the right-hand side of its production (α).</li><li>For every terminal symbol a, add a transition that matches 'a' on the input with 'a' on the stack top and pops it.</li></ol><p>The resulting PDA accepts by empty stack.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذا البناء يثبت أن كل لغة خالية من السياق يمكن التعرف عليها بواسطة آلة دفع سفلي.</p><p>الحالة الواحدة كافية لأن 'حالة' الحساب الفعلية يتم تخزينها بالكامل داخل المكدس على شكل متغيرات ورموز طرفية تنتظر المطابقة.</p></template>
+    <template class="content-en"><p>This construction proves that every CFG language is recognizable by a PDA.</p><p>A single state is sufficient because the actual 'state' of the computation is entirely encoded within the stack as variables to be expanded and terminals waiting to be matched.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>قاعدة التوسيع للمتغيرات.</strong></template>
+      <template class="content-en"><strong>Expansion rule for variables.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\delta(q, \epsilon, A) = \{(q, \alpha) \mid A \rightarrow \alpha \in P\}$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: A diagram showing a single state 'q' with multiple self-loop transitions. One set of loops labeled 'epsilon, A / alpha' (expanding variables), and another set labeled 'a, a / epsilon' (matching terminals). -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for transitions -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+        <!-- Arrowhead for start state -->
+        <marker id="arrow-dark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-primary)" />
+        </marker>
+        <!-- Subtle drop shadow for elevated elements -->
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.1" flood-color="#000"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" rx="12" />
+
+    <!-- Main Title -->
+    <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Single-State PDA Construction from CFG</text>
+    <text x="400" y="60" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">بناء آلة الدفع السفلي (PDA) بحالة واحدة من قواعد السياق</text>
+
+    <!-- Legend Box (Left) -->
+    <rect x="40" y="120" width="220" height="200" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)" />
+    <text x="150" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Transition Format</text>
+    <text x="150" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">صيغة الانتقال</text>
+    
+    <rect x="60" y="185" width="180" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="150" y="206" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Input, Pop / Push</text>
+    
+    <text x="60" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="start">ε : Empty</text>
+    <text x="240" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="end">(سلسلة فارغة)</text>
+    
+    <text x="60" y="265" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="start">A : Variable</text>
+    <text x="240" y="265" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="end">(متغير)</text>
+    
+    <text x="60" y="290" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="start">a : Terminal</text>
+    <text x="240" y="290" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="end">(طرفي)</text>
+
+    <!-- Example Box (Right) -->
+    <rect x="540" y="120" width="220" height="200" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)" />
+    <text x="650" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Example Mapping</text>
+    <text x="650" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مثال على التحويل</text>
+    
+    <text x="650" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="middle">CFG Rule (قاعدة):</text>
+    <rect x="590" y="215" width="120" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="650" y="236" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">S → aSb</text>
+    
+    <text x="650" y="275" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="middle">PDA Transition (انتقال):</text>
+    <rect x="570" y="285" width="160" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="650" y="306" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">ε, S / aSb</text>
+
+    <!-- Start Arrow -->
+    <path d="M 270 240 L 345 240" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow-dark)" />
+    <text x="307" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Start</text>
+    <text x="307" y="260" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">البداية</text>
+
+    <!-- Top Loop (Expanding Variables) -->
+    <path d="M 380 200 C 300 70, 500 70, 420 200" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <rect x="330" y="87" width="140" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+    <text x="400" y="111" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">ε, A / α</text>
+    
+    <text x="400" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Expanding Variables</text>
+    <text x="400" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">توسيع المتغيرات</text>
+
+    <!-- Bottom Loop (Matching Terminals) -->
+    <path d="M 420 280 C 500 410, 300 410, 380 280" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <rect x="330" y="357" width="140" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+    <text x="400" y="381" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">a, a / ε</text>
+    
+    <text x="400" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Matching Terminals</text>
+    <text x="400" y="335" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">مطابقة الطرفيات</text>
+
+    <!-- Central State 'q' -->
+    <circle cx="400" cy="240" r="45" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)" />
+    <text x="400" y="248" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" font-style="italic" fill="var(--text-primary)" text-anchor="middle">q</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم انتقالات إبسيلون (ε) لتوسيع المتغيرات؟</template>
+      <template class="content-en">Why do we use epsilon (ε) transitions to expand variables?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن توسيع المتغير في القواعد لا يستهلك أي رمز من سلسلة الإدخال، بل هو مجرد إعادة كتابة داخلية.</p></template>
+      <template class="content-en"><p>Because expanding a grammar variable does not consume any input symbols; it is purely an internal rewriting step.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="pda-to-cfg" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> تحويل آلة الدفع السفلي إلى قواعد خالية من السياق</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Converting PDA to CFG</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>نقوم بهندسة عكسية لانتقالات الآلة لإنشاء قواعد، حيث يمثل كل متغير مساراً من حالة لأخرى مع تفريغ رمز معين من المكدس.</p>
+    </template>
+    <template class="content-en">
+      <p>We reverse-engineer PDA transitions into grammar rules, where variables represent a path from one state to another while popping a specific stack symbol.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لتحويل آلة دفع سفلي إلى CFG، ننشئ متغيرات مركبة بصيغة [qZp].</p><p>هذا المتغير يمثل مجموعة السلاسل التي تنقل الآلة من الحالة q إلى الحالة p، مع تأثير صافٍ يتمثل في إزالة الرمز Z من المكدس.</p><p>لكل انتقال δ(q, a, Z) يحتوي على (r, Y1Y2...Yk)، ننشئ قاعدة:</p><p>[qZp] -> a [rY1s1] [s1Y2s2] ... [sk-1Ykp]</p><p>حيث يتم تخمين الحالات الوسيطة (s1, s2...) بجميع الطرق الممكنة.</p></template>
+    <template class="content-en"><p>To convert a PDA to a CFG, we create composite variables of the form [qZp].</p><p>This variable generates all strings that take the PDA from state q to state p, with the net effect of popping symbol Z from the stack.</p><p>For each transition δ(q, a, Z) containing (r, Y1Y2...Yk), we create a production:</p><p>[qZp] -> a [rY1s1] [s1Y2s2] ... [sk-1Ykp]</p><p>where the intermediate states (s1, s2...) are guessed in all possible combinations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذا البناء ينتج عدداً هائلاً من القواعد (معظمها غير مفيد ولا يولد شيئاً)، ولكنه يثبت رياضياً أن أي لغة تقبلها آلة دفع سفلي هي لغة خالية من السياق.</p><p>التخمين الشامل للحالات الوسيطة يغطي كل مسارات الحساب الممكنة.</p></template>
+    <template class="content-en"><p>This construction generates a massive number of productions (most of which are useless and generate nothing), but it mathematically proves that any language accepted by a PDA is context-free.</p><p>The exhaustive guessing of intermediate states covers all possible valid computation paths.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>القاعدة العامة لتحويل انتقال PDA إلى CFG.</strong></template>
+      <template class="content-en"><strong>The general rule for converting a PDA transition to a CFG production.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$[qZp] \rightarrow a [rY_1s_1] [s_1Y_2s_2] \dots [s_{k-1}Y_kp]$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يمثل المتغير [qZp] فيزيائياً في سياق الآلة؟</template>
+      <template class="content-en">What does the variable [qZp] physically represent in the context of the automaton?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يمثل الوعد بأن الآلة إذا بدأت في الحالة q وكان Z في قمة المكدس، فإنها ستقرأ سلسلة معينة وتصل إلى الحالة p، وفي تلك اللحظة بالضبط سيتم إزالة Z من المكدس لأول مرة.</p></template>
+      <template class="content-en"><p>It represents a promise: if the PDA starts in state q with Z on top of the stack, it will read some string and eventually reach state p, at which exact moment Z is popped from the stack for the first time.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="deterministic-pda" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">9</span> آلات الدفع السفلي الحتمية (DPDA)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">9</span> Deterministic Pushdown Automata (DPDA)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الآلة الحتمية لا تملك خيارات متعددة لنفس المدخل، ولا يمكنها الجمع بين انتقال إبسيلون وانتقال عادي لنفس حالة المكدس.</p>
+    </template>
+    <template class="content-en">
+      <p>A DPDA has no multiple choices for the same input, and cannot mix an epsilon-transition with a regular transition for the same stack state.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تكون آلة الدفع السفلي حتمية (DPDA) إذا تحقق شرطان:</p><ol><li>دالة الانتقال δ(q, a, X) تحتوي على عنصر واحد على الأكثر لأي مدخل a (بما في ذلك ε).</li><li>إذا كان هناك انتقال إبسيلون δ(q, ε, X) غير فارغ، فيجب أن تكون جميع الانتقالات δ(q, a, X) فارغة لكل الرموز a في أبجدية الإدخال.</li></ol><p>على عكس الآلات المنتهية، <span class="smart-term" data-term-en="DPDA" data-ar="آلة الدفع السفلي الحتمية" data-en-def="A PDA where every configuration has at most one possible next move.">آلات الدفع السفلي الحتمية (DPDA)<span class="smart-term-tooltip"></span></span> <b>أضعف</b> من آلات الدفع السفلي غير الحتمية (NPDA).</p></template>
+    <template class="content-en"><p>A PDA is deterministic (DPDA) if two conditions hold:</p><ol><li>The transition function δ(q, a, X) has at most one member for any input a (including ε).</li><li>If an epsilon-transition δ(q, ε, X) is non-empty, then δ(q, a, X) must be empty for all input symbols a.</li></ol><p>Unlike finite automata, <span class="smart-term" data-term-en="DPDA" data-ar="آلة الدفع السفلي الحتمية" data-en-def="A PDA where every configuration has at most one possible next move.">Deterministic PDAs (DPDAs)<span class="smart-term-tooltip"></span></span> are strictly <b>less powerful</b> than Non-Deterministic PDAs (NPDAs).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>اللغات التي تقبلها DPDA تسمى اللغات الخالية من السياق الحتمية (DCFLs).</p><p>هذه الفئة مهمة جداً عملياً لأنها تمثل اللغات التي يمكن كتابة محللات لغوية (Parsers) سريعة لها (مثل لغات البرمجة).</p><p>لغة التناظر المزدوج ww^R تتطلب NPDA لأن الآلة يجب أن 'تخمن' المنتصف، بينما wcw^R يمكن حلها بـ DPDA لوجود العلامة c.</p></template>
+    <template class="content-en"><p>Languages accepted by DPDAs are called Deterministic Context-Free Languages (DCFLs).</p><p>This class is practically vital as it represents languages that can be parsed efficiently (like programming languages).</p><p>The palindrome language ww^R requires an NPDA because the machine must 'guess' the middle, whereas wcw^R can be parsed by a DPDA due to the explicit center marker 'c'.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: A Venn diagram showing three nested sets. The innermost circle is 'Regular Languages'. The middle circle is 'D-PDA' (Deterministic Context-Free Languages). The outermost circle is 'non-deterministic PDA' (Context-Free Languages). An arrow points to the outer ring labeled 'L_wwr', and an arrow points to the middle ring labeled 'L_wcwr'. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead marker for callouts -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Diagram Title -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Chomsky Hierarchy: Context-Free Languages</text>
+    <text x="400" y="70" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle">هرم تشومسكي: اللغات الخالية من السياق</text>
+
+    <!-- Outer Circle: Non-deterministic PDA (CFL) -->
+    <circle cx="400" cy="340" r="240" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Middle Circle: Deterministic PDA (DCFL) -->
+    <circle cx="400" cy="390" r="170" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8 4" />
+    
+    <!-- Inner Circle: Regular Languages (FSA) -->
+    <circle cx="400" cy="450" r="90" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+
+    <!-- Labels for Outer Circle (CFL) -->
+    <text x="400" y="140" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Context-Free Languages (N-PDA)</text>
+    <text x="400" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">اللغات الخالية من السياق</text>
+
+    <!-- Labels for Middle Circle (DCFL) -->
+    <text x="400" y="265" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Deterministic CFL (D-PDA)</text>
+    <text x="400" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">اللغات الحتمية الخالية من السياق</text>
+
+    <!-- Labels for Inner Circle (Regular) -->
+    <text x="400" y="430" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Regular Languages</text>
+    <text x="400" y="455" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">اللغات المنتظمة</text>
+    <text x="400" y="495" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">L = { a* b* }</text>
+
+    <!-- Callout: L_wwr (Points to Outer Ring) -->
+    <path d="M 630 190 Q 590 190 550 220" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <circle cx="630" cy="190" r="4" fill="var(--brand-500)"/>
+    
+    <text x="700" y="180" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+        L = { w w<tspan baseline-shift="super" font-size="14">R</tspan> }
+    </text>
+    <text x="700" y="210" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">Non-deterministic</text>
+    <text x="700" y="235" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">غير حتمية</text>
+
+    <!-- Callout: L_wcwr (Points to Middle Ring) -->
+    <path d="M 170 320 Q 220 320 280 360" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <circle cx="170" cy="320" r="4" fill="var(--brand-500)"/>
+    
+    <text x="100" y="310" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+        L = { w c w<tspan baseline-shift="super" font-size="14">R</tspan> }
+    </text>
+    <text x="100" y="340" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">Deterministic</text>
+    <text x="100" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">حتمية</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>DPDA</th><th>NPDA</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">قوة التعبير</template>
+          <template class="content-en">Expressive Power</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أضعف (DCFLs فقط)</template>
+          <template class="content-en">Weaker (DCFLs only)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أقوى (كل CFLs)</template>
+          <template class="content-en">Stronger (All CFLs)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">القدرة على التخمين</template>
+          <template class="content-en">Ability to Guess</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا يمكنها التخمين</template>
+          <template class="content-en">Cannot guess</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يمكنها التخمين (مثل منتصف السلسلة)</template>
+          <template class="content-en">Can guess (e.g., middle of string)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التطبيق العملي</template>
+          <template class="content-en">Practical Application</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ممتاز (مترجمات اللغات)</template>
+          <template class="content-en">Excellent (Compilers/Parsers)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">صعب التنفيذ برمجياً بكفاءة</template>
+          <template class="content-en">Hard to implement efficiently</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر اللغات المنتظمة (Regular Languages) مجموعة جزئية من لغات DPDA؟</template>
+      <template class="content-en">Why are Regular Languages a subset of DPDA languages?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن أي آلة منتهية حتمية (DFA) هي ببساطة آلة دفع سفلي حتمية (DPDA) تتجاهل المكدس تماماً ولا تستخدمه.</p></template>
+      <template class="content-en"><p>Because any Deterministic Finite Automaton (DFA) is simply a DPDA that completely ignores its stack and never uses it.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة المحورية. لقد درسنا سابقاً الآلات المنتهية ورأينا كيف تعجز عن 'العد' أو تذكر تسلسلات طويلة. اليوم، نقدم لها 'مفكرة' سحرية نسميها المكدس (Stack)، لتولد لنا 'آلة الدفع السفلي' (PDA). تذكروا دائماً أن المكدس يعمل بنظام LIFO، وهذا يجعله مثالياً لمطابقة الأقواس أو التحقق من التناظر. في الامتحان، ركزوا جيداً على الفرق بين القبول بالحالة النهائية والقبول بالمكدس الفارغ؛ هما وجهان لعملة واحدة ويمكن التحويل بينهما باستخدام حيلتنا المفضلة: الرمز X0. أيضاً، لا تنسوا الفخ الكلاسيكي: الآلات الحتمية هنا (DPDA) أضعف من غير الحتمية (NPDA)، عكس ما تعلمناه في الـ DFA و NFA! أخيراً، تدربوا على تحويل القواعد (CFG) إلى PDA، فهي عملية ميكانيكية تعتمد على حالة واحدة فقط وتحاكي الاشتقاق الأيسر. بالتوفيق!</template>
+    <template class="content-en">Welcome, my friends, to this pivotal module. We previously studied finite automata and saw how they fail to 'count' or remember long sequences. Today, we give them a magical 'notepad' called a Stack, creating the Pushdown Automaton (PDA). Always remember the stack is LIFO, making it perfect for matching parentheses or checking palindromes. For the exam, focus heavily on the difference between acceptance by final state and empty stack; they are two sides of the same coin, convertible using our favorite trick: the X0 symbol. Also, beware the classic trap: Deterministic PDAs are strictly weaker than Non-Deterministic ones, unlike DFAs and NFAs! Finally, practice converting CFGs to PDAs; it's a mechanical process using just one state that beautifully simulates leftmost derivation. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى إضافة مكدس للآلة المنتهية؟</template>
+          <template class="content-en">Why do we need to add a stack to a finite automaton?</template>
+          <span class="content-target">لماذا نحتاج إلى إضافة مكدس للآلة المنتهية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الآلة المنتهية تمتلك ذاكرة محدودة ولا تستطيع تذكر كميات غير محدودة من المعلومات (مثل تذكر عدد الأصفار لمطابقتها مع الآحاد). المكدس يوفر ذاكرة غير محدودة ولكن بطريقة وصول مقيدة (LIFO).</template>
+          <template class="content-en">Because a finite automaton has strictly limited memory and cannot remember infinite amounts of information (like counting 0s to match with 1s). The stack provides infinite memory but with restricted (LIFO) access.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين لغة ww^R ولغة wcw^R؟</template>
+          <template class="content-en">What is the fundamental difference between the language ww^R and wcw^R?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين لغة ww^R ولغة wcw^R؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لغة ww^R تتطلب آلة غير حتمية (NPDA) لأن الآلة يجب أن تخمن أين يقع المنتصف. بينما wcw^R تحتوي على العلامة 'c' التي تخبر الآلة بوضوح متى تبدأ في إخراج الرموز من المكدس، لذا يمكن حلها بآلة حتمية (DPDA).</template>
+          <template class="content-en">The language ww^R requires a non-deterministic PDA (NPDA) because the machine must guess where the middle is. wcw^R has the marker 'c' which explicitly tells the machine when to start popping, so it can be solved by a deterministic PDA (DPDA).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن لآلة الدفع السفلي قراءة قاع المكدس مباشرة؟</template>
+          <template class="content-en">Can a PDA read the bottom of the stack directly?</template>
+          <span class="content-target">هل يمكن لآلة الدفع السفلي قراءة قاع المكدس مباشرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، الوصول مقيد بقمة المكدس فقط. للوصول إلى القاع، يجب إخراج (Pop) جميع الرموز التي فوقه أولاً.</template>
+          <template class="content-en">No, access is strictly restricted to the top of the stack. To reach the bottom, all symbols above it must be popped first.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نمنع الآلة من التوقف المبكر عند تحويلها لتقبل بالحالة النهائية؟</template>
+          <template class="content-en">How do we prevent the machine from halting early when converting it to accept by final state?</template>
+          <span class="content-target">كيف نمنع الآلة من التوقف المبكر عند تحويلها لتقبل بالحالة النهائية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نضيف رمزاً وهمياً X0 في قاع المكدس. طالما أن X0 موجود، فالآلة تعرف أنها لم تفرغ المكدس الأصلي بعد.</template>
+          <template class="content-en">We add a dummy symbol X0 at the bottom of the stack. As long as X0 is there, the machine knows it hasn't emptied its original stack yet.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج حالة واحدة فقط عند تحويل CFG إلى PDA؟</template>
+          <template class="content-en">Why do we only need one state when converting a CFG to a PDA?</template>
+          <span class="content-target">لماذا نحتاج حالة واحدة فقط عند تحويل CFG إلى PDA؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن مسار الحساب (الاشتقاق) يتم تتبعه بالكامل داخل المكدس. المتغيرات والرموز الطرفية في المكدس تخبر الآلة بما يجب فعله تالياً، فلا حاجة لحالات إضافية.</template>
+          <template class="content-en">Because the computation path (derivation) is entirely tracked within the stack. The variables and terminals on the stack tell the machine what to do next, making extra states redundant.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني رمز الباب الدوار مع نجمة (⊢*)؟</template>
+          <template class="content-en">What does the turnstile symbol with a star (⊢*) mean?</template>
+          <span class="content-target">ماذا يعني رمز الباب الدوار مع نجمة (⊢*)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعني سلسلة من صفر أو أكثر من الانتقالات (الخطوات الحسابية) من وصف لحظي إلى آخر.</template>
+          <template class="content-en">It means a sequence of zero or more transitions (computational steps) from one Instantaneous Description to another.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل تقبل آلة الدفع السفلي اللغة a^n b^n c^n؟</template>
+          <template class="content-en">Does a PDA accept the language a^n b^n c^n?</template>
+          <span class="content-target">هل تقبل آلة الدفع السفلي اللغة a^n b^n c^n؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، هذه اللغة ليست خالية من السياق. المكدس يمكنه مطابقة مجموعتين فقط (مثل a مع b). بمجرد تفريغ المكدس، نفقد العدد ولا يمكننا مطابقته مع c.</template>
+          <template class="content-en">No, this language is not context-free. A stack can only easily match two groups (like a with b). Once the stack is emptied, the count is lost and cannot be matched with c.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث إذا فرغ المكدس قبل انتهاء سلسلة الإدخال؟</template>
+          <template class="content-en">What happens if the stack empties before the input string is finished?</template>
+          <span class="content-target">ماذا يحدث إذا فرغ المكدس قبل انتهاء سلسلة الإدخال؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تتوقف الآلة عن العمل (تتحطم) وترفض السلسلة، لأنه لا يوجد انتقال معرف لمكدس فارغ تماماً.</template>
+          <template class="content-en">The machine halts (crashes) and rejects the string, because there is no transition defined for a completely empty stack.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نمثل عملية 'تجاهل' (No-op) للمكدس في دالة الانتقال؟</template>
+          <template class="content-en">How do we represent a 'No-op' stack operation in the transition function?</template>
+          <span class="content-target">كيف نمثل عملية 'تجاهل' (No-op) للمكدس في دالة الانتقال؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بجعل سلسلة الاستبدال مطابقة للرمز الذي تم قراءته من القمة (أي Y = X).</template>
+          <template class="content-en">By making the replacement string identical to the symbol popped from the top (i.e., Y = X).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نهتم بالآلات الحتمية (DPDA) رغم أنها أضعف من غير الحتمية؟</template>
+          <template class="content-en">Why do we care about DPDAs even though they are weaker than NPDAs?</template>
+          <span class="content-target">لماذا نهتم بالآلات الحتمية (DPDA) رغم أنها أضعف من غير الحتمية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الآلات الحتمية يمكن برمجتها وتنفيذها بكفاءة عالية جداً (O(n)). وهي الأساس الذي تبنى عليه المترجمات (Compilers) لتحليل لغات البرمجة.</template>
+          <template class="content-en">Because deterministic machines can be programmed and executed highly efficiently (O(n)). They form the foundation for building compilers to parse programming languages.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي آلة الدفع السفلي (PDA)؟",
+      "en": "What is a Pushdown Automaton (PDA)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هي آلة حالات منتهية غير حتمية (ε-NFA) مزودة بذاكرة مكدس (Stack).",
+        "en": "It is an ε-NFA with the addition of a stack memory."
+      },
+      "example": {
+        "ar": "تستخدم للتعرف على لغة الأقواس المتطابقة.",
+        "en": "Used to recognize the language of balanced parentheses."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي فئة اللغات التي تتعرف عليها آلات PDA؟",
+      "en": "What class of languages do PDAs recognize?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اللغات الخالية من السياق (Context-Free Languages - CFLs).",
+        "en": "Context-Free Languages (CFLs)."
+      },
+      "example": {
+        "ar": "L = {0^n 1^n | n >= 1}",
+        "en": "L = {0^n 1^n | n >= 1}"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "كيف يتم الوصول إلى البيانات في مكدس الـ PDA؟",
+      "en": "How is data accessed in a PDA's stack?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بطريقة LIFO (ما يدخل أخيراً يخرج أولاً)، حيث يمكن قراءة وإضافة وحذف الرموز من القمة فقط.",
+        "en": "In a LIFO (Last-In-First-Out) manner; symbols can only be read, pushed, and popped at the top."
+      },
+      "example": {
+        "ar": "مثل كومة من الصحون.",
+        "en": "Like a stack of plates."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ماذا يمثل الرمز Γ في تعريف الـ PDA؟",
+      "en": "What does the symbol Γ represent in a PDA definition?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة منتهية من رموز المكدس (Stack alphabet).",
+        "en": "A finite set of stack symbols (Stack alphabet)."
+      },
+      "example": {
+        "ar": "Γ = {Z0, 0, 1}",
+        "en": "Γ = {Z0, 0, 1}"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو دور الرمز Z0؟",
+      "en": "What is the role of the Z0 symbol?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو رمز المكدس الابتدائي الذي يمثل قاع المكدس.",
+        "en": "It is the initial stack symbol representing the bottom of the stack."
+      },
+      "example": {
+        "ar": "يستخدم لمعرفة متى يفرغ المكدس من المدخلات.",
+        "en": "Used to detect when the stack is empty of inputs."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ماذا تعني العملية Y = ε في دالة الانتقال؟",
+      "en": "What does the operation Y = ε mean in the transition function?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعني عملية حذف (Pop) لقمة المكدس.",
+        "en": "It means a Pop operation (removing the top of the stack)."
+      },
+      "example": {
+        "ar": "δ(q, a, X) = {(p, ε)}",
+        "en": "δ(q, a, X) = {(p, ε)}"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو الوصف اللحظي (ID)؟",
+      "en": "What is an Instantaneous Description (ID)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ثلاثية (q, w, y) تمثل الحالة الحالية، المدخلات المتبقية، ومحتوى المكدس.",
+        "en": "A triplet (q, w, y) representing the current state, remaining input, and stack contents."
+      },
+      "example": {
+        "ar": "(q0, 111, Z0)",
+        "en": "(q0, 111, Z0)"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ماذا يمثل رمز الباب الدوار (⊢)؟",
+      "en": "What does the turnstile symbol (⊢) represent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يمثل انتقالاً واحداً (خطوة حسابية واحدة) في الآلة.",
+        "en": "It represents a single move (computational step) in the automaton."
+      },
+      "example": {
+        "ar": "(q, a, X) ⊢ (p, ε, A)",
+        "en": "(q, a, X) ⊢ (p, ε, A)"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هما الطريقتان لقبول السلسلة في PDA؟",
+      "en": "What are the two ways a PDA can accept a string?"
+    },
+    "back": {
+      "definition": {
+        "ar": "القبول بالحالة النهائية (Final State) والقبول بالمكدس الفارغ (Empty Stack).",
+        "en": "Acceptance by Final State and Acceptance by Empty Stack."
+      },
+      "example": {
+        "ar": "كلاهما متكافئان رياضياً.",
+        "en": "Both are mathematically equivalent."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "لماذا نحتاج الرمز X0 عند تحويل PN إلى PF؟",
+      "en": "Why do we need the symbol X0 when converting PN to PF?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لاكتشاف متى يصبح مكدس الآلة الأصلية فارغاً للانتقال إلى الحالة النهائية.",
+        "en": "To detect when the original PDA's stack becomes empty so it can transition to the final state."
+      },
+      "example": {
+        "ar": "X0 يعمل كقاع وهمي جديد.",
+        "en": "X0 acts as a new dummy bottom."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "كم عدد الحالات المطلوبة لتحويل CFG إلى PDA؟",
+      "en": "How many states are needed to convert a CFG to a PDA?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة واحدة فقط.",
+        "en": "Only one state."
+      },
+      "example": {
+        "ar": "الآلة تحاكي الاشتقاق الأيسر باستخدام المكدس بدلاً من الحالات.",
+        "en": "The PDA simulates leftmost derivation using the stack instead of states."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ماذا يمثل المتغير [qZp] عند تحويل PDA إلى CFG؟",
+      "en": "What does the variable [qZp] represent when converting PDA to CFG?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يمثل مساراً من الحالة q إلى الحالة p يؤدي إلى حذف الرمز Z من المكدس.",
+        "en": "It represents a path from state q to state p that results in popping symbol Z from the stack."
+      },
+      "example": {
+        "ar": "[q0 Z0 q1]",
+        "en": "[q0 Z0 q1]"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو الفرق الرئيسي بين NPDA و DPDA؟",
+      "en": "What is the main difference between NPDA and DPDA?"
+    },
+    "back": {
+      "definition": {
+        "ar": "DPDA لا تسمح بأكثر من انتقال واحد لنفس المدخل وحالة المكدس، وهي أضعف من NPDA.",
+        "en": "DPDA allows at most one transition for the same input and stack state, and is strictly weaker than NPDA."
+      },
+      "example": {
+        "ar": "NPDA تقبل ww^R، بينما DPDA تحتاج إلى علامة منتصف wcw^R.",
+        "en": "NPDA accepts ww^R, while DPDA needs a center marker wcw^R."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "هل اللغات المنتظمة تعتبر جزءاً من لغات DPDA؟",
+      "en": "Are Regular Languages a subset of DPDA languages?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نعم، كل لغة منتظمة يمكن قبولها بواسطة DPDA (عبر تجاهل المكدس).",
+        "en": "Yes, every regular language can be accepted by a DPDA (by ignoring the stack)."
+      },
+      "example": {
+        "ar": "DFA هو حالة خاصة من DPDA.",
+        "en": "A DFA is a special case of a DPDA."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "لماذا لغة ww^R غير حتمية؟",
+      "en": "Why is the language ww^R non-deterministic?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأن الآلة يجب أن 'تخمن' أين ينتهي النصف الأول ويبدأ النصف الثاني المعكوس.",
+        "en": "Because the machine must 'guess' where the first half ends and the reversed second half begins."
+      },
+      "example": {
+        "ar": "لا توجد علامة واضحة للمنتصف.",
+        "en": "There is no explicit middle marker."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي بنية بيانات تستخدمها آلة الدفع السفلي (PDA) لتخزين المعلومات؟",
+      "en": "Which data structure does a Pushdown Automaton (PDA) use to store information?"
+    },
+    "options": {
+      "ar": [
+        "طابور (Queue)",
+        "مكدس (Stack)",
+        "شجرة (Tree)",
+        "مصفوفة (Array)"
+      ],
+      "en": [
+        "Queue",
+        "Stack",
+        "Tree",
+        "Array"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تستخدم الـ PDA مكدساً يعمل بمبدأ LIFO (ما يدخل أخيراً يخرج أولاً).",
+      "en": "A PDA uses a stack which operates on the LIFO (Last-In-First-Out) principle."
+    },
+    "hint": {
+      "ar": "تذكر كلمة 'Pushdown' التي تشير إلى دفع العناصر لأسفل.",
+      "en": "Remember the word 'Pushdown' refers to pushing items down into this structure."
+    },
+    "difficulty": "easy",
+    "conceptId": "pda-introduction"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ماذا يمثل الرمز Γ في التعريف الرسمي لـ PDA؟",
+      "en": "What does the symbol Γ represent in the formal definition of a PDA?"
+    },
+    "options": {
+      "ar": [
+        "أبجدية الإدخال",
+        "مجموعة الحالات",
+        "أبجدية المكدس",
+        "دالة الانتقال"
+      ],
+      "en": [
+        "Input alphabet",
+        "Set of states",
+        "Stack alphabet",
+        "Transition function"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "Γ (جاما) تمثل المجموعة المنتهية من الرموز التي يمكن وضعها في المكدس.",
+      "en": "Γ (Gamma) represents the finite set of symbols that can be pushed onto the stack."
+    },
+    "hint": {
+      "ar": "Σ هي أبجدية الإدخال، فماذا تكون Γ؟",
+      "en": "Σ is the input alphabet, so what is Γ?"
+    },
+    "difficulty": "medium",
+    "conceptId": "formal-definition-pda"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في دالة الانتقال، إذا كانت سلسلة الاستبدال Y = ε، فما هي العملية التي تحدث للمكدس؟",
+      "en": "In the transition function, if the replacement string Y = ε, what operation occurs on the stack?"
+    },
+    "options": {
+      "ar": [
+        "إضافة (Push)",
+        "تجاهل (No-op)",
+        "حذف (Pop)",
+        "تفريغ كامل (Clear)"
+      ],
+      "en": [
+        "Push",
+        "No-op",
+        "Pop",
+        "Clear"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "استبدال قمة المكدس بـ ε (سلسلة فارغة) يعني إزالة الرمز من القمة (Pop).",
+      "en": "Replacing the stack top with ε (empty string) means removing the symbol from the top (Pop)."
+    },
+    "hint": {
+      "ar": "ε تعني 'لا شيء'.",
+      "en": "ε means 'nothing'."
+    },
+    "difficulty": "easy",
+    "conceptId": "transition-actions"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي مكونات الوصف اللحظي (ID) لآلة الدفع السفلي؟",
+      "en": "What are the components of an Instantaneous Description (ID) for a PDA?"
+    },
+    "options": {
+      "ar": [
+        "(الحالة، المدخلات المتبقية، محتوى المكدس)",
+        "(الحالة، المدخلات المقروءة، قمة المكدس)",
+        "(حالة البداية، المدخلات، المكدس)",
+        "(الحالة النهائية، المدخلات المتبقية، المكدس)"
+      ],
+      "en": [
+        "(State, Remaining input, Stack contents)",
+        "(State, Read input, Stack top)",
+        "(Start state, Input, Stack)",
+        "(Final state, Remaining input, Stack)"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الوصف اللحظي يكتب كـ (q, w, y) حيث q هي الحالة، w المدخلات المتبقية، و y محتوى المكدس.",
+      "en": "An ID is written as (q, w, y) where q is the state, w is the remaining input, and y is the stack contents."
+    },
+    "hint": {
+      "ar": "الآلة لا تهتم بما قرأته سابقاً، بل بما تبقى.",
+      "en": "The machine doesn't care about what it already read, only what is left."
+    },
+    "difficulty": "medium",
+    "conceptId": "instantaneous-description"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من العبارات التالية صحيحة حول طرق القبول في PDA؟",
+      "en": "Which of the following is true about acceptance methods in a PDA?"
+    },
+    "options": {
+      "ar": [
+        "القبول بالحالة النهائية أقوى من القبول بالمكدس الفارغ.",
+        "القبول بالمكدس الفارغ أقوى من القبول بالحالة النهائية.",
+        "الطريقتان متكافئتان رياضياً تماماً.",
+        "لا يمكن تحويل آلة تقبل بالمكدس الفارغ إلى آلة تقبل بالحالة النهائية."
+      ],
+      "en": [
+        "Acceptance by final state is more powerful than empty stack.",
+        "Acceptance by empty stack is more powerful than final state.",
+        "Both methods are strictly mathematically equivalent.",
+        "An empty stack PDA cannot be converted to a final state PDA."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تم إثبات أن أي لغة تقبل بإحدى الطريقتين يمكن بناء آلة تقبلها بالطريقة الأخرى.",
+      "en": "It is proven that any language accepted by one method can have a PDA built to accept it by the other method."
+    },
+    "hint": {
+      "ar": "تذكر النظريات التي تحول PF إلى PN والعكس.",
+      "en": "Remember the theorems converting PF to PN and vice versa."
+    },
+    "difficulty": "medium",
+    "conceptId": "equivalence-acceptance"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "عند تحويل CFG إلى PDA، كم عدد الحالات (States) التي تحتاجها الآلة الناتجة؟",
+      "en": "When converting a CFG to a PDA, how many states does the resulting PDA need?"
+    },
+    "options": {
+      "ar": [
+        "حالة واحدة فقط",
+        "حالتان (بداية ونهاية)",
+        "بعدد المتغيرات في القاعدة",
+        "بعدد القواعد (Productions)"
+      ],
+      "en": [
+        "Only one state",
+        "Two states (start and end)",
+        "As many as the variables in the grammar",
+        "As many as the productions"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "نحتاج حالة واحدة فقط، لأن 'حالة' الحساب يتم تتبعها بالكامل داخل المكدس.",
+      "en": "Only one state is needed, because the 'state' of the computation is entirely tracked within the stack."
+    },
+    "hint": {
+      "ar": "المكدس يقوم بكل العمل المعقد.",
+      "en": "The stack does all the heavy lifting."
+    },
+    "difficulty": "hard",
+    "conceptId": "cfg-to-pda"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو نوع الاشتقاق الذي تحاكيه آلة الدفع السفلي عند تحويلها من CFG؟",
+      "en": "What type of derivation does a PDA simulate when converted from a CFG?"
+    },
+    "options": {
+      "ar": [
+        "الاشتقاق الأيمن (Rightmost)",
+        "الاشتقاق الأيسر (Leftmost)",
+        "شجرة التحليل العشوائية",
+        "الاشتقاق الموازي"
+      ],
+      "en": [
+        "Rightmost derivation",
+        "Leftmost derivation",
+        "Random parse tree",
+        "Parallel derivation"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الآلة تحاكي الاشتقاق الأيسر، حيث يتم دائماً توسيع المتغير الموجود في قمة المكدس (وهو المتغير الأيسر).",
+      "en": "The PDA simulates a leftmost derivation, as the variable at the top of the stack (the leftmost one) is always expanded."
+    },
+    "hint": {
+      "ar": "قمة المكدس تمثل أول شيء يجب معالجته.",
+      "en": "The top of the stack represents the first thing to be processed."
+    },
+    "difficulty": "medium",
+    "conceptId": "cfg-to-pda"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي من اللغات التالية تتطلب آلة دفع سفلي غير حتمية (NPDA) ولا يمكن حلها بـ DPDA؟",
+      "en": "Which of the following languages requires a Non-Deterministic PDA (NPDA) and cannot be solved by a DPDA?"
+    },
+    "options": {
+      "ar": [
+        "L = {a^n b^n}",
+        "L = {wcw^R}",
+        "L = {ww^R}",
+        "اللغات المنتظمة (Regular Languages)"
+      ],
+      "en": [
+        "L = {a^n b^n}",
+        "L = {wcw^R}",
+        "L = {ww^R}",
+        "Regular Languages"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لغة ww^R تتطلب التخمين لمعرفة أين يقع منتصف السلسلة، مما يجعلها غير حتمية. wcw^R حتمية لوجود العلامة c.",
+      "en": "The language ww^R requires guessing where the middle of the string is, making it non-deterministic. wcw^R is deterministic due to the marker c."
+    },
+    "hint": {
+      "ar": "ابحث عن اللغة التي تفتقر إلى علامة واضحة للمنتصف.",
+      "en": "Look for the language that lacks a clear middle marker."
+    },
+    "difficulty": "hard",
+    "conceptId": "deterministic-pda"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هي العلاقة بين قوة DPDA و NPDA؟",
+      "en": "What is the relationship between the power of DPDA and NPDA?"
+    },
+    "options": {
+      "ar": [
+        "متكافئتان تماماً",
+        "DPDA أقوى من NPDA",
+        "NPDA أقوى من DPDA",
+        "لا توجد علاقة بينهما"
+      ],
+      "en": [
+        "Strictly equivalent",
+        "DPDA is more powerful than NPDA",
+        "NPDA is more powerful than DPDA",
+        "No relationship"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "على عكس الآلات المنتهية (DFA و NFA المتكافئتان)، فإن NPDA أقوى من DPDA وتتعرف على فئة أوسع من اللغات.",
+      "en": "Unlike finite automata (where DFA and NFA are equivalent), NPDA is strictly more powerful than DPDA and recognizes a broader class of languages."
+    },
+    "hint": {
+      "ar": "التخمين في المكدس يضيف قوة حقيقية لا يمكن محاكاتها حتمياً.",
+      "en": "Guessing with a stack adds real power that cannot be simulated deterministically."
+    },
+    "difficulty": "medium",
+    "conceptId": "deterministic-pda"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "عند تحويل آلة تقبل بالحالة النهائية (PF) إلى آلة تقبل بالمكدس الفارغ (PN)، لماذا نضيف حالة 'تفريغ' (Eraser state)؟",
+      "en": "When converting a final state PDA (PF) to an empty stack PDA (PN), why do we add an 'eraser' state?"
+    },
+    "options": {
+      "ar": [
+        "للتأكد من قراءة كل المدخلات",
+        "لحذف كل الرموز المتبقية في المكدس عند الوصول لحالة نهائية",
+        "لمنع الآلة من التوقف المبكر",
+        "لإضافة الرمز X0 إلى المكدس"
+      ],
+      "en": [
+        "To ensure all input is read",
+        "To pop all remaining symbols in the stack upon reaching a final state",
+        "To prevent the machine from halting early",
+        "To push the X0 symbol to the stack"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الآلة الأصلية قد تقبل السلسلة والمكدس ممتلئ. لكي تقبل الآلة الجديدة، يجب أن تفرغ المكدس يدوياً عبر حالة التفريغ.",
+      "en": "The original PDA might accept while the stack is full. For the new PDA to accept, it must manually empty the stack via the eraser state."
+    },
+    "hint": {
+      "ar": "الآلة الجديدة تقبل فقط إذا كان المكدس فارغاً.",
+      "en": "The new machine ONLY accepts if the stack is empty."
+    },
+    "difficulty": "hard",
+    "conceptId": "equivalence-acceptance"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن DPDA و NPDA متكافئتان مثل DFA و NFA. هذا فخ كبير! في آلات الدفع السفلي، عدم الحتمية يضيف قوة حسابية حقيقية، و NPDA أقوى بكثير من DPDA.</template>
+      <template class="content-en">Thinking that DPDA and NPDA are equivalent just like DFA and NFA. This is a major trap! In pushdown automata, non-determinism adds strict computational power, making NPDA strictly more powerful than DPDA.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند تحويل CFG إلى PDA، لا تهم الحالات إطلاقاً. الآلة بأكملها تعمل بحالة واحدة فقط، وكل 'الذكاء' والتتبع يتم تخزينه في المكدس.</template>
+      <template class="content-en">When converting a CFG to a PDA, states don't matter at all. The entire machine operates on a single state, and all the 'intelligence' and tracking is stored in the stack.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الرمز X0 (قاع المكدس الوهمي) هو البطل الخفي في إثباتات التكافؤ. بدونه، لا يمكن للآلة أن تفرق بين 'المكدس فارغ لأنني انتهيت' و 'المكدس فارغ لأنني حذفت الرموز مبكراً'.</template>
+      <template class="content-en">The symbol X0 (dummy stack bottom) is the hidden hero in equivalence proofs. Without it, the machine cannot distinguish between 'stack is empty because I am done' and 'stack is empty because I popped symbols too early'.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان أن انتقال إبسيلون δ(q, ε, X) في الآلة الحتمية (DPDA) يمنع وجود أي انتقال آخر δ(q, a, X) لنفس حالة المكدس. إذا وجد كلاهما، فالآلة تصبح غير حتمية فوراً.</template>
+      <template class="content-en">Forgetting that an epsilon-transition δ(q, ε, X) in a DPDA forbids any other transition δ(q, a, X) for the same stack state. If both exist, the machine immediately becomes non-deterministic.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M05.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M07.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

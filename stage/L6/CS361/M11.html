@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS361" data-module="11">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أساسيات PHP: النماذج، ملفات تعريف الارتباط، والجلسات · CS361 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS361" data-page-title-en="CS361">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M10.html" data-gh-next="M12.html" data-gh-card="../../hub/course.html?code=CS361"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#superglobal-arrays" class="toc-link" data-bilingual>
+        <template class="content-ar">المصفوفات العامة الفائقة (Superglobal Arrays)</template>
+        <template class="content-en">Superglobal Arrays</template>
+        <span class="content-target">المصفوفات العامة الفائقة (Superglobal Arrays)</span>
+      </a>
+      <a href="#html5-form-processing" class="toc-link" data-bilingual>
+        <template class="content-ar">معالجة نماذج HTML5</template>
+        <template class="content-en">Processing HTML5 Forms</template>
+        <span class="content-target">معالجة نماذج HTML5</span>
+      </a>
+      <a href="#form-validation" class="toc-link" data-bilingual>
+        <template class="content-ar">التحقق من صحة النماذج (Form Validation)</template>
+        <template class="content-en">Form Validation</template>
+        <span class="content-target">التحقق من صحة النماذج (Form Validation)</span>
+      </a>
+      <a href="#php-cookies" class="toc-link" data-bilingual>
+        <template class="content-ar">ملفات تعريف الارتباط (Cookies)</template>
+        <template class="content-en">Cookies</template>
+        <span class="content-target">ملفات تعريف الارتباط (Cookies)</span>
+      </a>
+      <a href="#php-sessions" class="toc-link" data-bilingual>
+        <template class="content-ar">الجلسات (Sessions)</template>
+        <template class="content-en">Sessions</template>
+        <span class="content-target">الجلسات (Sessions)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 11</template>
+      <template class="content-en">Module 11</template>
+      <span class="content-target">الوحدة 11</span>
+    </span> · CS361
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">أساسيات PHP: النماذج، ملفات تعريف الارتباط، والجلسات</h1>
+      <p class="hero-description">تغطي هذه الوحدة المصفوفات العامة الفائقة في PHP، ومعالجة نماذج HTML5، والتحقق من صحة البيانات، بالإضافة إلى إدارة حالة المستخدم باستخدام ملفات تعريف الارتباط والجلسات.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Basics of PHP: Forms, Cookies, and Sessions</h1>
+      <p class="hero-description">This module covers PHP superglobal arrays, HTML5 form processing, data validation, and user state management using cookies and sessions.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">PHP</span>
+      <span class="tag">تطوير الويب</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">PHP</span>
+      <span class="tag">Web Development</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم استخدام POST و GET في إرسال النماذج.</span></li>
+      <li><span class="obj-icon">✦</span><span>بناء برامج تقوم بمعالجة بيانات النماذج.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية تخزين البيانات على جهاز العميل باستخدام ملفات تعريف الارتباط (Cookies).</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم وإدارة حالة المستخدم عبر صفحات متعددة باستخدام الجلسات (Sessions).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understanding POST and GET in form submission.</span></li>
+      <li><span class="obj-icon">✦</span><span>Construct programs that process form data.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn to Store data on the client using cookies.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand and manage user state across multiple pages using Sessions.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="superglobal-arrays" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> المصفوفات العامة الفائقة (Superglobal Arrays)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Superglobal Arrays</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>هي مصفوفات ترابطية محددة مسبقاً في PHP يمكن الوصول إليها من أي مكان في الكود، تماماً مثل صندوق أدوات عالمي متاح دائماً.</p>
+    </template>
+    <template class="content-en">
+      <p>Predefined associative arrays in PHP that are always accessible regardless of scope, like a universal toolkit.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تستخدم PHP متغيرات خاصة تسمى <span class="smart-term" data-term-en="Superglobal" data-ar="عام فائق" data-en-def="Predefined variables in PHP that are always accessible, regardless of scope.">المصفوفات العامة الفائقة</span> (Superglobals) والتي تسمح للمبرمج بالوصول بسهولة إلى ترويسات HTTP، ومعلمات سلسلة الاستعلام (Query String)، ومعلومات أخرى شائعة الاستخدام. سُميت بهذا الاسم لأنها دائماً في النطاق (Scope) ومُعرفة دائماً. من أهمها:</p><ul><li><strong><code>$GLOBALS</code></strong> للوصول للمتغيرات العامة،</li><li>و <strong><code>$_SERVER</code></strong> لمعلومات الخادم وبيئة التنفيذ،</li><li>و <strong><code>$_REQUEST</code> و <code>$_POST</code> و <code>$_GET</code></strong> لجمع بيانات النماذج.</li></ul></template>
+    <template class="content-en"><p>PHP uses special predefined associative arrays called <span class="smart-term" data-term-en="Superglobal" data-ar="عام فائق" data-en-def="Predefined variables in PHP that are always accessible, regardless of scope.">superglobal variables</span> that allow the programmer to easily access HTTP headers, query string parameters, and other commonly needed information. They are called Superglobal because they are always in scope, and always defined. Key examples include</p><ul><li><strong><code>$GLOBALS</code></strong> for global variables,</li><li><strong><code>$_SERVER</code></strong> for server and execution environment info,</li><li>and <strong><code>$_REQUEST</code>, <code>$_POST</code>, and <code>$_GET</code></strong> for form data.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>مصفوفة <code>$_SERVER</code> تحتوي على عناصر هامة جداً مثل</p><ul><li><strong><code>PHP_SELF</code></strong> (اسم الملف الحالي)،</li><li><strong><code>SERVER_NAME</code></strong> (اسم الخادم)،</li><li><strong><code>REQUEST_METHOD</code></strong> (طريقة الطلب مثل POST)،</li><li>و <strong><code>HTTP_REFERER</code></strong> (رابط الصفحة السابقة).</li></ul><p>استخدام <code>$GLOBALS</code> يتم عبر تخزين المتغيرات في مصفوفة مفهرسة باسم المتغير، مما يسهل الوصول للمتغيرات خارج نطاق الدوال.</p></template>
+    <template class="content-en"><p>The <code>$_SERVER</code> array contains critical elements like</p><ul><li><strong><code>PHP_SELF</code></strong> (current script filename),</li><li><strong><code>SERVER_NAME</code></strong> (host server name),</li><li><strong><code>REQUEST_METHOD</code></strong> (method used to access the page),</li><li>and <strong><code>HTTP_REFERER</code></strong> (URL of the current page).</li></ul><p><code>$GLOBALS</code> stores all global variables in an array called <code>$GLOBALS[index]</code> where the index holds the name of the variable, allowing access from within functions.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;?php
+$x = 75;
+$y = 25;
+function addition() {
+  $GLOBALS['z'] = $GLOBALS['x'] + $GLOBALS['y'];
+}
+addition();
+echo $z; // Outputs 100
+?&gt;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يُنصح بالاعتماد الكلي على $_REQUEST بدلاً من $_POST أو $_GET؟</template>
+      <template class="content-en">Why is it not recommended to rely entirely on $_REQUEST instead of $_POST or $_GET?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن $_REQUEST يجمع البيانات من GET و POST و COOKIE، مما قد يؤدي إلى ثغرات أمنية أو تضارب في البيانات إذا تم تمرير متغيرات بنفس الاسم عبر طرق مختلفة.</p></template>
+      <template class="content-en"><p>Because $_REQUEST collects data from GET, POST, and COOKIE, which can lead to security vulnerabilities or data conflicts if variables with the same name are passed via different methods.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="html5-form-processing" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> معالجة نماذج HTML5</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Processing HTML5 Forms</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>هي عملية نقل البيانات التي يدخلها المستخدم في صفحة الويب إلى الخادم لمعالجتها باستخدام PHP.</p>
+    </template>
+    <template class="content-en">
+      <p>The process of transporting user input from a webpage to the server for processing using PHP.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند تطوير تطبيق ويب، نستخدم نماذج HTML (Forms) لأخذ المدخلات من المستخدمين. يتم إنشاء النموذج باستخدام وسم <code>&lt;form&gt;</code> الذي يحتوي على سمتين أساسيتين:</p><ul><li><strong><code>action</code></strong> (تحدد الصفحة التي ستستقبل البيانات)</li><li>و <strong><code>method</code></strong> (تحدد طريقة الإرسال، إما GET أو POST).</li></ul><p>تعمل PHP كناقل لهذه القيم من صفحة الويب إلى الخادم لمعالجتها باستخدام المصفوفات <code>$_GET</code> أو <code>$_POST</code>.</p></template>
+    <template class="content-en"><p>When developing a web application, HTML forms are used to take input from users. A form is created using the <code>&lt;form&gt;</code> tag, which has two main attributes:</p><ul><li><strong><code>action</code></strong> (dictates which page the data is sent to)</li><li>and <strong><code>method</code></strong> (dictates how data is sent, either GET or POST).</li></ul><p>PHP serves as a transport for these values from the webpage to the server for processing using <code>$_GET</code> or <code>$_POST</code> superglobals.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>طريقة GET ترسل البيانات عبر الرابط (URL) مما يجعلها مرئية للجميع، ولها حد أقصى لحجم البيانات (حوالي 2000 حرف).</p><p>بينما طريقة POST تدمج البيانات داخل جسم طلب HTTP (HTTP Request Body) مما يجعلها غير مرئية في الرابط ولا يوجد لها حد أقصى للبيانات، ولذلك يفضل المطورون استخدام POST لإرسال بيانات النماذج للحفاظ على مستويات الأمان.</p></template>
+    <template class="content-en"><p>The GET method sends data via the URL, making it visible to everyone, and has a data limit (about 2000 characters).</p><p>The POST method embeds data within the body of the HTTP request, making it invisible in the URL and has no data limits. Therefore, developers prefer POST for sending form data to maintain security levels.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>html</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;form action="handle_form.php" method="post"&gt;
+  Name: &lt;input type="text" name="name"&gt;
+  &lt;input type="submit" value="Submit"&gt;
+&lt;/form&gt;</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;?php
+$name = $_POST['name'];
+echo "Thank you, " . $name;
+?&gt;</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>GET</th>
+        <th>POST</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الرؤية (Visibility)</template>
+          <template class="content-en">Visibility</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرئية للجميع (تظهر في الرابط URL)</template>
+          <template class="content-en">Visible to everyone (displayed in the URL)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">غير مرئية للآخرين (مضمنة في جسم الطلب)</template>
+          <template class="content-en">Invisible to others (embedded within HTTP request body)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">حدود البيانات (Data Limits)</template>
+          <template class="content-en">Data Limits</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">محدودة بحوالي 2000 حرف</template>
+          <template class="content-en">Limited to about 2000 characters</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا يوجد حدود لكمية البيانات</template>
+          <template class="content-en">No limits on the amount of information</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تفضيل المطورين (Developer Preference)</template>
+          <template class="content-en">Developer Preference</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أقل تفضيلاً للبيانات الحساسة</template>
+          <template class="content-en">Less preferred for sensitive data</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مفضلة لإرسال بيانات النماذج</template>
+          <template class="content-en">Preferred for sending form data</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون استخدام طريقة GET مفيداً رغم عيوبها الأمنية؟</template>
+      <template class="content-en">When is using the GET method useful despite its security drawbacks?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تكون مفيدة في عمليات البحث أو التصفية حيث يمكن للمستخدم حفظ الرابط (Bookmark) أو مشاركته مع الآخرين للوصول لنفس النتائج مباشرة.</p></template>
+      <template class="content-en"><p>It is useful for search or filtering operations where the user might want to bookmark the URL or share it with others to access the exact same results directly.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="form-validation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> التحقق من صحة النماذج (Form Validation)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Form Validation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>هو فحص البيانات المدخلة من قبل المستخدم على الخادم للتأكد من صحتها وحماية النظام من المخترقين.</p>
+    </template>
+    <template class="content-en">
+      <p>Checking user input on the server side to ensure correctness and protect the system from hackers.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لا يوجد ضمان بأن المعلومات التي يقدمها المستخدم صحيحة دائماً. لذلك، تقوم PHP ب<span class="smart-term" data-term-en="Validation" data-ar="التحقق من الصحة" data-en-def="Checking the input submitted by the user to ensure it meets required criteria.">التحقق من صحة البيانات</span> على جانب الخادم (Server-side). التحقق السليم من بيانات النموذج مهم جداً لحماية النموذج من المخترقين (Hackers) والمرسلين المزعجين (Spammers).</p><p>تشمل أنواع التحقق:</p><ul><li>التحقق من السلاسل الفارغة،</li><li>التحقق من النصوص،</li><li>الأرقام،</li><li>البريد الإلكتروني،</li><li>الروابط،</li><li>وطول المدخلات.</li></ul></template>
+    <template class="content-en"><p>There is no guarantee that the information provided by the user is always correct. PHP validates the data at the server-side. Proper <span class="smart-term" data-term-en="Validation" data-ar="التحقق من الصحة" data-en-def="Checking the input submitted by the user to ensure it meets required criteria.">validation</span> of form data is important to protect your form from hackers and spammers.</p><p>Validation types include</p><ul><li>checking for empty strings,</li><li>validating strings,</li><li>numbers,</li><li>emails,</li><li>URLs,</li><li>and input length.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم استخدام دوال محددة لكل نوع من التحقق:</p><ul><li><strong><code>empty()</code></strong> للتأكد من عدم ترك الحقل فارغاً،</li><li><strong><code>preg_match()</code></strong> مع التعابير النمطية (Regular Expressions) للتحقق من النصوص (مثل السماح بالأحرف فقط) أو البريد الإلكتروني أو الروابط،</li><li>و <strong><code>strlen()</code></strong> للتحقق من طول السلسلة النصية (مثل التأكد من أن رقم الهاتف يتكون من 10 أرقام).</li></ul></template>
+    <template class="content-en"><p>Specific functions are used for each validation type:</p><ul><li><strong><code>empty()</code></strong> to check if a field is left blank,</li><li><strong><code>preg_match()</code></strong> with Regular Expressions to validate strings (e.g., alphabets only), emails, or URLs,</li><li>and <strong><code>strlen()</code></strong> to check the length of a string (e.g., ensuring a mobile number has exactly 10 digits).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>if (empty($_POST["name"])) {
+  $errMsg = "Error! You didn't enter the Name.";
+} else {
+  $name = $_POST["name"];
+}</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>if (!preg_match("/^[a-zA-Z]*$/", $name)) {
+  $errMsg = "Only alphabets and whitespace are allowed.";
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نكتفي بالتحقق من صحة البيانات باستخدام HTML5 و JavaScript على متصفح العميل؟</template>
+      <template class="content-en">Why shouldn't we rely solely on HTML5 and JavaScript validation on the client browser?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن المستخدم يمكنه تعطيل JavaScript أو تعديل كود HTML في المتصفح لتجاوز التحقق، لذا التحقق على الخادم (Server-side) هو خط الدفاع الأساسي والأكثر أماناً.</p></template>
+      <template class="content-en"><p>Because a user can disable JavaScript or modify the HTML code in the browser to bypass validation. Server-side validation is the primary and most secure line of defense.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="php-cookies" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> ملفات تعريف الارتباط (Cookies)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Cookies</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>ملف صغير يضعه الخادم على جهاز المستخدم لتذكره عند عودته للموقع لاحقاً.</p>
+    </template>
+    <template class="content-en">
+      <p>A small file embedded by the server on the user's computer to identify them upon return.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>ملف تعريف الارتباط (Cookie) هو ملف صغير يقوم الخادم بتضمينه في جهاز كمبيوتر المستخدم. يُستخدم غالباً للتعرف على المستخدم العائد، وتذكر معلومات تسجيل الدخول، أو محتويات سلة التسوق.</p><p>تتضمن العملية 3 خطوات:</p><ol><li>يرسل الخادم ملف الارتباط للمتصفح،</li><li>يخزن المتصفح المعلومات محلياً،</li><li>وعند الطلب التالي، يرسل المتصفح هذه المعلومات للخادم للتعرف على المستخدم.</li></ol></template>
+    <template class="content-en"><p>A <span class="smart-term" data-term-en="Cookie" data-ar="ملف تعريف الارتباط" data-en-def="A small file stored on the user's computer by the web server to remember user information.">cookie</span> is a small file that the server embeds on the user's computer. It is often used to identify a return user, remember logins info, or shopping carts.</p><p>The process involves 3 steps:</p><ol><li>the server sends a cookie to the browser,</li><li>the browser stores it locally,</li><li>and on the next request, the browser sends the cookie back to the server to identify the user.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم إنشاء ملفات تعريف الارتباط في PHP باستخدام دالة <code>setcookie()</code>. تأخذ هذه الدالة عدة معاملات:</p><ul><li><strong>الاسم (Name)</strong>،</li><li><strong>القيمة (Value)</strong>،</li><li><strong>وقت الانتهاء (Expire - بالثواني)</strong>،</li><li><strong>المسار (Path)</strong>،</li><li><strong>النطاق (Domain)</strong>،</li><li><strong>والأمان (Security)</strong>.</li></ul><p>لتعديل ملف ارتباط، يتم استدعاء نفس الدالة بقيمة جديدة. لحذف ملف ارتباط، يتم استدعاء الدالة مع تعيين وقت الانتهاء في الماضي (مثلاً <code>time() - 3600</code>).</p></template>
+    <template class="content-en"><p>Cookies are created in PHP using the <code>setcookie()</code> function. It takes parameters:</p><ul><li><strong>Name</strong>,</li><li><strong>Value</strong>,</li><li><strong>Expire (timestamp in seconds)</strong>,</li><li><strong>Path</strong>,</li><li><strong>Domain</strong>,</li><li>and <strong>Security</strong>.</li></ul><p>To modify a cookie, you simply set it again using the same function. To delete a cookie, use the <code>setcookie()</code> function with an expiration date in the past (e.g., <code>time() - 3600</code>).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;?php
+// Create a cookie
+setcookie("user", "John Doe", time() + (86400 * 30), "/"); // 86400 = 1 day
+
+// Delete a cookie
+setcookie("user", "", time() - 3600);
+?&gt;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A sequence diagram showing the 3 steps of Cookie communication. Left side: 'Browser' (Laptop icon). Right side: 'Server' (Server rack icon). Arrow 1 (Server to Browser): '1) Response + Cookie'. Arrow 2 (Browser stores cookie internally). Arrow 3 (Browser to Server): '3) Request + Cookie'. Style: educational, dark background #0d1117, accent color #300ACC, viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="var(--brand-500)"/>
+    </marker>
+
+    <!-- Cookie Icon -->
+    <g id="cookie-icon">
+      <circle cx="0" cy="0" r="10" fill="var(--brand-500)"/>
+      <circle cx="-3" cy="-3" r="1.5" fill="var(--bg-surface)"/>
+      <circle cx="3" cy="-2" r="2" fill="var(--bg-surface)"/>
+      <circle cx="-1" cy="3" r="1.5" fill="var(--bg-surface)"/>
+      <circle cx="4" cy="3" r="1" fill="var(--bg-surface)"/>
+    </g>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Cookie Communication Flow</text>
+  <text x="400" y="55" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">مسار اتصال ملفات تعريف الارتباط</text>
+
+  <!-- Lifelines -->
+  <line x1="150" y1="180" x2="150" y2="430" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+  <line x1="650" y1="180" x2="650" y2="430" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+
+  <!-- Step 1: Server to Browser -->
+  <line x1="650" y1="235" x2="165" y2="235" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <rect x="465" y="225" width="30" height="20" fill="var(--bg-surface)" />
+  <use href="#cookie-icon" x="480" y="235" />
+  <text x="400" y="210" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1) HTTP Response + Set-Cookie</text>
+  <text x="400" y="228" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">استجابة + تعيين ملف تعريف الارتباط</text>
+
+  <!-- Step 2: Browser Stores Cookie -->
+  <rect x="60" y="275" width="180" height="54" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="150" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2) Store Cookie Internally</text>
+  <text x="150" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">حفظ ملف تعريف الارتباط داخلياً</text>
+
+  <!-- Step 3: Browser to Server -->
+  <line x1="150" y1="385" x2="635" y2="385" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <rect x="305" y="375" width="30" height="20" fill="var(--bg-surface)" />
+  <use href="#cookie-icon" x="320" y="385" />
+  <text x="400" y="360" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3) HTTP Request + Cookie</text>
+  <text x="400" y="378" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">طلب + إرسال ملف تعريف الارتباط</text>
+
+  <!-- Actors -->
+  <!-- Browser -->
+  <g transform="translate(150, 110)">
+    <rect x="-35" y="-25" width="70" height="45" rx="3" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <rect x="-30" y="-20" width="60" height="35" rx="1" fill="var(--bg-surface)" />
+    <path d="M -45 20 L 45 20 L 55 28 L -55 28 Z" fill="var(--brand-500)" />
+    <rect x="-8" y="23" width="16" height="3" rx="1" fill="var(--bg-surface)" opacity="0.5" />
+    <text x="0" y="48" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Browser</text>
+    <text x="0" y="66" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المتصفح</text>
+  </g>
+
+  <!-- Server -->
+  <g transform="translate(650, 110)">
+    <rect x="-25" y="-30" width="50" height="60" rx="3" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <rect x="-17" y="-22" width="34" height="12" rx="1" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1" />
+    <rect x="-17" y="-4" width="34" height="12" rx="1" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1" />
+    <rect x="-17" y="14" width="34" height="12" rx="1" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1" />
+    <circle cx="-10" cy="-16" r="1.5" fill="var(--brand-500)" />
+    <circle cx="-10" cy="2" r="1.5" fill="var(--brand-500)" />
+    <circle cx="-10" cy="20" r="1.5" fill="var(--brand-500)" />
+    <line x1="0" y1="-16" x2="10" y2="-16" stroke="var(--brand-500)" stroke-width="1" />
+    <line x1="0" y1="2" x2="10" y2="2" stroke="var(--brand-500)" stroke-width="1" />
+    <line x1="0" y1="20" x2="10" y2="20" stroke="var(--brand-500)" stroke-width="1" />
+    <text x="0" y="48" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Server</text>
+    <text x="0" y="66" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الخادم</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يجب استدعاء دالة setcookie() قبل إرسال أي مخرجات HTML إلى المتصفح؟</template>
+      <template class="content-en">Why must the setcookie() function be called before sending any HTML output to the browser?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن ملفات تعريف الارتباط تُرسل كجزء من ترويسات HTTP (HTTP Headers)، ويجب إرسال الترويسات قبل إرسال أي محتوى (Body) للصفحة.</p></template>
+      <template class="content-en"><p>Because cookies are sent as part of the HTTP headers, and headers must be sent before any actual output (body) of the page is transmitted.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="php-sessions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الجلسات (Sessions)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Sessions</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>طريقة لتخزين معلومات المستخدم على الخادم لاستخدامها عبر صفحات متعددة، مثل تذكر من أنت أثناء تصفحك للموقع.</p>
+    </template>
+    <template class="content-en">
+      <p>A way to store user information on the server to be used across multiple pages, like remembering who you are while browsing.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عندما تعمل على تطبيق، تقوم بفتحه، إجراء تغييرات، ثم إغلاقه. هذا يشبه <span class="smart-term" data-term-en="Session" data-ar="الجلسة" data-en-def="A mechanism to store user information on the server for use across multiple pages.">الجلسة</span> (Session).</p><p>المشكلة في الإنترنت هي أن خادم الويب لا يعرف من أنت أو ماذا تفعل لأن بروتوكول HTTP لا يحفظ الحالة (Stateless). تحل متغيرات الجلسة هذه المشكلة عن طريق تخزين معلومات المستخدم (مثل اسم المستخدم، اللون المفضل) لاستخدامها عبر صفحات متعددة.</p></template>
+    <template class="content-en"><p>When you work with an application, you open it, do changes, and close it. This is like a <span class="smart-term" data-term-en="Session" data-ar="الجلسة" data-en-def="A mechanism to store user information on the server for use across multiple pages.">Session</span>.</p><p>On the internet, the web server does not know who you are or what you do because the HTTP address doesn't maintain state. Session variables solve this problem by storing user information to be used across multiple pages.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تبدأ الجلسة باستخدام دالة <code>session_start()</code>. يتم تعيين متغيرات الجلسة باستخدام المصفوفة العامة الفائقة <code>$_SESSION</code>.</p><p>لتعديل متغير جلسة، يتم ببساطة الكتابة فوقه بقيمة جديدة. لإزالة جميع متغيرات الجلسة وتدميرها تماماً، نستخدم دالتي <code>session_unset()</code> و <code>session_destroy()</code> على التوالي.</p></template>
+    <template class="content-en"><p>A session is started with the <code>session_start()</code> function. Session variables are set using the PHP global variable <code>$_SESSION</code>.</p><p>To change a session variable, just overwrite it. To remove all global session variables and destroy the session, use <code>session_unset()</code> and <code>session_destroy()</code>.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;?php
+// Start the session
+session_start();
+
+// Set session variables
+$_SESSION["favcolor"] = "green";
+
+// Destroy the session
+session_unset();
+session_destroy();
+?&gt;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو الفرق الأساسي بين ملفات تعريف الارتباط (Cookies) والجلسات (Sessions) من حيث مكان التخزين؟</template>
+      <template class="content-en">What is the main difference between Cookies and Sessions regarding storage location?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ملفات تعريف الارتباط تُخزن على جهاز العميل (المتصفح)، بينما تُخزن بيانات الجلسات على الخادم (Server).</p></template>
+      <template class="content-en"><p>Cookies are stored on the client's machine (browser), whereas Session data is stored on the server.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبنائي في هذه الوحدة المحورية. تخيلوا أن الويب هو مطعم كبير؛ بروتوكول HTTP هو نادل ينسى من أنت بمجرد أن يقدم لك طلبك! هنا تبرز أهمية ما تعلمناه اليوم. أولاً، النماذج (Forms) هي قائمة الطلبات التي تملؤها، ونستخدم POST للطلبات الخاصة (البيانات الحساسة) و GET للطلبات العامة (كالبحث). ثانياً، لكي لا ينسانا النادل، نستخدم 'ملفات تعريف الارتباط' (Cookies) كبطاقة ولاء تحتفظ بها في جيبك (المتصفح)، أو 'الجلسات' (Sessions) كملف خاص بك يحتفظ به مدير المطعم (الخادم). في الامتحان، ركزوا جيداً على الفروق الجوهرية بين GET و POST، وتذكروا دائماً أن التحقق من البيانات (Validation) على الخادم هو خط الدفاع الأول ضد المخترقين. لا تنسوا أيضاً أن دوال الجلسات وملفات الارتباط يجب أن تُستدعى قبل أي مخرجات HTML. بالتوفيق!</template>
+    <template class="content-en">Welcome to this pivotal module. Imagine the web as a large restaurant; the HTTP protocol is a waiter who forgets who you are the moment he serves your order! This is where today's concepts shine. First, Forms are the order slips you fill out. We use POST for private orders (sensitive data) and GET for public ones (like searches). Second, so the waiter doesn't forget us, we use 'Cookies' as a loyalty card you keep in your pocket (the browser), or 'Sessions' as a private file kept by the restaurant manager (the server). For the exam, focus heavily on the core differences between GET and POST, and always remember that server-side validation is your first line of defense against hackers. Also, never forget that session and cookie functions must be called before any HTML output. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المصفوفات العامة الفائقة (Superglobals) ولماذا سميت بهذا الاسم؟</template>
+          <template class="content-en">What are Superglobals and why are they called that?</template>
+          <span class="content-target">ما هي المصفوفات العامة الفائقة (Superglobals) ولماذا سميت بهذا الاسم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي مصفوفات مبنية مسبقاً في PHP مثل $_POST و $_SERVER. سميت بذلك لأنها متاحة دائماً في أي نطاق (Scope) داخل الكود دون الحاجة لتعريفها كمتغير عام.</template>
+          <template class="content-en">They are predefined arrays in PHP like $_POST and $_SERVER. They are called so because they are always accessible in any scope within the script without needing to declare them as global.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين $_GET و $_POST؟</template>
+          <template class="content-en">What is the main difference between $_GET and $_POST?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين $_GET و $_POST؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">$_GET يرسل البيانات عبر الرابط (URL) مما يجعلها مرئية ومحدودة الحجم، بينما $_POST يرسل البيانات مخفية في جسم الطلب (HTTP Body) ولا يوجد لها حد أقصى للحجم.</template>
+          <template class="content-en">$_GET sends data via the URL making it visible and size-limited, whereas $_POST sends data hidden in the HTTP body with no size limits.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم التحقق من البيانات (Validation) في PHP إذا كان HTML5 يوفر ذلك؟</template>
+          <template class="content-en">Why do we use data validation in PHP if HTML5 provides it?</template>
+          <span class="content-target">لماذا نستخدم التحقق من البيانات (Validation) في PHP إذا كان HTML5 يوفر ذلك؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن التحقق في HTML5 يتم على متصفح العميل ويمكن للمخترقين تجاوزه بسهولة بتعطيل JavaScript أو تعديل الكود. التحقق في PHP (Server-side) هو الضمان الحقيقي للأمان.</template>
+          <template class="content-en">Because HTML5 validation happens on the client browser and hackers can easily bypass it by disabling JavaScript or modifying code. PHP (Server-side) validation is the true security guarantee.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل ملفات تعريف الارتباط (Cookies)؟</template>
+          <template class="content-en">How do Cookies work?</template>
+          <span class="content-target">كيف تعمل ملفات تعريف الارتباط (Cookies)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يرسل الخادم ملفاً صغيراً للمتصفح ليحفظه محلياً. في الزيارات القادمة، يرسل المتصفح هذا الملف مع الطلب ليتعرف الخادم على المستخدم.</template>
+          <template class="content-en">The server sends a small file to the browser to store locally. On subsequent visits, the browser sends this file with the request so the server can identify the user.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نقوم بحذف ملف تعريف ارتباط (Cookie)؟</template>
+          <template class="content-en">How do we delete a Cookie?</template>
+          <span class="content-target">كيف نقوم بحذف ملف تعريف ارتباط (Cookie)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا توجد دالة مخصصة للحذف، بل نستخدم نفس دالة setcookie() مع تعيين وقت انتهاء الصلاحية في الماضي (مثلاً time() - 3600).</template>
+          <template class="content-en">There is no specific delete function; instead, we use the same setcookie() function but set the expiration time in the past (e.g., time() - 3600).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الجلسة (Session) وأين يتم تخزين بياناتها؟</template>
+          <template class="content-en">What is a Session and where is its data stored?</template>
+          <span class="content-target">ما هي الجلسة (Session) وأين يتم تخزين بياناتها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الجلسة هي آلية لحفظ بيانات المستخدم عبر صفحات متعددة. على عكس Cookies، يتم تخزين بيانات الجلسة على الخادم (Server) وليس على جهاز العميل.</template>
+          <template class="content-en">A session is a mechanism to save user data across multiple pages. Unlike Cookies, session data is stored on the Server, not on the client's machine.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الخطوات لتدمير جلسة بالكامل؟</template>
+          <template class="content-en">What are the steps to completely destroy a session?</template>
+          <span class="content-target">ما هي الخطوات لتدمير جلسة بالكامل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أولاً نستخدم session_unset() لإزالة جميع المتغيرات، ثم نستخدم session_destroy() لتدمير الجلسة نهائياً.</template>
+          <template class="content-en">First, we use session_unset() to remove all variables, then we use session_destroy() to completely destroy the session.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما فائدة العنصر $_SERVER['PHP_SELF']؟</template>
+          <template class="content-en">What is the use of the $_SERVER['PHP_SELF'] element?</template>
+          <span class="content-target">ما فائدة العنصر $_SERVER['PHP_SELF']؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعيد اسم ملف السكربت الحالي الذي يتم تنفيذه. يُستخدم غالباً في النماذج لتوجيه البيانات إلى نفس الصفحة لمعالجتها.</template>
+          <template class="content-en">It returns the filename of the currently executing script. It is often used in forms to submit data to the same page for processing.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم التعابير النمطية (Regular Expressions) مع دالة preg_match()؟</template>
+          <template class="content-en">Why do we use Regular Expressions with the preg_match() function?</template>
+          <span class="content-target">لماذا نستخدم التعابير النمطية (Regular Expressions) مع دالة preg_match()؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">للتحقق من أن النص المدخل يطابق نمطاً معيناً بدقة، مثل التأكد من أن الاسم يحتوي على أحرف فقط، أو أن البريد الإلكتروني مكتوب بصيغة صحيحة.</template>
+          <template class="content-en">To verify that the input text strictly matches a specific pattern, such as ensuring a name contains only letters, or an email is correctly formatted.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يجب أن أستخدم Session ومتى أستخدم Cookie؟</template>
+          <template class="content-en">When should I use a Session and when should I use a Cookie?</template>
+          <span class="content-target">متى يجب أن أستخدم Session ومتى أستخدم Cookie؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">استخدم Session للبيانات الحساسة والمؤقتة (مثل تسجيل الدخول) لأنها تخزن بأمان على الخادم. استخدم Cookie للبيانات غير الحساسة التي تريد بقاءها لفترة طويلة (مثل تفضيلات اللغة) لأنها تخزن على جهاز المستخدم.</template>
+          <template class="content-en">Use a Session for sensitive and temporary data (like logins) because it's stored securely on the server. Use a Cookie for non-sensitive data you want to persist long-term (like language preferences) because it's stored on the user's device.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي المصفوفات العامة الفائقة (Superglobals)؟",
+      "en": "What are Superglobals in PHP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "متغيرات مبنية مسبقاً في PHP يمكن الوصول إليها دائماً بغض النظر عن النطاق.",
+        "en": "Predefined variables in PHP that are always accessible, regardless of scope."
+      },
+      "example": {
+        "ar": "$_SERVER, $_POST, $_GET",
+        "en": "$_SERVER, $_POST, $_GET"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي وظيفة $GLOBALS؟",
+      "en": "What is the function of $GLOBALS?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مصفوفة تستخدم للوصول إلى المتغيرات العامة من أي مكان في كود PHP.",
+        "en": "An array used to access global variables from anywhere in the PHP script."
+      },
+      "example": {
+        "ar": "$GLOBALS['x']",
+        "en": "$GLOBALS['x']"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ماذا تحتوي مصفوفة $_SERVER؟",
+      "en": "What does the $_SERVER array contain?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحتوي على ترويسات طلب HTTP وخيارات تكوين الخادم.",
+        "en": "Contains HTTP request headers and configuration options for PHP."
+      },
+      "example": {
+        "ar": "$_SERVER['PHP_SELF']",
+        "en": "$_SERVER['PHP_SELF']"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي وظيفة $_REQUEST؟",
+      "en": "What is the purpose of $_REQUEST?"
+    },
+    "back": {
+      "definition": {
+        "ar": "متغير عام فائق يستخدم لجمع البيانات بعد إرسال نموذج HTML.",
+        "en": "A superglobal variable used to collect data after submitting an HTML form."
+      },
+      "example": {
+        "ar": "$name = $_REQUEST['fname'];",
+        "en": "$name = $_REQUEST['fname'];"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "متى نستخدم $_POST؟",
+      "en": "When do we use $_POST?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لجمع بيانات النموذج المرسلة بطريقة method=\"post\".",
+        "en": "To collect form data after submitting an HTML form with method=\"post\"."
+      },
+      "example": {
+        "ar": "$_POST['username']",
+        "en": "$_POST['username']"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "متى نستخدم $_GET؟",
+      "en": "When do we use $_GET?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لجمع بيانات النموذج المرسلة بطريقة method=\"get\" أو البيانات المرسلة في الرابط URL.",
+        "en": "To collect form data after submitting an HTML form with method=\"get\" or data sent in the URL."
+      },
+      "example": {
+        "ar": "$_GET['id']",
+        "en": "$_GET['id']"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي سمة action في النماذج؟",
+      "en": "What is the action attribute in forms?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحدد الصفحة أو الملف الذي سيتم إرسال بيانات النموذج إليه.",
+        "en": "Dictates to which page the form data will be sent."
+      },
+      "example": {
+        "ar": "&lt;form action=\"script.php\"&gt;",
+        "en": "&lt;form action=\"script.php\"&gt;"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي سمة method في النماذج؟",
+      "en": "What is the method attribute in forms?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحدد كيفية إرسال البيانات إلى صفحة المعالجة (GET أو POST).",
+        "en": "Dictates how the data is sent to the handling page (GET or POST)."
+      },
+      "example": {
+        "ar": "&lt;form method=\"post\"&gt;",
+        "en": "&lt;form method=\"post\"&gt;"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي قيود طريقة GET؟",
+      "en": "What are the limitations of the GET method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "البيانات مرئية في الرابط ومحدودة بحوالي 2000 حرف.",
+        "en": "Data is visible in the URL and limited to about 2000 characters."
+      },
+      "example": {
+        "ar": "غير مناسبة لكلمات المرور.",
+        "en": "Not suitable for passwords."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي مزايا طريقة POST؟",
+      "en": "What are the advantages of the POST method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "البيانات غير مرئية في الرابط ولا يوجد حد أقصى لكمية البيانات.",
+        "en": "Data is invisible in the URL and has no limits on the amount of information."
+      },
+      "example": {
+        "ar": "تستخدم لرفع الملفات والبيانات الحساسة.",
+        "en": "Used for file uploads and sensitive data."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "لماذا نحتاج للتحقق من صحة النماذج (Form Validation)؟",
+      "en": "Why do we need Form Validation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لحماية النموذج من المخترقين والمرسلين المزعجين والتأكد من صحة البيانات.",
+        "en": "To protect the form from hackers and spammers and ensure data correctness."
+      },
+      "example": {
+        "ar": "التأكد من أن حقل البريد الإلكتروني يحتوي على @.",
+        "en": "Ensuring an email field contains an @."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو ملف تعريف الارتباط (Cookie)؟",
+      "en": "What is a Cookie?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ملف صغير يضعه الخادم على جهاز المستخدم للتعرف عليه عند عودته.",
+        "en": "A small file that the server embeds on the user's computer to identify a return user."
+      },
+      "example": {
+        "ar": "حفظ محتويات سلة التسوق.",
+        "en": "Saving shopping cart contents."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف يتم إنشاء ملف تعريف ارتباط في PHP؟",
+      "en": "How is a cookie created in PHP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام دالة setcookie().",
+        "en": "Using the setcookie() function."
+      },
+      "example": {
+        "ar": "setcookie(\"name\", \"value\", expire);",
+        "en": "setcookie(\"name\", \"value\", expire);"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "كيف يتم حذف ملف تعريف ارتباط؟",
+      "en": "How do you delete a cookie?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام دالة setcookie() مع تعيين وقت الانتهاء في الماضي.",
+        "en": "Use the setcookie() function with an expiration date in the past."
+      },
+      "example": {
+        "ar": "setcookie(\"user\", \"\", time() - 3600);",
+        "en": "setcookie(\"user\", \"\", time() - 3600);"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي الجلسة (Session)؟",
+      "en": "What is a Session?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة لتخزين معلومات المستخدم على الخادم لاستخدامها عبر صفحات متعددة.",
+        "en": "A way to store user information on the server to be used across multiple pages."
+      },
+      "example": {
+        "ar": "حفظ حالة تسجيل الدخول للمستخدم.",
+        "en": "Saving a user's login state."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "كيف تبدأ جلسة في PHP؟",
+      "en": "How do you start a session in PHP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستدعاء دالة session_start().",
+        "en": "By calling the session_start() function."
+      },
+      "example": {
+        "ar": "session_start();",
+        "en": "session_start();"
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "كيف تدمر جلسة بالكامل في PHP؟",
+      "en": "How do you completely destroy a session in PHP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام دالتي session_unset() ثم session_destroy().",
+        "en": "Using session_unset() followed by session_destroy()."
+      },
+      "example": {
+        "ar": "session_destroy();",
+        "en": "session_destroy();"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من المصفوفات التالية تعتبر مصفوفة عامة فائقة (Superglobal) في PHP؟",
+      "en": "Which of the following is a superglobal array in PHP?"
+    },
+    "options": {
+      "ar": [
+        "$_LOCAL",
+        "$_SERVER",
+        "$_WEB",
+        "$_DATA"
+      ],
+      "en": [
+        "$_LOCAL",
+        "$_SERVER",
+        "$_WEB",
+        "$_DATA"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "$_SERVER هي مصفوفة عامة فائقة تحتوي على معلومات الخادم وبيئة التنفيذ.",
+      "en": "$_SERVER is a superglobal array containing server and execution environment information."
+    },
+    "hint": {
+      "ar": "تحتوي على معلومات مثل PHP_SELF و SERVER_NAME.",
+      "en": "It contains info like PHP_SELF and SERVER_NAME."
+    },
+    "difficulty": "easy",
+    "conceptId": "superglobal-arrays"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو الحد الأقصى التقريبي للبيانات عند استخدام طريقة GET؟",
+      "en": "What is the approximate data limit when using the GET method?"
+    },
+    "options": {
+      "ar": [
+        "لا يوجد حد",
+        "500 حرف",
+        "2000 حرف",
+        "10000 حرف"
+      ],
+      "en": [
+        "No limit",
+        "500 characters",
+        "2000 characters",
+        "10000 characters"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "طريقة GET ترسل البيانات عبر الرابط (URL) ولها حد أقصى يبلغ حوالي 2000 حرف.",
+      "en": "The GET method sends data via the URL and has a limitation of about 2000 characters."
+    },
+    "hint": {
+      "ar": "الرقم بالآلاف.",
+      "en": "The number is in the thousands."
+    },
+    "difficulty": "medium",
+    "conceptId": "html5-form-processing"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "أي دالة تستخدم لإنشاء ملف تعريف ارتباط (Cookie) في PHP؟",
+      "en": "Which function is used to create a cookie in PHP?"
+    },
+    "options": {
+      "ar": [
+        "makecookie()",
+        "create_cookie()",
+        "setcookie()",
+        "cookie_start()"
+      ],
+      "en": [
+        "makecookie()",
+        "create_cookie()",
+        "setcookie()",
+        "cookie_start()"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يتم إنشاء ملفات تعريف الارتباط باستخدام دالة setcookie().",
+      "en": "Cookies are created using the setcookie() function."
+    },
+    "hint": {
+      "ar": "تبدأ بكلمة set.",
+      "en": "Starts with 'set'."
+    },
+    "difficulty": "easy",
+    "conceptId": "php-cookies"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أين يتم تخزين ملفات تعريف الارتباط (Cookies)؟",
+      "en": "Where are cookies stored?"
+    },
+    "options": {
+      "ar": [
+        "على قاعدة بيانات الخادم",
+        "على جهاز المستخدم (العميل)",
+        "في ذاكرة التخزين المؤقت لـ PHP",
+        "في ملفات النظام للخادم"
+      ],
+      "en": [
+        "On the server's database",
+        "On the user's computer (client)",
+        "In PHP cache",
+        "In server system files"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "ملف تعريف الارتباط هو ملف صغير يضعه الخادم على جهاز كمبيوتر المستخدم.",
+      "en": "A cookie is a small file that the server embeds on the user's computer."
+    },
+    "hint": {
+      "ar": "يتم تخزينها محلياً.",
+      "en": "They are stored locally."
+    },
+    "difficulty": "easy",
+    "conceptId": "php-cookies"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "كيف يتم حذف ملف تعريف ارتباط في PHP؟",
+      "en": "How is a cookie deleted in PHP?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام دالة deletecookie()",
+        "بتعيين قيمته إلى null",
+        "باستخدام دالة setcookie() مع وقت انتهاء في الماضي",
+        "باستخدام دالة session_destroy()"
+      ],
+      "en": [
+        "Using deletecookie() function",
+        "Setting its value to null",
+        "Using setcookie() with an expiration date in the past",
+        "Using session_destroy() function"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لحذف ملف تعريف ارتباط، يجب إعادة تعيينه باستخدام setcookie() مع تحديد وقت انتهاء صلاحية في الماضي.",
+      "en": "To delete a cookie, use the setcookie() function with an expiration date in the past."
+    },
+    "hint": {
+      "ar": "تتلاعب بالزمن (time).",
+      "en": "You manipulate the time."
+    },
+    "difficulty": "medium",
+    "conceptId": "php-cookies"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي دالة يجب استدعاؤها أولاً لبدء استخدام الجلسات؟",
+      "en": "Which function must be called first to start using sessions?"
+    },
+    "options": {
+      "ar": [
+        "start_session()",
+        "session_start()",
+        "init_session()",
+        "$_SESSION_START"
+      ],
+      "en": [
+        "start_session()",
+        "session_start()",
+        "init_session()",
+        "$_SESSION_START"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تبدأ الجلسة باستخدام دالة session_start().",
+      "en": "A session is started with the session_start() function."
+    },
+    "hint": {
+      "ar": "الكلمة session تأتي أولاً.",
+      "en": "The word 'session' comes first."
+    },
+    "difficulty": "easy",
+    "conceptId": "php-sessions"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هي السمة في وسم &lt;form&gt; التي تحدد الصفحة التي ستستقبل البيانات؟",
+      "en": "Which attribute in the &lt;form&gt; tag dictates which page the data is sent to?"
+    },
+    "options": {
+      "ar": [
+        "method",
+        "action",
+        "target",
+        "href"
+      ],
+      "en": [
+        "method",
+        "action",
+        "target",
+        "href"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "سمة action تحدد مسار الملف الذي سيعالج بيانات النموذج.",
+      "en": "The action attribute dictates to which page the form data will be sent."
+    },
+    "hint": {
+      "ar": "تعني 'إجراء'.",
+      "en": "Means 'action'."
+    },
+    "difficulty": "easy",
+    "conceptId": "html5-form-processing"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي دالة تستخدم للتحقق مما إذا كان الحقل النصي فارغاً؟",
+      "en": "Which function is used to check if a text field is empty?"
+    },
+    "options": {
+      "ar": [
+        "isnull()",
+        "isempty()",
+        "empty()",
+        "blank()"
+      ],
+      "en": [
+        "isnull()",
+        "isempty()",
+        "empty()",
+        "blank()"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "دالة empty() تستخدم للتحقق مما إذا كان المتغير فارغاً.",
+      "en": "The empty() function is used to check if a variable is empty."
+    },
+    "hint": {
+      "ar": "كلمة واحدة تعني 'فارغ'.",
+      "en": "A single word meaning 'empty'."
+    },
+    "difficulty": "easy",
+    "conceptId": "form-validation"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "لماذا يفضل المطورون استخدام POST بدلاً من GET لإرسال بيانات النماذج؟",
+      "en": "Why do developers prefer POST over GET for sending form data?"
+    },
+    "options": {
+      "ar": [
+        "لأن POST أسرع من GET",
+        "لأن POST يخفي البيانات في جسم الطلب ولا يوجد له حد أقصى للبيانات",
+        "لأن POST يدعم فقط النصوص",
+        "لأن POST لا يتطلب خادم PHP"
+      ],
+      "en": [
+        "Because POST is faster than GET",
+        "Because POST hides data in the request body and has no data limits",
+        "Because POST only supports text",
+        "Because POST doesn't require a PHP server"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "طريقة POST تحافظ على مستويات الأمان بإخفاء البيانات في جسم الطلب وتسمح بإرسال كميات غير محدودة من البيانات.",
+      "en": "The POST method maintains security by hiding data in the request body and allows unlimited data transmission."
+    },
+    "hint": {
+      "ar": "يتعلق الأمر بالأمان وحجم البيانات.",
+      "en": "It relates to security and data size."
+    },
+    "difficulty": "medium",
+    "conceptId": "html5-form-processing"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي دالة تستخدم لإزالة جميع متغيرات الجلسة؟",
+      "en": "Which function is used to remove all session variables?"
+    },
+    "options": {
+      "ar": [
+        "session_delete()",
+        "session_unset()",
+        "session_clear()",
+        "session_remove()"
+      ],
+      "en": [
+        "session_delete()",
+        "session_unset()",
+        "session_clear()",
+        "session_remove()"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دالة session_unset() تقوم بإزالة جميع متغيرات الجلسة الحالية.",
+      "en": "The session_unset() function removes all global session variables."
+    },
+    "hint": {
+      "ar": "عكس كلمة set.",
+      "en": "The opposite of 'set'."
+    },
+    "difficulty": "medium",
+    "conceptId": "php-sessions"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام طريقة GET لإرسال بيانات حساسة مثل كلمات المرور. هذا خطأ فادح لأن البيانات ستظهر بوضوح في رابط الصفحة (URL) ويمكن لأي شخص رؤيتها أو حفظها في سجل المتصفح.</template>
+      <template class="content-en">Using the GET method to send sensitive data like passwords. This is a critical mistake because the data will be clearly visible in the URL and saved in the browser history.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المتغير $_REQUEST يحتوي على بيانات من $_GET و $_POST و $_COOKIE معاً. رغم سهولة استخدامه، إلا أنه قد يسبب ثغرات أمنية إذا تم استغلاله لتمرير بيانات خبيثة عبر طريقة غير متوقعة.</template>
+      <template class="content-en">The $_REQUEST variable contains data from $_GET, $_POST, and $_COOKIE combined. While convenient, it can cause security vulnerabilities if exploited to pass malicious data via an unexpected method.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">بروتوكول HTTP هو بروتوكول عديم الحالة (Stateless)، مما يعني أن الخادم ينسى المستخدم بمجرد انتهاء تحميل الصفحة. الجلسات (Sessions) وملفات تعريف الارتباط (Cookies) هي الحلول الأساسية للحفاظ على 'ذاكرة' الخادم بين الصفحات.</template>
+      <template class="content-en">HTTP is a stateless protocol, meaning the server forgets the user once the page loads. Sessions and Cookies are the primary solutions to maintain the server's 'memory' across pages.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">محاولة استدعاء setcookie() أو session_start() بعد طباعة أي كود HTML (حتى لو كان مسافة فارغة). يجب استدعاء هذه الدوال قبل إرسال أي مخرجات للمتصفح لأنها تعتمد على ترويسات HTTP.</template>
+      <template class="content-en">Attempting to call setcookie() or session_start() after printing any HTML (even a blank space). These functions must be called before any output is sent to the browser because they rely on HTTP headers.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">التحقق من صحة البيانات (Validation) يجب أن يتم دائماً على جانب الخادم (Server-side) باستخدام PHP، حتى لو قمت بإضافة تحقق على جانب العميل (Client-side) باستخدام HTML5 أو JavaScript، لأن المستخدم يمكنه تجاوز تحقق العميل بسهولة.</template>
+      <template class="content-en">Data validation must always be performed on the server-side using PHP, even if you have client-side validation with HTML5 or JavaScript, because users can easily bypass client-side checks.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M10.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M12.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

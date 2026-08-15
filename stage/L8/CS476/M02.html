@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS476" data-module="2">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مقدمة في الحوسبة الموزعة ومبادئ تصميم الخوارزميات المتوازية · CS476 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS476" data-page-title-en="CS476">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M01.html" data-gh-next="M03.html" data-gh-card="../../hub/course.html?code=CS476"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#distributed-vs-decentralized" class="toc-link" data-bilingual>
+        <template class="content-ar">الأنظمة الموزعة مقابل الأنظمة اللامركزية</template>
+        <template class="content-en">Distributed versus Decentralized Systems</template>
+        <span class="content-target">الأنظمة الموزعة مقابل الأنظمة اللامركزية</span>
+      </a>
+      <a href="#distribution-transparency" class="toc-link" data-bilingual>
+        <template class="content-ar">شفافية التوزيع</template>
+        <template class="content-en">Distribution Transparency</template>
+        <span class="content-target">شفافية التوزيع</span>
+      </a>
+      <a href="#dependability-and-security" class="toc-link" data-bilingual>
+        <template class="content-ar">الاعتمادية والأمن</template>
+        <template class="content-en">Dependability and Security</template>
+        <span class="content-target">الاعتمادية والأمن</span>
+      </a>
+      <a href="#scalability-and-queuing-analysis" class="toc-link" data-bilingual>
+        <template class="content-ar">القابلية للتوسع والتحليل الرسمي</template>
+        <template class="content-en">Scalability and Formal Analysis</template>
+        <span class="content-target">القابلية للتوسع والتحليل الرسمي</span>
+      </a>
+      <a href="#parallel-algorithm-decomposition" class="toc-link" data-bilingual>
+        <template class="content-ar">تفكيك الخوارزميات المتوازية والمهام</template>
+        <template class="content-en">Parallel Algorithm Decomposition and Tasks</template>
+        <span class="content-target">تفكيك الخوارزميات المتوازية والمهام</span>
+      </a>
+      <a href="#decomposition-techniques" class="toc-link" data-bilingual>
+        <template class="content-ar">تقنيات التفكيك: الاستكشافي والتوقعي</template>
+        <template class="content-en">Decomposition Techniques: Exploratory and Speculative</template>
+        <span class="content-target">تقنيات التفكيك: الاستكشافي والتوقعي</span>
+      </a>
+      <a href="#mapping-techniques-load-balancing" class="toc-link" data-bilingual>
+        <template class="content-ar">تقنيات التعيين لتوازن الحمل</template>
+        <template class="content-en">Mapping Techniques for Load Balancing</template>
+        <span class="content-target">تقنيات التعيين لتوازن الحمل</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 2</template>
+      <template class="content-en">Module 2</template>
+      <span class="content-target">الوحدة 2</span>
+    </span> · CS476
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">مقدمة في الحوسبة الموزعة ومبادئ تصميم الخوارزميات المتوازية</h1>
+      <p class="hero-description">تغطي هذه الوحدة أهداف تصميم الأنظمة الموزعة (الشفافية، القابلية للتوسع، الاعتمادية)، بالإضافة إلى تقنيات تفكيك وتعيين الخوارزميات المتوازية لتحقيق توازن الحمل.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Introduction to Distributed Computing & Principles of Parallel Algorithm Design</h1>
+      <p class="hero-description">Covers distributed systems design goals (transparency, scalability, dependability), plus parallel algorithm decomposition and mapping techniques for load balancing.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الأنظمة الموزعة</span>
+      <span class="tag">الشفافية</span>
+      <span class="tag">القابلية للتوسع</span>
+      <span class="tag">الخوارزميات المتوازية</span>
+      <span class="tag">توازن الحمل</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Distributed Systems</span>
+      <span class="tag">Transparency</span>
+      <span class="tag">Scalability</span>
+      <span class="tag">Parallel Algorithms</span>
+      <span class="tag">Load Balancing</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف الأهداف العامة لتصميم الحوسبة الموزعة لدعم مشاركة الموارد.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم شفافية التوزيع، والانفتاح، والقابلية للتوسع.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح الخوارزميات المتوازية وتقنيات التفكيك.</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة خصائص المهام ورسوم بيانية لاعتمادية التفاعلات.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم تقنيات التعيين الأساسية لتحقيق توازن الحمل.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe distributed computing overall design goals for support sharing of resources.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand Distribution transparency, Openness and Scalability.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain Parallel Algorithms and Decomposition Techniques.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discussing Characteristics of Tasks and Interactions Dependency Graphs.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the basic Mapping Techniques for Load Balancing.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="distributed-vs-decentralized" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الأنظمة الموزعة مقابل الأنظمة اللامركزية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Distributed versus Decentralized Systems</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>النظام الموزع ينشر العمليات والموارد بشكل كافٍ عبر أجهزة كمبيوتر متعددة، بينما النظام اللامركزي ينشرها بالضرورة لتجنب المركزية.</p></template>
+    <template class="content-en"><p>A distributed system sufficiently spreads processes and resources across multiple computers, whereas a decentralized system necessarily spreads them.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك نظرتان لتحقيق الأنظمة الموزعة:</p><ul><li><b>النظرة التكاملية (Integrative view):</b> ربط أنظمة الكمبيوتر الشبكية الحالية في نظام أكبر.</li><li><b>النظرة التوسعية (Expansive view):</b> توسيع نظام كمبيوتر شبكي حالي بأجهزة كمبيوتر إضافية.</li></ul><p>من المفاهيم الخاطئة الشائعة أن الحلول المركزية لا تتوسع.</p><p>يجب التمييز بين <span class="smart-term" data-term-en="Logically Centralized" data-ar="مركزي منطقياً" data-en-def="A system that appears and is managed as a single entity, even if physically distributed.">المركزية المنطقية<span class="smart-term-tooltip"></span></span> (مثل جذر نظام أسماء النطاقات DNS) والمركزية المادية.</p><p>كما أنه ليس صحيحاً دائماً أن الحلول المركزية تحتوي على نقطة فشل واحدة (Single point of failure).</p></template>
+    <template class="content-en"><p>There are two views on realizing distributed systems:</p><ul><li><b>Integrative view:</b> connecting existing networked computer systems into a larger system.</li><li><b>Expansive view:</b> an existing networked computer system is extended with additional computers.</li></ul><p>Common misconceptions include the idea that centralized solutions do not scale.</p><p>One must distinguish between <span class="smart-term" data-term-en="Logically Centralized" data-ar="مركزي منطقياً" data-en-def="A system that appears and is managed as a single entity, even if physically distributed.">logically centralized<span class="smart-term-tooltip"></span></span> (e.g., DNS root) and physically distributed systems.</p><p>It is also generally not true that centralized solutions always have a single point of failure.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا يُعد التمييز بين المركزية المنطقية والمادية مهماً؟</p><p>لأن النظام يمكن أن يدار ككيان واحد منطقياً (مما يسهل الإدارة ويجعله أكثر قوة) بينما يكون موزعاً مادياً بشكل هائل لتحقيق الأداء العالي.</p><p>نقطة الفشل الواحدة في الأنظمة المركزية غالباً ما تكون أسهل في الإدارة وأسهل في جعلها أكثر متانة مقارنة بنقاط الفشل المتعددة والمعقدة في الأنظمة الموزعة بالكامل.</p></template>
+    <template class="content-en"><p>Why is the distinction between logically and physically centralized important?</p><p>Because a system can be managed as a single logical entity (making it easier to manage and robust) while being massively physically distributed for performance.</p><p>A single point of failure in centralized systems is often easier to manage and make more robust compared to the complex, multiple points of failure in fully distributed systems.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: Three network graphs side-by-side. 1) Distributed: a few star-like clusters connected. 2) Decentralized: multiple interconnected hubs. 3) Centralized: a single central node connected to all other nodes. Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 800 300, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <!-- Glow filter for active/hub nodes -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface, #0d1117)" />
+
+  <!-- Panels for each network type -->
+  <rect x="20" y="20" width="260" height="360" rx="16" fill="var(--bg-elevated, #161b22)" stroke="var(--border-color, #30363d)" stroke-width="1.5" />
+  <rect x="320" y="20" width="260" height="360" rx="16" fill="var(--bg-elevated, #161b22)" stroke="var(--border-color, #30363d)" stroke-width="1.5" />
+  <rect x="620" y="20" width="260" height="360" rx="16" fill="var(--bg-elevated, #161b22)" stroke="var(--border-color, #30363d)" stroke-width="1.5" />
+
+  <!-- ========================================== -->
+  <!-- 1. DISTRIBUTED NETWORK (Left)              -->
+  <!-- ========================================== -->
+  <g id="distributed-network">
+    <!-- Lines (Mesh Topology) -->
+    <g stroke="var(--brand-400, #60a5fa)" stroke-width="1.5" opacity="0.5">
+      <!-- Horizontal -->
+      <line x1="90" y1="70" x2="150" y2="70" />
+      <line x1="150" y1="70" x2="210" y2="70" />
+      <line x1="60" y1="120" x2="120" y2="120" />
+      <line x1="120" y1="120" x2="180" y2="120" />
+      <line x1="180" y1="120" x2="240" y2="120" />
+      <line x1="60" y1="170" x2="120" y2="170" />
+      <line x1="120" y1="170" x2="180" y2="170" />
+      <line x1="180" y1="170" x2="240" y2="170" />
+      <line x1="90" y1="220" x2="150" y2="220" />
+      <line x1="150" y1="220" x2="210" y2="220" />
+      
+      <!-- Vertical / Diagonal -->
+      <line x1="90" y1="70" x2="60" y2="120" />
+      <line x1="90" y1="70" x2="120" y2="120" />
+      <line x1="150" y1="70" x2="120" y2="120" />
+      <line x1="150" y1="70" x2="180" y2="120" />
+      <line x1="210" y1="70" x2="180" y2="120" />
+      <line x1="210" y1="70" x2="240" y2="120" />
+      
+      <line x1="60" y1="120" x2="60" y2="170" />
+      <line x1="120" y1="120" x2="120" y2="170" />
+      <line x1="180" y1="120" x2="180" y2="170" />
+      <line x1="240" y1="120" x2="240" y2="170" />
+      
+      <line x1="60" y1="170" x2="90" y2="220" />
+      <line x1="120" y1="170" x2="90" y2="220" />
+      <line x1="120" y1="170" x2="150" y2="220" />
+      <line x1="180" y1="170" x2="150" y2="220" />
+      <line x1="180" y1="170" x2="210" y2="220" />
+      <line x1="240" y1="170" x2="210" y2="220" />
+
+      <!-- Cross Diagonals for denser mesh -->
+      <line x1="60" y1="120" x2="120" y2="170" />
+      <line x1="120" y1="120" x2="60" y2="170" />
+      <line x1="120" y1="120" x2="180" y2="170" />
+      <line x1="180" y1="120" x2="120" y2="170" />
+      <line x1="180" y1="120" x2="240" y2="170" />
+      <line x1="240" y1="120" x2="180" y2="170" />
+    </g>
+
+    <!-- Nodes -->
+    <g fill="var(--bg-surface, #0d1117)" stroke="var(--brand-500, #3b82f6)" stroke-width="2.5">
+      <circle cx="90" cy="70" r="6" />
+      <circle cx="150" cy="70" r="6" />
+      <circle cx="210" cy="70" r="6" />
+      <circle cx="60" cy="120" r="6" />
+      <circle cx="120" cy="120" r="6" />
+      <circle cx="180" cy="120" r="6" />
+      <circle cx="240" cy="120" r="6" />
+      <circle cx="60" cy="170" r="6" />
+      <circle cx="120" cy="170" r="6" />
+      <circle cx="180" cy="170" r="6" />
+      <circle cx="240" cy="170" r="6" />
+      <circle cx="90" cy="220" r="6" />
+      <circle cx="150" cy="220" r="6" />
+      <circle cx="210" cy="220" r="6" />
+    </g>
+
+    <!-- Labels -->
+    <text x="150" y="290" font-size="18" font-weight="bold" fill="var(--text-primary, #e6edf3)" text-anchor="middle">Distributed</text>
+    <text x="150" y="315" font-size="16" font-weight="bold" fill="var(--text-primary, #e6edf3)" text-anchor="middle">شبكة موزعة</text>
+    <text x="150" y="342" font-size="13" fill="var(--text-secondary, #8b949e)" text-anchor="middle">No single point of failure</text>
+    <text x="150" y="362" font-size="13" fill="var(--text-secondary, #8b949e)" text-anchor="middle">لا توجد نقطة فشل مركزية</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- 2. DECENTRALIZED NETWORK (Middle)          -->
+  <!-- ========================================== -->
+  <g id="decentralized-network">
+    <!-- Lines -->
+    <g stroke="var(--brand-400, #60a5fa)" stroke-width="1.5" opacity="0.6">
+      <!-- Hub to Hub -->
+      <line x1="390" y1="100" x2="510" y2="100" stroke-width="2.5" opacity="0.9" />
+      <line x1="510" y1="100" x2="450" y2="200" stroke-width="2.5" opacity="0.9" />
+      <line x1="450" y1="200" x2="390" y2="100" stroke-width="2.5" opacity="0.9" />
+      
+      <!-- Hub 1 Peripherals -->
+      <line x1="390" y1="100" x2="340" y2="70" />
+      <line x1="390" y1="100" x2="350" y2="130" />
+      <line x1="390" y1="100" x2="410" y2="50" />
+      
+      <!-- Hub 2 Peripherals -->
+      <line x1="510" y1="100" x2="560" y2="70" />
+      <line x1="510" y1="100" x2="550" y2="130" />
+      <line x1="510" y1="100" x2="490" y2="50" />
+      
+      <!-- Hub 3 Peripherals -->
+      <line x1="450" y1="200" x2="400" y2="240" />
+      <line x1="450" y1="200" x2="450" y2="260" />
+      <line x1="450" y1="200" x2="500" y2="240" />
+    </g>
+
+    <!-- Peripheral Nodes -->
+    <g fill="var(--bg-surface, #0d1117)" stroke="var(--brand-500, #3b82f6)" stroke-width="2.5">
+      <circle cx="340" cy="70" r="6" />
+      <circle cx="350" cy="130" r="6" />
+      <circle cx="410" cy="50" r="6" />
+      <circle cx="560" cy="70" r="6" />
+      <circle cx="550" cy="130" r="6" />
+      <circle cx="490" cy="50" r="6" />
+      <circle cx="400" cy="240" r="6" />
+      <circle cx="450" cy="260" r="6" />
+      <circle cx="500" cy="240" r="6" />
+    </g>
+
+    <!-- Hub Nodes -->
+    <g fill="var(--brand-500, #3b82f6)" stroke="var(--bg-elevated, #161b22)" stroke-width="2" filter="url(#glow)">
+      <circle cx="390" cy="100" r="9" />
+      <circle cx="510" cy="100" r="9" />
+      <circle cx="450" cy="200" r="9" />
+    </g>
+
+    <!-- Labels -->
+    <text x="450" y="290" font-size="18" font-weight="bold" fill="var(--text-primary, #e6edf3)" text-anchor="middle">Decentralized</text>
+    <text x="450" y="315" font-size="16" font-weight="bold" fill="var(--text-primary, #e6edf3)" text-anchor="middle">شبكة لامركزية</text>
+    <text x="450" y="342" font-size="13" fill="var(--text-secondary, #8b949e)" text-anchor="middle">Multiple connected hubs</text>
+    <text x="450" y="362" font-size="13" fill="var(--text-secondary, #8b949e)" text-anchor="middle">محاور متعددة متصلة</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- 3. CENTRALIZED NETWORK (Right)             -->
+  <!-- ========================================== -->
+  <g id="centralized-network">
+    <!-- Lines -->
+    <g stroke="var(--brand-400, #60a5fa)" stroke-width="1.5" opacity="0.6">
+      <line x1="750" y1="145" x2="835" y2="145" />
+      <line x1="750" y1="145" x2="810" y2="205" />
+      <line x1="750" y1="145" x2="750" y2="230" />
+      <line x1="750" y1="145" x2="690" y2="205" />
+      <line x1="750" y1="145" x2="665" y2="145" />
+      <line x1="750" y1="145" x2="690" y2="85" />
+      <line x1="750" y1="145" x2="750" y2="60" />
+      <line x1="750" y1="145" x2="810" y2="85" />
+    </g>
+
+    <!-- Peripheral Nodes -->
+    <g fill="var(--bg-surface, #0d1117)" stroke="var(--brand-500, #3b82f6)" stroke-width="2.5">
+      <circle cx="835" cy="145" r="6" />
+      <circle cx="810" cy="205" r="6" />
+      <circle cx="750" cy="230" r="6" />
+      <circle cx="690" cy="205" r="6" />
+      <circle cx="665" cy="145" r="6" />
+      <circle cx="690" cy="85" r="6" />
+      <circle cx="750" cy="60" r="6" />
+      <circle cx="810" cy="85" r="6" />
+    </g>
+
+    <!-- Central Hub Node -->
+    <circle cx="750" cy="145" r="12" fill="var(--brand-500, #3b82f6)" stroke="var(--bg-elevated, #161b22)" stroke-width="2" filter="url(#glow)" />
+
+    <!-- Labels -->
+    <text x="750" y="290" font-size="18" font-weight="bold" fill="var(--text-primary, #e6edf3)" text-anchor="middle">Centralized</text>
+    <text x="750" y="315" font-size="16" font-weight="bold" fill="var(--text-primary, #e6edf3)" text-anchor="middle">شبكة مركزية</text>
+    <text x="750" y="342" font-size="13" fill="var(--text-secondary, #8b949e)" text-anchor="middle">Single point of failure</text>
+    <text x="750" y="362" font-size="13" fill="var(--text-secondary, #8b949e)" text-anchor="middle">نقطة فشل مركزية واحدة</text>
+  </g>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Distributed System</th><th>Decentralized System</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">انتشار الموارد</template>
+          <template class="content-en">Resource Spread</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منتشرة بشكل كافٍ (Sufficiently spread)</template>
+          <template class="content-en">Sufficiently spread</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منتشرة بالضرورة (Necessarily spread)</template>
+          <template class="content-en">Necessarily spread</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يصبح النظام اللامركزي نظاماً موزعاً؟</template>
+      <template class="content-en">When does a decentralized system become distributed?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>بشكل عام، عند إضافة روابط (k > 0) بين العقد في النظام اللامركزي، فإنه يتحول تدريجياً إلى نظام موزع.</p></template>
+      <template class="content-en"><p>In general, by adding k > 0 links between nodes in a decentralized system, it becomes distributed.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="distribution-transparency" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> شفافية التوزيع</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Distribution Transparency</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الظاهرة التي يحاول من خلالها النظام الموزع إخفاء حقيقة أن عملياته وموارده موزعة مادياً عبر أجهزة كمبيوتر متعددة.</p></template>
+    <template class="content-en"><p>The phenomenon by which a distributed system attempts to hide the fact that its processes and resources are physically distributed across multiple computers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتم معالجة شفافية التوزيع من خلال تقنيات مختلفة في <span class="smart-term" data-term-en="Middleware" data-ar="البرمجيات الوسيطة" data-en-def="A software layer situated between applications and operating systems that provides distribution transparency.">طبقة وسيطة (Middleware layer)<span class="smart-term-tooltip"></span></span> بين التطبيقات وأنظمة التشغيل.</p><p>تشمل أنواع الشفافية:</p><ul><li><b>الوصول (Access):</b> إخفاء الاختلافات في تمثيل البيانات وكيفية الوصول للكائن.</li><li><b>الموقع (Location):</b> إخفاء مكان وجود الكائن.</li><li><b>إعادة التوطين (Relocation):</b> إخفاء إمكانية نقل الكائن أثناء استخدامه.</li><li><b>الهجرة (Migration):</b> إخفاء إمكانية انتقال الكائن إلى موقع آخر.</li><li><b>النسخ المتماثل (Replication):</b> إخفاء أن الكائن منسوخ.</li><li><b>التزامن (Concurrency):</b> إخفاء إمكانية مشاركة الكائن بواسطة عدة مستخدمين مستقلين.</li><li><b>الفشل (Failure):</b> إخفاء فشل واسترداد الكائن.</li></ul></template>
+    <template class="content-en"><p>Distribution transparency is handled through techniques in a <span class="smart-term" data-term-en="Middleware" data-ar="البرمجيات الوسيطة" data-en-def="A software layer situated between applications and operating systems that provides distribution transparency.">middleware layer<span class="smart-term-tooltip"></span></span> between applications and operating systems.</p><p>Types include:</p><ul><li><b>Access:</b> Hide differences in data representation and how an object is accessed.</li><li><b>Location:</b> Hide where an object is located.</li><li><b>Relocation:</b> Hide that an object may be moved while in use.</li><li><b>Migration:</b> Hide that an object may move to another location.</li><li><b>Replication:</b> Hide that an object is replicated.</li><li><b>Concurrency:</b> Hide that an object may be shared by several independent users.</li><li><b>Failure:</b> Hide the failure and recovery of an object.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الشفافية الكاملة غالباً ما تكون مستحيلة أو غير مرغوب فيها عملياً.</p><p>على سبيل المثال، إخفاء فشل الشبكة تماماً قد يؤدي إلى توقف التطبيق لفترات طويلة دون إعلام المستخدم.</p><p>هناك دائماً مقايضة بين درجة الشفافية وأداء النظام؛ فمحاولة إخفاء زمن الوصول (Latency) عبر الشبكات الواسعة (WAN) قد تؤدي إلى تدهور الأداء بشكل كبير.</p></template>
+    <template class="content-en"><p>Full transparency is often practically impossible or undesirable.</p><p>For example, completely hiding network failures might cause an application to hang indefinitely without notifying the user.</p><p>There is always a trade-off between the degree of transparency and system performance; attempting to hide latency across a WAN can severely degrade performance.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: A diagram showing 4 computers (Computer 1 to 4) each with a Local OS. Above the Local OS layer is a single unified block labeled 'Distributed-system layer (middleware)'. Above the middleware is a single line labeled 'Same interface everywhere'. Style: educational, dark background #0d1117, accent color #10b981, viewBox 0 0 800 300. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <linearGradient id="mw-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.1"/>
+            <stop offset="50%" stop-color="var(--brand-500)" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.1"/>
+        </linearGradient>
+
+        <marker id="arrow-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-400)"/>
+        </marker>
+        
+        <marker id="arrow-head-reverse" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 10 1 L 2 5 L 10 9 z" fill="var(--brand-400)"/>
+        </marker>
+    </defs>
+
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <text x="400" y="35" fill="var(--text-primary)" font-size="18" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Same interface everywhere</text>
+    <text x="400" y="55" fill="var(--text-secondary)" font-size="15" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">واجهة موحدة في كل مكان</text>
+
+    <line x1="60" y1="75" x2="740" y2="75" stroke="var(--brand-500)" stroke-width="4" stroke-dasharray="8 4"/>
+    <circle cx="60" cy="75" r="5" fill="var(--brand-500)"/>
+    <circle cx="740" cy="75" r="5" fill="var(--brand-500)"/>
+
+    <rect x="60" y="105" width="680" height="80" rx="12" fill="url(#mw-grad)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="400" y="142" fill="var(--brand-500)" font-size="20" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Distributed-system layer (middleware)</text>
+    <text x="400" y="166" fill="var(--text-secondary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">طبقة النظام الموزع (البرمجيات الوسيطة)</text>
+
+    <line x1="130" y1="187" x2="130" y2="213" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-head-reverse)" marker-end="url(#arrow-head)"/>
+    <line x1="310" y1="187" x2="310" y2="213" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-head-reverse)" marker-end="url(#arrow-head)"/>
+    <line x1="490" y1="187" x2="490" y2="213" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-head-reverse)" marker-end="url(#arrow-head)"/>
+    <line x1="670" y1="187" x2="670" y2="213" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-head-reverse)" marker-end="url(#arrow-head)"/>
+
+    <g transform="translate(60, 215)">
+        <rect x="0" y="0" width="140" height="130" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <rect x="10" y="10" width="120" height="55" rx="8" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="70" y="32" fill="var(--text-primary)" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Local OS 1</text>
+        <text x="70" y="52" fill="var(--text-secondary)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">نظام تشغيل محلي</text>
+        <text x="70" y="95" fill="var(--text-primary)" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Computer 1</text>
+        <text x="70" y="115" fill="var(--text-secondary)" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">حاسوب 1</text>
+    </g>
+
+    <g transform="translate(240, 215)">
+        <rect x="0" y="0" width="140" height="130" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <rect x="10" y="10" width="120" height="55" rx="8" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="70" y="32" fill="var(--text-primary)" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Local OS 2</text>
+        <text x="70" y="52" fill="var(--text-secondary)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">نظام تشغيل محلي</text>
+        <text x="70" y="95" fill="var(--text-primary)" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Computer 2</text>
+        <text x="70" y="115" fill="var(--text-secondary)" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">حاسوب 2</text>
+    </g>
+
+    <g transform="translate(420, 215)">
+        <rect x="0" y="0" width="140" height="130" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <rect x="10" y="10" width="120" height="55" rx="8" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="70" y="32" fill="var(--text-primary)" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Local OS 3</text>
+        <text x="70" y="52" fill="var(--text-secondary)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">نظام تشغيل محلي</text>
+        <text x="70" y="95" fill="var(--text-primary)" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Computer 3</text>
+        <text x="70" y="115" fill="var(--text-secondary)" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">حاسوب 3</text>
+    </g>
+
+    <g transform="translate(600, 215)">
+        <rect x="0" y="0" width="140" height="130" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <rect x="10" y="10" width="120" height="55" rx="8" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="70" y="32" fill="var(--text-primary)" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Local OS 4</text>
+        <text x="70" y="52" fill="var(--text-secondary)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">نظام تشغيل محلي</text>
+        <text x="70" y="95" fill="var(--text-primary)" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Computer 4</text>
+        <text x="70" y="115" fill="var(--text-secondary)" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">حاسوب 4</text>
+    </g>
+
+    <line x1="130" y1="345" x2="130" y2="380" stroke="var(--text-muted)" stroke-width="3"/>
+    <line x1="310" y1="345" x2="310" y2="380" stroke="var(--text-muted)" stroke-width="3"/>
+    <line x1="490" y1="345" x2="490" y2="380" stroke="var(--text-muted)" stroke-width="3"/>
+    <line x1="670" y1="345" x2="670" y2="380" stroke="var(--text-muted)" stroke-width="3"/>
+
+    <rect x="60" y="376" width="680" height="8" rx="4" fill="var(--text-muted)"/>
+    <circle cx="130" cy="380" r="5" fill="var(--text-muted)"/>
+    <circle cx="310" cy="380" r="5" fill="var(--text-muted)"/>
+    <circle cx="490" cy="380" r="5" fill="var(--text-muted)"/>
+    <circle cx="670" cy="380" r="5" fill="var(--text-muted)"/>
+
+    <text x="400" y="408" fill="var(--text-secondary)" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">Network / الشبكة</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن تحقيق شفافية الفشل (Failure Transparency) بنسبة 100%؟</template>
+      <template class="content-en">Why is 100% Failure Transparency impossible to achieve?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه لا يمكن التمييز دائماً بين العقدة التي فشلت تماماً والعقدة التي تعاني من بطء شديد في الشبكة.</p></template>
+      <template class="content-en"><p>Because it is impossible to reliably distinguish between a completely failed node and a node experiencing severe network delays.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="dependability-and-security" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الاعتمادية والأمن</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Dependability and Security</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الاعتمادية تضمن أن النظام جاهز ومستمر وآمن وقابل للإصلاح، بينما الأمن يضمن السرية والنزاهة والموثوقية.</p></template>
+    <template class="content-en"><p>Dependability ensures a system is ready, continuous, safe, and repairable, while security ensures confidentiality, integrity, and trust.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>متطلبات الاعتمادية تشمل:</p><ul><li><b>التوافر (Availability):</b> الجاهزية للاستخدام.</li><li><b>الموثوقية (Reliability):</b> استمرارية تقديم الخدمة.</li><li><b>السلامة (Safety):</b> احتمالية منخفضة جداً لوقوع كوارث.</li><li><b>قابلية الصيانة (Maintainability):</b> سهولة إصلاح النظام المعطل.</li></ul><p>المصطلحات الأساسية للأعطال:</p><ul><li><b>الفشل (Failure):</b> المكون لا يفي بمواصفاته (مثل انهيار البرنامج).</li><li><b>الخطأ (Error):</b> جزء من المكون يمكن أن يؤدي إلى فشل (مثل خطأ برمجي Bug).</li><li><b>الخلل/الصدع (Fault):</b> سبب الخطأ (مثل مبرمج مهمل).</li></ul><p>الأمن يتطلب السرية (Confidentiality)، والنزاهة (Integrity)، والمصادقة (Authentication)، والتفويض (Authorization)، والثقة (Trust).</p></template>
+    <template class="content-en"><p>Dependability requirements include:</p><ul><li><b>Availability:</b> Readiness for usage.</li><li><b>Reliability:</b> Continuity of service delivery.</li><li><b>Safety:</b> Very low probability of catastrophes.</li><li><b>Maintainability:</b> How easy a failed system can be repaired.</li></ul><p>Fault terminology:</p><ul><li><b>Failure:</b> A component is not living up to its specifications (e.g., Crashed program).</li><li><b>Error:</b> Part of a component that can lead to a failure (e.g., Programming bug).</li><li><b>Fault:</b> Cause of an error (e.g., Sloppy programmer).</li></ul><p>Security requires Confidentiality, Integrity, Authentication, Authorization, and Trust.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>النظام الموزع الذي يفتقر إلى الأمن لا يمكن اعتباره نظاماً اعتمادياً.</p><p>التداخل بين الأمن والاعتمادية يظهر في تقنيات <span class="smart-term" data-term-en="Fault Tolerance" data-ar="التسامح مع الأخطاء" data-en-def="Building a component to mask the occurrence of a fault, allowing the system to continue operating.">التسامح مع الأخطاء (Fault tolerance)<span class="smart-term-tooltip"></span></span> التي تخفي حدوث الخلل.</p><p>التعامل مع الأعطال يشمل:</p><ul><li><strong>منع الخلل (Fault prevention)</strong>،</li><li><strong>التسامح مع الخلل (Fault tolerance)</strong>،</li><li><strong>إزالة الخلل (Fault removal)</strong>،</li><li><strong>والتنبؤ بالخلل (Fault forecasting)</strong>.</li></ul></template>
+    <template class="content-en"><p>A distributed system that is not secure is not dependable.</p><p>The intersection of security and dependability is evident in <span class="smart-term" data-term-en="Fault Tolerance" data-ar="التسامح مع الأخطاء" data-en-def="Building a component to mask the occurrence of a fault, allowing the system to continue operating.">fault tolerance techniques<span class="smart-term-tooltip"></span></span> that mask the occurrence of a fault.</p><p>Handling faults involves:</p><ul><li><strong>Fault prevention</strong>,</li><li><strong>Fault tolerance (masking)</strong>,</li><li><strong>Fault removal</strong>,</li><li><strong>and Fault forecasting</strong>.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو الفرق الدقيق بين الخطأ (Error) والفشل (Failure)؟</template>
+      <template class="content-en">What is the exact difference between an Error and a Failure?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الخطأ هو حالة داخلية غير صحيحة (مثل متغير يحمل قيمة خاطئة)، بينما الفشل هو عندما يظهر هذا الخطأ للعالم الخارجي ويتوقف النظام عن أداء وظيفته المحددة.</p></template>
+      <template class="content-en"><p>An error is an incorrect internal state (e.g., a bug), while a failure is when this error propagates to the outside world and the system stops meeting its specifications.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="scalability-and-queuing-analysis" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> القابلية للتوسع والتحليل الرسمي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Scalability and Formal Analysis</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>القابلية للتوسع تعني قدرة النظام على التعامل مع زيادة الحجم، والمسافة الجغرافية، والنطاقات الإدارية دون تدهور الأداء.</p></template>
+    <template class="content-en"><p>Scalability is the system's ability to handle growth in size, geographical distance, and administrative domains without performance degradation.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مكونات القابلية للتوسع:</p><ul><li><b>قابلية توسع الحجم (Size scalability):</b> زيادة عدد المستخدمين أو العمليات.</li><li><b>قابلية التوسع الجغرافي (Geographical scalability):</b> أقصى مسافة بين العقد.</li><li><b>قابلية التوسع الإداري (Administrative scalability):</b> عدد النطاقات الإدارية.</li></ul><p>يمكن نمذجة الخدمة المركزية كنظام طابور بسيط (Queuing system) حيث:</p><ul><li><strong>معدل وصول الطلبات:</strong> $\\lambda$</li><li><strong>سعة المعالجة:</strong> $\\mu$ طلب في الثانية</li><li><strong>الاستخدام (Utilization):</strong> $U = \\lambda / \\mu$</li></ul><p>تقنيات التوسع تشمل:</p><ul><li><strong>تقسيم البيانات والحسابات</strong>،</li><li><strong>نقل الحسابات للعميل</strong>،</li><li><strong>والنسخ المتماثل والتخزين المؤقت (Replication and caching)</strong>.</li></ul></template>
+    <template class="content-en"><p>Components of scalability:</p><ul><li><b>Size scalability:</b> Number of users or processes.</li><li><b>Geographical scalability:</b> Maximum distance between nodes.</li><li><b>Administrative scalability:</b> Number of administrative domains.</li></ul><p>A centralized service can be modeled as a simple queuing system where:</p><ul><li><strong>Arrival rate of requests:</strong> $\\lambda$</li><li><strong>Processing capacity:</strong> $\\mu$ requests per second</li><li><strong>Utilization:</strong> $U = \\lambda / \\mu$</li></ul><p>Techniques for scaling include:</p><ul><li><strong>Partitioning data/computations</strong>,</li><li><strong>moving computations to clients</strong>,</li><li><strong>and Replication/Caching</strong>.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المشكلة الرئيسية في النسخ المتماثل (Replication) هي التناقضات (Inconsistencies). الحفاظ على اتساق النسخ يتطلب <span class="smart-term" data-term-en="Global Synchronization" data-ar="المزامنة العالمية" data-en-def="Coordinating all nodes in a distributed system simultaneously, which severely limits scalability.">مزامنة عالمية (Global synchronization)<span class="smart-term-tooltip"></span></span>، وهو ما يعيق الحلول واسعة النطاق.</p><p>في تحليل الطابور، إذا اقترب الاستخدام ($U$) من 1، فإن النظام يتوقف تماماً (Grinding halt). الحل هو تقليل وقت الخدمة ($S = 1/\mu$).</p></template>
+    <template class="content-en"><p>The main problem with replication is inconsistencies. Keeping copies consistent requires <span class="smart-term" data-term-en="Global Synchronization" data-ar="المزامنة العالمية" data-en-def="Coordinating all nodes in a distributed system simultaneously, which severely limits scalability.">global synchronization<span class="smart-term-tooltip"></span></span>, which precludes large-scale solutions.</p><p>In queuing analysis, if Utilization ($U$) goes up to 1, the system comes to a grinding halt. The solution is to decrease service time ($S = 1/\mu$).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>وقت الاستجابة (R) يعتمد على وقت الخدمة (S) والاستخدام (U).</strong></template>
+      <template class="content-en"><strong>Response time (R) depends on service time (S) and utilization (U).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$R = \frac{S}{1 - U}$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A simple queuing system diagram. An arrow labeled 'Requests' points to a queue (represented by vertical bars). An arrow points from the queue to a circle labeled 'Process'. An arrow points out of the circle labeled 'Response'. Style: educational, dark background #0d1117, accent color #f59e0b, viewBox 0 0 600 200. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+
+    <!-- Drop Shadow Filter for Depth -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+
+    <!-- Background Dot Pattern -->
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="var(--text-muted)" opacity="0.15" />
+    </pattern>
+
+    <!-- Gradient for Queue Items -->
+    <linearGradient id="itemGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.02" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#dots)" />
+
+  <!-- ========================================== -->
+  <!-- 1. REQUESTS (Incoming Arrow)               -->
+  <!-- ========================================== -->
+  <line x1="50" y1="150" x2="190" y2="150" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow)" />
+  
+  <text x="120" y="130" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">Requests</text>
+  <text x="120" y="180" fill="var(--text-secondary)" font-size="16" text-anchor="middle">الطلبات</text>
+
+  <!-- ========================================== -->
+  <!-- 2. QUEUE (Vertical Bars)                   -->
+  <!-- ========================================== -->
+  <!-- Queue Container Lines -->
+  <line x1="210" y1="95" x2="390" y2="95" stroke="var(--border-color)" stroke-width="6" stroke-linecap="round" />
+  <line x1="210" y1="205" x2="390" y2="205" stroke="var(--border-color)" stroke-width="6" stroke-linecap="round" />
+
+  <!-- Queue Items (Vertical Bars) -->
+  <g filter="url(#shadow)">
+    <!-- Item 4 (Newest) -->
+    <rect x="225" y="110" width="30" height="80" rx="6" fill="url(#itemGrad)" stroke="var(--brand-500)" stroke-width="2" />
+    <!-- Item 3 -->
+    <rect x="265" y="110" width="30" height="80" rx="6" fill="url(#itemGrad)" stroke="var(--brand-500)" stroke-width="2" />
+    <!-- Item 2 -->
+    <rect x="305" y="110" width="30" height="80" rx="6" fill="url(#itemGrad)" stroke="var(--brand-500)" stroke-width="2" />
+    <!-- Item 1 (Oldest / Head) -->
+    <rect x="345" y="110" width="30" height="80" rx="6" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2" />
+  </g>
+
+  <!-- Queue Labels -->
+  <text x="300" y="75" fill="var(--text-primary)" font-size="20" font-weight="bold" text-anchor="middle">Queue</text>
+  <text x="300" y="240" fill="var(--text-secondary)" font-size="18" text-anchor="middle">طابور الانتظار</text>
+
+  <!-- ========================================== -->
+  <!-- 3. ARROW TO PROCESS                        -->
+  <!-- ========================================== -->
+  <line x1="405" y1="150" x2="465" y2="150" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow)" />
+
+  <!-- ========================================== -->
+  <!-- 4. PROCESS (Circle)                        -->
+  <!-- ========================================== -->
+  <g filter="url(#shadow)">
+    <circle cx="550" cy="150" r="65" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="4" />
+    <!-- Inner dashed circle for visual interest -->
+    <circle cx="550" cy="150" r="53" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 6" opacity="0.6" />
+  </g>
+
+  <!-- Process Labels -->
+  <text x="550" y="145" fill="var(--text-primary)" font-size="20" font-weight="bold" text-anchor="middle">Process</text>
+  <text x="550" y="172" fill="var(--text-secondary)" font-size="18" text-anchor="middle">معالجة</text>
+
+  <!-- ========================================== -->
+  <!-- 5. RESPONSE (Outgoing Arrow)               -->
+  <!-- ========================================== -->
+  <line x1="630" y1="150" x2="750" y2="150" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow)" />
+
+  <text x="690" y="130" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">Response</text>
+  <text x="690" y="180" fill="var(--text-secondary)" font-size="16" text-anchor="middle">استجابة</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يحل التسامح مع التناقضات (Tolerating inconsistencies) مشكلة القابلية للتوسع؟</template>
+      <template class="content-en">How does tolerating inconsistencies solve the scalability problem?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال قبول بعض التناقضات المؤقتة، نقلل الحاجة إلى المزامنة العالمية المستمرة، مما يسمح للنظام بالتوسع جغرافياً وحجمياً دون تأخير كبير.</p></template>
+      <template class="content-en"><p>By accepting temporary inconsistencies, we reduce the need for constant global synchronization, allowing the system to scale geographically and in size without massive delays.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="parallel-algorithm-decomposition" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> تفكيك الخوارزميات المتوازية والمهام</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Parallel Algorithm Decomposition and Tasks</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الخطوة الأولى في تصميم خوارزمية متوازية هي تفكيك المشكلة إلى مهام يمكن تنفيذها بشكل متزامن، وتُمثل باستخدام <span class="smart-term" data-term-en="Task Dependency Graph" data-ar="الرسم البياني لاعتمادية المهام" data-en-def="A directed graph where nodes are tasks and edges indicate that the result of one task is required for the next.">رسم بياني لاعتمادية المهام (Task Dependency Graph)<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>The first step in developing a parallel algorithm is decomposing the problem into tasks that can be executed concurrently, represented by a <span class="smart-term" data-term-en="Task Dependency Graph" data-ar="الرسم البياني لاعتمادية المهام" data-en-def="A directed graph where nodes are tasks and edges indicate that the result of one task is required for the next.">Task Dependency Graph<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>خطوات التوازي (Parallelization):</p><ol><li><b>التفكيك (Decomposition):</b> تقسيم المشكلة إلى مهام لكشف التزامن.</li><li><b>التعيين (Assignment):</b> تعيين المهام للعمليات لموازنة الحمل وتعظيم المحلية (Locality).</li><li><b>التنسيق (Orchestration):</b> تسمية البيانات والوصول إليها، تبادل البيانات، والمزامنة.</li><li><b>التخطيط (Mapping):</b> تعيين العمليات للمعالجات.</li></ol><p>حجم المهام (Granularity) يحدد عددها:</p><ul><li><strong>المهام الدقيقة (Fine grain)</strong> تعني عدداً كبيراً من المهام الصغيرة،</li><li><strong>بينما المهام الخشنة (Coarse grain)</strong> تعني عدداً صغيراً من المهام الكبيرة.</li></ul></template>
+    <template class="content-en"><p>Steps in Parallelization:</p><ol><li><b>Decomposition:</b> Breaking into tasks to expose concurrency.</li><li><b>Assignment:</b> Assigning to processes to balance load and maximize locality.</li><li><b>Orchestration:</b> Naming/accessing data, communicating, and synchronizing.</li><li><b>Mapping:</b> Assignment of processes to processors.</li></ol><p>Task Granularity:</p><ul><li><strong>Fine grain</strong> means each task computes a small element (large number of tasks),</li><li><strong>while Coarse grain</strong> means each task computes multiple elements (small number of tasks).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>حجم البيانات المرتبطة بالمهمة يؤثر بشكل كبير على التخطيط.</p><p>إذا كانت البيانات صغيرة، يمكن للمهمة أن تهاجر بسهولة إلى عملية أخرى.</p><p>أما إذا كانت البيانات كبيرة، فإنها تربط المهمة بعملية معينة لتجنب تكلفة الاتصال العالية.</p><p>هناك دائماً مقايضة بين إعادة بناء سياق المهمة (Context reconstructing) وبين نقل البيانات (Communicating).</p></template>
+    <template class="content-en"><p>The size of data associated with tasks heavily impacts mapping.</p><p>Small data means tasks can easily migrate to another process.</p><p>Large data ties the task to a specific process to avoid high communication costs.</p><p>There is a constant trade-off between reconstructing the task context locally versus communicating the data across the network.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا قد نفضل التفكيك الخشن (Coarse grain) على الدقيق (Fine grain) في بعض الأنظمة؟</template>
+      <template class="content-en">Why might we prefer coarse-grain decomposition over fine-grain in some systems?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لتقليل النفقات العامة (Overhead) الناتجة عن الاتصال والمزامنة بين عدد هائل من المهام الصغيرة.</p></template>
+      <template class="content-en"><p>To reduce the communication and synchronization overhead that comes with managing a massive number of tiny tasks.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="decomposition-techniques" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تقنيات التفكيك: الاستكشافي والتوقعي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Decomposition Techniques: Exploratory and Speculative</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التفكيك الاستكشافي يبحث في مساحة الحلول (مثل لغز 15)، بينما التفكيك التوقعي يجدول المهام بافتراض عدم وجود اعتمادات، مع إمكانية التراجع عند الخطأ.</p></template>
+    <template class="content-en"><p>Exploratory decomposition searches a solution space (e.g., 15 puzzle), while speculative decomposition schedules tasks assuming no dependencies, rolling back if wrong.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b>التفكيك الاستكشافي (Exploratory Decomposition):</b></p><ul><li>يُستخدم للبحث في مساحة حالة الحلول.</li><li>شكل التفكيك يعكس شكل التنفيذ.</li><li><strong>مثال:</strong> لغز 15 (15 puzzle)، إثبات النظريات.</li><li>قد يؤدي البرنامج المتوازي عملاً أكثر أو أقل من البرنامج التسلسلي بناءً على متى يتم العثور على الحل.</li></ul><p><b>التفكيك التوقعي (Speculative Decomposition):</b></p><ul><li>يُستخدم عندما تكون الاعتمادات بين المهام غير معروفة مسبقاً.</li><li><b>النهج المحافظ:</b> يحدد المهام المستقلة فقط (تزامن قليل).</li><li><b>النهج المتفائل:</b> يجدول المهام حتى لو كانت معتمدة، ويتراجع (Roll-back) في حالة الخطأ.</li><li><strong>مثال:</strong> محاكاة الأحداث المنفصلة (Discrete event simulation).</li></ul></template>
+    <template class="content-en"><p><b>Exploratory Decomposition:</b></p><ul><li>Exploration (search) of a state space of solutions.</li><li>Problem decomposition reflects the shape of execution.</li><li><strong>Examples:</strong> 15 puzzle, theorem proving.</li><li>Parallel programs may perform more, less, or the same amount of work as serial programs depending on when the solution is found.</li></ul><p><b>Speculative Decomposition:</b></p><ul><li>Used when dependencies between tasks are not known a-priori.</li><li><b>Conservative approach:</b> identifies independent tasks only (yields little concurrency).</li><li><b>Optimistic approach:</b> schedules tasks even if potentially inter-dependent, and <span class="smart-term" data-term-en="Roll-back" data-ar="التراجع" data-en-def="Reverting the system state to a previous correct state when a speculative assumption proves incorrect.">rolls back<span class="smart-term-tooltip"></span></span> changes in case of an error.</li><li><strong>Example:</strong> Discrete event simulation.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في التفكيك التوقعي المتفائل، يُفترض مسبقاً نتائج الأحداث السابقة لمعالجة الحدث التالي بشكل تكهني.</p><p>إذا كان الافتراض غير صحيح، يجب أن يمتلك النظام آلية قوية للتراجع (Roll-back) عن التأثيرات، وهو ما يضيف تعقيداً كبيراً في إدارة الذاكرة والحالة.</p><p>يمكن دمج تقنيات التفكيك (Hybrid) لأن تفكيكاً واحداً قد لا يكون مثالياً للتزامن، مثل التفكيك العودي في خوارزمية Quicksort الذي يحد من التزامن في المستويات العليا.</p></template>
+    <template class="content-en"><p>In optimistic speculative decomposition, outcomes of prior events are assumed to speculatively process the next event.</p><p>If the assumption is incorrect, the system must have a robust <span class="smart-term" data-term-en="Roll-back" data-ar="التراجع" data-en-def="Reverting the system state to a previous correct state when a speculative assumption proves incorrect.">roll-back<span class="smart-term-tooltip"></span></span> mechanism, adding significant complexity to state and memory management.</p><p>Decomposition techniques can be combined (Hybrid) because a single decomposition may not be optimal for concurrency, such as Quicksort's recursive decomposition which limits concurrency at the top levels.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A tree diagram showing Exploratory Decomposition for a 15-puzzle. The root node splits into multiple branches (tasks). One specific leaf node is marked 'Solution' with a red dot. Text below says 'Execution terminates when a solution is found'. Style: educational, dark background #0d1117, accent color #8b5cf6, viewBox 0 0 700 300. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for standard paths -->
+        <marker id="arrow-border" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--border-color)" />
+        </marker>
+        
+        <!-- Arrowhead for highlighted paths -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Arrowhead for dashed paths -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        Exploratory Decomposition: 15-Puzzle
+    </text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">
+        التحليل الاستكشافي: لغز 15
+    </text>
+
+    <!-- Edges (Drawn first so they appear behind nodes) -->
+    <g fill="none" stroke-width="2">
+        <!-- Level 0 to Level 1 -->
+        <path d="M 400 150 C 400 175, 170 175, 170 196" stroke="var(--border-color)" marker-end="url(#arrow-border)" />
+        <path d="M 400 150 C 400 175, 400 175, 400 196" stroke="var(--border-color)" marker-end="url(#arrow-border)" />
+        <!-- Highlighted path to solution -->
+        <path d="M 400 150 C 400 175, 630 175, 630 196" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+
+        <!-- Level 1 to Level 2 -->
+        <path d="M 170 250 C 170 275, 100 275, 100 296" stroke="var(--border-color)" marker-end="url(#arrow-border)" />
+        <path d="M 170 250 C 170 275, 240 275, 240 296" stroke="var(--border-color)" marker-end="url(#arrow-border)" />
+        <path d="M 400 250 C 400 275, 400 275, 400 296" stroke="var(--border-color)" marker-end="url(#arrow-border)" />
+        <path d="M 630 250 C 630 275, 560 275, 560 296" stroke="var(--border-color)" marker-end="url(#arrow-border)" />
+        <!-- Highlighted path to solution -->
+        <path d="M 630 250 C 630 275, 700 275, 700 296" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+
+        <!-- Unexplored Branches (Dashed) -->
+        <path d="M 100 350 L 100 375" stroke="var(--brand-400)" stroke-dasharray="5 5" marker-end="url(#arrow-dashed)" />
+        <path d="M 240 350 L 240 375" stroke="var(--brand-400)" stroke-dasharray="5 5" marker-end="url(#arrow-dashed)" />
+        <path d="M 560 350 L 560 375" stroke="var(--brand-400)" stroke-dasharray="5 5" marker-end="url(#arrow-dashed)" />
+    </g>
+
+    <!-- Nodes -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        
+        <!-- Root Node -->
+        <rect x="340" y="100" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="400" y="122" font-size="14" font-weight="bold" fill="var(--text-primary)">Initial State</text>
+        <text x="400" y="140" font-size="13" fill="var(--text-secondary)">الحالة الابتدائية</text>
+
+        <!-- Level 1 Nodes -->
+        <rect x="110" y="200" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="170" y="222" font-size="14" font-weight="bold" fill="var(--text-primary)">Move Up</text>
+        <text x="170" y="240" font-size="13" fill="var(--text-secondary)">تحريك لأعلى</text>
+
+        <rect x="340" y="200" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="400" y="222" font-size="14" font-weight="bold" fill="var(--text-primary)">Move Down</text>
+        <text x="400" y="240" font-size="13" fill="var(--text-secondary)">تحريك لأسفل</text>
+
+        <rect x="570" y="200" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="630" y="222" font-size="14" font-weight="bold" fill="var(--text-primary)">Move Right</text>
+        <text x="630" y="240" font-size="13" fill="var(--text-secondary)">تحريك لليمين</text>
+
+        <!-- Level 2 Nodes -->
+        <rect x="40" y="300" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="100" y="322" font-size="14" font-weight="bold" fill="var(--text-primary)">State A1</text>
+        <text x="100" y="340" font-size="13" fill="var(--text-secondary)">حالة أ1</text>
+
+        <rect x="180" y="300" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="240" y="322" font-size="14" font-weight="bold" fill="var(--text-primary)">State A2</text>
+        <text x="240" y="340" font-size="13" fill="var(--text-secondary)">حالة أ2</text>
+
+        <!-- Dead End Node -->
+        <rect x="340" y="300" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4 4" />
+        <text x="400" y="322" font-size="14" font-weight="bold" fill="var(--text-muted)">Dead End</text>
+        <text x="400" y="340" font-size="13" fill="var(--text-muted)">طريق مسدود</text>
+
+        <rect x="500" y="300" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="560" y="322" font-size="14" font-weight="bold" fill="var(--text-primary)">State C1</text>
+        <text x="560" y="340" font-size="13" fill="var(--text-secondary)">حالة ج1</text>
+
+        <!-- Solution Node (Highlighted with Red Dot) -->
+        <rect x="640" y="300" width="120" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+        <circle cx="660" cy="325" r="6" fill="#ef4444" />
+        <circle cx="660" cy="325" r="2" fill="#ffffff" />
+        <text x="710" y="322" font-size="14" font-weight="bold" fill="var(--brand-500)">Solution</text>
+        <text x="710" y="340" font-size="13" fill="var(--text-secondary)">الحل</text>
+
+        <!-- Unexplored Indicators -->
+        <text x="100" y="395" font-size="18" font-weight="bold" fill="var(--text-muted)">...</text>
+        <text x="240" y="395" font-size="18" font-weight="bold" fill="var(--text-muted)">...</text>
+        <text x="560" y="395" font-size="18" font-weight="bold" fill="var(--text-muted)">...</text>
+    </g>
+
+    <!-- Footer Banner -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <rect x="150" y="410" width="500" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6 4" />
+        <text x="400" y="434" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+            Execution terminates when a solution is found
+        </text>
+        <text x="400" y="456" font-size="15" fill="var(--text-secondary)" text-anchor="middle">
+            يتوقف التنفيذ عند العثور على حل
+        </text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في التفكيك الاستكشافي، كيف يمكن للبرنامج المتوازي أن ينهي العمل بشكل أسرع من التسلسلي بأكثر من عدد المعالجات (Superlinear speedup)؟</template>
+      <template class="content-en">In exploratory decomposition, how can a parallel program finish faster than the serial one by a factor greater than the number of processors (Superlinear speedup)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>إذا قام أحد المعالجات باستكشاف الفرع الذي يحتوي على الحل مباشرة، متجاوزاً مساحة بحث ضخمة كان البرنامج التسلسلي سيضطر للمرور بها أولاً.</p></template>
+      <template class="content-en"><p>If one processor happens to explore the branch containing the solution immediately, bypassing a massive search space the serial program would have had to traverse first.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="mapping-techniques-load-balancing" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> تقنيات التعيين لتوازن الحمل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Mapping Techniques for Load Balancing</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التعيين يهدف إلى تخصيص المهام للمعالجات لتقليل وقت الخمول (Idling) وتقليل تكاليف الاتصال (Interactions) في نفس الوقت.</p></template>
+    <template class="content-en"><p>Mapping aims to assign tasks to processors to simultaneously minimize idling and communication overhead (interactions).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك أهداف متناقضة في التعيين: تقليل التفاعلات (يؤدي إلى زيادة الخمول/التسلسل) مقابل تقليل الخمول (يؤدي إلى زيادة التفاعلات).</p><p><b>التعيين الثابت (Static Mapping):</b></p><ul><li>تُعين المهام قبل التنفيذ (a-priori).</li><li>يتطلب تقديراً جيداً لأحجام المهام.</li><li>يشمل تقسيم البيانات (Data partitioning) وتقسيم المهام (Task partitioning).</li></ul><p><b>التعيين الديناميكي (Dynamic Mapping):</b></p><ul><li>تُعين المهام أثناء وقت التشغيل (Runtime).</li><li>يُستخدم عندما تكون المهام أو أحجامها غير معروفة مسبقاً.</li><li><b>مركزي (Centralized):</b> عقدة رئيسية (Master) توزع المهام. قد تصبح عنق زجاجة. يُحل ب<span class="smart-term" data-term-en="Chunk Scheduling" data-ar="جدولة الكتل" data-en-def="A dynamic mapping technique where a process picks up multiple tasks at once to reduce communication overhead with the master node.">جدولة الكتل (Chunk scheduling)<span class="smart-term-tooltip"></span></span>.</li><li><b>موزع (Distributed):</b> جميع العمليات متساوية وتتبادل العمل لتخفيف الضغط عن المركز.</li></ul></template>
+    <template class="content-en"><p>There are contradicting objectives in mapping: minimizing interactions (leads to idling/serialization) vs minimizing idling (leads to excessive concurrency/interactions).</p><p><b>Static Mapping:</b></p><ul><li>Tasks are mapped a-priori (before execution).</li><li>Needs a good estimate of task sizes.</li><li>Includes data partitioning and task graph partitioning.</li></ul><p><b>Dynamic Mapping:</b></p><ul><li>Tasks are mapped at runtime.</li><li>Used when tasks are generated at runtime or sizes are unknown.</li><li><b>Centralized:</b> Master node dispatches tasks. Can become a bottleneck. Solved by <span class="smart-term" data-term-en="Chunk Scheduling" data-ar="جدولة الكتل" data-en-def="A dynamic mapping technique where a process picks up multiple tasks at once to reduce communication overhead with the master node.">Chunk scheduling<span class="smart-term-tooltip"></span></span>.</li><li><b>Distributed:</b> All processes are equal and exchange work, alleviating the centralized bottleneck.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في التعيين الديناميكي المركزي، استخدام أحجام كتل (Chunk sizes) كبيرة قد يؤدي إلى عدم توازن الحمل في نهاية الحسابات.</p><p>الحل الأمثل هو تقليل حجم الكتلة تدريجياً مع تقدم الحسابات.</p><p>في التعيين الثابت، التوزيع الدائري للكتل (Block Cyclic Distribution) يحل مشكلة عدم توازن الحمل في المصفوفات (مثل الحذف الغاوسي) عن طريق تعيين كتل غير متجاورة لنفس المعالج (N-1 mapping).</p></template>
+    <template class="content-en"><p>In centralized dynamic mapping, using large chunk sizes may lead to significant load imbalances near the end of the computation.</p><p>The optimal scheme gradually decreases chunk size as computation progresses.</p><p>In static mapping, Block Cyclic Distribution solves load imbalance in matrix operations (e.g., Gaussian Elimination) by assigning several non-adjacent blocks to each process (N-1 mapping).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A grid showing Block Cyclic Distribution. A 2D matrix is divided into small blocks. Blocks are labeled P0, P1, P2, P3 in a repeating pattern across rows and columns, demonstrating how a single processor (e.g., P0) gets multiple non-adjacent blocks. Style: educational, dark background #0d1117, accent color #ec4899, viewBox 0 0 500 500. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 550" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <!-- Arrow Marker for Mapping Paths -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+
+        <!-- Reusable Block Definitions to keep code clean and efficient -->
+        <!-- P0: Highlighted Block -->
+        <g id="p0-block">
+            <rect width="55" height="55" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+            <text x="27.5" y="33" text-anchor="middle" fill="var(--brand-500)" font-size="16" font-weight="bold">P0</text>
+        </g>
+        
+        <!-- P1, P2, P3: Standard Blocks -->
+        <g id="p1-block">
+            <rect width="55" height="55" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4"/>
+            <text x="27.5" y="33" text-anchor="middle" fill="var(--text-secondary)" font-size="15">P1</text>
+        </g>
+        <g id="p2-block">
+            <rect width="55" height="55" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4"/>
+            <text x="27.5" y="33" text-anchor="middle" fill="var(--text-secondary)" font-size="15">P2</text>
+        </g>
+        <g id="p3-block">
+            <rect width="55" height="55" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4"/>
+            <text x="27.5" y="33" text-anchor="middle" fill="var(--text-secondary)" font-size="15">P3</text>
+        </g>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Main Titles -->
+    <text x="400" y="45" text-anchor="middle" fill="var(--text-primary)" font-size="24" font-weight="bold">Block Cyclic Distribution</text>
+    <text x="400" y="75" text-anchor="middle" fill="var(--text-secondary)" font-size="18">التوزيع الدائري للكتل</text>
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: GLOBAL DATA MATRIX (6x6 Grid)   -->
+    <!-- ========================================== -->
+
+    <!-- Top Bracket & Label -->
+    <path d="M 60 130 L 60 120 L 390 120 L 390 130" fill="none" stroke="var(--text-muted)" stroke-width="2"/>
+    <text x="225" y="105" text-anchor="middle" fill="var(--text-secondary)" font-size="15">Global Data Matrix / مصفوفة البيانات الكلية</text>
+
+    <!-- Left Bracket & Label -->
+    <path d="M 50 140 L 40 140 L 40 470 L 50 470" fill="none" stroke="var(--text-muted)" stroke-width="2"/>
+    <text x="-305" y="25" transform="rotate(-90)" text-anchor="middle" fill="var(--text-secondary)" font-size="15">Data Blocks / كتل البيانات</text>
+
+    <!-- Matrix Rows -->
+    <!-- Row 0 -->
+    <use href="#p0-block" x="60" y="140"/>
+    <use href="#p1-block" x="115" y="140"/>
+    <use href="#p0-block" x="170" y="140"/>
+    <use href="#p1-block" x="225" y="140"/>
+    <use href="#p0-block" x="280" y="140"/>
+    <use href="#p1-block" x="335" y="140"/>
+
+    <!-- Row 1 -->
+    <use href="#p2-block" x="60" y="195"/>
+    <use href="#p3-block" x="115" y="195"/>
+    <use href="#p2-block" x="170" y="195"/>
+    <use href="#p3-block" x="225" y="195"/>
+    <use href="#p2-block" x="280" y="195"/>
+    <use href="#p3-block" x="335" y="195"/>
+
+    <!-- Row 2 -->
+    <use href="#p0-block" x="60" y="250"/>
+    <use href="#p1-block" x="115" y="250"/>
+    <use href="#p0-block" x="170" y="250"/>
+    <use href="#p1-block" x="225" y="250"/>
+    <use href="#p0-block" x="280" y="250"/>
+    <use href="#p1-block" x="335" y="250"/>
+
+    <!-- Row 3 -->
+    <use href="#p2-block" x="60" y="305"/>
+    <use href="#p3-block" x="115" y="305"/>
+    <use href="#p2-block" x="170" y="305"/>
+    <use href="#p3-block" x="225" y="305"/>
+    <use href="#p2-block" x="280" y="305"/>
+    <use href="#p3-block" x="335" y="305"/>
+
+    <!-- Row 4 -->
+    <use href="#p0-block" x="60" y="360"/>
+    <use href="#p1-block" x="115" y="360"/>
+    <use href="#p0-block" x="170" y="360"/>
+    <use href="#p1-block" x="225" y="360"/>
+    <use href="#p0-block" x="280" y="360"/>
+    <use href="#p1-block" x="335" y="360"/>
+
+    <!-- Row 5 -->
+    <use href="#p2-block" x="60" y="415"/>
+    <use href="#p3-block" x="115" y="415"/>
+    <use href="#p2-block" x="170" y="415"/>
+    <use href="#p3-block" x="225" y="415"/>
+    <use href="#p2-block" x="280" y="415"/>
+    <use href="#p3-block" x="335" y="415"/>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: PROCESSOR GRID & EXPLANATION   -->
+    <!-- ========================================== -->
+
+    <!-- Processor Grid Title -->
+    <text x="615" y="140" text-anchor="middle" fill="var(--text-primary)" font-size="18" font-weight="bold">Processor Grid</text>
+    <text x="615" y="165" text-anchor="middle" fill="var(--text-secondary)" font-size="15">شبكة المعالجات (2×2)</text>
+
+    <!-- 2x2 Processor Grid -->
+    <g transform="translate(555, 190)">
+        <use href="#p0-block" x="0" y="0"/>
+        <use href="#p1-block" x="60" y="0"/>
+        <use href="#p2-block" x="0" y="60"/>
+        <use href="#p3-block" x="60" y="60"/>
+    </g>
+
+    <!-- Explanation Box -->
+    <rect x="480" y="340" width="270" height="130" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="8" stroke-dasharray="4,4"/>
+    
+    <text x="615" y="370" text-anchor="middle" fill="var(--brand-500)" font-size="16" font-weight="bold">Key Concept / المفهوم الأساسي</text>
+    <text x="615" y="400" text-anchor="middle" fill="var(--text-primary)" font-size="14">Processor P0 is assigned</text>
+    <text x="615" y="420" text-anchor="middle" fill="var(--text-primary)" font-size="14">multiple non-adjacent blocks</text>
+    <text x="615" y="445" text-anchor="middle" fill="var(--text-secondary)" font-size="14">المعالج P0 يحصل على كتل غير متجاورة</text>
+
+    <!-- Connecting Arrows to demonstrate mapping -->
+    <!-- Arrow 1: Points to Row 2, Col 4 -->
+    <path d="M 480 370 C 430 370, 390 277.5, 345 277.5" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)"/>
+    
+    <!-- Arrow 2: Points to Row 4, Col 4 -->
+    <path d="M 480 410 C 430 410, 390 387.5, 345 387.5" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)"/>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Static Mapping</th><th>Dynamic Mapping</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">وقت التعيين</template>
+          <template class="content-en">Time of Mapping</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">قبل التنفيذ (A-priori)</template>
+          <template class="content-en">A-priori (Before execution)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أثناء وقت التشغيل (Runtime)</template>
+          <template class="content-en">At Runtime</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المعرفة المسبقة بحجم المهام</template>
+          <template class="content-en">Prior Knowledge of Task Sizes</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مطلوبة بشدة</template>
+          <template class="content-en">Highly required</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">غير مطلوبة</template>
+          <template class="content-en">Not required</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يحل مجرد موازنة الحمل (Balancing load) مشكلة الخمول (Idling) بشكل كامل؟</template>
+      <template class="content-en">Why doesn't merely balancing the load completely solve the idling problem?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن المعالجات قد تمتلك نفس كمية العمل، ولكن بسبب الاعتمادات (Dependencies)، قد يضطر معالج للانتظار (خمول) حتى ينهي معالج آخر عمله.</p></template>
+      <template class="content-en"><p>Because processors might have the same amount of work, but due to dependencies, one processor may still have to wait (idle) for another to finish its prerequisite task.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الرحلة الممتعة داخل عالم الأنظمة الموزعة والخوارزميات المتوازية. تخيلوا أننا نبني مدينة ضخمة؛ لا يمكن لمهندس واحد (معالج واحد) أن يبنيها بمفرده. نحتاج إلى توزيع العمل. بدأنا بفهم أهدافنا: نريد نظاماً يبدو للمستخدم كجهاز واحد (الشفافية)، ويمكنه النمو دون أن ينهار (القابلية للتوسع)، ويكون جديراً بالثقة (الاعتمادية والأمن). لكن احذروا من الفخاخ الثمانية! الشبكة ليست مثالية، وزمن الوصول ليس صفراً. بعد ذلك، انتقلنا إلى الجانب العملي: كيف نقسم الخوارزمية؟ تعلمنا التفكيك الاستكشافي (كالبحث في متاهة) والتوقعي (كالتنبؤ بالمستقبل والتراجع إن أخطأنا). وأخيراً، واجهنا التحدي الأكبر: توازن الحمل (Load Balancing). كيف نوزع المهام بحيث لا يجلس معالج عاطلاً بينما يغرق آخر في العمل؟ تذكروا دائماً المقايضة الكبرى: تقليل الاتصال بين المعالجات يزيد من وقت الخمول، والعكس صحيح. ركزوا على هذه المفاهيم، فهي جوهر امتحانكم ومستقبلكم كمهندسي أنظمة!</template>
+    <template class="content-en">Welcome, my friends, to the fascinating world of distributed systems and parallel algorithms. Imagine building a massive city; one engineer (processor) can't do it alone. We must distribute the work. We started with our goals: making the system look like a single computer (Transparency), ensuring it can grow (Scalability), and making it trustworthy (Dependability). But beware the 8 fallacies—the network is never perfect! Then, we moved to the practical side: how do we decompose an algorithm? We explored Exploratory decomposition (like searching a maze) and Speculative decomposition (guessing the future and rolling back if wrong). Finally, we tackled the ultimate challenge: Load Balancing. How do we assign tasks so no processor is idle while another is overwhelmed? Always remember the grand trade-off: minimizing communication increases idling, and vice versa. Focus on these core trade-offs; they are the key to your exam and your future as systems engineers!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين النظام المركزي منطقياً والموزع مادياً؟</template>
+          <template class="content-en">What is the difference between logically centralized and physically distributed?</template>
+          <span class="content-target">ما هو الفرق بين النظام المركزي منطقياً والموزع مادياً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">النظام المركزي منطقياً يدار ويتصرف ككيان واحد (مثل نظام DNS)، مما يسهل إدارته، ولكنه موزع مادياً عبر آلاف الخوادم حول العالم لتحقيق الأداء العالي والقابلية للتوسع.</template>
+          <template class="content-en">A logically centralized system is managed and behaves as a single entity (like DNS), making it easier to manage, but it is physically distributed across thousands of servers worldwide for high performance and scalability.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعتبر المزامنة العالمية (Global Synchronization) عدواً للقابلية للتوسع؟</template>
+          <template class="content-en">Why is Global Synchronization the enemy of scalability?</template>
+          <span class="content-target">لماذا تعتبر المزامنة العالمية (Global Synchronization) عدواً للقابلية للتوسع؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها تجبر جميع العقد في النظام على الانتظار حتى تتفق على حالة واحدة. كلما زاد عدد العقد أو المسافة بينها، زاد وقت الانتظار، مما يوقف النظام عن العمل بكفاءة.</template>
+          <template class="content-en">Because it forces all nodes in the system to wait until they agree on a single state. As the number of nodes or distance increases, the wait time grows, bringing the system to a halt.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نفرق بين الخلل (Fault) والخطأ (Error) والفشل (Failure)؟</template>
+          <template class="content-en">How do we differentiate between Fault, Error, and Failure?</template>
+          <span class="content-target">كيف نفرق بين الخلل (Fault) والخطأ (Error) والفشل (Failure)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الخلل هو السبب الجذري (مثل مبرمج أخطأ في الكود). الخطأ هو الحالة الداخلية الخاطئة الناتجة (متغير بقيمة خاطئة). الفشل هو عندما يظهر هذا الخطأ للمستخدم ويتوقف النظام عن العمل.</template>
+          <template class="content-en">A Fault is the root cause (e.g., a programmer's mistake). An Error is the resulting incorrect internal state (a variable with the wrong value). A Failure is when this error affects the user and the system stops working.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التفكيك التوقعي (Speculative Decomposition) ومتى نستخدمه؟</template>
+          <template class="content-en">What is Speculative Decomposition and when do we use it?</template>
+          <span class="content-target">ما هو التفكيك التوقعي (Speculative Decomposition) ومتى نستخدمه؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمه عندما لا نعرف الاعتمادات بين المهام مسبقاً. نقوم بجدولة المهام بافتراض نتائج معينة (بشكل متفائل)، وإذا اكتشفنا لاحقاً أن الافتراض خاطئ، نقوم بالتراجع (Roll-back) عن التغييرات.</template>
+          <template class="content-en">We use it when task dependencies are unknown a-priori. We schedule tasks assuming certain outcomes (optimistically), and if we later find the assumption was wrong, we roll back the changes.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المشكلة في استخدام حجم كتلة (Chunk size) كبير في التعيين الديناميكي المركزي؟</template>
+          <template class="content-en">What is the problem with using a large chunk size in centralized dynamic mapping?</template>
+          <span class="content-target">ما هي المشكلة في استخدام حجم كتلة (Chunk size) كبير في التعيين الديناميكي المركزي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الكتل الكبيرة تقلل الضغط على العقدة الرئيسية، لكنها قد تؤدي إلى عدم توازن الحمل في نهاية الحسابات، حيث قد ينتهي أحد المعالجات مبكراً بينما يظل الآخر عالقاً بكتلة كبيرة.</template>
+          <template class="content-en">Large chunks reduce the bottleneck on the master node, but they can lead to severe load imbalance near the end of the computation, where one processor finishes early while another is stuck with a large chunk.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل التوزيع الدائري للكتل (Block Cyclic Distribution) مشكلة توازن الحمل؟</template>
+          <template class="content-en">How does Block Cyclic Distribution solve the load balancing problem?</template>
+          <span class="content-target">كيف يحل التوزيع الدائري للكتل (Block Cyclic Distribution) مشكلة توازن الحمل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بدلاً من إعطاء كل معالج كتلة واحدة ضخمة متجاورة (والتي قد تختلف في كمية الحسابات)، نقسم البيانات إلى كتل صغيرة ونوزعها بشكل دائري، بحيث يحصل كل معالج على كتل متفرقة، مما يوازن الحمل الإجمالي.</template>
+          <template class="content-en">Instead of giving each processor one massive contiguous block (which might vary in computation load), we divide data into smaller blocks and distribute them round-robin, so each processor gets scattered blocks, balancing the overall load.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المقايضة (Trade-off) الأساسية في عملية التعيين (Mapping)؟</template>
+          <template class="content-en">What is the fundamental trade-off in the Mapping process?</template>
+          <span class="content-target">ما هي المقايضة (Trade-off) الأساسية في عملية التعيين (Mapping)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لتقليل وقت الخمول (Idling)، يجب توزيع المهام على معالجات متعددة، مما يزيد من تكلفة الاتصال (Interactions). ولتقليل الاتصال، يجب تجميع المهام في معالج واحد، مما يزيد من وقت الخمول للمعالجات الأخرى.</template>
+          <template class="content-en">To minimize idling, tasks must be distributed across multiple processors, which increases communication costs (interactions). To minimize communication, tasks must be grouped on one processor, which increases idling for the others.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين حوسبة العناقيد (Cluster) والحوسبة الشبكية (Grid)؟</template>
+          <template class="content-en">What is the difference between Cluster and Grid computing?</template>
+          <span class="content-target">ما الفرق بين حوسبة العناقيد (Cluster) والحوسبة الشبكية (Grid)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">العناقيد تتكون من أجهزة متجانسة (نفس نظام التشغيل والأجهزة) متصلة بشبكة محلية (LAN). الشبكات (Grids) تتكون من أجهزة غير متجانسة موزعة جغرافياً عبر شبكات واسعة (WAN) وتتبع منظمات إدارية مختلفة.</template>
+          <template class="content-en">Clusters consist of homogeneous machines (same OS/hardware) connected via a LAN. Grids consist of heterogeneous machines geographically dispersed over WANs and belonging to different administrative organizations.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعتبر تفاعلات القراءة والكتابة (Read-write interactions) صعبة البرمجة؟</template>
+          <template class="content-en">Why are read-write interactions hard to code?</template>
+          <span class="content-target">لماذا تعتبر تفاعلات القراءة والكتابة (Read-write interactions) صعبة البرمجة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها تتطلب أدوات مزامنة إضافية (مثل الأقفال Locks) لمنع حالات السباق (Race conditions) حيث تحاول عمليتان تعديل نفس البيانات في نفس الوقت، مما يؤدي إلى نتائج غير متوقعة.</template>
+          <template class="content-en">Because they require additional synchronization primitives (like locks) to prevent race conditions where two processes try to modify the same data simultaneously, leading to unpredictable results.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني مصطلح 'البرمجيات الوسيطة' (Middleware) في سياق شفافية التوزيع؟</template>
+          <template class="content-en">What does the term 'Middleware' mean in the context of distribution transparency?</template>
+          <span class="content-target">ماذا يعني مصطلح 'البرمجيات الوسيطة' (Middleware) في سياق شفافية التوزيع؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي طبقة برمجية تقع بين التطبيقات وأنظمة التشغيل المحلية، وظيفتها إخفاء تعقيدات التوزيع (مثل مواقع الموارد وفشل الشبكة) لتقديم واجهة موحدة للتطبيقات.</template>
+          <template class="content-en">It is a software layer situated between applications and local operating systems, responsible for hiding the complexities of distribution (like resource locations and network failures) to provide a unified interface to applications.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "النظام الموزع (Distributed System)",
+      "en": "Distributed System"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام كمبيوتر شبكي تنتشر فيه العمليات والموارد بشكل كافٍ عبر أجهزة كمبيوتر متعددة.",
+        "en": "A networked computer system in which processes and resources are sufficiently spread across multiple computers."
+      },
+      "example": {
+        "ar": "شبكة الويب العالمية (WWW).",
+        "en": "The World Wide Web (WWW)."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "النظام اللامركزي (Decentralized System)",
+      "en": "Decentralized System"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام كمبيوتر شبكي تنتشر فيه العمليات والموارد بالضرورة عبر أجهزة كمبيوتر متعددة لتجنب المركزية.",
+        "en": "A networked computer system in which processes and resources are necessarily spread across multiple computers."
+      },
+      "example": {
+        "ar": "شبكات الند للند (P2P).",
+        "en": "Peer-to-Peer (P2P) networks."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "شفافية الوصول (Access Transparency)",
+      "en": "Access Transparency"
+    },
+    "back": {
+      "definition": {
+        "ar": "إخفاء الاختلافات في تمثيل البيانات وكيفية الوصول إلى الكائن.",
+        "en": "Hide differences in data representation and how an object is accessed."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "شفافية الموقع (Location Transparency)",
+      "en": "Location Transparency"
+    },
+    "back": {
+      "definition": {
+        "ar": "إخفاء مكان وجود الكائن فعلياً في الشبكة.",
+        "en": "Hide where an object is located."
+      },
+      "example": {
+        "ar": "استخدام عناوين URL بدلاً من عناوين IP.",
+        "en": "Using URLs instead of IP addresses."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "شفافية النسخ المتماثل (Replication Transparency)",
+      "en": "Replication Transparency"
+    },
+    "back": {
+      "definition": {
+        "ar": "إخفاء حقيقة أن الكائن منسوخ في عدة أماكن.",
+        "en": "Hide that an object is replicated."
+      },
+      "example": {
+        "ar": "قراءة ملف دون معرفة أنه مسحوب من خادم تخزين مؤقت قريب.",
+        "en": "Reading a file without knowing it's pulled from a nearby cache server."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "التوافر (Availability)",
+      "en": "Availability"
+    },
+    "back": {
+      "definition": {
+        "ar": "جاهزية النظام للاستخدام في أي وقت.",
+        "en": "Readiness for usage."
+      },
+      "example": {
+        "ar": "موقع ويب يعمل بنسبة 99.9% من الوقت.",
+        "en": "A website with 99.9% uptime."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "الموثوقية (Reliability)",
+      "en": "Reliability"
+    },
+    "back": {
+      "definition": {
+        "ar": "استمرارية تقديم الخدمة دون انقطاع.",
+        "en": "Continuity of service delivery."
+      },
+      "example": {
+        "ar": "نظام تحكم في الطائرة لا يتعطل أثناء الرحلة.",
+        "en": "An airplane control system that doesn't crash during a flight."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "الخطأ (Error)",
+      "en": "Error"
+    },
+    "back": {
+      "definition": {
+        "ar": "جزء من المكون يمكن أن يؤدي إلى فشل.",
+        "en": "Part of a component that can lead to a failure."
+      },
+      "example": {
+        "ar": "خطأ برمجي (Bug).",
+        "en": "Programming bug."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "الفشل (Failure)",
+      "en": "Failure"
+    },
+    "back": {
+      "definition": {
+        "ar": "عدم قدرة المكون على الوفاء بمواصفاته.",
+        "en": "A component is not living up to its specifications."
+      },
+      "example": {
+        "ar": "انهيار البرنامج (Crashed program).",
+        "en": "Crashed program."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "قابلية التوسع الجغرافي (Geographical Scalability)",
+      "en": "Geographical Scalability"
+    },
+    "back": {
+      "definition": {
+        "ar": "قدرة النظام على العمل بكفاءة رغم زيادة المسافة القصوى بين العقد.",
+        "en": "Ability to maintain performance as the maximum distance between nodes increases."
+      },
+      "example": {
+        "ar": "نظام يعمل بكفاءة عبر شبكة WAN.",
+        "en": "A system working efficiently across a WAN."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "حوسبة العناقيد (Cluster Computing)",
+      "en": "Cluster Computing"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من الأنظمة المتطورة المتصلة عبر شبكة محلية (LAN)، غالباً متجانسة.",
+        "en": "A group of high-end systems connected through a LAN, typically homogeneous."
+      },
+      "example": {
+        "ar": "خوادم متطابقة في مركز بيانات واحد.",
+        "en": "Identical servers in a single data center."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "الحوسبة الشبكية (Grid Computing)",
+      "en": "Grid Computing"
+    },
+    "back": {
+      "definition": {
+        "ar": "عقد غير متجانسة وموزعة عبر منظمات متعددة وشبكات واسعة (WAN).",
+        "en": "Heterogeneous nodes dispersed across several organizations and WANs."
+      },
+      "example": {
+        "ar": "مشاركة التلسكوبات الراديوية بين جامعات مختلفة.",
+        "en": "Sharing radio telescopes across different universities."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "التفكيك الاستكشافي (Exploratory Decomposition)",
+      "en": "Exploratory Decomposition"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقسيم المشكلة من خلال البحث في مساحة حالة الحلول.",
+        "en": "Exploration (search) of a state space of solutions."
+      },
+      "example": {
+        "ar": "حل لغز 15 (15 puzzle).",
+        "en": "Solving a 15 puzzle."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "التفكيك التوقعي (Speculative Decomposition)",
+      "en": "Speculative Decomposition"
+    },
+    "back": {
+      "definition": {
+        "ar": "جدولة المهام بافتراض نتائج معينة، مع التراجع إذا كان الافتراض خاطئاً.",
+        "en": "Scheduling tasks assuming certain outcomes, rolling back if the assumption is incorrect."
+      },
+      "example": {
+        "ar": "محاكاة الأحداث المنفصلة.",
+        "en": "Discrete event simulation."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "التعيين الديناميكي المركزي (Centralized Dynamic Mapping)",
+      "en": "Centralized Dynamic Mapping"
+    },
+    "back": {
+      "definition": {
+        "ar": "عقدة رئيسية (Master) تمتلك مجموعة من المهام وتوزعها على العمال (Slaves).",
+        "en": "A master node has a pool of tasks and acts as a central dispatcher to workers."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "جدولة الكتل (Chunk Scheduling)",
+      "en": "Chunk Scheduling"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية تلتقط مهام متعددة في وقت واحد لتقليل الضغط على العقدة الرئيسية.",
+        "en": "A process picks up multiple tasks at once to reduce bottleneck on the master."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "التوزيع الدائري للكتل (Block Cyclic Distribution)",
+      "en": "Block Cyclic Distribution"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقسيم المصفوفة إلى كتل وتعيين كتل غير متجاورة لنفس العملية لموازنة الحمل.",
+        "en": "Partitioning an array into blocks and assigning non-adjacent blocks to processes in a round-robin manner."
+      },
+      "example": {
+        "ar": "الحذف الغاوسي (Gaussian Elimination).",
+        "en": "Gaussian Elimination."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من أنواع الشفافية التالية يخفي حقيقة أن الكائن قد ينتقل إلى موقع آخر؟",
+      "en": "Which type of transparency hides the fact that an object may move to another location?"
+    },
+    "options": {
+      "ar": [
+        "شفافية الموقع (Location)",
+        "شفافية الهجرة (Migration)",
+        "شفافية إعادة التوطين (Relocation)",
+        "شفافية الوصول (Access)"
+      ],
+      "en": [
+        "Location transparency",
+        "Migration transparency",
+        "Relocation transparency",
+        "Access transparency"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "شفافية الهجرة تخفي انتقال الكائن إلى موقع آخر، بينما إعادة التوطين تخفي نقله أثناء الاستخدام.",
+      "en": "Migration transparency hides that an object may move to another location, whereas relocation hides movement while in use."
+    },
+    "hint": {
+      "ar": "فكر في الكلمة التي تعني 'الانتقال الدائم'.",
+      "en": "Think of the word that means 'moving permanently'."
+    },
+    "difficulty": "medium",
+    "conceptId": "distribution-transparency"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في مصطلحات الاعتمادية، ما هو السبب الجذري الذي يؤدي إلى الخطأ (Error)؟",
+      "en": "In dependability terminology, what is the root cause that leads to an Error?"
+    },
+    "options": {
+      "ar": [
+        "الفشل (Failure)",
+        "الخلل (Fault)",
+        "الانهيار (Crash)",
+        "العيب (Defect)"
+      ],
+      "en": [
+        "Failure",
+        "Fault",
+        "Crash",
+        "Defect"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الخلل (Fault) هو سبب الخطأ (Error)، والخطأ يمكن أن يؤدي إلى الفشل (Failure).",
+      "en": "A Fault is the cause of an error, and an error can lead to a failure."
+    },
+    "hint": {
+      "ar": "المبرمج المهمل هو مثال على هذا المصطلح.",
+      "en": "A sloppy programmer is an example of this term."
+    },
+    "difficulty": "medium",
+    "conceptId": "dependability-and-security"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي المشكلة الرئيسية التي تمنع الحلول واسعة النطاق عند استخدام النسخ المتماثل (Replication)؟",
+      "en": "What is the main problem that precludes large-scale solutions when using replication?"
+    },
+    "options": {
+      "ar": [
+        "نقص مساحة التخزين",
+        "المزامنة العالمية (Global synchronization)",
+        "أمان الشبكة",
+        "شفافية الوصول"
+      ],
+      "en": [
+        "Lack of storage space",
+        "Global synchronization",
+        "Network security",
+        "Access transparency"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الحفاظ على اتساق النسخ يتطلب مزامنة عالمية، وهو أمر يحد بشدة من القابلية للتوسع.",
+      "en": "Keeping copies consistent requires global synchronization, which severely limits scalability."
+    },
+    "hint": {
+      "ar": "تحديث جميع النسخ في نفس الوقت.",
+      "en": "Updating all copies at the exact same time."
+    },
+    "difficulty": "hard",
+    "conceptId": "scalability-and-queuing-analysis"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من الأنظمة التالية يتميز بأنه غير متجانس ويمتد عبر منظمات متعددة وشبكات واسعة (WAN)؟",
+      "en": "Which of the following systems is characterized by being heterogeneous and spanning across several organizations and WANs?"
+    },
+    "options": {
+      "ar": [
+        "حوسبة العناقيد (Cluster Computing)",
+        "الحوسبة الشبكية (Grid Computing)",
+        "الأنظمة المدمجة",
+        "الأنظمة المركزية"
+      ],
+      "en": [
+        "Cluster Computing",
+        "Grid Computing",
+        "Embedded Systems",
+        "Centralized Systems"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الحوسبة الشبكية (Grid) تربط عقداً غير متجانسة من منظمات مختلفة، بينما العناقيد (Cluster) عادة ما تكون متجانسة وفي شبكة محلية.",
+      "en": "Grid computing connects heterogeneous nodes from different organizations, whereas clusters are typically homogeneous and on a LAN."
+    },
+    "hint": {
+      "ar": "تستخدم 'المنظمات الافتراضية'.",
+      "en": "It uses 'virtual organizations'."
+    },
+    "difficulty": "easy",
+    "conceptId": "distributed-vs-decentralized"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في التفكيك التوقعي (Speculative Decomposition)، ماذا يحدث إذا كان الافتراض الأولي غير صحيح؟",
+      "en": "In Speculative Decomposition, what happens if the initial assumption is incorrect?"
+    },
+    "options": {
+      "ar": [
+        "يتوقف النظام عن العمل",
+        "يتم تجاهل الخطأ",
+        "يتم التراجع عن التأثيرات (Roll-back)",
+        "يتم إعادة تشغيل الخادم"
+      ],
+      "en": [
+        "The system halts",
+        "The error is ignored",
+        "Effects are rolled back",
+        "The server reboots"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "النهج المتفائل يجدول المهام تكهنياً، وإذا ثبت خطأ الافتراض، يجب التراجع (Roll-back) عن التغييرات.",
+      "en": "The optimistic approach schedules tasks speculatively, and if the assumption is wrong, it must roll back the changes."
+    },
+    "hint": {
+      "ar": "العودة بالزمن إلى حالة صحيحة.",
+      "en": "Going back in time to a correct state."
+    },
+    "difficulty": "medium",
+    "conceptId": "decomposition-techniques"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي من تقنيات التعيين التالية تُستخدم لتخفيف مشكلة عنق الزجاجة في التعيين الديناميكي المركزي؟",
+      "en": "Which mapping technique is used to alleviate the bottleneck problem in centralized dynamic mapping?"
+    },
+    "options": {
+      "ar": [
+        "التوزيع الدائري للكتل",
+        "جدولة الكتل (Chunk scheduling)",
+        "التفكيك الاستكشافي",
+        "التعيين الثابت"
+      ],
+      "en": [
+        "Block cyclic distribution",
+        "Chunk scheduling",
+        "Exploratory decomposition",
+        "Static mapping"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "جدولة الكتل تسمح للعملية بأخذ مهام متعددة دفعة واحدة، مما يقلل من عدد الطلبات الموجهة للعقدة الرئيسية.",
+      "en": "Chunk scheduling allows a process to pick up multiple tasks at once, reducing the number of requests to the master node."
+    },
+    "hint": {
+      "ar": "أخذ مجموعة من المهام معاً.",
+      "en": "Taking a group of tasks together."
+    },
+    "difficulty": "medium",
+    "conceptId": "mapping-techniques-load-balancing"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو الهدفان المتناقضان في عملية التعيين (Mapping)؟",
+      "en": "What are the two contradicting objectives in the mapping process?"
+    },
+    "options": {
+      "ar": [
+        "تقليل الخمول وتقليل التفاعلات",
+        "زيادة التفاعلات وزيادة التزامن",
+        "تقليل الذاكرة وزيادة السرعة",
+        "تقليل المهام وزيادة البيانات"
+      ],
+      "en": [
+        "Minimizing idling and minimizing interactions",
+        "Maximizing interactions and maximizing concurrency",
+        "Minimizing memory and maximizing speed",
+        "Minimizing tasks and maximizing data"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "تقليل التفاعلات يؤدي إلى وضع كل العمل في معالج واحد (مما يزيد الخمول)، بينما تقليل الخمول يتطلب توزيع العمل (مما يزيد التفاعلات).",
+      "en": "Minimizing interactions leads to putting all work on one processor (increasing idling), while minimizing idling requires distributing work (increasing interactions)."
+    },
+    "hint": {
+      "ar": "التوازن بين إبقاء المعالجات مشغولة وتقليل الاتصال بينها.",
+      "en": "Balance between keeping processors busy and reducing communication."
+    },
+    "difficulty": "hard",
+    "conceptId": "mapping-techniques-load-balancing"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "وفقاً للمفاهيم الخاطئة الشائعة (Pitfalls)، أي من الافتراضات التالية يعتبر افتراضاً خاطئاً عند تطوير الأنظمة الموزعة؟",
+      "en": "According to common pitfalls, which of the following is a FALSE assumption when developing distributed systems?"
+    },
+    "options": {
+      "ar": [
+        "الشبكة غير موثوقة",
+        "زمن الوصول (Latency) يساوي صفراً",
+        "الطبولوجيا تتغير",
+        "عرض النطاق الترددي محدود"
+      ],
+      "en": [
+        "The network is unreliable",
+        "Latency is zero",
+        "Topology changes",
+        "Bandwidth is finite"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "من الافتراضات الخاطئة الشائعة أن زمن الوصول يساوي صفراً، وأن الشبكة موثوقة، وأن عرض النطاق الترددي لا نهائي.",
+      "en": "Common false assumptions include: latency is zero, the network is reliable, and bandwidth is infinite."
+    },
+    "hint": {
+      "ar": "افتراض مثالي لا يحدث في الواقع.",
+      "en": "An ideal assumption that never happens in reality."
+    },
+    "difficulty": "easy",
+    "conceptId": "distributed-vs-decentralized"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في تحليل الطابور (Queuing analysis)، ماذا يحدث للنظام عندما يقترب الاستخدام (U) من 1؟",
+      "en": "In queuing analysis, what happens to the system when Utilization (U) approaches 1?"
+    },
+    "options": {
+      "ar": [
+        "يعمل بأقصى كفاءة",
+        "يتوقف النظام تماماً (Grinding halt)",
+        "يقل وقت الاستجابة",
+        "تزداد سعة المعالجة"
+      ],
+      "en": [
+        "It operates at maximum efficiency",
+        "The system comes to a grinding halt",
+        "Response time decreases",
+        "Processing capacity increases"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عندما يقترب الاستخدام من 100%، يرتفع وقت الاستجابة بشكل أسي ويتوقف النظام فعلياً.",
+      "en": "When utilization approaches 100%, response time grows exponentially and the system effectively comes to a grinding halt."
+    },
+    "hint": {
+      "ar": "تخيل شارعاً ممتلئاً بالسيارات بنسبة 100%.",
+      "en": "Imagine a street that is 100% full of cars."
+    },
+    "difficulty": "medium",
+    "conceptId": "scalability-and-queuing-analysis"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي نوع من التفاعلات بين المهام (Task Interactions) يتطلب أدوات مزامنة إضافية لتجنب حالات السباق (Race conditions)؟",
+      "en": "Which type of task interaction requires additional synchronization primitives to avoid race conditions?"
+    },
+    "options": {
+      "ar": [
+        "تفاعلات القراءة فقط (Read-only)",
+        "التفاعلات الثابتة (Static)",
+        "تفاعلات القراءة والكتابة (Read-write)",
+        "التفاعلات المنتظمة (Regular)"
+      ],
+      "en": [
+        "Read-only interactions",
+        "Static interactions",
+        "Read-write interactions",
+        "Regular interactions"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تفاعلات القراءة والكتابة أصعب في البرمجة وتتطلب مزامنة لتجنب تداخل القراءة والكتابة.",
+      "en": "Read-write interactions are harder to code and require synchronization to avoid read-write and write-write ordering races."
+    },
+    "hint": {
+      "ar": "تعديل البيانات المشتركة.",
+      "en": "Modifying shared data."
+    },
+    "difficulty": "medium",
+    "conceptId": "parallel-algorithm-decomposition"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الحلول المركزية لا تتوسع أبداً أو أنها دائماً تمتلك نقطة فشل واحدة. (جذر DNS هو مثال لنظام مركزي منطقياً ولكنه موزع مادياً وقابل للتوسع).</template>
+      <template class="content-en">Believing that centralized solutions never scale or always have a single point of failure. (The DNS root is logically centralized but physically distributed and highly scalable).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">النسخ المتماثل (Replication) يحل مشكلة الأداء، ولكنه يخلق مشكلة التناقض (Inconsistency). المزامنة العالمية لحل التناقض تدمر القابلية للتوسع.</template>
+      <template class="content-en">Replication solves performance issues but creates inconsistency. Using global synchronization to fix inconsistency destroys scalability.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق بين الخطأ والفشل: الخلل (Fault) يسبب خطأ (Error) داخلي، والذي إذا لم يتم التعامل معه، يظهر للعالم الخارجي كفشل (Failure).</template>
+      <template class="content-en">The progression of failure: A Fault causes an internal Error, which, if unmasked, propagates to the outside world as a Failure.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في التعيين الديناميكي المركزي، قد تظن أن تكبير حجم الكتلة (Chunk size) دائماً أفضل لتقليل الاتصال، لكنه يؤدي إلى عدم توازن الحمل في نهاية الحسابات.</template>
+      <template class="content-en">In centralized dynamic mapping, assuming that larger chunk sizes are always better to reduce communication. Large chunks actually cause severe load imbalance near the end of computation.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الهدفان المتناقضان في التعيين (Mapping): تقليل الخمول (Idling) يتطلب توزيع المهام، مما يزيد من التفاعلات (Interactions). وتقليل التفاعلات يتطلب تجميع المهام، مما يزيد الخمول.</template>
+      <template class="content-en">The contradicting objectives of mapping: Minimizing idling requires distributing tasks (increasing interactions), while minimizing interactions requires grouping tasks (increasing idling).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M01.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M03.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS481" data-module="10">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الأخلاقيات المهنية: أخطاء البرمجيات وفشل الأنظمة · CS481 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS481" data-page-title-en="CS481">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M09.html" data-gh-next="M11.html" data-gh-card="../../hub/course.html?code=CS481"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#data-errors-consequences" class="toc-link" data-bilingual>
+        <template class="content-ar">أخطاء إدخال واسترجاع البيانات</template>
+        <template class="content-en">Data-Entry or Data-Retrieval Errors</template>
+        <span class="content-target">أخطاء إدخال واسترجاع البيانات</span>
+      </a>
+      <a href="#system-malfunctions-vs-failures" class="toc-link" data-bilingual>
+        <template class="content-ar">أعطال الأنظمة وفشلها</template>
+        <template class="content-en">System Malfunctions and Failures</template>
+        <span class="content-target">أعطال الأنظمة وفشلها</span>
+      </a>
+      <a href="#notable-software-failures" class="toc-link" data-bilingual>
+        <template class="content-ar">إخفاقات برمجية تاريخية بارزة</template>
+        <template class="content-en">Notable Software System Failures</template>
+        <span class="content-target">إخفاقات برمجية تاريخية بارزة</span>
+      </a>
+      <a href="#computer-simulations" class="toc-link" data-bilingual>
+        <template class="content-ar">المحاكاة الحاسوبية والتحقق منها</template>
+        <template class="content-en">Computer Simulations and Validation</template>
+        <span class="content-target">المحاكاة الحاسوبية والتحقق منها</span>
+      </a>
+      <a href="#software-engineering-process" class="toc-link" data-bilingual>
+        <template class="content-ar">عملية هندسة البرمجيات</template>
+        <template class="content-en">The Software Engineering Process</template>
+        <span class="content-target">عملية هندسة البرمجيات</span>
+      </a>
+      <a href="#software-warranties-liability" class="toc-link" data-bilingual>
+        <template class="content-ar">ضمانات البرمجيات والمسؤولية القانونية</template>
+        <template class="content-en">Software Warranties and Vendor Liability</template>
+        <span class="content-target">ضمانات البرمجيات والمسؤولية القانونية</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 10</template>
+      <template class="content-en">Module 10</template>
+      <span class="content-target">الوحدة 10</span>
+    </span> · CS481
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الأخلاقيات المهنية: أخطاء البرمجيات وفشل الأنظمة</h1>
+      <p class="hero-description">تستعرض هذه الوحدة أمثلة واقعية لأخطاء البرمجيات، فشل الأنظمة، المحاكاة الحاسوبية، هندسة البرمجيات، والمسؤولية القانونية للشركات المصنعة.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Professional Ethics: Software Errors and System Failures</h1>
+      <p class="hero-description">This module explores real-world examples of software errors, system failures, computer simulations, software engineering, and vendor liability.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">أخلاقيات الحاسوب</span>
+      <span class="tag">فشل الأنظمة</span>
+      <span class="tag">هندسة البرمجيات</span>
+      <span class="tag">المسؤولية القانونية</span>
+      <span class="tag">المحاكاة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Computer Ethics</span>
+      <span class="tag">System Failures</span>
+      <span class="tag">Software Engineering</span>
+      <span class="tag">Vendor Liability</span>
+      <span class="tag">Simulations</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تحليل أسباب وعواقب أخطاء إدخال واسترجاع البيانات في الأنظمة الحساسة.</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين أعطال الأنظمة وفشلها الكامل من خلال دراسة حالات تاريخية.</span></li>
+      <li><span class="obj-icon">✦</span><span>تقييم دور هندسة البرمجيات في تحسين جودة الأنظمة وتقليل التحيز.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم التحديات الأخلاقية والقانونية المتعلقة بضمانات البرمجيات والمسؤولية الصارمة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Analyze the causes and consequences of data-entry and retrieval errors in critical systems.</span></li>
+      <li><span class="obj-icon">✦</span><span>Distinguish between system malfunctions and complete failures through historical case studies.</span></li>
+      <li><span class="obj-icon">✦</span><span>Evaluate the role of software engineering in improving system quality and reducing bias.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the ethical and legal challenges related to software warranties and strict liability.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="data-errors-consequences" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> أخطاء إدخال واسترجاع البيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Data-Entry or Data-Retrieval Errors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أخطاء بسيطة في قواعد البيانات قد تؤدي إلى عواقب وخيمة مثل الاعتقال الخاطئ أو الحرمان من التصويت.</p></template>
+    <template class="content-en"><p>Simple database errors can lead to severe consequences like false arrests or disenfranchisement.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن أن تفشل الأنظمة المحوسبة بسبب إدخال بيانات خاطئة أو التفسير الخاطئ للبيانات المسترجعة. من الأمثلة البارزة:</p><ul><li>حرمان آلاف الناخبين في فلوريدا (انتخابات 2000) بسبب تصنيفهم خطأً كمجرمين،</li><li>والاعتقالات الخاطئة لأشخاص مثل روبرتو هيرنانديز بسبب تشابه الأسماء وتطابق جزئي في البيانات الشخصية.</li></ul><p>كما أثارت دقة سجلات <span class="smart-term" data-term-en="NCIC" data-ar="المركز الوطني لمعلومات الجريمة" data-en-def="National Crime Information Center, a database whose accuracy was debated regarding government responsibility.">المركز الوطني لمعلومات الجريمة (NCIC)<span class="smart-term-tooltip"></span></span> جدلاً حول مسؤولية الحكومة عن صحة البيانات مقابل فائدتها في زيادة الاعتقالات.</p></template>
+    <template class="content-en"><p>Computerized systems may fail due to wrong data being entered or incorrect user interpretation of retrieved data. Notable examples include</p><ul><li>the disenfranchisement of thousands of Florida voters (2000 election) incorrectly identified as felons,</li><li>and false arrests of individuals like Roberto Hernandez due to matching physical descriptions and similar SSNs.</li></ul><p>The accuracy of <span class="smart-term" data-term-en="NCIC" data-ar="المركز الوطني لمعلومات الجريمة" data-en-def="National Crime Information Center, a database whose accuracy was debated regarding government responsibility.">NCIC<span class="smart-term-tooltip"></span></span> records also sparked debate on whether the government should prioritize data correctness over the sheer volume of records leading to arrests.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من منظور النفعية (Utilitarianism)، يجادل المدافعون عن الخصوصية بأن دقة البيانات يجب أن تكون الأولوية لتجنب الأذى الفردي، بينما قد تجادل جهات إنفاذ القانون بأن وجود سجلات أكثر (حتى مع بعض الأخطاء) يؤدي إلى اعتقالات أكثر، مما يفيد المجتمع.</p><p>هذا يبرز التوتر بين كفاءة النظام وحقوق الأفراد.</p></template>
+    <template class="content-en"><p>From a Utilitarian perspective, privacy advocates argue that data accuracy must be prioritized to prevent individual harm, whereas law enforcement might argue that more records (even with some errors) lead to more arrests, benefiting society.</p><p>This highlights the tension between system efficiency and individual rights.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يجب إعفاء قواعد بيانات الشرطة من قوانين الخصوصية لزيادة كفاءة الاعتقالات؟</template>
+      <template class="content-en">Should police databases be exempt from privacy laws to increase arrest efficiency?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، لأن الأخطاء تؤدي إلى انتهاكات جسيمة لحقوق الأبرياء (مثل الاعتقالات الخاطئة)، مما يقلل من ثقة الجمهور في النظام.</p></template>
+      <template class="content-en"><p>No, because errors lead to severe violations of innocent people's rights (e.g., false arrests), which degrades public trust in the system.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="system-malfunctions-vs-failures" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> أعطال الأنظمة وفشلها</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> System Malfunctions and Failures</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>العطل يحدث بسبب خطأ برمجي مع بيانات صحيحة، بينما الفشل هو انهيار كامل للنظام يؤدي إلى كوارث.</p></template>
+    <template class="content-en"><p>A malfunction is a programming error with correct data, while a failure is a complete system breakdown leading to disasters.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li>تحدث <strong><span class="smart-term" data-term-en="System Malfunction" data-ar="عطل النظام" data-en-def="System fails due to programming error despite correct data entry.">الأعطال (Malfunctions)<span class="smart-term-tooltip"></span></span></strong> عندما يتم إدخال البيانات بشكل صحيح ولكن يفشل النظام بسبب خطأ في البرمجة (مثل فواتير Qwest الخاطئة، أو الإفراج الخاطئ عن 450 سجينًا في كاليفورنيا).</li><li>أما <strong><span class="smart-term" data-term-en="System Failure" data-ar="فشل النظام" data-en-def="A complete breakdown of a system causing severe disruption or harm.">فشل الأنظمة (System Failures)<span class="smart-term-tooltip"></span></span></strong> فيؤدي إلى توقف الخدمة وعواقب مميتة أحيانًا، مثل نظام إسعاف لندن الذي تسبب في وفاة 20 شخصًا بسبب التأخير، أو تعطل نظام مراقبة الحركة الجوية في اليابان، أو خطأ البرمجيات في طائرة بوينغ 777 الذي تسبب في صعود وهبوط مفاجئ.</li></ul></template>
+    <template class="content-en"><ul><li><strong><span class="smart-term" data-term-en="System Malfunction" data-ar="عطل النظام" data-en-def="System fails due to programming error despite correct data entry.">Malfunctions<span class="smart-term-tooltip"></span></span></strong> occur when data is correctly entered but the system fails due to a programming error (e.g., incorrect Qwest bills, or the mistaken release of 450 California inmates).</li><li><strong><span class="smart-term" data-term-en="System Failure" data-ar="فشل النظام" data-en-def="A complete breakdown of a system causing severe disruption or harm.">System Failures<span class="smart-term-tooltip"></span></span></strong> lead to service outages and sometimes fatal consequences, such as the London ambulance dispatch system causing 20 deaths due to delays, Japan's air traffic control going down, or the Boeing 777 software error causing unexpected rapid climbs and dives.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في حالة خطأ تسعير Amazon.com (عرض جهاز iPaq بـ 7 جنيهات بدلاً من 275)، يوضح التحليل النفعي للقاعدة (Rule Utilitarian) أن إجبار الشركات على الالتزام بالسعر الخاطئ سيؤدي إلى ارتفاع التكاليف على جميع المستهلكين.</p><p>بينما يوضح التحليل الكانطي (Kantian) أن المشترين استغلوا الخطأ بسوء نية، وبالتالي كان قرار أمازون بإلغاء الطلبات أخلاقيًا.</p></template>
+    <template class="content-en"><p>In the Amazon.com pricing error case (£7 instead of £275 for an iPaq), Rule Utilitarian analysis shows that forcing companies to honor advertised errors would increase costs for all consumers.</p><p>Kantian analysis shows buyers acted in bad faith by exploiting an obvious error. Thus, Amazon's refusal to fill orders was ethically justified.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>System Malfunction</th><th>System Failure</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">حالة البيانات المدخلة</template>
+          <template class="content-en">Input Data Status</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">صحيحة</template>
+          <template class="content-en">Correctly entered</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير ذات صلة (النظام ينهار)</template>
+          <template class="content-en">Irrelevant (System crashes)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">السبب الجذري</template>
+          <template class="content-en">Root Cause</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">خطأ في البرمجة أو الحساب</template>
+          <template class="content-en">Programming or calculation error</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">انهيار البنية التحتية أو خطأ برمجي قاتل</template>
+          <template class="content-en">Infrastructure collapse or fatal bug</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أمثلة</template>
+          <template class="content-en">Examples</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">فواتير Qwest، الإفراج عن سجناء كاليفورنيا</template>
+          <template class="content-en">Qwest bills, CA prison release</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">إسعاف لندن، شبكة AT&T</template>
+          <template class="content-en">London Ambulance, AT&T network</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يبرر التحليل الكانطي إلغاء أمازون للطلبات ذات السعر الخاطئ؟</template>
+      <template class="content-en">How does Kantian analysis justify Amazon canceling the wrongly priced orders?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن المشترين كانوا يعلمون أن الخصم (97.5%) كان خطأً، وحاولوا استغلال مساهمي أمازون، مما يعني أنهم لم يتصرفوا بحسن نية.</p></template>
+      <template class="content-en"><p>Because buyers knew the 97.5% markdown was an error and tried to exploit Amazon's stockholders, meaning they did not act in 'good faith'.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="notable-software-failures" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> إخفاقات برمجية تاريخية بارزة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Notable Software System Failures</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أخطاء برمجية صغيرة (مثل التقريب أو إعادة استخدام الكود) أدت إلى كوارث بمليارات الدولارات وخسائر في الأرواح.</p></template>
+    <template class="content-en"><p>Tiny software bugs (like truncation or code reuse) have led to multi-billion dollar disasters and loss of life.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>من أبرز الإخفاقات:</p><ul><li><strong>صاروخ باتريوت:</strong> <span class="smart-term" data-term-en="Truncation Error" data-ar="خطأ الاقتطاع" data-en-def="An error caused by cutting off digits in a floating-point number, leading to cumulative inaccuracies (e.g., Patriot Missile).">خطأ في تقريب الوقت<span class="smart-term-tooltip"></span></span> (0.3433 ثانية) تراكم بعد 100 ساعة تشغيل، مما أدى لخطأ في التتبع ومقتل 28 جنديًا.</li><li><strong>أريان 5:</strong> تدمير صاروخ بقيمة 500 مليون دولار بسبب إعادة استخدام كود من أريان 4؛ حيث أدى تحويل قيمة النقطة العائمة إلى عدد صحيح إلى استثناء لم تتم معالجته.</li><li><strong>شبكة AT&T:</strong> سطر كود واحد في إجراء استرداد الأخطاء تسبب في انهيار نصف محولات التوجيه.</li><li><strong>مهمات المريخ:</strong> تحطم مسبار بسبب خلط بين الوحدات الإنجليزية والمترية، وآخر بسبب إشارة خاطئة من معدات الهبوط.</li></ul></template>
+    <template class="content-en"><p>Notable failures include:</p><ul><li><strong>Patriot Missile:</strong> A <span class="smart-term" data-term-en="Truncation Error" data-ar="خطأ الاقتطاع" data-en-def="An error caused by cutting off digits in a floating-point number, leading to cumulative inaccuracies (e.g., Patriot Missile).">clock truncation error<span class="smart-term-tooltip"></span></span> (0.3433s) accumulated over 100 hours, causing a tracking error that killed 28 soldiers.</li><li><strong>Ariane 5:</strong> A $500M rocket self-destructed due to code reused from Ariane 4; assigning a floating-point value to an integer raised an unhandled exception.</li><li><strong>AT&T Network:</strong> A single line of code in an error-recovery procedure crashed half the routing switches.</li><li><strong>Mars Missions:</strong> One orbiter disintegrated due to mixed English/metric units; a lander crashed due to a false signal from landing gear.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>توضح هذه الحالات خطورة <strong>الديون التقنية وإعادة استخدام الكود (Code Reuse)</strong> دون اختبار شامل في البيئة الجديدة (كما في أريان 5).</p><p>كما تبرز مشكلة <strong>الأنظمة الموزعة</strong> حيث يمكن لخطأ محلي أن ينتشر كعدوى (<span class="smart-term" data-term-en="Cascading Failure" data-ar="الفشل المتسلسل" data-en-def="A failure in a system of interconnected parts where the failure of one part triggers the failure of successive parts (e.g., AT&T).">Cascading Failure<span class="smart-term-tooltip"></span></span>) كما حدث في محولات AT&T عندما أرسلت رسائل 'OK' أدت إلى إغراق المحولات الأخرى.</p></template>
+    <template class="content-en"><p>These cases highlight the dangers of <strong>technical debt and code reuse</strong> without rigorous testing in the new target environment (as in Ariane 5).</p><p>They also illustrate the vulnerability of <strong>distributed systems</strong> to <span class="smart-term" data-term-en="Cascading Failure" data-ar="الفشل المتسلسل" data-en-def="A failure in a system of interconnected parts where the failure of one part triggers the failure of successive parts (e.g., AT&T).">cascading failures<span class="smart-term-tooltip"></span></span>, as seen when AT&T switches sent 'OK' messages that overwhelmed and crashed neighboring switches.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show a map of the USA with AT&T routing switches. Node 1 (New York) reboots and sends 'OK' messages to Node 2 (Detroit, St. Louis, Atlanta). Show the 'OK' messages overwhelming Node 2, causing them to fail, reboot, and send their own 'OK' messages, creating a cascading failure loop. Style: educational, dark background #0d1117, accent color #00ffcc, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" dir="ltr">
+  <defs>
+    <!-- Background Dot Pattern -->
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="var(--text-muted)" opacity="0.15"/>
+    </pattern>
+
+    <!-- Arrowhead for Primary Connections -->
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+    </marker>
+
+    <!-- Arrowhead for Secondary (Cascade) Connections -->
+    <marker id="arrow-dash" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-400)"/>
+    </marker>
+
+    <!-- Glow Filter for Active Nodes -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+  <rect width="100%" height="100%" fill="url(#dots)"/>
+
+  <!-- Title Section -->
+  <text x="450" y="45" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">
+    AT&amp;T Network Cascading Failure (1990)
+  </text>
+  <text x="450" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" text-anchor="middle" fill="var(--text-secondary)">
+    انهيار شبكة AT&amp;T المتسلسل
+  </text>
+
+  <!-- Stylized USA Map -->
+  <path d="M 140 160 L 280 140 L 450 150 L 580 140 L 720 130 L 760 180 L 710 280 L 680 380 L 640 430 L 600 380 L 500 400 L 450 460 L 380 390 L 250 380 L 140 340 L 100 250 Z" 
+        fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="3" stroke-linejoin="round" opacity="0.6"/>
+
+  <!-- ========================================== -->
+  <!-- CONNECTIONS (Drawn first to be under nodes)-->
+  <!-- ========================================== -->
+
+  <!-- Secondary Cascade Connections (Dashed) -->
+  <path d="M 565 195 Q 450 200 345 255" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-dash)"/>
+  <path d="M 520 270 Q 500 310 470 350" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-dash)"/>
+  <path d="M 605 315 Q 540 340 475 355" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-dash)"/>
+  <path d="M 515 265 Q 340 290 175 315" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-dash)"/>
+  <path d="M 315 255 Q 240 220 165 185" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-dash)"/>
+
+  <!-- Secondary Cascade Labels -->
+  <text x="450" y="220" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--brand-400)" text-anchor="middle">OK</text>
+  <text x="500" y="310" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--brand-400)" text-anchor="middle">OK</text>
+  <text x="540" y="335" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--brand-400)" text-anchor="middle">OK</text>
+  <text x="340" y="285" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--brand-400)" text-anchor="middle">OK</text>
+
+  <!-- Primary Flood Connections (Solid, Thick) -->
+  <path d="M 685 195 Q 630 170 595 185" fill="none" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow-brand)"/>
+  <path d="M 685 205 Q 610 210 545 255" fill="none" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow-brand)"/>
+  <path d="M 690 210 Q 670 260 630 300" fill="none" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow-brand)"/>
+
+  <!-- Primary Flood Labels -->
+  <g transform="translate(630, 165)">
+    <rect x="-20" y="-10" width="40" height="20" rx="10" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5"/>
+    <text x="0" y="4" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">OK</text>
+  </g>
+  <g transform="translate(605, 225)">
+    <rect x="-20" y="-10" width="40" height="20" rx="10" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5"/>
+    <text x="0" y="4" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">OK</text>
+  </g>
+  <g transform="translate(665, 260)">
+    <rect x="-20" y="-10" width="40" height="20" rx="10" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5"/>
+    <text x="0" y="4" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">OK</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- NODES & RINGS                              -->
+  <!-- ========================================== -->
+
+  <!-- Node 1 (New York) Ripples -->
+  <circle cx="700" cy="200" r="24" fill="var(--brand-500)" opacity="0.2"/>
+  <circle cx="700" cy="200" r="36" fill="var(--brand-500)" opacity="0.1"/>
+
+  <!-- Node 2s (Overwhelmed) Dashed Rings -->
+  <circle cx="580" cy="190" r="18" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4"/>
+  <circle cx="530" cy="260" r="18" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4"/>
+  <circle cx="620" cy="310" r="18" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4"/>
+
+  <!-- Unaffected/Secondary Nodes -->
+  <circle cx="460" cy="360" r="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <circle cx="330" cy="260" r="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <circle cx="160" cy="320" r="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <circle cx="150" cy="180" r="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+
+  <!-- Node 2s (Detroit, St. Louis, Atlanta) -->
+  <circle cx="580" cy="190" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3"/>
+  <circle cx="530" cy="260" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3"/>
+  <circle cx="620" cy="310" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3"/>
+
+  <!-- Node 1 (New York) -->
+  <circle cx="700" cy="200" r="12" fill="var(--brand-500)" filter="url(#glow)"/>
+
+  <!-- ========================================== -->
+  <!-- NODE LABELS                                -->
+  <!-- ========================================== -->
+
+  <!-- Node 1 Label -->
+  <text x="730" y="195" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">New York (1)</text>
+  <text x="730" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نيويورك</text>
+
+  <!-- Node 2 Labels -->
+  <text x="580" y="155" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Detroit (2)</text>
+  <text x="580" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-secondary)">ديترويت</text>
+
+  <text x="530" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">St. Louis (2)</text>
+  <text x="530" y="310" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-secondary)">سانت لويس</text>
+
+  <text x="660" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">Atlanta (2)</text>
+  <text x="660" y="340" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">أتلانتا</text>
+
+  <!-- Secondary Node Labels -->
+  <text x="460" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-muted)">Dallas</text>
+  <text x="330" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-muted)">Denver</text>
+  <text x="160" y="345" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-muted)">Los Angeles</text>
+  <text x="150" y="160" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-muted)">Seattle</text>
+
+  <!-- ========================================== -->
+  <!-- CALLOUT BOXES                              -->
+  <!-- ========================================== -->
+
+  <!-- Callout for Node 1 -->
+  <rect x="725" y="230" width="150" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5"/>
+  <text x="800" y="248" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">Reboots &amp; Sends 'OK'</text>
+  <text x="800" y="265" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--brand-500)">يعيد التشغيل ويرسل OK</text>
+
+  <!-- Callout for Node 2s (Overwhelmed) -->
+  <path d="M 370 180 L 560 185" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <path d="M 370 180 L 510 250" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <path d="M 370 180 L 600 300" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+  <rect x="230" y="100" width="280" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="370" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">Overwhelmed by 'OK' messages</text>
+  <text x="370" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-primary)">Nodes fail, reboot, and send new 'OK's</text>
+  <text x="370" y="165" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" fill="var(--text-secondary)">تنهار العقد وتعيد التشغيل وترسل OK من جديد</text>
+
+  <!-- ========================================== -->
+  <!-- EXPLANATION PANEL (Bottom)                 -->
+  <!-- ========================================== -->
+  <rect x="40" y="450" width="820" height="130" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  
+  <!-- English Column -->
+  <text x="60" y="480" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">The Cascade Loop:</text>
+  <text x="60" y="505" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">1. Node 1 reboots, sending 'OK' to neighbors.</text>
+  <text x="60" y="525" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">2. A bug causes neighbors to crash upon receiving 'OK'.</text>
+  <text x="60" y="545" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">3. Neighbors reboot, sending their own 'OK' messages.</text>
+  <text x="60" y="565" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">4. The network is flooded, taking down 114 switches.</text>
+
+  <!-- Arabic Column -->
+  <text x="840" y="480" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="end" fill="var(--text-primary)">:حلقة الانهيار المتسلسل</text>
+  <text x="840" y="505" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="end" fill="var(--text-secondary)">١. العقدة ١ تعيد التشغيل وترسل 'OK' لجيرانها.</text>
+  <text x="840" y="525" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="end" fill="var(--text-secondary)">٢. خلل برمجي يسبب انهيار الجيران عند استلام 'OK'.</text>
+  <text x="840" y="545" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="end" fill="var(--text-secondary)">٣. الجيران يعيدون التشغيل ويرسلون رسائل 'OK' الخاصة بهم.</text>
+  <text x="840" y="565" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="end" fill="var(--text-secondary)">٤. الشبكة تغرق بالرسائل، مما يسقط ١١٤ محولاً.</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا فشل كود أريان 4 عندما تم استخدامه في أريان 5؟</template>
+      <template class="content-en">Why did the Ariane 4 code fail when reused in Ariane 5?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن صاروخ أريان 5 كان أسرع، مما أدى إلى معالجة قيم أكبر لم يستطع الكود القديم استيعابها (تحويل النقطة العائمة إلى عدد صحيح تسبب في استثناء).</p></template>
+      <template class="content-en"><p>Because Ariane 5 was a faster rocket, manipulating larger values that the old code couldn't handle (floating-point to integer conversion caused an exception).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="computer-simulations" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> المحاكاة الحاسوبية والتحقق منها</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Computer Simulations and Validation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُستخدم المحاكاة عندما تكون التجارب الحقيقية مستحيلة أو مكلفة، وتتطلب عمليتين: التحقق (بناء البرنامج صح) والتصديق (بناء النموذج الصح).</p></template>
+    <template class="content-en"><p>Simulations replace impossible or expensive physical experiments and require Verification (building the program right) and Validation (building the right model).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم المحاكاة الحاسوبية لاستبدال التجارب الفيزيائية التي تكون باهظة الثمن، أو غير أخلاقية، أو مستحيلة. كما تُستخدم لنمذجة الأحداث الماضية والتنبؤ بالمستقبل. لضمان دقة المحاكاة، يجب إجراء خطوتين:</p><ul><li><strong>التحقق (Verification):</strong> التأكد من أن البرنامج ينفذ النموذج بشكل صحيح.</li><li><strong>التصديق (Validation):</strong> التأكد من أن النموذج يمثل النظام الحقيقي بدقة.</li></ul><p>تشمل طرق التصديق: إجراء تنبؤات وانتظار تحققها، التنبؤ بالحاضر باستخدام بيانات قديمة، واختبار المصداقية مع الخبراء.</p></template>
+    <template class="content-en"><p>Computer simulations replace physical experiments that are too expensive, unethical, or impossible. They model past events and predict the future. To ensure accuracy, two steps are required:</p><ul><li><strong>Verification:</strong> Does the program correctly implement the model?</li><li><strong>Validation:</strong> Does the model accurately represent the real system?</li></ul><p>Validation methods include making predictions and waiting to see if they come true, predicting the present from old data, and testing credibility with experts.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الخلط بين التحقق والتصديق هو خطأ شائع. يمكنك بناء برنامج خالٍ من الأخطاء البرمجية (تم التحقق منه) ولكنه يعتمد على افتراضات فيزيائية خاطئة (غير مصدق عليه).</p><p>في الأنظمة الحرجة، الفشل في أي منهما يؤدي إلى نتائج كارثية.</p></template>
+    <template class="content-en"><p>Confusing verification and validation is a common pitfall. You can build a bug-free program (verified) that relies on flawed physical assumptions (invalidated).</p><p>In critical systems, failing either step leads to catastrophic real-world decisions.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Verification</th><th>Validation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">السؤال الأساسي</template>
+          <template class="content-en">Core Question</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">هل ينفذ البرنامج النموذج بشكل صحيح؟</template>
+          <template class="content-en">Does program correctly implement model?</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">هل يمثل النموذج النظام الحقيقي بدقة؟</template>
+          <template class="content-en">Does model accurately represent real system?</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التركيز</template>
+          <template class="content-en">Focus</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الكود البرمجي والخوارزميات</template>
+          <template class="content-en">Code and algorithms</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الفيزياء والواقع</template>
+          <template class="content-en">Physics and reality</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا توقعت محاكاة للطقس هطول أمطار بناءً على بيانات الأمس، ولكن السماء كانت صافية، فهل فشلت المحاكاة في التحقق أم التصديق؟</template>
+      <template class="content-en">If a weather simulation predicted rain based on yesterday's data, but it was sunny, did it fail verification or validation?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>فشلت في التصديق (Validation)، لأن النموذج لم يمثل الواقع بدقة، حتى لو كان الكود البرمجي يعمل بدون أخطاء.</p></template>
+      <template class="content-en"><p>It failed Validation, because the model did not accurately represent reality, even if the code executed without bugs.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="software-engineering-process" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> عملية هندسة البرمجيات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> The Software Engineering Process</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تطوير البرمجيات يمر بـ 4 مراحل: المواصفات، التطوير، التحقق، والتطور (التحديث المستمر).</p></template>
+    <template class="content-en"><p>Software development follows 4 steps: Specification, Development, Validation, and Evolution.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتكون عملية تطوير البرمجيات من أربع خطوات أساسية:</p><ol><li><strong>1. المواصفات (Specification):</strong> تحديد المتطلبات.</li><li><strong>2. التطوير (Development):</strong> إنشاء تصميم عالي المستوى، حل الأخطاء، وكتابة البرامج الفعلية.</li><li><strong>3. التحقق (Validation):</strong> التأكد من تلبية البرنامج للمواصفات واحتياجات المستخدم (رغم استحالة الاختبار الشامل).</li><li><strong>4. التطور (Evolution):</strong> تعديل البرمجيات بمرور الوقت لتلبية الاحتياجات المتغيرة.</li></ol><p>أظهرت أبحاث Standish Group أن معدل نجاح مشاريع تكنولوجيا المعلومات تضاعف بين عامي 1994 و 2009، حيث يكتمل الآن حوالي ثلث المشاريع في الوقت المحدد وضمن الميزانية.</p></template>
+    <template class="content-en"><p>The software development process consists of four steps:</p><ol><li><strong>1. Specification:</strong> Defining requirements.</li><li><strong>2. Development:</strong> Creating high-level design, resolving mistakes, and writing actual programs.</li><li><strong>3. Validation:</strong> Ensuring software satisfies specifications and user needs (though exhaustive testing is impossible).</li><li><strong>4. Evolution:</strong> Modifying software over time to meet changing needs.</li></ol><p>Standish Group research shows IT project success rates doubled between 1994 and 2009, with about one-third of projects now completed on time and on budget.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>أحد أكبر التحديات في مرحلة التحقق هو أن استجابات البرمجيات للتغيرات في المدخلات غير مستمرة (Noncontinuous)، مما يجعل <span class="smart-term" data-term-en="Exhaustive Testing" data-ar="الاختبار الشامل" data-en-def="Testing all possible inputs and states of a software system, which is practically impossible.">الاختبار الشامل (Exhaustive testing)<span class="smart-term-tooltip"></span></span> مستحيلاً.</p><p>الاختبار يكشف عن وجود الأخطاء، لكنه لا يمكن أن يثبت عدم وجودها.</p></template>
+    <template class="content-en"><p>A major challenge in the Validation phase is that software responses to input changes are noncontinuous, making <span class="smart-term" data-term-en="Exhaustive Testing" data-ar="الاختبار الشامل" data-en-def="Testing all possible inputs and states of a software system, which is practically impossible.">exhaustive testing<span class="smart-term-tooltip"></span></span> impossible.</p><p>Testing reveals the presence of bugs, but it can never mathematically prove that none exist.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر الاختبار الشامل للبرمجيات مستحيلاً؟</template>
+      <template class="content-en">Why is exhaustive testing of software impossible?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>بسبب العدد اللانهائي تقريبًا من المدخلات المحتملة وحالات النظام، والاستجابات غير المستمرة للبرمجيات.</p></template>
+      <template class="content-en"><p>Due to the nearly infinite number of possible inputs, system states, and the noncontinuous responses of software.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="software-warranties-liability" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> ضمانات البرمجيات والمسؤولية القانونية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Software Warranties and Vendor Liability</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>معظم البرمجيات تُباع 'كما هي' دون تحمل مسؤولية عن الأضرار، إلا إذا كانت جزءًا من نظام مدمج (مثل السيارات) فتطبق عليها المسؤولية الصارمة.</p></template>
+    <template class="content-en"><p>Most software is sold 'as is' with no liability for harm, unless it is part of an embedded system (like a car), where strict liability applies.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تأتي معظم البرمجيات مع <strong><span class="smart-term" data-term-en="Shrink-Wrap Warranty" data-ar="ضمان التغليف" data-en-def="An end-user agreement enclosed with software, often stating the software is provided 'as is'.">ضمانات التغليف (Shrink-Wrap Warranties)<span class="smart-term-tooltip"></span></span></strong> التي تنص على قبول البرنامج 'كما هو' (as is)، ولا تقبل أي شركة مسؤولية عن الأضرار الناجمة عن استخدام البرنامج. أثارت قضايا مثل (Step-Saver) و (ProCD) و (Mortensen) تساؤلات حول قابلية إنفاذ هذه الضمانات.</p><p>ومع ذلك، إذا تم اعتبار البرمجيات كمنتج (خاصة كجزء من نظام مدمج مثل السيارات أو الأجهزة الطبية)، فإن <strong><span class="smart-term" data-term-en="Strict Liability" data-ar="المسؤولية الصارمة" data-en-def="Legal responsibility for damages or injury, even if the manufacturer was not negligent, typically applied to embedded systems.">نظرية المسؤولية الصارمة (Strict Liability)<span class="smart-term-tooltip"></span></span></strong> تنطبق، مما يحمل الشركة المصنعة مسؤولية أي ضرر ناتج عن عيوب النظام.</p></template>
+    <template class="content-en"><p>Most software comes with <strong><span class="smart-term" data-term-en="Shrink-Wrap Warranty" data-ar="ضمان التغليف" data-en-def="An end-user agreement enclosed with software, often stating the software is provided 'as is'.">Shrink-Wrap Warranties<span class="smart-term-tooltip"></span></span></strong> stating you accept the software 'as is', and vendors accept no liability for harm caused by its use. Cases like Step-Saver, ProCD, and Mortensen have tested the enforceability of these warranties.</p><p>However, if software is considered a product—especially as part of an embedded system like an automobile—the <strong><span class="smart-term" data-term-en="Strict Liability" data-ar="المسؤولية الصارمة" data-en-def="Legal responsibility for damages or injury, even if the manufacturer was not negligent, typically applied to embedded systems.">theory of strict liability<span class="smart-term-tooltip"></span></span></strong> applies, holding the manufacturer liable for damages caused by defects.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التمييز القانوني بين 'البرمجيات كخدمة/معلومات' و 'البرمجيات كمنتج مادي' هو جوهر قضايا المسؤولية.</p><p>البرمجيات المستقلة تُعامل كمعلومات (تخضع للترخيص والضمانات المحدودة)، بينما البرمجيات التي تتحكم في أجهزة مادية (Embedded Systems) تُعامل كمنتجات تخضع لقوانين حماية المستهلك والمسؤولية الصارمة.</p></template>
+    <template class="content-en"><p>The legal distinction between 'software as a service/information' and 'software as a physical product' is the crux of liability issues.</p><p>Standalone software is treated as licensed information (limited warranties), whereas software controlling physical hardware (embedded systems) is treated as a product subject to strict liability and consumer protection laws.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تتحمل شركة تصنيع السيارات مسؤولية خطأ برمجي في نظام الفرامل، بينما لا تتحمل مايكروسوفت مسؤولية خطأ في برنامج وورد أدى لفقدان بيانات؟</template>
+      <template class="content-en">Why is a car manufacturer liable for a software bug in brakes, while Microsoft isn't liable for a Word bug causing data loss?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن نظام الفرامل هو نظام مدمج (منتج مادي) يخضع للمسؤولية الصارمة، بينما برنامج وورد هو برنامج مستقل يباع بترخيص 'كما هو'.</p></template>
+      <template class="content-en"><p>Because the brake system is an embedded system (a physical product) subject to strict liability, whereas Word is standalone software sold under an 'as is' license.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل. في هذه الوحدة، ننتقل من كتابة الكود إلى فهم العواقب الكارثية التي قد تحدث عندما يفشل هذا الكود في العالم الحقيقي. ليلة الامتحان، أريدكم أن تركزوا على التمييز بين 'العطل' (Malfunction) حيث البيانات صحيحة ولكن الكود خاطئ، و'الفشل' (Failure) الذي يؤدي لانهيار النظام بالكامل. تذكروا جيداً الأمثلة الكلاسيكية: صاروخ باتريوت (خطأ اقتطاع)، أريان 5 (خطأ إعادة استخدام الكود وتحويل الأنواع)، وشبكة AT&T (الفشل المتسلسل بسبب سطر واحد). لا تنسوا التفرقة الدقيقة بين التحقق (Verification) والتصديق (Validation) في المحاكاة؛ هذا سؤال كلاسيكي في الامتحانات! وأخيراً، افهموا متى تتحمل الشركات مسؤولية قانونية صارمة (في الأنظمة المدمجة) ومتى تحميها ضمانات التغليف. الكود الذي تكتبونه قد ينقذ أرواحاً أو يزهقها، لذا فإن الجودة والأخلاقيات وجهان لعملة واحدة.</template>
+    <template class="content-en">Welcome, future engineers. In this module, we shift from writing code to understanding the catastrophic consequences when code fails in the real world. For the exam, focus heavily on distinguishing a 'Malfunction' (correct data, bad code) from a 'Failure' (complete system collapse). Memorize the classic case studies: Patriot Missile (truncation error), Ariane 5 (code reuse and type conversion error), and AT&T (cascading failure from a single line). Do not mix up Verification and Validation in simulations; that is a guaranteed exam question! Finally, understand when companies face strict liability (embedded systems) versus when shrink-wrap warranties protect them. The code you write can save or cost lives—quality and ethics are two sides of the same coin.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا فشل صاروخ باتريوت في اعتراض صاروخ سكود؟</template>
+          <template class="content-en">Why did the Patriot missile fail to intercept the Scud missile?</template>
+          <span class="content-target">لماذا فشل صاروخ باتريوت في اعتراض صاروخ سكود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بسبب خطأ اقتطاع (Truncation error) في ساعة النظام تراكم على مدار 100 ساعة من التشغيل المستمر، مما أدى إلى خطأ في التتبع.</template>
+          <template class="content-en">Due to a truncation error in the system clock that accumulated over 100 hours of continuous operation, leading to a tracking error.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الدرس المستفاد من كارثة أريان 5؟</template>
+          <template class="content-en">What is the main lesson from the Ariane 5 disaster?</template>
+          <span class="content-target">ما هو الدرس المستفاد من كارثة أريان 5؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أن إعادة استخدام الكود (Code Reuse) من أنظمة قديمة دون اختباره في بيئة النظام الجديد (الأسرع والأقوى) يمكن أن يؤدي إلى استثناءات غير معالجة وفشل كارثي.</template>
+          <template class="content-en">That reusing code from older systems without testing it in the new system's environment (faster/more powerful) can lead to unhandled exceptions and catastrophic failure.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تسبب سطر كود واحد في انهيار شبكة AT&T؟</template>
+          <template class="content-en">How did a single line of code crash the AT&T network?</template>
+          <span class="content-target">كيف تسبب سطر كود واحد في انهيار شبكة AT&T؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">خطأ في إجراء استرداد الأخطاء جعل المحولات ترسل رسائل 'OK' بكثافة، مما أدى إلى إغراق المحولات الأخرى وتسبب في فشل متسلسل (Cascading failure).</template>
+          <template class="content-en">A bug in the error-recovery procedure caused switches to flood others with 'OK' messages, overwhelming them and causing a cascading failure.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين التحقق (Verification) والتصديق (Validation)؟</template>
+          <template class="content-en">What is the difference between Verification and Validation?</template>
+          <span class="content-target">ما الفرق بين التحقق (Verification) والتصديق (Validation)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التحقق يسأل: 'هل بنينا البرنامج بشكل صحيح؟' (خالٍ من الأخطاء). التصديق يسأل: 'هل بنينا النموذج الصحيح؟' (يمثل الواقع بدقة).</template>
+          <template class="content-en">Verification asks: 'Did we build the program right?' (bug-free). Validation asks: 'Did we build the right model?' (accurately represents reality).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر الاختبار الشامل للبرمجيات مستحيلاً؟</template>
+          <template class="content-en">Why is exhaustive software testing impossible?</template>
+          <span class="content-target">لماذا يعتبر الاختبار الشامل للبرمجيات مستحيلاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن البرمجيات لها استجابات غير مستمرة للمدخلات، وهناك عدد لا نهائي تقريباً من المدخلات وحالات النظام الممكنة.</template>
+          <template class="content-en">Because software has noncontinuous responses to inputs, and there is a nearly infinite number of possible inputs and system states.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى تطبق المسؤولية الصارمة (Strict Liability) على البرمجيات؟</template>
+          <template class="content-en">When does Strict Liability apply to software?</template>
+          <span class="content-target">متى تطبق المسؤولية الصارمة (Strict Liability) على البرمجيات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تطبق عندما تكون البرمجيات جزءاً لا يتجزأ من نظام مدمج (مثل السيارات أو الأجهزة الطبية) وتُعامل كمنتج مادي.</template>
+          <template class="content-en">It applies when software is an integral part of an embedded system (like cars or medical devices) and is treated as a physical product.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المشكلة الأخلاقية في آلات التصويت الإلكتروني (DRE)؟</template>
+          <template class="content-en">What is the ethical issue with DRE voting machines?</template>
+          <span class="content-target">ما هي المشكلة الأخلاقية في آلات التصويت الإلكتروني (DRE)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">افتقارها إلى مسار تدقيق ورقي يجعل من الصعب التحقق من صحة الأصوات، مما يفتح الباب للتلاعب البرمجي والتزوير.</template>
+          <template class="content-en">Their lack of a paper audit trail makes it difficult to verify votes, opening the door to software tampering and fraud.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يبرر التحليل النفعي للقاعدة (Rule Utilitarian) إلغاء أمازون للطلبات ذات السعر الخاطئ؟</template>
+          <template class="content-en">How does Rule Utilitarian analysis justify Amazon canceling wrongly priced orders?</template>
+          <span class="content-target">كيف يبرر التحليل النفعي للقاعدة (Rule Utilitarian) إلغاء أمازون للطلبات ذات السعر الخاطئ؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا أُجبرت الشركات دائماً على تحمل خسائر الأخطاء المطبعية، فسترتفع التكاليف (تأمين، مراجعة) مما سيؤدي لارتفاع الأسعار على جميع المستهلكين.</template>
+          <template class="content-en">If companies were always forced to absorb typo losses, costs (insurance, auditing) would rise, leading to higher prices for all consumers.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الذي أدى إلى فشل نظام الأمتعة في مطار دنفر؟</template>
+          <template class="content-en">What led to the failure of the Denver Airport baggage system?</template>
+          <span class="content-target">ما الذي أدى إلى فشل نظام الأمتعة في مطار دنفر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعقيد النظام تجاوز قدرات فريق التطوير، وكان الجدول الزمني المتاح قصيراً جداً لإنجاز المشروع.</template>
+          <template class="content-en">The system's complexity exceeded the development team's abilities, and the timeline was far too short to complete the project.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يؤثر التحيز في بيانات التدريب على أنظمة الذكاء الاصطناعي؟</template>
+          <template class="content-en">How does bias in training data affect AI systems?</template>
+          <span class="content-target">كيف يؤثر التحيز في بيانات التدريب على أنظمة الذكاء الاصطناعي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يؤدي إلى أداء غير متكافئ، مثل فشل أنظمة التعرف على الوجوه في تحديد هويات الأقليات بدقة بسبب سوء أخذ العينات.</template>
+          <template class="content-en">It leads to unequal performance, such as facial-recognition systems failing to accurately identify minorities due to poor sampling.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو السبب الرئيسي لفشل صاروخ باتريوت في حرب الخليج؟",
+      "en": "What was the main cause of the Patriot Missile failure in the Gulf War?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خطأ اقتطاع (Truncation error) في الساعة تراكم على مدار 100 ساعة تشغيل.",
+        "en": "A truncation error in the clock that accumulated over 100 hours of operation."
+      },
+      "example": {
+        "ar": "أدى خطأ قدره 0.3433 ثانية إلى خطأ تتبع بمسافة 687 مترًا.",
+        "en": "A 0.3433-second error led to a 687-meter tracking error."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "لماذا تحطم صاروخ أريان 5؟",
+      "en": "Why did the Ariane 5 rocket crash?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بسبب إعادة استخدام كود من أريان 4؛ أدى تحويل قيمة نقطة عائمة إلى عدد صحيح إلى استثناء غير معالج.",
+        "en": "Due to code reused from Ariane 4; assigning a floating-point value to an integer raised an unhandled exception."
+      },
+      "example": {
+        "ar": "الصاروخ الأسرع أنتج قيماً أكبر لم يستطع الكود القديم التعامل معها.",
+        "en": "The faster rocket produced larger values the old code couldn't handle."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما الذي تسبب في انهيار شبكة AT&T للمسافات الطويلة عام 1990؟",
+      "en": "What caused the AT&T Long-Distance Network crash in 1990?"
+    },
+    "back": {
+      "definition": {
+        "ar": "سطر كود واحد خاطئ في إجراء استرداد الأخطاء.",
+        "en": "A single line of code in the error-recovery procedure."
+      },
+      "example": {
+        "ar": "رسائل 'OK' تسببت في إغراق المحولات الأخرى وفشلها المتسلسل.",
+        "en": "'OK' messages overwhelmed other switches, causing a cascading failure."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو سبب فقدان مركبة Mars Climate Orbiter؟",
+      "en": "What caused the loss of the Mars Climate Orbiter?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عدم التوافق بين الوحدات الإنجليزية (Lockheed) والوحدات المترية (JPL).",
+        "en": "Mismatch between English units (Lockheed) and metric units (JPL)."
+      },
+      "example": {
+        "ar": "تفككت المركبة في الغلاف الجوي للمريخ.",
+        "en": "The orbiter disintegrated in the Martian atmosphere."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي المشكلة الرئيسية في آلات التصويت الإلكتروني (DRE)؟",
+      "en": "What is the main issue with Direct Recording Electronic (DRE) voting machines?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الافتقار إلى مسار تدقيق ورقي (Paper audit trail) وقابليتها للتلاعب.",
+        "en": "Lack of a paper audit trail and vulnerability to tampering."
+      },
+      "example": {
+        "ar": "الكود المصدري سر تجاري لا يمكن فحصه، مما يثير مخاوف التزوير.",
+        "en": "Source code is a trade secret and cannot be examined, raising fraud concerns."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما الفرق بين عطل النظام (Malfunction) وفشل النظام (Failure)؟",
+      "en": "What is the difference between a System Malfunction and a System Failure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "العطل: بيانات صحيحة ولكن خطأ برمجي يخرج نتائج خاطئة. الفشل: توقف كامل للنظام.",
+        "en": "Malfunction: correct data but programming error gives wrong output. Failure: complete system breakdown."
+      },
+      "example": {
+        "ar": "عطل: فواتير خاطئة. فشل: توقف نظام الإسعاف.",
+        "en": "Malfunction: wrong bills. Failure: ambulance system crash."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي الخطوات الأربع لعملية هندسة البرمجيات؟",
+      "en": "What are the 4 steps of the Software Engineering Process?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المواصفات، التطوير، التحقق، التطور.",
+        "en": "Specification, Development, Validation, Evolution."
+      },
+      "example": {
+        "ar": "تبدأ بتحديد المتطلبات وتنتهي بالتحديثات المستمرة.",
+        "en": "Starts with requirements and ends with ongoing updates."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو التحقق (Verification) في المحاكاة؟",
+      "en": "What is Verification in simulation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التأكد من أن البرنامج ينفذ النموذج بشكل صحيح (خالٍ من الأخطاء البرمجية).",
+        "en": "Ensuring the program correctly implements the model (bug-free)."
+      },
+      "example": {
+        "ar": "هل المعادلات الرياضية مبرمجة بشكل صحيح؟",
+        "en": "Are the mathematical equations coded correctly?"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو التصديق (Validation) في المحاكاة؟",
+      "en": "What is Validation in simulation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التأكد من أن النموذج يمثل النظام الحقيقي بدقة.",
+        "en": "Ensuring the model accurately represents the real system."
+      },
+      "example": {
+        "ar": "هل يتطابق الطقس المحاكى مع الطقس الفعلي؟",
+        "en": "Does the simulated weather match actual weather?"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي ضمانات التغليف (Shrink-Wrap Warranties)؟",
+      "en": "What are Shrink-Wrap Warranties?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اتفاقيات تنص على قبول البرنامج 'كما هو' دون تحمل الشركة مسؤولية الأضرار.",
+        "en": "Agreements stating you accept software 'as is' with no vendor liability for harm."
+      },
+      "example": {
+        "ar": "شائعة في البرمجيات التجارية المستقلة.",
+        "en": "Common in standalone commercial software."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "متى تنطبق المسؤولية الصارمة (Strict Liability) على البرمجيات؟",
+      "en": "When does Strict Liability apply to software?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تكون البرمجيات جزءًا من نظام مدمج (Embedded System) يعتبر منتجًا ماديًا.",
+        "en": "When software is part of an embedded system considered a physical product."
+      },
+      "example": {
+        "ar": "برمجيات التحكم في فرامل السيارات.",
+        "en": "Car brake control software."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي مشكلة نظام الأمتعة في مطار دنفر؟",
+      "en": "What was the issue with the Denver Airport baggage system?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعقيد النظام تجاوز قدرة فريق التطوير، والجدول الزمني كان قصيرًا جدًا.",
+        "en": "System complexity exceeded the development team's ability, and the timeline was too short."
+      },
+      "example": {
+        "ar": "أدى لتأخير 16 شهرًا وتكلفة مليون دولار يوميًا.",
+        "en": "Caused a 16-month delay costing $1 million a day."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف أثر التحيز في بيانات التدريب على أنظمة الذكاء الاصطناعي؟",
+      "en": "How did bias in training data affect AI systems?"
+    },
+    "back": {
+      "definition": {
+        "ar": "أدى إلى مشاكل في التعرف على الوجوه وتحديد الهوية الخاطئ بسبب سوء أخذ العينات.",
+        "en": "Led to facial-recognition issues and misidentification due to poor sampling."
+      },
+      "example": {
+        "ar": "فشل النظام في التعرف على الأقليات بدقة.",
+        "en": "System failing to accurately recognize minorities."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما الذي حدث في بورصة طوكيو مع شركة Mizuho؟",
+      "en": "What happened at the Tokyo Stock Exchange with Mizuho?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خطأ مطبعي في الإدخال (بيع 610,000 سهم بـ 1 ين) وخطأ برمجي منع إلغاء الطلب.",
+        "en": "A typo in entry (sell 610,000 shares at 1 yen) and a software bug prevented order cancellation."
+      },
+      "example": {
+        "ar": "خسرت الشركة 225 مليون دولار.",
+        "en": "The company lost $225 million."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "لماذا يعتبر الاختبار الشامل (Exhaustive testing) مستحيلاً؟",
+      "en": "Why is exhaustive testing impossible?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بسبب الاستجابات غير المستمرة للبرمجيات والعدد اللانهائي من المدخلات.",
+        "en": "Due to noncontinuous responses of software and an infinite number of inputs."
+      },
+      "example": {
+        "ar": "الاختبار يكشف الأخطاء لكنه لا يثبت عدم وجودها.",
+        "en": "Testing reveals bugs but cannot prove none exist."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو السبب الجذري لفشل نظام صاروخ باتريوت في اعتراض صاروخ سكود؟",
+      "en": "What was the root cause of the Patriot missile system failing to intercept a Scud missile?"
+    },
+    "options": {
+      "ar": [
+        "خطأ في تحويل النقطة العائمة إلى عدد صحيح",
+        "خطأ اقتطاع تراكم بمرور الوقت في ساعة النظام",
+        "استخدام وحدات قياس مترية بدلاً من إنجليزية",
+        "هجوم سيبراني على النظام"
+      ],
+      "en": [
+        "Floating-point to integer conversion error",
+        "Truncation error accumulated over time in the system clock",
+        "Using metric units instead of English units",
+        "Cyberattack on the system"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تم تصميم النظام للعمل لساعات قليلة، ولكن تشغيله لأكثر من 100 ساعة أدى إلى تراكم خطأ اقتطاع قدره 0.3433 ثانية، مما تسبب في خطأ تتبع.",
+      "en": "The system was designed to operate for a few hours. Running it for >100 hours caused a 0.3433s truncation error to accumulate, leading to a tracking error."
+    },
+    "hint": {
+      "ar": "تذكر مشكلة الوقت والتشغيل المستمر.",
+      "en": "Think about time and continuous operation."
+    },
+    "difficulty": "medium",
+    "conceptId": "notable-software-failures"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "لماذا تحطم صاروخ أريان 5 بعد 40 ثانية من إطلاقه؟",
+      "en": "Why did the Ariane 5 rocket self-destruct 40 seconds into its flight?"
+    },
+    "options": {
+      "ar": [
+        "خطأ في تحويل قيمة النقطة العائمة إلى عدد صحيح بسبب إعادة استخدام كود قديم",
+        "إشارة خاطئة من معدات الهبوط",
+        "سطر كود خاطئ في إجراء استرداد الأخطاء",
+        "تعقيد النظام تجاوز قدرة فريق التطوير"
+      ],
+      "en": [
+        "Floating-point to integer conversion error due to reused old code",
+        "False signal from landing gear",
+        "Faulty line of code in error-recovery procedure",
+        "System complexity exceeded development team's ability"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "تمت إعادة استخدام كود من أريان 4. لأن أريان 5 كان أسرع، كانت القيم أكبر، مما أدى إلى استثناء عند تحويل النقطة العائمة إلى عدد صحيح.",
+      "en": "Code from Ariane 4 was reused. Because Ariane 5 was faster, values were larger, causing an exception during float-to-int conversion."
+    },
+    "hint": {
+      "ar": "مشكلة تتعلق بإعادة استخدام الكود (Code Reuse).",
+      "en": "An issue related to Code Reuse."
+    },
+    "difficulty": "medium",
+    "conceptId": "notable-software-failures"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في سياق المحاكاة الحاسوبية، ماذا يعني 'التصديق' (Validation)؟",
+      "en": "In the context of computer simulations, what does 'Validation' mean?"
+    },
+    "options": {
+      "ar": [
+        "التأكد من أن البرنامج ينفذ النموذج بشكل صحيح",
+        "التأكد من أن النموذج يمثل النظام الحقيقي بدقة",
+        "التأكد من خلو الكود من الأخطاء البرمجية",
+        "التأكد من أن المحاكاة تعمل بسرعة كافية"
+      ],
+      "en": [
+        "Ensuring the program correctly implements the model",
+        "Ensuring the model accurately represents the real system",
+        "Ensuring the code is free of syntax errors",
+        "Ensuring the simulation runs fast enough"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التحقق (Verification) يتعلق بصحة الكود، بينما التصديق (Validation) يتعلق بمدى مطابقة النموذج للواقع.",
+      "en": "Verification is about code correctness, while Validation is about how well the model matches reality."
+    },
+    "hint": {
+      "ar": "هل بنينا النموذج الصحيح؟",
+      "en": "Did we build the right model?"
+    },
+    "difficulty": "hard",
+    "conceptId": "computer-simulations"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي مما يلي يُعد مثالاً على 'عطل النظام' (System Malfunction) وليس 'فشل النظام' (System Failure)؟",
+      "en": "Which of the following is an example of a 'System Malfunction' rather than a 'System Failure'?"
+    },
+    "options": {
+      "ar": [
+        "توقف نظام مراقبة الحركة الجوية في اليابان",
+        "انهيار شبكة AT&T للمسافات الطويلة",
+        "إرسال فواتير خاطئة لعملاء Qwest",
+        "توقف بورصة ناسداك لمدة 3 ساعات"
+      ],
+      "en": [
+        "Japan's air traffic control system going down",
+        "AT&T Long-Distance Network crash",
+        "Qwest sending incorrect bills to customers",
+        "NASDAQ shutting down for 3 hours"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "العطل يحدث عندما تعمل الأنظمة ولكن تخرج نتائج خاطئة (مثل الفواتير)، بينما الفشل هو توقف كامل للخدمة.",
+      "en": "A malfunction occurs when systems run but produce incorrect outputs (like bills), while a failure is a complete service outage."
+    },
+    "hint": {
+      "ar": "ابحث عن الخيار الذي استمر فيه النظام بالعمل ولكن بنتيجة خاطئة.",
+      "en": "Look for the option where the system kept running but produced a wrong result."
+    },
+    "difficulty": "medium",
+    "conceptId": "system-malfunctions-vs-failures"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "وفقًا للتحليل الكانطي (Kantian Analysis)، لماذا كان قرار Amazon.com بإلغاء طلبات iPaq ذات السعر الخاطئ مبررًا؟",
+      "en": "According to Kantian Analysis, why was Amazon.com's decision to cancel the wrongly priced iPaq orders justified?"
+    },
+    "options": {
+      "ar": [
+        "لأن الالتزام بالسعر سيؤدي إلى إفلاس الشركة",
+        "لأن المشترين لم يتصرفوا بحسن نية وحاولوا استغلال خطأ واضح",
+        "لأن القوانين البريطانية تسمح بإلغاء الطلبات",
+        "لأن الخصم كان أقل من 50%"
+      ],
+      "en": [
+        "Because honoring the price would bankrupt the company",
+        "Because buyers did not act in good faith and tried to exploit an obvious error",
+        "Because British laws allow order cancellation",
+        "Because the discount was less than 50%"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الكانطية تركز على النوايا. المشترون عرفوا أن السعر خطأ واستغلوه، مما يعني غياب 'حسن النية'.",
+      "en": "Kantianism focuses on intent. Buyers knew the price was an error and exploited it, meaning a lack of 'good faith'."
+    },
+    "hint": {
+      "ar": "الكانطية تهتم بالنوايا وحسن النية.",
+      "en": "Kantianism cares about intent and good faith."
+    },
+    "difficulty": "hard",
+    "conceptId": "system-malfunctions-vs-failures"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي المشكلة الرئيسية التي أدت إلى فقدان مركبة Mars Climate Orbiter؟",
+      "en": "What was the main issue that led to the loss of the Mars Climate Orbiter?"
+    },
+    "options": {
+      "ar": [
+        "خطأ في تقريب الوقت",
+        "استخدام وحدات قياس مختلفة (إنجليزية ومترية) بين فرق التصميم",
+        "إشارة خاطئة من معدات الهبوط",
+        "عطل في الألواح الشمسية"
+      ],
+      "en": [
+        "Clock truncation error",
+        "Use of different measurement units (English and metric) between design teams",
+        "False signal from landing gear",
+        "Solar panel malfunction"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "استخدمت شركة لوكهيد مارتن الوحدات الإنجليزية، بينما استخدم مختبر الدفع النفاث الوحدات المترية، مما أدى لتفكك المركبة.",
+      "en": "Lockheed Martin used English units, while JPL used metric units, causing the orbiter to disintegrate."
+    },
+    "hint": {
+      "ar": "مشكلة تواصل وتوحيد معايير بين فريقين.",
+      "en": "A communication and standardization issue between two teams."
+    },
+    "difficulty": "easy",
+    "conceptId": "notable-software-failures"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "متى يمكن تطبيق 'المسؤولية الصارمة' (Strict Liability) على مطوري البرمجيات؟",
+      "en": "When can 'Strict Liability' be applied to software developers?"
+    },
+    "options": {
+      "ar": [
+        "عندما يتم بيع البرنامج كخدمة سحابية",
+        "عندما يكون البرنامج جزءًا من نظام مدمج (مثل السيارات) ويعتبر منتجًا",
+        "عندما يحتوي البرنامج على ضمان تغليف (Shrink-wrap)",
+        "لا يمكن تطبيقها أبدًا على البرمجيات"
+      ],
+      "en": [
+        "When the software is sold as a cloud service",
+        "When the software is part of an embedded system (like cars) and considered a product",
+        "When the software has a shrink-wrap warranty",
+        "It can never be applied to software"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تطبق المسؤولية الصارمة عندما يُعتبر البرنامج منتجًا ماديًا، كما هو الحال في الأنظمة المدمجة التي تتحكم في الأجهزة المادية.",
+      "en": "Strict liability applies when software is considered a physical product, such as in embedded systems controlling physical hardware."
+    },
+    "hint": {
+      "ar": "فكر في البرمجيات التي تتحكم في أشياء مادية خطيرة.",
+      "en": "Think about software controlling dangerous physical objects."
+    },
+    "difficulty": "medium",
+    "conceptId": "software-warranties-liability"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي من الخطوات التالية ليست جزءًا من العملية الرباعية لتطوير البرمجيات؟",
+      "en": "Which of the following is NOT part of the 4-step software development process?"
+    },
+    "options": {
+      "ar": [
+        "المواصفات (Specification)",
+        "التطوير (Development)",
+        "التسويق (Marketing)",
+        "التحقق (Validation)"
+      ],
+      "en": [
+        "Specification",
+        "Development",
+        "Marketing",
+        "Validation"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الخطوات الأربع هي: المواصفات، التطوير، التحقق، والتطور (Evolution). التسويق ليس جزءًا من العملية الهندسية.",
+      "en": "The 4 steps are: Specification, Development, Validation, and Evolution. Marketing is not part of the engineering process."
+    },
+    "hint": {
+      "ar": "ابحث عن الخيار التجاري وليس الهندسي.",
+      "en": "Look for the commercial option, not the engineering one."
+    },
+    "difficulty": "easy",
+    "conceptId": "software-engineering-process"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الانتقاد الرئيسي الموجه لآلات التصويت الإلكتروني (DRE)؟",
+      "en": "What is the main criticism of Direct Recording Electronic (DRE) voting machines?"
+    },
+    "options": {
+      "ar": [
+        "أنها بطيئة جداً في فرز الأصوات",
+        "أنها تفتقر إلى مسار تدقيق ورقي وتكون عرضة للتلاعب",
+        "أنها تتطلب اتصالاً دائماً بالإنترنت",
+        "أنها باهظة الثمن مقارنة بالبطاقات المثقبة"
+      ],
+      "en": [
+        "They are too slow at counting votes",
+        "They lack a paper audit trail and are vulnerable to tampering",
+        "They require a constant internet connection",
+        "They are too expensive compared to punch cards"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المشكلة الكبرى هي عدم وجود سجل ورقي يمكن الرجوع إليه في حال الشك في النتائج، مما يسهل التلاعب البرمجي.",
+      "en": "The biggest issue is the lack of a physical paper record to fall back on if results are questioned, making software tampering easier."
+    },
+    "hint": {
+      "ar": "كيف تتأكد من أن صوتك تم تسجيله بشكل صحيح؟",
+      "en": "How do you verify your vote was recorded correctly?"
+    },
+    "difficulty": "medium",
+    "conceptId": "notable-software-failures"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "كيف أثر التحيز في بيانات التدريب على أنظمة الذكاء الاصطناعي للتعرف على الوجوه؟",
+      "en": "How did bias in training data affect AI facial-recognition systems?"
+    },
+    "options": {
+      "ar": [
+        "جعل الأنظمة أبطأ في المعالجة",
+        "أدى إلى تحديد هوية خاطئ بسبب سوء أخذ العينات",
+        "تسبب في استهلاك طاقة أعلى",
+        "منع الأنظمة من العمل في الإضاءة المنخفضة"
+      ],
+      "en": [
+        "Made the systems slower to process",
+        "Led to misidentification due to poor sampling",
+        "Caused higher power consumption",
+        "Prevented systems from working in low light"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "البيانات المتحيزة (مثل نقص تمثيل أقليات معينة) تؤدي إلى أداء ضعيف وتحديد هوية خاطئ لتلك الفئات.",
+      "en": "Biased data (e.g., underrepresenting certain minorities) leads to poor performance and misidentification for those groups."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا دربت النظام على نوع واحد من الوجوه؟",
+      "en": "What happens if you train the system on only one type of face?"
+    },
+    "difficulty": "easy",
+    "conceptId": "software-engineering-process"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين التحقق (Verification) والتصديق (Validation). تذكر: التحقق = هل بنينا البرنامج بشكل صحيح؟ التصديق = هل بنينا النموذج الصحيح للواقع؟</template>
+      <template class="content-en">Confusing Verification and Validation. Remember: Verification = Did we build the program right? Validation = Did we build the right model of reality?</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">إعادة استخدام الكود (Code Reuse) ليس آمناً دائماً. كارثة أريان 5 حدثت لأن كود أريان 4 الممتاز لم يكن مصمماً للسرعات العالية للصاروخ الجديد.</template>
+      <template class="content-en">Code Reuse is not always safe. The Ariane 5 disaster happened because perfectly good Ariane 4 code wasn't designed for the new rocket's higher speeds.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المسؤولية الصارمة (Strict Liability) لا تطبق عادة على البرمجيات المستقلة، بل تطبق عندما تكون البرمجيات جزءاً من نظام مدمج (Embedded System) مثل السيارات أو الأجهزة الطبية.</template>
+      <template class="content-en">Strict Liability usually doesn't apply to standalone software; it applies when software is part of an embedded system like cars or medical devices.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الاختبار الشامل (Exhaustive Testing) يمكن أن يثبت خلو البرنامج من الأخطاء. الاختبار يكشف الأخطاء ولكنه لا يثبت عدم وجودها أبداً.</template>
+      <template class="content-en">Believing that Exhaustive Testing can prove a program is bug-free. Testing reveals bugs but can never mathematically prove none exist.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M09.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M11.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

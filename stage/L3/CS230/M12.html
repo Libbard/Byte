@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS230" data-module="12">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الفئات والكائنات (الجزء الثاني) · CS230 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS230" data-page-title-en="CS230">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M11.html" data-gh-next="M13.html" data-gh-card="../../hub/course.html?code=CS230"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#this-reference" class="toc-link" data-bilingual>
+        <template class="content-ar">المرجع this</template>
+        <template class="content-en">this Reference</template>
+        <span class="content-target">المرجع this</span>
+      </a>
+      <a href="#overloaded-constructors" class="toc-link" data-bilingual>
+        <template class="content-ar">المنشئات المحملة بشكل زائد</template>
+        <template class="content-en">Overloaded Constructors</template>
+        <span class="content-target">المنشئات المحملة بشكل زائد</span>
+      </a>
+      <a href="#default-constructor" class="toc-link" data-bilingual>
+        <template class="content-ar">المنشئ الافتراضي</template>
+        <template class="content-en">Default and No-Argument Constructors</template>
+        <span class="content-target">المنشئ الافتراضي</span>
+      </a>
+      <a href="#composition" class="toc-link" data-bilingual>
+        <template class="content-ar">التركيب (Composition)</template>
+        <template class="content-en">Composition</template>
+        <span class="content-target">التركيب (Composition)</span>
+      </a>
+      <a href="#enum-types" class="toc-link" data-bilingual>
+        <template class="content-ar">الأنواع المسرودة (enum)</template>
+        <template class="content-en">enum Types</template>
+        <span class="content-target">الأنواع المسرودة (enum)</span>
+      </a>
+      <a href="#garbage-collection" class="toc-link" data-bilingual>
+        <template class="content-ar">تنظيف الذاكرة (Garbage Collection)</template>
+        <template class="content-en">Garbage Collection</template>
+        <span class="content-target">تنظيف الذاكرة (Garbage Collection)</span>
+      </a>
+      <a href="#static-members" class="toc-link" data-bilingual>
+        <template class="content-ar">الأعضاء الثابتة والاستيراد الثابت</template>
+        <template class="content-en">static Class Members & static import</template>
+        <span class="content-target">الأعضاء الثابتة والاستيراد الثابت</span>
+      </a>
+      <a href="#final-instance-variables" class="toc-link" data-bilingual>
+        <template class="content-ar">المتغيرات النهائية (final)</template>
+        <template class="content-en">final Instance Variables</template>
+        <span class="content-target">المتغيرات النهائية (final)</span>
+      </a>
+      <a href="#creating-packages" class="toc-link" data-bilingual>
+        <template class="content-ar">إنشاء الحزم (Packages)</template>
+        <template class="content-en">Creating packages</template>
+        <span class="content-target">إنشاء الحزم (Packages)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 12</template>
+      <template class="content-en">Module 12</template>
+      <span class="content-target">الوحدة 12</span>
+    </span> · CS230
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الفئات والكائنات (الجزء الثاني)</h1>
+      <p class="hero-description">تغطي هذه الوحدة المفاهيم المتقدمة للفئات والكائنات في جافا، بما في ذلك المرجع this، التحميل الزائد للمنشئات، التركيب، الأنواع المسرودة (enum)، تنظيف الذاكرة، والمتغيرات الثابتة والنهائية.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Classes and Objects II</h1>
+      <p class="hero-description">This module covers advanced concepts of classes and objects in Java, including the 'this' reference, overloaded constructors, composition, enum types, garbage collection, and static/final variables.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">جافا</span>
+      <span class="tag">البرمجة كائنية التوجه</span>
+      <span class="tag">المنشئات</span>
+      <span class="tag">التركيب</span>
+      <span class="tag">تنظيف الذاكرة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Java</span>
+      <span class="tag">OOP</span>
+      <span class="tag">Constructors</span>
+      <span class="tag">Composition</span>
+      <span class="tag">Garbage Collection</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>توضيح مفاهيم التغليف وإخفاء البيانات.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق المعدلات النهائية (final) والثابتة (static) في البرمجة.</span></li>
+      <li><span class="obj-icon">✦</span><span>استخدام المرجع 'this' لحل تعارض الأسماء واستدعاء المنشئات.</span></li>
+      <li><span class="obj-icon">✦</span><span>إنشاء واستخدام الحزم (Packages) لتنظيم الكود.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Demonstrate encapsulation and data hiding concepts.</span></li>
+      <li><span class="obj-icon">✦</span><span>Illustrate final and static modifiers.</span></li>
+      <li><span class="obj-icon">✦</span><span>Use the 'this' reference to resolve naming conflicts and invoke constructors.</span></li>
+      <li><span class="obj-icon">✦</span><span>Create and use packages to organize code.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="this-reference" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> المرجع this</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> this Reference</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>كلمة مفتاحية تشير إلى الكائن الحالي، مثلما تقول 'أنا' لتشير إلى نفسك.</p>
+    </template>
+    <template class="content-en">
+      <p>A keyword that refers to the current object, much like saying 'I' or 'me' to refer to yourself.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُستخدم المرجع <code>this</code> بشكل أساسي لحل التعارض عندما يكون لمتغيرات النسخة (instance variables) والمعاملات (parameters) نفس الاسم.</p><p>كما يمكن استخدام <code>this()</code> لاستدعاء منشئ آخر داخل نفس الفئة، مما يقلل من تكرار الكود.</p></template>
+    <template class="content-en"><p>The <code>this</code> reference is primarily used to resolve ambiguity when instance variables and parameters share the same name.</p><p>Additionally, <code>this()</code> can be used to invoke another constructor within the current class, promoting code reuse.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام <code>this</code> يعزز وضوح الكود ويمنع إخفاء المتغيرات (Variable Shadowing).</p><p>عند استخدام <code>this()</code> لاستدعاء منشئ آخر، يجب أن يكون هو العبارة الأولى في المنشئ المستدعي.</p></template>
+    <template class="content-en"><p>Using <code>this</code> enhances code readability and prevents variable shadowing.</p><p>When using <code>this()</code> to call another constructor, it must be the very first statement in the calling constructor.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>class Student {
+  int rollno;
+  String name;
+  Student(int rollno, String name) {
+    this.rollno = rollno;
+    this.name = name;
+  }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا لم نستخدم `this` عندما يكون لمعامل المنشئ نفس اسم متغير النسخة؟</template>
+      <template class="content-en">What happens if we don't use `this` when a constructor parameter has the same name as an instance variable?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيحدث إخفاء للمتغير (Shadowing)، حيث سيشير الاسم إلى المعامل المحلي بدلاً من متغير النسخة، ولن يتم تحديث قيمة متغير النسخة (ستبقى قيمته الافتراضية).</p></template>
+      <template class="content-en"><p>Variable shadowing occurs. The name will refer to the local parameter instead of the instance variable, leaving the instance variable uninitialized (retaining its default value).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="overloaded-constructors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> المنشئات المحملة بشكل زائد</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Overloaded Constructors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>توفير عدة طرق لإنشاء كائن بناءً على المعلومات المتاحة، مثل فتح حساب بنكي برصيد أو بدونه.</p>
+    </template>
+    <template class="content-en">
+      <p>Providing multiple ways to create an object based on available information, like opening a bank account with or without an initial deposit.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التحميل الزائد للمنشئات (Constructor Overloading) هو تقنية تسمح للفئة بامتلاك أي عدد من المنشئات بشرط أن تختلف في قائمة المعاملات (عدد المعاملات أو نوعها).</p><p>يُميّز المترجم بين هذه المنشئات من خلال فحص التوقيع الخاص بكل منها.</p></template>
+    <template class="content-en"><p>Constructor overloading is a technique where a class can have multiple constructors that differ in their parameter lists (number or type of parameters).</p><p>The compiler differentiates these constructors by examining their signatures.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه التقنية توفر مرونة عالية للمبرمجين لتهيئة الكائنات بطرق مختلفة.</p><p>لا يمكن أن يكون هناك منشئان بنفس التوقيع (نفس عدد وأنواع المعاملات بنفس الترتيب) حتى لو اختلفت أسماء المعاملات.</p></template>
+    <template class="content-en"><p>This technique provides high flexibility for object initialization.</p><p>You cannot have two constructors with the exact same signature (same number, type, and order of parameters), regardless of parameter names.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>class Account {
+  Account(int a) { /* ... */ }
+  Account(int a, int b) { /* ... */ }
+  Account(String a, int b) { /* ... */ }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكن التمييز بين المنشئات المحملة بشكل زائد بناءً على نوع الإرجاع؟</template>
+      <template class="content-en">Can overloaded constructors be differentiated based on return type?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، المنشئات ليس لها نوع إرجاع أصلاً. التمييز يتم فقط من خلال قائمة المعاملات.</p></template>
+      <template class="content-en"><p>No, constructors do not have a return type at all. They are differentiated solely by their parameter lists.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="default-constructor" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> المنشئ الافتراضي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Default and No-Argument Constructors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>المنشئ الذي يتدخل لإنقاذ الموقف إذا نسيت كتابة واحد، ويقوم بتصفير كل شيء.</p>
+    </template>
+    <template class="content-en">
+      <p>The fallback constructor that steps in if you forget to write one, setting everything to zero or null.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يجب أن تحتوي كل فئة على منشئ واحد على الأقل.</p><p>إذا لم تقم بتوفير أي منشئ في إعلان الفئة، يقوم المترجم بإنشاء منشئ افتراضي (Default Constructor) لا يأخذ أي معاملات.</p><p>يقوم هذا المنشئ بتهيئة متغيرات النسخة إلى قيمها الافتراضية (مثل 0 للأرقام و null للكائنات).</p></template>
+    <template class="content-en"><p>Every class must have at least one constructor.</p><p>If you do not provide any in a class's declaration, the compiler creates a default constructor that takes no arguments.</p><p>It initializes instance variables to their default values (e.g., 0 for ints, null for objects).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المنشئ الافتراضي يتم إنشاؤه فقط إذا كانت الفئة خالية تماماً من أي منشئات صريحة.</p><p>بمجرد كتابتك لأي منشئ (حتى لو كان يأخذ معاملات)، لن يقوم المترجم بإنشاء المنشئ الافتراضي، ويجب عليك كتابة منشئ بدون معاملات بنفسك إذا كنت تحتاجه.</p></template>
+    <template class="content-en"><p>The default constructor is ONLY generated if the class has absolutely no explicit constructors.</p><p>Once you write any constructor (even one with parameters), the compiler stops providing the default one, and you must explicitly write a no-arg constructor if needed.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا قمت بإنشاء فئة `Car` وكتبت منشئاً `Car(String color)`، هل يمكنك استدعاء `new Car()`؟</template>
+      <template class="content-en">If you create a class `Car` and write a constructor `Car(String color)`, can you call `new Car()`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، بمجرد كتابة منشئ مخصص، لا يوفر المترجم المنشئ الافتراضي. سيؤدي استدعاء `new Car()` إلى خطأ في الترجمة ما لم تقم بكتابة منشئ بدون معاملات صراحةً.</p></template>
+      <template class="content-en"><p>No. Once a custom constructor is written, the compiler does not provide the default no-arg constructor. Calling `new Car()` will cause a compile-time error unless you explicitly define a no-arg constructor.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="composition" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> التركيب (Composition)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Composition</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>بناء كائن معقد باستخدام كائنات أبسط، مثل السيارة التي 'تملك' محركاً وعجلات.</p>
+    </template>
+    <template class="content-en">
+      <p>Building a complex object using simpler objects, like a car that 'has-a' engine and wheels.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التركيب هو مفهوم يمكن للفئة من خلاله أن تحتوي على مراجع لكائنات من فئات أخرى كأعضاء.</p><p>يُشار إلى هذا غالباً ب<span class="smart-term" data-term-en="has-a relationship" data-ar="علاقة 'يملك'" data-en-def="A relationship where one object contains a reference to another object, representing composition.">علاقة 'يملك'<span class="smart-term-tooltip"></span></span> (has-a).</p><p>على سبيل المثال، كائن المنبه يحتاج إلى معرفة الوقت الحالي ووقت التنبيه، لذا من المنطقي أن يتضمن مرجعين لكائنات من فئة الوقت (Time).</p></template>
+    <template class="content-en"><p>Composition is a concept where a class can have references to objects of other classes as members.</p><p>This is often referred to as a 'has-a' relationship.</p><p>For example, an AlarmClock object needs to know the current time and the alarm time, so it includes references to Time objects.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التركيب يعزز إعادة استخدام الكود وتصميمه بشكل نمطي (Modular).</p><p>بدلاً من كتابة فئة ضخمة تفعل كل شيء، نقسم المشكلة إلى فئات صغيرة متخصصة ونجمعها معاً.</p><p>يختلف التركيب عن الوراثة (Inheritance) التي تمثل علاقة 'هو' (is-a).</p></template>
+    <template class="content-en"><p>Composition promotes code reuse and modular design.</p><p>Instead of writing a monolithic class, we break the problem into smaller, specialized classes and compose them.</p><p>It differs from inheritance, which represents an 'is-a' relationship.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public class Employee {
+  private String firstName;
+  private String lastName;
+  private Date birthDate; // Composition
+  private Date hireDate;  // Composition
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a UML-style class diagram showing Composition. Two boxes: 'Employee' and 'Date'. Draw a directed line with a filled diamond at the 'Employee' end pointing to 'Date', labeled 'has-a'. Inside 'Employee', list fields: firstName, lastName, birthDate (type Date), hireDate (type Date). Style: educational, dark background #0d1117, accent color #58a6ff, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead Marker for the 'Date' end -->
+        <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <polygon points="0,0 10,6 0,12" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Filled Diamond Marker for the 'Employee' end (Composition) -->
+        <marker id="diamond" markerWidth="24" markerHeight="12" refX="0" refY="6" orient="auto">
+            <polygon points="0,6 12,0 24,6 12,12" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Subtle Drop Shadow for Class Boxes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.15" flood-color="#000" />
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="400" y="45" font-size="22" font-weight="bold" fill="var(--text-primary)">UML Composition (has-a Relationship)</text>
+        <text x="400" y="75" font-size="18" fill="var(--text-secondary)">التكوين في البرمجة الكائنية (علاقة "يمتلك")</text>
+    </g>
+
+    <!-- Connection Line (Drawn first so it sits behind the boxes if they overlap, though they don't here) -->
+    <g>
+        <!-- The main directed line with markers -->
+        <line x1="360" y1="220" x2="528" y2="220" stroke="var(--brand-500)" stroke-width="3" marker-start="url(#diamond)" marker-end="url(#arrow)" />
+        
+        <!-- Labels on the line -->
+        <rect x="410" y="192" width="80" height="24" rx="12" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1" />
+        <text x="450" y="209" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">has-a</text>
+        <text x="450" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">يمتلك</text>
+    </g>
+
+    <!-- Employee Class Box -->
+    <g transform="translate(100, 120)">
+        <!-- Main Box -->
+        <rect x="0" y="0" width="260" height="200" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        
+        <!-- Header Background -->
+        <path d="M 2 8 A 6 6 0 0 1 8 2 L 252 2 A 6 6 0 0 1 258 8 L 258 60 L 2 60 Z" fill="var(--brand-500)" opacity="0.1" />
+        <line x1="0" y1="60" x2="260" y2="60" stroke="var(--border-color)" stroke-width="2" />
+        
+        <!-- Header Text -->
+        <text x="130" y="28" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Employee</text>
+        <text x="130" y="50" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الموظف</text>
+        
+        <!-- Highlight Box for Date Fields -->
+        <rect x="10" y="128" width="240" height="60" rx="6" fill="var(--brand-500)" opacity="0.08" stroke="var(--brand-500)" stroke-dasharray="4 4" stroke-width="1.5" />
+        
+        <!-- Fields -->
+        <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)">
+            <text x="20" y="85">- firstName: String</text>
+            <text x="20" y="115">- lastName: String</text>
+            <text x="20" y="145">- birthDate: <tspan fill="var(--brand-500)" font-weight="bold">Date</tspan></text>
+            <text x="20" y="175">- hireDate: <tspan fill="var(--brand-500)" font-weight="bold">Date</tspan></text>
+        </g>
+    </g>
+
+    <!-- Date Class Box -->
+    <g transform="translate(540, 145)">
+        <!-- Main Box -->
+        <rect x="0" y="0" width="180" height="150" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+        
+        <!-- Header Background -->
+        <path d="M 2 8 A 6 6 0 0 1 8 2 L 172 2 A 6 6 0 0 1 178 8 L 178 60 L 2 60 Z" fill="var(--brand-500)" opacity="0.1" />
+        <line x1="0" y1="60" x2="180" y2="60" stroke="var(--border-color)" stroke-width="2" />
+        
+        <!-- Header Text -->
+        <text x="90" y="28" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Date</text>
+        <text x="90" y="50" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">التاريخ</text>
+        
+        <!-- Fields -->
+        <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)">
+            <text x="20" y="85">- month: int</text>
+            <text x="20" y="115">- day: int</text>
+            <text x="20" y="145">- year: int</text>
+        </g>
+    </g>
+
+    <!-- Footer Explanatory Text -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="400" y="360" font-size="14" fill="var(--text-muted)">Composition: The 'Employee' class contains objects of the 'Date' class as part of its structure.</text>
+        <text x="400" y="385" font-size="14" fill="var(--text-muted)">التكوين: فئة الموظف تحتوي على كائنات من فئة التاريخ كجزء أساسي من هيكلها.</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يجب استخدام التركيب بدلاً من الوراثة؟</template>
+      <template class="content-en">When should you use composition instead of inheritance?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>استخدم التركيب عندما يكون الكائن 'يحتوي على' كائن آخر (مثل سيارة تحتوي على محرك). استخدم الوراثة عندما يكون الكائن 'نوعاً من' كائن آخر (مثل سيارة هي نوع من المركبات).</p></template>
+      <template class="content-en"><p>Use composition when an object 'has a' component (e.g., Car has an Engine). Use inheritance when an object 'is a' type of another object (e.g., Car is a Vehicle).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="enum-types" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الأنواع المسرودة (enum)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> enum Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>قائمة ثابتة من الخيارات المحددة مسبقاً، مثل أيام الأسبوع أو فصول السنة.</p>
+    </template>
+    <template class="content-en">
+      <p>A fixed list of predefined options, like days of the week or seasons of the year.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>النوع <code>enum</code> هو فئة خاصة تحدد مجموعة من الثوابت الممثلة كمعرفات فريدة.</p><p>يُستخدم عندما يكون لديك متغير يمكن أن يأخذ واحداً فقط من مجموعة صغيرة محددة مسبقاً من القيم.</p><p>يمكن المرور على جميع قيم الـ enum باستخدام الدالة <code>.values()</code>.</p></template>
+    <template class="content-en"><p>An <code>enum</code> is a special class that defines a set of constants represented as unique identifiers.</p><p>It is used when a variable can only take one out of a small set of possible values.</p><p>You can iterate through all <span class="smart-term" data-term-en="enum" data-ar="النوع المسرود" data-en-def="A special Java type used to define collections of constants.">enum<span class="smart-term-tooltip"></span></span> values using the <code>.values()</code> method.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في جافا، الـ enums هي أكثر من مجرد ثوابت رقمية (كما في C++)؛ إنها كائنات كاملة يمكن أن تحتوي على متغيرات، منشئات، وطرق خاصة بها.</p><p>الدالة <code>ordinal()</code> تعيد الفهرس الرقمي للقيمة، والدالة <code>valueOf()</code> تحول السلسلة النصية إلى كائن enum.</p></template>
+    <template class="content-en"><p>In Java, enums are more than just integer constants (like in C++); they are full-fledged objects that can have their own fields, constructors, and methods.</p><p>The <code>ordinal()</code> method returns the integer index, and <code>valueOf()</code> converts a string to the enum object.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public enum Season { WINTER, SPRING, SUMMER, FALL }
+
+// Iterating through enum
+for (Season s : Season.values()) {
+  System.out.println(s);
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم `enum` بدلاً من تعريف ثوابت نصية (Strings) عادية؟</template>
+      <template class="content-en">Why use `enum` instead of defining regular String constants?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الـ enum يوفر أماناً للأنواع (Type Safety) في وقت الترجمة، ويمنع إدخال قيم غير صالحة، ويسهل قراءة الكود وصيانته.</p></template>
+      <template class="content-en"><p>Enums provide compile-time type safety, prevent invalid values from being assigned, and make the code more readable and maintainable.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="garbage-collection" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تنظيف الذاكرة (Garbage Collection)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Garbage Collection</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>عامل النظافة الآلي في جافا الذي يزيل الكائنات التي لم يعد أحد يستخدمها لتحرير الذاكرة.</p>
+    </template>
+    <template class="content-en">
+      <p>Java's automated cleaner that removes objects nobody is using anymore to free up memory.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تستهلك الكائنات موارد النظام مثل الذاكرة.</p><p>نحتاج إلى طريقة منضبطة لإعادة هذه الموارد للنظام عندما لا نعود بحاجة إليها.</p><p>في جافا، يتم ذلك تلقائياً عبر 'جمع القمامة' (Garbage Collection).</p><p>يتم تحديد الكائن لجمع القمامة إذا لم يعد هناك أي مراجع (references) تشير إليه.</p></template>
+    <template class="content-en"><p>Objects use system resources, such as memory.</p><p>We need a disciplined way to give resources back to the system when they’re no longer needed.</p><p>In Java, this is done automatically via <span class="smart-term" data-term-en="Garbage Collection" data-ar="تنظيف الذاكرة" data-en-def="The automatic process of reclaiming memory by destroying objects that are no longer referenced.">Garbage Collection<span class="smart-term-tooltip"></span></span>.</p><p>An object is marked for garbage collection if there are no references pointing to it.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>توفر جافا طريقة <code>finalize()</code> المعرفة في فئة <code>java.lang.Object</code>.</p><p>لا تستقبل هذه الطريقة أي معاملات وتعيد <code>void</code>.</p><p>يتم استدعاؤها بواسطة جامع القمامة قبل تدمير الكائن مباشرة، ولكن لا يُنصح بالاعتماد عليها في التطبيقات الحديثة لعدم ضمان وقت تنفيذها.</p></template>
+    <template class="content-en"><p>Java provides the <code>finalize()</code> method defined in <code>java.lang.Object</code>.</p><p>It receives no parameters and returns void.</p><p>It is called by the garbage collector just before the object is destroyed, though relying on it is discouraged in modern Java due to unpredictability.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show a memory heap diagram. On the left, a 'Stack' with reference variables pointing to objects in the 'Heap' on the right. Show one object in the heap with NO arrows pointing to it, highlighted in red with a trash can icon over it, labeled 'Unreferenced Object / Marked for Garbage Collection'. Style: educational, dark background #0d1117, accent color #ff7b72, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Gradient for Garbage Collected Object -->
+        <linearGradient id="gc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- ========================================== -->
+    <!-- MEMORY REGIONS                             -->
+    <!-- ========================================== -->
+
+    <!-- Stack Memory Region -->
+    <rect x="30" y="60" width="220" height="390" rx="12" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" />
+    <text x="140" y="95" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--text-primary)">Stack Memory</text>
+    <text x="140" y="115" text-anchor="middle" font-size="15" fill="var(--text-secondary)">ذاكرة المكدس</text>
+
+    <!-- Heap Memory Region -->
+    <rect x="290" y="60" width="480" height="390" rx="12" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" />
+    <text x="530" y="95" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--text-primary)">Heap Memory</text>
+    <text x="530" y="115" text-anchor="middle" font-size="15" fill="var(--text-secondary)">ذاكرة الكومة</text>
+
+    <!-- ========================================== -->
+    <!-- STACK VARIABLES                            -->
+    <!-- ========================================== -->
+
+    <!-- Variable 1 -->
+    <rect x="50" y="140" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <text x="70" y="175" font-size="16" font-weight="bold" fill="var(--text-primary)">user</text>
+    <text x="210" y="175" text-anchor="end" font-size="15" font-family="monospace" fill="var(--brand-500)">0x1A4</text>
+
+    <!-- Variable 2 -->
+    <rect x="50" y="230" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <text x="70" y="265" font-size="16" font-weight="bold" fill="var(--text-primary)">order</text>
+    <text x="210" y="265" text-anchor="end" font-size="15" font-family="monospace" fill="var(--brand-500)">0x2B8</text>
+
+    <!-- Variable 3 (Null Reference) -->
+    <rect x="50" y="340" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <text x="70" y="375" font-size="16" font-weight="bold" fill="var(--text-primary)">temp</text>
+    <text x="210" y="375" text-anchor="end" font-size="15" font-family="monospace" fill="var(--text-muted)">null</text>
+
+    <!-- ========================================== -->
+    <!-- HEAP OBJECTS                               -->
+    <!-- ========================================== -->
+
+    <!-- Object 1 (Referenced) -->
+    <rect x="330" y="130" width="180" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <line x1="330" y1="160" x2="510" y2="160" stroke="var(--border-color)" stroke-width="1.5" />
+    <text x="420" y="150" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--text-secondary)">0x1A4</text>
+    <text x="420" y="182" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">User Object</text>
+    <text x="420" y="200" text-anchor="middle" font-size="13" fill="var(--text-muted)">كائن المستخدم</text>
+
+    <!-- Object 2 (Referenced) -->
+    <rect x="550" y="220" width="180" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <line x1="550" y1="250" x2="730" y2="250" stroke="var(--border-color)" stroke-width="1.5" />
+    <text x="640" y="240" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--text-secondary)">0x2B8</text>
+    <text x="640" y="272" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">Order Object</text>
+    <text x="640" y="290" text-anchor="middle" font-size="13" fill="var(--text-muted)">كائن الطلب</text>
+
+    <!-- Object 3 (Unreferenced / Marked for GC) -->
+    <rect x="380" y="330" width="340" height="100" rx="8" fill="url(#gc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+    <line x1="380" y1="360" x2="720" y2="360" stroke="var(--brand-400)" stroke-width="1.5" opacity="0.5" />
+    <text x="550" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--text-primary)" opacity="0.9">0x3C0</text>
+    
+    <!-- Trash Can Icon -->
+    <g transform="translate(410, 375) scale(1.3)" stroke="var(--text-primary)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18" />
+        <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+        <path d="M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14" />
+    </g>
+
+    <!-- GC Object Text -->
+    <text x="560" y="385" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">Unreferenced Object</text>
+    <text x="560" y="405" text-anchor="middle" font-size="15" fill="var(--text-primary)">كائن غير مشار إليه</text>
+    <text x="560" y="420" text-anchor="middle" font-size="13" fill="var(--text-primary)" opacity="0.8">(Marked for Garbage Collection)</text>
+
+    <!-- ========================================== -->
+    <!-- REFERENCE ARROWS                           -->
+    <!-- ========================================== -->
+
+    <!-- Arrow: user -> User Object -->
+    <line x1="230" y1="170" x2="315" y2="170" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <!-- Arrow: order -> Order Object -->
+    <line x1="230" y1="260" x2="535" y2="260" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكنك إجبار جافا على تنفيذ تنظيف الذاكرة فوراً؟</template>
+      <template class="content-en">Can you force Java to execute garbage collection immediately?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، يمكنك فقط اقتراح ذلك باستخدام `System.gc()`، ولكن القرار النهائي يعود لآلة جافا الافتراضية (JVM).</p></template>
+      <template class="content-en"><p>No, you can only suggest it using `System.gc()`, but the final decision is up to the Java Virtual Machine (JVM).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="static-members" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> الأعضاء الثابتة والاستيراد الثابت</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> static Class Members & static import</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>متغيرات تنتمي للفئة بأكملها وليس لكائن محدد، مثل عداد يحسب إجمالي عدد السيارات المصنعة.</p>
+    </template>
+    <template class="content-en">
+      <p>Variables that belong to the whole class rather than a specific object, like a counter tracking total cars manufactured.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المتغيرات الثابتة (static variables) تحتوي على معلومات على مستوى الفئة (Class-wide information).</p><p>تشترك جميع كائنات الفئة في نفس البيانات الثابتة.</p><p>للوصول إلى عضو ثابت عام، نستخدم اسم الفئة متبوعاً بنقطة (مثل <code>Math.PI</code>).</p><p>الاستيراد الثابت (static import) يسمح باستيراد هذه الأعضاء للوصول إليها مباشرة دون كتابة اسم الفئة.</p></template>
+    <template class="content-en"><p>Static variables hold class-wide information.</p><p>All objects of the class share the same static data.</p><p>To access a public static member, qualify the member name with the class name and a dot (e.g., <code>Math.PI</code>).</p><p>A static import declaration enables importing these members to access them directly without the class name.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم تحميل المتغيرات الثابتة في الذاكرة مرة واحدة فقط عند تحميل الفئة.</p><p>الاستيراد الثابت له شكلان:</p><ul><li>استيراد عضو محدد (<code>import static java.lang.Math.sqrt;</code>) أو</li><li>استيراد جميع الأعضاء الثابتة (<code>import static java.lang.Math.*;</code>).</li></ul><p>الإفراط في الاستيراد الثابت قد يجعل الكود غامضاً.</p></template>
+    <template class="content-en"><p>Static variables are loaded into memory only once when the class is loaded.</p><p>Static imports have two forms:</p><ul><li>importing a specific member or</li><li>importing all static members using `*`.</li></ul><p>Overusing static imports can make code harder to read by obscuring where methods come from.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>import static java.lang.Math.*;
+
+public class StaticImportTest {
+  public static void main(String[] args) {
+    System.out.println(sqrt(900.0)); // No need for Math.sqrt
+  }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن للطرق الثابتة (static methods) استخدام المرجع `this`؟</template>
+      <template class="content-en">Why can't static methods use the `this` reference?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الطرق الثابتة تنتمي للفئة نفسها وليس لأي كائن محدد، بينما `this` يشير دائماً إلى الكائن الحالي.</p></template>
+      <template class="content-en"><p>Because static methods belong to the class itself, not to any specific instance, whereas `this` always refers to the current instance object.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="final-instance-variables" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> المتغيرات النهائية (final)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> final Instance Variables</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>قفل يوضع على المتغير ليمنع تغيير قيمته للأبد بمجرد تعيينها.</p>
+    </template>
+    <template class="content-en">
+      <p>A lock placed on a variable preventing its value from ever changing once set.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الكلمة المفتاحية <code>final</code> تشير إلى أن المتغير غير قابل للتعديل.</p><p>أي محاولة لتعديل متغير نهائي ستؤدي إلى خطأ أثناء الترجمة (Compile Time Error).</p><p>يُستخدم هذا لتعريف الثوابت وتطبيق مبدأ 'أقل الامتيازات' (Principle of least privilege).</p></template>
+    <template class="content-en"><p>The <code>final</code> keyword indicates that a variable is not modifiable.</p><p>Any attempt to modify a final variable results in a compile-time error.</p><p>It is used to declare constants and enforces the principle of least privilege.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يجب تهيئة المتغير النهائي إما عند الإعلان عنه أو داخل المنشئ.</p><p>إذا كان المتغير النهائي يمثل كائناً (Reference Variable)، فلا يمكن تغيير المرجع ليشير إلى كائن آخر، لكن يمكن تغيير الحالة الداخلية للكائن نفسه (إلا إذا كان الكائن غير قابل للتغيير Immutable).</p></template>
+    <template class="content-en"><p>A final instance variable must be initialized either at declaration or within the constructor.</p><p>If a final variable is a reference to an object, the reference cannot be changed to point to another object, but the internal state of the object itself can still be modified (unless the object is immutable).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>class Bike9 {
+  final int speedlimit = 90;
+  void run() {
+    // speedlimit = 400; // This will cause a Compile Time Error
+  }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو الفرق بين `final` و `static`؟</template>
+      <template class="content-en">What is the difference between `final` and `static`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>`final` يمنع تغيير القيمة (ثابت)، بينما `static` يجعل المتغير مشتركاً بين جميع الكائنات. غالباً ما يُستخدمان معاً `static final` لإنشاء ثوابت عامة للفئة.</p></template>
+      <template class="content-en"><p>`final` prevents value modification (constant), while `static` makes the variable shared across all instances. They are often used together `static final` to create class-wide constants.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="creating-packages" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">9</span> إنشاء الحزم (Packages)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">9</span> Creating packages</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>مجلدات تنظيمية ترتب ملفات الكود وتمنع تضارب الأسماء بين الفئات.</p>
+    </template>
+    <template class="content-en">
+      <p>Organizational folders that arrange code files and prevent naming collisions between classes.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الحزمة (Package) هي مجموعة من الفئات والواجهات ذات الصلة.</p><p>تساعد الحزم في إدارة تعقيد مكونات التطبيق، وتسهل إعادة استخدام البرمجيات، وتوفر آلية لضمان تفرد أسماء الفئات.</p><p>العرف الشائع لتسمية الحزم هو استخدام اسم النطاق العكسي للإنترنت (مثل <code>com.deitel</code>).</p></template>
+    <template class="content-en"><p>A package is a group of related classes and interfaces.</p><p>Packages help manage the complexity of application components, facilitate software reuse, and provide a convention for unique class names.</p><p>The popular naming convention is the reverse Internet domain name (e.g., <code>com.deitel</code>).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لإنشاء حزمة، نستخدم الكلمة المفتاحية <code>package</code> في أعلى ملف الجافا.</p><p>لاستخدام فئات من حزمة أخرى، نستخدم الكلمة المفتاحية <code>import</code>.</p><p>توفر الحزم أيضاً مستوى من التحكم في الوصول (Access Control) حيث يمكن إخفاء الفئات ذات الرؤية الافتراضية (Package-private) عن الحزم الأخرى.</p></template>
+    <template class="content-en"><p>To create a package, use the <code>package</code> keyword at the top of the Java file.</p><p>To use classes from another package, use the <code>import</code> keyword.</p><p>Packages also provide access control; classes with default (package-private) visibility are hidden from other packages.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>package mypack;
+import pack.*;
+
+class B {
+  public static void main(String args[]) {
+    A obj = new A(); // A is imported from pack
+  }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم اسم النطاق العكسي (Reverse Domain) لتسمية الحزم؟</template>
+      <template class="content-en">Why do we use reverse domain names for package naming?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لضمان عدم تضارب أسماء الحزم عالمياً، حيث أن أسماء النطاقات فريدة لكل مؤسسة على الإنترنت.</p></template>
+      <template class="content-en"><p>To guarantee global uniqueness of package names, since internet domain names are unique to each organization.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا شباب في هذه الوحدة الدسمة. اليوم ننتقل من مجرد كتابة فئات بسيطة إلى تصميم أنظمة قوية. تخيل أنك تبني سيارة؛ لن تضع كل شيء في ملف واحد، بل ستستخدم 'التركيب' (Composition) لتجميع المحرك والعجلات. لتجنب اللبس بين المتغيرات، نستخدم المرجع 'this' كأنه يقول 'أنا أقصد هذا الكائن'. ولإعطاء مرونة، نستخدم 'التحميل الزائد للمنشئات' لنسمح بإنشاء الكائنات بطرق متعددة. تذكروا فخ 'المنشئ الافتراضي' في الامتحان: المترجم كسول، إذا كتبت أي منشئ، فلن يكتب هو المنشئ الافتراضي نيابة عنك! أخيراً، جافا تريحنا من عناء إدارة الذاكرة عبر 'جامع القمامة'، وتسمح لنا بحماية بياناتنا بـ 'final' ومشاركتها بـ 'static'. ركزوا على الفروق الدقيقة بين هذه الكلمات المفتاحية، فهي مفتاح أسئلة الاختيار من متعدد.</template>
+    <template class="content-en">Welcome everyone to this content-rich module. Today we transition from writing simple classes to designing robust systems. Imagine building a car; you wouldn't put everything in one file, you'd use 'Composition' to assemble the engine and wheels. To avoid variable confusion, we use the 'this' reference, as if the object is saying 'I mean ME'. For flexibility, we use 'Overloaded Constructors' to allow object creation in multiple ways. Remember the 'Default Constructor' trap for the exam: the compiler is lazy; if you write ANY constructor, it won't write the default one for you! Finally, Java saves us from memory management headaches via 'Garbage Collection', and allows us to protect data with 'final' and share it with 'static'. Focus on the nuances between these keywords, as they are prime targets for multiple-choice questions.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم الكلمة المفتاحية `this`؟</template>
+          <template class="content-en">Why do we use the `this` keyword?</template>
+          <span class="content-target">لماذا نستخدم الكلمة المفتاحية `this`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمها بشكل أساسي لحل التعارض (Shadowing) عندما يكون لمعامل الدالة نفس اسم متغير النسخة في الفئة، وللإشارة إلى الكائن الحالي.</template>
+          <template class="content-en">We primarily use it to resolve shadowing when a method parameter has the same name as an instance variable, and to refer to the current object.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن أن يكون لدينا منشئان بنفس عدد المعاملات؟</template>
+          <template class="content-en">Can we have two constructors with the same number of parameters?</template>
+          <span class="content-target">هل يمكن أن يكون لدينا منشئان بنفس عدد المعاملات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، بشرط أن تختلف أنواع المعاملات. المترجم يفرق بينها بناءً على التوقيع (العدد والنوع).</template>
+          <template class="content-en">Yes, provided the types of the parameters differ. The compiler differentiates them based on the signature (number and type).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى تفقد الفئة منشئها الافتراضي؟</template>
+          <template class="content-en">When does a class lose its default constructor?</template>
+          <span class="content-target">متى تفقد الفئة منشئها الافتراضي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بمجرد أن يقوم المبرمج بكتابة أي منشئ صريح (سواء بمعاملات أو بدون)، يتوقف المترجم عن توفير المنشئ الافتراضي.</template>
+          <template class="content-en">As soon as the programmer writes ANY explicit constructor (with or without parameters), the compiler stops providing the default constructor.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين التركيب (Composition) والوراثة (Inheritance)؟</template>
+          <template class="content-en">What is the difference between Composition and Inheritance?</template>
+          <span class="content-target">ما هو الفرق بين التركيب (Composition) والوراثة (Inheritance)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التركيب يمثل علاقة 'يملك' (has-a) مثل سيارة تملك محركاً. الوراثة تمثل علاقة 'هو' (is-a) مثل سيارة هي مركبة.</template>
+          <template class="content-en">Composition represents a 'has-a' relationship (e.g., a car has an engine). Inheritance represents an 'is-a' relationship (e.g., a car is a vehicle).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا طباعة جميع الخيارات المتاحة في `enum`؟</template>
+          <template class="content-en">How can we print all available options in an `enum`?</template>
+          <span class="content-target">كيف يمكننا طباعة جميع الخيارات المتاحة في `enum`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام حلقة تكرار مع الدالة `.values()` التي تعيد مصفوفة بجميع قيم الـ enum.</template>
+          <template class="content-en">By using a loop with the `.values()` method, which returns an array of all enum values.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكننا التحكم الدقيق في وقت عمل 'جامع القمامة'؟</template>
+          <template class="content-en">Can we precisely control when the Garbage Collector runs?</template>
+          <span class="content-target">هل يمكننا التحكم الدقيق في وقت عمل 'جامع القمامة'؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، العملية تلقائية. يمكننا فقط اقتراح التشغيل عبر `System.gc()`، لكن لا يوجد ضمان متى سيتم التنفيذ.</template>
+          <template class="content-en">No, the process is automatic. We can only suggest it runs via `System.gc()`, but there is no guarantee when it will execute.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي خصائص طريقة `finalize`؟</template>
+          <template class="content-en">What are the characteristics of the `finalize` method?</template>
+          <span class="content-target">ما هي خصائص طريقة `finalize`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي طريقة موجودة في فئة Object، لا تأخذ معاملات، تعيد void، ويستدعيها جامع القمامة قبل تدمير الكائن.</template>
+          <template class="content-en">It is a method in the Object class, takes no parameters, returns void, and is called by the garbage collector before object destruction.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نستخدم المتغيرات الثابتة `static`؟</template>
+          <template class="content-en">When do we use `static` variables?</template>
+          <span class="content-target">متى نستخدم المتغيرات الثابتة `static`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عندما نحتاج إلى معلومة مشتركة بين جميع كائنات الفئة، مثل عداد يحسب عدد الكائنات التي تم إنشاؤها.</template>
+          <template class="content-en">When we need information shared across all objects of a class, such as a counter tracking how many objects have been created.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفائدة من استخدام `final` مع المتغيرات؟</template>
+          <template class="content-en">What is the benefit of using `final` with variables?</template>
+          <span class="content-target">ما الفائدة من استخدام `final` مع المتغيرات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يمنع تعديل قيمة المتغير بعد تهيئته، مما يجعله ثابتاً ويحمي البيانات من التغيير العرضي (مبدأ أقل الامتيازات).</template>
+          <template class="content-en">It prevents the variable's value from being modified after initialization, making it a constant and protecting data from accidental changes (principle of least privilege).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نضع الفئات في حزم (Packages)؟</template>
+          <template class="content-en">Why do we put classes into Packages?</template>
+          <span class="content-target">لماذا نضع الفئات في حزم (Packages)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لتنظيم الكود، تسهيل إعادة الاستخدام، ومنع تعارض الأسماء بين الفئات التي قد تحمل نفس الاسم في مشاريع مختلفة.</template>
+          <template class="content-en">To organize code, facilitate reuse, and prevent naming collisions between classes that might share the same name in different projects.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي الكلمة المفتاحية `this`؟",
+      "en": "What is the `this` keyword?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مرجع يشير إلى الكائن الحالي الذي يتم تنفيذ الطريقة أو المنشئ عليه.",
+        "en": "A reference to the current object on which the method or constructor is being invoked."
+      },
+      "example": {
+        "ar": "this.name = name;",
+        "en": "this.name = name;"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما وظيفة `this()`؟",
+      "en": "What is the function of `this()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستخدم لاستدعاء منشئ آخر داخل نفس الفئة.",
+        "en": "Used to invoke another constructor within the same class."
+      },
+      "example": {
+        "ar": "this(); // يستدعي المنشئ الافتراضي",
+        "en": "this(); // calls the no-arg constructor"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو التحميل الزائد للمنشئات (Constructor Overloading)؟",
+      "en": "What is Constructor Overloading?"
+    },
+    "back": {
+      "definition": {
+        "ar": "وجود عدة منشئات في الفئة تختلف في عدد أو نوع المعاملات.",
+        "en": "Having multiple constructors in a class that differ in the number or type of parameters."
+      },
+      "example": {
+        "ar": "Account(int a) و Account(int a, int b)",
+        "en": "Account(int a) and Account(int a, int b)"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "متى يتم إنشاء المنشئ الافتراضي (Default Constructor)؟",
+      "en": "When is the Default Constructor created?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتم إنشاؤه تلقائياً بواسطة المترجم فقط إذا لم يتم توفير أي منشئ في الفئة.",
+        "en": "Automatically created by the compiler ONLY if no constructors are provided in the class."
+      },
+      "example": {
+        "ar": "تهيئة المتغيرات الرقمية بصفر.",
+        "en": "Initializes numeric variables to zero."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو التركيب (Composition)؟",
+      "en": "What is Composition?"
+    },
+    "back": {
+      "definition": {
+        "ar": "علاقة 'يملك' (has-a) حيث تحتوي الفئة على مراجع لكائنات من فئات أخرى.",
+        "en": "A 'has-a' relationship where a class contains references to objects of other classes."
+      },
+      "example": {
+        "ar": "فئة Employee تحتوي على متغير من نوع Date.",
+        "en": "Employee class having a Date variable."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو النوع `enum`؟",
+      "en": "What is an `enum` type?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة خاصة تحدد مجموعة من الثوابت الممثلة كمعرفات فريدة.",
+        "en": "A special class that defines a set of constants represented as unique identifiers."
+      },
+      "example": {
+        "ar": "enum Level { LOW, MEDIUM, HIGH }",
+        "en": "enum Level { LOW, MEDIUM, HIGH }"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف تمر على جميع قيم الـ `enum`؟",
+      "en": "How do you iterate over all `enum` values?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الدالة `.values()` التي تعيد مصفوفة بجميع الثوابت.",
+        "en": "Using the `.values()` method which returns an array of all constants."
+      },
+      "example": {
+        "ar": "for (Season s : Season.values())",
+        "en": "for (Season s : Season.values())"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي عملية تنظيف الذاكرة (Garbage Collection)؟",
+      "en": "What is Garbage Collection?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية تلقائية لإرجاع الذاكرة للنظام عندما لا يعود هناك مراجع تشير للكائن.",
+        "en": "An automatic process that returns memory to the system when objects are no longer referenced."
+      },
+      "example": {
+        "ar": "حذف كائن لم يعد مستخدماً في البرنامج.",
+        "en": "Deleting an object no longer used in the program."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي طريقة `finalize`؟",
+      "en": "What is the `finalize` method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة في فئة Object يستدعيها جامع القمامة قبل تدمير الكائن.",
+        "en": "A method in the Object class called by the garbage collector before destroying an object."
+      },
+      "example": {
+        "ar": "لا تستقبل معاملات وتعيد void.",
+        "en": "Receives no parameters and returns void."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو المتغير الثابت (`static` variable)؟",
+      "en": "What is a `static` variable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "متغير تشترك فيه جميع كائنات الفئة ويحتوي على معلومات على مستوى الفئة.",
+        "en": "A variable shared by all objects of a class, holding class-wide information."
+      },
+      "example": {
+        "ar": "private static int count = 0;",
+        "en": "private static int count = 0;"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما فائدة الاستيراد الثابت (`static import`)؟",
+      "en": "What is the benefit of `static import`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح بالوصول إلى الأعضاء الثابتة مباشرة دون كتابة اسم الفئة.",
+        "en": "Allows accessing static members directly without qualifying them with the class name."
+      },
+      "example": {
+        "ar": "استخدام sqrt() بدلاً من Math.sqrt()",
+        "en": "Using sqrt() instead of Math.sqrt()"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو تأثير الكلمة المفتاحية `final` على المتغيرات؟",
+      "en": "What is the effect of the `final` keyword on variables?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تجعل المتغير غير قابل للتعديل بعد تهيئته (يعمل كثابت).",
+        "en": "Makes the variable unmodifiable after initialization (acts as a constant)."
+      },
+      "example": {
+        "ar": "final int speedlimit = 90;",
+        "en": "final int speedlimit = 90;"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي الحزمة (Package)؟",
+      "en": "What is a Package?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من الفئات والواجهات ذات الصلة تستخدم لتنظيم الكود ومنع تعارض الأسماء.",
+        "en": "A group of related classes and interfaces used to organize code and prevent naming conflicts."
+      },
+      "example": {
+        "ar": "package mypack;",
+        "en": "package mypack;"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو العرف الشائع لتسمية الحزم؟",
+      "en": "What is the popular convention for naming packages?"
+    },
+    "back": {
+      "definition": {
+        "ar": "استخدام اسم النطاق العكسي للإنترنت.",
+        "en": "Using the reverse Internet domain name."
+      },
+      "example": {
+        "ar": "com.deitel",
+        "en": "com.deitel"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "كيف يفرق المترجم بين المنشئات المحملة بشكل زائد؟",
+      "en": "How does the compiler differentiate overloaded constructors?"
+    },
+    "back": {
+      "definition": {
+        "ar": "من خلال فحص عدد وأنواع المعاملات في القائمة.",
+        "en": "By checking the number and types of parameters in the list."
+      },
+      "example": {
+        "ar": "Account(int) يختلف عن Account(String)",
+        "en": "Account(int) is different from Account(String)"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ماذا يحدث إذا حاولت تعديل متغير `final`؟",
+      "en": "What happens if you try to modify a `final` variable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يحدث خطأ أثناء الترجمة (Compile Time Error).",
+        "en": "A Compile Time Error occurs."
+      },
+      "example": {
+        "ar": "speedlimit = 400; // Error",
+        "en": "speedlimit = 400; // Error"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هي الكلمة المفتاحية المستخدمة للإشارة إلى الكائن الحالي في جافا؟",
+      "en": "Which keyword is used to refer to the current object in Java?"
+    },
+    "options": {
+      "ar": [
+        "super",
+        "this",
+        "current",
+        "self"
+      ],
+      "en": [
+        "super",
+        "this",
+        "current",
+        "self"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الكلمة المفتاحية this تشير دائماً إلى الكائن الحالي الذي يتم تنفيذ الكود بداخله.",
+      "en": "The 'this' keyword always refers to the current object on which the code is being executed."
+    },
+    "hint": {
+      "ar": "تستخدم لحل تعارض الأسماء بين المعاملات ومتغيرات النسخة.",
+      "en": "Used to resolve naming conflicts between parameters and instance variables."
+    },
+    "difficulty": "easy",
+    "conceptId": "this-reference"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "كيف يفرق مترجم جافا بين المنشئات المحملة بشكل زائد (Overloaded Constructors)؟",
+      "en": "How does the Java compiler differentiate between overloaded constructors?"
+    },
+    "options": {
+      "ar": [
+        "بناءً على نوع الإرجاع",
+        "بناءً على معدلات الوصول (public/private)",
+        "بناءً على عدد وأنواع المعاملات",
+        "بناءً على أسماء المعاملات"
+      ],
+      "en": [
+        "By return type",
+        "By access modifiers (public/private)",
+        "By the number and types of parameters",
+        "By parameter names"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يتم التمييز بين المنشئات المحملة بشكل زائد حصرياً من خلال قائمة المعاملات (العدد والنوع).",
+      "en": "Overloaded constructors are differentiated exclusively by their parameter lists (number and type)."
+    },
+    "hint": {
+      "ar": "المنشئات ليس لها نوع إرجاع.",
+      "en": "Constructors do not have a return type."
+    },
+    "difficulty": "medium",
+    "conceptId": "overloaded-constructors"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "متى يقوم مترجم جافا بإنشاء المنشئ الافتراضي (Default Constructor)؟",
+      "en": "When does the Java compiler create a default constructor?"
+    },
+    "options": {
+      "ar": [
+        "دائماً، لكل فئة",
+        "فقط إذا لم يتم توفير أي منشئ في الفئة",
+        "عندما تحتوي الفئة على متغيرات ثابتة فقط",
+        "عندما نستخدم الكلمة المفتاحية default"
+      ],
+      "en": [
+        "Always, for every class",
+        "Only if no constructor is provided in the class",
+        "When the class has only static variables",
+        "When we use the default keyword"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المنشئ الافتراضي هو آلية احتياطية يوفرها المترجم فقط إذا كانت الفئة خالية تماماً من أي منشئات صريحة.",
+      "en": "The default constructor is a fallback mechanism provided by the compiler ONLY if the class lacks any explicit constructors."
+    },
+    "hint": {
+      "ar": "إذا كتبت منشئاً واحداً، فلن يتدخل المترجم.",
+      "en": "If you write even one constructor, the compiler won't intervene."
+    },
+    "difficulty": "medium",
+    "conceptId": "default-constructor"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من العلاقات التالية يمثلها مفهوم التركيب (Composition)؟",
+      "en": "Which of the following relationships is represented by Composition?"
+    },
+    "options": {
+      "ar": [
+        "علاقة 'هو' (is-a)",
+        "علاقة 'يملك' (has-a)",
+        "علاقة 'يستخدم' (uses-a)",
+        "علاقة 'ينفذ' (implements)"
+      ],
+      "en": [
+        "is-a relationship",
+        "has-a relationship",
+        "uses-a relationship",
+        "implements relationship"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التركيب يعني أن الفئة تحتوي على كائنات من فئات أخرى كأعضاء، مما يمثل علاقة 'يملك' (مثل سيارة تملك محركاً).",
+      "en": "Composition means a class contains objects of other classes as members, representing a 'has-a' relationship (e.g., a car has an engine)."
+    },
+    "hint": {
+      "ar": "فكر في المنبه الذي 'يحتوي على' وقت.",
+      "en": "Think of an alarm clock that 'contains' a time."
+    },
+    "difficulty": "easy",
+    "conceptId": "composition"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي الدالة المستخدمة للمرور على جميع قيم النوع المسرود (enum)؟",
+      "en": "Which method is used to iterate over all values of an enum type?"
+    },
+    "options": {
+      "ar": [
+        ".getAll()",
+        ".values()",
+        ".list()",
+        ".elements()"
+      ],
+      "en": [
+        ".getAll()",
+        ".values()",
+        ".list()",
+        ".elements()"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الدالة .values() تعيد مصفوفة تحتوي على جميع الثوابت المعرفة داخل الـ enum.",
+      "en": "The .values() method returns an array containing all the constants defined within the enum."
+    },
+    "hint": {
+      "ar": "تبدأ بحرف v.",
+      "en": "Starts with the letter v."
+    },
+    "difficulty": "medium",
+    "conceptId": "enum-types"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "متى يتم تحديد الكائن لعملية تنظيف الذاكرة (Garbage Collection)؟",
+      "en": "When is an object marked for garbage collection?"
+    },
+    "options": {
+      "ar": [
+        "عندما ينتهي البرنامج",
+        "عندما لا يعود هناك أي مراجع (references) تشير إليه",
+        "عندما يتم استدعاء الدالة finalize() يدوياً",
+        "عندما تتجاوز الذاكرة الحد الأقصى"
+      ],
+      "en": [
+        "When the program ends",
+        "When there are no references pointing to it",
+        "When finalize() is called manually",
+        "When memory exceeds the maximum limit"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "جامع القمامة يبحث عن الكائنات 'اليتيمة' التي لا يوجد أي متغير يشير إليها في البرنامج ليقوم بحذفها.",
+      "en": "The garbage collector looks for 'orphaned' objects that have no variables pointing to them in the program to delete them."
+    },
+    "hint": {
+      "ar": "إذا لم يعد بإمكانك الوصول للكائن، فهو جاهز للتنظيف.",
+      "en": "If you can no longer access the object, it's ready for cleanup."
+    },
+    "difficulty": "medium",
+    "conceptId": "garbage-collection"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هي خصائص طريقة finalize()؟",
+      "en": "What are the characteristics of the finalize() method?"
+    },
+    "options": {
+      "ar": [
+        "تستقبل معاملات وتعيد int",
+        "معرفة في فئة java.lang.Object، لا تستقبل معاملات وتعيد void",
+        "تستخدم لإنشاء الكائنات",
+        "يجب استدعاؤها يدوياً دائماً"
+      ],
+      "en": [
+        "Receives parameters and returns int",
+        "Defined in java.lang.Object, receives no parameters, returns void",
+        "Used to create objects",
+        "Must always be called manually"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "طريقة finalize() موروثة من Object، ولا تأخذ أي معاملات، ونوع إرجاعها هو void، ويستدعيها جامع القمامة.",
+      "en": "The finalize() method is inherited from Object, takes no parameters, returns void, and is called by the garbage collector."
+    },
+    "hint": {
+      "ar": "هي طريقة بسيطة جداً لا ترجع شيئاً.",
+      "en": "It's a very simple method that returns nothing."
+    },
+    "difficulty": "hard",
+    "conceptId": "garbage-collection"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هو الغرض من الاستيراد الثابت (static import)؟",
+      "en": "What is the purpose of a static import?"
+    },
+    "options": {
+      "ar": [
+        "استيراد الفئات بشكل أسرع",
+        "الوصول إلى الأعضاء الثابتة دون كتابة اسم الفئة",
+        "منع تعديل المتغيرات",
+        "استيراد الحزم بأكملها فقط"
+      ],
+      "en": [
+        "Importing classes faster",
+        "Accessing static members without writing the class name",
+        "Preventing variable modification",
+        "Importing entire packages only"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الاستيراد الثابت يسمح لك بكتابة sqrt() بدلاً من Math.sqrt()، مما يجعل الكود أقصر.",
+      "en": "Static import allows you to write sqrt() instead of Math.sqrt(), making the code shorter."
+    },
+    "hint": {
+      "ar": "يقلل من الحاجة لكتابة اسم الفئة مراراً وتكراراً.",
+      "en": "Reduces the need to type the class name repeatedly."
+    },
+    "difficulty": "medium",
+    "conceptId": "static-members"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ماذا يحدث إذا حاولت تعديل قيمة متغير تم الإعلان عنه بـ `final`؟",
+      "en": "What happens if you try to modify the value of a variable declared as `final`?"
+    },
+    "options": {
+      "ar": [
+        "يتم تجاهل التعديل بصمت",
+        "يحدث خطأ أثناء التشغيل (Runtime Error)",
+        "يحدث خطأ أثناء الترجمة (Compile Time Error)",
+        "يتم تحديث القيمة بنجاح"
+      ],
+      "en": [
+        "The modification is silently ignored",
+        "A Runtime Error occurs",
+        "A Compile Time Error occurs",
+        "The value is updated successfully"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المترجم يمنع تعديل المتغيرات النهائية، لذا سيظهر الخطأ قبل تشغيل البرنامج (أثناء الترجمة).",
+      "en": "The compiler prevents modification of final variables, so the error will appear before the program runs (during compilation)."
+    },
+    "hint": {
+      "ar": "الخطأ يظهر في بيئة التطوير (IDE) قبل التشغيل.",
+      "en": "The error appears in the IDE before running."
+    },
+    "difficulty": "easy",
+    "conceptId": "final-instance-variables"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هو العرف الشائع لتسمية الحزم (Packages) في جافا؟",
+      "en": "What is the popular convention for naming packages in Java?"
+    },
+    "options": {
+      "ar": [
+        "استخدام أحرف كبيرة فقط",
+        "استخدام اسم النطاق العكسي للإنترنت (Reverse Internet domain name)",
+        "استخدام أرقام تسلسلية",
+        "استخدام اسم المبرمج"
+      ],
+      "en": [
+        "Using only uppercase letters",
+        "Using the reverse Internet domain name",
+        "Using sequential numbers",
+        "Using the programmer's name"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لضمان عدم تضارب الأسماء عالمياً، يُنصح باستخدام النطاق العكسي مثل com.deitel.",
+      "en": "To ensure global name uniqueness, it is recommended to use the reverse domain like com.deitel."
+    },
+    "hint": {
+      "ar": "يبدأ عادة بـ com أو org.",
+      "en": "Usually starts with com or org."
+    },
+    "difficulty": "easy",
+    "conceptId": "creating-packages"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن المترجم يوفر دائماً منشئاً افتراضياً. الحقيقة: المترجم يوفره *فقط* إذا لم تكتب أنت أي منشئ. بمجرد كتابتك لمنشئ يأخذ معاملات، تفقد المنشئ الافتراضي وعليك كتابته يدوياً إذا احتجته.</template>
+      <template class="content-en">Believing the compiler always provides a default constructor. Truth: The compiler provides it *only* if you write NO constructors. Once you write a parameterized constructor, you lose the default one and must write it manually if needed.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استدعاء `this()` في أي مكان داخل المنشئ. الحقيقة: يجب أن يكون استدعاء `this()` هو *العبارة الأولى* دائماً داخل المنشئ، وإلا سيحدث خطأ في الترجمة.</template>
+      <template class="content-en">Calling `this()` anywhere inside a constructor. Truth: The `this()` call must ALWAYS be the *first statement* in the constructor, otherwise a compile-time error occurs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق بين `static` و `final`: المتغير `static` يعني 'نسخة واحدة مشتركة لجميع الكائنات'، بينما `final` يعني 'قيمة ثابتة لا تتغير'. استخدامهما معاً `static final` ينشئ ثابتاً عاماً للفئة.</template>
+      <template class="content-en">Difference between `static` and `final`: `static` means 'one shared copy for all objects', while `final` means 'constant, unchangeable value'. Using them together `static final` creates a class-wide constant.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الأنواع المسرودة `enum` في جافا قوية جداً. على عكس لغات أخرى حيث تكون مجرد أرقام، في جافا هي فئات كاملة يمكن أن تحتوي على متغيرات ومنشئات وطرق خاصة بها.</template>
+      <template class="content-en">Enums in Java are incredibly powerful. Unlike other languages where they are just integers, in Java they are full classes that can have their own fields, constructors, and methods.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M11.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M13.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

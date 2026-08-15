@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS361" data-module="12">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>برمجة الويب: تفاعل PHP و MySQL لقواعد بيانات الخادم والعميل · CS361 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS361" data-page-title-en="CS361">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M11.html" data-gh-next="M13.html" data-gh-card="../../hub/course.html?code=CS361"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#relational-database-overview" class="toc-link" data-bilingual>
+        <template class="content-ar">نظرة عامة على قواعد البيانات العلائقية</template>
+        <template class="content-en">Relational Database Overview</template>
+        <span class="content-target">نظرة عامة على قواعد البيانات العلائقية</span>
+      </a>
+      <a href="#sql-basics" class="toc-link" data-bilingual>
+        <template class="content-ar">أساسيات لغة الاستعلام المهيكلة (SQL)</template>
+        <template class="content-en">SQL Basics</template>
+        <span class="content-target">أساسيات لغة الاستعلام المهيكلة (SQL)</span>
+      </a>
+      <a href="#mysql-overview" class="toc-link" data-bilingual>
+        <template class="content-ar">نظرة عامة على MySQL</template>
+        <template class="content-en">MySQL Overview</template>
+        <span class="content-target">نظرة عامة على MySQL</span>
+      </a>
+      <a href="#php-mysqli-integration" class="toc-link" data-bilingual>
+        <template class="content-ar">تكامل PHP مع قواعد بيانات MySQL</template>
+        <template class="content-en">PHP and MySQL Integration</template>
+        <span class="content-target">تكامل PHP مع قواعد بيانات MySQL</span>
+      </a>
+      <a href="#dynamic-content" class="toc-link" data-bilingual>
+        <template class="content-ar">المحتوى الديناميكي</template>
+        <template class="content-en">Dynamic Content</template>
+        <span class="content-target">المحتوى الديناميكي</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 12</template>
+      <template class="content-en">Module 12</template>
+      <span class="content-target">الوحدة 12</span>
+    </span> · CS361
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">برمجة الويب: تفاعل PHP و MySQL لقواعد بيانات الخادم والعميل</h1>
+      <p class="hero-description">تغطي هذه الوحدة أساسيات قواعد البيانات العلائقية، ولغة SQL، وكيفية استخدام إضافة MySQLi في PHP للاتصال بقواعد بيانات MySQL، بالإضافة إلى إنشاء محتوى ويب ديناميكي.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Web Programming: PHP and MySQL for Client-Server Database Interaction</h1>
+      <p class="hero-description">This module covers relational database basics, SQL, using the PHP MySQLi extension to connect to MySQL databases, and generating dynamic web content.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">قواعد البيانات</span>
+      <span class="tag">بي إتش بي</span>
+      <span class="tag">ماي إس كيو إل</span>
+      <span class="tag">تطوير الويب</span>
+      <span class="tag">المحتوى الديناميكي</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Databases</span>
+      <span class="tag">PHP</span>
+      <span class="tag">MySQL</span>
+      <span class="tag">Web Development</span>
+      <span class="tag">Dynamic Content</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تعلم قدرات لغة الاستعلام المهيكلة (SQL) لاسترجاع البيانات ومعالجتها في قاعدة البيانات.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية تكوين وإنشاء قاعدة بيانات MySQL.</span></li>
+      <li><span class="obj-icon">✦</span><span>إنشاء برامج PHP تتفاعل مع قواعد بيانات MySQL.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية تنفيذ مفاهيم المحتوى الديناميكي.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Learn Structured Query Language (SQL) capabilities for retrieving data from and manipulating data in a database.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn to Configure and create MySQL database.</span></li>
+      <li><span class="obj-icon">✦</span><span>Create PHP programs that interact with MySQL databases.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn to implement the concepts of dynamic content.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="relational-database-overview" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> نظرة عامة على قواعد البيانات العلائقية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Relational Database Overview</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>قاعدة البيانات العلائقية هي تمثيل منطقي للبيانات المخزنة في جداول تتكون من صفوف وأعمدة، مما يسهل الوصول إليها دون النظر إلى هيكلها المادي.</p>
+    </template>
+    <template class="content-en">
+      <p>A relational database is a logical representation of data stored in tables with rows and columns, allowing access without considering physical structure.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>قاعدة البيانات هي مجموعة منظمة من البيانات. يوفر نظام إدارة قواعد البيانات (DBMS) آليات لتخزين البيانات وتنظيمها واسترجاعها وتعديلها.</p><p>في النموذج العلائقي، يتم تخزين البيانات في جداول (Tables). يُعرف كل صف باسم (<span class="smart-term" data-term-en="Tuple" data-ar="سجل / صف" data-en-def="A single row in a relational database table.">Tuple</span>) وكل عمود باسم (Attribute).</p><p>يتم تحديد كل صف بواسطة مفتاح أساسي (<span class="smart-term" data-term-en="Primary Key" data-ar="المفتاح الأساسي" data-en-def="A unique value that identifies each row in a table and cannot be duplicated.">Primary Key</span>) فريد لا يمكن تكراره. يمكن ربط الصفوف في جداول مختلفة باستخدام المفاتيح الأجنبية (Foreign Keys).</p><p>النطاق (Domain) هو مجموعة القيم الذرية التي يمكن أن يأخذها السمة.</p></template>
+    <template class="content-en"><p>A database is an organized collection of data. A DBMS provides mechanisms for storing, organizing, retrieving, and modifying data.</p><p>In a relational model, data is stored in tables. Each row is known as a tuple, and each column is an attribute.</p><p>Each row is identified by a unique <span class="smart-term" data-term-en="Primary Key" data-ar="المفتاح الأساسي" data-en-def="A unique value that identifies each row in a table and cannot be duplicated.">Primary Key</span>. Rows can be linked across tables using Foreign Keys.</p><p>A Domain contains a set of atomic values an attribute can take.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يضمن النموذج العلائقي سلامة البيانات (Data Integrity) ويقلل من التكرار من خلال التطبيع (Normalization).</p><p>يتيح فصل الهيكل المنطقي عن التخزين المادي مرونة عالية في الاستعلامات وتعديل المخططات دون التأثير على التطبيقات التي تستخدم البيانات.</p></template>
+    <template class="content-en"><p>The relational model ensures data integrity and reduces redundancy through normalization.</p><p>Separating the logical structure from physical storage allows high flexibility in querying and modifying schemas without breaking the applications that consume the data.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A relational database table named 'Customers'. Show columns (Attributes) like CustomerID, CustomerName, ContactName. Highlight a single row and label it 'Row (tuple)'. Highlight a single column and label it 'Column'. Point to the CustomerID column and label it 'Primary key'. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 Z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Table Corner Clipping -->
+    <clipPath id="table-clip">
+      <rect x="160" y="100" width="480" height="160" rx="8" />
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Table Title -->
+  <text x="400" y="40" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <tspan x="400" dy="0" fill="var(--text-primary)" font-size="20" font-weight="bold">Customers Table</tspan>
+    <tspan x="400" dy="22" fill="var(--text-muted)" font-size="15">جدول العملاء</tspan>
+  </text>
+
+  <!-- Table Group -->
+  <g>
+    <!-- Table Base & Background -->
+    <rect x="160" y="100" width="480" height="160" rx="8" fill="var(--bg-elevated)" />
+    
+    <!-- Clipped Inner Elements (Grid & Highlights) -->
+    <g clip-path="url(#table-clip)">
+      <!-- Header Background -->
+      <rect x="160" y="100" width="480" height="40" fill="var(--bg-surface)" />
+      
+      <!-- Horizontal Grid Lines -->
+      <line x1="160" y1="140" x2="640" y2="140" stroke="var(--border-color)" stroke-width="2" />
+      <line x1="160" y1="180" x2="640" y2="180" stroke="var(--border-color)" stroke-width="1" />
+      <line x1="160" y1="220" x2="640" y2="220" stroke="var(--border-color)" stroke-width="1" />
+      
+      <!-- Vertical Grid Lines -->
+      <line x1="260" y1="100" x2="260" y2="260" stroke="var(--border-color)" stroke-width="1" />
+      <line x1="410" y1="100" x2="410" y2="260" stroke="var(--border-color)" stroke-width="1" />
+      <line x1="550" y1="100" x2="550" y2="260" stroke="var(--border-color)" stroke-width="1" />
+
+      <!-- Column Highlight Fill (ContactName) -->
+      <rect x="410" y="100" width="140" height="160" fill="var(--brand-500)" opacity="0.15" />
+      
+      <!-- Row Highlight Fill (Row 2) -->
+      <rect x="160" y="180" width="480" height="40" fill="var(--brand-500)" opacity="0.15" />
+    </g>
+
+    <!-- Highlight Borders (Drawn after clip to ensure full stroke visibility) -->
+    <rect x="410" y="100" width="140" height="160" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+    <rect x="160" y="180" width="480" height="40" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+    <!-- Outer Table Border -->
+    <rect x="160" y="100" width="480" height="160" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2" />
+  </g>
+
+  <!-- Table Data / Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle" dominant-baseline="middle">
+    <!-- Headers -->
+    <g fill="var(--text-primary)" font-weight="bold">
+      <!-- Primary Key Icon -->
+      <g stroke="var(--brand-500)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="180" cy="118" r="3"/>
+        <path d="M 182 120 L 188 126 M 185 123 L 187 121 M 187 125 L 189 123"/>
+      </g>
+      <text x="222" y="122">CustomerID</text>
+      <text x="335" y="122">CustomerName</text>
+      <text x="480" y="122">ContactName</text>
+      <text x="595" y="122">City</text>
+    </g>
+    
+    <!-- Row 1 -->
+    <g fill="var(--text-secondary)">
+      <text x="210" y="162">1</text>
+      <text x="335" y="162">TechCorp</text>
+      <text x="480" y="162">Alice Smith</text>
+      <text x="595" y="162">London</text>
+    </g>
+    
+    <!-- Row 2 (Highlighted) -->
+    <g fill="var(--text-primary)" font-weight="600">
+      <text x="210" y="202">2</text>
+      <text x="335" y="202">GlobalNet</text>
+      <text x="480" y="202">Bob Jones</text>
+      <text x="595" y="202">Paris</text>
+    </g>
+    
+    <!-- Row 3 -->
+    <g fill="var(--text-secondary)">
+      <text x="210" y="242">3</text>
+      <text x="335" y="242">DataSys</text>
+      <text x="480" y="242">Carol White</text>
+      <text x="595" y="242">Berlin</text>
+    </g>
+  </g>
+
+  <!-- Annotations & Arrows -->
+  
+  <!-- Primary Key Annotation -->
+  <path d="M 120 70 C 160 70, 210 60, 210 90" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="100" y="55" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <tspan x="100" dy="0" fill="var(--brand-500)" font-weight="bold" font-size="16">Primary Key</tspan>
+    <tspan x="100" dy="20" fill="var(--text-muted)" font-size="14">مفتاح أساسي</tspan>
+  </text>
+
+  <!-- Column Annotation -->
+  <path d="M 480 310 L 480 270" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="480" y="335" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <tspan x="480" dy="0" fill="var(--brand-500)" font-weight="bold" font-size="16">Column (Attribute)</tspan>
+    <tspan x="480" dy="20" fill="var(--text-muted)" font-size="14">عمود (سمة)</tspan>
+  </text>
+
+  <!-- Row Annotation -->
+  <path d="M 725 225 C 725 200, 690 200, 650 200" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="725" y="245" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <tspan x="725" dy="0" fill="var(--brand-500)" font-weight="bold" font-size="16">Row (Tuple)</tspan>
+    <tspan x="725" dy="20" fill="var(--text-muted)" font-size="14">صف (سجل)</tspan>
+  </text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن أن يحتوي المثيل العلائقي (Relational instance) على صفوف مكررة؟</template>
+      <template class="content-en">Why can't a relational instance have duplicate tuples?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن النموذج العلائقي يعتمد على نظرية المجموعات الرياضية، والمجموعات لا تحتوي على عناصر مكررة. عملياً، يضمن المفتاح الأساسي تفرد كل صف.</p></template>
+      <template class="content-en"><p>Because the relational model is based on mathematical set theory, and sets do not contain duplicate elements. Practically, the Primary Key ensures each row's uniqueness.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="sql-basics" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> أساسيات لغة الاستعلام المهيكلة (SQL)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> SQL Basics</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>لغة SQL هي أداة متخصصة للوصول إلى قواعد البيانات العلائقية ومعالجتها وإدارتها.</p>
+    </template>
+    <template class="content-en">
+      <p>SQL is a specialized database language designed for accessing, manipulating, and maintaining data in relational database management systems.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>ترمز SQL إلى Structured Query Language. تتيح للمحترفين التعامل مع البيانات المهيكلة. تتضمن الكلمات المفتاحية الأساسية:</p><ul><li><strong>SELECT</strong> (لاسترجاع البيانات)،</li><li><strong>FROM</strong> (لتحديد الجداول)،</li><li><strong>WHERE</strong> (لفلترة السجلات بناءً على شروط)،</li><li><strong>ORDER BY</strong> (لفرز النتائج)،</li><li><strong>INSERT</strong> (لإضافة صفوف)،</li><li><strong>UPDATE</strong> (لتعديل الصفوف)، و</li><li><strong>DELETE</strong> (لحذف الصفوف).</li></ul></template>
+    <template class="content-en"><p>SQL stands for Structured Query Language. It allows professionals to handle structured data. Key statements include:</p><ul><li><strong>SELECT</strong> (retrieves data),</li><li><strong>FROM</strong> (specifies tables),</li><li><strong>WHERE</strong> (filters records based on conditions),</li><li><strong>ORDER BY</strong> (sorts results),</li><li><strong>INSERT</strong> (adds rows),</li><li><strong>UPDATE</strong> (modifies rows), and</li><li><strong>DELETE</strong> (removes rows).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تعتبر SQL لغة تعريفية (Declarative)، مما يعني أن المبرمج يحدد 'ماذا' يريد من البيانات، ويترك لنظام إدارة قواعد البيانات (DBMS) تحديد 'كيفية' جلبها بأكثر الطرق كفاءة باستخدام مُحسِّن الاستعلامات (Query Optimizer).</p></template>
+    <template class="content-en"><p>SQL is a declarative language, meaning the programmer specifies 'what' data is needed, leaving the DBMS to determine 'how' to fetch it most efficiently using its Query Optimizer.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>SELECT CustomerName, City FROM Customers;
+SELECT DISTINCT Country FROM Customers;
+SELECT * FROM Customers WHERE Country='Mexico' ORDER BY Country DESC;</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>SELECT</th>
+        <th>SELECT DISTINCT</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعامل مع التكرار</template>
+          <template class="content-en">Handling Duplicates</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يسترجع جميع السجلات بما في ذلك المكررة</template>
+          <template class="content-en">Retrieves all records including duplicates</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يسترجع <span class="smart-term" data-term-en="SELECT DISTINCT" data-ar="تحديد القيم الفريدة" data-en-def="Used to return only distinct (different) values from a column.">القيم الفريدة</span> (المختلفة) فقط</template>
+          <template class="content-en">Retrieves only <span class="smart-term" data-term-en="SELECT DISTINCT" data-ar="تحديد القيم الفريدة" data-en-def="Used to return only distinct (different) values from a column.">unique</span> (different) values</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">حالة الاستخدام</template>
+          <template class="content-en">Use Case</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عند الحاجة لعرض كل البيانات بالتفصيل</template>
+          <template class="content-en">When needing to display all detailed data</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عند الحاجة لمعرفة الفئات أو الأنواع الموجودة فقط (مثل قائمة الدول)</template>
+          <template class="content-en">When needing to know existing categories (e.g., list of countries)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا تم تنفيذ جملة DELETE بدون استخدام عبارة WHERE؟</template>
+      <template class="content-en">What happens if a DELETE statement is executed without a WHERE clause?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيتم حذف جميع السجلات الموجودة في الجدول بالكامل، مما قد يؤدي إلى فقدان كارثي للبيانات.</p></template>
+      <template class="content-en"><p>All records in the table will be deleted, potentially causing catastrophic data loss.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="mysql-overview" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> نظرة عامة على MySQL</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> MySQL Overview</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>MySQL هو <span class="smart-term" data-term-en="RDBMS" data-ar="نظام إدارة قواعد البيانات العلائقية" data-en-def="Relational Database Management System.">نظام إدارة قواعد بيانات علائقية</span> مفتوح المصدر، يتميز بالسرعة والموثوقية وقابلية التوسع.</p>
+    </template>
+    <template class="content-en">
+      <p>MySQL is a popular, open-source <span class="smart-term" data-term-en="RDBMS" data-ar="نظام إدارة قواعد البيانات العلائقية" data-en-def="Relational Database Management System.">RDBMS</span> known for being fast, reliable, and scalable.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُستخدم MySQL من قبل مواقع ضخمة مثل Facebook و Twitter و YouTube. تشمل فوائده الرئيسية: 1. قابلية التوسع (Scalability) للاستخدام في بيئات تخزين البيانات الضخمة. 2. الأداء العالي (Performance). 3. دعم لغات برمجة متعددة (مثل PHP). 4. العمل عبر منصات مختلفة (Windows, Mac OS X, Linux, UNIX). 5. القدرة على التعامل مع قواعد بيانات ضخمة تحتوي على ملايين الصفوف.</p></template>
+    <template class="content-en"><p>MySQL is used by huge websites like Facebook, Twitter, and YouTube. Key benefits include: 1. Scalability for massive data warehousing. 2. Performance optimization. 3. Support for many programming languages (like PHP). 4. Cross-platform implementations (Windows, Mac OS X, Linux, UNIX). 5. Handling large databases with millions of rows.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يعتمد نجاح MySQL على محركات التخزين القابلة للتبديل (مثل InnoDB و MyISAM)، مما يتيح للمطورين تحسين الأداء بناءً على احتياجات التطبيق (مثل دعم المعاملات Transactions أو سرعة القراءة).</p></template>
+    <template class="content-en"><p>MySQL's success relies heavily on its pluggable storage engine architecture (e.g., InnoDB, MyISAM), allowing developers to optimize for specific application needs like transaction support or read speed.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُفضل استخدام MySQL مع PHP في تطوير الويب؟</template>
+      <template class="content-en">Why is MySQL preferred with PHP in web development?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنهما مفتوحا المصدر، يعملان عبر منصات متعددة، ومصممان للعمل معاً بكفاءة عالية، مما يجعلهما الخيار القياسي (مثل حزمة LAMP).</p></template>
+      <template class="content-en"><p>Because both are open-source, cross-platform, and highly optimized to work together, forming the standard stack (like LAMP) for web development.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="php-mysqli-integration" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> تكامل PHP مع قواعد بيانات MySQL</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> PHP and MySQL Integration</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تُستخدم إضافة MySQLi في PHP لفتح اتصال بقاعدة البيانات، تنفيذ الاستعلامات، ومعالجة النتائج برمجياً.</p>
+    </template>
+    <template class="content-en">
+      <p>The MySQLi extension in PHP is used to open a connection, execute queries, and process results programmatically.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>للتفاعل مع قاعدة البيانات، نستخدم إضافة MySQLi (حيث يرمز حرف i إلى improved). الخطوات الأساسية هي: 1. فتح الاتصال باستخدام `mysqli_connect()`. 2. التحقق من الاتصال باستخدام `mysqli_connect_error()`. 3. تنفيذ استعلامات SQL (مثل CREATE, INSERT, SELECT) باستخدام `&lt;span class="smart-term" data-term-en="mysqli_query()" data-ar="دالة تنفيذ الاستعلام" data-en-def="A PHP function used to execute an SQL query against a database."&gt;mysqli_query()&lt;/span&gt;`. 4. إغلاق الاتصال باستخدام `mysqli_close()`. عند إدخال البيانات، يجب وضع الاستعلام داخل علامات تنصيص في PHP، ويجب وضع القيم النصية داخل علامات تنصيص في SQL، بينما القيم الرقمية و NULL لا توضع داخل علامات تنصيص.</p></template>
+    <template class="content-en"><p>To interact with the database, we use the MySQLi extension ('i' stands for improved). Basic steps: 1. Open connection using `mysqli_connect()`. 2. Check connection with `mysqli_connect_error()`. 3. Execute SQL queries (CREATE, INSERT, SELECT) using `&lt;span class="smart-term" data-term-en="mysqli_query()" data-ar="دالة تنفيذ الاستعلام" data-en-def="A PHP function used to execute an SQL query against a database."&gt;mysqli_query()&lt;/span&gt;`. 4. Close connection with `mysqli_close()`. Syntax rules for insertion: The SQL query must be quoted in PHP, string values inside SQL must be quoted, but numeric and NULL values must not be quoted.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام <code>mysqli_fetch_assoc()</code> داخل حلقة <code>while</code> يسمح بجلب كل صف من مجموعة النتائج كمصفوفة ترابطية (Associative Array)، مما يسهل الوصول إلى البيانات باستخدام أسماء الأعمدة كمفاتيح.</p></template>
+    <template class="content-en"><p>Using <code>mysqli_fetch_assoc()</code> inside a <code>while</code> loop fetches each row of the result set as an associative array, allowing easy access to data using column names as keys.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>$conn = mysqli_connect($servername, $username, $password, $dbname);
+if (!$conn) {
+  die("Connection failed: " . mysqli_connect_error());
+}
+$sql = "SELECT id, firstname, lastname FROM MyGuests";
+$result = mysqli_query($conn, $sql);
+if (mysqli_num_rows($result) > 0) {
+  while($row = mysqli_fetch_assoc($result)) {
+    echo "id: " . $row["id"]. " - Name: " . $row["firstname"]. " " . $row["lastname"]. "&lt;br&gt;";
+  }
+}
+mysqli_close($conn);</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم دالة `die()` عند فشل الاتصال بقاعدة البيانات؟</template>
+      <template class="content-en">Why do we use the `die()` function when a database connection fails?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لإيقاف تنفيذ باقي السكربت فوراً وطباعة رسالة الخطأ، حيث لا جدوى من محاولة تنفيذ استعلامات بدون اتصال صالح.</p></template>
+      <template class="content-en"><p>To immediately stop script execution and print the error message, as there is no point in attempting to execute queries without a valid connection.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="dynamic-content" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> المحتوى الديناميكي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Dynamic Content</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>المحتوى الديناميكي هو محتوى ويب يتغير بناءً على سلوك المستخدم وتفضيلاته ومدخلاته، مما يوفر تجربة مستخدم أفضل.</p>
+    </template>
+    <template class="content-en">
+      <p>Dynamic content is web content that changes based on user behavior, preferences, and input, providing a more user-friendly experience.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن لـ PHP تغيير مخرجات HTML5 ديناميكياً بناءً على مدخلات المستخدم. يُعرف هذا أيضاً ب<span class="smart-term" data-term-en="Adaptive Content" data-ar="المحتوى التكيفي" data-en-def="Another term for dynamic content; web content that adapts to the user.">المحتوى التكيفي</span> (Adaptive Content). يتم إنشاؤه في اللحظة التي يطلب فيها المستخدم الصفحة.</p><p>يتضمن ذلك إنشاء نماذج (Forms) باستخدام الحلقات والمصفوفات، وإضافة فحص الأخطاء (Error Checking) للحقول، وإعلام المستخدم بالمدخلات غير الصالحة في نفس الصفحة.</p><p>بعد إكمال النموذج بنجاح، يتم تخزين البيانات في قاعدة بيانات MySQL.</p></template>
+    <template class="content-en"><p>PHP can dynamically change the HTML5 it outputs based on user input. Also known as <span class="smart-term" data-term-en="Adaptive Content" data-ar="المحتوى التكيفي" data-en-def="Another term for dynamic content; web content that adapts to the user.">adaptive content</span>, it changes based on behavior, preferences, and interests, generated at the moment a page is requested.</p><p>This involves creating forms using loops and arrays, adding error checking to input fields, and informing users of invalid entries on the form itself.</p><p>Once successfully completed, the input is stored in a MySQL database.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يعد التحقق من صحة البيانات (Validation) على جانب الخادم (Server-side) أمراً بالغ الأهمية للأمان، حيث يمنع إدخال بيانات ضارة (مثل هجمات SQL Injection) ويضمن سلامة البيانات قبل إدراجها في قاعدة البيانات.</p></template>
+    <template class="content-en"><p>Server-side validation is crucial for security, preventing malicious data entry (like SQL Injection) and ensuring data integrity before insertion into the database.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>php</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>if (isset($_POST["submit"])) {
+  if ($_POST["fname"] == "") {
+    $formerrors["fnameerror"] = true;
+    $iserror = true;
+  }
+  // Build INSERT query if no errors
+  if (!$iserror) {
+    $query = "INSERT INTO MyGuests (FirstName) VALUES ('$fname')";
+  }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُفضل عرض رسائل الخطأ في نفس صفحة النموذج بدلاً من صفحة خطأ منفصلة؟</template>
+      <template class="content-en">Why is it better to display error messages on the form page itself rather than a separate error page?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لتحسين تجربة المستخدم (User Experience)، حيث يمكن للمستخدم رؤية الخطأ وتصحيحه مباشرة دون فقدان البيانات التي أدخلها مسبقاً.</p></template>
+      <template class="content-en"><p>To improve User Experience (UX), allowing the user to see and correct the error directly without losing previously entered data.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا شباب في هذه الوحدة الحاسمة. إذا كنتم تريدون بناء تطبيقات ويب حقيقية، فهنا تبدأ الرحلة. لقد انتقلنا من صفحات HTML الثابتة إلى عالم 'المحتوى الديناميكي'. كيف نفعل ذلك؟ باستخدام قواعد البيانات العلائقية (تحديداً MySQL) ولغة PHP كجسر تواصل. تذكروا دائماً هيكل الجداول: صفوف (Tuples) وأعمدة (Attributes)، والمفاتيح الأساسية التي تمنع الفوضى. في الامتحان، ركزوا بشدة على أوامر SQL الأساسية (SELECT, INSERT, UPDATE, DELETE) وإياكم أن تنسوا عبارة WHERE في التحديث والحذف! راجعوا خطوات الاتصال بقاعدة البيانات عبر `mysqli_connect` وكيفية جلب البيانات باستخدام `mysqli_fetch_assoc`. هذه المفاهيم ليست فقط للامتحان، بل هي أدواتكم اليومية كمهندسي برمجيات.</template>
+    <template class="content-en">Welcome everyone to this crucial module. If you want to build real web applications, this is where the journey begins. We've moved from static HTML pages to the world of 'Dynamic Content'. How? By using relational databases (specifically MySQL) and PHP as our bridge. Always remember table structures: rows (Tuples), columns (Attributes), and Primary Keys that prevent chaos. For the exam, focus heavily on basic SQL commands (SELECT, INSERT, UPDATE, DELETE) and NEVER forget the WHERE clause in updates and deletions! Review the database connection steps via `mysqli_connect` and how to fetch data using `mysqli_fetch_assoc`. These concepts aren't just for the exam; they are your daily tools as software engineers.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الغرض الأساسي من نظام إدارة قواعد البيانات (DBMS)؟</template>
+          <template class="content-en">What is the primary purpose of a DBMS?</template>
+          <span class="content-target">ما هو الغرض الأساسي من نظام إدارة قواعد البيانات (DBMS)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">توفير آليات لتخزين البيانات، تنظيمها، استرجاعها، وتعديلها بكفاءة وأمان لعدة مستخدمين.</template>
+          <template class="content-en">To provide mechanisms for storing, organizing, retrieving, and modifying data efficiently and securely for multiple users.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تنظم قاعدة البيانات العلائقية بياناتها؟</template>
+          <template class="content-en">How does a relational database organize its data?</template>
+          <span class="content-target">كيف تنظم قاعدة البيانات العلائقية بياناتها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تنظمها في جداول (Tables) تتكون من صفوف (Tuples) تمثل السجلات، وأعمدة (Attributes) تمثل خصائص البيانات.</template>
+          <template class="content-en">It organizes data into tables consisting of rows (Tuples) representing records, and columns (Attributes) representing data properties.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين المفتاح الأساسي (Primary Key) والمفتاح الأجنبي (Foreign Key)؟</template>
+          <template class="content-en">What is the difference between a Primary Key and a Foreign Key?</template>
+          <span class="content-target">ما الفرق بين المفتاح الأساسي (Primary Key) والمفتاح الأجنبي (Foreign Key)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المفتاح الأساسي يحدد كل صف بشكل فريد داخل جدوله، بينما المفتاح الأجنبي هو عمود يربط صفوف جدول بصفوف جدول آخر (يشير إلى مفتاح أساسي).</template>
+          <template class="content-en">A Primary Key uniquely identifies each row within its table, while a Foreign Key is a column that links rows in one table to rows in another (pointing to a primary key).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نستخدم SELECT DISTINCT بدلاً من SELECT العادية؟</template>
+          <template class="content-en">When do we use SELECT DISTINCT instead of a regular SELECT?</template>
+          <span class="content-target">متى نستخدم SELECT DISTINCT بدلاً من SELECT العادية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمها عندما يحتوي العمود على قيم مكررة ونريد استرجاع قائمة بالقيم الفريدة (المختلفة) فقط.</template>
+          <template class="content-en">We use it when a column contains duplicate values and we only want to retrieve a list of unique (different) values.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الخطر الأكبر عند استخدام جملة DELETE؟</template>
+          <template class="content-en">What is the biggest risk when using the DELETE statement?</template>
+          <span class="content-target">ما هو الخطر الأكبر عند استخدام جملة DELETE؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نسيان كتابة عبارة WHERE، مما يؤدي إلى حذف جميع السجلات في الجدول بالكامل.</template>
+          <template class="content-en">Forgetting to write the WHERE clause, which results in deleting all records in the table entirely.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الفوائد الرئيسية لاستخدام MySQL؟</template>
+          <template class="content-en">What are the main benefits of using MySQL?</template>
+          <span class="content-target">ما هي الفوائد الرئيسية لاستخدام MySQL؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">قابلية التوسع، الأداء العالي، دعم لغات برمجة متعددة، العمل عبر منصات مختلفة، والقدرة على التعامل مع قواعد بيانات ضخمة.</template>
+          <template class="content-en">Scalability, high performance, support for multiple programming languages, cross-platform compatibility, and the ability to handle massive databases.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نفتح اتصالاً بقاعدة بيانات MySQL باستخدام PHP؟</template>
+          <template class="content-en">How do we open a connection to a MySQL database using PHP?</template>
+          <span class="content-target">كيف نفتح اتصالاً بقاعدة بيانات MySQL باستخدام PHP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام دالة `mysqli_connect()` وتمرير اسم الخادم، اسم المستخدم، كلمة المرور، واسم قاعدة البيانات كمعاملات.</template>
+          <template class="content-en">By using the `mysqli_connect()` function and passing the servername, username, password, and database name as parameters.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي وظيفة دالة `mysqli_fetch_assoc()`؟</template>
+          <template class="content-en">What is the function of `mysqli_fetch_assoc()`?</template>
+          <span class="content-target">ما هي وظيفة دالة `mysqli_fetch_assoc()`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم بجلب صف واحد من مجموعة النتائج وتحويله إلى مصفوفة ترابطية، مما يتيح الوصول للبيانات باستخدام أسماء الأعمدة.</template>
+          <template class="content-en">It fetches a single row from the result set and converts it into an associative array, allowing data access using column names.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي قواعد كتابة القيم داخل استعلام SQL في PHP؟</template>
+          <template class="content-en">What are the rules for writing values inside an SQL query in PHP?</template>
+          <span class="content-target">ما هي قواعد كتابة القيم داخل استعلام SQL في PHP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الاستعلام نفسه يوضع بين علامات تنصيص في PHP. داخل الاستعلام، القيم النصية توضع بين علامات تنصيص، بينما الأرقام و NULL لا توضع.</template>
+          <template class="content-en">The query itself is quoted in PHP. Inside the query, string values must be quoted, while numeric and NULL values must not be quoted.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو المحتوى الديناميكي (Dynamic Content) في سياق الويب؟</template>
+          <template class="content-en">What is Dynamic Content in the context of the web?</template>
+          <span class="content-target">ما هو المحتوى الديناميكي (Dynamic Content) في سياق الويب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو محتوى صفحة الويب (HTML) الذي يتم إنشاؤه وتغييره لحظياً بواسطة الخادم (مثل PHP) بناءً على مدخلات المستخدم أو البيانات المخزنة في قاعدة البيانات.</template>
+          <template class="content-en">It is web page content (HTML) that is generated and changed on the fly by the server (like PHP) based on user input or data stored in a database.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي قاعدة البيانات (Database)؟",
+      "en": "What is a Database?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة منظمة من البيانات.",
+        "en": "An organized collection of data."
+      },
+      "example": {
+        "ar": "قاعدة بيانات تحتوي على معلومات العملاء.",
+        "en": "A database containing customer information."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو نظام إدارة قواعد البيانات (DBMS)؟",
+      "en": "What is a DBMS?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام يوفر آليات لتخزين البيانات وتنظيمها واسترجاعها وتعديلها للعديد من المستخدمين.",
+        "en": "A system that provides mechanisms for storing, organizing, retrieving and modifying data for many users."
+      },
+      "example": {
+        "ar": "MySQL, Oracle, SQL Server.",
+        "en": "MySQL, Oracle, SQL Server."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي قاعدة البيانات العلائقية (Relational Database)؟",
+      "en": "What is a Relational Database?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل منطقي للبيانات يسمح بالوصول إليها دون النظر إلى هيكلها المادي، وتخزن البيانات في جداول.",
+        "en": "A logical representation of data that allows access without consideration of physical structure, storing data in tables."
+      },
+      "example": {
+        "ar": "جدول العملاء المرتبط بجدول الطلبات.",
+        "en": "A Customers table linked to an Orders table."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو الـ Tuple في قواعد البيانات العلائقية؟",
+      "en": "What is a Tuple in a relational database?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو صف (Row) داخل الجدول.",
+        "en": "A row in a table."
+      },
+      "example": {
+        "ar": "سجل يحتوي على بيانات عميل واحد.",
+        "en": "A record containing a single customer's data."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو الـ Attribute في قواعد البيانات العلائقية؟",
+      "en": "What is an Attribute in a relational database?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو اسم العمود في جدول معين.",
+        "en": "The name of a column in a particular table."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو المفتاح الأساسي (Primary Key)؟",
+      "en": "What is a Primary Key?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قيمة فريدة تحدد كل صف في الجدول ولا يمكن تكرارها.",
+        "en": "A unique value that identifies each row in a table and cannot be duplicated."
+      },
+      "example": {
+        "ar": "رقم الهوية (ID) لكل مستخدم.",
+        "en": "The ID number for each user."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو المفتاح الأجنبي (Foreign Key)؟",
+      "en": "What is a Foreign Key?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عمود يُضاف لربط صفوف في جدول بصفوف في جدول آخر (يشير إلى مفتاح أساسي).",
+        "en": "A column added to link rows in a table to rows in other tables (points to a primary key)."
+      },
+      "example": {
+        "ar": "عمود CustomerID في جدول الطلبات.",
+        "en": "CustomerID column in the Orders table."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "إلى ماذا ترمز SQL؟",
+      "en": "What does SQL stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لغة الاستعلام المهيكلة.",
+        "en": "Structured Query Language."
+      },
+      "example": {
+        "ar": "استخدام جملة SELECT لجلب البيانات.",
+        "en": "Using a SELECT statement to fetch data."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي وظيفة جملة SELECT DISTINCT؟",
+      "en": "What is the function of the SELECT DISTINCT statement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستخدم لإرجاع القيم المختلفة (الفريدة) فقط من عمود معين.",
+        "en": "Used to return only distinct (different) values from a column."
+      },
+      "example": {
+        "ar": "SELECT DISTINCT Country FROM Customers;",
+        "en": "SELECT DISTINCT Country FROM Customers;"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي وظيفة عبارة WHERE في SQL؟",
+      "en": "What is the function of the WHERE clause in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستخدم لفلترة السجلات واستخراج تلك التي تفي بشرط محدد فقط.",
+        "en": "Used to filter records and extract only those that fulfill a specified condition."
+      },
+      "example": {
+        "ar": "WHERE Country='Mexico';",
+        "en": "WHERE Country='Mexico';"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "كيف يتم فرز النتائج تنازلياً في SQL؟",
+      "en": "How do you sort results descendingly in SQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الكلمة المفتاحية DESC مع عبارة ORDER BY.",
+        "en": "By using the DESC keyword with the ORDER BY clause."
+      },
+      "example": {
+        "ar": "ORDER BY Country DESC;",
+        "en": "ORDER BY Country DESC;"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ماذا يحدث إذا حذفت عبارة WHERE من جملة DELETE؟",
+      "en": "What happens if you omit the WHERE clause from a DELETE statement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "سيتم حذف جميع السجلات الموجودة في الجدول.",
+        "en": "All records in the table will be deleted."
+      },
+      "example": {
+        "ar": "DELETE FROM Customers; (يحذف كل شيء)",
+        "en": "DELETE FROM Customers; (Deletes everything)"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو MySQL؟",
+      "en": "What is MySQL?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام إدارة قواعد بيانات علائقية مفتوح المصدر، سريع وموثوق وقابل للتوسع.",
+        "en": "A popular open-source relational database management system (RDBMS) that is fast, reliable, and scalable."
+      },
+      "example": {
+        "ar": "يُستخدم في مواقع مثل فيسبوك وتويتر.",
+        "en": "Used by websites like Facebook and Twitter."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي إضافة MySQLi في PHP؟",
+      "en": "What is the MySQLi extension in PHP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إضافة مُحسّنة (i تعني improved) تُستخدم للتفاعل مع قواعد بيانات MySQL.",
+        "en": "An improved extension (i stands for improved) used to interact with MySQL databases."
+      },
+      "example": {
+        "ar": "استخدام دالة mysqli_connect().",
+        "en": "Using the mysqli_connect() function."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي القاعدة النحوية للقيم النصية داخل استعلام SQL في PHP؟",
+      "en": "What is the syntax rule for string values inside an SQL query in PHP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجب وضع القيم النصية داخل علامات تنصيص (Quotes).",
+        "en": "String values inside the SQL query must be quoted."
+      },
+      "example": {
+        "ar": "VALUES ('John', 'Doe')",
+        "en": "VALUES ('John', 'Doe')"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو المحتوى الديناميكي (Dynamic Content)؟",
+      "en": "What is Dynamic Content?"
+    },
+    "back": {
+      "definition": {
+        "ar": "محتوى ويب يتغير بناءً على سلوك المستخدم وتفضيلاته، ويتم إنشاؤه لحظة طلب الصفحة.",
+        "en": "Web content that changes based on user behavior and preferences, generated at the moment a page is requested."
+      },
+      "example": {
+        "ar": "رسالة ترحيب مخصصة باسم المستخدم بعد تسجيل الدخول.",
+        "en": "A personalized welcome message with the user's name after login."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هي وظيفة دالة mysqli_query()؟",
+      "en": "What is the function of mysqli_query()?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستخدم لتنفيذ استعلامات SQL على قاعدة البيانات.",
+        "en": "Used to execute SQL queries against the database."
+      },
+      "example": {
+        "ar": "mysqli_query($conn, $sql);",
+        "en": "mysqli_query($conn, $sql);"
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما هي وظيفة دالة mysqli_fetch_assoc()؟",
+      "en": "What is the function of mysqli_fetch_assoc()?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقوم بجلب صف من النتائج وتضعه في مصفوفة ترابطية (Associative Array).",
+        "en": "Fetches a result row as an associative array."
+      },
+      "example": {
+        "ar": "$row = mysqli_fetch_assoc($result);",
+        "en": "$row = mysqli_fetch_assoc($result);"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ماذا يعني اختصار SQL؟",
+      "en": "What does SQL stand for?"
+    },
+    "options": {
+      "ar": [
+        "Strong Question Language",
+        "Structured Query Language",
+        "Standard Query Logic",
+        "Simple Query Language"
+      ],
+      "en": [
+        "Strong Question Language",
+        "Structured Query Language",
+        "Standard Query Logic",
+        "Simple Query Language"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "SQL ترمز إلى Structured Query Language وهي لغة قياسية لإدارة قواعد البيانات.",
+      "en": "SQL stands for Structured Query Language, the standard language for database management."
+    },
+    "hint": {
+      "ar": "تبدأ بكلمة Structured.",
+      "en": "Starts with 'Structured'."
+    },
+    "difficulty": "easy",
+    "conceptId": "sql-basics"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي عبارة SQL تُستخدم لاستخراج البيانات من قاعدة البيانات؟",
+      "en": "Which SQL statement is used to extract data from a database?"
+    },
+    "options": {
+      "ar": [
+        "EXTRACT",
+        "GET",
+        "OPEN",
+        "SELECT"
+      ],
+      "en": [
+        "EXTRACT",
+        "GET",
+        "OPEN",
+        "SELECT"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "تُستخدم جملة SELECT لتحديد واسترجاع البيانات من جدول أو أكثر.",
+      "en": "The SELECT statement is used to select and retrieve data from one or more tables."
+    },
+    "hint": {
+      "ar": "الكلمة تعني 'تحديد'.",
+      "en": "The word means 'to choose'."
+    },
+    "difficulty": "easy",
+    "conceptId": "sql-basics"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي الكلمة المفتاحية المستخدمة لفرز مجموعة النتائج؟",
+      "en": "Which keyword is used to sort the result-set?"
+    },
+    "options": {
+      "ar": [
+        "SORT BY",
+        "ORDER BY",
+        "ALIGN BY",
+        "GROUP BY"
+      ],
+      "en": [
+        "SORT BY",
+        "ORDER BY",
+        "ALIGN BY",
+        "GROUP BY"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم ORDER BY لفرز السجلات تصاعدياً (افتراضياً) أو تنازلياً.",
+      "en": "ORDER BY is used to sort the records in ascending (default) or descending order."
+    },
+    "hint": {
+      "ar": "تتكون من كلمتين تبدأ بـ ORDER.",
+      "en": "Two words starting with ORDER."
+    },
+    "difficulty": "medium",
+    "conceptId": "sql-basics"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ماذا يحدث إذا تم حذف عبارة WHERE من جملة UPDATE؟",
+      "en": "What happens if the WHERE clause is omitted from an UPDATE statement?"
+    },
+    "options": {
+      "ar": [
+        "يتم تحديث السجل الأول فقط.",
+        "يتم تحديث جميع السجلات في الجدول.",
+        "يحدث خطأ في بناء الجملة (Syntax Error).",
+        "لا يتم تحديث أي سجل."
+      ],
+      "en": [
+        "Only the first record is updated.",
+        "All records in the table are updated.",
+        "A syntax error occurs.",
+        "No records are updated."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بدون عبارة WHERE لتحديد السجلات المستهدفة، سيتم تطبيق التعديل على كل صفوف الجدول.",
+      "en": "Without a WHERE clause to specify target records, the update applies to every row in the table."
+    },
+    "hint": {
+      "ar": "تذكر التحذير المتعلق بجملة DELETE أيضاً.",
+      "en": "Remember the warning about the DELETE statement as well."
+    },
+    "difficulty": "medium",
+    "conceptId": "sql-basics"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في سياق قواعد البيانات العلائقية، ما هو الـ Tuple؟",
+      "en": "In the context of relational databases, what is a Tuple?"
+    },
+    "options": {
+      "ar": [
+        "جدول",
+        "عمود",
+        "صف",
+        "مفتاح أساسي"
+      ],
+      "en": [
+        "A table",
+        "A column",
+        "A row",
+        "A primary key"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الـ Tuple هو المصطلح الرياضي الذي يمثل صفاً (Row) واحداً في الجدول.",
+      "en": "A Tuple is the mathematical term representing a single row in a table."
+    },
+    "hint": {
+      "ar": "يمثل سجلاً واحداً لكيان معين.",
+      "en": "It represents a single record for an entity."
+    },
+    "difficulty": "medium",
+    "conceptId": "relational-database-overview"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما الذي يرمز إليه حرف 'i' في إضافة MySQLi؟",
+      "en": "What does the 'i' stand for in the MySQLi extension?"
+    },
+    "options": {
+      "ar": [
+        "interactive",
+        "internet",
+        "improved",
+        "integrated"
+      ],
+      "en": [
+        "interactive",
+        "internet",
+        "improved",
+        "integrated"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "ترمز إلى improved (مُحسّنة)، وهي النسخة الأحدث والأكثر أماناً من إضافة mysql القديمة.",
+      "en": "It stands for improved, representing the newer, more secure version of the old mysql extension."
+    },
+    "hint": {
+      "ar": "تعني 'مُحسّنة'.",
+      "en": "Means 'enhanced' or 'better'."
+    },
+    "difficulty": "easy",
+    "conceptId": "php-mysqli-integration"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي من القواعد التالية صحيحة عند إدراج بيانات في MySQL باستخدام PHP؟",
+      "en": "Which of the following rules is true when inserting data into MySQL using PHP?"
+    },
+    "options": {
+      "ar": [
+        "يجب وضع القيم الرقمية داخل علامات تنصيص.",
+        "يجب وضع كلمة NULL داخل علامات تنصيص.",
+        "يجب وضع القيم النصية (String) داخل علامات تنصيص.",
+        "لا يجب وضع استعلام SQL بالكامل داخل علامات تنصيص في PHP."
+      ],
+      "en": [
+        "Numeric values must be quoted.",
+        "The word NULL must be quoted.",
+        "String values inside the SQL query must be quoted.",
+        "The entire SQL query must NOT be quoted in PHP."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "القيم النصية فقط هي التي يجب إحاطتها بعلامات تنصيص داخل الاستعلام، بينما الأرقام و NULL لا توضع داخل علامات تنصيص.",
+      "en": "Only string values must be quoted inside the query. Numeric and NULL values must not be quoted."
+    },
+    "hint": {
+      "ar": "كيف تتعامل مع النصوص مقابل الأرقام في SQL؟",
+      "en": "How do you handle text vs numbers in SQL?"
+    },
+    "difficulty": "hard",
+    "conceptId": "php-mysqli-integration"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي الدالة المستخدمة لفتح اتصال بخادم MySQL في PHP؟",
+      "en": "Which function is used to open a connection to a MySQL server in PHP?"
+    },
+    "options": {
+      "ar": [
+        "mysql_open()",
+        "mysqli_connect()",
+        "db_connect()",
+        "mysqli_open()"
+      ],
+      "en": [
+        "mysql_open()",
+        "mysqli_connect()",
+        "db_connect()",
+        "mysqli_open()"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دالة mysqli_connect() هي الدالة القياسية لفتح الاتصال وتأخذ اسم الخادم، اسم المستخدم، كلمة المرور، واسم قاعدة البيانات.",
+      "en": "mysqli_connect() is the standard function to open a connection, taking servername, username, password, and dbname."
+    },
+    "hint": {
+      "ar": "تبدأ بـ mysqli_ وتنتهي بكلمة تعني 'اتصال'.",
+      "en": "Starts with mysqli_ and ends with a word meaning 'link'."
+    },
+    "difficulty": "medium",
+    "conceptId": "php-mysqli-integration"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو المصطلح الآخر للمحتوى الديناميكي (Dynamic Content)؟",
+      "en": "What is another term for Dynamic Content?"
+    },
+    "options": {
+      "ar": [
+        "المحتوى الثابت (Static Content)",
+        "المحتوى التكيفي (Adaptive Content)",
+        "المحتوى الخطي (Linear Content)",
+        "المحتوى المادي (Physical Content)"
+      ],
+      "en": [
+        "Static Content",
+        "Adaptive Content",
+        "Linear Content",
+        "Physical Content"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يُعرف المحتوى الديناميكي أيضاً بالمحتوى التكيفي لأنه يتكيف ويتغير بناءً على سلوك المستخدم.",
+      "en": "Dynamic content is also known as adaptive content because it adapts and changes based on user behavior."
+    },
+    "hint": {
+      "ar": "كلمة تعني 'يتكيف'.",
+      "en": "A word meaning 'adjusts to fit'."
+    },
+    "difficulty": "easy",
+    "conceptId": "dynamic-content"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هي وظيفة المفتاح الأساسي (Primary Key) في الجدول؟",
+      "en": "What is the function of a Primary Key in a table?"
+    },
+    "options": {
+      "ar": [
+        "ربط الجدول بجدول آخر.",
+        "تحديد كل صف بقيمة فريدة لا تتكرر.",
+        "تخزين القيم النصية الطويلة.",
+        "فرز البيانات أبجدياً."
+      ],
+      "en": [
+        "To link the table to another table.",
+        "To identify each row with a unique, non-duplicated value.",
+        "To store long string values.",
+        "To sort data alphabetically."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المفتاح الأساسي يضمن تفرد كل سجل (صف) داخل الجدول ولا يمكن أن يحتوي على قيم مكررة أو فارغة.",
+      "en": "The Primary Key ensures the uniqueness of each record (row) within the table and cannot contain duplicate or null values."
+    },
+    "hint": {
+      "ar": "فكر في رقم الهوية الوطنية.",
+      "en": "Think of a National ID number."
+    },
+    "difficulty": "medium",
+    "conceptId": "relational-database-overview"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان كتابة عبارة WHERE عند استخدام جملتي UPDATE أو DELETE. هذا الخطأ سيؤدي إلى تعديل أو حذف جميع البيانات في الجدول بالكامل!</template>
+      <template class="content-en">Forgetting the WHERE clause when using UPDATE or DELETE statements. This mistake will modify or delete ALL data in the table!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق بين المفتاح الأساسي (Primary Key) والمفتاح الأجنبي (Foreign Key) هو جوهر قواعد البيانات العلائقية؛ الأول يحدد هوية الصف، والثاني يربطه بصف في جدول آخر.</template>
+      <template class="content-en">The difference between Primary Key and Foreign Key is the core of relational databases; the first identifies the row, the second links it to a row in another table.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند كتابة استعلامات SQL داخل PHP، يجب وضع القيم النصية (Strings) بين علامات تنصيص مفردة، بينما الأرقام وقيمة NULL تُكتب بدون علامات تنصيص.</template>
+      <template class="content-en">When writing SQL queries inside PHP, string values must be enclosed in single quotes, while numbers and NULL are written without quotes.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المحتوى الديناميكي (أو التكيفي) هو ما يجعل تطبيقات الويب الحديثة مفيدة، حيث يتم توليد صفحات HTML في الوقت الفعلي بناءً على تفاعل المستخدم وقاعدة البيانات.</template>
+      <template class="content-en">Dynamic (or adaptive) content is what makes modern web apps useful, generating HTML pages in real-time based on user interaction and the database.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام إضافة `mysql_` القديمة بدلاً من `mysqli_`. حرف الـ 'i' يعني Improved وهو ضروري للأمان والتوافق مع الإصدارات الحديثة من PHP.</template>
+      <template class="content-en">Using the old `mysql_` extension instead of `mysqli_`. The 'i' stands for Improved and is essential for security and compatibility with modern PHP.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M11.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M13.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

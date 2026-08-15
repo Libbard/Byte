@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS240" data-module="4">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المكدس (Stack) · CS240 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS240" data-page-title-en="CS240">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M03.html" data-gh-next="M05.html" data-gh-card="../../hub/course.html?code=CS240"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#stack-model-lifo" class="toc-link" data-bilingual>
+        <template class="content-ar">نموذج المكدس (Stack Model)</template>
+        <template class="content-en">Stack Model</template>
+        <span class="content-target">نموذج المكدس (Stack Model)</span>
+      </a>
+      <a href="#array-implementation" class="toc-link" data-bilingual>
+        <template class="content-ar">تنفيذ المكدس باستخدام المصفوفة (Array Implementation)</template>
+        <template class="content-en">Array Implementation of Stacks</template>
+        <span class="content-target">تنفيذ المكدس باستخدام المصفوفة (Array Implementation)</span>
+      </a>
+      <a href="#linked-list-implementation" class="toc-link" data-bilingual>
+        <template class="content-ar">تنفيذ المكدس باستخدام القائمة المترابطة (Linked List Implementation)</template>
+        <template class="content-en">Linked List Implementation of Stacks</template>
+        <span class="content-target">تنفيذ المكدس باستخدام القائمة المترابطة (Linked List Implementation)</span>
+      </a>
+      <a href="#balancing-symbols" class="toc-link" data-bilingual>
+        <template class="content-ar">تطبيق: موازنة الرموز (Balancing Symbols)</template>
+        <template class="content-en">Application: Balancing Symbols</template>
+        <span class="content-target">تطبيق: موازنة الرموز (Balancing Symbols)</span>
+      </a>
+      <a href="#postfix-evaluation" class="toc-link" data-bilingual>
+        <template class="content-ar">تطبيق: تقييم تعبيرات Postfix</template>
+        <template class="content-en">Application: Postfix Expressions Evaluation</template>
+        <span class="content-target">تطبيق: تقييم تعبيرات Postfix</span>
+      </a>
+      <a href="#infix-to-postfix" class="toc-link" data-bilingual>
+        <template class="content-ar">تطبيق: تحويل Infix إلى Postfix</template>
+        <template class="content-en">Application: Infix to Postfix Conversion</template>
+        <span class="content-target">تطبيق: تحويل Infix إلى Postfix</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 4</template>
+      <template class="content-en">Module 4</template>
+      <span class="content-target">الوحدة 4</span>
+    </span> · CS240
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">المكدس (Stack)</h1>
+      <p class="hero-description">دراسة بنية بيانات المكدس (Stack)، نموذجها القائم على مبدأ LIFO، طرق تنفيذها باستخدام المصفوفات والقوائم المترابطة، وتطبيقاتها العملية مثل موازنة الرموز وتقييم وتحويل التعبيرات الرياضية.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Stack</h1>
+      <p class="hero-description">Study of the Stack data structure, its LIFO model, implementation using Arrays and Linked Lists, and practical applications like balancing symbols and evaluating/converting mathematical expressions.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">هياكل البيانات</span>
+      <span class="tag">المكدس</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Data Structures</span>
+      <span class="tag">Stack</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم نموذج نوع البيانات المجرد للمكدس (Stack ADT Model).</span></li>
+      <li><span class="obj-icon">✦</span><span>تنفيذ المكدسات برمجياً باستخدام المصفوفات والقوائم المترابطة.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على بعض التطبيقات التي تتبنى بنية بيانات المكدس واستخدامها لحل المشكلات.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand Stack Abstract Data Type Model.</span></li>
+      <li><span class="obj-icon">✦</span><span>Implement Stacks.</span></li>
+      <li><span class="obj-icon">✦</span><span>Recognize some applications adopt stack data structure.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="stack-model-lifo" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> نموذج المكدس (Stack Model)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Stack Model</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المكدس هو قائمة مقيدة تعتمد مبدأ <span class="smart-term" data-term-en="LIFO" data-ar="ما يدخل أخيراً يخرج أولاً" data-en-def="Last In, First Out - the principle governing stack operations.">LIFO<span class="smart-term-tooltip"></span></span>، حيث تتم الإضافات والحذف من طرف واحد فقط يسمى القمة (Top).</p></template>
+    <template class="content-en"><p>A stack is a restricted list based on the <span class="smart-term" data-term-en="LIFO" data-ar="ما يدخل أخيراً يخرج أولاً" data-en-def="Last In, First Out - the principle governing stack operations.">LIFO<span class="smart-term-tooltip"></span></span> principle, where insertions and deletions occur only at one end called the top.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المكدس هو بنية بيانات أساسية تدعم عمليتين رئيسيتين:</p><ul><li><strong><span class="smart-term" data-term-en="Push" data-ar="دفع / إدراج" data-en-def="The operation to insert an element at the top of the stack.">Push<span class="smart-term-tooltip"></span></span></strong> (إدراج عنصر جديد في قمة المكدس)</li><li>و <strong><span class="smart-term" data-term-en="Pop" data-ar="سحب / حذف" data-en-def="The operation to remove and return the top element of the stack.">Pop<span class="smart-term-tooltip"></span></span></strong> (حذف العنصر الأحدث الذي تم إدراجه من القمة).</li></ul><p>يُعرف هذا السلوك باسم <span class="smart-term" data-term-en="LIFO" data-ar="ما يدخل أخيراً يخرج أولاً" data-en-def="Last In, First Out - the principle governing stack operations.">LIFO<span class="smart-term-tooltip"></span></span>. لا يُسمح بالوصول إلى العناصر الموجودة في منتصف أو أسفل المكدس مباشرة، بل يجب إزالة العناصر التي فوقها أولاً.</p></template>
+    <template class="content-en"><p>A stack is a fundamental data structure supporting two main operations:</p><ul><li><strong><span class="smart-term" data-term-en="Push" data-ar="دفع / إدراج" data-en-def="The operation to insert an element at the top of the stack.">Push<span class="smart-term-tooltip"></span></span></strong> (inserting a new element at the top)</li><li>and <strong><span class="smart-term" data-term-en="Pop" data-ar="سحب / حذف" data-en-def="The operation to remove and return the top element of the stack.">Pop<span class="smart-term-tooltip"></span></span></strong> (deleting the most recently inserted element from the top).</li></ul><p>This behavior is known as <span class="smart-term" data-term-en="LIFO" data-ar="ما يدخل أخيراً يخرج أولاً" data-en-def="Last In, First Out - the principle governing stack operations.">LIFO<span class="smart-term-tooltip"></span></span>. Direct access to elements in the middle or bottom is not allowed; elements above them must be popped first.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يُعد تقييد الوصول في المكدس ميزة وليس عيباً، حيث يضمن أن جميع العمليات تتم في وقت ثابت O(1).</p><p>هذا يجعله مثالياً لتتبع الحالات، التراجع (Backtracking)، وإدارة استدعاءات الدوال في الذاكرة (Call Stack).</p></template>
+    <template class="content-en"><p>The restricted access of a stack is a feature, not a bug. It ensures all operations run in constant O(1) time.</p><p>This makes it ideal for state tracking, backtracking, and managing function calls in memory (the Call Stack).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A visual representation of a Stack data structure showing a vertical container. Blue blocks labeled 1, 2, 3 are stacked. An arrow pointing down labeled 'push' shows a new block entering the top. An arrow pointing out from the top labeled 'pop' shows a block leaving. A pointer labeled 'Top' points to the highest block. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrow Markers -->
+        <marker id="arrow-push" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-pop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-top" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Gradients -->
+        <linearGradient id="highlight-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+        
+        <!-- Grid Pattern -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="0.5" opacity="0.3"/>
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+    <rect width="100%" height="100%" fill="url(#grid)" />
+
+    <!-- Title and Subtitle -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Stack Data Structure / هيكل بيانات المكدس</text>
+    <text x="400" y="70" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">Last In, First Out (LIFO)</text>
+
+    <!-- Stack Container Background (Inner) -->
+    <rect x="300" y="150" width="200" height="250" fill="var(--bg-elevated)" opacity="0.4" rx="4" />
+
+    <!-- Stack Container Walls -->
+    <path d="M 280 150 L 300 150 L 300 400 L 500 400 L 500 150 L 520 150" fill="none" stroke="var(--text-secondary)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Indices (Left Side) -->
+    <text x="260" y="180" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Index / الفهرس</text>
+    <text x="260" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">2</text>
+    <text x="260" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">1</text>
+    <text x="260" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">0</text>
+
+    <!-- Block 1 (Bottom) -->
+    <rect x="310" y="330" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="400" y="367" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Data 1</text>
+
+    <!-- Block 2 (Middle) -->
+    <rect x="310" y="260" width="180" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="400" y="297" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Data 2</text>
+
+    <!-- Block 3 (Top - Highlighted) -->
+    <rect x="310" y="190" width="180" height="60" rx="8" fill="url(#highlight-grad)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="400" y="227" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Data 3</text>
+
+    <!-- Push Action (Left Side) -->
+    <!-- Incoming Block -->
+    <rect x="100" y="80" width="140" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 6" opacity="0.9" />
+    <text x="170" y="117" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Data 4</text>
+    
+    <!-- Push Arrow -->
+    <path d="M 170 145 C 170 185, 350 120, 350 175" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-push)" />
+    
+    <!-- Push Labels -->
+    <text x="240" y="135" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Push</text>
+    <text x="240" y="155" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">إضافة</text>
+
+    <!-- Pop Action (Right Side) -->
+    <!-- Outgoing Block (Ghost) -->
+    <rect x="560" y="80" width="140" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 6" opacity="0.5" />
+    <text x="630" y="117" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Data 3</text>
+    
+    <!-- Pop Arrow -->
+    <path d="M 450 190 C 450 140, 630 185, 630 145" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-pop)" />
+    
+    <!-- Pop Labels -->
+    <text x="560" y="165" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Pop</text>
+    <text x="560" y="185" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">إزالة</text>
+
+    <!-- Top Pointer (Right Side) -->
+    <path d="M 610 220 L 505 220" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-top)" />
+    <text x="650" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Top</text>
+    <text x="650" y="235" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">القمة</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم مصفوفة عادية بدلاً من المكدس إذا كانت المصفوفة تسمح بالوصول العشوائي؟</template>
+      <template class="content-en">Why use a stack instead of a regular array if an array allows random access?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>المكدس يفرض قيوداً تمنع التعديل العشوائي، مما يحمي تسلسل البيانات (مثل التراجع أو استدعاء الدوال) ويضمن أن العمليات تتم دائماً في وقت O(1) دون إزاحة العناصر.</p></template>
+      <template class="content-en"><p>A stack enforces restrictions that prevent random modifications, protecting the sequence of data (like undo operations or function calls) and ensuring operations always take O(1) time without shifting elements.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="array-implementation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> تنفيذ المكدس باستخدام المصفوفة (Array Implementation)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Array Implementation of Stacks</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يتم استخدام مصفوفة مع متغير <code>topOfStack</code> مهيأ بالقيمة -1. عند الإضافة (Push) نزيده، وعند الحذف (Pop) ننقصه.</p></template>
+    <template class="content-en"><p>Uses an array with a <code>topOfStack</code> variable initialized to -1. On Push, we increment it; on Pop, we decrement it.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في تنفيذ المصفوفة، يرتبط كل مكدس بمصفوفة `theArray` ومؤشر `topOfStack`. يمثل `topOfStack = -1` مكدساً فارغاً.</p><p>لعمل Push لعنصر x، نقوم بزيادة `topOfStack` بمقدار 1 ثم نضع `theArray[topOfStack] = x`.</p><p>لعمل Pop، نأخذ القيمة من `theArray[topOfStack]` ثم ننقص `topOfStack` بمقدار 1.</p><p>جميع هذه العمليات تستغرق وقتاً ثابتاً O(1).</p></template>
+    <template class="content-en"><p>In the array implementation, each stack is associated with `theArray` and a `topOfStack` index. `topOfStack = -1` represents an empty stack.</p><p>To Push element x, we increment `topOfStack` and set `theArray[topOfStack] = x`.</p><p>To Pop, we return `theArray[topOfStack]` and decrement `topOfStack`.</p><p>All operations take O(1) time.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>العيب الرئيسي لهذا التنفيذ هو الحجم الثابت للمصفوفة، مما قد يؤدي إلى <span class="smart-term" data-term-en="Stack Overflow" data-ar="طفح المكدس" data-en-def="An error that occurs when attempting to push an element onto a stack that is already full.">طفح المكدس<span class="smart-term-tooltip"></span></span> (Stack Overflow) إذا تجاوز عدد العناصر السعة القصوى.</p><p>يمكن حل ذلك باستخدام مصفوفات ديناميكية (مثل ArrayList) التي تضاعف حجمها عند الامتلاء، ولكن هذا قد يجعل عملية الإضافة تستغرق O(N) في أسوأ الحالات (رغم أنها O(1) في المتوسط).</p></template>
+    <template class="content-en"><p>The main drawback is the fixed size of the array, which can lead to <span class="smart-term" data-term-en="Stack Overflow" data-ar="طفح المكدس" data-en-def="An error that occurs when attempting to push an element onto a stack that is already full.">Stack Overflow<span class="smart-term-tooltip"></span></span> if elements exceed the maximum capacity.</p><p>This can be mitigated using dynamic arrays (like ArrayList) that double in size when full, though this makes the worst-case Push operation O(N) instead of strictly O(1).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>boolean push(int x) {
+    if (top >= (MAX - 1)) {
+        System.out.println("Stack Overflow");
+        return false;
+    } else {
+        a[++top] = x;
+        return true;
+    }
+}
+
+int pop() {
+    if (top < 0) {
+        System.out.println("Stack Underflow");
+        return 0;
+    } else {
+        int x = a[top--];
+        return x;
+    }
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نبدأ قيمة <code>topOfStack</code> بـ -1 وليس 0؟</template>
+      <template class="content-en">Why initialize <code>topOfStack</code> to -1 instead of 0?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن فهارس المصفوفة تبدأ من 0. إذا بدأنا بـ 0، فهذا يعني أن هناك عنصراً موجوداً بالفعل في الفهرس 0. القيمة -1 تشير بوضوح إلى عدم وجود أي عناصر.</p></template>
+      <template class="content-en"><p>Because array indices start at 0. If initialized to 0, it would imply an element already exists at index 0. -1 clearly indicates the stack is completely empty.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="linked-list-implementation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> تنفيذ المكدس باستخدام القائمة المترابطة (Linked List Implementation)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Linked List Implementation of Stacks</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يتم استخدام قائمة مترابطة أحادية، حيث تتم عمليات الإضافة (Push) والحذف (Pop) دائماً في مقدمة القائمة (Front/Head) لضمان تعقيد زمني O(1).</p></template>
+    <template class="content-en"><p>Uses a singly linked list where Push and Pop operations always occur at the front (head) of the list to ensure O(1) time complexity.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في تنفيذ القائمة المترابطة، لا نحتاج إلى تحديد حجم مسبق.</p><p>لعمل Push، نقوم بإنشاء عقدة جديدة (Node) ونجعل مؤشرها يشير إلى العقدة التي تمثل القمة الحالية، ثم نُحدّث مؤشر القمة ليشير إلى العقدة الجديدة.</p><p>لعمل Pop، نحتفظ بقيمة القمة الحالية، ثم نُحدّث مؤشر القمة ليشير إلى العقدة التالية، ونحذف العقدة القديمة.</p></template>
+    <template class="content-en"><p>In the linked list implementation, no predefined size is needed.</p><p>To Push, we create a new Node, set its link to the current top node, and update the top pointer to this new node.</p><p>To Pop, we retrieve the data from the top node, update the top pointer to the next node, and remove the old top.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على الرغم من أن هذا التنفيذ يتجنب مشكلة طفح المكدس (إلا في حالة نفاد ذاكرة النظام - Heap Overflow)، فإنه يتطلب مساحة إضافية لتخزين المؤشرات (Pointers) لكل عقدة.</p><p>كما أن عملية تخصيص الذاكرة الديناميكية لكل عقدة جديدة قد تكون أبطأ قليلاً من الوصول المباشر للمصفوفة.</p></template>
+    <template class="content-en"><p>While this implementation avoids Stack Overflow (except for system Heap Overflow), it requires extra memory overhead for pointers in each node.</p><p>Additionally, dynamic memory allocation for each new node can be slightly slower in practice compared to direct array index access.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public void push(int x) {
+    Node temp = new Node();
+    if (temp == null) {
+        System.out.print("\nHeap Overflow");
+        return;
+    }
+    temp.data = x;
+    temp.link = top;
+    top = temp;
+}
+
+public void pop() {
+    if (top == null) {
+        System.out.print("\nStack Underflow");
+        return;
+    }
+    top = top.link;
+}</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Array Implementation</th><th>Linked List Implementation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعقيد الزمني للعمليات (Push/Pop)</template>
+          <template class="content-en">Time Complexity (Push/Pop)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">O(1) ثابت</template>
+          <template class="content-en">O(1) Constant</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">O(1) ثابت</template>
+          <template class="content-en">O(1) Constant</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">قيود الحجم (Size Limitation)</template>
+          <template class="content-en">Size Limitation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">حجم ثابت، معرض لطفح المكدس (Overflow)</template>
+          <template class="content-en">Fixed size, prone to Stack Overflow</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">حجم ديناميكي، ينمو حسب الحاجة</template>
+          <template class="content-en">Dynamic size, grows as needed</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استهلاك الذاكرة (Memory Overhead)</template>
+          <template class="content-en">Memory Overhead</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا يوجد مساحة إضافية للمؤشرات</template>
+          <template class="content-en">No extra space for pointers</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يتطلب مساحة إضافية لتخزين المؤشر (Link) في كل عقدة</template>
+          <template class="content-en">Requires extra space for the Link pointer in each node</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نقوم بالإضافة والحذف من نهاية القائمة المترابطة (Tail) بدلاً من المقدمة؟</template>
+      <template class="content-en">Why don't we push and pop at the end (tail) of the linked list instead of the front?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الحذف من نهاية قائمة مترابطة أحادية يتطلب المرور عبر القائمة بأكملها للوصول إلى العقدة قبل الأخيرة لتحديث مؤشرها، مما يجعل العملية تستغرق O(N) بدلاً من O(1).</p></template>
+      <template class="content-en"><p>Because popping from the end of a singly linked list requires traversing the entire list to find the second-to-last node to update its pointer, making the operation O(N) instead of O(1).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="balancing-symbols" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> تطبيق: موازنة الرموز (Balancing Symbols)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Application: Balancing Symbols</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يُستخدم المكدس للتحقق من صحة الأقواس في الأكواد. ندفع الأقواس المفتوحة، وعند إيجاد قوس مغلق، نسحب من المكدس ونتحقق من التطابق.</p></template>
+    <template class="content-en"><p>Stacks are used to check for balanced parentheses/brackets in code. Push opening symbols, and on a closing symbol, pop and check for a match.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>خوارزمية موازنة الرموز:</p><ol><li>أنشئ مكدساً فارغاً.</li><li>اقرأ الرموز واحداً تلو الآخر.</li><li>إذا كان الرمز قوساً مفتوحاً (مثل `(`, `[`, `{`)، ادفعه (Push) إلى المكدس.</li><li>إذا كان الرمز قوساً مغلقاً، اسحب (Pop) من المكدس. إذا كان المكدس فارغاً أو الرمز المسحوب لا يطابق القوس المغلق، فهناك خطأ.</li><li>في نهاية الملف، إذا لم يكن المكدس فارغاً، فهناك خطأ (أقواس مفتوحة لم تُغلق).</li></ol></template>
+    <template class="content-en"><p>Balancing Symbols Algorithm:</p><ol><li>Make an empty stack.</li><li>Read characters sequentially.</li><li>If it's an opening symbol (`(`, `[`, `{`), push it onto the stack.</li><li>If it's a closing symbol, pop the stack. If the stack is empty or the popped symbol doesn't match the closing symbol, report an error.</li><li>At the end of the file, if the stack is not empty, report an error.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه الخوارزمية هي الأساس الذي تعتمده المترجمات (Compilers) للتحقق من الأخطاء النحوية (Syntax Errors) المتعلقة بالأقواس.</p><p>تعقيدها الزمني هو O(N) حيث N هو طول السلسلة النصية، لأن كل رمز يتم دفعه وسحبه مرة واحدة كحد أقصى.</p></template>
+    <template class="content-en"><p>This algorithm is the foundation used by compilers to check for syntax errors regarding brackets.</p><p>Its time complexity is O(N) where N is the string length, because each character is pushed and popped at most once.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث في الخوارزمية إذا كان الإدخال هو <code>[(])</code>؟</template>
+      <template class="content-en">What happens in the algorithm if the input is <code>[(])</code>?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يتم دفع <code>[</code> ثم <code>(</code>. عند قراءة <code>]</code>، يتم سحب <code>(</code> من المكدس. بما أن <code>(</code> لا يطابق <code>]</code>، ستبلغ الخوارزمية عن خطأ فوراً.</p></template>
+      <template class="content-en"><p><code>[</code> is pushed, then <code>(</code>. When <code>]</code> is read, <code>(</code> is popped from the stack. Since <code>(</code> does not match <code>]</code>, the algorithm immediately reports an error.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="postfix-evaluation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> تطبيق: تقييم تعبيرات Postfix</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Application: Postfix Expressions Evaluation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>في تعبيرات <span class="smart-term" data-term-en="Postfix Notation" data-ar="التدوين اللاحق" data-en-def="A mathematical notation in which every operator follows all of its operands (e.g., 3 4 +).">Postfix<span class="smart-term-tooltip"></span></span>، تأتي المعاملات (الأرقام) أولاً ثم المعامل (العملية). نستخدم المكدس لدفع الأرقام، وعند قراءة عملية، نسحب رقمين، نحسب النتيجة، وندفعها مجدداً.</p></template>
+    <template class="content-en"><p>In <span class="smart-term" data-term-en="Postfix Notation" data-ar="التدوين اللاحق" data-en-def="A mathematical notation in which every operator follows all of its operands (e.g., 3 4 +).">Postfix<span class="smart-term-tooltip"></span></span> expressions, operands come first, followed by the operator. We push numbers to a stack, and upon seeing an operator, pop two numbers, evaluate, and push the result back.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُعرف تعبيرات Postfix أيضاً باسم <span class="smart-term" data-term-en="Reverse Polish Notation" data-ar="التدوين البولندي العكسي" data-en-def="Another name for Postfix Notation.">Reverse Polish Notation<span class="smart-term-tooltip"></span></span>. ميزتها أنها لا تحتاج إلى أقواس لتحديد أولويات العمليات.</p><p>لتقييمها: نقرأ التعبير من اليسار لليمين.</p><ul><li>إذا كان الرمز رقماً، ندفعه للمكدس.</li><li>إذا كان عملية رياضية (مثل + أو *)، نسحب معاملين من المكدس، نطبق العملية عليهما، ثم ندفع النتيجة مرة أخرى إلى المكدس.</li></ul><p>في النهاية، ستكون النتيجة النهائية هي العنصر الوحيد المتبقي في المكدس.</p></template>
+    <template class="content-en"><p>Postfix expressions are also known as <span class="smart-term" data-term-en="Reverse Polish Notation" data-ar="التدوين البولندي العكسي" data-en-def="Another name for Postfix Notation.">Reverse Polish Notation<span class="smart-term-tooltip"></span></span>. Their advantage is that they don't require parentheses to dictate precedence.</p><p>To evaluate: read left to right.</p><ul><li>If a number, push it.</li><li>If an operator (+, *), pop two operands, apply the operator, and push the result.</li></ul><p>The final answer is the single remaining element in the stack.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يجب الانتباه لترتيب المعاملات عند السحب، خاصة في عمليات الطرح والقسمة. العنصر المسحوب أولاً هو المعامل الأيمن (Right Operand)، والعنصر المسحوب ثانياً هو المعامل الأيسر (Left Operand).</p><p>مثال: لتقييم `3 2 -`، نسحب 2 ثم 3، وتكون العملية `3 - 2` وليس العكس.</p></template>
+    <template class="content-en"><p>Order matters when popping, especially for non-commutative operations like subtraction and division. The first popped element is the Right Operand, and the second is the Left Operand.</p><p>For example, evaluating `3 2 -` pops 2 then 3, and computes `3 - 2`, not the reverse.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A sequence of 4 stack states evaluating the postfix expression '3 2 + 10 *'. State 1: Stack has [3]. State 2: Stack has [3, 2]. State 3: '+' is read, 3 and 2 are popped, 5 is pushed. Stack has [5]. State 4: '10' is pushed. Stack has [5, 10]. State 5: '*' is read, 5 and 10 popped, 50 pushed. Stack has [50]. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title Section -->
+  <text x="400" y="40" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold">Postfix Evaluation / تقييم التعبير اللاحق</text>
+  <text x="400" y="70" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">Expression: 3 2 + 10 *</text>
+
+  <!-- ================= STATE 1 ================= -->
+  <g id="state-1">
+    <!-- Token -->
+    <text x="80" y="95" text-anchor="middle" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">Read / قراءة</text>
+    <circle cx="80" cy="120" r="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="80" y="126" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">3</text>
+    <line x1="80" y1="145" x2="80" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Stack -->
+    <path d="M 35 170 L 45 170 L 45 300 L 115 300 L 115 170 L 125 170" fill="none" stroke="var(--border-color)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="50" y="255" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="80" y="282" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">3</text>
+
+    <!-- Labels -->
+    <text x="80" y="340" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold">Step 1</text>
+    <text x="80" y="365" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Push 3</text>
+    <text x="80" y="390" text-anchor="middle" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">إدراج 3</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="125" y1="240" x2="195" y2="240" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow)" />
+
+  <!-- ================= STATE 2 ================= -->
+  <g id="state-2">
+    <!-- Token -->
+    <circle cx="240" cy="120" r="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="240" y="126" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">2</text>
+    <line x1="240" y1="145" x2="240" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Stack -->
+    <path d="M 195 170 L 205 170 L 205 300 L 275 300 L 275 170 L 285 170" fill="none" stroke="var(--border-color)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="210" y="255" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="240" y="282" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">3</text>
+    <rect x="210" y="210" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="240" y="237" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">2</text>
+
+    <!-- Labels -->
+    <text x="240" y="340" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold">Step 2</text>
+    <text x="240" y="365" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Push 2</text>
+    <text x="240" y="390" text-anchor="middle" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">إدراج 2</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="285" y1="240" x2="355" y2="240" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <rect x="285" y="205" width="70" height="24" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1" />
+  <text x="320" y="222" text-anchor="middle" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold">3 + 2 = 5</text>
+
+  <!-- ================= STATE 3 ================= -->
+  <g id="state-3">
+    <!-- Token -->
+    <circle cx="400" cy="120" r="20" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="400" y="126" text-anchor="middle" fill="var(--bg-surface)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">+</text>
+    <line x1="400" y1="145" x2="400" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Stack -->
+    <path d="M 355 170 L 365 170 L 365 300 L 435 300 L 435 170 L 445 170" fill="none" stroke="var(--border-color)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="370" y="255" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="400" y="282" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">5</text>
+
+    <!-- Labels -->
+    <text x="400" y="340" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold">Step 3</text>
+    <text x="400" y="365" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Pop 3, 2</text>
+    <text x="400" y="385" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Push 5</text>
+    <text x="400" y="410" text-anchor="middle" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">سحب وجمع</text>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="445" y1="240" x2="515" y2="240" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow)" />
+
+  <!-- ================= STATE 4 ================= -->
+  <g id="state-4">
+    <!-- Token -->
+    <circle cx="560" cy="120" r="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="560" y="126" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold">10</text>
+    <line x1="560" y1="145" x2="560" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Stack -->
+    <path d="M 515 170 L 525 170 L 525 300 L 595 300 L 595 170 L 605 170" fill="none" stroke="var(--border-color)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="530" y="255" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="560" y="282" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">5</text>
+    <rect x="530" y="210" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="560" y="237" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">10</text>
+
+    <!-- Labels -->
+    <text x="560" y="340" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold">Step 4</text>
+    <text x="560" y="365" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Push 10</text>
+    <text x="560" y="390" text-anchor="middle" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">إدراج 10</text>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <line x1="605" y1="240" x2="675" y2="240" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <rect x="595" y="205" width="90" height="24" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1" />
+  <text x="640" y="222" text-anchor="middle" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold">5 * 10 = 50</text>
+
+  <!-- ================= STATE 5 ================= -->
+  <g id="state-5">
+    <!-- Token -->
+    <circle cx="720" cy="120" r="20" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="720" y="128" text-anchor="middle" fill="var(--bg-surface)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold">*</text>
+    <line x1="720" y1="145" x2="720" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Stack -->
+    <path d="M 675 170 L 685 170 L 685 300 L 755 300 L 755 170 L 765 170" fill="none" stroke="var(--border-color)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="690" y="255" width="60" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="720" y="282" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold">50</text>
+
+    <!-- Labels -->
+    <text x="720" y="340" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold">Step 5</text>
+    <text x="720" y="365" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Pop 5, 10</text>
+    <text x="720" y="385" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15">Push 50</text>
+    <text x="720" y="410" text-anchor="middle" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">سحب وضرب</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">قم بتقييم التعبير التالي باستخدام المكدس: <code>4.99 1.06 * 5.99 + 6.99 1.06 * +</code></template>
+      <template class="content-en">Evaluate the following expression using a stack: <code>4.99 1.06 * 5.99 + 6.99 1.06 * +</code></template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>النتيجة هي 18.69. الخطوات: دفع 4.99 و 1.06، ضربهما (5.2894)، دفع 5.99، جمعهما (11.2794)، دفع 6.99 و 1.06، ضربهما (7.4094)، جمعهما مع النتيجة السابقة لتصبح 18.6888 (تقريباً 18.69).</p></template>
+      <template class="content-en"><p>The result is 18.69. Steps: push 4.99, push 1.06, multiply (5.2894), push 5.99, add (11.2794), push 6.99, push 1.06, multiply (7.4094), add to previous result yielding 18.6888 (~18.69).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="infix-to-postfix" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تطبيق: تحويل Infix إلى Postfix</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Application: Infix to Postfix Conversion</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>لتحويل تعبير رياضي عادي (<span class="smart-term" data-term-en="Infix Notation" data-ar="التدوين الوسطي" data-en-def="Standard mathematical notation where the operator is placed between operands (e.g., a + b).">Infix<span class="smart-term-tooltip"></span></span>) إلى Postfix، نرسل الأرقام مباشرة للمخرجات، ونستخدم المكدس لتخزين العمليات (Operators) بناءً على <span class="smart-term" data-term-en="Operator Precedence" data-ar="أولوية العمليات" data-en-def="Rules that determine the order in which operations are evaluated (e.g., * has higher precedence than +).">أولوياتها<span class="smart-term-tooltip"></span></span> والأقواس.</p></template>
+    <template class="content-en"><p>To convert a standard math expression (<span class="smart-term" data-term-en="Infix Notation" data-ar="التدوين الوسطي" data-en-def="Standard mathematical notation where the operator is placed between operands (e.g., a + b).">Infix<span class="smart-term-tooltip"></span></span>) to Postfix, output operands immediately, and use a stack to hold operators based on <span class="smart-term" data-term-en="Operator Precedence" data-ar="أولوية العمليات" data-en-def="Rules that determine the order in which operations are evaluated (e.g., * has higher precedence than +).">precedence<span class="smart-term-tooltip"></span></span> and parentheses.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الخوارزمية: 1. نبدأ بمكدس فارغ. 2. إذا قرأنا معاملاً (رقم/حرف)، نخرجه مباشرة. 3. إذا قرأنا قوساً أيسر `(`، ندفعه للمكدس. 4. إذا قرأنا قوساً أيمن `)`، نسحب من المكدس للمخرجات حتى نجد القوس الأيسر `(` (نسحبه ولا نخرجه). 5. إذا قرأنا عملية (+, *, الخ)، نسحب من المكدس للمخرجات أي عملية لها أولوية أكبر أو مساوية، ثم ندفع العملية الحالية. 6. عند نهاية الإدخال، نسحب كل ما تبقى في المكدس للمخرجات.</p></template>
+    <template class="content-en"><p>Algorithm: 1. Start with an empty stack. 2. If an operand is read, output it. 3. If a left parenthesis `(`, push it. 4. If a right parenthesis `)`, pop to output until a left parenthesis is found (pop and discard the `(`). 5. If an operator (+, *), pop to output any operators with greater or equal precedence, then push the current operator. 6. At the end of input, pop all remaining operators to output.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه الخوارزمية (المعروفة بخوارزمية Shunting-yard) تحل مشكلة ترتيب العمليات الرياضية المعقدة.</p><p>الأقواس المفتوحة `(` لها أولوية عالية عند قراءتها (تُدفع دائماً)، ولكن بمجرد دخولها المكدس، تُعامل كأن لها أولوية منخفضة جداً حتى لا تتسبب في سحب العمليات الأخرى قبل إغلاق القوس.</p></template>
+    <template class="content-en"><p>This algorithm (known as the Shunting-yard algorithm) resolves complex operator precedence.</p><p>A left parenthesis `(` has high precedence when read (always pushed), but once inside the stack, it acts as having the lowest precedence so it doesn't force other operators to pop until the matching `)` is found.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A table showing the step-by-step conversion of 'a + b * c + ( d * e + f ) * g' to postfix. Columns: Expression (current char), Stack (contents), Output (current string). Highlight the rule where '*' is pushed on top of '+' because of higher precedence, and how ')' forces popping until '('. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 760" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title Section -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Infix to Postfix Conversion / تحويل التعبير إلى Postfix</text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">Expression / التعبير : a + b * c + ( d * e + f ) * g</text>
+
+    <!-- Table Base -->
+    <rect x="20" y="90" width="760" height="620" fill="var(--bg-elevated)" rx="8" stroke="var(--border-color)" stroke-width="2"/>
+    
+    <!-- Header Background -->
+    <path d="M 20 98 A 8 8 0 0 1 28 90 L 772 90 A 8 8 0 0 1 780 98 L 780 130 L 20 130 Z" fill="var(--brand-500)" opacity="0.1"/>
+
+    <!-- Highlighted Rows Backgrounds -->
+    <!-- Step 4 Highlight -->
+    <rect x="21" y="238" width="758" height="36" fill="var(--brand-500)" opacity="0.15"/>
+    <!-- Step 13 Highlight -->
+    <rect x="21" y="562" width="758" height="36" fill="var(--brand-500)" opacity="0.15"/>
+
+    <!-- Table Lines -->
+    <!-- Header Separator -->
+    <line x1="20" y1="130" x2="780" y2="130" stroke="var(--border-color)" stroke-width="2"/>
+    
+    <!-- Column Separators -->
+    <line x1="90" y1="90" x2="90" y2="710" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="210" y1="90" x2="210" y2="710" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="480" y1="90" x2="480" y2="710" stroke="var(--border-color)" stroke-width="1"/>
+
+    <!-- Row Separators -->
+    <line x1="20" y1="166" x2="780" y2="166" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="202" x2="780" y2="202" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="238" x2="780" y2="238" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="274" x2="780" y2="274" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="310" x2="780" y2="310" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="346" x2="780" y2="346" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="382" x2="780" y2="382" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="418" x2="780" y2="418" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="454" x2="780" y2="454" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="490" x2="780" y2="490" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="526" x2="780" y2="526" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="562" x2="780" y2="562" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="598" x2="780" y2="598" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="634" x2="780" y2="634" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+    <line x1="20" y1="670" x2="780" y2="670" stroke="var(--border-color)" stroke-width="1" opacity="0.4"/>
+
+    <!-- Highlight Arrows -->
+    <path d="M 25 256 L 38 256" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 25 580 L 38 580" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Table Headers -->
+    <text x="55" y="116" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Token</text>
+    <text x="150" y="116" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Stack</text>
+    <text x="345" y="116" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Output</text>
+    <text x="630" y="116" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Action &amp; Rule / الإجراء والقاعدة</text>
+
+    <!-- Row 1 -->
+    <text x="55" y="154" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a</text>
+    <text x="150" y="154" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">[empty]</text>
+    <text x="345" y="154" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a</text>
+    <text x="630" y="154" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 2 -->
+    <text x="55" y="190" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+</text>
+    <text x="150" y="190" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+</text>
+    <text x="345" y="190" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a</text>
+    <text x="630" y="190" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Push '+' / دفع</text>
+
+    <!-- Row 3 -->
+    <text x="55" y="226" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">b</text>
+    <text x="150" y="226" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+</text>
+    <text x="345" y="226" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b</text>
+    <text x="630" y="226" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 4 (HIGHLIGHTED) -->
+    <text x="55" y="262" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--brand-500)" font-weight="bold" text-anchor="middle">*</text>
+    <text x="150" y="262" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" font-weight="bold" text-anchor="middle">+ *</text>
+    <text x="345" y="262" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b</text>
+    <text x="630" y="262" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--brand-500)" font-weight="bold" text-anchor="middle">Push '*' ( '*' &gt; '+' ) / أولوية أعلى</text>
+
+    <!-- Row 5 -->
+    <text x="55" y="298" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">c</text>
+    <text x="150" y="298" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ *</text>
+    <text x="345" y="298" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c</text>
+    <text x="630" y="298" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 6 -->
+    <text x="55" y="334" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+</text>
+    <text x="150" y="334" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+</text>
+    <text x="345" y="334" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * +</text>
+    <text x="630" y="334" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Pop '*', Pop '+', Push '+' / إخراج ودفع</text>
+
+    <!-- Row 7 -->
+    <text x="55" y="370" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">(</text>
+    <text x="150" y="370" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ (</text>
+    <text x="345" y="370" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * +</text>
+    <text x="630" y="370" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Push '(' / دفع</text>
+
+    <!-- Row 8 -->
+    <text x="55" y="406" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">d</text>
+    <text x="150" y="406" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ (</text>
+    <text x="345" y="406" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d</text>
+    <text x="630" y="406" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 9 -->
+    <text x="55" y="442" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">*</text>
+    <text x="150" y="442" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ ( *</text>
+    <text x="345" y="442" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d</text>
+    <text x="630" y="442" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Push '*' / دفع</text>
+
+    <!-- Row 10 -->
+    <text x="55" y="478" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">e</text>
+    <text x="150" y="478" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ ( *</text>
+    <text x="345" y="478" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e</text>
+    <text x="630" y="478" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 11 -->
+    <text x="55" y="514" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+</text>
+    <text x="150" y="514" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ ( +</text>
+    <text x="345" y="514" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e *</text>
+    <text x="630" y="514" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Pop '*', Push '+' / إخراج ودفع</text>
+
+    <!-- Row 12 -->
+    <text x="55" y="550" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">f</text>
+    <text x="150" y="550" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ ( +</text>
+    <text x="345" y="550" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e * f</text>
+    <text x="630" y="550" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 13 (HIGHLIGHTED) -->
+    <text x="55" y="586" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--brand-500)" font-weight="bold" text-anchor="middle">)</text>
+    <text x="150" y="586" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" font-weight="bold" text-anchor="middle">+</text>
+    <text x="345" y="586" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e * f +</text>
+    <text x="630" y="586" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--brand-500)" font-weight="bold" text-anchor="middle">Pop until '(' / إخراج حتى القوس</text>
+
+    <!-- Row 14 -->
+    <text x="55" y="622" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">*</text>
+    <text x="150" y="622" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ *</text>
+    <text x="345" y="622" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e * f +</text>
+    <text x="630" y="622" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Push '*' / دفع</text>
+
+    <!-- Row 15 -->
+    <text x="55" y="658" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">g</text>
+    <text x="150" y="658" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">+ *</text>
+    <text x="345" y="658" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e * f + g</text>
+    <text x="630" y="658" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Print / طباعة</text>
+
+    <!-- Row 16 -->
+    <text x="55" y="694" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">End</text>
+    <text x="150" y="694" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">[empty]</text>
+    <text x="345" y="694" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">a b c * + d e * f + g * +</text>
+    <text x="630" y="694" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Pop all remaining / إخراج المتبقي</text>
+
+    <!-- Legend -->
+    <text x="400" y="740" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Highlighted rows demonstrate operator precedence ( * &gt; + ) and parenthesis handling.</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">حوّل التعبير التالي إلى Postfix: <code>a + b * c + ( d * e + f ) * g</code></template>
+      <template class="content-en">Convert the following expression to Postfix: <code>a + b * c + ( d * e + f ) * g</code></template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>النتيجة الصحيحة هي: <code>a b c * + d e * f + g * +</code></p></template>
+      <template class="content-en"><p>The correct answer is: <code>a b c * + d e * f + g * +</code></p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في الوحدة الرابعة! اليوم نغوص في عالم 'المكدس' (Stack)، وهو من أكثر هياكل البيانات أناقة وصرامة. قوته تنبع من قيوده: مبدأ LIFO. من خلال السماح بالوصول فقط إلى 'القمة'، نحصل على عمليات سريعة جداً بتعقيد زمني O(1). لقد استكشفنا طريقتين لبنائه: باستخدام المصفوفات (احذروا من الحجم الثابت والبدء بـ top=-1) والقوائم المترابطة (حيث نضيف ونحذف من المقدمة). لكن المكدس ليس مجرد نظرية؛ إنه المحرك الأساسي خلف المترجمات (Compilers) للتحقق من صحة الأقواس (موازنة الرموز)، وهو الطريقة التي تفهم بها الآلات الرياضيات (عبر تحويل Infix إلى Postfix وتقييمه). أتقنوا عمليتي Push و Pop، لأنها سترافقكم في مواضيع متقدمة مثل إدارة الذاكرة وخوارزميات التراجع. ركزوا جيداً على تتبع حالة المكدس خطوة بخطوة في أسئلة التحويل والتقييم، فهذه أسئلة مضمونة في الامتحان!</template>
+    <template class="content-en">Welcome to Module 4! Today we dive into the 'Stack', one of the most elegant and strict data structures. Its power comes from its restriction: the LIFO principle. By only allowing access at the 'top', we achieve blazing fast O(1) operations. We explored two ways to build it: using Arrays (watch out for the fixed size and starting with top=-1) and Linked Lists (inserting/deleting at the head). But a stack isn't just theory; it's the engine behind compilers checking syntax (balancing symbols) and how machines understand math (converting Infix to Postfix and evaluating it). Master Push and Pop, as they will follow you into advanced topics like memory management and backtracking. Focus heavily on tracing the stack state step-by-step in conversion and evaluation questions—these are guaranteed exam points!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم المكدس بدلاً من قائمة عادية (List)؟</template>
+          <template class="content-en">Why use a stack instead of a general list?</template>
+          <span class="content-target">لماذا نستخدم المكدس بدلاً من قائمة عادية (List)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">القيود هي الميزة هنا. المكدس يفرض مبدأ LIFO، مما يمنع التعديل العشوائي في منتصف البيانات. هذا يحمي تسلسل العمليات (مثل التراجع أو استدعاء الدوال) ويضمن أداء O(1).</template>
+          <template class="content-en">The restriction is the feature. A stack enforces LIFO, preventing random modifications in the middle of the data. This protects the sequence of operations (like undo or function calls) and guarantees O(1) performance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتعامل تنفيذ المصفوفة مع مشكلة الامتلاء؟</template>
+          <template class="content-en">How does the array implementation handle the stack becoming full?</template>
+          <span class="content-target">كيف يتعامل تنفيذ المصفوفة مع مشكلة الامتلاء؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">في التنفيذ الأساسي، إذا وصل <code>top</code> إلى <code>MAX - 1</code>، فإنه يطبع خطأ 'Stack Overflow' ويرفض الإضافة. في التنفيذات المتقدمة، يمكن مضاعفة حجم المصفوفة ديناميكياً.</template>
+          <template class="content-en">In the basic implementation, if <code>top</code> reaches <code>MAX - 1</code>, it prints a 'Stack Overflow' error and rejects the push. In advanced implementations, the array size can be dynamically doubled.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نضيف ونحذف من مقدمة القائمة المترابطة (Head) وليس من نهايتها؟</template>
+          <template class="content-en">Why do we push and pop at the front (Head) of the linked list and not the end?</template>
+          <span class="content-target">لماذا نضيف ونحذف من مقدمة القائمة المترابطة (Head) وليس من نهايتها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">للحفاظ على التعقيد الزمني O(1). الإضافة والحذف من النهاية في قائمة أحادية يتطلب المرور على كل العناصر للوصول للعقدة قبل الأخيرة، مما يستغرق O(N).</template>
+          <template class="content-en">To maintain O(1) time complexity. Pushing and popping at the end of a singly linked list requires traversing all elements to reach the second-to-last node, which takes O(N).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التدوين اللاحق (Postfix) ولماذا تفضله الحواسيب؟</template>
+          <template class="content-en">What is Postfix notation and why do computers prefer it?</template>
+          <span class="content-target">ما هو التدوين اللاحق (Postfix) ولماذا تفضله الحواسيب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو تدوين تأتي فيه العملية بعد الأرقام (مثل 3 2 +). الحواسيب تفضله لأنه لا يحتاج إلى أقواس أو قواعد أولوية معقدة؛ يمكن تقييمه بمرور واحد من اليسار لليمين باستخدام مكدس.</template>
+          <template class="content-en">It is a notation where the operator comes after the operands (e.g., 3 2 +). Computers prefer it because it requires no parentheses or complex precedence rules; it can be evaluated in a single left-to-right pass using a stack.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في تقييم Postfix، ما هو الترتيب الصحيح للمعاملات عند سحبها لعملية الطرح؟</template>
+          <template class="content-en">In Postfix evaluation, what is the correct order of operands when popped for subtraction?</template>
+          <span class="content-target">في تقييم Postfix، ما هو الترتيب الصحيح للمعاملات عند سحبها لعملية الطرح؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">العنصر المسحوب أولاً هو المعامل الأيمن، والثاني هو الأيسر. لتعبير <code>5 3 -</code>، نسحب 3 ثم 5، ونحسب <code>5 - 3</code>.</template>
+          <template class="content-en">The first popped element is the right operand, and the second is the left operand. For <code>5 3 -</code>, we pop 3 then 5, and compute <code>5 - 3</code>.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في خوارزمية Infix إلى Postfix، ما هي القاعدة عند قراءة عملية رياضية (Operator)؟</template>
+          <template class="content-en">In the Infix to Postfix algorithm, what is the rule when reading an operator?</template>
+          <span class="content-target">في خوارزمية Infix إلى Postfix، ما هي القاعدة عند قراءة عملية رياضية (Operator)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نسحب من المكدس إلى المخرجات أي عمليات لها أولوية أكبر أو مساوية للعملية الحالية، ثم ندفع العملية الحالية إلى المكدس.</template>
+          <template class="content-en">Pop operators from the stack to the output that have greater or equal precedence to the current operator, then push the current operator onto the stack.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم التعامل مع الأقواس في تحويل Infix إلى Postfix؟</template>
+          <template class="content-en">How are parentheses handled in Infix to Postfix conversion?</template>
+          <span class="content-target">كيف يتم التعامل مع الأقواس في تحويل Infix إلى Postfix؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">القوس الأيسر <code>(</code> يُدفع دائماً. عند قراءة قوس أيمن <code>)</code>، نسحب كل العمليات للمخرجات حتى نجد <code>(</code>، ثم نسحبه ونتخلص منه (لا نطبعه).</template>
+          <template class="content-en">A left parenthesis <code>(</code> is always pushed. When a right parenthesis <code>)</code> is read, we pop all operators to the output until we find <code>(</code>, then pop and discard it (do not print it).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث إذا انتهى التعبير في خوارزمية موازنة الرموز والمكدس ليس فارغاً؟</template>
+          <template class="content-en">What happens if the expression ends in the Balancing Symbols algorithm and the stack is not empty?</template>
+          <span class="content-target">ماذا يحدث إذا انتهى التعبير في خوارزمية موازنة الرموز والمكدس ليس فارغاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هذا يعني وجود أقواس مفتوحة لم يتم إغلاقها، وبالتالي التعبير غير متوازن (يوجد خطأ نحوي).</template>
+          <template class="content-en">This means there are opening brackets that were never closed, so the expression is unbalanced (a syntax error exists).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن استخدام المكدس في خوارزميات التراجع (Backtracking)؟</template>
+          <template class="content-en">Can a stack be used in Backtracking algorithms?</template>
+          <span class="content-target">هل يمكن استخدام المكدس في خوارزميات التراجع (Backtracking)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، المكدس مثالي للتراجع. يتم دفع الحالة الحالية (مثل موقع في متاهة) للمكدس. إذا وصلنا لطريق مسدود، نسحب (Pop) للعودة للحالة السابقة وتجربة مسار آخر.</template>
+          <template class="content-en">Yes, a stack is perfect for backtracking. The current state (like a position in a maze) is pushed. If a dead end is reached, we pop to return to the previous state and try another path.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين Stack Overflow و Stack Underflow؟</template>
+          <template class="content-en">What is the difference between Stack Overflow and Stack Underflow?</template>
+          <span class="content-target">ما الفرق بين Stack Overflow و Stack Underflow؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">Overflow يحدث عند محاولة الإضافة (Push) لمكدس ممتلئ. Underflow يحدث عند محاولة الحذف (Pop) من مكدس فارغ.</template>
+          <template class="content-en">Overflow occurs when trying to Push to a full stack. Underflow occurs when trying to Pop from an empty stack.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو المكدس (Stack)؟",
+      "en": "What is a Stack?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قائمة مقيدة تعتمد مبدأ LIFO، حيث تتم الإضافات والحذف من طرف واحد يسمى القمة.",
+        "en": "A restricted list based on the LIFO principle, where insertions and deletions occur at one end called the top."
+      },
+      "example": {
+        "ar": "مثل كومة من الصحون، لا يمكنك أخذ صحن إلا من الأعلى.",
+        "en": "Like a stack of plates, you can only take a plate from the top."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ماذا يعني اختصار LIFO؟",
+      "en": "What does LIFO stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ما يدخل أخيراً يخرج أولاً.",
+        "en": "Last In, First Out."
+      },
+      "example": {
+        "ar": "آخر عنصر تم عمل Push له هو أول عنصر يتم عمل Pop له.",
+        "en": "The last element pushed is the first element popped."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي عملية Push؟",
+      "en": "What is the Push operation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية إدراج عنصر جديد في قمة المكدس.",
+        "en": "The operation equivalent to an insert at the top of the stack."
+      },
+      "example": {
+        "ar": "push(5) يضع الرقم 5 في أعلى المكدس.",
+        "en": "push(5) places the number 5 at the top of the stack."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي عملية Pop؟",
+      "en": "What is the Pop operation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية حذف وإرجاع العنصر الأحدث (الموجود في القمة) من المكدس.",
+        "en": "The operation that deletes and returns the most recently inserted element from the top."
+      },
+      "example": {
+        "ar": "إذا كان المكدس يحتوي على [1, 2]، فإن pop() سيزيل ويرجع 2.",
+        "en": "If stack has [1, 2], pop() removes and returns 2."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي القيمة الابتدائية لمؤشر القمة (topOfStack) في تنفيذ المصفوفة؟",
+      "en": "What is the initial value of `topOfStack` in an array implementation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "القيمة -1.",
+        "en": "The value -1."
+      },
+      "example": {
+        "ar": "top = -1 يعني أن المكدس فارغ.",
+        "en": "top = -1 indicates an empty stack."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو طفح المكدس (Stack Overflow)؟",
+      "en": "What is Stack Overflow?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خطأ يحدث عند محاولة إضافة (Push) عنصر إلى مكدس ممتلئ.",
+        "en": "An error that occurs when attempting to push an element onto a full stack."
+      },
+      "example": {
+        "ar": "يحدث غالباً في تنفيذ المصفوفة ذات الحجم الثابت.",
+        "en": "Commonly occurs in fixed-size array implementations."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو نقص المكدس (Stack Underflow)؟",
+      "en": "What is Stack Underflow?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خطأ يحدث عند محاولة سحب (Pop) عنصر من مكدس فارغ.",
+        "en": "An error that occurs when attempting to pop an element from an empty stack."
+      },
+      "example": {
+        "ar": "استدعاء pop() عندما يكون top == -1.",
+        "en": "Calling pop() when top == -1."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "أين تتم عمليات الإضافة والحذف في تنفيذ القائمة المترابطة للمكدس؟",
+      "en": "Where do push and pop operations occur in a Linked List implementation of a stack?"
+    },
+    "back": {
+      "definition": {
+        "ar": "في مقدمة القائمة (Front/Head).",
+        "en": "At the front (head) of the list."
+      },
+      "example": {
+        "ar": "لضمان أن العمليات تستغرق وقت O(1).",
+        "en": "To ensure operations take O(1) time."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لعمليات المكدس الأساسية؟",
+      "en": "What is the time complexity of fundamental stack operations?"
+    },
+    "back": {
+      "definition": {
+        "ar": "وقت ثابت O(1).",
+        "en": "Constant time O(1)."
+      },
+      "example": {
+        "ar": "سواء استخدمنا مصفوفة أو قائمة مترابطة، الإضافة والحذف لا تتطلب المرور على العناصر.",
+        "en": "Whether using an array or linked list, push and pop do not require traversing elements."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "كيف نستخدم المكدس لموازنة الرموز (Balancing Symbols)؟",
+      "en": "How is a stack used for Balancing Symbols?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ندفع الأقواس المفتوحة، ونسحب عند رؤية قوس مغلق لنتحقق من التطابق.",
+        "en": "Push opening brackets, and pop upon seeing a closing bracket to check for a match."
+      },
+      "example": {
+        "ar": "التسلسل [()] صحيح، بينما [(]) خاطئ.",
+        "en": "The sequence [()] is legal, but [(]) is wrong."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو التدوين اللاحق (Postfix Notation)؟",
+      "en": "What is Postfix Notation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة لكتابة التعبيرات الرياضية حيث تأتي العملية بعد المعاملات.",
+        "en": "A way of writing mathematical expressions where the operator comes after the operands."
+      },
+      "example": {
+        "ar": "بدلاً من 3 + 2 نكتب 3 2 +",
+        "en": "Instead of 3 + 2, we write 3 2 +"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "كيف يتم تقييم تعبير Postfix باستخدام المكدس؟",
+      "en": "How is a Postfix expression evaluated using a stack?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ندفع الأرقام، وعند قراءة عملية نسحب رقمين، نحسب النتيجة، وندفعها مجدداً.",
+        "en": "Push numbers; on an operator, pop two numbers, evaluate, and push the result."
+      },
+      "example": {
+        "ar": "لتقييم 3 2 +، ندفع 3، ندفع 2، نسحبهما ونجمعهما، وندفع 5.",
+        "en": "To evaluate 3 2 +, push 3, push 2, pop both and add, push 5."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "في خوارزمية تحويل Infix إلى Postfix، ماذا نفعل عند قراءة قوس أيمن `)`؟",
+      "en": "In Infix to Postfix conversion, what do we do when reading a right parenthesis `)`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نسحب العمليات من المكدس إلى المخرجات حتى نجد القوس الأيسر `(`.",
+        "en": "Pop operators from the stack to the output until a left parenthesis `(` is found."
+      },
+      "example": {
+        "ar": "القوس الأيسر يُسحب من المكدس ولكن لا يُطبع في المخرجات.",
+        "en": "The left parenthesis is popped but not printed to the output."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "في خوارزمية تحويل Infix إلى Postfix، متى نسحب عملية من المكدس؟",
+      "en": "In Infix to Postfix conversion, when do we pop an operator from the stack?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما نقرأ عملية جديدة، نسحب العمليات الموجودة في المكدس التي لها أولوية أكبر أو مساوية.",
+        "en": "When reading a new operator, we pop entries from the stack that have greater or equal priority."
+      },
+      "example": {
+        "ar": "إذا كان المكدس يحتوي على * وقرأنا +، نسحب * أولاً.",
+        "en": "If stack has * and we read +, we pop * first."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "اذكر تطبيقين شائعين للمكدس.",
+      "en": "Name two common applications of a stack."
+    },
+    "back": {
+      "definition": {
+        "ar": "تقييم التعبيرات الرياضية، وموازنة الرموز (الأقواس).",
+        "en": "Expression Evaluation and Balancing Symbols."
+      },
+      "example": {
+        "ar": "تطبيقات أخرى تشمل التراجع (Backtracking) وإدارة الذاكرة.",
+        "en": "Other applications include Backtracking and Memory Management."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي مبدأ يتبعه المكدس (Stack) في تنظيم البيانات؟",
+      "en": "Which principle does a Stack follow in organizing data?"
+    },
+    "options": {
+      "ar": [
+        "ما يدخل أولاً يخرج أولاً (FIFO)",
+        "ما يدخل أخيراً يخرج أولاً (LIFO)",
+        "الوصول العشوائي (Random Access)",
+        "الفرز التلقائي (Auto Sorting)"
+      ],
+      "en": [
+        "First In, First Out (FIFO)",
+        "Last In, First Out (LIFO)",
+        "Random Access",
+        "Auto Sorting"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المكدس يعتمد مبدأ LIFO، حيث يتم سحب العنصر الأحدث إدراجاً أولاً.",
+      "en": "A stack is based on the LIFO principle, where the most recently inserted element is popped first."
+    },
+    "hint": {
+      "ar": "فكر في كومة من الصحون.",
+      "en": "Think of a stack of plates."
+    },
+    "difficulty": "easy",
+    "conceptId": "stack-model-lifo"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في تنفيذ المكدس باستخدام المصفوفة، ما هي القيمة الابتدائية لمؤشر `topOfStack`؟",
+      "en": "In the array implementation of a stack, what is the initial value of `topOfStack`?"
+    },
+    "options": {
+      "ar": [
+        "0",
+        "1",
+        "-1",
+        "حجم المصفوفة"
+      ],
+      "en": [
+        "0",
+        "1",
+        "-1",
+        "Array size"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يتم تهيئة `topOfStack` بالقيمة -1 للدلالة على أن المكدس فارغ، لأن فهارس المصفوفة تبدأ من 0.",
+      "en": "`topOfStack` is initialized to -1 to indicate an empty stack, since array indices start at 0."
+    },
+    "hint": {
+      "ar": "يجب أن تكون قيمة خارج نطاق الفهارس الصالحة للمصفوفة.",
+      "en": "It must be a value outside the valid array indices."
+    },
+    "difficulty": "medium",
+    "conceptId": "array-implementation"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لعمليتي Push و Pop في المكدس؟",
+      "en": "What is the time complexity of Push and Pop operations in a stack?"
+    },
+    "options": {
+      "ar": [
+        "O(N)",
+        "O(log N)",
+        "O(N^2)",
+        "O(1)"
+      ],
+      "en": [
+        "O(N)",
+        "O(log N)",
+        "O(N^2)",
+        "O(1)"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "عمليات المكدس تتم دائماً في طرف واحد (القمة)، لذا فهي تستغرق وقتاً ثابتاً O(1).",
+      "en": "Stack operations always occur at one end (the top), so they take constant time O(1)."
+    },
+    "hint": {
+      "ar": "لا نحتاج للمرور على جميع العناصر.",
+      "en": "We don't need to traverse all elements."
+    },
+    "difficulty": "easy",
+    "conceptId": "stack-model-lifo"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أين يتم إدراج العناصر وحذفها عند تنفيذ المكدس باستخدام القائمة المترابطة؟",
+      "en": "Where are elements inserted and deleted when implementing a stack using a Linked List?"
+    },
+    "options": {
+      "ar": [
+        "في نهاية القائمة (Tail)",
+        "في مقدمة القائمة (Front/Head)",
+        "في منتصف القائمة",
+        "بشكل عشوائي"
+      ],
+      "en": [
+        "At the end of the list (Tail)",
+        "At the front of the list (Front/Head)",
+        "In the middle of the list",
+        "Randomly"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لضمان تعقيد زمني O(1)، تتم الإضافة والحذف دائماً في مقدمة القائمة المترابطة.",
+      "en": "To ensure O(1) time complexity, insertions and deletions always occur at the front of the linked list."
+    },
+    "hint": {
+      "ar": "الوصول إلى النهاية يتطلب O(N) في القائمة الأحادية.",
+      "en": "Accessing the end takes O(N) in a singly linked list."
+    },
+    "difficulty": "medium",
+    "conceptId": "linked-list-implementation"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في خوارزمية موازنة الرموز، ماذا نفعل عند قراءة قوس مغلق؟",
+      "en": "In the Balancing Symbols algorithm, what do we do when reading a closing symbol?"
+    },
+    "options": {
+      "ar": [
+        "ندفعه إلى المكدس",
+        "نتجاهله",
+        "نسحب من المكدس ونتحقق من التطابق",
+        "نفرغ المكدس بالكامل"
+      ],
+      "en": [
+        "Push it onto the stack",
+        "Ignore it",
+        "Pop the stack and check for a match",
+        "Empty the entire stack"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "عند قراءة قوس مغلق، يجب سحب آخر قوس مفتوح من المكدس والتأكد من أنهما متطابقان.",
+      "en": "When a closing symbol is read, we pop the last opening symbol from the stack and verify they match."
+    },
+    "hint": {
+      "ar": "كيف تتأكد أن القوس المغلق يخص آخر قوس تم فتحه؟",
+      "en": "How do you ensure the closing bracket belongs to the last opened one?"
+    },
+    "difficulty": "medium",
+    "conceptId": "balancing-symbols"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي نتيجة تقييم تعبير Postfix التالي: `3 2 + 10 *` ؟",
+      "en": "What is the result of evaluating the following Postfix expression: `3 2 + 10 *` ?"
+    },
+    "options": {
+      "ar": [
+        "15",
+        "50",
+        "320",
+        "60"
+      ],
+      "en": [
+        "15",
+        "50",
+        "320",
+        "60"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "3 + 2 = 5. ثم 5 * 10 = 50.",
+      "en": "3 + 2 = 5. Then 5 * 10 = 50."
+    },
+    "hint": {
+      "ar": "نفذ الجمع أولاً على 3 و 2، ثم اضرب الناتج في 10.",
+      "en": "Perform addition on 3 and 2 first, then multiply the result by 10."
+    },
+    "difficulty": "hard",
+    "conceptId": "postfix-evaluation"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو التحويل الصحيح للتعبير `a + b * c` إلى Postfix؟",
+      "en": "What is the correct conversion of the Infix expression `a + b * c` to Postfix?"
+    },
+    "options": {
+      "ar": [
+        "a b + c *",
+        "a b c * +",
+        "+ a * b c",
+        "a b c + *"
+      ],
+      "en": [
+        "a b + c *",
+        "a b c * +",
+        "+ a * b c",
+        "a b c + *"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عملية الضرب لها أولوية أعلى من الجمع، لذا يتم تقييم `b * c` أولاً لتصبح `b c *`، ثم تُجمع مع `a` لتصبح `a b c * +`.",
+      "en": "Multiplication has higher precedence than addition, so `b * c` is evaluated first as `b c *`, then added to `a` resulting in `a b c * +`."
+    },
+    "hint": {
+      "ar": "تذكر أولويات العمليات الرياضية.",
+      "en": "Remember operator precedence."
+    },
+    "difficulty": "hard",
+    "conceptId": "infix-to-postfix"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "في خوارزمية تحويل Infix إلى Postfix، ماذا يحدث عند قراءة قوس أيسر `(` ؟",
+      "en": "In the Infix to Postfix conversion algorithm, what happens when a left parenthesis `(` is read?"
+    },
+    "options": {
+      "ar": [
+        "يُرسل مباشرة إلى المخرجات",
+        "يُدفع إلى المكدس",
+        "يتم سحب جميع العناصر من المكدس",
+        "يتم تجاهله"
+      ],
+      "en": [
+        "It is sent directly to the output",
+        "It is pushed onto the stack",
+        "All elements are popped from the stack",
+        "It is ignored"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "القوس الأيسر يُدفع دائماً إلى المكدس لتحديد بداية نطاق جديد للعمليات.",
+      "en": "A left parenthesis is always pushed onto the stack to mark the beginning of a new scope for operators."
+    },
+    "hint": {
+      "ar": "نحتاج لتخزينه حتى نجد القوس الأيمن المطابق له.",
+      "en": "We need to store it until we find its matching right parenthesis."
+    },
+    "difficulty": "medium",
+    "conceptId": "infix-to-postfix"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "أي من الحالات التالية تسبب خطأ 'Stack Underflow'؟",
+      "en": "Which of the following situations causes a 'Stack Underflow' error?"
+    },
+    "options": {
+      "ar": [
+        "إضافة عنصر لمكدس ممتلئ",
+        "سحب عنصر من مكدس فارغ",
+        "تهيئة المكدس بحجم سالب",
+        "استخدام قائمة مترابطة بدلاً من مصفوفة"
+      ],
+      "en": [
+        "Pushing an element to a full stack",
+        "Popping an element from an empty stack",
+        "Initializing the stack with a negative size",
+        "Using a linked list instead of an array"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نقص المكدس (Underflow) يحدث عندما تحاول تنفيذ عملية Pop على مكدس لا يحتوي على أي عناصر.",
+      "en": "Stack Underflow occurs when you attempt to perform a Pop operation on a stack that has no elements."
+    },
+    "hint": {
+      "ar": "Underflow يعني 'تحت التدفق' أو نقص.",
+      "en": "Underflow implies a lack of elements."
+    },
+    "difficulty": "easy",
+    "conceptId": "array-implementation"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من التطبيقات التالية لا يُعتبر تطبيقاً نموذجياً للمكدس؟",
+      "en": "Which of the following is NOT considered a typical application of a stack?"
+    },
+    "options": {
+      "ar": [
+        "تقييم التعبيرات (Expression Evaluation)",
+        "موازنة الرموز (Balancing Symbols)",
+        "التراجع (Backtracking)",
+        "جدولة مهام الطابعة (Printer Task Scheduling)"
+      ],
+      "en": [
+        "Expression Evaluation",
+        "Balancing Symbols",
+        "Backtracking",
+        "Printer Task Scheduling"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "جدولة مهام الطابعة تعتمد على مبدأ FIFO (ما يدخل أولاً يخرج أولاً)، لذا تستخدم بنية الطابور (Queue) وليس المكدس.",
+      "en": "Printer task scheduling relies on the FIFO principle (First In, First Out), so it uses a Queue data structure, not a Stack."
+    },
+    "hint": {
+      "ar": "فكر في التطبيق الذي يتطلب معالجة المهام بالترتيب الذي وصلت به.",
+      "en": "Think of the application that requires processing tasks in the exact order they arrived."
+    },
+    "difficulty": "medium",
+    "conceptId": "stack-model-lifo"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن مؤشر <code>topOfStack</code> في تنفيذ المصفوفة يبدأ من 0. هذا فخ شائع! يجب أن يبدأ من -1، لأن 0 هو فهرس صالح في المصفوفة ويعني وجود عنصر واحد.</template>
+      <template class="content-en">Believing that the <code>topOfStack</code> pointer in an array implementation starts at 0. This is a common trap! It must start at -1, because 0 is a valid array index and implies one element exists.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في تقييم تعبيرات Postfix، ترتيب السحب مهم جداً للعمليات غير التبادلية (مثل الطرح والقسمة). العنصر المسحوب أولاً هو المعامل الأيمن، والعنصر المسحوب ثانياً هو المعامل الأيسر.</template>
+      <template class="content-en">In Postfix evaluation, the order of popping is crucial for non-commutative operations (like subtraction and division). The first popped element is the Right Operand, and the second is the Left Operand.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تنفيذ المكدس باستخدام القائمة المترابطة يتجنب مشكلة 'Stack Overflow' الناتجة عن حجم المصفوفة الثابت، ولكنه قد يواجه 'Heap Overflow' إذا نفدت ذاكرة النظام بالكامل بسبب إنشاء عقد جديدة.</template>
+      <template class="content-en">Implementing a stack with a linked list avoids the 'Stack Overflow' caused by fixed array sizes, but it can still face a 'Heap Overflow' if the system runs out of memory entirely due to creating new nodes.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند تحويل Infix إلى Postfix، ينسى الكثيرون سحب العمليات المتبقية في المكدس وإضافتها للمخرجات بعد الانتهاء من قراءة التعبير. تذكر الخطوة الأخيرة: أفرغ المكدس!</template>
+      <template class="content-en">When converting Infix to Postfix, many forget to pop the remaining operators in the stack to the output after finishing reading the expression. Remember the final step: empty the stack!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الهدف الأساسي من استخدام المكدس هو ضمان أن عمليات الإضافة والحذف تتم في وقت ثابت O(1). إذا وجدت نفسك تبحث أو تمر على العناصر داخل المكدس، فأنت لا تستخدمه بشكل صحيح.</template>
+      <template class="content-en">The primary goal of using a stack is to ensure push and pop operations occur in constant O(1) time. If you find yourself searching or traversing elements inside a stack, you are not using it correctly.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M03.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M05.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

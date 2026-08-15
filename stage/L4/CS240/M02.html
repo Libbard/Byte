@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS240" data-module="2">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحليل الخوارزميات · CS240 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS240" data-page-title-en="CS240">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M01.html" data-gh-next="M03.html" data-gh-card="../../hub/course.html?code=CS240"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#algorithm-efficiency-growth-rate" class="toc-link" data-bilingual>
+        <template class="content-ar">كفاءة الخوارزمية ومعدل النمو</template>
+        <template class="content-en">Algorithm Efficiency and Rate of Growth</template>
+        <span class="content-target">كفاءة الخوارزمية ومعدل النمو</span>
+      </a>
+      <a href="#asymptotic-notations" class="toc-link" data-bilingual>
+        <template class="content-ar">الرموز التقاربية (Big-O, Omega, Theta)</template>
+        <template class="content-en">Asymptotic Notations (Big-O, Omega, Theta)</template>
+        <span class="content-target">الرموز التقاربية (Big-O, Omega, Theta)</span>
+      </a>
+      <a href="#analysis-cases" class="toc-link" data-bilingual>
+        <template class="content-ar">حالات التحليل (الأسوأ، المتوسط، الأفضل)</template>
+        <template class="content-en">Analysis Cases (Worst, Average, Best)</template>
+        <span class="content-target">حالات التحليل (الأسوأ، المتوسط، الأفضل)</span>
+      </a>
+      <a href="#running-time-calculation-rules" class="toc-link" data-bilingual>
+        <template class="content-ar">قواعد حساب وقت التشغيل</template>
+        <template class="content-en">Running Time Calculation Rules</template>
+        <span class="content-target">قواعد حساب وقت التشغيل</span>
+      </a>
+      <a href="#logarithmic-and-exponential-loops" class="toc-link" data-bilingual>
+        <template class="content-ar">الحلقات اللوغاريتمية والأسية</template>
+        <template class="content-en">Logarithmic and Exponential Loops</template>
+        <span class="content-target">الحلقات اللوغاريتمية والأسية</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 2</template>
+      <template class="content-en">Module 2</template>
+      <span class="content-target">الوحدة 2</span>
+    </span> · CS240
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تحليل الخوارزميات</h1>
+      <p class="hero-description">فهم تعقيد الخوارزميات، الرموز التقاربية (Big-O, Omega, Theta)، وقواعد حساب وقت التشغيل للبرامج.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Algorithm Analysis</h1>
+      <p class="hero-description">Understanding algorithm complexity, asymptotic notations (Big-O, Omega, Theta), and rules for calculating the running time of programs.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">هياكل البيانات</span>
+      <span class="tag">تحليل الخوارزميات</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Data Structures</span>
+      <span class="tag">Algorithm Analysis</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم تعقيد الخوارزمية وكيفية نمو وقت التشغيل مع حجم المدخلات.</span></li>
+      <li><span class="obj-icon">✦</span><span>تقييم وتقليل وقت تشغيل البرنامج باستخدام التحليل الرياضي.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم كيفية تصميم خوارزميات فعالة من خلال تحليل الحالات المختلفة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the complexity of an Algorithm and how running time grows with input size.</span></li>
+      <li><span class="obj-icon">✦</span><span>Evaluate and reduce running time of a program using mathematical analysis.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand how to design efficient algorithms through analyzing different cases.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="algorithm-efficiency-growth-rate" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> كفاءة الخوارزمية ومعدل النمو</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Algorithm Efficiency and Rate of Growth</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>كفاءة الخوارزمية تقاس بـ <span class="smart-term" data-term-en="Rate of Growth" data-ar="معدل النمو" data-en-def="How fast a function's running time increases as the input size increases.">معدل نمو<span class="smart-term-tooltip"></span></span> وقت التشغيل بناءً على حجم المدخلات، وليس بالثواني.</p>
+    </template>
+    <template class="content-en">
+      <p>Algorithm efficiency is measured by the <span class="smart-term" data-term-en="Rate of Growth" data-ar="معدل النمو" data-en-def="How fast a function's running time increases as the input size increases.">rate of growth<span class="smart-term-tooltip"></span></span> of running time based on input size, not in seconds.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يعتمد وقت تشغيل الخوارزمية على عدة عوامل مثل سرعة الكمبيوتر، لغة البرمجة، والمترجم (Compiler).</p><p>لذلك، بدلاً من قياس الوقت الفعلي، نركز على <strong><span class="smart-term" data-term-en="Rate of Growth" data-ar="معدل النمو" data-en-def="How fast a function's running time increases as the input size increases.">معدل النمو (Rate of Growth)<span class="smart-term-tooltip"></span></span></strong> لوقت التشغيل مع زيادة حجم المدخلات (n).</p><p>على سبيل المثال، في دالة مثل <code>6n^2 + 100n + 3006</code>، يصبح الحد <code>n^2</code> هو <span class="smart-term" data-term-en="dominant term" data-ar="الحد المهيمن" data-en-def="The term in a mathematical function that grows the fastest and dictates the overall complexity.">المهيمن<span class="smart-term-tooltip"></span></span> عندما يصبح n كبيراً بما يكفي، ونتجاهل المعاملات والحدود الأصغر.</p></template>
+    <template class="content-en"><p>The running time of an algorithm depends on factors like computer speed, programming language, and the compiler.</p><p>Therefore, instead of measuring actual time, we focus on how fast a function grows with the input size (n), known as the <strong><span class="smart-term" data-term-en="Rate of Growth" data-ar="معدل النمو" data-en-def="How fast a function's running time increases as the input size increases.">rate of growth<span class="smart-term-tooltip"></span></span></strong>.</p><p>For example, in a function like <code>6n^2 + 100n + 3006</code>, the <code>n^2</code> term becomes <span class="smart-term" data-term-en="dominant term" data-ar="الحد المهيمن" data-en-def="The term in a mathematical function that grows the fastest and dictates the overall complexity.">dominant<span class="smart-term-tooltip"></span></span> as n grows large enough, allowing us to ignore coefficients and lower-order terms.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نتجاهل الثوابت؟ لأن التحليل التقاربي (Asymptotic Analysis) يهتم بالسلوك عند المالانهاية.</p><p>الثوابت تعتمد على الأجهزة، بينما معدل النمو يعكس المنطق الرياضي البحت للخوارزمية.</p></template>
+    <template class="content-en"><p>Why do we drop constants? Because asymptotic analysis is concerned with behavior at infinity.</p><p>Constants are hardware-dependent, whereas the rate of growth reflects the pure mathematical logic of the algorithm.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>تجاهل الثوابت والحدود ذات الرتبة الأقل للتركيز على الحد المهيمن.</strong></template>
+      <template class="content-en"><strong>Dropping constants and lower-order terms to focus on the dominant term.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$T(n) = c_1 n^2 + c_2 n + c_3 \approx O(n^2)$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: A line graph comparing two functions: a linear function (100n + 300) in blue and a quadratic function (6n^2) in red. The X-axis represents input size 'n' (0 to 100), and the Y-axis represents operations. The red curve starts below the blue line but sharply crosses and exceeds it around n=20, demonstrating how the squared term dominates as n grows. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg viewBox="0 0 800 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-primary)" />
+    </marker>
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <text x="400" y="35" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--text-primary)">Linear vs Quadratic Time Complexity</text>
+  <text x="400" y="60" text-anchor="middle" font-size="16" fill="var(--text-secondary)">مقارنة التعقيد الزمني الخطي والتربيعي</text>
+
+  <!-- Grid Lines -->
+  <!-- Horizontal (Y-axis) -->
+  <line x1="100" y1="330" x2="720" y2="330" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="100" y1="242.5" x2="720" y2="242.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="100" y1="155" x2="720" y2="155" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="100" y1="67.5" x2="720" y2="67.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  
+  <!-- Vertical (X-axis) -->
+  <line x1="220" y1="417.5" x2="220" y2="67.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="340" y1="417.5" x2="340" y2="67.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="460" y1="417.5" x2="460" y2="67.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="580" y1="417.5" x2="580" y2="67.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+  <line x1="700" y1="417.5" x2="700" y2="67.5" stroke="var(--border-color)" stroke-dasharray="4 4" />
+
+  <!-- Axes -->
+  <line x1="100" y1="417.5" x2="740" y2="417.5" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="100" y1="417.5" x2="100" y2="45" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Y-axis Labels -->
+  <text x="85" y="422.5" text-anchor="end" font-size="14" fill="var(--text-secondary)">0</text>
+  <text x="85" y="335" text-anchor="end" font-size="14" fill="var(--text-secondary)">3,000</text>
+  <text x="85" y="247.5" text-anchor="end" font-size="14" fill="var(--text-secondary)">6,000</text>
+  <text x="85" y="160" text-anchor="end" font-size="14" fill="var(--text-secondary)">9,000</text>
+  <text x="85" y="72.5" text-anchor="end" font-size="14" fill="var(--text-secondary)">12,000</text>
+  
+  <!-- Y-axis Title -->
+  <text x="-230" y="30" transform="rotate(-90)" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">Operations / عدد العمليات</text>
+
+  <!-- X-axis Labels -->
+  <text x="220" y="440" text-anchor="middle" font-size="14" fill="var(--text-secondary)">20</text>
+  <text x="340" y="440" text-anchor="middle" font-size="14" fill="var(--text-secondary)">40</text>
+  <text x="460" y="440" text-anchor="middle" font-size="14" fill="var(--text-secondary)">60</text>
+  <text x="580" y="440" text-anchor="middle" font-size="14" fill="var(--text-secondary)">80</text>
+  <text x="700" y="440" text-anchor="middle" font-size="14" fill="var(--text-secondary)">100</text>
+
+  <!-- X-axis Title -->
+  <text x="420" y="480" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">Input Size (n) / حجم المدخلات</text>
+
+  <!-- Functions -->
+  <!-- Linear Function: f(n) = 100n + 300 -->
+  <!-- (100, 408.75) to (700, 117.08) -->
+  <line x1="100" y1="408.75" x2="700" y2="117.08" stroke="var(--text-secondary)" stroke-width="3" stroke-dasharray="6 6" />
+
+  <!-- Quadratic Function: g(n) = 6n^2 -->
+  <!-- Points calculated for smooth curve up to y=12000 -->
+  <polyline points="100,417.5 130,413.1 160,400 190,378.1 220,347.5 250,308.1 280,260 310,203.1 340,137.5 352,108.8 368.3,67.5" fill="none" stroke="var(--brand-500)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Intersection Point (n ≈ 19.3, y ≈ 2226) -->
+  <line x1="215.5" y1="352.6" x2="215.5" y2="417.5" stroke="var(--text-muted)" stroke-dasharray="4 4" stroke-width="2" />
+  <circle cx="215.5" cy="352.6" r="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  
+  <!-- Intersection Label -->
+  <text x="230" y="357" text-anchor="start" font-size="14" font-weight="bold" fill="var(--text-primary)">Intersection (n ≈ 19.3)</text>
+  <text x="230" y="377" text-anchor="start" font-size="13" fill="var(--text-secondary)">نقطة التقاطع</text>
+
+  <!-- Annotations -->
+  <!-- Initial Phase -->
+  <text x="115" y="290" text-anchor="start" font-size="14" font-weight="bold" fill="var(--text-secondary)">Initially: f(n) &gt; g(n)</text>
+  <text x="115" y="310" text-anchor="start" font-size="13" fill="var(--text-muted)">في البداية الخطي أكبر</text>
+  <path d="M 150 320 Q 150 360 135 390" fill="none" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)" />
+
+  <!-- Dominance Phase -->
+  <text x="385" y="160" text-anchor="start" font-size="15" font-weight="bold" fill="var(--brand-500)">g(n) dominates as n grows</text>
+  <text x="385" y="180" text-anchor="start" font-size="14" fill="var(--text-secondary)">التربيعي يهيمن مع زيادة n</text>
+  <path d="M 380 155 Q 350 155 345 125" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow-brand)" />
+
+  <!-- Legend -->
+  <rect x="520" y="80" width="250" height="90" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="8" />
+  
+  <!-- Legend Item 1: Linear -->
+  <line x1="535" y1="105" x2="565" y2="105" stroke="var(--text-secondary)" stroke-width="3" stroke-dasharray="6 6" />
+  <text x="575" y="110" font-size="14" font-weight="bold" fill="var(--text-primary)">Linear: f(n) = 100n + 300</text>
+  
+  <!-- Legend Item 2: Quadratic -->
+  <line x1="535" y1="140" x2="565" y2="140" stroke="var(--brand-500)" stroke-width="4" />
+  <text x="575" y="145" font-size="14" font-weight="bold" fill="var(--text-primary)">Quadratic: g(n) = 6n²</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت خوارزمية تستغرق 1000n خطوة وأخرى تستغرق n^2 خطوة، متى تصبح الخوارزمية الأولى أسرع من الثانية؟</template>
+      <template class="content-en">If one algorithm takes 1000n steps and another takes n^2 steps, when does the first algorithm become faster than the second?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تصبح الخوارزمية الأولى أسرع عندما يتجاوز حجم المدخلات n القيمة 1000.</p></template>
+      <template class="content-en"><p>The first algorithm becomes faster when the input size n exceeds 1000.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="asymptotic-notations" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الرموز التقاربية (Big-O, Omega, Theta)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Asymptotic Notations (Big-O, Omega, Theta)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الرموز التقاربية تصف حدود تعقيد الخوارزمية: Big-O لـ <span class="smart-term" data-term-en="Upper Bound" data-ar="الحد الأعلى" data-en-def="The maximum amount of time an algorithm could possibly take.">الحد الأعلى<span class="smart-term-tooltip"></span></span>، Omega لـ <span class="smart-term" data-term-en="Lower Bound" data-ar="الحد الأدنى" data-en-def="The minimum amount of time an algorithm could possibly take.">الحد الأدنى<span class="smart-term-tooltip"></span></span>، و Theta للحد الدقيق.</p>
+    </template>
+    <template class="content-en">
+      <p>Asymptotic notations describe the bounds of algorithm complexity: Big-O for <span class="smart-term" data-term-en="Upper Bound" data-ar="الحد الأعلى" data-en-def="The maximum amount of time an algorithm could possibly take.">upper bound<span class="smart-term-tooltip"></span></span>, Omega for <span class="smart-term" data-term-en="Lower Bound" data-ar="الحد الأدنى" data-en-def="The minimum amount of time an algorithm could possibly take.">lower bound<span class="smart-term-tooltip"></span></span>, and Theta for exact bound.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم الرموز الرياضية لوصف السلوك الحدي للدوال:</p><ol><li><strong>Big O (O)</strong>: يصف <span class="smart-term" data-term-en="Upper Bound" data-ar="الحد الأعلى" data-en-def="The maximum amount of time an algorithm could possibly take.">الحد الأعلى (Upper Bound)<span class="smart-term-tooltip"></span></span>. يعني أن وقت التشغيل ينمو بمعدل أقل من أو يساوي دالة معينة.</li><li><strong>Omega (Ω)</strong>: يصف <span class="smart-term" data-term-en="Lower Bound" data-ar="الحد الأدنى" data-en-def="The minimum amount of time an algorithm could possibly take.">الحد الأدنى (Lower Bound)<span class="smart-term-tooltip"></span></span>. يعني أن وقت التشغيل ينمو بمعدل أكبر من أو يساوي دالة معينة.</li><li><strong>Theta (Θ)</strong>: يصف الحد الدقيق (Exact Bound). يعني أن وقت التشغيل ينمو بنفس معدل الدالة المعينة.</li><li><strong>Little O (o)</strong>: يصف الحد الأعلى الصارم (Strict Upper Bound)، مستبعداً الحد الدقيق.</li></ol></template>
+    <template class="content-en"><p>Mathematical notations are used to describe the limiting behavior of functions:</p><ol><li><strong>Big O (O)</strong>: Describes the <span class="smart-term" data-term-en="Upper Bound" data-ar="الحد الأعلى" data-en-def="The maximum amount of time an algorithm could possibly take.">upper bound<span class="smart-term-tooltip"></span></span>. It means the growth rate of T(n) <= growth rate of f(n).</li><li><strong>Omega (Ω)</strong>: Describes the lower bound. It means the growth rate of T(n) >= growth rate of f(n).</li><li><strong>Theta (Θ)</strong>: Describes the exact bound. It means the growth rate of T(n) == growth rate of f(n).</li><li><strong>Little O (o)</strong>: Describes the upper bound excluding the exact bound (T(n) < f(n)).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التعريف الرسمي لـ Big-O: T(N) = O(f(N)) إذا وُجدت ثوابت موجبة c و n0 بحيث أن T(N) <= c * f(N) لجميع N >= n0.</p><p>هذا يضمن أن الخوارزمية لن تتجاوز هذا المنحنى أبداً بعد نقطة معينة.</p></template>
+    <template class="content-en"><p>Formal definition of Big-O: T(N) = O(f(N)) if there exist positive constants c and n0 such that T(N) <= c * f(N) for all N >= n0.</p><p>This guarantees the algorithm will never exceed this curve after a certain point.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعريف الرياضي لـ Big-O.</strong></template>
+      <template class="content-en"><strong>Mathematical definition of Big-O.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$T(N) \le c \cdot f(N) \implies T(N) = O(f(N))$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: A graph illustrating Big-Oh definition. The X-axis is 'n' and Y-axis is 'T(n)'. A curve T(n) fluctuates but eventually stays below another smooth curve labeled 'c * g(n)' after a specific point on the X-axis labeled 'n0'. This visually represents the asymptotic upper bound. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <!-- Arrowhead for axes -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-primary)" />
+        </marker>
+        <!-- Arrowhead for brand-colored lines -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Shaded Region for Asymptotic Behavior (n >= n0) -->
+    <rect x="360" y="40" width="380" height="280" fill="var(--brand-500)" opacity="0.08" rx="4" />
+    <text x="550" y="70" fill="var(--brand-500)" font-size="15" font-weight="bold" text-anchor="middle" opacity="0.9">Asymptotic Upper Bound / حد علوي تقاربي</text>
+
+    <!-- Axes -->
+    <line x1="80" y1="320" x2="760" y2="320" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+    <line x1="80" y1="320" x2="80" y2="40" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Axes Labels -->
+    <text x="750" y="305" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="end">Input Size (n) / حجم المدخلات</text>
+    <text x="40" y="180" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle" transform="rotate(-90, 40, 180)">Time T(n) / وقت التنفيذ</text>
+
+    <!-- Guide Lines for Intersection -->
+    <line x1="80" y1="255" x2="360" y2="255" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,4" />
+    <line x1="360" y1="320" x2="360" y2="255" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="5,5" />
+
+    <!-- c * g(n) Curve (Upper Bound) -->
+    <path d="M 80 300 Q 400 300 720 50" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="8,4" />
+    <text x="730" y="45" fill="var(--brand-500)" font-size="16" font-weight="bold">c · g(n)</text>
+
+    <!-- T(n) Curve (Actual Time Complexity) -->
+    <path d="M 80 280 C 120 280, 130 180, 160 180 C 190 180, 200 260, 230 260 C 260 260, 270 150, 300 150 C 330 150, 340 255, 360 255 C 380 255, 390 280, 420 270 C 450 260, 460 220, 490 220 C 520 220, 530 250, 560 240 C 590 230, 600 180, 630 170 C 660 160, 680 190, 720 150" fill="none" stroke="var(--text-primary)" stroke-width="3" />
+    <text x="730" y="155" fill="var(--text-primary)" font-size="16" font-weight="bold">T(n)</text>
+
+    <!-- Intersection Point (n0) -->
+    <circle cx="360" cy="255" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5" />
+    <text x="360" y="345" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">n₀</text>
+
+    <!-- n >= n0 Indicator -->
+    <path d="M 360 340 L 360 350 M 360 345 L 720 345" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+    <text x="540" y="368" fill="var(--brand-500)" font-size="15" font-weight="bold" text-anchor="middle">n ≥ n₀</text>
+
+    <!-- Info Box -->
+    <rect x="100" y="30" width="250" height="95" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+    <text x="225" y="55" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Big-O Notation / رمز O الكبير</text>
+    <text x="225" y="82" fill="var(--brand-500)" font-size="18" font-weight="bold" text-anchor="middle">T(n) = O(g(n))</text>
+    <text x="225" y="108" fill="var(--text-secondary)" font-size="14" text-anchor="middle">T(n) ≤ c · g(n)   ∀ n ≥ n₀</text>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Big O (O)</th>
+        <th>Omega (Ω)</th>
+        <th>Theta (Θ)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المعنى الرياضي</template>
+          <template class="content-en">Mathematical Meaning</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أقل من أو يساوي (<=)</template>
+          <template class="content-en">Less than or equal to (<=)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أكبر من أو يساوي (>=)</template>
+          <template class="content-en">Greater than or equal to (>=)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يساوي تماماً (==)</template>
+          <template class="content-en">Exactly equal to (==)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع الحد</template>
+          <template class="content-en">Bound Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الحد الأعلى (Upper Bound)</template>
+          <template class="content-en">Upper Bound</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الحد الأدنى (Lower Bound)</template>
+          <template class="content-en">Lower Bound</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الحد الدقيق (Exact Bound)</template>
+          <template class="content-en">Exact Bound</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">حالة الاستخدام الشائعة</template>
+          <template class="content-en">Common Use Case</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أسوأ حالة (Worst Case)</template>
+          <template class="content-en">Worst Case</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أفضل حالة (Best Case)</template>
+          <template class="content-en">Best Case</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متوسط الحالة (Average Case)</template>
+          <template class="content-en">Average Case</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم Big-O أكثر من الرموز الأخرى في علوم الحاسب؟</template>
+      <template class="content-en">Why is Big-O used more frequently than other notations in computer science?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا نهتم عادة بضمان ألا يتجاوز البرنامج وقتاً معيناً (أسوأ حالة)، مما يجعل الحد الأعلى (Big-O) المقياس الأكثر أهمية وعملية.</p></template>
+      <template class="content-en"><p>Because we usually care about guaranteeing that a program won't exceed a certain amount of time (worst-case), making the upper bound (Big-O) the most practical and important metric.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="analysis-cases" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> حالات التحليل (الأسوأ، المتوسط، الأفضل)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Analysis Cases (Worst, Average, Best)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>نحلل الخوارزميات بناءً على <span class="smart-term" data-term-en="Worst Case" data-ar="أسوأ حالة" data-en-def="The scenario where the algorithm performs the maximum number of operations.">أسوأ حالة<span class="smart-term-tooltip"></span></span> (الأكثر استخداماً)، متوسط الحالة (صعب الحساب)، وأفضل حالة (غير مفيدة غالباً).</p>
+    </template>
+    <template class="content-en">
+      <p>We analyze algorithms based on the <span class="smart-term" data-term-en="Worst Case" data-ar="أسوأ حالة" data-en-def="The scenario where the algorithm performs the maximum number of operations.">Worst Case<span class="smart-term-tooltip"></span></span> (most common), Average Case (hard to calculate), and Best Case (often bogus).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند تحليل خوارزمية، ننظر إلى ثلاث حالات:</p><ol><li><strong><span class="smart-term" data-term-en="Worst Case" data-ar="أسوأ حالة" data-en-def="The scenario where the algorithm performs the maximum number of operations.">أسوأ حالة (Worst Case)<span class="smart-term-tooltip"></span></span></strong>: نحسب الحد الأعلى لوقت التشغيل. تحدث عندما تتطلب المدخلات أقصى عدد من العمليات (مثل عدم وجود العنصر في البحث الخطي). وهي الحالة الأكثر استخداماً.</li><li><strong>متوسط الحالة (Average Case)</strong>: نأخذ كل المدخلات الممكنة ونحسب متوسط وقت التشغيل. تتطلب معرفة التوزيع الاحتمالي للمدخلات، مما يجعلها معقدة جداً.</li><li><strong>أفضل حالة (Best Case)</strong>: نحسب الحد الأدنى لوقت التشغيل. تحدث عندما تتطلب المدخلات أقل عدد من العمليات (مثل إيجاد العنصر في أول موقع). تُعتبر غالباً غير مفيدة (<span class="smart-term" data-term-en="Bogus" data-ar="زائف / غير مفيد" data-en-def="A term used to describe Best Case analysis because it does not provide a reliable performance guarantee.">Bogus<span class="smart-term-tooltip"></span></span>) لأنها لا تعطي ضمانات حقيقية للأداء.</li></ol></template>
+    <template class="content-en"><p>When analyzing an algorithm, we consider three cases:</p><ol><li><strong><span class="smart-term" data-term-en="Worst Case" data-ar="أسوأ حالة" data-en-def="The scenario where the algorithm performs the maximum number of operations.">Worst Case Analysis<span class="smart-term-tooltip"></span></span></strong>: Calculates the upper bound on running time. Occurs when inputs cause the maximum number of operations (e.g., element not found in linear search). This is usually done.</li><li><strong>Average Case Analysis</strong>: Takes all possible inputs and calculates the average computing time. Requires knowing the probability distribution of inputs, making it extremely complex.</li><li><strong>Best Case Analysis</strong>: Calculates the lower bound on running time. Occurs when inputs cause the minimum number of operations (e.g., element found at the first index). Often considered '<span class="smart-term" data-term-en="Bogus" data-ar="زائف / غير مفيد" data-en-def="A term used to describe Best Case analysis because it does not provide a reliable performance guarantee.">Bogus<span class="smart-term-tooltip"></span></span>' because it provides no real performance guarantees.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في العديد من الخوارزميات المعقدة، يمكن الوصول إلى حد أسوأ حالة بمدخلات سيئة معينة ولكنه غالباً ما يكون مبالغاً فيه في الممارسة العملية.</p><p>ومع ذلك، نظراً لصعوبة حساب متوسط الحالة، يظل أسوأ حالة هو المعيار التحليلي الأفضل المتاح.</p></template>
+    <template class="content-en"><p>For many complicated algorithms, the worst-case bound is achievable by some bad input but is usually an overestimate in practice.</p><p>Unfortunately, because average-case analysis is extremely complex, the worst-case bound remains the best analytical result known.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>static int search(int arr[], int n, int x) {
+    for (int i = 0; i &lt; n; i++) {
+        if (arr[i] == x) {
+            return i; // Best case: i=0. Worst case: not found.
+        }
+    }
+    return -1;
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر تحليل 'أفضل حالة' زائفاً (Bogus) في معظم التطبيقات العملية؟</template>
+      <template class="content-en">Why is 'Best Case' analysis considered bogus in most practical applications?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يعتمد على ظروف مثالية نادرة الحدوث (مثل أن تكون المصفوفة مرتبة مسبقاً أو العنصر في البداية)، ولا يعطي أي ضمان للمستخدم عن الوقت الأقصى الذي قد يستغرقه البرنامج.</p></template>
+      <template class="content-en"><p>Because it relies on rare, ideal conditions (like an already sorted array or finding the item immediately) and provides no guarantee to the user about the maximum time the program might take.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="running-time-calculation-rules" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> قواعد حساب وقت التشغيل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Running Time Calculation Rules</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>لحساب وقت التشغيل: اضرب لـ <span class="smart-term" data-term-en="Nested Loops" data-ar="الحلقات المتداخلة" data-en-def="Loops placed inside other loops, where their complexities are multiplied.">الحلقات المتداخلة<span class="smart-term-tooltip"></span></span>، اجمع للجمل المتتالية، وخذ الأكبر لجمل الشرط (if/else).</p>
+    </template>
+    <template class="content-en">
+      <p>To calculate running time: multiply for <span class="smart-term" data-term-en="Nested Loops" data-ar="الحلقات المتداخلة" data-en-def="Loops placed inside other loops, where their complexities are multiplied.">nested loops<span class="smart-term-tooltip"></span></span>, add for consecutive statements, and take the maximum for if/else branches.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>القواعد العامة لحساب تعقيد الوقت (Big-O):</p><ol><li><strong>حلقات for (Rule 1)</strong>: وقت التشغيل هو وقت الجمل داخل الحلقة مضروباً في عدد التكرارات.</li><li><strong><span class="smart-term" data-term-en="Nested Loops" data-ar="الحلقات المتداخلة" data-en-def="Loops placed inside other loops, where their complexities are multiplied.">الحلقات المتداخلة (Rule 2)<span class="smart-term-tooltip"></span></span></strong>: حلل من الداخل للخارج. وقت التشغيل هو حاصل ضرب أحجام جميع الحلقات المتداخلة (مثال: حلقتان متداخلتان بحجم n تعطي O(n^2)).</li><li><strong>الجمل المتتالية (Rule 3)</strong>: تُجمع أوقات التشغيل، ونحتفظ بالحد المهيمن فقط (مثال: O(n) متبوعاً بـ O(n^2) يصبح O(n^2)).</li><li><strong>جمل if/else (Rule 4)</strong>: وقت التشغيل لا يتجاوز وقت اختبار الشرط زائد وقت الفرع الأطول بين S1 و S2.</li></ol></template>
+    <template class="content-en"><p>General Rules for computing Big-Oh:</p><ol><li><strong>For loops (Rule 1)</strong>: Running time is at most the running time of statements inside the loop times the number of iterations.</li><li><strong><span class="smart-term" data-term-en="Nested Loops" data-ar="الحلقات المتداخلة" data-en-def="Loops placed inside other loops, where their complexities are multiplied.">Nested loops (Rule 2)<span class="smart-term-tooltip"></span></span></strong>: Analyze inside out. Total running time is the product of the sizes of all the loops (e.g., two nested loops of size n give O(n^2)).</li><li><strong>Consecutive Statements (Rule 3)</strong>: Add the times together, keeping only the dominant term (e.g., O(n) followed by O(n^2) is O(n^2)).</li><li><strong>If/else (Rule 4)</strong>: Running time is never more than the time of the test plus the larger of the running times of S1 and S2.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>عند تحليل استدعاءات الدوال (Method calls)، يجب تحليلها أولاً.</p><p>إذا كان هناك استدعاء عودي (Recursion)، يعتمد التعقيد على عمق شجرة الاستدعاء و<span class="smart-term" data-term-en="Branching Factor" data-ar="عامل التفرع" data-en-def="The number of recursive calls made within a single execution of a recursive function.">عامل التفرع<span class="smart-term-tooltip"></span></span>.</p><p>مثلاً، دالة فيبوناتشي البسيطة تتفرع مرتين في كل خطوة بعمق n، مما يعطي تعقيداً أسياً O(2^n).</p></template>
+    <template class="content-en"><p>When analyzing method calls, they must be analyzed first.</p><p>For recursion, complexity depends on the depth of the recursion tree and the <span class="smart-term" data-term-en="Branching Factor" data-ar="عامل التفرع" data-en-def="The number of recursive calls made within a single execution of a recursive function.">branching factor<span class="smart-term-tooltip"></span></span>.</p><p>For example, a naive Fibonacci function branches twice at each step to a depth of n, resulting in an exponential complexity of O(2^n).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>قاعدة حساب تعقيد جملة if/else.</strong></template>
+      <template class="content-en"><strong>Rule for calculating the complexity of an if/else statement.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$O(if/else) = O(condition) + \max(O(S1), O(S2))$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>for( i = 0; i &lt; n; i++ )
+    for( j = 0; j &lt; n; j++ )
+        k++;</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>for( i = 0; i &lt; n; i++ )
+    a[i] = 0;
+for( i = 0; i &lt; n; i++ )
+    for( j = 0; j &lt; n; j++ )
+        a[i] += a[j] + i + j;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: A tree diagram showing the recursive calls for a Fibonacci function fib(5). The root is fib(5), branching to fib(4) and fib(3). fib(4) branches to fib(3) and fib(2), and so on, down to the base cases fib(1) and fib(0). This illustrates the O(2^n) exponential growth and the branching factor of 2. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 1000 650" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <text x="500" y="40" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Recursive Tree for Fibonacci: fib(5)</text>
+    <text x="500" y="70" font-size="18" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">شجرة الاستدعاء الذاتي لخوارزمية فيبوناتشي</text>
+
+    <!-- Complexity Info Box -->
+    <rect x="20" y="20" width="230" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="135" y="45" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Time Complexity: O(2ⁿ)</text>
+    <text x="135" y="70" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Branching Factor: 2</text>
+
+    <!-- Legend Box -->
+    <rect x="750" y="20" width="230" height="110" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="865" y="42" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Legend / مفتاح الخريطة</text>
+    
+    <rect x="765" y="55" width="20" height="14" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="795" y="67" font-size="13" fill="var(--text-secondary)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Recursive Call</text>
+    
+    <rect x="765" y="80" width="20" height="14" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+    <text x="795" y="92" font-size="13" fill="var(--text-secondary)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Base Case (Returns 1 or 0)</text>
+    
+    <circle cx="775" cy="110" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="775" y="111" font-size="10" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">V</text>
+    <text x="795" y="112" font-size="13" fill="var(--text-secondary)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Return Value</text>
+
+    <!-- Level Indicators -->
+    <line x1="30" y1="120" x2="30" y2="520" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6 6" />
+    
+    <circle cx="30" cy="120" r="5" fill="var(--text-muted)" />
+    <text x="45" y="125" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Level 0</text>
+    
+    <circle cx="30" cy="220" r="5" fill="var(--text-muted)" />
+    <text x="45" y="225" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Level 1</text>
+    
+    <circle cx="30" cy="320" r="5" fill="var(--text-muted)" />
+    <text x="45" y="325" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Level 2</text>
+    
+    <circle cx="30" cy="420" r="5" fill="var(--text-muted)" />
+    <text x="45" y="425" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Level 3</text>
+    
+    <circle cx="30" cy="520" r="5" fill="var(--text-muted)" />
+    <text x="45" y="525" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Level 4</text>
+
+    <!-- Highlight Boxes for Overlapping Subproblems -->
+    <!-- Right fib(3) Subtree -->
+    <rect x="595" y="185" width="330" height="270" rx="16" fill="var(--brand-500)" opacity="0.05" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="8 4" />
+    <text x="760" y="480" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Repeated Subproblem</text>
+    <text x="760" y="505" font-size="14" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">مشكلة فرعية متكررة</text>
+
+    <!-- Left fib(3) Subtree -->
+    <rect x="55" y="285" width="270" height="270" rx="16" fill="var(--brand-500)" opacity="0.05" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="8 4" />
+    <text x="190" y="580" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Identical Subproblem</text>
+    <text x="190" y="605" font-size="14" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">نفس المشكلة الفرعية</text>
+
+    <!-- Connecting Edges -->
+    <g stroke="var(--brand-400)" stroke-width="2" fill="none" marker-end="url(#arrow)">
+        <!-- Level 0 to 1 -->
+        <path d="M 560,140 C 560,167.5 335,167.5 335,195" />
+        <path d="M 560,140 C 560,167.5 790,167.5 790,195" />
+        
+        <!-- Level 1 to 2 -->
+        <path d="M 335,240 C 335,267.5 210,267.5 210,295" />
+        <path d="M 335,240 C 335,267.5 460,267.5 460,295" />
+        <path d="M 790,240 C 790,267.5 700,267.5 700,295" />
+        <path d="M 790,240 C 790,267.5 880,267.5 880,295" />
+        
+        <!-- Level 2 to 3 -->
+        <path d="M 210,340 C 210,367.5 140,367.5 140,395" />
+        <path d="M 210,340 C 210,367.5 280,367.5 280,395" />
+        <path d="M 460,340 C 460,367.5 400,367.5 400,395" />
+        <path d="M 460,340 C 460,367.5 520,367.5 520,395" />
+        <path d="M 700,340 C 700,367.5 640,367.5 640,395" />
+        <path d="M 700,340 C 700,367.5 760,367.5 760,395" />
+        
+        <!-- Level 3 to 4 -->
+        <path d="M 140,440 C 140,467.5 100,467.5 100,495" />
+        <path d="M 140,440 C 140,467.5 180,467.5 180,495" />
+    </g>
+
+    <!-- Nodes -->
+    <!-- Level 0 -->
+    <g transform="translate(560, 120)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(5)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">5</text>
+    </g>
+
+    <!-- Level 1 -->
+    <g transform="translate(335, 220)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(4)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">3</text>
+    </g>
+    <g transform="translate(790, 220)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(3)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">2</text>
+    </g>
+
+    <!-- Level 2 -->
+    <g transform="translate(210, 320)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(3)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">2</text>
+    </g>
+    <g transform="translate(460, 320)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(2)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(700, 320)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(2)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(880, 320)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(1)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+
+    <!-- Level 3 -->
+    <g transform="translate(140, 420)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(2)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(280, 420)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(1)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(400, 420)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(1)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(520, 420)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(0)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+    </g>
+    <g transform="translate(640, 420)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(1)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(760, 420)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(0)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+    </g>
+
+    <!-- Level 4 -->
+    <g transform="translate(100, 520)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(1)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    </g>
+    <g transform="translate(180, 520)">
+        <rect x="-35" y="-20" width="70" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="0" y="0" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">fib(0)</text>
+        <circle cx="35" cy="-20" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="35" y="-19" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو تعقيد حلقة for إذا كان المتغير يُضرب في ثابت في كل تكرار (مثال: i *= 2)؟ ولماذا؟</template>
+      <template class="content-en">What is the complexity of a for loop if the variable is multiplied by a constant in each iteration (e.g., i *= 2)? And why?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>التعقيد هو O(log n). لأن المتغير ينمو بشكل أسي، مما يعني أنه سيصل إلى n في عدد لوغاريتمي من الخطوات.</p></template>
+      <template class="content-en"><p>The complexity is O(log n). Because the variable grows exponentially, meaning it will reach n in a logarithmic number of steps.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="logarithmic-and-exponential-loops" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الحلقات اللوغاريتمية والأسية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Logarithmic and Exponential Loops</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>إذا تم ضرب أو قسمة عداد الحلقة، فالوقت <span class="smart-term" data-term-en="Logarithmic Time" data-ar="الوقت اللوغاريتمي" data-en-def="Time complexity that grows logarithmically, typically seen when input size is repeatedly divided.">لوغاريتمي<span class="smart-term-tooltip"></span></span> O(log n). إذا تم أخذ الجذر، فالوقت O(log log n).</p>
+    </template>
+    <template class="content-en">
+      <p>If the loop counter is multiplied or divided, the time is <span class="smart-term" data-term-en="Logarithmic Time" data-ar="الوقت اللوغاريتمي" data-en-def="Time complexity that grows logarithmically, typically seen when input size is repeatedly divided.">logarithmic<span class="smart-term-tooltip"></span></span> O(log n). If a root is taken, the time is O(log log n).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتغير قواعد حساب التعقيد بناءً على كيفية تحديث متغير الحلقة:</p><ol><li><strong>O(log n)</strong>: يحدث عندما يُقسم أو يُضرب متغير الحلقة بمقدار ثابت في كل تكرار (مثال: <code>i *= c</code> أو <code>i /= c</code>).</li><li><strong>O(log log n)</strong>: يحدث عندما يزداد أو ينقص متغير الحلقة بشكل أسي بمقدار ثابت، مثل رفعه لقوة أو أخذ الجذر التربيعي له (مثال: <code>i = pow(i, c)</code> أو <code>i = sqrt(i)</code>).</li></ol></template>
+    <template class="content-en"><p>Complexity calculation rules change based on how the loop variable is updated:</p><ol><li><strong>O(log n)</strong>: Occurs when the loop variable is divided or multiplied by a constant amount in each iteration (e.g., <code>i *= c</code> or <code>i /= c</code>).</li><li><strong>O(log log n)</strong>: Occurs when the loop variable is reduced or increased exponentially by a constant amount, such as taking the square root or raising to a power (e.g., <code>i = pow(i, c)</code> or <code>i = sqrt(i)</code>).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه الأنماط شائعة جداً في خوارزميات تقسيم وتسد (Divide and Conquer) مثل البحث الثنائي (Binary Search) حيث يتم تقسيم مساحة البحث إلى النصف في كل خطوة، مما يؤدي إلى تعقيد O(log n).</p></template>
+    <template class="content-en"><p>These patterns are very common in Divide and Conquer algorithms like Binary Search, where the search space is halved at each step, leading to an O(log n) complexity.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>for (int i = 1; i &lt;= n; i *= c) {
+    // some O(1) expressions
+}</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>for (int i = n; i &gt; 1; i = sqrt(i)) {
+    // some O(1) expressions
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو الفرق في الأداء بين O(log n) و O(log log n) عندما تكون n كبيرة جداً؟</template>
+      <template class="content-en">What is the performance difference between O(log n) and O(log log n) when n is very large?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>O(log log n) ينمو ببطء شديد جداً مقارنة بـ O(log n)، ويعتبر شبه ثابت (almost constant) للأرقام الكبيرة جداً في التطبيقات العملية.</p></template>
+      <template class="content-en"><p>O(log log n) grows extremely slowly compared to O(log n), and is considered almost constant for very large numbers in practical applications.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبطال الخوارزميات. في هذه الوحدة، نضع الأساس الأهم في علوم الحاسب: كيف نحكم على كفاءة الكود الذي نكتبه؟ لا يهمنا كم ثانية يستغرق البرنامج على جهازك، بل يهمنا 'معدل النمو' عندما تكبر البيانات. تذكروا دائماً الرموز الثلاثة: Big-O (أسوأ حالة وهو صديقنا الدائم)، Omega (أفضل حالة وهي غالباً خادعة)، و Theta (الحد الدقيق). في الامتحان، ركزوا جداً على قواعد حساب الوقت: الحلقات المتداخلة تُضرب، الجمل المتتالية تُجمع ونأخذ الأكبر، وجمل الشرط تأخذ الفرع الأطول. احذروا من الحلقات التي تضرب أو تقسم العداد، فهذه هديتي لكم: تعقيدها دائماً لوغاريتمي O(log n). فهمكم لهذه القواعد سيجعلكم قادرين على تحليل أي كود يواجهكم. بالتوفيق!</template>
+    <template class="content-en">Welcome, algorithm champions. In this module, we lay the most important foundation in computer science: how do we judge the efficiency of our code? We don't care how many seconds a program takes on your machine; we care about the 'rate of growth' as data scales. Always remember the three notations: Big-O (worst case, our constant friend), Omega (best case, often bogus), and Theta (exact bound). For the exam, focus heavily on the calculation rules: nested loops multiply, consecutive statements add (keep the dominant), and if/else takes the longest branch. Watch out for loops that multiply or divide the counter—that's my gift to you: their complexity is always logarithmic O(log n). Mastering these rules will empower you to analyze any code you encounter. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم Big-O بدلاً من قياس الوقت بالثواني؟</template>
+          <template class="content-en">Why do we use Big-O instead of measuring time in seconds?</template>
+          <span class="content-target">لماذا نستخدم Big-O بدلاً من قياس الوقت بالثواني؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن قياس الوقت بالثواني يعتمد على سرعة الجهاز، لغة البرمجة، والمترجم. Big-O يعطينا مقياساً رياضياً نقياً لمعدل نمو الخوارزمية بغض النظر عن الأجهزة.</template>
+          <template class="content-en">Because measuring time in seconds depends on hardware speed, programming language, and compiler. Big-O gives us a pure mathematical measure of the algorithm's growth rate independent of hardware.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين Big-O و Little-o؟</template>
+          <template class="content-en">What is the difference between Big-O and Little-o?</template>
+          <span class="content-target">ما الفرق بين Big-O و Little-o؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">Big-O يمثل الحد الأعلى (أقل من أو يساوي &lt;=)، بينما Little-o يمثل الحد الأعلى الصارم (أقل من قطعاً &lt;)، أي أنه يستبعد حالة التساوي التام.</template>
+          <template class="content-en">Big-O represents the upper bound (less than or equal to &lt;=), while Little-o represents the strict upper bound (strictly less than &lt;), meaning it excludes the exact bound.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نادراً ما نستخدم تحليل 'متوسط الحالة' (Average Case)؟</template>
+          <template class="content-en">Why do we rarely use 'Average Case' analysis?</template>
+          <span class="content-target">لماذا نادراً ما نستخدم تحليل 'متوسط الحالة' (Average Case)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يتطلب معرفة التوزيع الاحتمالي الدقيق لجميع المدخلات الممكنة، وهو أمر معقد جداً رياضياً وغالباً ما يكون مستحيلاً في التطبيقات الواقعية.</template>
+          <template class="content-en">Because it requires knowing the exact probability distribution of all possible inputs, which is mathematically very complex and often impossible in real-world applications.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نحسب تعقيد جملة if/else؟</template>
+          <template class="content-en">How do we calculate the complexity of an if/else statement?</template>
+          <span class="content-target">كيف نحسب تعقيد جملة if/else؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نحسب وقت تقييم الشرط، ثم نضيف إليه الحد الأقصى بين وقت تنفيذ كتلة if وكتلة else. (نأخذ الأسوأ لضمان الحد الأعلى).</template>
+          <template class="content-en">We calculate the time to evaluate the condition, then add the maximum between the execution time of the if block and the else block. (We take the worst to guarantee the upper bound).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التعقيد الزمني لحلقة تأخذ الجذر التربيعي للعداد في كل تكرار؟</template>
+          <template class="content-en">What is the time complexity of a loop that takes the square root of the counter in each iteration?</template>
+          <span class="content-target">ما هو التعقيد الزمني لحلقة تأخذ الجذر التربيعي للعداد في كل تكرار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التعقيد هو O(log log n). هذا النمو بطيء جداً لدرجة أنه يعتبر شبه ثابت في الممارسة العملية.</template>
+          <template class="content-en">The complexity is O(log log n). This growth is so slow that it is considered almost constant in practice.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعقيد دالة فيبوناتشي العودية البسيطة هو O(2^n)؟</template>
+          <template class="content-en">Why is the complexity of the naive recursive Fibonacci function O(2^n)?</template>
+          <span class="content-target">لماذا تعقيد دالة فيبوناتشي العودية البسيطة هو O(2^n)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن كل استدعاء للدالة يقوم باستدعاءين إضافيين (عامل التفرع = 2)، ويستمر هذا حتى عمق n، مما يشكل شجرة استدعاءات حجمها ينمو أسياً.</template>
+          <template class="content-en">Because each function call makes two additional calls (branching factor = 2), and this continues to a depth of n, forming a call tree whose size grows exponentially.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الحد المهيمن (Dominant Term) ولماذا هو مهم؟</template>
+          <template class="content-en">What is the Dominant Term and why is it important?</template>
+          <span class="content-target">ما هو الحد المهيمن (Dominant Term) ولماذا هو مهم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الحد المهيمن هو الجزء من المعادلة الرياضية الذي ينمو بأسرع معدل (مثل n^2 مقارنة بـ n). هو مهم لأننا في التحليل التقاربي نتجاهل كل الحدود الأخرى ونركز عليه فقط.</template>
+          <template class="content-en">The dominant term is the part of the mathematical equation that grows the fastest (like n^2 compared to n). It is important because in asymptotic analysis, we ignore all other terms and focus only on it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن أن يكون O(n) أسوأ من O(n^2)؟</template>
+          <template class="content-en">Can O(n) ever be worse than O(n^2)?</template>
+          <span class="content-target">هل يمكن أن يكون O(n) أسوأ من O(n^2)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نظرياً لا، ولكن عملياً إذا كانت n صغيرة جداً، فإن الثوابت المخفية (مثل 1000n مقابل n^2) قد تجعل الخوارزمية الخطية أبطأ للمدخلات الصغيرة. لكن التحليل التقاربي يهتم بـ n الكبيرة.</template>
+          <template class="content-en">Theoretically no, but practically if n is very small, hidden constants (like 1000n vs n^2) might make the linear algorithm slower for small inputs. However, asymptotic analysis cares about large n.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني Omega (Ω) في سياق تحليل الخوارزميات؟</template>
+          <template class="content-en">What does Omega (Ω) mean in the context of algorithm analysis?</template>
+          <span class="content-target">ماذا تعني Omega (Ω) في سياق تحليل الخوارزميات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعني الحد الأدنى. أي أن الخوارزمية ستستغرق 'على الأقل' هذا المقدار من الوقت. تُستخدم غالباً لوصف أفضل حالة.</template>
+          <template class="content-en">It means the lower bound. The algorithm will take 'at least' this much time. It is often used to describe the best case.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نتعامل مع استدعاءات الدوال (Method calls) داخل الحلقات؟</template>
+          <template class="content-en">How do we handle method calls inside loops?</template>
+          <span class="content-target">كيف نتعامل مع استدعاءات الدوال (Method calls) داخل الحلقات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يجب تحليل الدالة المستدعاة أولاً لمعرفة تعقيدها (مثلاً O(m))، ثم نضرب هذا التعقيد في عدد تكرارات الحلقة (مثلاً O(n))، ليصبح الإجمالي O(n * m).</template>
+          <template class="content-en">We must analyze the called method first to find its complexity (e.g., O(m)), then multiply this complexity by the number of loop iterations (e.g., O(n)), making the total O(n * m).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "معدل النمو (Rate of Growth)",
+      "en": "Rate of Growth"
+    },
+    "back": {
+      "definition": {
+        "ar": "مدى سرعة نمو دالة وقت التشغيل مع زيادة حجم المدخلات.",
+        "en": "How fast a function's running time grows with the input size."
+      },
+      "example": {
+        "ar": "التركيز على n^2 وتجاهل الثوابت في 6n^2 + 100n.",
+        "en": "Focusing on n^2 and ignoring constants in 6n^2 + 100n."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "رمز Big-O",
+      "en": "Big-O Notation"
+    },
+    "back": {
+      "definition": {
+        "ar": "يصف الحد الأعلى لتعقيد الخوارزمية (أسوأ حالة).",
+        "en": "Describes the upper bound of the complexity (worst case)."
+      },
+      "example": {
+        "ar": "T(n) <= c * f(n)",
+        "en": "T(n) <= c * f(n)"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "رمز Omega (Ω)",
+      "en": "Omega (Ω) Notation"
+    },
+    "back": {
+      "definition": {
+        "ar": "يصف الحد الأدنى لتعقيد الخوارزمية (أفضل حالة).",
+        "en": "Describes the lower bound of the complexity (best case)."
+      },
+      "example": {
+        "ar": "T(n) >= c * f(n)",
+        "en": "T(n) >= c * f(n)"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "رمز Theta (Θ)",
+      "en": "Theta (Θ) Notation"
+    },
+    "back": {
+      "definition": {
+        "ar": "يصف الحد الدقيق لتعقيد الخوارزمية.",
+        "en": "Describes the exact bound of the complexity."
+      },
+      "example": {
+        "ar": "T(n) == معدل نمو f(n)",
+        "en": "T(n) == growth rate of f(n)"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "رمز Little-o",
+      "en": "Little-o Notation"
+    },
+    "back": {
+      "definition": {
+        "ar": "يصف الحد الأعلى باستثناء الحد الدقيق (أصغر قطعاً).",
+        "en": "Describes the upper bound excluding the exact bound (strictly less)."
+      },
+      "example": {
+        "ar": "T(n) < معدل نمو f(n)",
+        "en": "T(n) < growth rate of f(n)"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "تحليل أسوأ حالة (Worst Case)",
+      "en": "Worst Case Analysis"
+    },
+    "back": {
+      "definition": {
+        "ar": "حساب الحد الأعلى لوقت التشغيل؛ الحالة التي تسبب أقصى عدد من العمليات.",
+        "en": "Calculating the upper bound on running time; the case causing maximum operations."
+      },
+      "example": {
+        "ar": "البحث عن عنصر غير موجود في المصفوفة.",
+        "en": "Searching for an element not present in the array."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "تحليل أفضل حالة (Best Case)",
+      "en": "Best Case Analysis"
+    },
+    "back": {
+      "definition": {
+        "ar": "حساب الحد الأدنى لوقت التشغيل؛ غالباً ما يُعتبر زائفاً (Bogus).",
+        "en": "Calculating the lower bound on running time; often considered Bogus."
+      },
+      "example": {
+        "ar": "إيجاد العنصر المطلوب في أول موقع في المصفوفة.",
+        "en": "Finding the target element at the first location in the array."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "تحليل متوسط الحالة (Average Case)",
+      "en": "Average Case Analysis"
+    },
+    "back": {
+      "definition": {
+        "ar": "حساب متوسط وقت التشغيل لجميع المدخلات الممكنة؛ معقد جداً رياضياً.",
+        "en": "Calculating average computing time for all possible inputs; mathematically complex."
+      },
+      "example": {
+        "ar": "افتراض توزيع منتظم لجميع حالات البحث الخطي.",
+        "en": "Assuming uniform distribution of all cases in linear search."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "القاعدة 1: حلقات For",
+      "en": "Rule 1: For Loops"
+    },
+    "back": {
+      "definition": {
+        "ar": "وقت التشغيل هو وقت الجمل داخل الحلقة مضروباً في عدد التكرارات.",
+        "en": "Running time is statements inside the loop times the number of iterations."
+      },
+      "example": {
+        "ar": "حلقة تعمل n مرة بداخلها عملية O(1) تعطي O(n).",
+        "en": "A loop running n times with an O(1) operation inside gives O(n)."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "القاعدة 2: الحلقات المتداخلة",
+      "en": "Rule 2: Nested Loops"
+    },
+    "back": {
+      "definition": {
+        "ar": "وقت التشغيل هو حاصل ضرب أحجام جميع الحلقات المتداخلة.",
+        "en": "Total running time is the product of the sizes of all the loops."
+      },
+      "example": {
+        "ar": "حلقتان متداخلتان كل منهما بحجم n تعطي O(n^2).",
+        "en": "Two nested loops each of size n give O(n^2)."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "القاعدة 3: الجمل المتتالية",
+      "en": "Rule 3: Consecutive Statements"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُجمع أوقات التشغيل، ونحتفظ بالحد المهيمن فقط.",
+        "en": "Add the times together, keeping only the dominant term."
+      },
+      "example": {
+        "ar": "O(n) متبوعاً بـ O(n^2) يعطي إجمالاً O(n^2).",
+        "en": "O(n) followed by O(n^2) gives a total of O(n^2)."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "القاعدة 4: جمل If/Else",
+      "en": "Rule 4: If/Else Statements"
+    },
+    "back": {
+      "definition": {
+        "ar": "وقت الشرط زائد وقت الفرع الأطول بين S1 و S2.",
+        "en": "Time of the test plus the larger of the running times of S1 and S2."
+      },
+      "example": {
+        "ar": "O(condition) + max(O(S1), O(S2))",
+        "en": "O(condition) + max(O(S1), O(S2))"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "تعقيد الضرب/القسمة في الحلقات",
+      "en": "Complexity of Multiply/Divide in Loops"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا تم ضرب أو قسمة متغير الحلقة بمقدار ثابت، يكون التعقيد O(log n).",
+        "en": "If the loop variable is multiplied or divided by a constant, complexity is O(log n)."
+      },
+      "example": {
+        "ar": "for(int i=1; i<=n; i*=2)",
+        "en": "for(int i=1; i<=n; i*=2)"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "تعقيد الجذور/الأسس في الحلقات",
+      "en": "Complexity of Roots/Powers in Loops"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا تم أخذ الجذر أو الرفع لقوة لمتغير الحلقة، يكون التعقيد O(log log n).",
+        "en": "If the loop variable is rooted or raised to a power, complexity is O(log log n)."
+      },
+      "example": {
+        "ar": "for(int i=n; i>1; i=sqrt(i))",
+        "en": "for(int i=n; i>1; i=sqrt(i))"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "تعقيد الاستدعاء العودي (Recursion)",
+      "en": "Complexity of Recursion"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعتمد على عمق الشجرة وعامل التفرع.",
+        "en": "Depends on the depth of the tree and the branching factor."
+      },
+      "example": {
+        "ar": "دالة فيبوناتشي البسيطة تتفرع مرتين بعمق n، فتعطي O(2^n).",
+        "en": "Naive Fibonacci branches twice to depth n, giving O(2^n)."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما الذي يصفه رمز Big-O (O)؟",
+      "en": "What does Big-O (O) notation describe?"
+    },
+    "options": {
+      "ar": [
+        "الحد الأعلى للتعقيد",
+        "الحد الأدنى للتعقيد",
+        "الحد الدقيق للتعقيد",
+        "متوسط التعقيد"
+      ],
+      "en": [
+        "The upper bound of the complexity",
+        "The lower bound of the complexity",
+        "The exact bound of the complexity",
+        "The average complexity"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "رمز Big-O يصف الحد الأعلى، مما يضمن أن الخوارزمية لن تستغرق وقتاً أطول من هذا الحد.",
+      "en": "Big-O notation describes the upper bound, guaranteeing the algorithm will not take longer than this bound."
+    },
+    "hint": {
+      "ar": "فكر في 'أسوأ حالة'.",
+      "en": "Think about the 'worst case'."
+    },
+    "difficulty": "easy",
+    "conceptId": "asymptotic-notations"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من حالات التحليل التالية تُعتبر غالباً 'زائفة' (Bogus)؟",
+      "en": "Which of the following analysis cases is often considered 'Bogus'?"
+    },
+    "options": {
+      "ar": [
+        "أسوأ حالة (Worst Case)",
+        "متوسط الحالة (Average Case)",
+        "أفضل حالة (Best Case)",
+        "جميع ما سبق"
+      ],
+      "en": [
+        "Worst Case",
+        "Average Case",
+        "Best Case",
+        "All of the above"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "أفضل حالة تُعتبر زائفة لأنها لا تقدم ضماناً حقيقياً لأداء البرنامج في الظروف العادية أو السيئة.",
+      "en": "Best case is considered bogus because it provides no real guarantee of the program's performance under normal or bad conditions."
+    },
+    "hint": {
+      "ar": "حالة تحدث فقط في ظروف مثالية نادرة.",
+      "en": "A case that only happens under rare, ideal conditions."
+    },
+    "difficulty": "easy",
+    "conceptId": "analysis-cases"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لحلقتين متداخلتين، كل منهما تعمل n مرة؟",
+      "en": "What is the time complexity of two nested loops, each running n times?"
+    },
+    "options": {
+      "ar": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(2n)"
+      ],
+      "en": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(2n)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "حسب القاعدة 2، نضرب أحجام الحلقات المتداخلة: n * n = n^2.",
+      "en": "According to Rule 2, we multiply the sizes of nested loops: n * n = n^2."
+    },
+    "hint": {
+      "ar": "الحلقات المتداخلة تتطلب الضرب.",
+      "en": "Nested loops require multiplication."
+    },
+    "difficulty": "medium",
+    "conceptId": "running-time-calculation-rules"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كيف نحسب التعقيد الزمني لجملتين متتاليتين (Consecutive Statements)؟",
+      "en": "How do we calculate the time complexity of consecutive statements?"
+    },
+    "options": {
+      "ar": [
+        "نضرب أوقات التشغيل",
+        "نجمع أوقات التشغيل ونحتفظ بالحد المهيمن",
+        "نأخذ الحد الأدنى",
+        "نتجاهل الجملة الأولى دائماً"
+      ],
+      "en": [
+        "Multiply the running times",
+        "Add the running times and keep the dominant term",
+        "Take the minimum bound",
+        "Always ignore the first statement"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "حسب القاعدة 3، نجمع أوقات التشغيل للجمل المتتالية ونحتفظ بالحد الأكبر (المهيمن).",
+      "en": "According to Rule 3, we add the running times of consecutive statements and keep the largest (dominant) term."
+    },
+    "hint": {
+      "ar": "ماذا تفعل إذا كان لديك O(n) متبوعاً بـ O(n^2)؟",
+      "en": "What do you do if you have O(n) followed by O(n^2)?"
+    },
+    "difficulty": "medium",
+    "conceptId": "running-time-calculation-rules"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لجملة if/else؟",
+      "en": "What is the time complexity of an if/else statement?"
+    },
+    "options": {
+      "ar": [
+        "مجموع وقت S1 و S2",
+        "وقت الشرط + الحد الأقصى بين S1 و S2",
+        "وقت الشرط + الحد الأدنى بين S1 و S2",
+        "حاصل ضرب وقت S1 في S2"
+      ],
+      "en": [
+        "Sum of S1 and S2 times",
+        "Time of condition + maximum of S1 and S2",
+        "Time of condition + minimum of S1 and S2",
+        "Product of S1 and S2 times"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لضمان الحد الأعلى، نفترض دائماً أن البرنامج سيدخل في الفرع الذي يستغرق وقتاً أطول.",
+      "en": "To guarantee the upper bound, we always assume the program will enter the branch that takes the longest time."
+    },
+    "hint": {
+      "ar": "نحن نبحث عن أسوأ حالة ممكنة.",
+      "en": "We are looking for the worst possible case."
+    },
+    "difficulty": "medium",
+    "conceptId": "running-time-calculation-rules"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو التعقيد الزمني للحلقة التالية: `for(int i=1; i<=n; i*=2)`؟",
+      "en": "What is the time complexity of the following loop: `for(int i=1; i<=n; i*=2)`?"
+    },
+    "options": {
+      "ar": [
+        "O(n)",
+        "O(n^2)",
+        "O(log n)",
+        "O(log log n)"
+      ],
+      "en": [
+        "O(n)",
+        "O(n^2)",
+        "O(log n)",
+        "O(log log n)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بما أن متغير الحلقة يُضرب في 2 في كل تكرار، فإنه يصل إلى n في عدد لوغاريتمي من الخطوات.",
+      "en": "Since the loop variable is multiplied by 2 in each iteration, it reaches n in a logarithmic number of steps."
+    },
+    "hint": {
+      "ar": "النمو الأسي للمتغير يعني خطوات أقل للوصول للهدف.",
+      "en": "Exponential growth of the variable means fewer steps to reach the target."
+    },
+    "difficulty": "hard",
+    "conceptId": "logarithmic-and-exponential-loops"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لدالة فيبوناتشي العودية البسيطة (Naive Recursive Fibonacci)؟",
+      "en": "What is the time complexity of the naive recursive Fibonacci function?"
+    },
+    "options": {
+      "ar": [
+        "O(n)",
+        "O(n^2)",
+        "O(log n)",
+        "O(2^n)"
+      ],
+      "en": [
+        "O(n)",
+        "O(n^2)",
+        "O(log n)",
+        "O(2^n)"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "الدالة تستدعي نفسها مرتين في كل خطوة (عامل التفرع = 2) بعمق n، مما يؤدي إلى تعقيد أسي O(2^n).",
+      "en": "The function calls itself twice at each step (branching factor = 2) to a depth of n, leading to exponential complexity O(2^n)."
+    },
+    "hint": {
+      "ar": "فكر في شجرة استدعاء تتفرع إلى فرعين في كل مستوى.",
+      "en": "Think of a call tree that branches into two at every level."
+    },
+    "difficulty": "hard",
+    "conceptId": "running-time-calculation-rules"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما الذي يمثله رمز Theta (Θ)؟",
+      "en": "What does Theta (Θ) notation represent?"
+    },
+    "options": {
+      "ar": [
+        "الحد الأعلى فقط",
+        "الحد الأدنى فقط",
+        "الحد الدقيق (الأعلى والأدنى معاً)",
+        "الحد الأعلى الصارم"
+      ],
+      "en": [
+        "Upper bound only",
+        "Lower bound only",
+        "Exact bound (both upper and lower)",
+        "Strict upper bound"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "رمز ثيتا يمثل الحد الدقيق، مما يعني أن الدالة تنمو بنفس معدل الدالة المرجعية تماماً.",
+      "en": "Theta notation represents the exact bound, meaning the function grows at exactly the same rate as the reference function."
+    },
+    "hint": {
+      "ar": "يجمع بين خصائص Big-O و Omega.",
+      "en": "It combines the properties of Big-O and Omega."
+    },
+    "difficulty": "medium",
+    "conceptId": "asymptotic-notations"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في البحث الخطي (Linear Search)، متى تحدث أسوأ حالة؟",
+      "en": "In Linear Search, when does the worst case occur?"
+    },
+    "options": {
+      "ar": [
+        "عندما يكون العنصر في بداية المصفوفة",
+        "عندما يكون العنصر في منتصف المصفوفة",
+        "عندما لا يكون العنصر موجوداً في المصفوفة",
+        "عندما تكون المصفوفة مرتبة"
+      ],
+      "en": [
+        "When the element is at the beginning of the array",
+        "When the element is in the middle of the array",
+        "When the element is not present in the array",
+        "When the array is sorted"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "أسوأ حالة تحدث عندما يضطر البرنامج لفحص كل عناصر المصفوفة دون العثور على العنصر، مما يستغرق O(n).",
+      "en": "The worst case occurs when the program has to check every element in the array without finding the target, taking O(n) time."
+    },
+    "hint": {
+      "ar": "متى تضطر الحلقة للعمل حتى نهايتها؟",
+      "en": "When is the loop forced to run to its very end?"
+    },
+    "difficulty": "easy",
+    "conceptId": "analysis-cases"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "لماذا نتجاهل الثوابت (Constants) عند حساب Big-O؟",
+      "en": "Why do we drop constants when calculating Big-O?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تجعل الحسابات معقدة",
+        "لأننا نهتم بمعدل النمو عندما يصبح حجم المدخلات كبيراً جداً",
+        "لأن الثوابت دائماً تساوي 1",
+        "لأن المترجم (Compiler) يحذفها تلقائياً"
+      ],
+      "en": [
+        "Because they make calculations complex",
+        "Because we care about the rate of growth as input size becomes very large",
+        "Because constants are always equal to 1",
+        "Because the compiler automatically removes them"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في التحليل التقاربي، تأثير الثوابت يتضاءل مقارنة بالحد المهيمن (مثل n^2) عندما تقترب n من المالانهاية.",
+      "en": "In asymptotic analysis, the impact of constants diminishes compared to the dominant term (like n^2) as n approaches infinity."
+    },
+    "hint": {
+      "ar": "فكر في الفرق بين 100n و n^2 عندما تكون n مليون.",
+      "en": "Think about the difference between 100n and n^2 when n is a million."
+    },
+    "difficulty": "medium",
+    "conceptId": "algorithm-efficiency-growth-rate"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن 'أفضل حالة' (Best Case) مفيدة في تقييم الخوارزميات. في الواقع، هي غالباً 'زائفة' (Bogus) لأنها لا تقدم أي ضمانات للأداء الفعلي.</template>
+      <template class="content-en">Believing that 'Best Case' is useful for evaluating algorithms. In reality, it is often 'Bogus' because it provides no guarantees for actual performance.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">إذا رأيت متغير حلقة يُضرب أو يُقسم (مثال: i *= 2)، فإن التعقيد الزمني ينخفض فوراً إلى O(log n) بدلاً من O(n).</template>
+      <template class="content-en">If you see a loop variable being multiplied or divided (e.g., i *= 2), the time complexity immediately drops to O(log n) instead of O(n).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">قاعدة الحد المهيمن: في الجمل المتتالية، الأقوى يبتلع الأضعف. O(n) + O(n^2) تصبح ببساطة O(n^2).</template>
+      <template class="content-en">Dominant Term Rule: In consecutive statements, the strongest swallows the weakest. O(n) + O(n^2) simply becomes O(n^2).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">جمع تعقيد الحلقات المتداخلة بدلاً من ضربها. تذكر: الحلقات المتتالية تُجمع، الحلقات المتداخلة تُضرب!</template>
+      <template class="content-en">Adding the complexity of nested loops instead of multiplying them. Remember: Consecutive loops are added, nested loops are multiplied!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M01.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M03.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS475" data-module="7">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استمرارية البيانات والمشاركة وقواعد بيانات أندرويد · CS475 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS475" data-page-title-en="CS475">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M06.html" data-gh-next="M08.html" data-gh-card="../../hub/course.html?code=CS475"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#android-intents" class="toc-link" data-bilingual>
+        <template class="content-ar">نوايا أندرويد (Android Intents)</template>
+        <template class="content-en">Android Intents</template>
+        <span class="content-target">نوايا أندرويد (Android Intents)</span>
+      </a>
+      <a href="#shared-preferences" class="toc-link" data-bilingual>
+        <template class="content-ar">التفضيلات المشتركة (SharedPreferences)</template>
+        <template class="content-en">SharedPreferences</template>
+        <span class="content-target">التفضيلات المشتركة (SharedPreferences)</span>
+      </a>
+      <a href="#json-serialization" class="toc-link" data-bilingual>
+        <template class="content-ar">JSON والتسلسل (JSON & Serialization)</template>
+        <template class="content-en">JSON & Serialization</template>
+        <span class="content-target">JSON والتسلسل (JSON & Serialization)</span>
+      </a>
+      <a href="#sqlite-sql-primer" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة في SQLite و SQL</template>
+        <template class="content-en">SQLite & SQL Primer</template>
+        <span class="content-target">مقدمة في SQLite و SQL</span>
+      </a>
+      <a href="#android-sqlite-api" class="toc-link" data-bilingual>
+        <template class="content-ar">واجهة برمجة تطبيقات SQLite في أندرويد</template>
+        <template class="content-en">Android SQLite API</template>
+        <span class="content-target">واجهة برمجة تطبيقات SQLite في أندرويد</span>
+      </a>
+      <a href="#database-cursors" class="toc-link" data-bilingual>
+        <template class="content-ar">مؤشرات قاعدة البيانات (Database Cursors)</template>
+        <template class="content-en">Database Cursors</template>
+        <span class="content-target">مؤشرات قاعدة البيانات (Database Cursors)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 7</template>
+      <template class="content-en">Module 7</template>
+      <span class="content-target">الوحدة 7</span>
+    </span> · CS475
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">استمرارية البيانات والمشاركة وقواعد بيانات أندرويد</h1>
+      <p class="hero-description">تغطي هذه الوحدة كيفية استخدام النوايا (Intents) للتنقل بين الشاشات، وحفظ الإعدادات باستخدام SharedPreferences، وتسلسل البيانات باستخدام JSON، بالإضافة إلى مقدمة شاملة لقواعد بيانات SQLite في أندرويد.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Data Persistence and Sharing & Android Databases</h1>
+      <p class="hero-description">This module covers using Intents to navigate between screens, saving settings with SharedPreferences, data serialization using JSON, and a comprehensive introduction to SQLite databases in Android.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">أندرويد</span>
+      <span class="tag">استمرارية البيانات</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Android</span>
+      <span class="tag">Data Persistence</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح استخدام نوايا أندرويد (Intents) للتبديل بين فئات النشاط (Activity) وتمرير البيانات.</span></li>
+      <li><span class="obj-icon">✦</span><span>تصميم بيانات الشاشة باستخدام فئة SharedPreferences وتدوين كائنات جافا سكريبت (JSON).</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح قاعدة بيانات أندرويد SQLite وكيفية التعامل معها.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain about using Android intents to switch between Activity classes and pass data.</span></li>
+      <li><span class="obj-icon">✦</span><span>Design the screen data using the SharedPreferences class & JavaScript Object Notation (JSON).</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain the Android SQLite database and its operations.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="android-intents" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> نوايا أندرويد (Android Intents)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Android Intents</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>كائن يمثل <span class="smart-term" data-term-en="Intent" data-ar="النية" data-en-def="A messaging object used to request an action from another app component.">نية</span> التطبيق للقيام بإجراء معين، مثل الانتقال بين الشاشات وتمرير البيانات، يشبه ساعي البريد الذي ينقل الرسائل بين أجزاء التطبيق.</p></template>
+    <template class="content-en"><p>An object that demonstrates the <span class="smart-term" data-term-en="Intent" data-ar="النية" data-en-def="A messaging object used to request an action from another app component.">intent</span> of an Activity class, enabling the user to switch between Activity instances and pass data.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتكون تطبيقات أندرويد من أنشطة (Activities) متعددة. تتيح فئة <code>Intent</code> للمستخدم التبديل بين مثيلات هذه الأنشطة.</p><p>عند التبديل بين الشاشات، تتعامل النوايا مع قيم البيانات عن طريق تمريرها بين الأنشطة باستخدام أزواج (مفتاح-قيمة) عبر دالة <code>putExtra</code>. لاسترجاع هذه البيانات في النشاط الهدف، نستخدم دالة <code>getExtra</code>.</p><ol><li><strong>تهيئة النية:</strong> <code>Intent myIntent = new Intent(this, SettingsActivity.class);</code></li><li><strong>بدء النشاط:</strong> <code>startActivity(myIntent);</code></li></ol></template>
+    <template class="content-en"><p>Android apps comprise multiple Activities. The <code>Intent</code> class demonstrates the intent of an Activity class and enables switching between Activity instances.</p><p>When switching between multiple screens, Intents handle variable data values by passing data between Activity instances using key-value pairs via the <code>putExtra</code> method. To retrieve the data, the <code>getExtra</code> method is used.</p><ol><li><strong>Initialize Intent:</strong> <code>Intent myIntent = new Intent(this, SettingsActivity.class);</code></li><li><strong>Start Activity:</strong> <code>startActivity(myIntent);</code></li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نستخدم النوايا؟ تفرض بنية أندرويد <span class="smart-term" data-term-en="Encapsulation" data-ar="التغليف" data-en-def="Hiding the internal state and requiring all interaction to be performed through an object's methods.">التغليف</span> (Encapsulation)، مما يخفي المعلومات بين الأنشطة المختلفة.</p><p>النوايا تكسر هذا الحاجز بطريقة آمنة ومنظمة لنقل البيانات.</p><p>بالإضافة إلى التنقل الداخلي، تسمح النوايا للتطبيق بالتفاعل مع تطبيقات أخرى على النظام (مثل فتح متصفح أو تطبيق الكاميرا)، مما يعزز تكامل النظام البيئي لأندرويد.</p></template>
+    <template class="content-en"><p>Why use Intents? Android's architecture enforces <span class="smart-term" data-term-en="Encapsulation" data-ar="التغليف" data-en-def="Hiding the internal state and requiring all interaction to be performed through an object's methods.">encapsulation</span>, hiding information about other activities.</p><p>Intents provide a secure, structured bridge to share data and state.</p><p>Beyond internal navigation, Intents also enable interaction with other apps on the device (like opening a browser or camera), which is fundamental to Android's interconnected ecosystem.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>Intent myIntent = new Intent(this, SettingsActivity.class);
+myIntent.putExtra("USER_NAME", username);
+startActivity(myIntent);</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Two mobile screen rectangles. Screen A (MainActivity) sends an arrow labeled 'Intent + putExtra()' to Screen B (SettingsActivity). Screen B has a label 'getExtra()'. Style: educational, dark background #0d1117, accent color #00bcd4, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Main Arrowhead -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    <!-- Small Arrowhead for internal flow -->
+    <marker id="small-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Diagram Titles -->
+  <text x="400" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" text-anchor="middle">Passing Data Between Activities</text>
+  <text x="400" y="65" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">تمرير البيانات بين الأنشطة</text>
+
+  <!-- ========================================== -->
+  <!-- SCREEN A: MainActivity                     -->
+  <!-- ========================================== -->
+  
+  <!-- Outer Phone Bezel -->
+  <rect x="120" y="90" width="160" height="280" rx="16" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="3" />
+  <!-- Inner Phone Screen -->
+  <rect x="126" y="96" width="148" height="268" rx="12" fill="var(--bg-elevated)" />
+  
+  <!-- Phone Notch -->
+  <rect x="180" y="102" width="40" height="6" rx="3" fill="var(--border-color)" />
+  
+  <!-- App Header Line -->
+  <line x1="126" y1="135" x2="274" y2="135" stroke="var(--border-color)" stroke-width="1" />
+  <text x="200" y="124" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">App</text>
+
+  <!-- Activity Titles -->
+  <text x="200" y="165" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">MainActivity</text>
+  <text x="200" y="185" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">النشاط الرئيسي</text>
+
+  <!-- Input Field (Simulated) -->
+  <rect x="136" y="215" width="128" height="36" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="200" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">"User Data"</text>
+
+  <!-- Send Button -->
+  <rect x="136" y="265" width="128" height="40" rx="8" fill="var(--brand-500)" />
+  <text x="200" y="290" fill="var(--bg-surface)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">Send Intent</text>
+
+
+  <!-- ========================================== -->
+  <!-- SCREEN B: SettingsActivity                 -->
+  <!-- ========================================== -->
+
+  <!-- Outer Phone Bezel -->
+  <rect x="520" y="90" width="160" height="280" rx="16" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="3" />
+  <!-- Inner Phone Screen -->
+  <rect x="526" y="96" width="148" height="268" rx="12" fill="var(--bg-elevated)" />
+  
+  <!-- Phone Notch -->
+  <rect x="580" y="102" width="40" height="6" rx="3" fill="var(--border-color)" />
+  
+  <!-- App Header Line -->
+  <line x1="526" y1="135" x2="674" y2="135" stroke="var(--border-color)" stroke-width="1" />
+  <text x="600" y="124" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">App</text>
+
+  <!-- Activity Titles -->
+  <text x="600" y="165" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">SettingsActivity</text>
+  <text x="600" y="185" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">نشاط الإعدادات</text>
+
+  <!-- Code Snippet Box: getExtra() -->
+  <rect x="536" y="210" width="128" height="32" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="600" y="231" fill="var(--brand-500)" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">getExtra()</text>
+
+  <!-- Internal Flow Arrow -->
+  <line x1="600" y1="242" x2="600" y2="252" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="3" marker-end="url(#small-arrow)" />
+
+  <!-- Received Data Box -->
+  <rect x="536" y="255" width="128" height="60" rx="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1" stroke-dasharray="4" />
+  <text x="600" y="273" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">Received Data</text>
+  <text x="600" y="289" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">البيانات المستلمة</text>
+  <text x="600" y="307" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">"User Data"</text>
+
+
+  <!-- ========================================== -->
+  <!-- CONNECTION: The Intent Arrow               -->
+  <!-- ========================================== -->
+
+  <!-- Arrow Line (Broken in middle for the envelope icon) -->
+  <line x1="280" y1="285" x2="375" y2="285" stroke="var(--brand-500)" stroke-width="3" />
+  <line x1="415" y1="285" x2="510" y2="285" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+
+  <!-- Envelope / Data Package Icon -->
+  <rect x="383" y="275" width="24" height="18" rx="2" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <path d="M 383 275 L 395 284 L 407 275" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+  <!-- Arrow Labels -->
+  <text x="395" y="245" fill="var(--brand-500)" font-family="monospace" font-size="18" font-weight="bold" text-anchor="middle">Intent + putExtra()</text>
+  <text x="395" y="220" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">نية + إرسال بيانات</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يساهم استخدام أزواج (مفتاح-قيمة) في النوايا في تقليل الأخطاء عند تمرير البيانات؟</template>
+      <template class="content-en">How does using key-value pairs in Intents help reduce errors when passing data?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يضمن استخدام المفاتيح الفريدة أن النشاط المستلم يمكنه استخراج البيانات الصحيحة بدقة دون الاعتماد على ترتيب التمرير، مما يمنع تداخل البيانات.</p></template>
+      <template class="content-en"><p>Using unique keys ensures the receiving Activity can accurately extract the correct data without relying on the order of insertion, preventing data mismatch.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="shared-preferences" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> التفضيلات المشتركة (SharedPreferences)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> SharedPreferences</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>فئة توفر وصولاً لحفظ واسترجاع البيانات البسيطة (مثل الإعدادات) حتى بعد إغلاق التطبيق، وتعمل كصندوق تخزين دائم وصغير.</p></template>
+    <template class="content-en"><p>A class that provides access to data that can be accessed and edited by all Activity classes, retaining data even after the app quits.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم <code>SharedPreferences</code> لجعل البيانات مستمرة (Persist). يتم تهيئة الكائن باستخدام دالة <code>getSharedPreferences</code> مع تحديد اسم الملف ووضع الوصول (مثل <code>MODE_PRIVATE</code>).</p><p>لحفظ البيانات، نستخدم كائن <code>Editor</code>:</p><ol><li>استدعاء <code>prefs.edit()</code> للحصول على المحرر.</li><li>استخدام دوال مثل <code>putString</code> أو <code>putBoolean</code> لحفظ أزواج (مفتاح-قيمة).</li><li>استدعاء <code>commit()</code> لتأكيد الحفظ.</li></ol><p>عند استرجاع البيانات، نستخدم دوال مثل <code>getString</code> أو <code>getInt</code>، ويجب توفير <b>قيمة افتراضية</b> يتم إرجاعها في حال عدم وجود البيانات مسبقاً.</p></template>
+    <template class="content-en"><p><code>SharedPreferences</code> is used to make data persist. The object is initialized using the <code>getSharedPreferences</code> method with a string name and an access mode (e.g., <code>MODE_PRIVATE</code>).</p><p>To save data, an <code>Editor</code> object is used:</p><ol><li>Invoke <code>prefs.edit()</code> to get the editor.</li><li>Use methods like <code>putString</code> or <code>putBoolean</code> to save key-value pairs.</li><li>Call <code>commit()</code> to initiate the saving process.</li></ol><p>When reloading data, methods like <code>getString</code> or <code>getInt</code> are used. A <b>default value</b> must be provided as the second parameter, which is returned if no data is stored with that label.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نستخدم SharedPreferences بدلاً من قاعدة بيانات كاملة؟ لأنها خفيفة الوزن ومصممة خصيصاً للبيانات البسيطة مثل تفضيلات المستخدم (الوضع الليلي، الإشعارات) ولا تتطلب إعداد هيكل جداول معقد.</p><p>من المهم ملاحظة أن دالة <code>commit()</code> تقوم بالحفظ بشكل متزامن (Synchronous)، مما قد يؤدي إلى تجميد واجهة المستخدم إذا كانت البيانات كبيرة.</p><p>في التطبيقات الحديثة، يُفضل استخدام <code>apply()</code> للحفظ غير المتزامن.</p></template>
+    <template class="content-en"><p>Why use SharedPreferences instead of a full database? It is lightweight and specifically designed for simple primitive data like user settings (dark mode, notifications) without the overhead of setting up complex table structures.</p><p>It's important to note that <code>commit()</code> saves data synchronously, which can block the main thread.</p><p>In modern Android development, <code>apply()</code> is often preferred for asynchronous saving.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>SharedPreferences prefs = getSharedPreferences("MyApp", MODE_PRIVATE);
+SharedPreferences.Editor editor = prefs.edit();
+editor.putString("username", username);
+editor.commit();
+
+// Reloading
+String user = prefs.getString("username", "new user");</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا حاولت استرجاع قيمة من SharedPreferences باستخدام مفتاح غير موجود؟</template>
+      <template class="content-en">What happens if you try to retrieve a value from SharedPreferences using a key that doesn't exist?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستقوم الدالة بإرجاع القيمة الافتراضية التي تم تمريرها كمعامل ثاني في دالة الاسترجاع (مثل getString).</p></template>
+      <template class="content-en"><p>The method will return the default value that was passed as the second parameter in the retrieval method (e.g., getString).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="json-serialization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> JSON والتسلسل (JSON & Serialization)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> JSON & Serialization</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Serialization" data-ar="التسلسل" data-en-def="The process of converting data objects into a format that can be stored or transmitted.">التسلسل</span> هو تحويل كائنات البيانات إلى بتات وبايتات لتخزينها، و <span class="smart-term" data-term-en="JSON" data-ar="جيسون" data-en-def="JavaScript Object Notation, a lightweight data-interchange format.">JSON</span> هي لغة التنسيق القياسية التي تخفي تعقيد هذه العملية.</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="Serialization" data-ar="التسلسل" data-en-def="The process of converting data objects into a format that can be stored or transmitted.">Serialization</span> converts data objects into bits and bytes for storage. <span class="smart-term" data-term-en="JSON" data-ar="جيسون" data-en-def="JavaScript Object Notation, a lightweight data-interchange format.">JSON</span> (JavaScript Object Notation) hides the complexity of this process.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مع تقدم ميزات التطبيق وزيادة البيانات، يصبح من الضروري حفظ وتحميل كائنات جافا المعقدة. يتم ذلك عبر عمليتين:</p><ul><li><strong>التسلسل (Serialization):</strong> تحويل كائنات البيانات إلى بتات وبايتات لتخزينها على القرص.</li><li><strong>إلغاء التسلسل (De-Serialization):</strong> تحويل البتات والبايتات المخزنة مرة أخرى إلى كائنات بيانات عند إعادة تحميل التطبيق.</li></ul><p>تُستخدم فئة <b>JSON</b> في أندرويد لإخفاء تعقيد عملية التسلسل.</p><p>يُستخدم JSON على نطاق واسع لنقل البيانات بين تطبيقات الويب والخوادم، ويتعامل مع استثناءات جافا (Exceptions) بكفاءة للتعامل مع حالات الفشل (مثل فشل تحميل البيانات عند تلف بطاقة SD).</p></template>
+    <template class="content-en"><p>As app features advance with more data, it's required to save and load Java objects. This is done via two processes:</p><ul><li><strong>Serialization:</strong> Converting data objects into bits and bytes to store on the disk.</li><li><strong>De-Serialization:</strong> Converting stored bits and bytes back to data objects when reloading the app.</li></ul><p>The <b>JSON</b> class in Android hides the complexity of the serialization process.</p><p>JSON is widely used to transmit data between web applications and servers. It uses Java exceptions efficiently to handle failure scenarios (e.g., failure to load data when the SD card is corrupted).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نستخدم JSON بدلاً من التسلسل الافتراضي في جافا (Java Serializable)؟ JSON هو تنسيق نصي مقروء للإنسان ومستقل عن اللغة، مما يجعله مثالياً للتواصل مع واجهات برمجة التطبيقات (APIs) المكتوبة بلغات أخرى.</p><p>في أندرويد، نستخدم كائنات <code>JSONObject</code> لتخزين خصائص الكائن الفردي، و <code>JSONArray</code> للتعامل مع قوائم من هذه الكائنات.</p><p>يتطلب التعامل مع JSON استخدام كتل <code>try-catch</code> للتعامل مع <code>JSONException</code> الإلزامي.</p></template>
+    <template class="content-en"><p>Why use JSON instead of default Java Serialization? JSON is a human-readable, language-independent text format, making it ideal for communicating with APIs written in other languages.</p><p>In Android, we use <code>JSONObject</code> to store individual object properties and <code>JSONArray</code> to handle lists of these objects.</p><p>Working with JSON requires <code>try-catch</code> blocks to handle the mandatory <code>JSONException</code>.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>JSONObject jo = new JSONObject();
+jo.put(JSON_TITLE, mTitle);
+// Adding to array
+JSONArray jArray = new JSONArray();
+jArray.put(jo);</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A diagram showing a Java Object (box with properties) passing through a 'Serialization' arrow to become a JSON string (text document icon). Then a 'De-Serialization' arrow pointing back from the JSON string to a new Java Object. Style: educational, dark background #0d1117, accent color #00bcd4, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+
+    <!-- Drop Shadow for Elevated Boxes -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+
+    <!-- Subtle Background Dot Pattern -->
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="var(--text-muted)" opacity="0.15" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+  <rect width="100%" height="100%" fill="url(#dots)" />
+
+  <!-- Main Title -->
+  <text x="400" y="45" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Java Object Serialization &amp; Deserialization</text>
+  <text x="400" y="75" font-size="18" fill="var(--text-secondary)" text-anchor="middle">تسلسل وإلغاء تسلسل كائنات جافا</text>
+
+  <!-- ========================================== -->
+  <!-- BOX 1: Original Java Object                -->
+  <!-- ========================================== -->
+  <g id="java-object-original" transform="translate(20, 120)">
+    <!-- Box Background -->
+    <rect x="0" y="0" width="160" height="270" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    
+    <!-- Header Divider -->
+    <line x1="0" y1="65" x2="160" y2="65" stroke="var(--border-color)" stroke-width="1" />
+    
+    <!-- Header Text -->
+    <text x="80" y="30" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Java Object</text>
+    <text x="80" y="52" font-size="15" fill="var(--text-muted)" text-anchor="middle">كائن جافا</text>
+
+    <!-- Code Content -->
+    <text x="15" y="95" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">class</tspan> <tspan fill="var(--text-primary)">User {</tspan>
+    </text>
+    <text x="25" y="120" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">int</tspan> <tspan fill="var(--text-primary)">id </tspan><tspan fill="var(--text-secondary)">= 101;</tspan>
+    </text>
+    <text x="25" y="145" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">String</tspan> <tspan fill="var(--text-primary)">name </tspan><tspan fill="var(--text-secondary)">= "Ali";</tspan>
+    </text>
+    <text x="25" y="170" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">String</tspan> <tspan fill="var(--text-primary)">role </tspan><tspan fill="var(--text-secondary)">= "Admin";</tspan>
+    </text>
+    <text x="15" y="195" font-size="14" font-family="monospace, sans-serif" fill="var(--text-secondary)">}</text>
+
+    <!-- Bottom Badge -->
+    <rect x="10" y="230" width="140" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="80" y="248" font-size="13" fill="var(--text-muted)" text-anchor="middle">Memory / الذاكرة</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- BOX 2: JSON String                         -->
+  <!-- ========================================== -->
+  <g id="json-string" transform="translate(300, 120)">
+    <!-- Box Background -->
+    <rect x="0" y="0" width="200" height="270" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    
+    <!-- Header Divider -->
+    <line x1="0" y1="65" x2="200" y2="65" stroke="var(--border-color)" stroke-width="1" />
+    
+    <!-- Header Text -->
+    <text x="100" y="30" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">JSON String</text>
+    <text x="100" y="52" font-size="15" fill="var(--text-muted)" text-anchor="middle">نص JSON</text>
+
+    <!-- Code Content -->
+    <text x="20" y="95" font-size="14" font-family="monospace, sans-serif" fill="var(--text-secondary)">{</text>
+    <text x="35" y="120" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">"id"</tspan><tspan fill="var(--text-secondary)">: </tspan><tspan fill="var(--text-primary)">101,</tspan>
+    </text>
+    <text x="35" y="145" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">"name"</tspan><tspan fill="var(--text-secondary)">: </tspan><tspan fill="var(--text-primary)">"Ali",</tspan>
+    </text>
+    <text x="35" y="170" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">"role"</tspan><tspan fill="var(--text-secondary)">: </tspan><tspan fill="var(--text-primary)">"Admin"</tspan>
+    </text>
+    <text x="20" y="195" font-size="14" font-family="monospace, sans-serif" fill="var(--text-secondary)">}</text>
+
+    <!-- Bottom Badge -->
+    <rect x="20" y="230" width="160" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="100" y="248" font-size="13" fill="var(--text-muted)" text-anchor="middle">Network / الشبكة</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- BOX 3: New Java Object                     -->
+  <!-- ========================================== -->
+  <g id="java-object-new" transform="translate(620, 120)">
+    <!-- Box Background -->
+    <rect x="0" y="0" width="160" height="270" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    
+    <!-- Header Divider -->
+    <line x1="0" y1="65" x2="160" y2="65" stroke="var(--border-color)" stroke-width="1" />
+    
+    <!-- Header Text -->
+    <text x="80" y="30" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">New Object</text>
+    <text x="80" y="52" font-size="15" fill="var(--text-muted)" text-anchor="middle">كائن جديد</text>
+
+    <!-- Code Content -->
+    <text x="15" y="95" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">class</tspan> <tspan fill="var(--text-primary)">User {</tspan>
+    </text>
+    <text x="25" y="120" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">int</tspan> <tspan fill="var(--text-primary)">id </tspan><tspan fill="var(--text-secondary)">= 101;</tspan>
+    </text>
+    <text x="25" y="145" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">String</tspan> <tspan fill="var(--text-primary)">name </tspan><tspan fill="var(--text-secondary)">= "Ali";</tspan>
+    </text>
+    <text x="25" y="170" font-size="14" font-family="monospace, sans-serif">
+      <tspan fill="var(--brand-500)">String</tspan> <tspan fill="var(--text-primary)">role </tspan><tspan fill="var(--text-secondary)">= "Admin";</tspan>
+    </text>
+    <text x="15" y="195" font-size="14" font-family="monospace, sans-serif" fill="var(--text-secondary)">}</text>
+
+    <!-- Bottom Badge -->
+    <rect x="10" y="230" width="140" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="80" y="248" font-size="13" fill="var(--text-muted)" text-anchor="middle">Memory / الذاكرة</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- ARROWS & LABELS                            -->
+  <!-- ========================================== -->
+  
+  <!-- Arrow 1: Serialization (Left to Center) -->
+  <g id="arrow-serialization">
+    <line x1="190" y1="265" x2="285" y2="265" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="240" y="240" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Serialization</text>
+    <text x="240" y="295" font-size="15" fill="var(--text-secondary)" text-anchor="middle">تسلسل</text>
+  </g>
+
+  <!-- Arrow 2: Deserialization (Center to Right) -->
+  <g id="arrow-deserialization">
+    <line x1="510" y1="265" x2="605" y2="265" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="560" y="240" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Deserialization</text>
+    <text x="560" y="295" font-size="15" fill="var(--text-secondary)" text-anchor="middle">إلغاء التسلسل</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يساعد JSON في التعامل مع أخطاء تلف البيانات؟</template>
+      <template class="content-en">How does JSON help in handling data corruption errors?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يستخدم JSON استثناءات جافا (Exceptions) بكفاءة، مما يسمح للمطورين بالتقاط الأخطاء (مثل JSONException) وإشعار المستخدم أو إعادة المحاولة بدلاً من انهيار التطبيق.</p></template>
+      <template class="content-en"><p>JSON uses Java exceptions efficiently, allowing developers to catch errors (like JSONException) and notify the user or retry instead of crashing the app.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="sqlite-sql-primer" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> مقدمة في SQLite و SQL</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> SQLite & SQL Primer</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نظام إدارة قواعد بيانات علائقية خفيف الوزن مدمج في أندرويد، يخزن جميع بياناته في ملف واحد.</p></template>
+    <template class="content-en"><p>A lightweight relational database management system built into Android that stores all its data in a single file.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>قاعدة البيانات هي مكان لتخزين البيانات ووسيلة لاسترجاعها ومعالجتها. <b>SQLite</b> هو <span class="smart-term" data-term-en="DBMS" data-ar="نظام إدارة قواعد البيانات" data-en-def="Database Management System, software that interacts with end users, applications, and the database itself to capture and analyze the data.">نظام إدارة قواعد البيانات</span> (DBMS) المستخدم في أندرويد.</p><p>تستخدم SQLite لغة الاستعلام المهيكلة (SQL) لمعالجة البيانات. الكلمات المفتاحية الأساسية تشمل:</p><ul><li><strong>INSERT:</strong> لإضافة بيانات إلى قاعدة البيانات.</li><li><strong>DELETE:</strong> لإزالة بيانات.</li><li><strong>SELECT:</strong> لقراءة واسترجاع البيانات.</li><li><strong>WHERE:</strong> لتحديد معايير المطابقة للوصول إلى أجزاء معينة.</li><li><strong>FROM:</strong> لتحديد اسم الجدول.</li></ul><p>أنواع البيانات في SQLite بسيطة وتشمل: <code>integer</code> (للأرقام الصحيحة)، <code>text</code> (للنصوص)، و <code>real</code> (للأرقام العشرية الكبيرة).</p></template>
+    <template class="content-en"><p>A database is a place of storage and a means to retrieve, store, and manipulate data. <b>SQLite</b> is the <span class="smart-term" data-term-en="DBMS" data-ar="نظام إدارة قواعد البيانات" data-en-def="Database Management System, software that interacts with end users, applications, and the database itself to capture and analyze the data.">DBMS</span> used in Android.</p><p>SQLite uses Structured Query Language (SQL) to manipulate data. Key SQL keywords include:</p><ul><li><strong>INSERT:</strong> add data to the database.</li><li><strong>DELETE:</strong> remove data from the database.</li><li><strong>SELECT:</strong> read data from the database.</li><li><strong>WHERE:</strong> specify matching criteria to access specific parts of the database.</li><li><strong>FROM:</strong> specify a table or column name.</li></ul><p>SQL types in SQLite include: <code>integer</code> (whole numbers), <code>text</code> (strings/names), and <code>real</code> (floating-point numbers).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا تعتبر SQLite مثالية للهواتف المحمولة؟ على عكس قواعد البيانات التقليدية (مثل MySQL أو Oracle) التي تتطلب خادماً مستقلاً، تعمل SQLite محلياً داخل التطبيق وتخزن كل شيء في ملف واحد، مما يقلل من استهلاك الموارد والذاكرة.</p><p>على الرغم من بساطتها، تدعم SQLite المعاملات (Transactions) والقيود (Constraints)، لكنها تفتقر إلى بعض الميزات المتقدمة مثل إدارة المستخدمين المتعددين، وهو أمر غير ضروري لتطبيق يعمل على هاتف شخصي.</p></template>
+    <template class="content-en"><p>Why is SQLite ideal for mobile devices? Unlike traditional databases (like MySQL or Oracle) that require a separate server process, SQLite runs locally within the app and stores everything in a single file, minimizing resource and memory overhead.</p><p>Despite its simplicity, SQLite supports transactions and constraints, though it lacks advanced features like multi-user management, which is unnecessary for a personal mobile app.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>sql</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>CREATE TABLE my_table (id INTEGER PRIMARY KEY, name TEXT, age INTEGER);
+INSERT INTO my_table VALUES ('James Bond', 49);
+SELECT * FROM my_table WHERE age > 30;</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>integer</th><th>text</th><th>real</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاستخدام</template>
+          <template class="content-en">Usage</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تخزين الأرقام الصحيحة</template>
+          <template class="content-en">Storing whole numbers</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تخزين الأسماء أو العناوين البسيطة</template>
+          <template class="content-en">Storing a simple name or address</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تخزين الأرقام العشرية الكبيرة</template>
+          <template class="content-en">For large floating-point numbers</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا تحتوي SQLite على نوع بيانات مخصص للتواريخ (Dates)؟</template>
+      <template class="content-en">Why doesn't SQLite have a dedicated data type for Dates?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تعتمد SQLite على نظام أنواع ديناميكي مبسط. يتم تخزين التواريخ عادةً كنصوص (TEXT) بتنسيق ISO8601، أو كأرقام صحيحة (INTEGER) تمثل طابع يونكس الزمني.</p></template>
+      <template class="content-en"><p>SQLite uses a simplified dynamic type system. Dates are typically stored as TEXT in ISO8601 format, or as INTEGER representing Unix timestamps.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="android-sqlite-api" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> واجهة برمجة تطبيقات SQLite في أندرويد</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Android SQLite API</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>فئتان أساسيتان في أندرويد: SQLiteDatabase لتمثيل قاعدة البيانات الفعلية، و <span class="smart-term" data-term-en="SQLiteOpenHelper" data-ar="مساعد فتح SQLite" data-en-def="A helper class to manage database creation and version management.">SQLiteOpenHelper</span> لإدارة إنشائها وتحديث إصداراتها.</p></template>
+    <template class="content-en"><p>Two fundamental classes: SQLiteDatabase represents the actual database, and <span class="smart-term" data-term-en="SQLiteOpenHelper" data-ar="مساعد فتح SQLite" data-en-def="A helper class to manage database creation and version management.">SQLiteOpenHelper</span> manages database creation and versioning.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>للوصول إلى واجهة برمجة تطبيقات قاعدة البيانات في أندرويد، نستخدم فئتين أساسيتين:</p><ol><li><strong>SQLiteDatabase:</strong> تمثل قاعدة البيانات الفعلية وتُستخدم لتنفيذ استعلامات SQL (مثل <code>execSQL</code> و <code>rawQuery</code>).</li><li><strong>SQLiteOpenHelper:</strong> فئة مساعدة تتيح الوصول إلى قاعدة البيانات وتهيئتها. يجب إنشاء فئة فرعية منها (مثل <code>DataManager</code>) وتجاوز دالتين أساسيتين:<ul><li><strong><code>onCreate</code>:</strong> تُستدعى في المرة الأولى التي يتم فيها استخدام قاعدة البيانات. نضع فيها كود SQL لإنشاء هيكل الجداول.</li><li><strong><code>onUpgrade</code>:</strong> تُستدعى عندما يتم تعديل هيكل قاعدة البيانات (تغيير رقم الإصدار)، وتُستخدم لتحديث الجداول باستخدام <code>ALTER</code> أو إعادة إنشائها.</li></ul></li></ol></template>
+    <template class="content-en"><p>To access the database API in Android, two fundamental classes are used:</p><ol><li><strong>SQLiteDatabase:</strong> Represents the actual database and is used to execute SQL queries.</li><li><strong>SQLiteOpenHelper:</strong> Enables access to a database and initializes an instance of SQLiteDatabase. You must extend this class and override two methods:<ul><li><strong><code>onCreate</code>:</strong> Called the first time a database is used. Put SQL to create the table structure here.</li><li><strong><code>onUpgrade</code>:</strong> Called when the database structure is modified. Used to update tables using ALTER.</li></ul></li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يضمن استخدام <code>SQLiteOpenHelper</code> عدم محاولة التطبيق إنشاء جداول موجودة بالفعل، ويوفر آلية آمنة لترقية قاعدة البيانات عند إصدار تحديث للتطبيق يحتوي على أعمدة جديدة.</p><p>للحصول على مثيل من قاعدة البيانات للكتابة، نستدعي <code>getWritableDatabase()</code> من كائن المساعد، والذي يقوم بإنشاء قاعدة البيانات إذا لم تكن موجودة، أو يفتحها إذا كانت موجودة.</p></template>
+    <template class="content-en"><p>Using <code>SQLiteOpenHelper</code> ensures the app doesn't try to recreate existing tables and provides a safe mechanism to upgrade the database schema when an app update introduces new columns.</p><p>To get a writable instance of the database, we call <code>getWritableDatabase()</code> on the helper object, which creates the DB if it doesn't exist, or opens it if it does.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>db = helper.getWritableDatabase();
+db.execSQL("INSERT INTO my_table VALUES ('John', 25)");</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يتم استدعاء دالة onUpgrade تحديداً؟</template>
+      <template class="content-en">When exactly is the onUpgrade method called?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يتم استدعاؤها عندما يتم تمرير رقم إصدار (Version Number) إلى مُنشئ SQLiteOpenHelper يكون أعلى من رقم الإصدار المخزن حالياً في قاعدة البيانات على الجهاز.</p></template>
+      <template class="content-en"><p>It is called when a version number passed to the SQLiteOpenHelper constructor is higher than the version number currently stored in the database on the device.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="database-cursors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> مؤشرات قاعدة البيانات (Database Cursors)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Database Cursors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>كائن يمثل مجموعة النتائج المرجعة من استعلام قاعدة البيانات، ويعمل كـ <span class="smart-term" data-term-en="Cursor" data-ar="المؤشر" data-en-def="An interface that provides random read-write access to the result set returned by a database query.">مؤشر</span> يشير إلى صف واحد في كل مرة.</p></template>
+    <template class="content-en"><p>An object that represents the return type of database queries, acting as a <span class="smart-term" data-term-en="Cursor" data-ar="المؤشر" data-en-def="An interface that provides random read-write access to the result set returned by a database query.">pointer</span> to the currently accessed row of returned data.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند تنفيذ استعلامات القراءة (مثل <code>SELECT</code>) باستخدام دالة <code>rawQuery</code>، لا يتم إرجاع البيانات كقائمة جافا عادية، بل يتم إرجاع كائن من فئة <b>Cursor</b>.</p><p>يحدد كائن المؤشر (Cursor) الصف الذي يتم الوصول إليه حالياً من البيانات المرجعة.</p><p>تُستخدم دوال فئة Cursor للوصول الانتقائي إلى البيانات، مثل:</p><ul><li><strong><code>getString(columnIndex)</code>:</strong> لاسترجاع نص من العمود المحدد.</li><li><strong><code>getInt(columnIndex)</code>:</strong> لاسترجاع رقم صحيح.</li></ul><p>مثال على الاستخدام: <code>Log.i(c.getString(1), c.getString(2));</code></p></template>
+    <template class="content-en"><p>When executing read queries (like <code>SELECT</code>) using the <code>rawQuery</code> method, the data is not returned as a standard Java list, but as an object of the <b>Cursor</b> class.</p><p>The Cursor object determines the currently accessed row of returned data.</p><p>Methods of the Cursor class are used to selectively access the data returned from the queries, such as:</p><ul><li><strong><code>getString(columnIndex)</code>:</strong> retrieves a string from the specified column.</li><li><strong><code>getInt(columnIndex)</code>:</strong> retrieves an integer.</li></ul><p>Example usage: <code>Log.i(c.getString(1), c.getString(2));</code></p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نستخدم المؤشرات بدلاً من تحميل كل البيانات في الذاكرة؟ المؤشرات فعالة جداً في استهلاك الذاكرة (Memory Efficient) لأنها لا تحمل الجدول بأكمله في الذاكرة العشوائية (RAM)، بل تجلب البيانات صفاً بصف عند الحاجة.</p><p>من الضروري جداً إغلاق المؤشر <code>cursor.close()</code> بعد الانتهاء من استخدامه لمنع تسرب الذاكرة (Memory Leaks) في التطبيق.</p></template>
+    <template class="content-en"><p>Why use Cursors instead of loading all data into memory? Cursors are highly memory efficient because they don't load the entire result set into RAM at once; they fetch data row by row as needed.</p><p>It is absolutely critical to call <code>cursor.close()</code> after you finish using it to prevent memory leaks in the application.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public Cursor selectAll() {
+    Cursor c = db.rawQuery("SELECT * from " + TABLE_N_AND_A, null);
+    return c;
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما الفرق بين execSQL و rawQuery؟</template>
+      <template class="content-en">What is the difference between execSQL and rawQuery?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تُستخدم execSQL لتنفيذ استعلامات لا ترجع بيانات (مثل INSERT و DELETE)، بينما تُستخدم rawQuery لتنفيذ استعلامات ترجع بيانات (مثل SELECT) وتُرجع كائن Cursor.</p></template>
+      <template class="content-en"><p>execSQL is used for queries that don't return data (like INSERT, DELETE), while rawQuery is used for queries that return data (like SELECT) and returns a Cursor object.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في هذه الوحدة الحاسمة. اليوم ننتقل بتطبيقاتنا من مجرد شاشات مؤقتة تفقد ذاكرتها بمجرد إغلاقها، إلى تطبيقات ذكية تتذكر مستخدميها. بدأنا بـ Intents، وهي رسل التطبيق التي تنقل البيانات بين الشاشات. ثم انتقلنا إلى SharedPreferences، وهي الذاكرة السريعة والخفيفة لحفظ الإعدادات البسيطة. لكن ماذا لو كبرت بياناتنا؟ هنا يأتي دور JSON لتحويل كائناتنا المعقدة إلى نصوص يمكن حفظها. وأخيراً، السلاح الأقوى: قواعد بيانات SQLite. تذكروا دائماً الفروق الدقيقة للامتحان: متى نستخدم SharedPreferences (للإعدادات) ومتى نستخدم SQLite (للبيانات المترابطة والكبيرة). ولا تنسوا أبداً استدعاء commit() عند الحفظ، واستخدام rawQuery() بدلاً من execSQL() عند البحث عن البيانات. ركزوا على دور SQLiteOpenHelper في إدارة دورة حياة قاعدة البيانات، فهذا سؤال كلاسيكي في الامتحانات. بالتوفيق!</template>
+    <template class="content-en">Welcome, future engineers, to a crucial module. Today we transition our apps from amnesiac screens that forget everything when closed, to smart apps that remember their users. We started with Intents, the messengers passing data between screens. Then, SharedPreferences, the quick memory for simple settings. But what if our data grows? Enter JSON, serializing complex objects into storable text. Finally, the heavy artillery: SQLite databases. For the exam, always remember the distinctions: use SharedPreferences for simple settings and SQLite for structured, relational data. Never forget to call commit() when saving preferences, and always use rawQuery() instead of execSQL() when you need a Cursor back. Focus heavily on the role of SQLiteOpenHelper in managing the database lifecycle—it's a classic exam topic. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نمرر البيانات من نشاط (Activity) إلى آخر؟</template>
+          <template class="content-en">How do we pass data from one Activity to another?</template>
+          <span class="content-target">كيف نمرر البيانات من نشاط (Activity) إلى آخر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدم كائن Intent مع دالة putExtra() لتمرير البيانات كأزواج (مفتاح-قيمة)، ثم نستخدم getExtra() في النشاط المستلم لاسترجاعها.</template>
+          <template class="content-en">We use an Intent object with the putExtra() method to pass data as key-value pairs, and then use getExtra() in the receiving Activity to retrieve it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يجب أن نستخدم SharedPreferences؟</template>
+          <template class="content-en">When should we use SharedPreferences?</template>
+          <span class="content-target">متى يجب أن نستخدم SharedPreferences؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم لحفظ البيانات الأولية البسيطة (Primitive data) مثل إعدادات المستخدم (الوضع الليلي، تفضيلات الإشعارات) لأنها خفيفة ولا تتطلب إعداد قاعدة بيانات.</template>
+          <template class="content-en">It is used to save simple primitive data like user settings (dark mode, notification preferences) because it is lightweight and doesn't require database setup.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تتطلب دوال استرجاع SharedPreferences قيمة افتراضية؟</template>
+          <template class="content-en">Why do SharedPreferences retrieval methods require a default value?</template>
+          <span class="content-target">لماذا تتطلب دوال استرجاع SharedPreferences قيمة افتراضية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه في المرة الأولى التي يعمل فيها التطبيق، لن تكون هناك بيانات محفوظة مسبقاً. القيمة الافتراضية تمنع التطبيق من الانهيار وتوفر حالة مبدئية.</template>
+          <template class="content-en">Because the first time the app runs, there will be no previously saved data. The default value prevents crashes and provides an initial state.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف من التسلسل (Serialization)؟</template>
+          <template class="content-en">What is the goal of Serialization?</template>
+          <span class="content-target">ما هو الهدف من التسلسل (Serialization)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحويل كائنات جافا المعقدة الموجودة في الذاكرة إلى تنسيق (مثل JSON أو بايتات) يمكن حفظه على القرص أو إرساله عبر الشبكة.</template>
+          <template class="content-en">To convert complex Java objects in memory into a format (like JSON or bytes) that can be saved to disk or sent over a network.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نفضل استخدام JSON في أندرويد؟</template>
+          <template class="content-en">Why do we prefer using JSON in Android?</template>
+          <span class="content-target">لماذا نفضل استخدام JSON في أندرويد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه تنسيق قياسي، خفيف الوزن، يسهل قراءته، ويتعامل مع الاستثناءات (Exceptions) بكفاءة لمنع انهيار التطبيق عند تلف البيانات.</template>
+          <template class="content-en">Because it is a standard, lightweight, human-readable format that handles exceptions efficiently to prevent app crashes upon data corruption.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الميزة الرئيسية لـ SQLite في تطبيقات الهواتف؟</template>
+          <template class="content-en">What is the main advantage of SQLite in mobile apps?</template>
+          <span class="content-target">ما هي الميزة الرئيسية لـ SQLite في تطبيقات الهواتف؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أنها قاعدة بيانات مدمجة (Embedded) لا تتطلب خادماً مستقلاً، وتخزن جميع بياناتها في ملف واحد محلياً على الجهاز.</template>
+          <template class="content-en">It is an embedded database that doesn't require a separate server process, storing all its data locally in a single file on the device.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي أنواع البيانات الأساسية التي تدعمها SQLite؟</template>
+          <template class="content-en">What are the basic data types supported by SQLite?</template>
+          <span class="content-target">ما هي أنواع البيانات الأساسية التي تدعمها SQLite؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تدعم integer (للأرقام الصحيحة)، text (للنصوص)، و real (للأرقام العشرية).</template>
+          <template class="content-en">It supports integer (for whole numbers), text (for strings), and real (for floating-point numbers).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو دور فئة SQLiteOpenHelper؟</template>
+          <template class="content-en">What is the role of the SQLiteOpenHelper class?</template>
+          <span class="content-target">ما هو دور فئة SQLiteOpenHelper؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تدير إنشاء قاعدة البيانات لأول مرة (عبر onCreate) وتحديث هيكل الجداول عند تغيير الإصدار (عبر onUpgrade).</template>
+          <template class="content-en">It manages the initial creation of the database (via onCreate) and updates to the table structure when the version changes (via onUpgrade).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين execSQL و rawQuery؟</template>
+          <template class="content-en">What is the difference between execSQL and rawQuery?</template>
+          <span class="content-target">ما الفرق بين execSQL و rawQuery؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم execSQL لتنفيذ استعلامات لا ترجع بيانات (مثل INSERT)، بينما تُستخدم rawQuery لاستعلامات SELECT لأنها تُرجع كائن Cursor يحتوي على النتائج.</template>
+          <template class="content-en">execSQL is used for queries that don't return data (like INSERT), while rawQuery is used for SELECT queries because it returns a Cursor object containing the results.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو كائن Cursor ولماذا هو مهم؟</template>
+          <template class="content-en">What is a Cursor object and why is it important?</template>
+          <span class="content-target">ما هو كائن Cursor ولماذا هو مهم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو مؤشر يمثل مجموعة النتائج من استعلام قاعدة البيانات. يسمح بقراءة البيانات صفاً بصف، مما يجعله فعالاً جداً في استهلاك الذاكرة.</template>
+          <template class="content-en">It is a pointer representing the result set from a database query. It allows reading data row by row, making it highly memory efficient.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي فئة Intent في أندرويد؟",
+      "en": "What is the Intent class in Android?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة توضح نية النشاط وتسمح بالتبديل بين مثيلات الأنشطة وتمرير البيانات.",
+        "en": "A class that demonstrates the intent of an Activity, enabling switching between Activity instances and passing data."
+      },
+      "example": {
+        "ar": "Intent myIntent = new Intent(this, SettingsActivity.class);",
+        "en": "Intent myIntent = new Intent(this, SettingsActivity.class);"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "أي دالة تُستخدم لبدء نشاط جديد باستخدام نية (Intent)؟",
+      "en": "Which method is used to start a new activity using an Intent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة startActivity()",
+        "en": "The startActivity() method."
+      },
+      "example": {
+        "ar": "startActivity(myIntent);",
+        "en": "startActivity(myIntent);"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "كيف يتم تمرير البيانات بين الأنشطة باستخدام النوايا؟",
+      "en": "How is data passed between activities using Intents?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام أزواج (مفتاح-قيمة) عبر دالة putExtra.",
+        "en": "Using key-value pairs via the putExtra method."
+      },
+      "example": {
+        "ar": "myIntent.putExtra(\"USER_NAME\", username);",
+        "en": "myIntent.putExtra(\"USER_NAME\", username);"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي دالة استرجاع البيانات الممررة عبر النية؟",
+      "en": "What method retrieves data passed via an Intent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة getExtra (أو دوال مثل getStringExtra).",
+        "en": "The getExtra method (or specific ones like getStringExtra)."
+      },
+      "example": {
+        "ar": "intent.getStringExtra(\"USER_NAME\");",
+        "en": "intent.getStringExtra(\"USER_NAME\");"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو الغرض من SharedPreferences؟",
+      "en": "What is the purpose of SharedPreferences?"
+    },
+    "back": {
+      "definition": {
+        "ar": "توفير وصول للبيانات التي يمكن قراءتها وتعديلها بواسطة جميع الأنشطة، والاحتفاظ بها حتى بعد إغلاق التطبيق.",
+        "en": "Provides access to data that can be accessed and edited by all Activities, retaining it even after the app quits."
+      },
+      "example": {
+        "ar": "حفظ إعدادات المستخدم مثل الوضع الليلي.",
+        "en": "Saving user settings like dark mode."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "كيف يتم تهيئة كائن SharedPreferences؟",
+      "en": "How is a SharedPreferences object initialized?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام دالة getSharedPreferences مع تمرير اسم الملف ووضع الوصول.",
+        "en": "Using the getSharedPreferences method with a file name and access mode."
+      },
+      "example": {
+        "ar": "prefs = getSharedPreferences(\"MyApp\", MODE_PRIVATE);",
+        "en": "prefs = getSharedPreferences(\"MyApp\", MODE_PRIVATE);"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي الفئة المستخدمة لتعديل بيانات SharedPreferences؟",
+      "en": "What class is used to modify SharedPreferences data?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة SharedPreferences.Editor",
+        "en": "The SharedPreferences.Editor class."
+      },
+      "example": {
+        "ar": "SharedPreferences.Editor editor = prefs.edit();",
+        "en": "SharedPreferences.Editor editor = prefs.edit();"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "أي دالة يجب استدعاؤها لحفظ التغييرات في SharedPreferences؟",
+      "en": "Which method must be called to save changes in SharedPreferences?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة commit() (أو apply()).",
+        "en": "The commit() method (or apply())."
+      },
+      "example": {
+        "ar": "editor.commit();",
+        "en": "editor.commit();"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ماذا يمثل المعامل الثاني في دوال استرجاع SharedPreferences (مثل getString)؟",
+      "en": "What does the second parameter in SharedPreferences retrieval methods (like getString) represent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "القيمة الافتراضية التي يتم إرجاعها إذا لم يتم العثور على بيانات مخزنة بهذا المفتاح.",
+        "en": "The default value returned when there is no data stored with that label."
+      },
+      "example": {
+        "ar": "prefs.getString(\"username\", \"new user\");",
+        "en": "prefs.getString(\"username\", \"new user\");"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو التسلسل (Serialization)؟",
+      "en": "What is Serialization?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل كائنات البيانات إلى بتات وبايتات لتخزينها على القرص.",
+        "en": "Converting data objects into bits and bytes to store on the disk."
+      },
+      "example": {
+        "ar": "تحويل كائن Note إلى سلسلة JSON.",
+        "en": "Converting a Note object into a JSON string."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو إلغاء التسلسل (De-Serialization)؟",
+      "en": "What is De-Serialization?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل البتات والبايتات المخزنة مرة أخرى إلى كائنات بيانات عند إعادة تحميل التطبيق.",
+        "en": "Converting stored bits and bytes back to data objects when reloading the app."
+      },
+      "example": {
+        "ar": "قراءة ملف JSON وتحويله إلى كائنات جافا.",
+        "en": "Reading a JSON file and converting it into Java objects."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "إلى ماذا يرمز اختصار JSON؟",
+      "en": "What does JSON stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تدوين كائنات جافا سكريبت (JavaScript Object Notation).",
+        "en": "JavaScript Object Notation."
+      },
+      "example": {
+        "ar": "{\"name\": \"John\", \"age\": 30}",
+        "en": "{\"name\": \"John\", \"age\": 30}"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي SQLite؟",
+      "en": "What is SQLite?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام إدارة قواعد بيانات (DBMS) مستخدم في أندرويد، يخزن جميع بياناته في ملف واحد.",
+        "en": "A DBMS used in Android that stores all its data in a single file."
+      },
+      "example": {
+        "ar": "استخدام SQLite لتخزين قائمة جهات الاتصال محلياً.",
+        "en": "Using SQLite to store a local contacts list."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي أنواع البيانات الأساسية في SQLite؟",
+      "en": "What are the basic data types in SQLite?"
+    },
+    "back": {
+      "definition": {
+        "ar": "integer (أرقام صحيحة)، text (نصوص)، real (أرقام عشرية).",
+        "en": "integer (whole numbers), text (strings), real (floating-point numbers)."
+      },
+      "example": {
+        "ar": "age INTEGER, name TEXT",
+        "en": "age INTEGER, name TEXT"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي وظيفة فئة SQLiteOpenHelper؟",
+      "en": "What is the function of the SQLiteOpenHelper class?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تتيح الوصول إلى قاعدة البيانات وتهيئتها، وتدير إنشاء قاعدة البيانات وتحديث إصداراتها.",
+        "en": "Enables access to a database, initializes SQLiteDatabase, and manages creation and versioning."
+      },
+      "example": {
+        "ar": "إنشاء فئة DataManager ترث من SQLiteOpenHelper.",
+        "en": "Creating a DataManager class that extends SQLiteOpenHelper."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "متى يتم استدعاء دالة onCreate في SQLiteOpenHelper؟",
+      "en": "When is the onCreate method called in SQLiteOpenHelper?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستدعى في المرة الأولى التي يتم فيها استخدام قاعدة البيانات لإنشاء هيكل الجداول.",
+        "en": "Called the first time a database is used, to put SQL to create the table structure."
+      },
+      "example": {
+        "ar": "تنفيذ استعلام CREATE TABLE بداخلها.",
+        "en": "Executing a CREATE TABLE query inside it."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "متى يتم استدعاء دالة onUpgrade في SQLiteOpenHelper؟",
+      "en": "When is the onUpgrade method called in SQLiteOpenHelper?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُستدعى عندما يتم تعديل هيكل قاعدة البيانات (تغيير رقم الإصدار).",
+        "en": "Called when the database structure is modified (version number changes)."
+      },
+      "example": {
+        "ar": "استخدام ALTER TABLE لإضافة عمود جديد.",
+        "en": "Using ALTER TABLE to add a new column."
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما هي فئة Cursor في قواعد بيانات أندرويد؟",
+      "en": "What is the Cursor class in Android databases?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع الإرجاع لاستعلامات قاعدة البيانات، يحدد الصف الذي يتم الوصول إليه حالياً من البيانات المرجعة.",
+        "en": "Return type of database queries, determines the currently accessed row of returned data."
+      },
+      "example": {
+        "ar": "Cursor c = db.rawQuery(...);",
+        "en": "Cursor c = db.rawQuery(...);"
+      }
+    }
+  },
+  {
+    "id": 19,
+    "front": {
+      "ar": "أي دالة تُستخدم لتنفيذ استعلامات الإدراج (INSERT) في SQLiteDatabase؟",
+      "en": "Which method is used to execute INSERT queries in SQLiteDatabase?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة execSQL().",
+        "en": "The execSQL() method."
+      },
+      "example": {
+        "ar": "db.execSQL(query);",
+        "en": "db.execSQL(query);"
+      }
+    }
+  },
+  {
+    "id": 20,
+    "front": {
+      "ar": "أي دالة تُستخدم لتنفيذ استعلامات التحديد (SELECT) وإرجاع مؤشر (Cursor)؟",
+      "en": "Which method is used to execute SELECT queries and return a Cursor?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة rawQuery().",
+        "en": "The rawQuery() method."
+      },
+      "example": {
+        "ar": "db.rawQuery(\"SELECT * FROM table\", null);",
+        "en": "db.rawQuery(\"SELECT * FROM table\", null);"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الغرض الأساسي من فئة Intent في أندرويد؟",
+      "en": "What is the primary purpose of the Intent class in Android?"
+    },
+    "options": {
+      "ar": [
+        "تخزين البيانات بشكل دائم في قاعدة البيانات",
+        "التبديل بين مثيلات الأنشطة (Activities) وتمرير البيانات",
+        "إنشاء واجهة المستخدم الرسومية",
+        "تحويل كائنات جافا إلى JSON"
+      ],
+      "en": [
+        "Storing data permanently in a database",
+        "Switching between Activity instances and passing data",
+        "Creating the graphical user interface",
+        "Converting Java objects to JSON"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم النوايا (Intents) لإظهار نية التطبيق للانتقال إلى شاشة أخرى وتمرير البيانات بينها.",
+      "en": "Intents are used to demonstrate the intent to switch to another screen and pass data between them."
+    },
+    "hint": {
+      "ar": "فكر في كيفية انتقالك من شاشة تسجيل الدخول إلى الشاشة الرئيسية.",
+      "en": "Think about how you move from a login screen to the main screen."
+    },
+    "difficulty": "easy",
+    "conceptId": "android-intents"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي دالة تُستخدم لإضافة بيانات إلى كائن Intent؟",
+      "en": "Which method is used to add data to an Intent object?"
+    },
+    "options": {
+      "ar": [
+        "addExtra()",
+        "putData()",
+        "putExtra()",
+        "setExtra()"
+      ],
+      "en": [
+        "addExtra()",
+        "putData()",
+        "putExtra()",
+        "setExtra()"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تُستخدم دالة putExtra لإضافة بيانات باستخدام أزواج (مفتاح-قيمة).",
+      "en": "The putExtra method is used to add data using key-value pairs."
+    },
+    "hint": {
+      "ar": "تبدأ بكلمة put.",
+      "en": "It starts with 'put'."
+    },
+    "difficulty": "medium",
+    "conceptId": "android-intents"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي الفئة المطلوبة لتعديل وحفظ البيانات في SharedPreferences؟",
+      "en": "What class is required to modify and save data in SharedPreferences?"
+    },
+    "options": {
+      "ar": [
+        "SharedPreferences.Saver",
+        "SharedPreferences.Writer",
+        "SharedPreferences.Modifier",
+        "SharedPreferences.Editor"
+      ],
+      "en": [
+        "SharedPreferences.Saver",
+        "SharedPreferences.Writer",
+        "SharedPreferences.Modifier",
+        "SharedPreferences.Editor"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "يجب استدعاء prefs.edit() للحصول على كائن SharedPreferences.Editor لتعديل البيانات.",
+      "en": "You must call prefs.edit() to get a SharedPreferences.Editor object to modify data."
+    },
+    "hint": {
+      "ar": "مثل محرر النصوص.",
+      "en": "Like a text editor."
+    },
+    "difficulty": "easy",
+    "conceptId": "shared-preferences"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ماذا يحدث إذا استخدمت دالة getString في SharedPreferences ولم يكن المفتاح موجوداً؟",
+      "en": "What happens if you use the getString method in SharedPreferences and the key does not exist?"
+    },
+    "options": {
+      "ar": [
+        "يتوقف التطبيق عن العمل (Crash)",
+        "ترجع الدالة القيمة الافتراضية الممررة كمعامل ثاني",
+        "ترجع الدالة قيمة null دائماً",
+        "يتم إنشاء المفتاح تلقائياً بقيمة فارغة"
+      ],
+      "en": [
+        "The app crashes",
+        "The method returns the default value passed as the second parameter",
+        "The method always returns null",
+        "The key is automatically created with an empty value"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تتطلب دوال الاسترجاع في SharedPreferences قيمة افتراضية يتم إرجاعها في حال عدم وجود البيانات.",
+      "en": "Retrieval methods in SharedPreferences require a default value to be returned if the data does not exist."
+    },
+    "hint": {
+      "ar": "لماذا نمرر معاملين لدالة getString؟",
+      "en": "Why do we pass two parameters to getString?"
+    },
+    "difficulty": "medium",
+    "conceptId": "shared-preferences"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الغرض من عملية التسلسل (Serialization)؟",
+      "en": "What is the purpose of Serialization?"
+    },
+    "options": {
+      "ar": [
+        "تشفير البيانات لحمايتها من الاختراق",
+        "تحويل كائنات البيانات إلى بتات وبايتات لتخزينها على القرص",
+        "ترتيب البيانات أبجدياً في قاعدة البيانات",
+        "تحويل كود جافا إلى كود C++"
+      ],
+      "en": [
+        "Encrypting data to protect it from hacking",
+        "Converting data objects into bits and bytes to store on the disk",
+        "Sorting data alphabetically in the database",
+        "Converting Java code to C++ code"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التسلسل هو عملية تحويل الكائنات المعقدة إلى تنسيق يمكن تخزينه أو نقله (مثل JSON).",
+      "en": "Serialization is the process of converting complex objects into a format that can be stored or transmitted (like JSON)."
+    },
+    "hint": {
+      "ar": "فكر في كيفية حفظ كائن في ملف نصي.",
+      "en": "Think about how to save an object into a text file."
+    },
+    "difficulty": "medium",
+    "conceptId": "json-serialization"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي من أنواع البيانات التالية مدعوم في SQLite؟",
+      "en": "Which of the following data types is supported in SQLite?"
+    },
+    "options": {
+      "ar": [
+        "boolean",
+        "array",
+        "real",
+        "object"
+      ],
+      "en": [
+        "boolean",
+        "array",
+        "real",
+        "object"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تدعم SQLite أنواع بيانات بسيطة مثل integer و text و real.",
+      "en": "SQLite supports simple data types like integer, text, and real."
+    },
+    "hint": {
+      "ar": "يُستخدم للأرقام العشرية الكبيرة.",
+      "en": "Used for large floating-point numbers."
+    },
+    "difficulty": "easy",
+    "conceptId": "sqlite-sql-primer"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "متى يتم استدعاء دالة onCreate في فئة SQLiteOpenHelper؟",
+      "en": "When is the onCreate method called in the SQLiteOpenHelper class?"
+    },
+    "options": {
+      "ar": [
+        "في كل مرة يتم فيها تشغيل التطبيق",
+        "في كل مرة يتم فيها تنفيذ استعلام SELECT",
+        "المرة الأولى التي يتم فيها استخدام قاعدة البيانات",
+        "عندما يتم تغيير رقم إصدار قاعدة البيانات"
+      ],
+      "en": [
+        "Every time the app is launched",
+        "Every time a SELECT query is executed",
+        "The first time a database is used",
+        "When the database version number is changed"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تُستدعى onCreate مرة واحدة فقط عند إنشاء قاعدة البيانات لأول مرة، وتُستخدم لإنشاء الجداول.",
+      "en": "onCreate is called only once when the database is first created, and is used to create tables."
+    },
+    "hint": {
+      "ar": "تحدث مرة واحدة فقط في دورة حياة قاعدة البيانات.",
+      "en": "It happens only once in the database lifecycle."
+    },
+    "difficulty": "medium",
+    "conceptId": "android-sqlite-api"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي دالة تُستخدم لتنفيذ استعلام SELECT في أندرويد وترجع كائن Cursor؟",
+      "en": "Which method is used to execute a SELECT query in Android and returns a Cursor object?"
+    },
+    "options": {
+      "ar": [
+        "execSQL()",
+        "runQuery()",
+        "rawQuery()",
+        "selectQuery()"
+      ],
+      "en": [
+        "execSQL()",
+        "runQuery()",
+        "rawQuery()",
+        "selectQuery()"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تُستخدم دالة rawQuery لتنفيذ استعلامات القراءة وإرجاع مؤشر (Cursor) للنتائج.",
+      "en": "The rawQuery method is used to execute read queries and return a Cursor for the results."
+    },
+    "hint": {
+      "ar": "تحتوي على كلمة raw.",
+      "en": "Contains the word 'raw'."
+    },
+    "difficulty": "hard",
+    "conceptId": "database-cursors"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو كائن Cursor في سياق قواعد بيانات أندرويد؟",
+      "en": "What is a Cursor object in the context of Android databases?"
+    },
+    "options": {
+      "ar": [
+        "مؤشر الماوس على الشاشة",
+        "كائن يمثل الصف الذي يتم الوصول إليه حالياً من البيانات المرجعة",
+        "فئة مساعدة لإنشاء الجداول",
+        "نوع بيانات لتخزين النصوص الطويلة"
+      ],
+      "en": [
+        "The mouse pointer on the screen",
+        "An object representing the currently accessed row of returned data",
+        "A helper class to create tables",
+        "A data type for storing long text"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المؤشر (Cursor) هو نوع الإرجاع لاستعلامات قاعدة البيانات ويسمح بالوصول الانتقائي إلى صفوف البيانات.",
+      "en": "A Cursor is the return type of database queries and allows selective access to rows of data."
+    },
+    "hint": {
+      "ar": "يشير إلى البيانات المرجعة.",
+      "en": "It points to the returned data."
+    },
+    "difficulty": "medium",
+    "conceptId": "database-cursors"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي كلمة مفتاحية في SQL تُستخدم لتحديد معايير المطابقة (الشروط)؟",
+      "en": "Which SQL keyword is used to specify matching criteria (conditions)?"
+    },
+    "options": {
+      "ar": [
+        "SELECT",
+        "FROM",
+        "WHERE",
+        "INSERT"
+      ],
+      "en": [
+        "SELECT",
+        "FROM",
+        "WHERE",
+        "INSERT"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تُستخدم WHERE لتصفية السجلات وتحديد الشروط التي يجب أن تتطابق معها البيانات.",
+      "en": "WHERE is used to filter records and specify conditions that the data must match."
+    },
+    "hint": {
+      "ar": "تعني 'أين' باللغة الإنجليزية.",
+      "en": "Means 'where' in English."
+    },
+    "difficulty": "easy",
+    "conceptId": "sqlite-sql-primer"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان استدعاء دالة commit() بعد استخدام SharedPreferences.Editor. إذا لم تستدعِ هذه الدالة، فلن يتم حفظ أي من التغييرات التي أجريتها.</template>
+      <template class="content-en">Forgetting to call commit() after using SharedPreferences.Editor. If you don't call this method, none of your changes will be saved.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تعتمد النوايا (Intents) و SharedPreferences كلاهما على مفهوم أزواج (مفتاح-قيمة) لتخزين وتمرير البيانات. المفتاح دائماً نص (String)، والقيمة هي البيانات الفعلية.</template>
+      <template class="content-en">Both Intents and SharedPreferences rely on the concept of key-value pairs to store and pass data. The key is always a String, and the value is the actual data.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">دالة onUpgrade في SQLiteOpenHelper لا تُستدعى تلقائياً مع كل تشغيل. تُستدعى فقط إذا قمت بتغيير رقم الإصدار (Version Number) الممرر في المُنشئ إلى رقم أعلى.</template>
+      <template class="content-en">The onUpgrade method in SQLiteOpenHelper is not called automatically on every run. It is only triggered if you change the Version Number passed in the constructor to a higher number.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام execSQL() لتنفيذ استعلام SELECT. دالة execSQL لا تُرجع بيانات (لا تُرجع Cursor)، لذا يجب دائماً استخدام rawQuery() لاستعلامات SELECT.</template>
+      <template class="content-en">Using execSQL() to execute a SELECT query. The execSQL method does not return data (no Cursor), so you must always use rawQuery() for SELECT queries.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المؤشر (Cursor) لا يحمل كل البيانات في الذاكرة دفعة واحدة. إنه مجرد 'مؤشر' يشير إلى صف واحد في كل مرة، مما يجعله فعالاً جداً في استهلاك الذاكرة.</template>
+      <template class="content-en">A Cursor does not hold all data in memory at once. It is merely a 'pointer' that points to one row at a time, making it highly memory efficient.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M06.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M08.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

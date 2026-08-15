@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS475" data-module="12">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بدء مشاريع React Native وبناء واجهات متجاوبة باستخدام Flexbox · CS475 · الحديقة الرقمية</title>
+
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS475" data-page-title-en="CS475">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M11.html" data-gh-next="M13.html" data-gh-card="../../hub/course.html?code=CS475"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#expo-cli-initialization" class="toc-link" data-bilingual>
+        <template class="content-ar">أداة سطر الأوامر Expo</template>
+        <template class="content-en">Expo Command-Line Tool</template>
+        <span class="content-target">أداة سطر الأوامر Expo</span>
+      </a>
+      <a href="#running-app-physical-device" class="toc-link" data-bilingual>
+        <template class="content-ar">تشغيل التطبيق على جهاز حقيقي</template>
+        <template class="content-en">Viewing App on Physical Device</template>
+        <span class="content-target">تشغيل التطبيق على جهاز حقيقي</span>
+      </a>
+      <a href="#expo-snack" class="toc-link" data-bilingual>
+        <template class="content-ar">منصة Expo Snack</template>
+        <template class="content-en">Expo Snack</template>
+        <span class="content-target">منصة Expo Snack</span>
+      </a>
+      <a href="#react-native-styles" class="toc-link" data-bilingual>
+        <template class="content-ar">أنماط React Native (Styles)</template>
+        <template class="content-en">React Native Styles</template>
+        <span class="content-target">أنماط React Native (Styles)</span>
+      </a>
+      <a href="#flexbox-layout-standard" class="toc-link" data-bilingual>
+        <template class="content-ar">نموذج تخطيط Flexbox</template>
+        <template class="content-en">Flexbox Layout Standard</template>
+        <span class="content-target">نموذج تخطيط Flexbox</span>
+      </a>
+      <a href="#building-flexbox-layouts" class="toc-link" data-bilingual>
+        <template class="content-ar">بناء تخطيطات Flexbox (المحاذاة والتمدد)</template>
+        <template class="content-en">Building Flexbox Layouts (Alignment & Stretching)</template>
+        <span class="content-target">بناء تخطيطات Flexbox (المحاذاة والتمدد)</span>
+      </a>
+      <a href="#flexible-grids-and-nesting" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات المرنة والتداخل</template>
+        <template class="content-en">Flexible Grids and Nesting</template>
+        <span class="content-target">الشبكات المرنة والتداخل</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 12</template>
+      <template class="content-en">Module 12</template>
+      <span class="content-target">الوحدة 12</span>
+    </span> · CS475
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">بدء مشاريع React Native وبناء واجهات متجاوبة باستخدام Flexbox</h1>
+      <p class="hero-description">مقدمة شاملة حول استخدام أداة Expo لإنشاء مشاريع React Native، واختبار التطبيقات على الأجهزة الحقيقية وExpo Snack، بالإضافة إلى تصميم واجهات متجاوبة باستخدام نموذج Flexbox.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Kick-Starting React Native Projects and Building Responsive Layouts with Flexbox</h1>
+      <p class="hero-description">A comprehensive introduction to using the Expo CLI for React Native projects, testing apps on physical devices and Expo Snack, and designing responsive layouts using the Flexbox model.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">تطوير الهواتف الذكية</span>
+      <span class="tag">React Native</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Mobile Development</span>
+      <span class="tag">React Native</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح كيفية بدء مشروع React Native باستخدام أداة سطر الأوامر Expo.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح كيفية استخدام نموذج Flexbox لتخطيط شاشات React Native.</span></li>
+      <li><span class="obj-icon">✦</span><span>تشغيل واختبار تطبيقات React Native على الأجهزة المحمولة الحقيقية والمحاكيات الافتراضية عبر Expo Snack.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain how to kick-start a React Native project using the Expo command-line tool.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain how to use the Flexbox model to lay out React Native screens.</span></li>
+      <li><span class="obj-icon">✦</span><span>Run and test React Native apps on physical mobile devices and virtual emulators via Expo Snack.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="expo-cli-initialization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> أداة سطر الأوامر Expo</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Expo Command-Line Tool</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أداة Expo هي الطريقة المفضلة لبدء وإدارة مشاريع React Native بسهولة دون الحاجة لضبط إعدادات معقدة.</p></template>
+    <template class="content-en"><p>The Expo CLI is the preferred tool to bootstrap and manage React Native projects without complex native setup.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتولى أداة Expo إنشاء هيكل المشروع الأساسي المطلوب لتشغيل تطبيق React Native.</p><ol><li>يتم تثبيت الأداة عالمياً باستخدام الأمر: <code>npm install -g expo-cli</code></li><li>يتم إنشاء مشروع جديد باستخدام الأمر: <code>expo init my-project</code></li><li>عند الإنشاء، يتيح لك النظام اختيار قالب (Template) مثل سير العمل المدار (Managed workflow) أو سير العمل المجرد (Bare workflow).</li></ol></template>
+    <template class="content-en"><p>The Expo command-line tool handles the creation of the project framework required to run a basic React Native application.</p><ol><li>Install the tool globally using: <code>npm install -g expo-cli</code></li><li>Initialize a new project using: <code>expo init my-project</code></li><li>During initialization, you choose a template such as the Managed workflow or Bare workflow.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يُعد خيار <b>Managed workflow</b> هو الخيار الافتراضي، حيث يتيح للمطورين استخدام أدوات وخدمات Expo أثناء التطوير، مما يجعله متوافقاً مع مختلف الأجهزة المحمولة دون الحاجة للتعامل مع الأكواد الأصلية (Native Code).</p><p>بينما يوفر <b>Bare workflow</b> الحد الأدنى من الإعدادات، مما يمنح المطورين تحكماً كاملاً في المشاريع الأصلية، وهو ضروري عند الحاجة إلى إضافة وحدات أصلية مخصصة (Custom Native Modules).</p></template>
+    <template class="content-en"><p>The <b>Managed workflow</b> is the default selection. It enables developers to use Expo's suite of tools and services during development, ensuring compatibility across different mobile devices without touching native code.</p><p>The <b>Bare workflow</b> provides a minimal setup, giving developers full control over the native projects, which is necessary when adding custom native modules that Expo does not support out-of-the-box.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Managed Workflow</th><th>Bare Workflow</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التحكم في الكود الأصلي (Native Code)</template>
+          <template class="content-en">Control over Native Code</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مخفي ومدار بواسطة Expo</template>
+          <template class="content-en">Hidden and managed by Expo</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تحكم كامل</template>
+          <template class="content-en">Full control</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">سهولة الإعداد والبدء</template>
+          <template class="content-en">Ease of Setup and Start</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهل وسريع جداً</template>
+          <template class="content-en">Very easy and fast</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يتطلب إعدادات إضافية</template>
+          <template class="content-en">Requires additional setup</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يجب على المطور الانتقال من سير العمل المدار (Managed) إلى سير العمل المجرد (Bare)؟</template>
+      <template class="content-en">When should a developer transition from a Managed workflow to a Bare workflow?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عندما يحتاج التطبيق إلى استخدام مكتبات أصلية (Native Libraries) غير مدعومة حالياً في حزمة Expo، أو عند الحاجة لتعديل إعدادات النظام الأصلية بشكل عميق.</p></template>
+      <template class="content-en"><p>When the application requires custom native libraries (Java/Kotlin/Objective-C/Swift) that are not supported by the Expo SDK, or when deep native configuration changes are needed.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="running-app-physical-device" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> تشغيل التطبيق على جهاز حقيقي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Viewing App on Physical Device</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يمكنك معاينة تطبيقك فوراً على هاتفك الذكي باستخدام تطبيق Expo Go ومسح رمز الاستجابة السريعة (QR Code).</p></template>
+    <template class="content-en"><p>You can instantly preview your app on your smartphone using the Expo Go app and scanning a QR code.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لتشغيل التطبيق على جهازك الحقيقي، اتبع الخطوات التالية:</p><ol><li>قم بتشغيل خادم التطوير باستخدام الأمر <code>npm start</code> داخل مجلد المشروع.</li><li>سيتم فتح واجهة Expo DevTools في المتصفح، والتي تعرض سجلات (Logs) المجمع (Metro Bundler) ورمز QR.</li><li>قم بتثبيت تطبيق Expo من متجر التطبيقات على هاتفك.</li><li>استخدم ميزة Scan QR Code في التطبيق لمسح الرمز المعروض على شاشة الكمبيوتر.</li></ol></template>
+    <template class="content-en"><p>To run the app on your physical device, follow these steps:</p><ol><li>Start the development server using the <code>npm start</code> command inside the project directory.</li><li>The Expo DevTools UI will open in your browser, displaying the Metro Bundler logs and a QR code.</li><li>Install the Expo app from the app store on your mobile device.</li><li>Use the Scan QR Code feature in the app to scan the code displayed on your computer screen.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يقوم <b>Metro Bundler</b> بتجميع كود JavaScript الخاص بـ React Native وإرساله إلى الجهاز المتصل.</p><p>تدعم بيئة Expo ميزة <b>Live Reloading</b> (إعادة التحميل المباشر) مجاناً على الأجهزة المادية، مما يعني أن أي تغييرات في الكود على الكمبيوتر ستنعكس وتتزامن فوراً على شاشة الهاتف المحمول.</p></template>
+    <template class="content-en"><p>The <b>Metro Bundler</b> is responsible for bundling the React Native JavaScript code and serving it to the connected device.</p><p>The Expo setup enables <b>Live Reloading</b> for free on physical devices, meaning any code updates saved on the computer are synchronized and instantly reflected on the mobile screen.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو الدور الأساسي لـ Metro Bundler في دورة حياة تطوير React Native؟</template>
+      <template class="content-en">What is the primary role of the Metro Bundler in the React Native development lifecycle?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يقوم بقراءة جميع ملفات JavaScript والأصول (Assets)، ودمجها في حزمة واحدة (Bundle)، ثم تقديمها لتطبيق React Native ليعمل على الجهاز.</p></template>
+      <template class="content-en"><p>It reads all JavaScript files and assets, bundles them into a single file, and serves them to the React Native application running on the device.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="expo-snack" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> منصة Expo Snack</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Expo Snack</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>منصة Expo Snack هي بيئة تطوير سحابية (Playground) تتيح لك كتابة واختبار كود React Native مباشرة من المتصفح.</p></template>
+    <template class="content-en"><p>Expo Snack is a web-based playground that allows you to write and test React Native code directly from your browser.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُعد خدمة Snack أداة قوية لتنظيم مشاريع React Native ومشاركتها.</p><ul><li>تتيح إنشاء حساب لحفظ العمل ومشاركته مع الآخرين عبر رابط (URL).</li><li>يمكن استيراد الأكواد المخزنة محلياً أو من مستودعات Git إلى Snack.</li><li>توفر واجهة Snack محاكيات افتراضية (<span class="smart-term" data-term-en="Virtual Device" data-ar="جهاز افتراضي" data-en-def="A software-based emulator that mimics the hardware and operating system of a physical mobile device.">Virtual Devices<span class="smart-term-tooltip"></span></span>) مدمجة لأنظمة Android و iOS و Web.</li></ul></template>
+    <template class="content-en"><p>The Snack service provided by Expo is a powerful tool to organize and share React Native projects.</p><ul><li>It allows creating an account to save work and share it with others via a URL.</li><li>Code stored locally or in a Git repository can be imported into a Snack.</li><li>The Snack interface provides built-in <span class="smart-term" data-term-en="Virtual Device" data-ar="جهاز افتراضي" data-en-def="A software-based emulator that mimics the hardware and operating system of a physical mobile device.">virtual device<span class="smart-term-tooltip"></span></span> emulators for Android, iOS, and Web.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الميزة الأبرز (pièce de résistance) في Snack هي القدرة على تشغيل التطبيقات بسهولة على أجهزة افتراضية دون الحاجة إلى إعداد بيئة تطوير محلية معقدة (مثل تثبيت Android Studio أو Xcode).</p><p>بمجرد فتح الرابط، يتم تحميل الواجهة ويمكن إجراء تغييرات على الكود واختبارها فوراً قبل تشغيلها فعلياً.</p></template>
+    <template class="content-en"><p>The 'pièce de résistance' of Snack is the ability to easily run apps on virtualized devices without needing a complex local development environment (like installing Android Studio or Xcode).</p><p>Once the URL is opened, the interface loads, enabling developers to make changes to the code and test things out instantly before running them locally.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر Expo Snack مفيداً جداً للمبتدئين في React Native؟</template>
+      <template class="content-en">Why is Expo Snack highly beneficial for React Native beginners?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يزيل عقبة إعداد بيئة التطوير المحلية المعقدة، مما يسمح للمبتدئين بالتركيز فوراً على كتابة الكود ورؤية النتائج.</p></template>
+      <template class="content-en"><p>It removes the hurdle of setting up a complex local development environment, allowing beginners to immediately focus on writing code and seeing results.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="react-native-styles" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> أنماط React Native (Styles)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> React Native Styles</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تستخدم React Native كائنات JavaScript عادية لتعريف الأنماط بدلاً من ملفات CSS التقليدية.</p></template>
+    <template class="content-en"><p>React Native uses plain JavaScript objects to define styles instead of traditional CSS files.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتم إنشاء الأنماط باستخدام وحدة <code>StyleSheet</code>.</p><ol><li>نستدعي الدالة <code>StyleSheet.create()</code> ونمرر لها كائن يحتوي على الأنماط.</li><li>يتم تصدير هذه الأنماط لاستخدامها في المكونات عبر الخاصية <code>style</code>.</li><li>تُكتب خصائص الأنماط بصيغة CamelCase (مثل <code>backgroundColor</code> بدلاً من <code>background-color</code>).</li></ol></template>
+    <template class="content-en"><p>Styles are created using the <code>StyleSheet</code> module.</p><ol><li>We call the <code>StyleSheet.create()</code> function and pass an object containing the styles.</li><li>These styles are exported to be used in components via the <code>style</code> property.</li><li>Style properties are written in CamelCase (e.g., <code>backgroundColor</code> instead of <code>background-color</code>).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تُعد الدالة <code>Platform.select()</code> أداة حاسمة للتعامل مع الاختلافات بين أنظمة التشغيل. على سبيل المثال، لتجنب تداخل المحتوى مع شريط الحالة (Status Bar)، يتم تعيين <code>paddingTop: 20</code> لنظام iOS، بينما يُستخدم <code>StatusBar.currentHeight</code> لنظام Android.</p><p>يضمن هذا الكود عدم عرض مكونات React أسفل شريط الحالة الخاص بالجهاز، مما يوفر تجربة مستخدم متسقة عبر المنصات.</p></template>
+    <template class="content-en"><p>The <code>Platform.select()</code> function is a critical tool for handling OS differences. For example, to prevent content from overlapping the status bar, <code>paddingTop: 20</code> is set for iOS, while <code>StatusBar.currentHeight</code> is used for Android.</p><p>This code ensures that React components don't render underneath the status bar of the device, providing a consistent user experience across platforms.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>import { Platform, StyleSheet, StatusBar } from 'react-native';
+
+export default StyleSheet.create({
+  container: {
+    flex: 1,
+    ...Platform.select({
+      ios: { paddingTop: 20 },
+      android: { paddingTop: StatusBar.currentHeight }
+    })
+  }
+});</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم StyleSheet.create() بدلاً من تمرير كائنات JavaScript مباشرة إلى خاصية style؟</template>
+      <template class="content-en">Why use StyleSheet.create() instead of passing plain JavaScript objects directly to the style prop?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأسباب تتعلق بالأداء؛ حيث تقوم StyleSheet.create() بإرسال الأنماط مرة واحدة عبر الجسر (Bridge) بدلاً من إنشاء كائن جديد في كل مرة يتم فيها تصيير (Render) المكون.</p></template>
+      <template class="content-en"><p>For performance reasons; StyleSheet.create() sends the styles across the bridge only once, rather than creating a new object on every render cycle.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="flexbox-layout-standard" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> نموذج تخطيط Flexbox</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Flexbox Layout Standard</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>Flexbox هو نموذج تخطيط مرن يسمح بترتيب العناصر وتوزيع المساحات داخل الحاوية (Container) بشكل ديناميكي.</p></template>
+    <template class="content-en"><p>Flexbox is a flexible box model that allows for dynamic arrangement and space distribution of elements within a container.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتكون نموذج Flexbox من حاوية (Box) وعناصر فرعية (Child elements).</p><ul><li><strong>الحاوية:</strong> تعمل كصندوق يحمل العناصر الفرعية.</li><li><strong>الاتجاه (Direction):</strong> تمتلك حاويات Flexbox اتجاهاً رئيسياً، إما عمودي <code>Column</code> (أعلى/أسفل) أو أفقي <code>Row</code> (يسار/يمين).</li><li><strong>المرونة:</strong> تتكيف العناصر الفرعية بمرونة وفقاً للنمط المراد عرضه على الشاشة.</li></ul></template>
+    <template class="content-en"><p>The Flexbox model consists of a container (Box) and child elements.</p><ul><li><strong>Container:</strong> Acts as a box that holds the child elements.</li><li><strong>Direction:</strong> Flexbox containers have a primary direction, either <code>Column</code> (up/down) or <code>Row</code> (left/right).</li><li><strong>Flexibility:</strong> Child elements are flexible according to the pattern to be rendered on the screen.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المفهوم الأساسي في Flexbox هو أنه يحدد <b>الاتجاه الذي تتمدد فيه الحاوية</b>، وليس فقط الاتجاه الذي توضع فيه الصناديق على الشاشة.</p><p>في React Native، الاتجاه الافتراضي (<span class="smart-term" data-term-en="flexDirection" data-ar="اتجاه المرونة" data-en-def="A Flexbox property that establishes the main-axis, defining the direction flex items are placed in the flex container.">flexDirection<span class="smart-term-tooltip"></span></span>) هو <code>column</code>، على عكس الويب حيث يكون الافتراضي <code>row</code>. هذا يعني أن العناصر تتكدس فوق بعضها البعض افتراضياً.</p></template>
+    <template class="content-en"><p>The key concept in Flexbox is that it dictates <b>the direction that the box flexes</b>, not just the direction that boxes are placed on the screen.</p><p>In React Native, the default <code>flexDirection</code> is <code>column</code>, unlike the web where it is <code>row</code>. This means elements stack on top of one another by default.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a diagram showing two Flexbox containers. Container 1: flexDirection 'column' showing 3 child boxes stacked vertically (top to bottom). Container 2: flexDirection 'row' showing 3 child boxes placed horizontally (left to right). Include arrows indicating the main axis direction. Style: educational, dark background #0d1117, accent color #61dafb, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <marker id="arrow-secondary" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-secondary)" />
+    </marker>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-800)" />
+      <stop offset="100%" stop-color="var(--brand-600)" />
+    </linearGradient>
+  </defs>
+
+  <rect width="100%" height="100%" fill="var(--bg-surface)" rx="8" />
+
+  <text x="400" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" text-anchor="middle">
+    Flexbox Direction / اتجاه فليكس بوكس
+  </text>
+
+  <g id="column-section">
+    <text x="200" y="80" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="600" text-anchor="middle">flex-direction: column</text>
+    <text x="200" y="105" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">عمودي</text>
+
+    <rect x="120" y="120" width="160" height="230" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6 4" rx="8" />
+
+    <rect x="135" y="135" width="130" height="60" fill="url(#boxGrad)" stroke="var(--brand-500)" stroke-width="1" rx="6" />
+    <text x="200" y="172" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">1</text>
+
+    <rect x="135" y="205" width="130" height="60" fill="url(#boxGrad)" stroke="var(--brand-500)" stroke-width="1" rx="6" />
+    <text x="200" y="242" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">2</text>
+
+    <rect x="135" y="275" width="130" height="60" fill="url(#boxGrad)" stroke="var(--brand-500)" stroke-width="1" rx="6" />
+    <text x="200" y="312" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">3</text>
+
+    <line x1="80" y1="120" x2="80" y2="340" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="60" y="230" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="600" text-anchor="middle" transform="rotate(-90, 60, 230)">Main Axis / المحور الرئيسي</text>
+
+    <line x1="120" y1="370" x2="270" y2="370" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow-secondary)" />
+    <text x="195" y="390" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Cross Axis / المحور الثانوي</text>
+  </g>
+
+  <g id="row-section">
+    <text x="570" y="80" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="600" text-anchor="middle">flex-direction: row</text>
+    <text x="570" y="105" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">أفقي</text>
+
+    <rect x="420" y="150" width="300" height="140" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6 4" rx="8" />
+
+    <rect x="435" y="165" width="80" height="110" fill="url(#boxGrad)" stroke="var(--brand-500)" stroke-width="1" rx="6" />
+    <text x="475" y="227" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">1</text>
+
+    <rect x="530" y="165" width="80" height="110" fill="url(#boxGrad)" stroke="var(--brand-500)" stroke-width="1" rx="6" />
+    <text x="570" y="227" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">2</text>
+
+    <rect x="625" y="165" width="80" height="110" fill="url(#boxGrad)" stroke="var(--brand-500)" stroke-width="1" rx="6" />
+    <text x="665" y="227" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">3</text>
+
+    <line x1="420" y1="330" x2="710" y2="330" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="565" y="355" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="600" text-anchor="middle">Main Axis / المحور الرئيسي</text>
+
+    <line x1="740" y1="150" x2="740" y2="280" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow-secondary)" />
+    <text x="755" y="215" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle" transform="rotate(90, 755, 215)">Cross Axis / المحور الثانوي</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يختلف السلوك الافتراضي لـ Flexbox في React Native عن CSS في الويب؟</template>
+      <template class="content-en">How does the default behavior of Flexbox in React Native differ from CSS on the web?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في React Native، القيمة الافتراضية لـ flexDirection هي 'column'، بينما في الويب القيمة الافتراضية هي 'row'.</p></template>
+      <template class="content-en"><p>In React Native, the default flexDirection is 'column', whereas on the web, the default is 'row'.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="building-flexbox-layouts" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> بناء تخطيطات Flexbox (المحاذاة والتمدد)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Building Flexbox Layouts (Alignment & Stretching)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُستخدم خصائص مثل <code>justifyContent</code> و <code>alignItems</code> و <code>alignSelf</code> للتحكم الدقيق في تموضع العناصر داخل حاوية Flexbox.</p></template>
+    <template class="content-en"><p>Properties like <code>justifyContent</code>, <code>alignItems</code>, and <code>alignSelf</code> are used for precise positioning of elements within a Flexbox container.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لبناء تخطيطات متجاوبة، نستخدم الخصائص التالية:</p><ul><li><strong><code>justifyContent</code></strong>: يحاذي العناصر على طول المحور الرئيسي (Main Axis) ويوزع المسافات بينها (مثل <code>space-around</code>).</li><li><strong><code>alignItems</code></strong>: يحاذي العناصر على طول المحور المتقاطع (Cross Axis) (مثل <code>center</code>).</li><li><strong><code>alignSelf</code></strong>: خاصية تُطبق على العنصر الفرعي لتجاوز إعدادات <code>alignItems</code> الخاصة بالحاوية.</li></ul></template>
+    <template class="content-en"><p>To build responsive layouts, we use the following properties:</p><ul><li><strong><code>justifyContent</code></strong>: Aligns children along the main axis and distributes space around them (e.g., <code>space-around</code>).</li><li><strong><code>alignItems</code></strong>: Aligns children along the cross axis (e.g., <code>center</code>).</li><li><strong><code>alignSelf</code></strong>: A property applied to a child element to override the container's <code>alignItems</code> setting.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التغيير الرئيسي في التخطيطات المتقدمة هو استخدام <code>alignSelf: 'stretch'</code>. هذا يغير عرض أو ارتفاع العناصر بناءً على <code>flexDirection</code> الخاص بالحاوية لملء المساحة المتاحة.</p><p>عند استخدام <code>flex: 1</code>، يأخذ كل قسم العرض أو الارتفاع الكامل المتاح له، مما يضمن استغلال الشاشة بالكامل بغض النظر عن اتجاه الجهاز (Portrait أو Landscape).</p></template>
+    <template class="content-en"><p>A key change in advanced layouts is using <code>alignSelf: 'stretch'</code>. This changes the width or height of the elements based on the <code>flexDirection</code> of their container to fill available space.</p><p>When using <code>flex: 1</code>, every section takes the full available width or height, ensuring the entire screen is utilized irrespective of the device orientation (portrait or landscape).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>box: {
+  height: 100,
+  justifyContent: "center",
+  alignSelf: "stretch",
+  alignItems: "center",
+  backgroundColor: "lightgray"
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا قمنا بتعيين alignSelf: 'stretch' لعنصر داخل حاوية ذات flexDirection: 'column'؟</template>
+      <template class="content-en">What happens if we set alignSelf: 'stretch' to an item inside a container with flexDirection: 'column'?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيتمدد العنصر أفقياً ليملأ العرض الكامل للحاوية (المحور المتقاطع).</p></template>
+      <template class="content-en"><p>The item will stretch horizontally to fill the full width of the container (the cross axis).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="flexible-grids-and-nesting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> الشبكات المرنة والتداخل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Flexible Grids and Nesting</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يمكن دمج الصفوف والأعمدة المتداخلة لإنشاء تخطيطات شبكية (Grids) معقدة تتكيف مع أحجام الشاشات المختلفة.</p></template>
+    <template class="content-en"><p>Nested rows and columns can be combined to create complex grid layouts that adapt to different screen sizes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عندما يكون عدد الأقسام المراد عرضها غير معروف مسبقاً، يمكن لـ Flexbox بناء <span class="smart-term" data-term-en="Grid Layout" data-ar="تخطيط الشبكة" data-en-def="A layout structure that divides space into rows and columns, often achieved in React Native by wrapping flex items.">شبكة مرنة<span class="smart-term-tooltip"></span></span>:</p><ul><li>يبني Flexbox صفاً يتدفق من اليسار إلى اليمين حتى نهاية الشاشة.</li><li>يستمر تلقائياً في تصيير العناصر من اليسار إلى اليمين في الصف التالي (Wrapping).</li><li>يتم تحديد أبعاد كل عنصر فرعي بناءً على ما يتناسب مع صف معين.</li></ul></template>
+    <template class="content-en"><p>When the number of sections to be rendered is not known apriori, Flexbox can build a <span class="smart-term" data-term-en="Grid Layout" data-ar="تخطيط الشبكة" data-en-def="A layout structure that divides space into rows and columns, often achieved in React Native by wrapping flex items.">flexible grid<span class="smart-term-tooltip"></span></span>:</p><ul><li>Flexbox builds a row that flows from left to right until the end of the screen.</li><li>It automatically continues to render the elements from left to right on the next row.</li><li>The dimensions of each child are determined based on what fits in a given row.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لإنشاء تخطيط متطور للتطبيق، يتم دمج الصفوف والأعمدة من خلال تداخل الأعمدة داخل الصفوف أو الصفوف داخل الأعمدة.</p><p>من أفضل الممارسات إنشاء تجريدات (Abstractions) لقطع التخطيط، مثل إنشاء مكونات مخصصة <code>&lt;Row&gt;</code> و <code>&lt;Column&gt;</code> و <code>&lt;Box&gt;</code>، مما يجعل كود <code>App.js</code> نظيفاً وقابلاً لإعادة الاستخدام.</p></template>
+    <template class="content-en"><p>To create a sophisticated layout for the app, rows and columns are combined by nesting columns within rows or rows within columns.</p><p>A best practice is to create abstractions for the layout pieces, such as custom <code>&lt;Row&gt;</code>, <code>&lt;Column&gt;</code>, and <code>&lt;Box&gt;</code> components, keeping the <code>App.js</code> code clean and reusable.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;View style={styles.container}&gt;
+  &lt;Row&gt;
+    &lt;Column&gt;
+      &lt;Box&gt;#1&lt;/Box&gt;
+      &lt;Box&gt;#2&lt;/Box&gt;
+    &lt;/Column&gt;
+    &lt;Column&gt;
+      &lt;Box&gt;#3&lt;/Box&gt;
+      &lt;Box&gt;#4&lt;/Box&gt;
+    &lt;/Column&gt;
+  &lt;/Row&gt;
+&lt;/View&gt;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكننا جعل العناصر تلتف (Wrap) إلى السطر التالي في React Native عند امتلاء الشاشة؟</template>
+      <template class="content-en">How can we make items wrap to the next line in React Native when the screen is full?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>باستخدام خاصية flexWrap: 'wrap' على الحاوية التي تمتلك flexDirection: 'row'.</p></template>
+      <template class="content-en"><p>By using the flexWrap: 'wrap' property on the container that has flexDirection: 'row'.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل. في هذه الوحدة، نضع حجر الأساس لتطوير تطبيقات الهواتف الذكية باستخدام React Native. لقد بدأنا بأداة Expo، وهي الصديق المفضل للمطورين لأنها تزيل تعقيدات إعداد بيئات iOS و Android، وتسمح لنا بالتركيز على كتابة كود JavaScript. تذكروا جيداً الفرق بين Managed و Bare workflow للامتحان! بعد ذلك، انتقلنا إلى سحر Flexbox. إذا فهمتم أن الاتجاه الافتراضي هنا هو 'column' (عكس الويب)، فقد تجنبتم الفخ الأكبر. ركزوا على كيفية تفاعل justifyContent مع المحور الرئيسي، و alignItems مع المحور المتقاطع. وأخيراً، لا تنسوا كيف نستخدم Platform.select للتعامل مع شريط الحالة المزعج في Android. هذه المفاهيم هي أدواتكم اليومية في بناء واجهات متجاوبة واحترافية.</template>
+    <template class="content-en">Welcome, future engineers. In this module, we lay the foundation for mobile app development using React Native. We started with the Expo CLI, a developer's best friend because it abstracts away the complexities of iOS and Android native setups, letting us focus purely on JavaScript. Remember the difference between Managed and Bare workflows for the exam! Next, we dove into the magic of Flexbox. If you remember that the default direction here is 'column' (unlike the web), you've avoided the biggest trap. Focus heavily on how justifyContent interacts with the main axis, and alignItems with the cross axis. Finally, don't forget how we use Platform.select to handle that pesky Android status bar. These concepts are your daily tools for building responsive, professional UIs.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نفضل استخدام Expo CLI بدلاً من إعداد مشروع React Native من الصفر؟</template>
+          <template class="content-en">Why do we prefer using Expo CLI instead of setting up a React Native project from scratch?</template>
+          <span class="content-target">لماذا نفضل استخدام Expo CLI بدلاً من إعداد مشروع React Native من الصفر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يتولى إنشاء هيكل المشروع الأساسي ويوفر أدوات مثل Live Reloading و Expo Go، مما يغنينا عن التعامل المباشر مع أكواد Java أو Objective-C المعقدة في البداية.</template>
+          <template class="content-en">Because it handles the creation of the project framework and provides tools like Live Reloading and Expo Go, saving us from dealing directly with complex Java or Objective-C code initially.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين المحور الرئيسي (Main Axis) والمحور المتقاطع (Cross Axis) في Flexbox؟</template>
+          <template class="content-en">What is the fundamental difference between the Main Axis and the Cross Axis in Flexbox?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين المحور الرئيسي (Main Axis) والمحور المتقاطع (Cross Axis) في Flexbox؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المحور الرئيسي يتحدد بواسطة flexDirection (عمودي أو أفقي)، بينما المحور المتقاطع يكون دائماً عمودياً على المحور الرئيسي.</template>
+          <template class="content-en">The Main Axis is defined by the flexDirection (column or row), while the Cross Axis is always perpendicular to the Main Axis.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نمنع محتوى التطبيق من الاختفاء خلف شريط الحالة في أجهزة Android؟</template>
+          <template class="content-en">How do we prevent app content from hiding behind the status bar on Android devices?</template>
+          <span class="content-target">كيف نمنع محتوى التطبيق من الاختفاء خلف شريط الحالة في أجهزة Android؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام Platform.select() لتعيين paddingTop بقيمة StatusBar.currentHeight خصيصاً لنظام Android.</template>
+          <template class="content-en">By using Platform.select() to set a paddingTop with the value of StatusBar.currentHeight specifically for Android.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي وظيفة Metro Bundler؟</template>
+          <template class="content-en">What is the function of the Metro Bundler?</template>
+          <span class="content-target">ما هي وظيفة Metro Bundler؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو أداة تقوم بتجميع (Bundling) جميع ملفات JavaScript الخاصة بالتطبيق وإرسالها إلى المحاكي أو الجهاز الحقيقي لتشغيلها.</template>
+          <template class="content-en">It is a tool that bundles all the application's JavaScript files and sends them to the emulator or physical device for execution.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نستخدم خاصية alignSelf؟</template>
+          <template class="content-en">When do we use the alignSelf property?</template>
+          <span class="content-target">متى نستخدم خاصية alignSelf؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمها على عنصر فرعي محدد عندما نريد تجاوز قاعدة المحاذاة (alignItems) التي فرضتها الحاوية الأب على جميع العناصر.</template>
+          <template class="content-en">We use it on a specific child element when we want to override the alignment rule (alignItems) enforced by the parent container on all items.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني تعيين flex: 1 لعنصر ما؟</template>
+          <template class="content-en">What does setting flex: 1 to an element mean?</template>
+          <span class="content-target">ماذا يعني تعيين flex: 1 لعنصر ما؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعني أن العنصر سيتمدد ليأخذ كل المساحة المتبقية والمتاحة داخل الحاوية الخاصة به.</template>
+          <template class="content-en">It means the element will stretch to take up all the remaining available space within its container.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الفائدة من استخدام Expo Snack؟</template>
+          <template class="content-en">What is the benefit of using Expo Snack?</template>
+          <span class="content-target">ما هي الفائدة من استخدام Expo Snack؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يسمح بكتابة واختبار كود React Native مباشرة في المتصفح مع محاكيات مدمجة، دون الحاجة لتثبيت أي برامج على جهازك.</template>
+          <template class="content-en">It allows writing and testing React Native code directly in the browser with built-in emulators, without needing to install any software on your machine.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم StyleSheet.create() بدلاً من كتابة الأنماط مباشرة (Inline Styles)؟</template>
+          <template class="content-en">Why do we use StyleSheet.create() instead of writing inline styles?</template>
+          <span class="content-target">لماذا نستخدم StyleSheet.create() بدلاً من كتابة الأنماط مباشرة (Inline Styles)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لتحسين الأداء؛ حيث يتم إرسال الأنماط مرة واحدة فقط، كما أنه يساعد في تنظيم الكود وجعله قابلاً لإعادة الاستخدام.</template>
+          <template class="content-en">To improve performance; styles are sent only once, and it also helps in organizing the code and making it reusable.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا إنشاء تخطيط شبكي (Grid) مرن يتكيف مع الشاشة؟</template>
+          <template class="content-en">How can we create a flexible Grid layout that adapts to the screen?</template>
+          <span class="content-target">كيف يمكننا إنشاء تخطيط شبكي (Grid) مرن يتكيف مع الشاشة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عن طريق دمج الصفوف والأعمدة المتداخلة، واستخدام خاصية الالتفاف (Wrapping) للسماح للعناصر بالانتقال للسطر التالي عند امتلاء العرض.</template>
+          <template class="content-en">By combining nested rows and columns, and using wrapping to allow elements to move to the next line when the width is full.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين justifyContent و alignItems؟</template>
+          <template class="content-en">What is the difference between justifyContent and alignItems?</template>
+          <span class="content-target">ما هو الفرق بين justifyContent و alignItems؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">justifyContent يتحكم في محاذاة العناصر على المحور الرئيسي (Main Axis)، بينما alignItems يتحكم في محاذاتها على المحور المتقاطع (Cross Axis).</template>
+          <template class="content-en">justifyContent controls the alignment of elements on the Main Axis, while alignItems controls their alignment on the Cross Axis.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الأمر المستخدم لتثبيت أداة Expo عالمياً؟",
+      "en": "What is the command to install the Expo CLI globally?"
+    },
+    "back": {
+      "definition": {
+        "ar": "npm install -g expo-cli",
+        "en": "npm install -g expo-cli"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو الأمر المستخدم لإنشاء مشروع جديد باستخدام Expo؟",
+      "en": "What is the command to initialize a new project using Expo?"
+    },
+    "back": {
+      "definition": {
+        "ar": "expo init my-project",
+        "en": "expo init my-project"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو سير العمل المدار (Managed Workflow)؟",
+      "en": "What is the Managed Workflow?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قالب افتراضي يتيح استخدام أدوات Expo دون التعامل مع الأكواد الأصلية (Native Code).",
+        "en": "A default template that allows using Expo tools without dealing with native code."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو سير العمل المجرد (Bare Workflow)؟",
+      "en": "What is the Bare Workflow?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قالب يوفر الحد الأدنى من الإعدادات ويمنح تحكماً كاملاً في المشاريع الأصلية (iOS/Android).",
+        "en": "A template providing minimal setup and full control over native projects (iOS/Android)."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو الأمر المستخدم لتشغيل خادم التطوير في Expo؟",
+      "en": "What command starts the Expo development server?"
+    },
+    "back": {
+      "definition": {
+        "ar": "npm start",
+        "en": "npm start"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي وظيفة Metro Bundler؟",
+      "en": "What is the function of the Metro Bundler?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تجميع كود JavaScript الخاص بـ React Native وإرساله إلى المحاكي أو الجهاز.",
+        "en": "Bundling the React Native JavaScript code and sending it to the emulator or device."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي منصة Expo Snack؟",
+      "en": "What is Expo Snack?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بيئة تطوير سحابية تتيح كتابة واختبار كود React Native مباشرة من المتصفح.",
+        "en": "A web-based playground for writing and testing React Native code directly from the browser."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "كيف يتم إنشاء الأنماط (Styles) في React Native؟",
+      "en": "How are styles created in React Native?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الدالة StyleSheet.create() وتمرير كائن JavaScript.",
+        "en": "Using the StyleSheet.create() function and passing a JavaScript object."
+      },
+      "example": {
+        "ar": "const styles = StyleSheet.create({ container: { flex: 1 } });",
+        "en": "const styles = StyleSheet.create({ container: { flex: 1 } });"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي فائدة Platform.select()؟",
+      "en": "What is the purpose of Platform.select()?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إرجاع أنماط أو قيم مختلفة بناءً على نظام التشغيل (iOS أو Android).",
+        "en": "Returning different styles or values based on the operating system (iOS or Android)."
+      },
+      "example": {
+        "ar": "Platform.select({ ios: { paddingTop: 20 }, android: { paddingTop: StatusBar.currentHeight } })",
+        "en": "Platform.select({ ios: { paddingTop: 20 }, android: { paddingTop: StatusBar.currentHeight } })"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو الاتجاه الافتراضي (flexDirection) في React Native؟",
+      "en": "What is the default flexDirection in React Native?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عمودي (column).",
+        "en": "column."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ماذا تفعل خاصية justifyContent؟",
+      "en": "What does the justifyContent property do?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحاذي العناصر الفرعية على طول المحور الرئيسي (Main Axis).",
+        "en": "Aligns child elements along the main axis."
+      },
+      "example": {
+        "ar": "justifyContent: 'space-around'",
+        "en": "justifyContent: 'space-around'"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ماذا تفعل خاصية alignItems؟",
+      "en": "What does the alignItems property do?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحاذي العناصر الفرعية على طول المحور المتقاطع (Cross Axis).",
+        "en": "Aligns child elements along the cross axis."
+      },
+      "example": {
+        "ar": "alignItems: 'center'",
+        "en": "alignItems: 'center'"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي وظيفة خاصية alignSelf؟",
+      "en": "What is the function of the alignSelf property?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُطبق على العنصر الفرعي لتجاوز إعدادات alignItems الخاصة بالحاوية.",
+        "en": "Applied to a child element to override the container's alignItems setting."
+      },
+      "example": {
+        "ar": "alignSelf: 'stretch'",
+        "en": "alignSelf: 'stretch'"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ماذا يعني استخدام flex: 1؟",
+      "en": "What does using flex: 1 mean?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجعل العنصر يتمدد لملء جميع المساحة المتاحة له بالتساوي.",
+        "en": "Makes the element stretch to fill all available space evenly."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي ميزة Live Reloading؟",
+      "en": "What is Live Reloading?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ميزة تقوم بتحديث التطبيق تلقائياً على الجهاز عند حفظ التغييرات في الكود.",
+        "en": "A feature that automatically updates the app on the device when code changes are saved."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الأمر الصحيح لإنشاء مشروع React Native جديد باستخدام Expo؟",
+      "en": "What is the correct command to initialize a new React Native project using Expo?"
+    },
+    "options": {
+      "ar": [
+        "npm start my-project",
+        "expo init my-project",
+        "react-native init my-project",
+        "expo create my-project"
+      ],
+      "en": [
+        "npm start my-project",
+        "expo init my-project",
+        "react-native init my-project",
+        "expo create my-project"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الأمر expo init يُستخدم لتهيئة وإنشاء هيكل مشروع جديد.",
+      "en": "The command expo init is used to initialize and create a new project structure."
+    },
+    "hint": {
+      "ar": "تذكر الكلمة التي تعني 'تهيئة' بالإنجليزية.",
+      "en": "Think of the word that means 'initialize'."
+    },
+    "difficulty": "easy",
+    "conceptId": "expo-cli-initialization"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي مما يلي يمثل الاتجاه الافتراضي (flexDirection) في React Native؟",
+      "en": "Which of the following represents the default flexDirection in React Native?"
+    },
+    "options": {
+      "ar": [
+        "row",
+        "column",
+        "row-reverse",
+        "column-reverse"
+      ],
+      "en": [
+        "row",
+        "column",
+        "row-reverse",
+        "column-reverse"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "على عكس الويب، الاتجاه الافتراضي في React Native هو column، مما يجعل العناصر تتكدس رأسياً.",
+      "en": "Unlike the web, the default direction in React Native is column, making elements stack vertically."
+    },
+    "hint": {
+      "ar": "شاشات الهواتف المحمولة عادة ما تكون أطول مما هي أعرض.",
+      "en": "Mobile screens are typically taller than they are wide."
+    },
+    "difficulty": "medium",
+    "conceptId": "flexbox-layout-standard"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي الأداة التي تقوم بتجميع كود JavaScript وإرساله إلى المحاكي؟",
+      "en": "Which tool bundles the JavaScript code and sends it to the emulator?"
+    },
+    "options": {
+      "ar": [
+        "Expo Snack",
+        "Metro Bundler",
+        "StyleSheet",
+        "Platform.select"
+      ],
+      "en": [
+        "Expo Snack",
+        "Metro Bundler",
+        "StyleSheet",
+        "Platform.select"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "Metro Bundler هو المجمع الافتراضي لـ React Native الذي يعالج ملفات JS.",
+      "en": "Metro Bundler is the default bundler for React Native that processes JS files."
+    },
+    "hint": {
+      "ar": "ابحث عن الكلمة التي تحتوي على 'Bundler'.",
+      "en": "Look for the word containing 'Bundler'."
+    },
+    "difficulty": "medium",
+    "conceptId": "running-app-physical-device"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كيف يمكننا تطبيق أنماط مختلفة بناءً على نظام التشغيل (iOS أو Android)؟",
+      "en": "How can we apply different styles based on the operating system (iOS or Android)?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام جملة if-else داخل دالة Render",
+        "باستخدام Platform.select()",
+        "باستخدام StyleSheet.create()",
+        "لا يمكن القيام بذلك في React Native"
+      ],
+      "en": [
+        "Using an if-else statement inside the Render function",
+        "Using Platform.select()",
+        "Using StyleSheet.create()",
+        "It cannot be done in React Native"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم Platform.select() لتحديد قيم مختلفة للخصائص بناءً على المنصة الحالية.",
+      "en": "Platform.select() is used to specify different property values based on the current platform."
+    },
+    "hint": {
+      "ar": "نحن نختار (select) المنصة (Platform).",
+      "en": "We 'select' the 'Platform'."
+    },
+    "difficulty": "easy",
+    "conceptId": "react-native-styles"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي الخاصية التي تسمح لعنصر فرعي بتجاوز محاذاة الحاوية (alignItems)؟",
+      "en": "Which property allows a child element to override the container's alignment (alignItems)?"
+    },
+    "options": {
+      "ar": [
+        "justifyContent",
+        "alignSelf",
+        "flexDirection",
+        "flexWrap"
+      ],
+      "en": [
+        "justifyContent",
+        "alignSelf",
+        "flexDirection",
+        "flexWrap"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم alignSelf على العنصر الفرعي لتغيير محاذاته بشكل مستقل عن باقي العناصر.",
+      "en": "alignSelf is used on the child element to change its alignment independently of the other elements."
+    },
+    "hint": {
+      "ar": "إنها محاذاة 'ذاتية'.",
+      "en": "It is a 'self' alignment."
+    },
+    "difficulty": "medium",
+    "conceptId": "building-flexbox-layouts"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي الفائدة الرئيسية لاستخدام Expo Snack؟",
+      "en": "What is the main benefit of using Expo Snack?"
+    },
+    "options": {
+      "ar": [
+        "تجميع التطبيق لنشره في المتاجر",
+        "كتابة واختبار الكود مباشرة في المتصفح دون إعداد بيئة محلية",
+        "كتابة كود أصلي (Java/Swift) للتطبيق",
+        "إدارة قواعد البيانات السحابية"
+      ],
+      "en": [
+        "Bundling the app for store release",
+        "Writing and testing code directly in the browser without local setup",
+        "Writing native code (Java/Swift) for the app",
+        "Managing cloud databases"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "Expo Snack هو بيئة سحابية تتيح التطوير والاختبار الفوري عبر المتصفح.",
+      "en": "Expo Snack is a cloud environment that allows instant development and testing via the browser."
+    },
+    "hint": {
+      "ar": "فكر في أداة تعمل عبر الويب.",
+      "en": "Think of a web-based tool."
+    },
+    "difficulty": "easy",
+    "conceptId": "expo-snack"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في نموذج Flexbox، ماذا تفعل خاصية justifyContent؟",
+      "en": "In the Flexbox model, what does the justifyContent property do?"
+    },
+    "options": {
+      "ar": [
+        "تحدد اتجاه العناصر (صف أو عمود)",
+        "تحاذي العناصر على طول المحور المتقاطع",
+        "تحاذي العناصر على طول المحور الرئيسي وتوزع المسافات",
+        "تسمح للعناصر بالالتفاف إلى السطر التالي"
+      ],
+      "en": [
+        "Defines the direction of elements (row or column)",
+        "Aligns elements along the cross axis",
+        "Aligns elements along the main axis and distributes space",
+        "Allows elements to wrap to the next line"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "justifyContent تتحكم في المحاذاة وتوزيع المساحات على المحور الرئيسي (Main Axis).",
+      "en": "justifyContent controls alignment and space distribution on the main axis."
+    },
+    "hint": {
+      "ar": "تتعامل مع المحور 'الرئيسي'.",
+      "en": "It deals with the 'main' axis."
+    },
+    "difficulty": "medium",
+    "conceptId": "building-flexbox-layouts"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي القيمة المستخدمة في Android لمنع تداخل المحتوى مع شريط الحالة؟",
+      "en": "What value is used in Android to prevent content from overlapping the status bar?"
+    },
+    "options": {
+      "ar": [
+        "paddingTop: 20",
+        "paddingTop: StatusBar.currentHeight",
+        "marginTop: 50",
+        "safeAreaView: true"
+      ],
+      "en": [
+        "paddingTop: 20",
+        "paddingTop: StatusBar.currentHeight",
+        "marginTop: 50",
+        "safeAreaView: true"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في Android، نستخدم StatusBar.currentHeight للحصول على الارتفاع الدقيق لشريط الحالة.",
+      "en": "In Android, we use StatusBar.currentHeight to get the exact height of the status bar."
+    },
+    "hint": {
+      "ar": "نحتاج إلى الارتفاع 'الحالي' لشريط الحالة.",
+      "en": "We need the 'current' height of the status bar."
+    },
+    "difficulty": "hard",
+    "conceptId": "react-native-styles"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ماذا يحدث عند تعيين flex: 1 لعنصر داخل حاوية؟",
+      "en": "What happens when flex: 1 is set to an element inside a container?"
+    },
+    "options": {
+      "ar": [
+        "يصبح العنصر مخفياً",
+        "يأخذ العنصر مساحة ثابتة قدرها 1 بكسل",
+        "يتمدد العنصر لملء جميع المساحة المتاحة بالتساوي",
+        "يتم محاذاة العنصر إلى اليمين"
+      ],
+      "en": [
+        "The element becomes hidden",
+        "The element takes a fixed space of 1 pixel",
+        "The element stretches to fill all available space evenly",
+        "The element is aligned to the right"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الخاصية flex: 1 تخبر العنصر بالتمدد لملء المساحة المتبقية في الحاوية.",
+      "en": "The flex: 1 property tells the element to stretch and fill the remaining space in the container."
+    },
+    "hint": {
+      "ar": "فكر في المرونة والتمدد.",
+      "en": "Think about flexibility and stretching."
+    },
+    "difficulty": "medium",
+    "conceptId": "building-flexbox-layouts"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من سير العمل (Workflows) يوفر تحكماً كاملاً في المشاريع الأصلية (Native Projects)؟",
+      "en": "Which workflow provides full control over the native projects?"
+    },
+    "options": {
+      "ar": [
+        "Managed Workflow",
+        "Bare Workflow",
+        "Snack Workflow",
+        "Web Workflow"
+      ],
+      "en": [
+        "Managed Workflow",
+        "Bare Workflow",
+        "Snack Workflow",
+        "Web Workflow"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "سير العمل المجرد (Bare Workflow) يعطيك الوصول الكامل لملفات iOS و Android الأصلية.",
+      "en": "The Bare Workflow gives you full access to the native iOS and Android files."
+    },
+    "hint": {
+      "ar": "الكلمة تعني 'مجرد' أو 'خالٍ'.",
+      "en": "The word means 'uncovered' or 'empty'."
+    },
+    "difficulty": "easy",
+    "conceptId": "expo-cli-initialization"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الافتراض بأن flexDirection في React Native هو 'row' كما هو الحال في الويب. في React Native، القيمة الافتراضية هي 'column'.</template>
+      <template class="content-en">Assuming that flexDirection in React Native is 'row' like on the web. In React Native, the default is 'column'.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المفهوم الأساسي لـ Flexbox هو أنه يحدد الاتجاه الذي تتمدد فيه الحاوية (flexes)، وليس فقط الاتجاه الذي توضع فيه الصناديق.</template>
+      <template class="content-en">The key concept of Flexbox is that it dictates the direction that the box flexes, not just the direction that boxes are placed.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">يمكن استخدام Platform.select() مباشرة داخل كائن StyleSheet.create() لتطبيق أنماط مختلفة ديناميكياً بناءً على نظام التشغيل.</template>
+      <template class="content-en">Platform.select() can be used directly inside the StyleSheet.create() object to dynamically apply different styles based on the OS.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان معالجة شريط الحالة (Status Bar) في Android. يجب استخدام StatusBar.currentHeight كـ paddingTop لمنع تداخل المكونات مع شريط الحالة.</template>
+      <template class="content-en">Forgetting to handle the Status Bar on Android. You must use StatusBar.currentHeight as paddingTop to prevent components from rendering underneath it.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">خاصية alignSelf قوية جداً لأنها تسمح لعنصر فردي بكسر قواعد المحاذاة (alignItems) التي تفرضها الحاوية الأب.</template>
+      <template class="content-en">The alignSelf property is very powerful because it allows an individual element to break the alignment rules (alignItems) enforced by its parent container.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M11.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M13.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS231" data-module="3">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التعبيرات البوليانية والتبسيط · CS231 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS231" data-page-title-en="CS231">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M02.html" data-gh-next="M04.html" data-gh-card="../../hub/course.html?code=CS231"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#boolean-algebra-theorems" class="toc-link" data-bilingual>
+        <template class="content-ar">النظريات والمسلمات الأساسية للجبر البولياني</template>
+        <template class="content-en">Basic Theorems and Postulates of Boolean Algebra</template>
+        <span class="content-target">النظريات والمسلمات الأساسية للجبر البولياني</span>
+      </a>
+      <a href="#operator-precedence" class="toc-link" data-bilingual>
+        <template class="content-ar">أولوية المعاملات المنطقية</template>
+        <template class="content-en">Operator Precedence</template>
+        <span class="content-target">أولوية المعاملات المنطقية</span>
+      </a>
+      <a href="#logic-gates-truth-tables" class="toc-link" data-bilingual>
+        <template class="content-ar">البوابات المنطقية وجداول الحقيقة</template>
+        <template class="content-en">Logic Gates and Truth Tables</template>
+        <span class="content-target">البوابات المنطقية وجداول الحقيقة</span>
+      </a>
+      <a href="#complement-of-function" class="toc-link" data-bilingual>
+        <template class="content-ar">متمم الدالة</template>
+        <template class="content-en">Complement of a Function</template>
+        <span class="content-target">متمم الدالة</span>
+      </a>
+      <a href="#minterms-and-som" class="toc-link" data-bilingual>
+        <template class="content-ar">الحدود الصغرى ومجموع الحدود الصغرى</template>
+        <template class="content-en">Minterms and Sum of Minterms (SOM)</template>
+        <span class="content-target">الحدود الصغرى ومجموع الحدود الصغرى</span>
+      </a>
+      <a href="#sum-of-products-sop" class="toc-link" data-bilingual>
+        <template class="content-ar">مجموع المضروبات (SOP)</template>
+        <template class="content-en">Sum of Products (SOP) Standard Form</template>
+        <span class="content-target">مجموع المضروبات (SOP)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 3</template>
+      <template class="content-en">Module 3</template>
+      <span class="content-target">الوحدة 3</span>
+    </span> · CS231
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">التعبيرات البوليانية والتبسيط</h1>
+      <p class="hero-description">تغطي هذه الوحدة النظريات الأساسية للجبر البولياني، البوابات المنطقية، جداول الحقيقة، وكيفية تبسيط التعبيرات المنطقية باستخدام الحدود الصغرى (Minterms) ومجموع المضروبات (SOP).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Boolean Expression & Simplification</h1>
+      <p class="hero-description">This module covers the basic theorems of Boolean algebra, logic gates, truth tables, and how to simplify boolean expressions using minterms and Sum of Products (SOP).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الجبر البولياني</span>
+      <span class="tag">البوابات المنطقية</span>
+      <span class="tag">جداول الحقيقة</span>
+      <span class="tag">التبسيط المنطقي</span>
+      <span class="tag">الحدود الصغرى</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Boolean Algebra</span>
+      <span class="tag">Logic Gates</span>
+      <span class="tag">Truth Tables</span>
+      <span class="tag">Logic Simplification</span>
+      <span class="tag">Minterms</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تعريف الدوال والتعبيرات البوليانية.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية التعبير عن الدالة البوليانية في الصيغ القياسية والقانونية.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على رموز البوابات المنطقية وجداول الحقيقة الخاصة بها.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية معالجة التعبيرات البوليانية لتقليل عدد البوابات المنطقية المطلوبة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Define Boolean functions/Boolean expression.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn how to express a Boolean function in canonical and standard forms.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn the logic gates symbols and their truth tables.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn how to manipulate Boolean expression to reduce the required number of logic gates.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="boolean-algebra-theorems" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> النظريات والمسلمات الأساسية للجبر البولياني</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Basic Theorems and Postulates of Boolean Algebra</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هي القواعد الرياضية الأساسية التي تحكم المنطق الرقمي، وتُستخدم لتبسيط التعبيرات المعقدة.</p></template>
+    <template class="content-en"><p>The fundamental mathematical rules governing digital logic, used to simplify complex expressions.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يعتمد الجبر البولياني على <span class="smart-term" data-term-en="Postulate" data-ar="مسلمة" data-en-def="A basic axiom of the algebraic structure that needs no proof.">مسلمات<span class="smart-term-tooltip"></span></span> (Postulates) لا تحتاج إلى إثبات، و<span class="smart-term" data-term-en="Theorem" data-ar="نظرية" data-en-def="A rule that must be proven from the postulates or via truth tables.">نظريات<span class="smart-term-tooltip"></span></span> (Theorems) تُثبت باستخدام المسلمات أو جداول الحقيقة. من أهمها:</p><ul><li><strong>التطابق (Identity)</strong>،</li><li><strong>الصفر/الواحد (Null)</strong>،</li><li><strong>التحايد (Idempotent)</strong>،</li><li><strong>النفي المزدوج (Involution)</strong>،</li><li><strong>التبديل (Commutative)</strong>،</li><li><strong>التجميع (Associative)</strong>،</li><li><strong>التوزيع (Distributive)</strong>،</li><li><strong>نظرية دي مورغان (DeMorgan)</strong>،</li><li><strong>والامتصاص (Absorption)</strong>.</li></ul></template>
+    <template class="content-en"><p>Boolean algebra relies on <span class="smart-term" data-term-en="Postulate" data-ar="مسلمة" data-en-def="A basic axiom of the algebraic structure that needs no proof.">postulates<span class="smart-term-tooltip"></span></span> (axioms needing no proof) and <span class="smart-term" data-term-en="Theorem" data-ar="نظرية" data-en-def="A rule that must be proven from the postulates or via truth tables.">theorems<span class="smart-term-tooltip"></span></span> (proven from postulates or truth tables). Key rules include:</p><ul><li><strong>Identity</strong>,</li><li><strong>Null</strong>,</li><li><strong>Idempotent</strong>,</li><li><strong>Involution</strong>,</li><li><strong>Commutative</strong>,</li><li><strong>Associative</strong>,</li><li><strong>Distributive</strong>,</li><li><strong>DeMorgan's</strong>,</li><li><strong>and Absorption theorems</strong>.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تُثبت النظريات إما جبرياً باستخدام المسلمات، أو عن طريق جداول الحقيقة حيث يتم التحقق من تطابق كلا الجانبين لجميع الاحتمالات الممكنة للمتغيرات.</p><p>مبدأ الثنائية (Duality) يتيح استنتاج نظريات جديدة بتبديل كل AND بـ OR وكل 0 بـ 1.</p></template>
+    <template class="content-en"><p>Theorems are proven either algebraically using postulates or via truth tables by checking if both sides yield identical results for all variable combinations.</p><p>The principle of duality allows deriving new theorems by swapping AND with OR, and 0 with 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>نظرية الامتصاص: تبسط التعبير بإلغاء المتغير الزائد.</strong></template>
+      <template class="content-en"><strong>Absorption Theorem: Simplifies the expression by eliminating the redundant variable.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$x + xy = x \quad \text{(Absorption Theorem)}$$</div>
+  </div>
+
+  <!-- DIAGRAM[4]: Create a structured table showing Boolean Algebra Postulates and Theorems. Columns: Name, OR form (a), AND form (b). Include Identity, Idempotent, Involution, Commutative, Associative, Distributive, DeMorgan, and Absorption. Use a dark educational theme #0d1117 with cyan text for formulas. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg id="dgm-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      #dgm-1 .formula {
+        font-family: 'Courier New', Courier, monospace, system-ui, sans-serif;
+        font-weight: bold;
+        letter-spacing: 1px;
+      }
+      #dgm-1 .title {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+        font-weight: 800;
+      }
+      #dgm-1 .text-standard {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="500" y="40" font-size="28" fill="var(--text-primary)" text-anchor="middle" class="title">
+    Boolean Algebra Postulates &amp; Theorems
+  </text>
+  <text x="500" y="70" font-size="20" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">
+    مسلمات ونظريات الجبر البولياني
+  </text>
+
+  <!-- Table Header -->
+  <g transform="translate(0, 100)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="8" />
+    
+    <!-- Column Separators -->
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--brand-500)" stroke-width="2" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--brand-500)" stroke-width="2" />
+
+    <!-- Header Text -->
+    <text x="150" y="36" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" class="text-standard">Name / الاسم</text>
+    <text x="425" y="36" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" class="text-standard">OR Form (a)</text>
+    <text x="775" y="36" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" class="text-standard">AND Form (b)</text>
+  </g>
+
+  <!-- Row 1: Identity -->
+  <g transform="translate(0, 168)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Identity</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">الهوية</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A + 0 = A</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A · 1 = A</text>
+  </g>
+
+  <!-- Row 2: Idempotent -->
+  <g transform="translate(0, 236)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Idempotent</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">تساوي القوى</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A + A = A</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A · A = A</text>
+  </g>
+
+  <!-- Row 3: Involution -->
+  <g transform="translate(0, 304)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Involution</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">النفي المزدوج</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">(A')' = A</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">(A')' = A</text>
+  </g>
+
+  <!-- Row 4: Commutative -->
+  <g transform="translate(0, 372)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Commutative</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">التبديل</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A + B = B + A</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A · B = B · A</text>
+  </g>
+
+  <!-- Row 5: Associative -->
+  <g transform="translate(0, 440)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Associative</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">التجميع</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A + (B + C) = (A + B) + C</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A · (B · C) = (A · B) · C</text>
+  </g>
+
+  <!-- Row 6: Distributive -->
+  <g transform="translate(0, 508)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Distributive</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">التوزيع</text>
+    
+    <text x="425" y="36" font-size="18" fill="var(--brand-400)" text-anchor="middle" class="formula">A + (B · C) = (A + B) · (A + C)</text>
+    <text x="775" y="36" font-size="18" fill="var(--brand-400)" text-anchor="middle" class="formula">A · (B + C) = (A · B) + (A · C)</text>
+  </g>
+
+  <!-- Row 7: De Morgan's -->
+  <g transform="translate(0, 576)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">De Morgan's</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">دي مورغان</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">(A + B)' = A' · B'</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">(A · B)' = A' + B'</text>
+  </g>
+
+  <!-- Row 8: Absorption -->
+  <g transform="translate(0, 644)">
+    <rect x="50" y="0" width="900" height="60" fill="var(--bg-elevated)" rx="6" />
+    <line x1="250" y1="0" x2="250" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    <line x1="600" y1="0" x2="600" y2="60" stroke="var(--bg-surface)" stroke-width="4" />
+    
+    <text x="150" y="26" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" class="text-standard">Absorption</text>
+    <text x="150" y="48" font-size="15" fill="var(--text-secondary)" text-anchor="middle" class="text-standard">الامتصاص</text>
+    
+    <text x="425" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A + (A · B) = A</text>
+    <text x="775" y="36" font-size="20" fill="var(--brand-400)" text-anchor="middle" class="formula">A · (A + B) = A</text>
+  </g>
+
+  <!-- Footer Note -->
+  <text x="500" y="735" font-size="14" fill="var(--text-muted)" text-anchor="middle" class="text-standard">
+    Note: A' represents the complement (NOT). The · symbol represents AND. The + symbol represents OR.
+  </text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكن استخدام نظرية الامتصاص لتقليل تكلفة بناء دائرة منطقية؟</template>
+      <template class="content-en">How can the absorption theorem be used to reduce the cost of building a logic circuit?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال تطبيق نظرية الامتصاص (x + xy = x)، يمكننا إزالة بوابة AND وبوابة OR بالكامل، وتوصيل المدخل x مباشرة إلى المخرج، مما يوفر المساحة والطاقة والتكلفة.</p></template>
+      <template class="content-en"><p>By applying the absorption theorem (x + xy = x), we can completely remove an AND gate and an OR gate, routing input x directly to the output, saving space, power, and cost.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="operator-precedence" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> أولوية المعاملات المنطقية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Operator Precedence</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>ترتيب تنفيذ العمليات المنطقية: الأقواس أولاً، ثم النفي، ثم العطف، وأخيراً الفصل.</p></template>
+    <template class="content-en"><p>The order of evaluating logic operations: Parentheses first, then NOT, AND, and finally OR.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند تقييم التعبيرات البوليانية، يجب اتباع ترتيب محدد للعمليات لضمان النتيجة الصحيحة:</p><ol><li><strong>الأقواس (Parentheses)</strong>،</li><li><strong>النفي (NOT)</strong>،</li><li><strong>العطف (AND)</strong>،</li><li><strong>الفصل (OR)</strong>.</li></ol><p>ونتيجة لذلك، تظهر الأقواس عادةً حول تعبيرات OR إذا كان يجب تقييمها قبل AND.</p></template>
+    <template class="content-en"><p>When evaluating Boolean expressions, a specific order of operations must be followed to ensure the correct result:</p><ol><li><strong>Parentheses</strong>,</li><li><strong>NOT</strong>,</li><li><strong>AND</strong>,</li><li><strong>OR</strong>.</li></ol><p>Consequently, parentheses often appear around OR expressions if they need to be evaluated before an AND operation.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذا الترتيب يشبه العمليات الحسابية التقليدية حيث يمثل AND الضرب ويمثل OR الجمع.</p><p>تجاهل هذا الترتيب يؤدي إلى بناء دوائر منطقية خاطئة تماماً.</p></template>
+    <template class="content-en"><p>This precedence mirrors traditional arithmetic where AND acts like multiplication and OR acts like addition.</p><p>Ignoring this order leads to constructing completely incorrect logic circuits.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>مثال يوضح استخدام الأقواس لإجبار تنفيذ عملية OR قبل AND.</strong></template>
+      <template class="content-en"><strong>Example showing the use of parentheses to force OR evaluation before AND.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F = A(B + C)(C + D)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا قمنا بتقييم التعبير A + B * C من اليسار إلى اليمين بدون مراعاة الأولوية؟</template>
+      <template class="content-en">What happens if we evaluate the expression A + B * C from left to right without considering precedence?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سنقوم بحساب (A + B) أولاً ثم نضرب الناتج في C، وهذا يعطي نتيجة خاطئة. الترتيب الصحيح هو حساب (B * C) أولاً ثم جمع الناتج مع A.</p></template>
+      <template class="content-en"><p>We would compute (A + B) first and then AND it with C, yielding an incorrect result. The correct order is to compute (B * C) first, then OR it with A.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="logic-gates-truth-tables" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> البوابات المنطقية وجداول الحقيقة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Logic Gates and Truth Tables</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>البوابات المنطقية هي اللبنات الأساسية للدوائر الرقمية، وجدول الحقيقة يوضح جميع المخرجات الممكنة لكل احتمالات المدخلات.</p></template>
+    <template class="content-en"><p>Logic gates are the building blocks of digital circuits, and a truth table spells out all possible outputs for every input combination.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الدوال البوليانية تستخدم العمليات المنطقية فقط. يمكن تمثيل هذه الدوال باستخدام <span class="smart-term" data-term-en="Truth Table" data-ar="جدول الحقيقة" data-en-def="A table that spells out all input combinations and their corresponding outputs.">جداول الحقيقة<span class="smart-term-tooltip"></span></span> أو <span class="smart-term" data-term-en="Logic Diagram" data-ar="المخطط المنطقي" data-en-def="A graphical representation of a logic circuit using standard gate symbols.">المخططات المنطقية<span class="smart-term-tooltip"></span></span> (Logic Diagrams).</p><p>جدول الحقيقة لعدد n من المتغيرات يحتوي على 2^n صف. البوابات الشائعة تشمل:</p><ul><li><strong>AND</strong>,</li><li><strong>OR</strong>,</li><li><strong>Inverter (NOT)</strong>,</li><li><strong>Buffer</strong>,</li><li><strong>NAND</strong>,</li><li><strong>NOR</strong>,</li><li><strong>XOR</strong>,</li><li><strong>XNOR</strong>.</li></ul></template>
+    <template class="content-en"><p>Boolean functions use logic operations exclusively. These functions can be represented using <span class="smart-term" data-term-en="Truth Table" data-ar="جدول الحقيقة" data-en-def="A table that spells out all input combinations and their corresponding outputs.">truth tables<span class="smart-term-tooltip"></span></span> or <span class="smart-term" data-term-en="Logic Diagram" data-ar="المخطط المنطقي" data-en-def="A graphical representation of a logic circuit using standard gate symbols.">logic diagrams<span class="smart-term-tooltip"></span></span>.</p><p>A truth table for n variables has 2^n rows. Common gates include:</p><ul><li><strong>AND</strong>,</li><li><strong>OR</strong>,</li><li><strong>Inverter (NOT)</strong>,</li><li><strong>Buffer</strong>,</li><li><strong>NAND</strong>,</li><li><strong>NOR</strong>,</li><li><strong>XOR</strong>,</li><li><strong>and XNOR</strong>.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحويل التعبير البولياني إلى جدول حقيقة يتطلب إيجاد قيم المتغيرات الوسيطة أولاً.</p><p>على سبيل المثال، للدالة F = X + Y'Z، نجد أولاً Y' ثم Y'Z ثم نجمعها مع X.</p><p>هذا التدرج يمنع الأخطاء ويطابق تدفق الإشارات في الدائرة الفعلية.</p></template>
+    <template class="content-en"><p>Converting a Boolean expression to a truth table requires finding intermediate variable values first.</p><p>For F = X + Y'Z, we first find Y', then Y'Z, and finally OR it with X.</p><p>This step-by-step approach prevents errors and mirrors the signal flow in the actual circuit.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد الصفوف في جدول الحقيقة لعدد n من المتغيرات.</strong></template>
+      <template class="content-en"><strong>Number of rows in a truth table for n variables.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$2^n$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Draw a comprehensive chart of common logic gates: AND, OR, Inverter, Buffer, NAND, NOR, XOR, XNOR. For each gate, display its standard ANSI symbol, its algebraic function (e.g., F = x.y), and a mini truth table. Use a dark background #0d1117 with distinct colors for symbols. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg id="dgm-2" viewBox="0 0 1000 1000" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0,0 L 10,5 L 0,10 Z" fill="var(--brand-500)" />
+        </marker>
+        <style>
+            #dgm-2 * {
+                font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+            }
+            #dgm-2 .bg-main { fill: var(--bg-surface); }
+            #dgm-2 .header-bg { fill: var(--bg-elevated); stroke: var(--border-color); stroke-width: 1; }
+            #dgm-2 .gate-card { fill: var(--bg-elevated); stroke: var(--border-color); stroke-width: 2; rx: 12; }
+            #dgm-2 .gate-symbol { fill: var(--bg-surface); stroke: var(--brand-500); stroke-width: 3; stroke-linejoin: round; }
+            #dgm-2 .gate-line { stroke: var(--brand-500); stroke-width: 3; stroke-linecap: round; }
+            #dgm-2 .gate-bubble { fill: var(--bg-surface); stroke: var(--brand-500); stroke-width: 3; }
+            #dgm-2 .text-title { fill: var(--text-primary); font-size: 20px; font-weight: 700; }
+            #dgm-2 .text-arabic { fill: var(--text-secondary); font-size: 16px; font-weight: 600; text-anchor: middle; }
+            #dgm-2 .text-eq { fill: var(--brand-500); font-size: 18px; font-family: monospace; font-weight: bold; }
+            #dgm-2 .text-label { fill: var(--text-secondary); font-size: 15px; font-weight: bold; text-anchor: middle; }
+            #dgm-2 .tbl-line { stroke: var(--border-color); stroke-width: 2; stroke-linecap: round; }
+            #dgm-2 .tbl-text { fill: var(--text-primary); font-size: 15px; text-anchor: middle; font-family: monospace; }
+            #dgm-2 .tbl-header { fill: var(--text-secondary); font-size: 15px; font-weight: bold; text-anchor: middle; }
+        </style>
+    </defs>
+
+    <!-- Background -->
+    <rect class="bg-main" width="100%" height="100%" />
+
+    <!-- Header -->
+    <rect class="header-bg" x="0" y="0" width="1000" height="100" />
+    <text x="500" y="45" fill="var(--text-primary)" font-size="28" font-weight="bold" text-anchor="middle">Logic Gates Reference</text>
+    <text x="500" y="75" fill="var(--text-secondary)" font-size="18" text-anchor="middle">Standard ANSI Symbols, Boolean Expressions, and Truth Tables / الرموز القياسية، التعبيرات المنطقية، وجداول الحقيقة</text>
+
+    <!-- ROW 1: AND & NAND -->
+    <!-- AND Gate -->
+    <g transform="translate(20, 130)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">AND Gate</text>
+        <text class="text-arabic" x="85" y="70">بوابة و</text>
+        <text class="text-eq" x="20" y="120">F = A · B</text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-symbol" d="M 0,0 L 30,0 A 30,30 0 0,1 30,60 L 0,60 Z" />
+            <line class="gate-line" x1="-30" y1="15" x2="0" y2="15" />
+            <line class="gate-line" x1="-30" y1="45" x2="0" y2="45" />
+            <line class="gate-line" x1="60" y1="30" x2="90" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="20">A</text>
+            <text class="text-label" x="-42" y="50">B</text>
+            <text class="text-label" x="105" y="35">F</text>
+        </g>
+
+        <g transform="translate(340, 20)">
+            <line class="tbl-line" x1="36" y1="0" x2="36" y2="150" />
+            <line class="tbl-line" x1="73" y1="0" x2="73" y2="150" />
+            <line class="tbl-line" x1="0" y1="30" x2="110" y2="30" />
+            <text class="tbl-header" x="18" y="20">A</text>
+            <text class="tbl-header" x="55" y="20">B</text>
+            <text class="tbl-header" x="92" y="20">F</text>
+            <text class="tbl-text" x="18" y="55">0</text><text class="tbl-text" x="55" y="55">0</text><text class="tbl-text" x="92" y="55">0</text>
+            <text class="tbl-text" x="18" y="80">0</text><text class="tbl-text" x="55" y="80">1</text><text class="tbl-text" x="92" y="80">0</text>
+            <text class="tbl-text" x="18" y="105">1</text><text class="tbl-text" x="55" y="105">0</text><text class="tbl-text" x="92" y="105">0</text>
+            <text class="tbl-text" x="18" y="130">1</text><text class="tbl-text" x="55" y="130">1</text><text class="tbl-text" x="92" y="130">1</text>
+        </g>
+    </g>
+
+    <!-- NAND Gate -->
+    <g transform="translate(510, 130)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">NAND Gate</text>
+        <text class="text-arabic" x="85" y="70">بوابة نفي و</text>
+        <text class="text-eq" x="20" y="120">F = <tspan text-decoration="overline">A · B</tspan></text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-symbol" d="M 0,0 L 30,0 A 30,30 0 0,1 30,60 L 0,60 Z" />
+            <circle class="gate-bubble" cx="65" cy="30" r="5" />
+            <line class="gate-line" x1="-30" y1="15" x2="0" y2="15" />
+            <line class="gate-line" x1="-30" y1="45" x2="0" y2="45" />
+            <line class="gate-line" x1="70" y1="30" x2="100" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="20">A</text>
+            <text class="text-label" x="-42" y="50">B</text>
+            <text class="text-label" x="115" y="35">F</text>
+        </g>
+
+        <g transform="translate(340, 20)">
+            <line class="tbl-line" x1="36" y1="0" x2="36" y2="150" />
+            <line class="tbl-line" x1="73" y1="0" x2="73" y2="150" />
+            <line class="tbl-line" x1="0" y1="30" x2="110" y2="30" />
+            <text class="tbl-header" x="18" y="20">A</text>
+            <text class="tbl-header" x="55" y="20">B</text>
+            <text class="tbl-header" x="92" y="20">F</text>
+            <text class="tbl-text" x="18" y="55">0</text><text class="tbl-text" x="55" y="55">0</text><text class="tbl-text" x="92" y="55">1</text>
+            <text class="tbl-text" x="18" y="80">0</text><text class="tbl-text" x="55" y="80">1</text><text class="tbl-text" x="92" y="80">1</text>
+            <text class="tbl-text" x="18" y="105">1</text><text class="tbl-text" x="55" y="105">0</text><text class="tbl-text" x="92" y="105">1</text>
+            <text class="tbl-text" x="18" y="130">1</text><text class="tbl-text" x="55" y="130">1</text><text class="tbl-text" x="92" y="130">0</text>
+        </g>
+    </g>
+
+    <!-- ROW 2: OR & NOR -->
+    <!-- OR Gate -->
+    <g transform="translate(20, 340)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">OR Gate</text>
+        <text class="text-arabic" x="85" y="70">بوابة أو</text>
+        <text class="text-eq" x="20" y="120">F = A + B</text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-symbol" d="M 0,0 C 30,0 50,10 70,30 C 50,50 30,60 0,60 Q 20,30 0,0 Z" />
+            <line class="gate-line" x1="-30" y1="15" x2="8" y2="15" />
+            <line class="gate-line" x1="-30" y1="45" x2="8" y2="45" />
+            <line class="gate-line" x1="70" y1="30" x2="100" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="20">A</text>
+            <text class="text-label" x="-42" y="50">B</text>
+            <text class="text-label" x="115" y="35">F</text>
+        </g>
+
+        <g transform="translate(340, 20)">
+            <line class="tbl-line" x1="36" y1="0" x2="36" y2="150" />
+            <line class="tbl-line" x1="73" y1="0" x2="73" y2="150" />
+            <line class="tbl-line" x1="0" y1="30" x2="110" y2="30" />
+            <text class="tbl-header" x="18" y="20">A</text>
+            <text class="tbl-header" x="55" y="20">B</text>
+            <text class="tbl-header" x="92" y="20">F</text>
+            <text class="tbl-text" x="18" y="55">0</text><text class="tbl-text" x="55" y="55">0</text><text class="tbl-text" x="92" y="55">0</text>
+            <text class="tbl-text" x="18" y="80">0</text><text class="tbl-text" x="55" y="80">1</text><text class="tbl-text" x="92" y="80">1</text>
+            <text class="tbl-text" x="18" y="105">1</text><text class="tbl-text" x="55" y="105">0</text><text class="tbl-text" x="92" y="105">1</text>
+            <text class="tbl-text" x="18" y="130">1</text><text class="tbl-text" x="55" y="130">1</text><text class="tbl-text" x="92" y="130">1</text>
+        </g>
+    </g>
+
+    <!-- NOR Gate -->
+    <g transform="translate(510, 340)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">NOR Gate</text>
+        <text class="text-arabic" x="85" y="70">بوابة نفي أو</text>
+        <text class="text-eq" x="20" y="120">F = <tspan text-decoration="overline">A + B</tspan></text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-symbol" d="M 0,0 C 30,0 50,10 70,30 C 50,50 30,60 0,60 Q 20,30 0,0 Z" />
+            <circle class="gate-bubble" cx="75" cy="30" r="5" />
+            <line class="gate-line" x1="-30" y1="15" x2="8" y2="15" />
+            <line class="gate-line" x1="-30" y1="45" x2="8" y2="45" />
+            <line class="gate-line" x1="80" y1="30" x2="110" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="20">A</text>
+            <text class="text-label" x="-42" y="50">B</text>
+            <text class="text-label" x="125" y="35">F</text>
+        </g>
+
+        <g transform="translate(340, 20)">
+            <line class="tbl-line" x1="36" y1="0" x2="36" y2="150" />
+            <line class="tbl-line" x1="73" y1="0" x2="73" y2="150" />
+            <line class="tbl-line" x1="0" y1="30" x2="110" y2="30" />
+            <text class="tbl-header" x="18" y="20">A</text>
+            <text class="tbl-header" x="55" y="20">B</text>
+            <text class="tbl-header" x="92" y="20">F</text>
+            <text class="tbl-text" x="18" y="55">0</text><text class="tbl-text" x="55" y="55">0</text><text class="tbl-text" x="92" y="55">1</text>
+            <text class="tbl-text" x="18" y="80">0</text><text class="tbl-text" x="55" y="80">1</text><text class="tbl-text" x="92" y="80">0</text>
+            <text class="tbl-text" x="18" y="105">1</text><text class="tbl-text" x="55" y="105">0</text><text class="tbl-text" x="92" y="105">0</text>
+            <text class="tbl-text" x="18" y="130">1</text><text class="tbl-text" x="55" y="130">1</text><text class="tbl-text" x="92" y="130">0</text>
+        </g>
+    </g>
+
+    <!-- ROW 3: XOR & XNOR -->
+    <!-- XOR Gate -->
+    <g transform="translate(20, 550)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">XOR Gate</text>
+        <text class="text-arabic" x="85" y="70">بوابة أو الاستثنائية</text>
+        <text class="text-eq" x="20" y="120">F = A ⊕ B</text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-line" fill="none" d="M -10,0 Q 10,30 -10,60" />
+            <path class="gate-symbol" d="M 0,0 C 30,0 50,10 70,30 C 50,50 30,60 0,60 Q 20,30 0,0 Z" />
+            <line class="gate-line" x1="-30" y1="15" x2="-2" y2="15" />
+            <line class="gate-line" x1="-30" y1="45" x2="-2" y2="45" />
+            <line class="gate-line" x1="70" y1="30" x2="100" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="20">A</text>
+            <text class="text-label" x="-42" y="50">B</text>
+            <text class="text-label" x="115" y="35">F</text>
+        </g>
+
+        <g transform="translate(340, 20)">
+            <line class="tbl-line" x1="36" y1="0" x2="36" y2="150" />
+            <line class="tbl-line" x1="73" y1="0" x2="73" y2="150" />
+            <line class="tbl-line" x1="0" y1="30" x2="110" y2="30" />
+            <text class="tbl-header" x="18" y="20">A</text>
+            <text class="tbl-header" x="55" y="20">B</text>
+            <text class="tbl-header" x="92" y="20">F</text>
+            <text class="tbl-text" x="18" y="55">0</text><text class="tbl-text" x="55" y="55">0</text><text class="tbl-text" x="92" y="55">0</text>
+            <text class="tbl-text" x="18" y="80">0</text><text class="tbl-text" x="55" y="80">1</text><text class="tbl-text" x="92" y="80">1</text>
+            <text class="tbl-text" x="18" y="105">1</text><text class="tbl-text" x="55" y="105">0</text><text class="tbl-text" x="92" y="105">1</text>
+            <text class="tbl-text" x="18" y="130">1</text><text class="tbl-text" x="55" y="130">1</text><text class="tbl-text" x="92" y="130">0</text>
+        </g>
+    </g>
+
+    <!-- XNOR Gate -->
+    <g transform="translate(510, 550)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">XNOR Gate</text>
+        <text class="text-arabic" x="85" y="70">بوابة نفي أو الاستثنائية</text>
+        <text class="text-eq" x="20" y="120">F = <tspan text-decoration="overline">A ⊕ B</tspan></text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-line" fill="none" d="M -10,0 Q 10,30 -10,60" />
+            <path class="gate-symbol" d="M 0,0 C 30,0 50,10 70,30 C 50,50 30,60 0,60 Q 20,30 0,0 Z" />
+            <circle class="gate-bubble" cx="75" cy="30" r="5" />
+            <line class="gate-line" x1="-30" y1="15" x2="-2" y2="15" />
+            <line class="gate-line" x1="-30" y1="45" x2="-2" y2="45" />
+            <line class="gate-line" x1="80" y1="30" x2="110" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="20">A</text>
+            <text class="text-label" x="-42" y="50">B</text>
+            <text class="text-label" x="125" y="35">F</text>
+        </g>
+
+        <g transform="translate(340, 20)">
+            <line class="tbl-line" x1="36" y1="0" x2="36" y2="150" />
+            <line class="tbl-line" x1="73" y1="0" x2="73" y2="150" />
+            <line class="tbl-line" x1="0" y1="30" x2="110" y2="30" />
+            <text class="tbl-header" x="18" y="20">A</text>
+            <text class="tbl-header" x="55" y="20">B</text>
+            <text class="tbl-header" x="92" y="20">F</text>
+            <text class="tbl-text" x="18" y="55">0</text><text class="tbl-text" x="55" y="55">0</text><text class="tbl-text" x="92" y="55">1</text>
+            <text class="tbl-text" x="18" y="80">0</text><text class="tbl-text" x="55" y="80">1</text><text class="tbl-text" x="92" y="80">0</text>
+            <text class="tbl-text" x="18" y="105">1</text><text class="tbl-text" x="55" y="105">0</text><text class="tbl-text" x="92" y="105">0</text>
+            <text class="tbl-text" x="18" y="130">1</text><text class="tbl-text" x="55" y="130">1</text><text class="tbl-text" x="92" y="130">1</text>
+        </g>
+    </g>
+
+    <!-- ROW 4: Buffer & NOT -->
+    <!-- Buffer Gate -->
+    <g transform="translate(20, 760)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">Buffer</text>
+        <text class="text-arabic" x="85" y="70">بوابة عازل</text>
+        <text class="text-eq" x="20" y="120">F = A</text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-symbol" d="M 10,0 L 70,30 L 10,60 Z" />
+            <line class="gate-line" x1="-30" y1="30" x2="10" y2="30" />
+            <line class="gate-line" x1="70" y1="30" x2="100" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="35">A</text>
+            <text class="text-label" x="115" y="35">F</text>
+        </g>
+
+        <g transform="translate(355, 30)">
+            <line class="tbl-line" x1="40" y1="0" x2="40" y2="110" />
+            <line class="tbl-line" x1="0" y1="35" x2="80" y2="35" />
+            <text class="tbl-header" x="20" y="22">A</text>
+            <text class="tbl-header" x="60" y="22">F</text>
+            <text class="tbl-text" x="20" y="65">0</text><text class="tbl-text" x="60" y="65">0</text>
+            <text class="tbl-text" x="20" y="95">1</text><text class="tbl-text" x="60" y="95">1</text>
+        </g>
+    </g>
+
+    <!-- NOT Gate -->
+    <g transform="translate(510, 760)">
+        <rect class="gate-card" width="470" height="190" />
+        <text class="text-title" x="20" y="40">NOT Gate (Inverter)</text>
+        <text class="text-arabic" x="85" y="70">بوابة نفي</text>
+        <text class="text-eq" x="20" y="120">F = <tspan text-decoration="overline">A</tspan></text>
+
+        <g transform="translate(160, 65)">
+            <path class="gate-symbol" d="M 10,0 L 70,30 L 10,60 Z" />
+            <circle class="gate-bubble" cx="75" cy="30" r="5" />
+            <line class="gate-line" x1="-30" y1="30" x2="10" y2="30" />
+            <line class="gate-line" x1="80" y1="30" x2="110" y2="30" marker-end="url(#arrow)" />
+            <text class="text-label" x="-42" y="35">A</text>
+            <text class="text-label" x="125" y="35">F</text>
+        </g>
+
+        <g transform="translate(355, 30)">
+            <line class="tbl-line" x1="40" y1="0" x2="40" y2="110" />
+            <line class="tbl-line" x1="0" y1="35" x2="80" y2="35" />
+            <text class="tbl-header" x="20" y="22">A</text>
+            <text class="tbl-header" x="60" y="22">F</text>
+            <text class="tbl-text" x="20" y="65">0</text><text class="tbl-text" x="60" y="65">1</text>
+            <text class="tbl-text" x="20" y="95">1</text><text class="tbl-text" x="60" y="95">0</text>
+        </g>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نحتاج إلى بوابة Buffer إذا كانت لا تغير قيمة المدخل؟</template>
+      <template class="content-en">Why do we need a Buffer gate if it doesn't change the input value?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تُستخدم بوابة Buffer لتقوية الإشارة الكهربائية (زيادة التيار) أو لإضافة تأخير زمني متعمد في الدائرة.</p></template>
+      <template class="content-en"><p>A Buffer gate is used to amplify the electrical signal (increase current drive capability) or to introduce a deliberate time delay in the circuit.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="complement-of-function" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> متمم الدالة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Complement of a Function</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هو عكس الدالة تماماً؛ حيث يتحول كل 1 إلى 0 وكل 0 إلى 1 في جدول الحقيقة.</p></template>
+    <template class="content-en"><p>The exact opposite of a function; every 1 becomes 0 and every 0 becomes 1 in the truth table.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن إيجاد متمم الدالة (F') جبرياً بطريقتين:</p><ol><li><strong>الأولى</strong> بتطبيق نظرية دي مورغان على التعبير بأكمله.</li><li><strong>الثانية</strong> باستخدام طريقة <span class="smart-term" data-term-en="Dual" data-ar="الثنائي" data-en-def="An expression obtained by changing every AND to OR, every OR to AND, 0 to 1, and 1 to 0, leaving literals unchanged.">الثنائي<span class="smart-term-tooltip"></span></span> (Dual)، حيث نأخذ الثنائي للدالة (بتبديل AND بـ OR والعكس) ثم نقوم بتتميم كل <span class="smart-term" data-term-en="Literal" data-ar="المتغير (حرفياً)" data-en-def="A primed or unprimed variable in a Boolean expression.">متغير<span class="smart-term-tooltip"></span></span> (Literal) على حدة.</li></ol></template>
+    <template class="content-en"><p>The complement of a function (F') can be derived algebraically in two ways:</p><ol><li><strong>First</strong>, by applying DeMorgan's theorem to the entire expression.</li><li><strong>Second</strong>, by taking the <span class="smart-term" data-term-en="Dual" data-ar="الثنائي" data-en-def="An expression obtained by changing every AND to OR, every OR to AND, 0 to 1, and 1 to 0, leaving literals unchanged.">dual<span class="smart-term-tooltip"></span></span> of the function (swapping AND with OR and vice versa) and then complementing each <span class="smart-term" data-term-en="Literal" data-ar="المتغير (حرفياً)" data-en-def="A primed or unprimed variable in a Boolean expression.">literal<span class="smart-term-tooltip"></span></span> individually.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفرق الجوهري بين الثنائي (Dual) والمتمم (Complement) هو أن:</p><ul><li><strong>الثنائي</strong> يغير المعاملات (Operators) والثوابت (0 و 1) فقط دون المساس بالمتغيرات،</li><li><strong>بينما المتمم</strong> يغير المعاملات والثوابت والمتغيرات معاً.</li></ul></template>
+    <template class="content-en"><p>The fundamental difference between Dual and Complement is that:</p><ul><li><strong>the Dual</strong> only changes operators and constants (0 and 1) without affecting the literals,</li><li><strong>whereas the Complement</strong> changes operators, constants, AND the literals.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>خطوات إيجاد المتمم باستخدام طريقة الثنائي.</strong></template>
+      <template class="content-en"><strong>Steps to find the complement using the Dual method.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F = (X+Y+Z) \implies Dual = (XYZ) \implies F' = (X'Y'Z')$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت الدالة F = 1، فما هو الثنائي لها وما هو المتمم؟</template>
+      <template class="content-en">If function F = 1, what is its dual and what is its complement?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الثنائي للرقم 1 هو 0. والمتمم للرقم 1 هو أيضاً 0.</p></template>
+      <template class="content-en"><p>The dual of 1 is 0. The complement of 1 is also 0.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="minterms-and-som" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الحدود الصغرى ومجموع الحدود الصغرى</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Minterms and Sum of Minterms (SOM)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الحد الأصغر هو حد ضرب يحتوي على جميع المتغيرات، ومجموع الحدود الصغرى يمثل الصفوف التي نتيجتها 1 في جدول الحقيقة.</p></template>
+    <template class="content-en"><p>A minterm is a product term containing ALL variables, and SOM represents the truth table rows where the output is 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الحد الأصغر (Minterm) هو <span class="smart-term" data-term-en="Product Term" data-ar="حد الضرب" data-en-def="A subset of variables appearing (complemented or not) with an AND operation between them.">حد ضرب<span class="smart-term-tooltip"></span></span> (Product Term) تظهر فيه جميع المتغيرات مرة واحدة (سواء كانت منفية أو غير منفية).</p><p>لعدد n من المتغيرات، يوجد 2^n حد أصغر.</p><p>يمكن التعبير عن أي دالة بوليانية كـ "مجموع الحدود الصغرى" (Sum of Minterms - SOM) عن طريق عمل OR لجميع الحدود الصغرى التي تقابل القيمة 1 في جدول الحقيقة.</p></template>
+    <template class="content-en"><p>A <span class="smart-term" data-term-en="Minterm" data-ar="الحد الأصغر" data-en-def="A product term in which ALL variables appear exactly once.">Minterm<span class="smart-term-tooltip"></span></span> is a <span class="smart-term" data-term-en="Product Term" data-ar="حد الضرب" data-en-def="A subset of variables appearing (complemented or not) with an AND operation between them.">product term<span class="smart-term-tooltip"></span></span> in which ALL variables appear exactly once (complemented or not).</p><p>For n variables, there are 2^n minterms.</p><p>Any Boolean function can be expressed as a logical sum of minterms (SOM) by ORing all the minterms that correspond to a 1 in the truth table.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>صيغة مجموع الحدود الصغرى تُعرف بالصيغة القانونية (Canonical Form).</p><p>متمم الدالة يحتوي ببساطة على الحدود الصغرى التي لم يتم تضمينها في الدالة الأصلية.</p><p>الدالة التي تحتوي على جميع الحدود الصغرى الممكنة تساوي منطقياً 1.</p></template>
+    <template class="content-en"><p>The sum-of-minterms form is a canonical algebraic expression.</p><p>The complement of a function simply contains those minterms NOT included in the original function.</p><p>A function that includes all 2^n minterms is logically equal to 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>تمثيل بديل لمجموع الحدود الصغرى باستخدام رمز التجميع.</strong></template>
+      <template class="content-en"><strong>Alternative representation of Sum of Minterms using the summation symbol.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F(X,Y,Z) = \sum m(0,2,5,7)$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Create a table showing the 8 minterms for 3 variables (X, Y, Z). Columns: X, Y, Z, Product Term, Symbol (m0 to m7). Highlight that only one minterm is active at a time for any given input combination. Dark theme #0d1117. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 580" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Arrow Marker for Callout -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Gradient for Highlighted Row -->
+        <linearGradient id="rowHighlight" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="var(--brand-800)" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="var(--brand-600)" stop-opacity="0.3"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title Section -->
+    <text x="400" y="35" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3-Variable Minterms (X, Y, Z)</text>
+    <text x="400" y="60" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">جدول حدود المينتيرم لـ 3 متغيرات</text>
+
+    <!-- Table Backgrounds -->
+    <!-- Header Background -->
+    <rect x="80" y="80" width="500" height="50" fill="var(--bg-elevated)"/>
+    
+    <!-- Zebra Striping for Data Rows -->
+    <rect x="80" y="170" width="500" height="40" fill="var(--bg-elevated)" opacity="0.4"/>
+    <rect x="80" y="250" width="500" height="40" fill="var(--bg-elevated)" opacity="0.4"/>
+    <rect x="80" y="410" width="500" height="40" fill="var(--bg-elevated)" opacity="0.4"/>
+    
+    <!-- Highlighted Row (m5) Background -->
+    <rect x="80" y="330" width="500" height="40" fill="url(#rowHighlight)"/>
+    <rect x="80" y="330" width="500" height="40" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
+
+    <!-- Table Grid Lines -->
+    <rect x="80" y="80" width="500" height="370" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+    
+    <!-- Vertical Lines -->
+    <line x1="150" y1="80" x2="150" y2="450" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="220" y1="80" x2="220" y2="450" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="290" y1="80" x2="290" y2="450" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="470" y1="80" x2="470" y2="450" stroke="var(--border-color)" stroke-width="1"/>
+    
+    <!-- Horizontal Lines -->
+    <line x1="80" y1="130" x2="580" y2="130" stroke="var(--border-color)" stroke-width="2"/>
+    <line x1="80" y1="170" x2="580" y2="170" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="80" y1="210" x2="580" y2="210" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="80" y1="250" x2="580" y2="250" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="80" y1="290" x2="580" y2="290" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="80" y1="330" x2="580" y2="330" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="80" y1="370" x2="580" y2="370" stroke="var(--border-color)" stroke-width="1"/>
+    <line x1="80" y1="410" x2="580" y2="410" stroke="var(--border-color)" stroke-width="1"/>
+
+    <!-- Table Headers -->
+    <g text-anchor="middle" font-weight="bold" fill="var(--text-primary)" font-size="16">
+        <text x="115" y="110">X</text>
+        <text x="185" y="110">Y</text>
+        <text x="255" y="110">Z</text>
+        <text x="380" y="102">Product Term</text>
+        <text x="380" y="122" font-size="13" fill="var(--text-secondary)">الحد الضربي</text>
+        <text x="525" y="102">Symbol</text>
+        <text x="525" y="122" font-size="13" fill="var(--text-secondary)">الرمز</text>
+    </g>
+
+    <!-- Table Data -->
+    <g text-anchor="middle" font-size="16" fill="var(--text-primary)">
+        <!-- Row 0 -->
+        <text x="115" y="156">0</text><text x="185" y="156">0</text><text x="255" y="156">0</text>
+        <text x="380" y="156" font-weight="600">X'Y'Z'</text><text x="525" y="156" font-weight="600">m0</text>
+        
+        <!-- Row 1 -->
+        <text x="115" y="196">0</text><text x="185" y="196">0</text><text x="255" y="196">1</text>
+        <text x="380" y="196" font-weight="600">X'Y'Z</text><text x="525" y="196" font-weight="600">m1</text>
+        
+        <!-- Row 2 -->
+        <text x="115" y="236">0</text><text x="185" y="236">1</text><text x="255" y="236">0</text>
+        <text x="380" y="236" font-weight="600">X'YZ'</text><text x="525" y="236" font-weight="600">m2</text>
+        
+        <!-- Row 3 -->
+        <text x="115" y="276">0</text><text x="185" y="276">1</text><text x="255" y="276">1</text>
+        <text x="380" y="276" font-weight="600">X'YZ</text><text x="525" y="276" font-weight="600">m3</text>
+        
+        <!-- Row 4 -->
+        <text x="115" y="316">1</text><text x="185" y="316">0</text><text x="255" y="316">0</text>
+        <text x="380" y="316" font-weight="600">XY'Z'</text><text x="525" y="316" font-weight="600">m4</text>
+        
+        <!-- Row 5 (Highlighted) -->
+        <g fill="var(--brand-500)" font-weight="bold">
+            <text x="115" y="356">1</text><text x="185" y="356">0</text><text x="255" y="356">1</text>
+            <text x="380" y="356">XY'Z</text><text x="525" y="356">m5</text>
+        </g>
+        
+        <!-- Row 6 -->
+        <text x="115" y="396">1</text><text x="185" y="396">1</text><text x="255" y="396">0</text>
+        <text x="380" y="396" font-weight="600">XYZ'</text><text x="525" y="396" font-weight="600">m6</text>
+        
+        <!-- Row 7 -->
+        <text x="115" y="436">1</text><text x="185" y="436">1</text><text x="255" y="436">1</text>
+        <text x="380" y="436" font-weight="600">XYZ</text><text x="525" y="436" font-weight="600">m7</text>
+    </g>
+
+    <!-- Callout for Highlighted Row -->
+    <g>
+        <!-- Connecting Line -->
+        <line x1="580" y1="350" x2="612" y2="350" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        
+        <!-- Callout Box -->
+        <rect x="620" y="310" width="160" height="80" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5"/>
+        
+        <!-- Callout Text -->
+        <g text-anchor="middle" font-size="14">
+            <text x="700" y="333" fill="var(--brand-500)" font-weight="bold">Active (1) ONLY</text>
+            <text x="700" y="353" fill="var(--text-primary)">when X=1, Y=0, Z=1</text>
+            <text x="700" y="375" fill="var(--text-secondary)" font-size="13">نشط فقط لهذه المدخلات</text>
+        </g>
+    </g>
+
+    <!-- Footer / Key Concept -->
+    <g>
+        <rect x="80" y="480" width="640" height="65" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <text x="400" y="508" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">💡 Key Concept: Only ONE minterm is active (equals 1) for any given input combination.</text>
+        <text x="400" y="530" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مفهوم أساسي: مينتيرم واحد فقط يكون نشطاً (يساوي 1) لأي تركيبة مدخلات معينة.</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل الحد XY يعتبر حداً أصغر (Minterm) في دالة تحتوي على 3 متغيرات (X, Y, Z)؟</template>
+      <template class="content-en">Is the term XY considered a minterm in a function with 3 variables (X, Y, Z)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، الحد XY هو مجرد حد ضرب (Product Term) لأنه يفتقر إلى المتغير Z. الحد الأصغر يجب أن يحتوي على جميع المتغيرات الثلاثة.</p></template>
+      <template class="content-en"><p>No, the term XY is just a product term because it lacks the variable Z. A minterm must contain all three variables.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="sum-of-products-sop" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> مجموع المضروبات (SOP)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Sum of Products (SOP) Standard Form</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هو النسخة المبسطة من مجموع الحدود الصغرى، ويُنفذ عادة كدائرة سريعة من مستويين.</p></template>
+    <template class="content-en"><p>The simplified version of SOM, typically implemented as a fast 2-level logic circuit.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>بينما يحتوي مجموع الحدود الصغرى (SOM) على الحد الأقصى من المتغيرات في كل حد، فإن تبسيط هذا التعبير ينتج ما يسمى "مجموع المضروبات" (Sum of Products - SOP)، وهو <span class="smart-term" data-term-en="Standard Form" data-ar="الصيغة القياسية" data-en-def="A simplified Boolean expression, such as Sum of Products (SOP).">صيغة قياسية<span class="smart-term-tooltip"></span></span> (Standard Form).</p><p>يتم تنفيذ SOP عادة ك<span class="smart-term" data-term-en="2-level Implementation" data-ar="تنفيذ ذو مستويين" data-en-def="A circuit design where signals pass through at most two logic gates (e.g., AND then OR) from input to output.">دائرة ذات مستويين<span class="smart-term-tooltip"></span></span> (2-level implementation): مستوى من بوابات AND يغذي بوابة OR واحدة.</p></template>
+    <template class="content-en"><p>While the sum-of-minterms (SOM) contains the maximum number of literals in each term, simplifying this expression yields the "Sum of Products" (SOP), which is a <span class="smart-term" data-term-en="Standard Form" data-ar="الصيغة القياسية" data-en-def="A simplified Boolean expression, such as Sum of Products (SOP).">standard form<span class="smart-term-tooltip"></span></span>.</p><p>SOP is typically implemented as a <span class="smart-term" data-term-en="2-level Implementation" data-ar="تنفيذ ذو مستويين" data-en-def="A circuit design where signals pass through at most two logic gates (e.g., AND then OR) from input to output.">2-level circuit<span class="smart-term-tooltip"></span></span>: a level of AND gates feeding into a single OR gate.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التنفيذ ذو المستويين (2-level) مفضل لأنه يقلل من تأخير البوابات (Gate Delay) مقارنة بالتنفيذ ذي الثلاثة مستويات (مثل إخراج عامل مشترك).</p><p>ومع ذلك، قد نضطر لاستخدام 3 مستويات إذا كانت البوابات المتاحة لدينا محدودة بعدد معين من المداخل (مثلاً بوابات بمدخلين فقط).</p></template>
+    <template class="content-en"><p>A 2-level implementation is preferred because it minimizes gate delay compared to a 3-level implementation (e.g., factoring out a variable).</p><p>However, a 3-level design might be necessary if we are restricted by fan-in limits, such as only having 2-input gates available.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>مثال على تعبير بصيغة مجموع المضروبات (SOP).</strong></template>
+      <template class="content-en"><strong>Example of a Sum of Products (SOP) expression.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F = Y' + X'Y'Z' + XY$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: Draw a 2-level logic circuit diagram for a Sum of Products (SOP) implementation. Show multiple AND gates on the left (Level 1) whose outputs all connect to a single OR gate on the right (Level 2). Label the final output F. Use a dark background #0d1117 with bright green lines for signal paths. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <g id="and-gate">
+      <path d="M 0 0 L 30 0 A 30 30 0 0 1 30 60 L 0 60 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    </g>
+    
+    <g id="or-gate">
+      <path d="M 0 0 C 35 0, 60 15, 80 40 C 60 65, 35 80, 0 80 C 20 55, 20 25, 0 0 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    </g>
+  </defs>
+
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Sum of Products (SOP) Logic Circuit</text>
+  <text x="400" y="60" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">دائرة منطقية لمجموع المضروبات</text>
+
+  <rect x="230" y="80" width="100" height="300" rx="8" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" />
+  <text x="280" y="405" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Level 1: AND Plane</text>
+  <text x="280" y="425" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle" fill="var(--text-secondary)">المستوى 1: بوابات الضرب</text>
+
+  <rect x="480" y="170" width="110" height="120" rx="8" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" />
+  <text x="535" y="320" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Level 2: OR Plane</text>
+  <text x="535" y="340" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle" fill="var(--text-secondary)">المستوى 2: بوابة الجمع</text>
+
+  <g stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <path d="M 150 115 L 245 115" />
+    <path d="M 150 145 L 245 145" />
+    
+    <path d="M 150 215 L 245 215" />
+    <path d="M 150 245 L 245 245" />
+    
+    <path d="M 150 315 L 245 315" />
+    <path d="M 150 345 L 245 345" />
+
+    <path d="M 310 130 L 400 130 Q 410 130 410 140 L 410 200 Q 410 210 420 210 L 505 210" />
+    <path d="M 310 230 L 505 230" />
+    <path d="M 310 330 L 400 330 Q 410 330 410 320 L 410 260 Q 410 250 420 250 L 505 250" />
+
+    <path d="M 580 230 L 675 230" />
+  </g>
+
+  <use href="#and-gate" x="250" y="100" />
+  <use href="#and-gate" x="250" y="200" />
+  <use href="#and-gate" x="250" y="300" />
+
+  <use href="#or-gate" x="500" y="190" />
+
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="end">
+    <text x="135" y="120">A</text>
+    <text x="135" y="150">B</text>
+    <text x="135" y="220">C</text>
+    <text x="135" y="250">D</text>
+    <text x="135" y="320">E</text>
+    <text x="135" y="350">G</text>
+  </g>
+
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    <text x="360" y="120">A · B</text>
+    <text x="360" y="220">C · D</text>
+    <text x="360" y="320">E · G</text>
+  </g>
+
+  <text x="630" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">F = A·B + C·D + E·G</text>
+  <text x="690" y="235" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="start" fill="var(--text-primary)">F</text>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>SOM (Sum of Minterms)</th><th>SOP (Sum of Products)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">عدد المتغيرات في كل حد</template>
+          <template class="content-en">Literals per term</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">الحد الأقصى (جميع المتغيرات موجودة)</template>
+          <template class="content-en">Maximum (all variables present)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مبسط (متغيرات أقل)</template>
+          <template class="content-en">Simplified (fewer variables)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع الصيغة</template>
+          <template class="content-en">Form Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">صيغة قانونية (Canonical)</template>
+          <template class="content-en">Canonical Form</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">صيغة قياسية (Standard)</template>
+          <template class="content-en">Standard Form</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاستخراج</template>
+          <template class="content-en">Derivation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مباشرة من جدول الحقيقة</template>
+          <template class="content-en">Directly from truth table</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يتطلب تبسيطاً جبرياً</template>
+          <template class="content-en">Requires algebraic simplification</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>2-level (e.g., AB + CD + CE)</th><th>3-level (e.g., AB + C(D+E))</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تأخير البوابات (السرعة)</template>
+          <template class="content-en">Gate Delay (Speed)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تأخير أقل (أسرع)</template>
+          <template class="content-en">Less delay (Faster)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تأخير أكبر (أبطأ)</template>
+          <template class="content-en">More delay (Slower)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">عدد البوابات / المداخل المطلوبة</template>
+          <template class="content-en">Gates / Fan-in required</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">قد يتطلب بوابات بمداخل كثيرة</template>
+          <template class="content-en">May require gates with many inputs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يمكن تنفيذه ببوابات ذات مدخلين فقط</template>
+          <template class="content-en">Can be implemented with 2-input gates</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">أيهما أسرع في معالجة الإشارات: دائرة ذات مستويين أم دائرة ذات 3 مستويات؟ ولماذا؟</template>
+      <template class="content-en">Which is faster in processing signals: a 2-level circuit or a 3-level circuit? Why?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الدائرة ذات المستويين أسرع، لأن كل بوابة تضيف تأخيراً زمنياً (Gate Delay). مرور الإشارة عبر بوابتين أسرع من مرورها عبر ثلاث بوابات.</p></template>
+      <template class="content-en"><p>A 2-level circuit is faster because every gate introduces a propagation delay (Gate Delay). Passing through two gates is faster than passing through three.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في الوحدة الثالثة! هذه الوحدة تسد الفجوة بين الجبر البولياني المجرد والدوائر المنطقية المادية. نبدأ بالمسلمات والنظريات الأساسية مثل دي مورغان والامتصاص، وهي أدواتك الرئيسية لتبسيط التعبيرات المعقدة. تذكر دائماً أولوية العمليات: الأقواس، النفي، العطف (AND)، ثم الفصل (OR). بعد ذلك، نترجم هذه التعبيرات إلى جداول حقيقة وبوابات منطقية. الجزء الأهم للامتحان هو فهم 'الحدود الصغرى' (Minterms) وكيفية بناء 'مجموع الحدود الصغرى' (SOM) مباشرة من جدول الحقيقة، ثم تبسيطه إلى 'مجموع المضروبات' (SOP) لتصميم دائرة فعالة ذات مستويين. انتبه جيداً لكيفية إيجاد متمم الدالة باستخدام طريقة الثنائي (Dual)، فهذا سؤال كلاسيكي وموضع فخ في الامتحانات!</template>
+    <template class="content-en">Welcome to Module 3! This module bridges the gap between abstract Boolean algebra and physical logic circuits. We start with fundamental theorems like DeMorgan's and Absorption, which are your primary tools for simplifying complex expressions. Always remember the order of operations: Parentheses, NOT, AND, then OR. We then translate these expressions into truth tables and logic gates. The most critical part for your exam is understanding Minterms and how to construct a Sum of Minterms (SOM) directly from a truth table, then simplifying it into a Sum of Products (SOP) for an efficient 2-level circuit implementation. Pay close attention to finding the complement of a function using the dual method—it's a classic exam trap!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل نحتاج إلى إثبات المسلمات (Postulates)؟</template>
+          <template class="content-en">Do we need to prove postulates?</template>
+          <span class="content-target">هل نحتاج إلى إثبات المسلمات (Postulates)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، المسلمات هي بديهيات أساسية لا تحتاج إلى إثبات. النظريات (Theorems) هي التي يجب إثباتها باستخدام المسلمات.</template>
+          <template class="content-en">No, postulates are basic axioms that need no proof. Theorems must be proven from the postulates.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نثبت النظريات البوليانية؟</template>
+          <template class="content-en">How do we prove Boolean theorems?</template>
+          <span class="content-target">كيف نثبت النظريات البوليانية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إما جبرياً باستخدام المسلمات والنظريات المثبتة مسبقاً، أو باستخدام جداول الحقيقة لإثبات تطابق كلا الجانبين لجميع الاحتمالات.</template>
+          <template class="content-en">Either algebraically using postulates and previously proven theorems, or by using truth tables to show both sides are identical for all combinations.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الترتيب الصحيح لتقييم التعبيرات البوليانية؟</template>
+          <template class="content-en">What is the correct order for evaluating Boolean expressions?</template>
+          <span class="content-target">ما هو الترتيب الصحيح لتقييم التعبيرات البوليانية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">(1) الأقواس، (2) النفي (NOT)، (3) العطف (AND)، (4) الفصل (OR).</template>
+          <template class="content-en">(1) Parentheses, (2) NOT, (3) AND, (4) OR.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين حد الضرب (Product Term) والحد الأصغر (Minterm)؟</template>
+          <template class="content-en">What is the difference between a Product Term and a Minterm?</template>
+          <span class="content-target">ما الفرق بين حد الضرب (Product Term) والحد الأصغر (Minterm)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">حد الضرب هو أي مجموعة متغيرات مضروبة بـ AND. الحد الأصغر هو حالة خاصة من حد الضرب يجب أن تظهر فيه *جميع* متغيرات الدالة.</template>
+          <template class="content-en">A product term is any subset of variables ANDed together. A minterm is a special product term where *ALL* variables of the function must appear.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نجد متمم الدالة؟</template>
+          <template class="content-en">How do we find the complement of a function?</template>
+          <span class="content-target">كيف نجد متمم الدالة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إما بتطبيق نظرية دي مورغان على التعبير كاملاً، أو بإيجاد الثنائي (Dual) ثم نفي كل متغير (Literal).</template>
+          <template class="content-en">Either apply DeMorgan's theorem to the whole expression, or take the dual and complement each literal.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين SOM و SOP؟</template>
+          <template class="content-en">What is the difference between SOM and SOP?</template>
+          <span class="content-target">ما هو الفرق بين SOM و SOP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">SOM (مجموع الحدود الصغرى) يُستخرج مباشرة من جدول الحقيقة ويحتوي على الحد الأقصى من المتغيرات. SOP (مجموع المضروبات) هو النسخة المبسطة من SOM.</template>
+          <template class="content-en">SOM (Sum of Minterms) is derived directly from the truth table and has the maximum literals per term. SOP (Sum of Products) is the simplified version of SOM.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نفضل صيغة SOP في تصميم الدوائر؟</template>
+          <template class="content-en">Why do we prefer the SOP form in circuit design?</template>
+          <span class="content-target">لماذا نفضل صيغة SOP في تصميم الدوائر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها تسمح بتنفيذ الدائرة في مستويين فقط (بوابات AND تليها بوابة OR)، مما يقلل من التأخير الزمني (Gate Delay).</template>
+          <template class="content-en">Because it allows for a 2-level circuit implementation (AND gates followed by an OR gate), which minimizes gate delay.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كم عدد الحدود الصغرى لدالة تحتوي على n من المتغيرات؟</template>
+          <template class="content-en">How many minterms exist for a function with n variables?</template>
+          <span class="content-target">كم عدد الحدود الصغرى لدالة تحتوي على n من المتغيرات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يوجد 2^n من الحدود الصغرى الممكنة.</template>
+          <template class="content-en">There are 2^n possible minterms.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني التعبير ∑ m(1,3,4,6)؟</template>
+          <template class="content-en">What does the expression ∑ m(1,3,4,6) mean?</template>
+          <span class="content-target">ماذا يعني التعبير ∑ m(1,3,4,6)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو اختصار لمجموع الحدود الصغرى، ويعني أن الدالة تعطي المخرج 1 في الصفوف 1، 3، 4، و 6 من جدول الحقيقة.</template>
+          <template class="content-en">It is shorthand for the Sum of Minterms, meaning the function outputs 1 at rows 1, 3, 4, and 6 of the truth table.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نضطر لاستخدام تنفيذ ذي 3 مستويات بدلاً من مستويين؟</template>
+          <template class="content-en">When might we be forced to use a 3-level implementation instead of 2-level?</template>
+          <span class="content-target">متى نضطر لاستخدام تنفيذ ذي 3 مستويات بدلاً من مستويين؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عندما نكون مقيدين بعدد مداخل البوابات المتاحة (مثلاً نملك بوابات بمدخلين فقط والتعبير يحتاج بوابات بـ 3 مداخل).</template>
+          <template class="content-en">When we are restricted by the fan-in of available gates (e.g., we only have 2-input gates but the expression requires 3-input gates).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي نظرية التحايد (Idempotent Theorem)؟",
+      "en": "What is the Idempotent Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "x + x = x  و  x · x = x",
+        "en": "x + x = x  and  x · x = x"
+      },
+      "example": {
+        "ar": "جمع المتغير مع نفسه يعطي المتغير نفسه.",
+        "en": "ORing or ANDing a variable with itself yields the variable."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي نظرية النفي المزدوج (Involution Theorem)؟",
+      "en": "What is the Involution Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "(x')' = x",
+        "en": "(x')' = x"
+      },
+      "example": {
+        "ar": "نفي النفي إثبات.",
+        "en": "The complement of a complement is the original variable."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي نظرية دي مورغان (DeMorgan's Theorem)؟",
+      "en": "What is DeMorgan's Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "(x + y)' = x'y'  و  (xy)' = x' + y'",
+        "en": "(x + y)' = x'y'  and  (xy)' = x' + y'"
+      },
+      "example": {
+        "ar": "توزيع النفي يقلب الـ OR إلى AND والعكس.",
+        "en": "Distributing the complement changes OR to AND and vice versa."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي نظرية الامتصاص (Absorption Theorem)؟",
+      "en": "What is the Absorption Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "x + xy = x  و  x(x + y) = x",
+        "en": "x + xy = x  and  x(x + y) = x"
+      },
+      "example": {
+        "ar": "المتغير x يمتص الحد xy.",
+        "en": "The variable x absorbs the term xy."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو ترتيب أولوية المعاملات البوليانية؟",
+      "en": "What is the Boolean operator precedence?"
+    },
+    "back": {
+      "definition": {
+        "ar": "(1) الأقواس، (2) NOT، (3) AND، (4) OR.",
+        "en": "(1) Parentheses, (2) NOT, (3) AND, (4) OR."
+      },
+      "example": {
+        "ar": "في التعبير A + B'C، يتم حساب B' أولاً، ثم يضرب في C، ثم يجمع مع A.",
+        "en": "In A + B'C, B' is evaluated first, then ANDed with C, then ORed with A."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "كم عدد الصفوف في جدول الحقيقة لدالة تحتوي على n من المتغيرات؟",
+      "en": "How many rows are in a truth table for a function with n variables?"
+    },
+    "back": {
+      "definition": {
+        "ar": "2^n صف.",
+        "en": "2^n rows."
+      },
+      "example": {
+        "ar": "لـ 3 متغيرات، يوجد 2^3 = 8 صفوف.",
+        "en": "For 3 variables, there are 2^3 = 8 rows."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو الحد الأصغر (Minterm)؟",
+      "en": "What is a Minterm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حد ضرب (AND) تظهر فيه جميع المتغيرات مرة واحدة (منفية أو غير منفية).",
+        "en": "A product term in which ALL variables appear exactly once (complemented or not)."
+      },
+      "example": {
+        "ar": "XYZ أو X'YZ' لدالة ذات 3 متغيرات.",
+        "en": "XYZ or X'YZ' for a 3-variable function."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو مجموع الحدود الصغرى (SOM)؟",
+      "en": "What is Sum of Minterms (SOM)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعبير بولياني يتكون من جمع (OR) جميع الحدود الصغرى التي تعطي المخرج 1 في جدول الحقيقة.",
+        "en": "A Boolean expression formed by ORing all minterms that produce a 1 in the truth table."
+      },
+      "example": {
+        "ar": "F = m1 + m3 + m7",
+        "en": "F = m1 + m3 + m7"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "كيف نجد متمم الدالة باستخدام طريقة الثنائي (Dual)؟",
+      "en": "How do we find the complement of a function using the Dual method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نأخذ الثنائي (نبدل AND بـ OR و 0 بـ 1) ثم ننفي كل متغير (Literal).",
+        "en": "Take the dual (swap AND/OR, 0/1) and then complement each literal."
+      },
+      "example": {
+        "ar": "الدالة: X+Y. الثنائي: XY. المتمم: X'Y'.",
+        "en": "Function: X+Y. Dual: XY. Complement: X'Y'."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو مجموع المضروبات (SOP)؟",
+      "en": "What is Sum of Products (SOP)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "صيغة قياسية مبسطة تتكون من جمع (OR) لعدة حدود ضرب (AND).",
+        "en": "A simplified standard form consisting of the ORing of several product terms."
+      },
+      "example": {
+        "ar": "F = XZ + Y'Z",
+        "en": "F = XZ + Y'Z"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي ميزة التنفيذ ذي المستويين (2-level implementation)؟",
+      "en": "What is the advantage of a 2-level implementation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقلل من تأخير البوابات (Gate Delay) مما يجعل الدائرة أسرع.",
+        "en": "It minimizes gate delay, making the circuit faster."
+      },
+      "example": {
+        "ar": "بوابات AND تغذي بوابة OR واحدة.",
+        "en": "AND gates feeding directly into a single OR gate."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو حد الضرب (Product Term)؟",
+      "en": "What is a Product Term?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة فرعية من المتغيرات مرتبطة بعملية AND.",
+        "en": "A subset of variables connected with an AND operation."
+      },
+      "example": {
+        "ar": "XY هو حد ضرب، لكنه ليس حداً أصغر إذا كانت الدالة تحتوي على Z.",
+        "en": "XY is a product term, but not a minterm if the function has Z."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي بوابة NAND؟",
+      "en": "What is a NAND gate?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بوابة AND متبوعة بنفي (NOT). تعطي 0 فقط إذا كانت كل المداخل 1.",
+        "en": "An AND gate followed by a NOT. Outputs 0 only if all inputs are 1."
+      },
+      "example": {
+        "ar": "F = (xy)'",
+        "en": "F = (xy)'"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي بوابة XOR (Exclusive-OR)؟",
+      "en": "What is an XOR gate?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بوابة تعطي 1 إذا كانت المداخل مختلفة، و 0 إذا كانت متشابهة.",
+        "en": "A gate that outputs 1 if inputs are different, and 0 if they are the same."
+      },
+      "example": {
+        "ar": "F = x'y + xy'",
+        "en": "F = x'y + xy'"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ماذا تمثل الدالة التي تحتوي على جميع الحدود الصغرى الممكنة؟",
+      "en": "What does a function containing all possible minterms represent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تساوي منطقياً 1.",
+        "en": "It is logically equal to 1."
+      },
+      "example": {
+        "ar": "m0 + m1 + m2 + m3 لدالة بمتغيرين = 1.",
+        "en": "m0 + m1 + m2 + m3 for a 2-variable function = 1."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو الثنائي (Dual) للتعبير x + 0 = x؟",
+      "en": "What is the Dual of the expression x + 0 = x?"
+    },
+    "back": {
+      "definition": {
+        "ar": "x · 1 = x",
+        "en": "x · 1 = x"
+      },
+      "example": {
+        "ar": "تم تبديل + بـ · و 0 بـ 1.",
+        "en": "Swapped + with · and 0 with 1."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الترتيب الصحيح لأولوية المعاملات البوليانية؟",
+      "en": "What is the correct order of Boolean operator precedence?"
+    },
+    "options": {
+      "ar": [
+        "الأقواس، AND، NOT، OR",
+        "NOT، الأقواس، AND، OR",
+        "الأقواس، NOT، AND، OR",
+        "AND، OR، NOT، الأقواس"
+      ],
+      "en": [
+        "Parentheses, AND, NOT, OR",
+        "NOT, Parentheses, AND, OR",
+        "Parentheses, NOT, AND, OR",
+        "AND, OR, NOT, Parentheses"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يتم تقييم الأقواس أولاً، تليها عملية النفي (NOT)، ثم العطف (AND)، وأخيراً الفصل (OR).",
+      "en": "Parentheses are evaluated first, followed by NOT, then AND, and finally OR."
+    },
+    "hint": {
+      "ar": "تذكر أن AND يشبه الضرب و OR يشبه الجمع.",
+      "en": "Remember that AND is like multiplication and OR is like addition."
+    },
+    "difficulty": "easy",
+    "conceptId": "operator-precedence"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "حسب نظرية الامتصاص، ما هو تبسيط التعبير x + xy ؟",
+      "en": "According to the absorption theorem, what is the simplification of x + xy?"
+    },
+    "options": {
+      "ar": [
+        "y",
+        "x",
+        "xy",
+        "1"
+      ],
+      "en": [
+        "y",
+        "x",
+        "xy",
+        "1"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نظرية الامتصاص تنص على أن x + xy = x، لأن x عامل مشترك: x(1 + y) = x(1) = x.",
+      "en": "The absorption theorem states x + xy = x, because factoring x gives x(1 + y) = x(1) = x."
+    },
+    "hint": {
+      "ar": "حاول أخذ x كعامل مشترك.",
+      "en": "Try factoring out x."
+    },
+    "difficulty": "medium",
+    "conceptId": "boolean-algebra-theorems"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "أي من التالي يمثل نظرية دي مورغان؟",
+      "en": "Which of the following represents DeMorgan's theorem?"
+    },
+    "options": {
+      "ar": [
+        "(x + y)' = x' + y'",
+        "(x + y)' = x'y'",
+        "(xy)' = x'y'",
+        "x + x' = 1"
+      ],
+      "en": [
+        "(x + y)' = x' + y'",
+        "(x + y)' = x'y'",
+        "(xy)' = x'y'",
+        "x + x' = 1"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نظرية دي مورغان توزع النفي وتقلب المعامل: (x + y)' = x'y'.",
+      "en": "DeMorgan's theorem distributes the complement and flips the operator: (x + y)' = x'y'."
+    },
+    "hint": {
+      "ar": "النفي يقلب الجمع إلى ضرب.",
+      "en": "The complement flips OR to AND."
+    },
+    "difficulty": "medium",
+    "conceptId": "boolean-algebra-theorems"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "في دالة تحتوي على 3 متغيرات (X, Y, Z)، أي من التالي يعتبر حداً أصغر (Minterm)؟",
+      "en": "In a function with 3 variables (X, Y, Z), which of the following is considered a minterm?"
+    },
+    "options": {
+      "ar": [
+        "XY",
+        "X + Y + Z",
+        "X'YZ",
+        "X'Y"
+      ],
+      "en": [
+        "XY",
+        "X + Y + Z",
+        "X'YZ",
+        "X'Y"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الحد الأصغر يجب أن يكون حد ضرب (AND) ويحتوي على جميع المتغيرات الثلاثة.",
+      "en": "A minterm must be a product (AND) term and contain all three variables."
+    },
+    "hint": {
+      "ar": "ابحث عن الخيار الذي يحتوي على X و Y و Z معاً في عملية ضرب.",
+      "en": "Look for the option that has X, Y, and Z together in a product."
+    },
+    "difficulty": "medium",
+    "conceptId": "minterms-and-som"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "كم عدد الحدود الصغرى (Minterms) الممكنة لدالة بـ 4 متغيرات؟",
+      "en": "How many possible minterms are there for a function with 4 variables?"
+    },
+    "options": {
+      "ar": [
+        "4",
+        "8",
+        "16",
+        "32"
+      ],
+      "en": [
+        "4",
+        "8",
+        "16",
+        "32"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "عدد الحدود الصغرى يساوي 2^n. لـ 4 متغيرات: 2^4 = 16.",
+      "en": "The number of minterms is 2^n. For 4 variables: 2^4 = 16."
+    },
+    "hint": {
+      "ar": "استخدم المعادلة 2^n.",
+      "en": "Use the formula 2^n."
+    },
+    "difficulty": "easy",
+    "conceptId": "minterms-and-som"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي الخطوة الأولى لإيجاد متمم الدالة باستخدام طريقة الثنائي (Dual)؟",
+      "en": "What is the first step to find the complement of a function using the Dual method?"
+    },
+    "options": {
+      "ar": [
+        "نفي جميع المتغيرات فقط",
+        "تبديل AND بـ OR و 0 بـ 1 دون تغيير المتغيرات",
+        "إضافة أقواس حول التعبير",
+        "تبديل المتغيرات ببعضها"
+      ],
+      "en": [
+        "Complement all literals only",
+        "Swap AND with OR and 0 with 1 without changing literals",
+        "Add parentheses around the expression",
+        "Swap the variables with each other"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الطريقة تتطلب أولاً أخذ الثنائي (تبديل المعاملات والثوابت) ثم نفي المتغيرات.",
+      "en": "The method requires first taking the dual (swapping operators and constants) and then complementing the literals."
+    },
+    "hint": {
+      "ar": "الثنائي لا يغير المتغيرات (Literals) في خطوته الأولى.",
+      "en": "The dual does not change the literals in its first step."
+    },
+    "difficulty": "hard",
+    "conceptId": "complement-of-function"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "لماذا يُفضل تنفيذ الدوائر بصيغة مجموع المضروبات (SOP) كمستويين (2-level)؟",
+      "en": "Why is it preferred to implement circuits in Sum of Products (SOP) form as 2-level?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تستخدم بوابات أقل دائماً",
+        "لأنها تقلل من تأخير البوابات (Gate Delay)",
+        "لأنها تستهلك طاقة أعلى",
+        "لأنها لا تتطلب بوابات NOT"
+      ],
+      "en": [
+        "Because it always uses fewer gates",
+        "Because it minimizes gate delay",
+        "Because it consumes more power",
+        "Because it doesn't require NOT gates"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التنفيذ ذو المستويين يضمن مرور الإشارة عبر بوابتين فقط (AND ثم OR)، مما يقلل التأخير الزمني ويزيد سرعة الدائرة.",
+      "en": "A 2-level implementation ensures the signal passes through only two gates (AND then OR), minimizing time delay and increasing circuit speed."
+    },
+    "hint": {
+      "ar": "فكر في سرعة وصول الإشارة من المدخل إلى المخرج.",
+      "en": "Think about the speed of the signal traveling from input to output."
+    },
+    "difficulty": "medium",
+    "conceptId": "sum-of-products-sop"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ماذا يمثل التعبير ∑ m(0,2,5,7)؟",
+      "en": "What does the expression ∑ m(0,2,5,7) represent?"
+    },
+    "options": {
+      "ar": [
+        "مجموع المضروبات (SOP)",
+        "مجموع الحدود الصغرى (SOM)",
+        "مضروب المجاميع (POS)",
+        "متمم الدالة"
+      ],
+      "en": [
+        "Sum of Products (SOP)",
+        "Sum of Minterms (SOM)",
+        "Product of Sums (POS)",
+        "Complement of the function"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الرمز ∑ m يشير إلى مجموع الحدود الصغرى (Sum of Minterms)، حيث تكون الدالة 1 عند هذه الصفوف.",
+      "en": "The symbol ∑ m indicates the Sum of Minterms, where the function outputs 1 at these specific rows."
+    },
+    "hint": {
+      "ar": "حرف m الصغير يرمز إلى Minterm.",
+      "en": "The lowercase 'm' stands for Minterm."
+    },
+    "difficulty": "easy",
+    "conceptId": "minterms-and-som"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "أي بوابة منطقية تعطي المخرج 1 فقط إذا كانت المداخل مختلفة؟",
+      "en": "Which logic gate outputs 1 only if the inputs are different?"
+    },
+    "options": {
+      "ar": [
+        "AND",
+        "OR",
+        "XOR",
+        "NAND"
+      ],
+      "en": [
+        "AND",
+        "OR",
+        "XOR",
+        "NAND"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بوابة XOR (Exclusive-OR) تعطي 1 عندما يكون أحد المدخلين 1 والآخر 0.",
+      "en": "The XOR (Exclusive-OR) gate outputs 1 when one input is 1 and the other is 0."
+    },
+    "hint": {
+      "ar": "اسمها يعني 'الفصل الحصري'.",
+      "en": "Its name means 'Exclusive OR'."
+    },
+    "difficulty": "easy",
+    "conceptId": "logic-gates-truth-tables"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "إذا كانت الدالة تحتوي على جميع الحدود الصغرى الممكنة (مثلاً m0+m1+m2+m3 لمتغيرين)، فما هي قيمة الدالة؟",
+      "en": "If a function includes all possible minterms (e.g., m0+m1+m2+m3 for 2 variables), what is the value of the function?"
+    },
+    "options": {
+      "ar": [
+        "0",
+        "1",
+        "X",
+        "Y"
+      ],
+      "en": [
+        "0",
+        "1",
+        "X",
+        "Y"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "إذا كانت الدالة 1 عند جميع الاحتمالات الممكنة للمدخلات، فإن الدالة تساوي منطقياً 1 دائماً.",
+      "en": "If the function is 1 for all possible input combinations, the function is logically always equal to 1."
+    },
+    "hint": {
+      "ar": "جدول الحقيقة لهذه الدالة سيحتوي على 1 في جميع صفوف المخرجات.",
+      "en": "The truth table for this function will have 1s in all output rows."
+    },
+    "difficulty": "medium",
+    "conceptId": "minterms-and-som"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين الثنائي (Dual) والمتمم (Complement). الثنائي يغير المعاملات فقط (AND/OR) والثوابت (0/1)، بينما المتمم يغير المعاملات والثوابت وينفي المتغيرات أيضاً.</template>
+      <template class="content-en">Confusing Dual with Complement. The Dual only changes operators (AND/OR) and constants (0/1), while the Complement changes operators, constants, AND negates the literals.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تجاهل أولوية المعاملات. تقييم عملية OR قبل AND بدون وجود أقواس سيؤدي إلى جدول حقيقة خاطئ تماماً ودائرة لا تعمل كما هو مطلوب.</template>
+      <template class="content-en">Ignoring operator precedence. Evaluating an OR before an AND without parentheses will result in a completely wrong truth table and a malfunctioning circuit.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الحد الأصغر (Minterm) يجب أن يحتوي على *جميع* المتغيرات في الدالة. إذا كانت الدالة تحتوي على X, Y, Z، فإن XY ليس حداً أصغر، بل هو مجرد حد ضرب (Product Term).</template>
+      <template class="content-en">A Minterm MUST contain *all* variables in the function. If the function has X, Y, Z, then XY is NOT a minterm; it is merely a product term.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">متمم الدالة الممثلة بمجموع الحدود الصغرى (SOM) هو ببساطة مجموع الحدود الصغرى المفقودة من الدالة الأصلية. إذا كانت F = m1+m2، فإن F' = m0+m3 (لمتغيرين).</template>
+      <template class="content-en">The complement of a function represented in SOM is simply the sum of the minterms missing from the original function. If F = m1+m2, then F' = m0+m3 (for 2 variables).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M02.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M04.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

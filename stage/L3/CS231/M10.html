@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS231" data-module="10">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحليل الدوائر التتابعية · CS231 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS231" data-page-title-en="CS231">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M09.html" data-gh-next="M11.html" data-gh-card="../../hub/course.html?code=CS231"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#analysis-vs-design" class="toc-link" data-bilingual>
+        <template class="content-ar">التحليل مقابل التصميم</template>
+        <template class="content-en">Analysis vs. Design</template>
+        <span class="content-target">التحليل مقابل التصميم</span>
+      </a>
+      <a href="#characteristic-tables" class="toc-link" data-bilingual>
+        <template class="content-ar">الجداول المميزة للقلابات</template>
+        <template class="content-en">Characteristic Tables of Flip-Flops</template>
+        <span class="content-target">الجداول المميزة للقلابات</span>
+      </a>
+      <a href="#analysis-steps" class="toc-link" data-bilingual>
+        <template class="content-ar">خطوات تحليل الدوائر التتابعية</template>
+        <template class="content-en">Steps of Sequential Circuit Analysis</template>
+        <span class="content-target">خطوات تحليل الدوائر التتابعية</span>
+      </a>
+      <a href="#mealy-vs-moore" class="toc-link" data-bilingual>
+        <template class="content-ar">نموذج ميلي مقابل نموذج مور</template>
+        <template class="content-en">Mealy Model vs. Moore Model</template>
+        <span class="content-target">نموذج ميلي مقابل نموذج مور</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 10</template>
+      <template class="content-en">Module 10</template>
+      <span class="content-target">الوحدة 10</span>
+    </span> · CS231
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تحليل الدوائر التتابعية</h1>
+      <p class="hero-description">دراسة تحليل الدوائر المنطقية التتابعية، بما في ذلك استنتاج معادلات الإدخال، جداول الحالة، ومخططات الحالة، مع مقارنة بين نماذج ميلي ومور.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Sequential Circuits Analysis</h1>
+      <p class="hero-description">Study of sequential logic circuits analysis, including deriving input equations, state tables, and state diagrams, with a comparison between Mealy and Moore models.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الدوائر التتابعية</span>
+      <span class="tag">جدول الحالة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Sequential Circuits</span>
+      <span class="tag">State Table</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف الدائرة التتابعية بدلالة معادلة الحالة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية كتابة جدول الحالة لدائرة تتابعية.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية رسم مخطط الحالة لدائرة تتابعية.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe a sequential circuit in terms of a state equation.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn how to write a state table for a sequential circuit.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn how to draw a state diagram for a sequential circuit.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="analysis-vs-design" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> التحليل مقابل التصميم</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Analysis vs. Design</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p><span class="smart-term" data-term-en="Analysis" data-ar="التحليل" data-en-def="Deriving the behavior (state table/diagram) from a given circuit.">التحليل</span> يبدأ من الدائرة وينتهي بجدول/مخطط الحالة، بينما <span class="smart-term" data-term-en="Design" data-ar="التصميم" data-en-def="Creating a circuit diagram from a set of behavioral specifications.">التصميم</span> يبدأ بالمواصفات وينتهي بالدائرة.</p>
+    </template>
+    <template class="content-en">
+      <p><span class="smart-term" data-term-en="Analysis" data-ar="التحليل" data-en-def="Deriving the behavior (state table/diagram) from a given circuit.">Analysis</span> starts with a circuit and ends with a state table/diagram, while <span class="smart-term" data-term-en="Design" data-ar="التصميم" data-en-def="Creating a circuit diagram from a set of behavioral specifications.">design</span> starts with specifications and ends with a circuit.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في الدوائر التتابعية، <strong>التحليل (Analysis)</strong> هو عملية عكسية للتصميم. يبدأ <span class="smart-term" data-term-en="Analysis" data-ar="التحليل" data-en-def="Deriving the behavior (state table/diagram) from a given circuit.">التحليل</span> من مخطط الدائرة المنطقية (Circuit Diagram) المعطى، ويهدف إلى فهم سلوك الدائرة من خلال استنتاج جدول الحالة (State Table) أو مخطط الحالة (State Diagram).</p><p>على العكس من ذلك، <strong>التصميم (Design)</strong> يبدأ من مجموعة من المواصفات المطلوبة، ومنها يتم إنشاء مخطط الحالة، ثم جدول الحالة، وأخيراً رسم الدائرة المنطقية التي تحقق هذه المواصفات.</p></template>
+    <template class="content-en"><p>In sequential circuits, <strong><span class="smart-term" data-term-en="Analysis" data-ar="التحليل" data-en-def="Deriving the behavior (state table/diagram) from a given circuit.">Analysis</span></strong> is the reverse process of design. The analysis of a sequential circuit starts from a given circuit diagram and finishes with a state table or a state diagram to understand its behavior.</p><p>Conversely, the <strong><span class="smart-term" data-term-en="Design" data-ar="التصميم" data-en-def="Creating a circuit diagram from a set of behavioral specifications.">Design</span></strong> of a sequential circuit starts from a set of specifications from which a state diagram is obtained, and finally, the circuit diagram is constructed.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>فهم الفرق بين التحليل والتصميم أساسي لمهندسي الحاسوب. التحليل يستخدم لاكتشاف الأخطاء (Debugging) أو الهندسة العكسية (Reverse Engineering) للأنظمة الحالية.</p><p>يعتمد التحليل بشكل كبير على استخراج معادلات الإدخال للقلابات (Flip-Flops) واستخدام الجداول المميزة (Characteristic Tables) لتحديد الحالة التالية.</p></template>
+    <template class="content-en"><p>Understanding the difference between analysis and design is fundamental for computer engineers. Analysis is often used for debugging or reverse engineering existing systems.</p><p>It relies heavily on extracting the input equations for the flip-flops and using their characteristic tables to determine the next state of the system deterministically.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا أعطيت دائرة مجهولة الوظيفة، هل ستقوم بعملية تحليل أم تصميم لمعرفة ما تفعله؟</template>
+      <template class="content-en">If you are given a circuit with an unknown function, would you perform analysis or design to figure out what it does?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سأقوم بعملية التحليل، لأنني سأبدأ من الدائرة لاستنتاج مخطط الحالة وفهم سلوكها.</p></template>
+      <template class="content-en"><p>I would perform analysis, because I am starting from the circuit diagram to derive the state diagram and understand its behavior.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="characteristic-tables" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الجداول المميزة للقلابات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Characteristic Tables of Flip-Flops</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p><span class="smart-term" data-term-en="Characteristic Table" data-ar="الجدول المميز" data-en-def="A table that defines the next state of a flip-flop based on its inputs.">الجداول المميزة</span> تحدد الحالة التالية للقلاب بناءً على مدخلاته الحالية.</p>
+    </template>
+    <template class="content-en">
+      <p><span class="smart-term" data-term-en="Characteristic Table" data-ar="الجدول المميز" data-en-def="A table that defines the next state of a flip-flop based on its inputs.">Characteristic tables</span> determine the next state of a flip-flop based on its current inputs.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لتحليل سلوك الدوائر التتابعية، نحتاج إلى معرفة <span class="smart-term" data-term-en="Characteristic Table" data-ar="الجدول المميز" data-en-def="A table that defines the next state of a flip-flop based on its inputs.">الجداول المميزة</span> (Characteristic Tables) للقلابات المستخدمة. هذه الجداول تعطينا <strong>الحالة التالية (Next State)</strong> بناءً على <strong>المدخلات (Inputs)</strong> الحالية.</p><ul><li><strong>قلاب D:</strong> الحالة التالية تساوي المدخل D مباشرة ($Q(t+1) = D$).</li><li><strong>قلاب JK:</strong> يعتمد على J و K. إذا كانا 00 (لا تغيير)، 01 (تصفير Reset)، 10 (تعيين Set)، 11 (عكس Complement).</li><li><strong>قلاب T:</strong> إذا كان T=0 (لا تغيير)، وإذا كان T=1 (عكس الحالة).</li></ul></template>
+    <template class="content-en"><p>To analyze the behavior of sequential circuits, we need the <span class="smart-term" data-term-en="Characteristic Table" data-ar="الجدول المميز" data-en-def="A table that defines the next state of a flip-flop based on its inputs.">characteristic tables</span> of the flip-flops used. These tables define the <strong>next state</strong> given the <strong>current inputs</strong>.</p><ul><li><strong>D Flip-Flop:</strong> The next state is exactly the input D ($Q(t+1) = D$).</li><li><strong>JK Flip-Flop:</strong> Depends on J and K. 00 (No change), 01 (Reset), 10 (Set), 11 (Complement).</li><li><strong>T Flip-Flop:</strong> If T=0 (No change), if T=1 (Complement).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الجداول المميزة هي الجسر الرياضي بين الدائرة التوافقية (التي تولد إشارات الإدخال للقلابات) والدائرة التتابعية (التي تخزن الحالة).</p><p>بدون هذه الجداول، لا يمكننا الانتقال من معادلات الإدخال إلى جدول الحالة.</p></template>
+    <template class="content-en"><p>Characteristic tables act as the mathematical bridge between the combinational logic (which generates the inputs to the flip-flops) and the sequential logic (which stores the state).</p><p>Without these tables, we cannot transition from input equations to the state table.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة الحالة العامة حيث تعتمد الحالة التالية على المدخلات والحالة الحالية.</strong></template>
+      <template class="content-en"><strong>General state equation where the next state depends on inputs and current state.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Q(t+1) = f(Inputs, Q(t))$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Create a table graphic showing the characteristic tables for D, JK, and T flip-flops. Use a dark theme (#0d1117) with bright accent colors for the headers. Columns for JK: J, K, Q(t+1), Operation. Columns for D: D, Q(t+1), Operation. Columns for T: T, Q(t+1), Operation. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Drop Shadow Filter for Elevated Elements -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- Arrow Marker for Signal Lines -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 Z" fill="var(--brand-500)"/>
+    </marker>
+
+    <!-- Clip Paths for Table Headers -->
+    <clipPath id="jk-clip">
+      <rect x="45" y="120" width="280" height="210" rx="8"/>
+    </clipPath>
+    <clipPath id="d-clip">
+      <rect x="375" y="160" width="220" height="130" rx="8"/>
+    </clipPath>
+    <clipPath id="t-clip">
+      <rect x="645" y="160" width="220" height="130" rx="8"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+  <!-- Main Titles -->
+  <text x="450" y="45" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="26" font-weight="800" fill="var(--text-primary)" text-anchor="middle">Flip-Flop Characteristic Tables</text>
+  <text x="450" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">جداول خصائص القلابات</text>
+
+  <!-- ========================================== -->
+  <!-- 1. JK FLIP-FLOP TABLE & SYMBOL             -->
+  <!-- ========================================== -->
+
+  <!-- Table Background & Shadow -->
+  <rect x="45" y="120" width="280" height="210" rx="8" fill="var(--bg-elevated)" filter="url(#shadow)"/>
+  
+  <!-- Highlight for Q(t+1) Column -->
+  <rect x="125" y="170" width="70" height="160" fill="var(--brand-500)" opacity="0.05"/>
+
+  <!-- Header Background -->
+  <rect x="45" y="120" width="280" height="50" fill="var(--brand-500)" opacity="0.15" clip-path="url(#jk-clip)"/>
+
+  <!-- Table Grid Lines -->
+  <line x1="45" y1="170" x2="325" y2="170" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="45" y1="210" x2="325" y2="210" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="45" y1="250" x2="325" y2="250" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="45" y1="290" x2="325" y2="290" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="85" y1="120" x2="85" y2="330" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="125" y1="120" x2="125" y2="330" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="195" y1="120" x2="195" y2="330" stroke="var(--border-color)" stroke-width="1"/>
+
+  <!-- Table Border -->
+  <rect x="45" y="120" width="280" height="210" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+
+  <!-- Header Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    <text x="65" y="150">J</text>
+    <text x="105" y="150">K</text>
+    <text x="160" y="150">Q(t+1)</text>
+    <text x="260" y="142">Operation</text>
+    <text x="260" y="160" font-size="13">العملية</text>
+  </g>
+
+  <!-- Data Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">
+    <!-- Row 1 -->
+    <text x="65" y="195">0</text>
+    <text x="105" y="195">0</text>
+    <text x="160" y="195" font-weight="bold">Q(t)</text>
+    <text x="260" y="188">No Change</text>
+    <text x="260" y="204" font-size="13" fill="var(--text-secondary)">حالة سابقة</text>
+    <!-- Row 2 -->
+    <text x="65" y="235">0</text>
+    <text x="105" y="235">1</text>
+    <text x="160" y="235" font-weight="bold">0</text>
+    <text x="260" y="228">Reset</text>
+    <text x="260" y="244" font-size="13" fill="var(--text-secondary)">تصفير</text>
+    <!-- Row 3 -->
+    <text x="65" y="275">1</text>
+    <text x="105" y="275">0</text>
+    <text x="160" y="275" font-weight="bold">1</text>
+    <text x="260" y="268">Set</text>
+    <text x="260" y="284" font-size="13" fill="var(--text-secondary)">ضبط</text>
+    <!-- Row 4 -->
+    <text x="65" y="315">1</text>
+    <text x="105" y="315">1</text>
+    <text x="160" y="315" font-weight="bold">Q'(t)</text>
+    <text x="260" y="308">Toggle</text>
+    <text x="260" y="324" font-size="13" fill="var(--text-secondary)">عكس</text>
+  </g>
+
+  <!-- JK Equation -->
+  <text x="185" y="365" font-family="monospace" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Q(t+1) = J·Q'(t) + K'·Q(t)</text>
+
+  <!-- JK Symbol -->
+  <g>
+    <!-- Signal Lines -->
+    <line x1="100" y1="410" x2="141" y2="410" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="100" y1="430" x2="141" y2="430" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="100" y1="450" x2="141" y2="450" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="225" y1="410" x2="270" y2="410" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="233" y1="450" x2="270" y2="450" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Box -->
+    <rect x="145" y="390" width="80" height="80" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+    
+    <!-- Clock Triangle -->
+    <path d="M 145 424 L 153 430 L 145 436" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Inversion Bubble -->
+    <circle cx="229" cy="450" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+      <text x="157" y="415">J</text>
+      <text x="157" y="455">K</text>
+      <text x="213" y="415">Q</text>
+      <text x="213" y="455">Q'</text>
+    </g>
+    <text x="95" y="434" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="end">CLK</text>
+    
+    <!-- Symbol Title -->
+    <text x="185" y="500" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">JK Flip-Flop</text>
+    <text x="185" y="520" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">قلاب JK</text>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- 2. D FLIP-FLOP TABLE & SYMBOL              -->
+  <!-- ========================================== -->
+
+  <!-- Table Background & Shadow -->
+  <rect x="375" y="160" width="220" height="130" rx="8" fill="var(--bg-elevated)" filter="url(#shadow)"/>
+  
+  <!-- Highlight for Q(t+1) Column -->
+  <rect x="425" y="210" width="70" height="80" fill="var(--brand-500)" opacity="0.05"/>
+
+  <!-- Header Background -->
+  <rect x="375" y="160" width="220" height="50" fill="var(--brand-500)" opacity="0.15" clip-path="url(#d-clip)"/>
+
+  <!-- Table Grid Lines -->
+  <line x1="375" y1="210" x2="595" y2="210" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="375" y1="250" x2="595" y2="250" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="425" y1="160" x2="425" y2="290" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="495" y1="160" x2="495" y2="290" stroke="var(--border-color)" stroke-width="1"/>
+
+  <!-- Table Border -->
+  <rect x="375" y="160" width="220" height="130" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+
+  <!-- Header Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    <text x="400" y="190">D</text>
+    <text x="460" y="190">Q(t+1)</text>
+    <text x="545" y="182">Operation</text>
+    <text x="545" y="200" font-size="13">العملية</text>
+  </g>
+
+  <!-- Data Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">
+    <!-- Row 1 -->
+    <text x="400" y="235">0</text>
+    <text x="460" y="235" font-weight="bold">0</text>
+    <text x="545" y="228">Reset</text>
+    <text x="545" y="244" font-size="13" fill="var(--text-secondary)">تصفير</text>
+    <!-- Row 2 -->
+    <text x="400" y="275">1</text>
+    <text x="460" y="275" font-weight="bold">1</text>
+    <text x="545" y="268">Set</text>
+    <text x="545" y="284" font-size="13" fill="var(--text-secondary)">ضبط</text>
+  </g>
+
+  <!-- D Equation -->
+  <text x="485" y="365" font-family="monospace" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Q(t+1) = D</text>
+
+  <!-- D Symbol -->
+  <g>
+    <!-- Signal Lines -->
+    <line x1="400" y1="410" x2="441" y2="410" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="400" y1="430" x2="441" y2="430" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="525" y1="410" x2="570" y2="410" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="533" y1="450" x2="570" y2="450" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Box -->
+    <rect x="445" y="390" width="80" height="80" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+    
+    <!-- Clock Triangle -->
+    <path d="M 445 424 L 453 430 L 445 436" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Inversion Bubble -->
+    <circle cx="529" cy="450" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+      <text x="457" y="415">D</text>
+      <text x="513" y="415">Q</text>
+      <text x="513" y="455">Q'</text>
+    </g>
+    <text x="395" y="434" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="end">CLK</text>
+    
+    <!-- Symbol Title -->
+    <text x="485" y="500" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">D Flip-Flop</text>
+    <text x="485" y="520" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">قلاب D</text>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- 3. T FLIP-FLOP TABLE & SYMBOL              -->
+  <!-- ========================================== -->
+
+  <!-- Table Background & Shadow -->
+  <rect x="645" y="160" width="220" height="130" rx="8" fill="var(--bg-elevated)" filter="url(#shadow)"/>
+  
+  <!-- Highlight for Q(t+1) Column -->
+  <rect x="695" y="210" width="70" height="80" fill="var(--brand-500)" opacity="0.05"/>
+
+  <!-- Header Background -->
+  <rect x="645" y="160" width="220" height="50" fill="var(--brand-500)" opacity="0.15" clip-path="url(#t-clip)"/>
+
+  <!-- Table Grid Lines -->
+  <line x1="645" y1="210" x2="865" y2="210" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="645" y1="250" x2="865" y2="250" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="695" y1="160" x2="695" y2="290" stroke="var(--border-color)" stroke-width="1"/>
+  <line x1="765" y1="160" x2="765" y2="290" stroke="var(--border-color)" stroke-width="1"/>
+
+  <!-- Table Border -->
+  <rect x="645" y="160" width="220" height="130" rx="8" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+
+  <!-- Header Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    <text x="670" y="190">T</text>
+    <text x="730" y="190">Q(t+1)</text>
+    <text x="815" y="182">Operation</text>
+    <text x="815" y="200" font-size="13">العملية</text>
+  </g>
+
+  <!-- Data Text -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">
+    <!-- Row 1 -->
+    <text x="670" y="235">0</text>
+    <text x="730" y="235" font-weight="bold">Q(t)</text>
+    <text x="815" y="228">No Change</text>
+    <text x="815" y="244" font-size="13" fill="var(--text-secondary)">حالة سابقة</text>
+    <!-- Row 2 -->
+    <text x="670" y="275">1</text>
+    <text x="730" y="275" font-weight="bold">Q'(t)</text>
+    <text x="815" y="268">Toggle</text>
+    <text x="815" y="284" font-size="13" fill="var(--text-secondary)">عكس</text>
+  </g>
+
+  <!-- T Equation -->
+  <text x="755" y="365" font-family="monospace" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Q(t+1) = T ⊕ Q(t)</text>
+
+  <!-- T Symbol -->
+  <g>
+    <!-- Signal Lines -->
+    <line x1="670" y1="410" x2="711" y2="410" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="670" y1="430" x2="711" y2="430" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="795" y1="410" x2="840" y2="410" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="803" y1="450" x2="840" y2="450" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Box -->
+    <rect x="715" y="390" width="80" height="80" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+    
+    <!-- Clock Triangle -->
+    <path d="M 715 424 L 723 430 L 715 436" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Inversion Bubble -->
+    <circle cx="799" cy="450" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+    
+    <!-- Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+      <text x="727" y="415">T</text>
+      <text x="783" y="415">Q</text>
+      <text x="783" y="455">Q'</text>
+    </g>
+    <text x="665" y="434" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="end">CLK</text>
+    
+    <!-- Symbol Title -->
+    <text x="755" y="500" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">T Flip-Flop</text>
+    <text x="755" y="520" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">قلاب T</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر تحليل الدوائر التي تستخدم قلابات D أسهل من تلك التي تستخدم قلابات JK؟</template>
+      <template class="content-en">Why is analyzing circuits with D flip-flops easier than those with JK flip-flops?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الحالة التالية في قلاب D تساوي مباشرة معادلة الإدخال، بينما في قلاب JK يجب استخدام الجدول المميز لدمج قيم J و K مع الحالة الحالية.</p></template>
+      <template class="content-en"><p>Because the next state in a D flip-flop is directly equal to the input equation, whereas for a JK flip-flop, you must use the characteristic table to combine J and K values with the current state.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="analysis-steps" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> خطوات تحليل الدوائر التتابعية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Steps of Sequential Circuit Analysis</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الخطوات الثلاث: 1. استنتاج <span class="smart-term" data-term-en="Input Equation" data-ar="معادلة الإدخال" data-en-def="A Boolean equation describing the logic driving a flip-flop's input terminal.">معادلات الإدخال</span>، 2. بناء <span class="smart-term" data-term-en="State Table" data-ar="جدول الحالة" data-en-def="A tabular representation showing present states, inputs, next states, and outputs.">جدول الحالة</span>، 3. رسم مخطط الحالة.</p>
+    </template>
+    <template class="content-en">
+      <p>The three steps: 1. Derive <span class="smart-term" data-term-en="Input Equation" data-ar="معادلة الإدخال" data-en-def="A Boolean equation describing the logic driving a flip-flop's input terminal.">Input Equations</span>, 2. Build <span class="smart-term" data-term-en="State Table" data-ar="جدول الحالة" data-en-def="A tabular representation showing present states, inputs, next states, and outputs.">State Table</span>, 3. Draw State Diagram.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتكون تحليل الدائرة التتابعية من ثلاث خطوات رئيسية متسلسلة:</p><ol><li><strong>استنتاج <span class="smart-term" data-term-en="Input Equation" data-ar="معادلة الإدخال" data-en-def="A Boolean equation describing the logic driving a flip-flop's input terminal.">معادلات الإدخال</span> (Deriving Input Equations):</strong> كتابة المعادلات المنطقية البولينية التي تصف الإشارات الداخلة إلى كل قلاب بناءً على المدخلات الخارجية والحالة الحالية.</li><li><strong>الحصول على <span class="smart-term" data-term-en="State Table" data-ar="جدول الحالة" data-en-def="A tabular representation showing present states, inputs, next states, and outputs.">جدول الحالة</span> (Getting the State Table):</strong> إنشاء جدول يوضح الحالة الحالية، المدخلات، الحالة التالية، والمخرجات. يتم حساب الحالة التالية باستخدام معادلات الإدخال والجداول المميزة.</li><li><strong>الحصول على مخطط الحالة (Obtaining the State Diagram):</strong> تحويل جدول الحالة إلى رسم بياني مرئي يوضح تسلسل الحالات والمخرجات بمرور الوقت.</li></ol></template>
+    <template class="content-en"><p>The analysis of a sequential circuit consists of three main sequential steps:</p><ol><li><strong>Deriving <span class="smart-term" data-term-en="Input Equation" data-ar="معادلة الإدخال" data-en-def="A Boolean equation describing the logic driving a flip-flop's input terminal.">Input Equations</span>:</strong> Writing the Boolean logic equations that describe the signals entering each flip-flop based on external inputs and the present state.</li><li><strong>Getting the <span class="smart-term" data-term-en="State Table" data-ar="جدول الحالة" data-en-def="A tabular representation showing present states, inputs, next states, and outputs.">State Table</span>:</strong> Creating a table that shows the present state, inputs, next state, and outputs. The next state is calculated using the input equations and characteristic tables.</li><li><strong>Obtaining the State Diagram:</strong> Converting the state table into a visual graph that demonstrates the time sequence of inputs, outputs, and states.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه المنهجية تضمن تحويلاً دقيقاً من مستوى المكونات المادية (Hardware) إلى مستوى التجريد السلوكي (Behavioral Abstraction).</p><p>جدول الحالة يحتوي على $2^{m+n}$ صفاً، حيث $m$ هو عدد القلابات و $n$ هو عدد المدخلات الخارجية، مما يضمن تغطية جميع الاحتمالات الممكنة للنظام.</p></template>
+    <template class="content-en"><p>This methodology ensures an accurate translation from the hardware component level to behavioral abstraction.</p><p>The state table contains $2^{m+n}$ rows, where $m$ is the number of flip-flops and $n$ is the number of external inputs, ensuring all possible system states and input combinations are covered.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد الصفوف في جدول الحالة، حيث m عدد القلابات و n عدد المدخلات.</strong></template>
+      <template class="content-en"><strong>Number of rows in a state table, where m is the number of flip-flops and n is the number of inputs.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Rows = 2^{m+n}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لديك دائرة تحتوي على 3 قلابات ومدخلين خارجيين، كم عدد الصفوف في جدول الحالة؟</template>
+      <template class="content-en">If you have a circuit with 3 flip-flops and 2 external inputs, how many rows will the state table have?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عدد الصفوف = 2^(3+2) = 2^5 = 32 صفاً.</p></template>
+      <template class="content-en"><p>Number of rows = 2^(3+2) = 2^5 = 32 rows.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="mealy-vs-moore" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> نموذج ميلي مقابل نموذج مور</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Mealy Model vs. Moore Model</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>في <span class="smart-term" data-term-en="Mealy Machine" data-ar="آلة ميلي" data-en-def="A state machine where outputs depend on both current state and inputs.">آلة ميلي</span>، تعتمد المخرجات على الحالة والمدخلات معاً. في <span class="smart-term" data-term-en="Moore Machine" data-ar="آلة مور" data-en-def="A state machine where outputs depend only on the current state.">آلة مور</span>، تعتمد المخرجات على الحالة فقط.</p>
+    </template>
+    <template class="content-en">
+      <p>In a <span class="smart-term" data-term-en="Mealy Machine" data-ar="آلة ميلي" data-en-def="A state machine where outputs depend on both current state and inputs.">Mealy machine</span>, outputs depend on both state and inputs. In a <span class="smart-term" data-term-en="Moore Machine" data-ar="آلة مور" data-en-def="A state machine where outputs depend only on the current state.">Moore machine</span>, outputs depend ONLY on the state.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تصنف الدوائر التتابعية المتزامنة إلى نوعين رئيسيين بناءً على كيفية توليد المخرجات:</p><ol><li><strong>نموذج ميلي (Mealy Model):</strong> المخرجات هي دالة في كل من الحالة الحالية (Present State) والمدخلات (Inputs). في مخطط الحالة، تُكتب المخرجات على أسهم الانتقال بصيغة (Input/Output).</li><li><strong>نموذج مور (Moore Model):</strong> المخرجات هي دالة في الحالة الحالية فقط (States only). في مخطط الحالة، تُكتب المخرجات داخل دوائر الحالة نفسها.</li></ol></template>
+    <template class="content-en"><p>Synchronous sequential circuits are classified into two main types based on how outputs are generated:</p><ol><li><strong>Mealy Model:</strong> Outputs are a function of both the present state and the inputs. In a state diagram, outputs are written on the transition arrows in the format (Input/Output).</li><li><strong>Moore Model:</strong> Outputs are a function of the present state only. In a state diagram, outputs are written inside the state circles.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>آلة ميلي عادة ما تكون أكثر تعقيداً لأن المخرجات يمكن أن تتغير فور تغير المدخلات (غير متزامنة تماماً مع النبضة في بعض التصاميم)، ولكنها تتطلب عدد حالات أقل (مكونات مادية أقل).</p><p>آلة مور أسهل في الفهم والتنفيذ البرمجي، ومخرجاتها متزامنة تماماً مع الساعة، لكنها قد تتطلب حالات إضافية لإنجاز نفس المهمة.</p></template>
+    <template class="content-en"><p>A Mealy machine is generally more complex because outputs can change asynchronously if inputs change between clock edges, but it typically requires fewer states (less hardware).</p><p>A Moore machine is easier to understand and implement, and its outputs are strictly synchronous, but it may require more states to accomplish the same task.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Draw two side-by-side state diagram examples. Left: Mealy Machine, showing states as simple circles (e.g., '00', '01') and transitions labeled 'Input/Output' (e.g., '0/1'). Right: Moore Machine, showing states as split circles with 'State/Output' (e.g., '00/1') and transitions labeled only with 'Input' (e.g., '0'). Use dark theme #0d1117, distinct colors for Mealy vs Moore. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Marker for Mealy Machine Arrows -->
+        <marker id="arrow-mealy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <!-- Marker for Moore Machine Arrows -->
+        <marker id="arrow-moore" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-secondary)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Center Divider -->
+    <line x1="400" y1="60" x2="400" y2="440" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6 6" />
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: MEALY MACHINE                   -->
+    <!-- ========================================== -->
+
+    <!-- Title -->
+    <text x="200" y="40" fill="var(--text-primary)" font-size="22" font-weight="bold" text-anchor="middle">Mealy Machine / آلة ميلي</text>
+
+    <!-- Format Legend -->
+    <text x="200" y="75" fill="var(--text-muted)" font-size="14" text-anchor="middle">
+        <tspan x="200" dy="0">Transition: Input / Output</tspan>
+        <tspan x="200" dy="20">الانتقال: الدخل / الخرج</tspan>
+    </text>
+
+    <!-- Start Arrow -->
+    <path d="M 20 190 L 60 190" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-mealy)" />
+    <text x="40" y="175" fill="var(--text-muted)" font-size="13" text-anchor="middle">
+        <tspan x="40" dy="0">Start</tspan>
+        <tspan x="40" dy="16">البداية</tspan>
+    </text>
+
+    <!-- Transitions (Paths) -->
+    <!-- S0 Loop -->
+    <path d="M 85 164 C 60 100, 140 100, 115 164" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-mealy)" />
+    <text x="100" y="110" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">0 / 0</text>
+
+    <!-- S0 to S1 -->
+    <path d="M 130 190 L 260 190" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-mealy)" />
+    <text x="195" y="180" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">1 / 0</text>
+
+    <!-- S1 to S2 -->
+    <path d="M 283 215 Q 270 270 225 305" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-mealy)" />
+    <text x="275" y="270" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">0 / 1</text>
+
+    <!-- S2 to S0 -->
+    <path d="M 183 315 Q 130 270 112 215" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-mealy)" />
+    <text x="125" y="270" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">1 / 1</text>
+
+    <!-- States (Nodes) -->
+    <!-- S0 -->
+    <circle cx="100" cy="190" r="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="100" y="190" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle" dy="6">00</text>
+
+    <!-- S1 -->
+    <circle cx="300" cy="190" r="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="300" y="190" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle" dy="6">01</text>
+
+    <!-- S2 -->
+    <circle cx="200" cy="340" r="30" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="200" y="340" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle" dy="6">10</text>
+
+    <!-- Bottom Explanation -->
+    <text x="200" y="420" fill="var(--text-secondary)" font-size="15" text-anchor="middle">
+        <tspan x="200" dy="0">Output depends on State + Input</tspan>
+        <tspan x="200" dy="22">الخرج يعتمد على الحالة والدخل</tspan>
+    </text>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: MOORE MACHINE                  -->
+    <!-- ========================================== -->
+
+    <!-- Title -->
+    <text x="600" y="40" fill="var(--text-primary)" font-size="22" font-weight="bold" text-anchor="middle">Moore Machine / آلة مور</text>
+
+    <!-- Format Legend -->
+    <text x="600" y="75" fill="var(--text-muted)" font-size="14" text-anchor="middle">
+        <tspan x="600" dy="0">State: Name / Output</tspan>
+        <tspan x="600" dy="20">الحالة: الاسم / الخرج</tspan>
+    </text>
+
+    <!-- Start Arrow -->
+    <path d="M 410 190 L 455 190" fill="none" stroke="var(--text-secondary)" stroke-width="2" marker-end="url(#arrow-moore)" />
+    <text x="430" y="175" fill="var(--text-muted)" font-size="13" text-anchor="middle">
+        <tspan x="430" dy="0">Start</tspan>
+        <tspan x="430" dy="16">البداية</tspan>
+    </text>
+
+    <!-- Transitions (Paths) -->
+    <!-- S0 Loop -->
+    <path d="M 482 160 C 450 90, 550 90, 518 160" fill="none" stroke="var(--text-secondary)" stroke-width="2" marker-end="url(#arrow-moore)" />
+    <text x="500" y="105" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">0</text>
+
+    <!-- S0 to S1 -->
+    <path d="M 535 190 L 655 190" fill="none" stroke="var(--text-secondary)" stroke-width="2" marker-end="url(#arrow-moore)" />
+    <text x="595" y="180" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">1</text>
+
+    <!-- S1 to S2 -->
+    <path d="M 680 219 Q 670 270 625 305" fill="none" stroke="var(--text-secondary)" stroke-width="2" marker-end="url(#arrow-moore)" />
+    <text x="675" y="270" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">0</text>
+
+    <!-- S2 to S0 -->
+    <path d="M 581 311 Q 530 270 514 219" fill="none" stroke="var(--text-secondary)" stroke-width="2" marker-end="url(#arrow-moore)" />
+    <text x="525" y="270" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">1</text>
+
+    <!-- States (Nodes) -->
+    <!-- S0 -->
+    <circle cx="500" cy="190" r="35" fill="var(--bg-elevated)" stroke="var(--text-secondary)" stroke-width="3" />
+    <line x1="465" y1="190" x2="535" y2="190" stroke="var(--text-secondary)" stroke-width="2" />
+    <text x="500" y="190" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle" dy="-5">00</text>
+    <text x="500" y="190" fill="var(--text-secondary)" font-size="15" font-weight="bold" text-anchor="middle" dy="18">0</text>
+
+    <!-- S1 -->
+    <circle cx="700" cy="190" r="35" fill="var(--bg-elevated)" stroke="var(--text-secondary)" stroke-width="3" />
+    <line x1="665" y1="190" x2="735" y2="190" stroke="var(--text-secondary)" stroke-width="2" />
+    <text x="700" y="190" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle" dy="-5">01</text>
+    <text x="700" y="190" fill="var(--text-secondary)" font-size="15" font-weight="bold" text-anchor="middle" dy="18">0</text>
+
+    <!-- S2 -->
+    <circle cx="600" cy="340" r="35" fill="var(--bg-elevated)" stroke="var(--text-secondary)" stroke-width="3" />
+    <line x1="565" y1="340" x2="635" y2="340" stroke="var(--text-secondary)" stroke-width="2" />
+    <text x="600" y="340" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle" dy="-5">10</text>
+    <text x="600" y="340" fill="var(--text-secondary)" font-size="15" font-weight="bold" text-anchor="middle" dy="18">1</text>
+
+    <!-- Bottom Explanation -->
+    <text x="600" y="420" fill="var(--text-secondary)" font-size="15" text-anchor="middle">
+        <tspan x="600" dy="0">Output depends on State only</tspan>
+        <tspan x="600" dy="22">الخرج يعتمد على الحالة فقط</tspan>
+    </text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Mealy Machine</th>
+        <th>Moore Machine</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">اعتماد المخرجات</template>
+          <template class="content-en">Output Dependency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">الحالة الحالية والمدخلات</template>
+          <template class="content-en">Present state and inputs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">الحالة الحالية فقط</template>
+          <template class="content-en">Present state only</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">عدد الحالات (المكونات المادية)</template>
+          <template class="content-en">Number of States (Hardware)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أقل عادةً</template>
+          <template class="content-en">Usually less</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أكثر عادةً</template>
+          <template class="content-en">Usually more</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعقيد والفهم</template>
+          <template class="content-en">Complexity & Understanding</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أكثر تعقيداً</template>
+          <template class="content-en">More complex</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أسهل للفهم والتنفيذ</template>
+          <template class="content-en">Easy to understand and implement</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا أردت تصميم دائرة تتفاعل بأسرع وقت ممكن مع تغير المدخلات، أي النموذجين تختار؟</template>
+      <template class="content-en">If you want to design a circuit that reacts as quickly as possible to input changes, which model would you choose?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نموذج ميلي، لأن المخرجات مرتبطة مباشرة بالمدخلات ويمكن أن تتغير فور تغيرها دون انتظار النبضة التالية للساعة (في الجزء التوافقي).</p></template>
+      <template class="content-en"><p>The Mealy model, because the outputs are directly connected to the inputs and can change immediately when inputs change, without waiting for the next clock edge (in the combinational part).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في الوحدة العاشرة. لقد انتقلنا الآن من الدوائر التوافقية البسيطة إلى عالم الدوائر التتابعية، حيث تمتلك الدائرة 'ذاكرة'. في هذا الاختبار، التركيز الأساسي سيكون على قدرتك على 'التحليل'. إذا أعطيتك رسمة لدائرة، هل يمكنك إخباري بما تفعله؟ للقيام بذلك، عليك اتباع الخطوات الثلاث المقدسة: أولاً، استخرج معادلات الإدخال (ما هي البوابات المتصلة بمدخلات القلابات؟). ثانياً، استخدم هذه المعادلات مع الجداول المميزة للقلابات لبناء جدول الحالة. ثالثاً، حول هذا الجدول إلى مخطط حالة مرئي. انتبهوا جداً للفرق بين آلة ميلي وآلة مور؛ هذا سؤال كلاسيكي في الاختبارات. آلة ميلي تتأثر بالمدخلات فوراً (المخرجات على الأسهم)، بينما آلة مور هادئة وتعتمد فقط على حالتها الحالية (المخرجات داخل الدوائر). تدربوا جيداً على استخراج المعادلات لقلابات JK، فهي تتطلب تركيزاً أكثر من قلابات D المباشرة. بالتوفيق!</template>
+    <template class="content-en">Welcome to Module 10. We have now transitioned from simple combinational circuits to the world of sequential circuits, where the circuit has 'memory'. For the exam, the main focus will be on your ability to 'analyze'. If I give you a circuit diagram, can you tell me what it does? To do this, follow the three sacred steps: First, extract the input equations (what gates are connected to the flip-flop inputs?). Second, use these equations with the flip-flops' characteristic tables to build the state table. Third, convert this table into a visual state diagram. Pay close attention to the difference between Mealy and Moore machines; this is a classic exam question. Mealy machines react to inputs immediately (outputs on arrows), while Moore machines are steady and depend only on their current state (outputs inside circles). Practice extracting equations for JK flip-flops, as they require more focus than the straightforward D flip-flops. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف الرئيسي من تحليل الدائرة التتابعية؟</template>
+          <template class="content-en">What is the main goal of analyzing a sequential circuit?</template>
+          <span class="content-target">ما هو الهدف الرئيسي من تحليل الدائرة التتابعية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الهدف هو فهم سلوك الدائرة من خلال استنتاج جدول الحالة أو مخطط الحالة الخاص بها انطلاقاً من مخطط الدائرة المادية.</template>
+          <template class="content-en">The goal is to understand the circuit's behavior by deriving its state table or state diagram starting from the hardware circuit diagram.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نحدد الحالة التالية لقلاب D أثناء التحليل؟</template>
+          <template class="content-en">How do we determine the next state for a D flip-flop during analysis?</template>
+          <span class="content-target">كيف نحدد الحالة التالية لقلاب D أثناء التحليل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الأمر بسيط جداً، الحالة التالية تساوي مباشرة قيمة معادلة الإدخال D (أي Q(t+1) = D).</template>
+          <template class="content-en">It is very simple; the next state is directly equal to the value of the input equation D (i.e., Q(t+1) = D).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى الجداول المميزة (Characteristic Tables)؟</template>
+          <template class="content-en">Why do we need characteristic tables?</template>
+          <span class="content-target">لماذا نحتاج إلى الجداول المميزة (Characteristic Tables)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نحتاجها لمعرفة الحالة التالية للقلابات (مثل JK و T) بناءً على المدخلات الحالية والحالة الحالية، حيث أن العلاقة ليست مباشرة كما في قلاب D.</template>
+          <template class="content-en">We need them to find the next state for flip-flops (like JK and T) based on current inputs and the present state, since the relationship isn't direct like in a D flip-flop.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين جدول الحالة (State Table) وجدول الحقيقة (Truth Table) العادي؟</template>
+          <template class="content-en">What is the difference between a state table and a regular truth table?</template>
+          <span class="content-target">ما الفرق بين جدول الحالة (State Table) وجدول الحقيقة (Truth Table) العادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">جدول الحالة يتضمن عنصر الزمن (الذاكرة)؛ فهو يحتوي على 'الحالة الحالية' و'الحالة التالية'، بينما جدول الحقيقة يربط المدخلات بالمخرجات اللحظية فقط.</template>
+          <template class="content-en">A state table includes the element of time (memory); it contains 'present state' and 'next state', whereas a truth table only links instantaneous inputs to outputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تتعرف على آلة مور (Moore Machine) من خلال النظر إلى مخطط الدائرة؟</template>
+          <template class="content-en">How do you identify a Moore machine by looking at the circuit diagram?</template>
+          <span class="content-target">كيف تتعرف على آلة مور (Moore Machine) من خلال النظر إلى مخطط الدائرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا كانت البوابات المنطقية التي تولد المخرجات النهائية متصلة فقط بمخارج القلابات (الحالات) ولا تتصل بأي مدخلات خارجية مباشرة، فهي آلة مور.</template>
+          <template class="content-en">If the logic gates generating the final outputs are connected ONLY to the flip-flop outputs (states) and not to any external inputs directly, it is a Moore machine.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تتعرف على آلة ميلي (Mealy Machine) من مخطط الدائرة؟</template>
+          <template class="content-en">How do you identify a Mealy machine from the circuit diagram?</template>
+          <span class="content-target">كيف تتعرف على آلة ميلي (Mealy Machine) من مخطط الدائرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا كانت بوابات المخرجات تأخذ إشارات من مخارج القلابات وأيضاً من المدخلات الخارجية للدائرة، فهي آلة ميلي.</template>
+          <template class="content-en">If the output gates take signals from both the flip-flop outputs and the external inputs of the circuit, it is a Mealy machine.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في مخطط الحالة، ماذا تمثل الدوائر والأسهم؟</template>
+          <template class="content-en">In a state diagram, what do the circles and arrows represent?</template>
+          <span class="content-target">في مخطط الحالة، ماذا تمثل الدوائر والأسهم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الدوائر تمثل الحالات المختلفة التي يمكن أن يكون فيها النظام، والأسهم تمثل الانتقالات بين هذه الحالات والتي تحدث بسبب تغير المدخلات ونبضات الساعة.</template>
+          <template class="content-en">Circles represent the different states the system can be in, and arrows represent the transitions between these states triggered by inputs and clock pulses.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا قد يفضل المصمم استخدام نموذج ميلي؟</template>
+          <template class="content-en">Why might a designer prefer to use the Mealy model?</template>
+          <span class="content-target">لماذا قد يفضل المصمم استخدام نموذج ميلي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه غالباً ما يتطلب عدد حالات أقل لإنجاز نفس المهمة، مما يعني استخدام قلابات ومكونات مادية أقل.</template>
+          <template class="content-en">Because it often requires fewer states to accomplish the same task, which means using fewer flip-flops and hardware components.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا قد يفضل المصمم استخدام نموذج مور؟</template>
+          <template class="content-en">Why might a designer prefer to use the Moore model?</template>
+          <span class="content-target">لماذا قد يفضل المصمم استخدام نموذج مور؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه أسهل في التصميم والفهم، ومخرجاته تكون متزامنة تماماً مع إشارة الساعة ولا تتأثر بالتغيرات اللحظية (Glitches) في المدخلات.</template>
+          <template class="content-en">Because it is easier to design and understand, and its outputs are strictly synchronous with the clock signal and unaffected by momentary input glitches.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المعادلة لمعرفة عدد الصفوف المطلوبة في جدول الحالة؟</template>
+          <template class="content-en">What is the formula to know the required number of rows in a state table?</template>
+          <span class="content-target">ما هي المعادلة لمعرفة عدد الصفوف المطلوبة في جدول الحالة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عدد الصفوف يساوي 2 مرفوعة للقوة (m+n)، حيث m هو عدد القلابات و n هو عدد المدخلات الخارجية.</template>
+          <template class="content-en">The number of rows equals 2 raised to the power of (m+n), where m is the number of flip-flops and n is the number of external inputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي نقطة البداية في تحليل الدوائر التتابعية؟",
+      "en": "What is the starting point of sequential circuit analysis?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مخطط الدائرة (Circuit Diagram).",
+        "en": "The circuit diagram."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي النتيجة النهائية لتحليل الدوائر التتابعية؟",
+      "en": "What is the end product of sequential circuit analysis?"
+    },
+    "back": {
+      "definition": {
+        "ar": "جدول الحالة أو مخطط الحالة.",
+        "en": "A state table or a state diagram."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي نقطة البداية في تصميم الدوائر التتابعية؟",
+      "en": "What is the starting point of sequential circuit design?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من المواصفات (Specifications).",
+        "en": "A set of specifications."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي وظيفة الجدول المميز (Characteristic Table)؟",
+      "en": "What is the function of a characteristic table?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحديد الحالة التالية بناءً على المدخلات الحالية للقلاب.",
+        "en": "To determine the next state given the current inputs of the flip-flop."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي الخطوات الثلاث لتحليل دائرة تتابعية؟",
+      "en": "What are the three steps to analyze a sequential circuit?"
+    },
+    "back": {
+      "definition": {
+        "ar": "1. استنتاج معادلات الإدخال، 2. الحصول على جدول الحالة، 3. رسم مخطط الحالة.",
+        "en": "1. Deriving Input Equations, 2. Getting the State Table, 3. Obtaining the State Diagram."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي معادلة الإدخال (Input Equation)؟",
+      "en": "What is an input equation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "معادلة منطقية تصف الدائرة التوافقية التي تغذي مدخلات القلاب.",
+        "en": "A logic equation describing the combinational circuit that drives the flip-flop inputs."
+      },
+      "example": {
+        "ar": "JA = XB + Y'C",
+        "en": "JA = XB + Y'C"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف تحسب عدد الصفوف في جدول الحالة؟",
+      "en": "How do you calculate the number of rows in a state table?"
+    },
+    "back": {
+      "definition": {
+        "ar": "2 أس (عدد القلابات + عدد المدخلات الخارجية) -> 2^(m+n).",
+        "en": "2 to the power of (number of flip-flops + number of external inputs) -> 2^(m+n)."
+      },
+      "example": {
+        "ar": "دائرة بقلابين ومدخل واحد تحتاج 2^(2+1) = 8 صفوف.",
+        "en": "A circuit with 2 FFs and 1 input needs 2^(2+1) = 8 rows."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "على ماذا تعتمد المخرجات في نموذج ميلي (Mealy Model)؟",
+      "en": "What do the outputs depend on in a Mealy Model?"
+    },
+    "back": {
+      "definition": {
+        "ar": "على المدخلات والحالات الحالية معاً.",
+        "en": "On both inputs and present states."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "على ماذا تعتمد المخرجات في نموذج مور (Moore Model)؟",
+      "en": "What do the outputs depend on in a Moore Model?"
+    },
+    "back": {
+      "definition": {
+        "ar": "على الحالات الحالية فقط.",
+        "en": "On present states only."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "أي نموذج (ميلي أم مور) يتطلب عادةً عدد حالات أقل؟",
+      "en": "Which model (Mealy or Moore) typically requires fewer states?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نموذج ميلي (Mealy Model).",
+        "en": "Mealy Model."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "أي نموذج (ميلي أم مور) يعتبر أسهل للفهم والتنفيذ؟",
+      "en": "Which model (Mealy or Moore) is generally easier to understand and implement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نموذج مور (Moore Model).",
+        "en": "Moore Model."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "لماذا يعتبر تحليل الدوائر باستخدام قلابات D أسهل؟",
+      "en": "Why is analysis with D flip-flops easier?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأن الحالة التالية يتم الحصول عليها مباشرة من معادلات الإدخال.",
+        "en": "Because the next state is obtained directly from the input equations."
+      },
+      "example": {
+        "ar": "Q(t+1) = D",
+        "en": "Q(t+1) = D"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي المعادلة المميزة لقلاب D؟",
+      "en": "What is the characteristic equation for a D flip-flop?"
+    },
+    "back": {
+      "definition": {
+        "ar": "Q(t+1) = D",
+        "en": "Q(t+1) = D"
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي المعادلة المميزة لقلاب JK؟",
+      "en": "What is the characteristic equation for a JK flip-flop?"
+    },
+    "back": {
+      "definition": {
+        "ar": "Q(t+1) = JQ' + K'Q",
+        "en": "Q(t+1) = JQ' + K'Q"
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "كيف تُمثل المخرجات في مخطط الحالة لآلة ميلي؟",
+      "en": "How are outputs represented in a Mealy machine state diagram?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُكتب على أسهم الانتقال بصيغة (المدخل / المخرج).",
+        "en": "They are written on the transition arrows in the format (Input / Output)."
+      },
+      "example": {
+        "ar": "0/1 تعني المدخل 0 والمخرج 1.",
+        "en": "0/1 means Input 0 and Output 1."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "كيف تُمثل المخرجات في مخطط الحالة لآلة مور؟",
+      "en": "How are outputs represented in a Moore machine state diagram?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُكتب داخل دائرة الحالة نفسها.",
+        "en": "They are written inside the state circle itself."
+      },
+      "example": {
+        "ar": "حالة 00 والمخرج 1 تُكتب معاً داخل الدائرة.",
+        "en": "State 00 and Output 1 are written together inside the circle."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هي نقطة البداية في عملية تحليل الدوائر التتابعية؟",
+      "en": "What is the starting point in the process of sequential circuit analysis?"
+    },
+    "options": {
+      "ar": [
+        "مخطط الحالة",
+        "المواصفات",
+        "مخطط الدائرة",
+        "جدول الحالة"
+      ],
+      "en": [
+        "State diagram",
+        "Specifications",
+        "Circuit diagram",
+        "State table"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "التحليل يبدأ دائماً من الدائرة الموجودة (Circuit diagram) لمعرفة كيف تعمل.",
+      "en": "Analysis always starts from the existing circuit diagram to figure out how it works."
+    },
+    "hint": {
+      "ar": "عكس التصميم الذي يبدأ بالمواصفات.",
+      "en": "The opposite of design, which starts with specifications."
+    },
+    "difficulty": "easy",
+    "conceptId": "analysis-vs-design"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "كم عدد الصفوف في جدول الحالة لدائرة تحتوي على 3 قلابات ومدخل واحد؟",
+      "en": "How many rows are in a state table for a circuit with 3 flip-flops and 1 input?"
+    },
+    "options": {
+      "ar": [
+        "8",
+        "16",
+        "4",
+        "32"
+      ],
+      "en": [
+        "8",
+        "16",
+        "4",
+        "32"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عدد الصفوف = 2^(m+n) = 2^(3+1) = 2^4 = 16.",
+      "en": "Number of rows = 2^(m+n) = 2^(3+1) = 2^4 = 16."
+    },
+    "hint": {
+      "ar": "استخدم القاعدة 2^(m+n).",
+      "en": "Use the formula 2^(m+n)."
+    },
+    "difficulty": "medium",
+    "conceptId": "analysis-steps"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في أي نموذج تعتمد المخرجات على الحالة الحالية والمدخلات معاً؟",
+      "en": "In which model do the outputs depend on both the present state and the inputs?"
+    },
+    "options": {
+      "ar": [
+        "نموذج مور",
+        "نموذج ميلي",
+        "كلاهما",
+        "لا شيء مما سبق"
+      ],
+      "en": [
+        "Moore model",
+        "Mealy model",
+        "Both",
+        "None of the above"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نموذج ميلي يربط المخرجات بالمدخلات والحالة، بينما مور يربطها بالحالة فقط.",
+      "en": "The Mealy model links outputs to both inputs and state, while Moore links them only to the state."
+    },
+    "hint": {
+      "ar": "تذكر أن هذا النموذج عادة ما يحتاج حالات أقل ولكنه أكثر تعقيداً.",
+      "en": "Remember this model usually requires fewer states but is more complex."
+    },
+    "difficulty": "easy",
+    "conceptId": "mealy-vs-moore"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي الخطوة الأولى في تحليل الدائرة التتابعية؟",
+      "en": "What is the first step in analyzing a sequential circuit?"
+    },
+    "options": {
+      "ar": [
+        "رسم مخطط الحالة",
+        "بناء جدول الحالة",
+        "استنتاج معادلات الإدخال",
+        "تحديد نوع القلاب"
+      ],
+      "en": [
+        "Drawing the state diagram",
+        "Building the state table",
+        "Deriving the input equations",
+        "Determining the flip-flop type"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يجب أولاً استنتاج معادلات الإدخال من الدائرة قبل التمكن من بناء جدول الحالة.",
+      "en": "You must first derive the input equations from the circuit before you can build the state table."
+    },
+    "hint": {
+      "ar": "كيف ستعرف الحالة التالية بدون معرفة ما يدخل للقلاب؟",
+      "en": "How will you know the next state without knowing what enters the flip-flop?"
+    },
+    "difficulty": "medium",
+    "conceptId": "analysis-steps"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "لماذا يعتبر تحليل الدوائر بقلابات D أسهل من غيرها؟",
+      "en": "Why is analyzing circuits with D flip-flops easier than others?"
+    },
+    "options": {
+      "ar": [
+        "لأنها لا تحتاج إلى إشارة ساعة",
+        "لأن الحالة التالية تساوي معادلة الإدخال مباشرة",
+        "لأنها تستخدم بوابات منطقية أقل",
+        "لأنها تعمل بنموذج مور فقط"
+      ],
+      "en": [
+        "Because they don't need a clock signal",
+        "Because the next state directly equals the input equation",
+        "Because they use fewer logic gates",
+        "Because they only work with the Moore model"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في قلاب D، Q(t+1) = D، لذا لا حاجة لاستخدام جدول مميز معقد.",
+      "en": "In a D flip-flop, Q(t+1) = D, so there is no need to use a complex characteristic table."
+    },
+    "hint": {
+      "ar": "تذكر المعادلة المميزة لقلاب D.",
+      "en": "Remember the characteristic equation for a D flip-flop."
+    },
+    "difficulty": "easy",
+    "conceptId": "characteristic-tables"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في مخطط الحالة لآلة مور، أين تُكتب المخرجات؟",
+      "en": "In a Moore machine state diagram, where are the outputs written?"
+    },
+    "options": {
+      "ar": [
+        "على أسهم الانتقال",
+        "خارج المخطط",
+        "داخل دوائر الحالة",
+        "لا تُكتب المخرجات في مخطط مور"
+      ],
+      "en": [
+        "On the transition arrows",
+        "Outside the diagram",
+        "Inside the state circles",
+        "Outputs are not written in a Moore diagram"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لأن مخرجات آلة مور تعتمد على الحالة فقط، يتم كتابتها داخل دائرة الحالة.",
+      "en": "Because Moore machine outputs depend only on the state, they are written inside the state circle."
+    },
+    "hint": {
+      "ar": "المخرجات مرتبطة بالحالة بشكل حصري.",
+      "en": "Outputs are exclusively tied to the state."
+    },
+    "difficulty": "medium",
+    "conceptId": "mealy-vs-moore"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "إذا كان قلاب JK يمتلك المدخلات J=1 و K=1، ما هي الحالة التالية؟",
+      "en": "If a JK flip-flop has inputs J=1 and K=1, what is the next state?"
+    },
+    "options": {
+      "ar": [
+        "0 (تصفير)",
+        "1 (تعيين)",
+        "نفس الحالة الحالية (لا تغيير)",
+        "عكس الحالة الحالية (Complement)"
+      ],
+      "en": [
+        "0 (Reset)",
+        "1 (Set)",
+        "Same as present state (No change)",
+        "Complement of present state"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "حسب الجدول المميز لقلاب JK، عندما J=1 و K=1، يتم عكس الحالة الحالية (Toggle/Complement).",
+      "en": "According to the JK flip-flop characteristic table, when J=1 and K=1, the present state is complemented (toggled)."
+    },
+    "hint": {
+      "ar": "هذه هي الحالة التي تميز قلاب JK عن قلاب SR.",
+      "en": "This is the state that distinguishes a JK flip-flop from an SR flip-flop."
+    },
+    "difficulty": "medium",
+    "conceptId": "characteristic-tables"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي من التالي يصف العلاقة بين جدول الحالة ومخطط الحالة؟",
+      "en": "Which of the following describes the relationship between a state table and a state diagram?"
+    },
+    "options": {
+      "ar": [
+        "مخطط الحالة يحتوي على معلومات أقل من جدول الحالة",
+        "جدول الحالة أسهل في الفهم البصري من مخطط الحالة",
+        "كلاهما يقدم نفس المعلومات ولكن المخطط أسهل للفهم",
+        "لا توجد علاقة بينهما"
+      ],
+      "en": [
+        "State diagram contains less information than state table",
+        "State table is visually easier to understand than state diagram",
+        "Both provide the same information but the diagram is easier to understand",
+        "There is no relationship between them"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "جدول الحالة ومخطط الحالة هما تمثيلان مختلفان لنفس السلوك، لكن المخطط يوفر رؤية بصرية أسهل للتتبع.",
+      "en": "The state table and state diagram are different representations of the exact same behavior, but the diagram provides an easier visual tracking."
+    },
+    "hint": {
+      "ar": "هل تفقد أي معلومات عند التحويل من جدول إلى مخطط؟",
+      "en": "Do you lose any information when converting from a table to a diagram?"
+    },
+    "difficulty": "easy",
+    "conceptId": "analysis-steps"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو العيب الرئيسي لآلة مور مقارنة بآلة ميلي؟",
+      "en": "What is the main disadvantage of a Moore machine compared to a Mealy machine?"
+    },
+    "options": {
+      "ar": [
+        "صعوبة الفهم",
+        "تتطلب عادةً عدد حالات أكبر (مكونات أكثر)",
+        "المخرجات غير متزامنة",
+        "لا يمكن استخدامها مع قلابات D"
+      ],
+      "en": [
+        "Harder to understand",
+        "Usually requires more states (more hardware)",
+        "Outputs are asynchronous",
+        "Cannot be used with D flip-flops"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لأن مخرجات آلة مور تعتمد على الحالة فقط، قد نحتاج إلى إضافة حالات جديدة لتمثيل تغيرات المخرجات، مما يزيد من المكونات المادية.",
+      "en": "Because Moore machine outputs depend only on the state, we might need to add new states to represent output changes, increasing hardware."
+    },
+    "hint": {
+      "ar": "فكر في حجم الدائرة الناتجة.",
+      "en": "Think about the size of the resulting circuit."
+    },
+    "difficulty": "hard",
+    "conceptId": "mealy-vs-moore"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما الذي يحدد الحالة التالية في الدائرة التتابعية؟",
+      "en": "What determines the next state in a sequential circuit?"
+    },
+    "options": {
+      "ar": [
+        "المدخلات الحالية فقط",
+        "الحالة الحالية فقط",
+        "المدخلات الحالية والحالة الحالية معاً",
+        "إشارة الساعة فقط"
+      ],
+      "en": [
+        "Present inputs only",
+        "Present state only",
+        "Present inputs and present state together",
+        "Clock signal only"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الحالة التالية تُحسب باستخدام معادلات الإدخال التي تعتمد على كل من المدخلات الخارجية والحالة الحالية للقلابات.",
+      "en": "The next state is calculated using input equations which depend on both external inputs and the present state of the flip-flops."
+    },
+    "hint": {
+      "ar": "انظر إلى الجانب الأيسر من جدول الحالة.",
+      "en": "Look at the left side of the state table."
+    },
+    "difficulty": "medium",
+    "conceptId": "analysis-steps"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين نموذج ميلي ومور في الاختبار: تذكر دائماً أن 'ميلي' (Mealy) يبدأ بحرف M مثل 'Mixed' (مختلط) لأنه يخلط بين المدخلات والحالة لتحديد المخرجات. بينما 'مور' (Moore) يعتمد على الحالة فقط.</template>
+      <template class="content-en">Confusing Mealy and Moore models in the exam: Always remember that 'Mealy' mixes both inputs and states to determine outputs, while 'Moore' depends strictly on the state.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الجدول المميز (Characteristic Table) هو الأداة السحرية التي تحول 'معادلات الإدخال' (ما يدخل للقلاب) إلى 'الحالة التالية' (ما سيخزنه القلاب). لا يمكنك إكمال جدول الحالة بدونه (إلا في حالة قلاب D حيث المدخل هو نفسه الحالة التالية).</template>
+      <template class="content-en">The Characteristic Table is the magic tool that converts 'input equations' (what goes into the flip-flop) into the 'next state' (what the flip-flop will store). You cannot complete a state table without it (except for D flip-flops where input = next state).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند حساب عدد صفوف جدول الحالة، ينسى الكثيرون إضافة المدخلات الخارجية (n). المعادلة هي 2^(m+n) وليس 2^m فقط. المدخلات الخارجية تضاعف عدد الاحتمالات!</template>
+      <template class="content-en">When calculating the number of rows in a state table, many forget to add the external inputs (n). The formula is 2^(m+n), not just 2^m. External inputs multiply the possibilities!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في مخطط الحالة لآلة ميلي، التسمية x/y تعني (المدخل / المخرج). لا تعكس الترتيب أبداً! المدخل هو الذي يسبب الانتقال، والمخرج هو النتيجة.</template>
+      <template class="content-en">In a Mealy machine state diagram, the label x/y means (Input / Output). Never reverse the order! The input causes the transition, and the output is the result.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M09.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M11.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

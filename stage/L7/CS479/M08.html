@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS479" data-module="8">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحليل النظم: مسارات العمل · CS479 · الحديقة الرقمية</title>
+
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS479" data-page-title-en="CS479">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M07.html" data-gh-next="M09.html" data-gh-card="../../hub/course.html?code=CS479"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#process-models-and-dfd" class="toc-link" data-bilingual>
+        <template class="content-ar">نماذج العمليات ومخططات تدفق البيانات</template>
+        <template class="content-en">Process Models and Data Flow Diagramming</template>
+        <span class="content-target">نماذج العمليات ومخططات تدفق البيانات</span>
+      </a>
+      <a href="#logical-vs-physical-models" class="toc-link" data-bilingual>
+        <template class="content-ar">النماذج المنطقية مقابل النماذج المادية</template>
+        <template class="content-en">Logical vs. Physical Models</template>
+        <span class="content-target">النماذج المنطقية مقابل النماذج المادية</span>
+      </a>
+      <a href="#workflows-and-data-requirements" class="toc-link" data-bilingual>
+        <template class="content-ar">مسارات العمل ومتطلبات البيانات</template>
+        <template class="content-en">Workflows and Data Requirements</template>
+        <span class="content-target">مسارات العمل ومتطلبات البيانات</span>
+      </a>
+      <a href="#dfd-elements" class="toc-link" data-bilingual>
+        <template class="content-ar">عناصر مخطط تدفق البيانات</template>
+        <template class="content-en">DFD Elements</template>
+        <span class="content-target">عناصر مخطط تدفق البيانات</span>
+      </a>
+      <a href="#decomposition-and-balancing" class="toc-link" data-bilingual>
+        <template class="content-ar">التحلل والموازنة</template>
+        <template class="content-en">Decomposition and Balancing</template>
+        <span class="content-target">التحلل والموازنة</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 8</template>
+      <template class="content-en">Module 8</template>
+      <span class="content-target">الوحدة 8</span>
+    </span> · CS479
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تحليل النظم: مسارات العمل</h1>
+      <p class="hero-description">وحدة تركز على نمذجة العمليات، مخططات تدفق البيانات (DFD)، النماذج المنطقية والمادية، ومفاهيم التفكيك والموازنة في تحليل النظم.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Systems Analysis: Workflows</h1>
+      <p class="hero-description">A module focusing on process modeling, Data Flow Diagrams (DFD), logical vs. physical models, and the concepts of decomposition and balancing in systems analysis.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">تحليل النظم</span>
+      <span class="tag">مسارات العمل</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Systems Analysis</span>
+      <span class="tag">Workflows</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم الغرض من نماذج العمليات ومخططات تدفق البيانات (DFD).</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين نماذج العمليات المنطقية والمادية.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد المكونات الأساسية لمسارات العمل وعناصر مخططات تدفق البيانات.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق مفاهيم التفكيك والموازنة لضمان دقة النماذج عبر المستويات المختلفة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the purpose of process models and Data Flow Diagrams (DFD).</span></li>
+      <li><span class="obj-icon">✦</span><span>Differentiate between logical and physical process models.</span></li>
+      <li><span class="obj-icon">✦</span><span>Identify the key components of workflows and DFD elements.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply decomposition and balancing concepts to ensure model accuracy across levels.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="process-models-and-dfd" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> نماذج العمليات ومخططات تدفق البيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Process Models and Data Flow Diagramming</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Process Model" data-ar="نموذج العملية" data-en-def="A formal way of representing how a business operates.">نموذج العملية<span class="smart-term-tooltip"></span></span> هو خريطة رسمية توضح كيف يعمل البزنس، بينما <span class="smart-term" data-term-en="Data Flow Diagramming" data-ar="رسم مخططات تدفق البيانات" data-en-def="Shows business processes and the data that flows between them.">مخطط تدفق البيانات<span class="smart-term-tooltip"></span></span> (DFD) يوضح العمليات والبيانات التي تتحرك بينها، تماماً مثل خريطة شبكة المياه في المدينة.</p></template>
+    <template class="content-en"><p>A <span class="smart-term" data-term-en="Process Model" data-ar="نموذج العملية" data-en-def="A formal way of representing how a business operates.">Process Model<span class="smart-term-tooltip"></span></span> is a formal map of how a business operates, while a <span class="smart-term" data-term-en="Data Flow Diagramming" data-ar="رسم مخططات تدفق البيانات" data-en-def="Shows business processes and the data that flows between them.">DFD<span class="smart-term-tooltip"></span></span> shows processes and the data flowing between them, much like a city's water pipe network.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><strong>نموذج العملية (Process Model):</strong> هو طريقة رسمية لتمثيل كيفية عمل الأعمال التجارية. يساعد في فهم الخطوات المتسلسلة لإنجاز مهمة معينة.</li><li><strong>رسم مخططات تدفق البيانات (Data Flow Diagramming):</strong> يوضح العمليات التجارية والبيانات التي تتدفق بينها. يعتبر أداة مرئية قوية لتتبع مسار البيانات من مصدرها، مروراً بالعمليات التي تحولها، وصولاً إلى وجهتها النهائية.</li></ul></template>
+    <template class="content-en"><ul><li><strong>Process Model:</strong> A formal way of representing how a business operates. It helps in understanding the sequential steps to accomplish a specific task.</li><li><strong>Data Flow Diagramming:</strong> Shows business processes and the data that flows between them. It is a powerful visual tool to track the path of data from its source, through the processes that transform it, to its final destination.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تعتبر هذه النماذج أساسية في هندسة البرمجيات لأنها تسد الفجوة بين متطلبات الأعمال والتنفيذ التقني.</p><p>بدون DFD واضح، قد يسيء المطورون فهم كيفية تفاعل أجزاء النظام المختلفة، مما يؤدي إلى فقدان البيانات أو معالجتها بشكل خاطئ.</p></template>
+    <template class="content-en"><p>These models are foundational in software engineering because they bridge the gap between business requirements and technical implementation.</p><p>Without a clear DFD, developers might misunderstand how different system parts interact, leading to data loss or incorrect processing.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a complex Data Flow Diagram (DFD) for an inventory management system. Include external entities (Raw material suppliers, Marketing, Manufacturing), processes (Manage Inbound orders, Manage Inventory, Manage outbound orders, Purchase orders), and data stores (Inventory data, Distributor orders). Use arrows to show data flow like 'Invoice & shipment', 'Inventory updates', 'Order quantities'. Style: educational, dark background #0d1117, accent color #00a8ff, viewBox 0 0 1000 600, English labels as per page 8 of the PDF. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Drop Shadow Filter for Nodes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+        
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+
+        <!-- Subtle Dot Pattern for Background -->
+        <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="var(--text-muted)" opacity="0.15"/>
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+    <rect width="100%" height="100%" fill="url(#dots)"/>
+
+    <!-- Title -->
+    <text x="500" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Data Flow Diagram: Inventory Management System</text>
+    <text x="500" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">مخطط تدفق البيانات: نظام إدارة المخزون</text>
+
+    <!-- ================= FLOW LINES ================= -->
+    <g stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)">
+        <!-- E1 to P1 -->
+        <line x1="170" y1="120" x2="315" y2="120"/>
+        <!-- P1 to D1 -->
+        <line x1="475" y1="120" x2="730" y2="120"/>
+        <!-- D1 to P2 -->
+        <line x1="760" y1="150" x2="475" y2="285"/>
+        <!-- E2 to P2 -->
+        <line x1="750" y1="320" x2="485" y2="320"/>
+        <!-- E3 to P4 -->
+        <line x1="170" y1="520" x2="275" y2="520"/>
+        <!-- P4 to P3 -->
+        <line x1="435" y1="520" x2="555" y2="520"/>
+        <!-- P3 to D2 -->
+        <line x1="715" y1="520" x2="810" y2="520"/>
+        <!-- P3 to E2 -->
+        <line x1="695" y1="470" x2="780" y2="365"/>
+        <!-- P2 to P3 -->
+        <line x1="458" y1="367" x2="575" y2="467"/>
+    </g>
+
+    <!-- ================= FLOW LABELS ================= -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <!-- E1 to P1 -->
+        <text x="242" y="105" font-weight="600" fill="var(--text-primary)">Invoice &amp; shipment</text>
+        <text x="242" y="135" fill="var(--text-secondary)">الفاتورة والشحنة</text>
+
+        <!-- P1 to D1 -->
+        <text x="602" y="105" font-weight="600" fill="var(--text-primary)">Inventory updates</text>
+        <text x="602" y="135" fill="var(--text-secondary)">تحديثات المخزون</text>
+
+        <!-- D1 to P2 -->
+        <text x="610" y="200" font-weight="600" fill="var(--text-primary)">Stock levels</text>
+        <text x="610" y="225" fill="var(--text-secondary)">مستويات المخزون</text>
+
+        <!-- E2 to P2 -->
+        <text x="617" y="305" font-weight="600" fill="var(--text-primary)">Finished goods</text>
+        <text x="617" y="335" fill="var(--text-secondary)">البضائع الجاهزة</text>
+
+        <!-- E3 to P4 -->
+        <text x="222" y="505" font-weight="600" fill="var(--text-primary)">Order quantities</text>
+        <text x="222" y="535" fill="var(--text-secondary)">كميات الطلب</text>
+
+        <!-- P4 to P3 -->
+        <text x="495" y="505" font-weight="600" fill="var(--text-primary)">Order details</text>
+        <text x="495" y="535" fill="var(--text-secondary)">تفاصيل الطلب</text>
+
+        <!-- P3 to D2 -->
+        <text x="762" y="505" font-weight="600" fill="var(--text-primary)">Order records</text>
+        <text x="762" y="535" fill="var(--text-secondary)">سجلات الطلب</text>
+
+        <!-- P3 to E2 -->
+        <text x="725" y="400" font-weight="600" fill="var(--text-primary)">Production requests</text>
+        <text x="725" y="425" fill="var(--text-secondary)">طلبات الإنتاج</text>
+
+        <!-- P2 to P3 -->
+        <text x="515" y="405" font-weight="600" fill="var(--text-primary)">Stock availability</text>
+        <text x="515" y="430" fill="var(--text-secondary)">توفر المخزون</text>
+    </g>
+
+    <!-- ================= NODES ================= -->
+    
+    <!-- External Entities (Rectangles) -->
+    <g filter="url(#shadow)">
+        <!-- E1: Suppliers -->
+        <rect x="30" y="85" width="140" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <!-- E2: Manufacturing -->
+        <rect x="750" y="285" width="140" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <!-- E3: Marketing -->
+        <rect x="30" y="485" width="140" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    </g>
+
+    <!-- Processes (Circles) -->
+    <g filter="url(#shadow)">
+        <!-- P1: Manage Inbound -->
+        <circle cx="400" cy="120" r="75" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <!-- P2: Manage Inventory -->
+        <circle cx="400" cy="320" r="75" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <!-- P4: Purchase Orders -->
+        <circle cx="360" cy="520" r="75" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <!-- P3: Manage Outbound -->
+        <circle cx="640" cy="520" r="75" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    </g>
+
+    <!-- Data Stores (Open Rectangles - Gane & Sarson style) -->
+    <g filter="url(#shadow)">
+        <!-- D1: Inventory Data -->
+        <rect x="740" y="90" width="160" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <line x1="780" y1="90" x2="780" y2="150" stroke="var(--brand-500)" stroke-width="2"/>
+        
+        <!-- D2: Distributor Orders -->
+        <rect x="820" y="490" width="160" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <line x1="860" y1="490" x2="860" y2="550" stroke="var(--brand-500)" stroke-width="2"/>
+    </g>
+
+    <!-- ================= NODE LABELS ================= -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        
+        <!-- E1 Labels -->
+        <text x="100" y="115" font-size="15" font-weight="bold" fill="var(--text-primary)">Raw Material</text>
+        <text x="100" y="135" font-size="15" font-weight="bold" fill="var(--text-primary)">Suppliers</text>
+        <text x="100" y="155" font-size="13" fill="var(--text-secondary)">موردو المواد الخام</text>
+
+        <!-- E2 Labels -->
+        <text x="820" y="315" font-size="15" font-weight="bold" fill="var(--text-primary)">Manufacturing</text>
+        <text x="820" y="335" font-size="13" fill="var(--text-secondary)">التصنيع</text>
+
+        <!-- E3 Labels -->
+        <text x="100" y="515" font-size="15" font-weight="bold" fill="var(--text-primary)">Marketing</text>
+        <text x="100" y="535" font-size="13" fill="var(--text-secondary)">التسويق</text>
+
+        <!-- P1 Labels -->
+        <text x="400" y="90" font-size="14" font-weight="bold" fill="var(--brand-500)">1.0</text>
+        <text x="400" y="115" font-size="15" font-weight="bold" fill="var(--text-primary)">Manage Inbound</text>
+        <text x="400" y="135" font-size="15" font-weight="bold" fill="var(--text-primary)">Orders</text>
+        <text x="400" y="155" font-size="13" fill="var(--text-secondary)">إدارة الطلبات الواردة</text>
+
+        <!-- P2 Labels -->
+        <text x="400" y="290" font-size="14" font-weight="bold" fill="var(--brand-500)">2.0</text>
+        <text x="400" y="315" font-size="15" font-weight="bold" fill="var(--text-primary)">Manage</text>
+        <text x="400" y="335" font-size="15" font-weight="bold" fill="var(--text-primary)">Inventory</text>
+        <text x="400" y="355" font-size="13" fill="var(--text-secondary)">إدارة المخزون</text>
+
+        <!-- P4 Labels -->
+        <text x="360" y="490" font-size="14" font-weight="bold" fill="var(--brand-500)">4.0</text>
+        <text x="360" y="515" font-size="15" font-weight="bold" fill="var(--text-primary)">Purchase</text>
+        <text x="360" y="535" font-size="15" font-weight="bold" fill="var(--text-primary)">Orders</text>
+        <text x="360" y="555" font-size="13" fill="var(--text-secondary)">أوامر الشراء</text>
+
+        <!-- P3 Labels -->
+        <text x="640" y="490" font-size="14" font-weight="bold" fill="var(--brand-500)">3.0</text>
+        <text x="640" y="515" font-size="15" font-weight="bold" fill="var(--text-primary)">Manage Outbound</text>
+        <text x="640" y="535" font-size="15" font-weight="bold" fill="var(--text-primary)">Orders</text>
+        <text x="640" y="555" font-size="13" fill="var(--text-secondary)">إدارة الطلبات الصادرة</text>
+
+        <!-- D1 Labels -->
+        <text x="760" y="125" font-size="16" font-weight="bold" fill="var(--brand-500)">D1</text>
+        <text x="840" y="115" font-size="15" font-weight="bold" fill="var(--text-primary)">Inventory Data</text>
+        <text x="840" y="135" font-size="13" fill="var(--text-secondary)">بيانات المخزون</text>
+
+        <!-- D2 Labels -->
+        <text x="840" y="525" font-size="16" font-weight="bold" fill="var(--brand-500)">D2</text>
+        <text x="920" y="515" font-size="15" font-weight="bold" fill="var(--text-primary)">Distributor Orders</text>
+        <text x="920" y="535" font-size="13" fill="var(--text-secondary)">طلبات الموزعين</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم مخططات تدفق البيانات (DFD) بدلاً من مجرد كتابة وصف نصي للعمليات؟</template>
+      <template class="content-en">Why do we use Data Flow Diagrams (DFD) instead of just writing a text description of the processes?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن التمثيل المرئي يسهل اكتشاف الأخطاء، ويوضح التبعيات المعقدة بين العمليات، ويسهل التواصل بين أصحاب المصلحة التقنيين وغير التقنيين.</p></template>
+      <template class="content-en"><p>Because visual representation makes it easier to spot errors, clarifies complex dependencies between processes, and facilitates communication between technical and non-technical stakeholders.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="logical-vs-physical-models" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> النماذج المنطقية مقابل النماذج المادية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Logical vs. Physical Models</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Logical process model" data-ar="نموذج العملية المنطقي" data-en-def="Describes processes without suggesting how they are conducted.">النموذج المنطقي<span class="smart-term-tooltip"></span></span> يخبرك <strong>ماذا</strong> يفعل النظام (بدون تفاصيل تقنية)، بينما <span class="smart-term" data-term-en="Physical model" data-ar="النموذج المادي" data-en-def="Includes information about how the processes are implemented.">النموذج المادي<span class="smart-term-tooltip"></span></span> يخبرك <strong>كيف</strong> يتم تنفيذ ذلك برمجياً وتقنياً.</p></template>
+    <template class="content-en"><p>A <span class="smart-term" data-term-en="Logical process model" data-ar="نموذج العملية المنطقي" data-en-def="Describes processes without suggesting how they are conducted.">logical model<span class="smart-term-tooltip"></span></span> tells you <strong>what</strong> the system does (without technical details), while a <span class="smart-term" data-term-en="Physical model" data-ar="النموذج المادي" data-en-def="Includes information about how the processes are implemented.">physical model<span class="smart-term-tooltip"></span></span> tells you <strong>how</strong> it is implemented technically.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><strong>النماذج المنطقية (Logical process models):</strong> تصف العمليات دون اقتراح كيفية إجرائها. تركز على متطلبات الأعمال وما يجب أن يحققه النظام بغض النظر عن التكنولوجيا المستخدمة.</li><li><strong>النماذج المادية (Physical models):</strong> تتضمن معلومات حول كيفية تنفيذ العمليات. تشمل تفاصيل الأجهزة، البرمجيات، قواعد البيانات، والأشخاص المعنيين بالتنفيذ.</li></ul></template>
+    <template class="content-en"><ul><li><strong>Logical process models:</strong> Describe processes without suggesting how they are conducted. They focus on business requirements and what the system must achieve regardless of the technology used.</li><li><strong>Physical models:</strong> Include information about how the processes are implemented. They encompass details about hardware, software, databases, and the people involved in the implementation.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في دورة حياة تطوير النظم (SDLC)، يتم إنشاء النموذج المنطقي أولاً خلال مرحلة التحليل لضمان فهم متطلبات العمل بدقة.</p><p>بعد ذلك، يتم تحويله إلى نموذج مادي خلال مرحلة التصميم ليتوافق مع البنية التحتية التكنولوجية المتاحة.</p></template>
+    <template class="content-en"><p>In the Systems Development Life Cycle (SDLC), the logical model is created first during the analysis phase to ensure business requirements are accurately understood.</p><p>Later, it is transformed into a physical model during the design phase to align with the available technological infrastructure.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Logical Model</th><th>Physical Model</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التركيز الأساسي</template>
+          <template class="content-en">Primary Focus</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ماذا يفعل النظام (العمليات)</template>
+          <template class="content-en">What the system does (Processes)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كيف يتم تنفيذ النظام (التكنولوجيا)</template>
+          <template class="content-en">How the system is implemented (Technology)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تفاصيل التنفيذ</template>
+          <template class="content-en">Implementation Details</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا يتضمن تفاصيل تقنية</template>
+          <template class="content-en">Does not include technical details</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يتضمن الأجهزة، البرمجيات، وقواعد البيانات</template>
+          <template class="content-en">Includes hardware, software, and databases</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا قررت الشركة تغيير قاعدة البيانات من MySQL إلى Oracle، أي نموذج سيحتاج إلى تحديث؟</template>
+      <template class="content-en">If a company decides to change its database from MySQL to Oracle, which model will need to be updated?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>النموذج المادي فقط هو الذي سيحتاج إلى تحديث، لأن النموذج المنطقي مستقل عن التكنولوجيا ولا يهتم بنوع قاعدة البيانات المستخدمة.</p></template>
+      <template class="content-en"><p>Only the physical model will need to be updated, because the logical model is technology-independent and does not care about the specific database used.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="workflows-and-data-requirements" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> مسارات العمل ومتطلبات البيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Workflows and Data Requirements</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Workflow" data-ar="مسار العمل" data-en-def="Presents key requirements based on Inputs, Processes, and Outputs.">مسارات العمل<span class="smart-term-tooltip"></span></span> هي دورة حياة البيانات: تبدأ كـ <strong>مدخلات</strong>، تمر بـ <strong>عمليات</strong> معالجة، وتخرج كـ <strong>مخرجات</strong> (معلومات مفيدة).</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="Workflow" data-ar="مسار العمل" data-en-def="Presents key requirements based on Inputs, Processes, and Outputs.">Workflows<span class="smart-term-tooltip"></span></span> are the lifecycle of data: they start as <strong>Inputs</strong>, go through <strong>Processes</strong>, and result in <strong>Outputs</strong> (useful information).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تسمح لك <span class="smart-term" data-term-en="Workflow" data-ar="مسار العمل" data-en-def="Presents key requirements based on Inputs, Processes, and Outputs.">مسارات العمل<span class="smart-term-tooltip"></span></span> (Workflows) بتقديم المتطلبات الأساسية لبرنامجك الجديد بناءً على ثلاثة عناصر رئيسية:</p><ul><li><strong>المدخلات (Inputs)</strong>،</li><li><strong>العمليات (Processes)</strong>،</li><li>و<strong>المخرجات (Outputs)</strong>.</li></ul><p>يقوم البرنامج بإدخال البيانات (Data) والتي غالباً ما تتم معالجتها لتصبح معلومات (Information) ذات معنى.</p><p>من الضروري فهم متطلبات البيانات ورسم خرائط لها باستخدام <span class="smart-term" data-term-en="UML (Unified Modeling Language)" data-ar="لغة النمذجة الموحدة" data-en-def="A standard language used for mapping data requirements and system design.">لغة النمذجة الموحدة<span class="smart-term-tooltip"></span></span> (UML).</p></template>
+    <template class="content-en"><p>Workflows allow you to present key requirements of your new software based on three main elements:</p><ul><li><strong>Inputs</strong>,</li><li><strong>Processes</strong>,</li><li>and <strong>Outputs</strong>.</li></ul><p>The software inputs data which is often processed into information.</p><p>Understanding data requirements and mapping this using a <span class="smart-term" data-term-en="UML (Unified Modeling Language)" data-ar="لغة النمذجة الموحدة" data-en-def="A standard language used for mapping data requirements and system design.">Unified Modeling Language<span class="smart-term-tooltip"></span></span> (UML) is necessary.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفرق الجوهري بين البيانات والمعلومات هو أن البيانات هي حقائق خام (مثل الأرقام)، بينما المعلومات هي بيانات تمت معالجتها لتوفير سياق وقيمة (مثل تقرير المبيعات).</p><p>استخدام UML يوفر معياراً صناعياً لتوثيق هذه التحولات بشكل يفهمه جميع المطورين.</p></template>
+    <template class="content-en"><p>The fundamental difference between data and information is that data are raw facts (like numbers), while information is processed data that provides context and value (like a sales report).</p><p>Using UML provides an industry standard to document these transformations in a way all developers understand.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نعتبر تحويل البيانات إلى معلومات الهدف الأساسي لأي مسار عمل برمجي؟</template>
+      <template class="content-en">Why is converting data into information considered the primary goal of any software workflow?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن البيانات الخام وحدها لا تساعد في اتخاذ القرارات. معالجة البيانات (عبر مسار العمل) تعطيها سياقاً وتجعلها معلومات قابلة للاستخدام من قبل الإدارة والمستخدمين.</p></template>
+      <template class="content-en"><p>Because raw data alone does not help in decision-making. Processing data (via a workflow) gives it context and makes it usable information for management and users.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="dfd-elements" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> عناصر مخطط تدفق البيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> DFD Elements</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يتكون DFD من 4 عناصر: <span class="smart-term" data-term-en="Process (DFD)" data-ar="العملية (في DFD)" data-en-def="An element named with a verb phrase that transforms data.">العملية<span class="smart-term-tooltip"></span></span> (فعل)، تدفق البيانات (سهم)، <span class="smart-term" data-term-en="Data Store" data-ar="مخزن البيانات" data-en-def="An element named with a noun representing data at rest.">مخزن البيانات<span class="smart-term-tooltip"></span></span> (ملف)، و<span class="smart-term" data-term-en="External Entity" data-ar="الكيان الخارجي" data-en-def="An element named with a noun representing a source or destination of data outside the system.">الكيان الخارجي<span class="smart-term-tooltip"></span></span> (مصدر/وجهة).</p></template>
+    <template class="content-en"><p>A DFD consists of 4 elements: <span class="smart-term" data-term-en="Process (DFD)" data-ar="العملية (في DFD)" data-en-def="An element named with a verb phrase that transforms data.">Process<span class="smart-term-tooltip"></span></span> (verb), Data flow (arrow), <span class="smart-term" data-term-en="Data Store" data-ar="مخزن البيانات" data-en-def="An element named with a noun representing data at rest.">Data store<span class="smart-term-tooltip"></span></span> (file), and <span class="smart-term" data-term-en="External Entity" data-ar="الكيان الخارجي" data-en-def="An element named with a noun representing a source or destination of data outside the system.">External entity<span class="smart-term-tooltip"></span></span> (source/destination).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتكون مخطط تدفق البيانات من أربعة عناصر أساسية، ولكل منها رموز محددة (مثل رموز Gane & Sarson أو DeMarco & Yourdan):</p><ul><li><strong>العملية (Process):</strong> تمثل نشاطاً يغير البيانات. يجب أن يكون اسمها عبارة فعلية (Verb phrase).</li><li><strong>تدفق البيانات (Data Flow):</strong> يمثل مسار البيانات بين المكونات. يجب أن يكون اسمه اسماً (Noun).</li><li><strong>مخزن البيانات (Data Store):</strong> يمثل البيانات في حالة سكون (مثل قاعدة بيانات). يجب أن يكون اسمه اسماً (Noun).</li><li><strong>الكيان الخارجي (External Entity):</strong> يمثل شخصاً أو نظاماً أو منظمة تتفاعل مع النظام (مصدر أو وجهة للبيانات). يجب أن يكون اسمه اسماً (Noun).</li></ul></template>
+    <template class="content-en"><p>A Data Flow Diagram consists of four basic elements, each with specific symbols (like Gane & Sarson or DeMarco & Yourdan symbols):</p><ul><li><strong>Process:</strong> Represents an activity that transforms data. Its name must be a verb phrase.</li><li><strong>Data Flow:</strong> Represents the path of data between components. Its name must be a noun.</li><li><strong>Data Store:</strong> Represents data at rest (like a database). Its name must be a noun.</li><li><strong>External Entity:</strong> Represents a person, system, or organization interacting with the system (source or destination of data). Its name must be a noun.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>قاعدة هامة في DFD: لا يمكن أن تتدفق البيانات مباشرة من كيان خارجي إلى مخزن بيانات، أو من مخزن بيانات إلى آخر دون المرور بـ "عملية" (Process).</p><p>العملية هي المحرك الوحيد الذي يمكنه نقل أو تعديل البيانات.</p></template>
+    <template class="content-en"><p>A crucial rule in DFD: Data cannot flow directly from an external entity to a data store, or from one data store to another without passing through a "Process".</p><p>A process is the only engine that can move or transform data.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a table showing DFD Elements. 4 rows: Process, Data Flow, Data Store, External Entity. Columns: Element Name, Description (Process=verb phrase, others=noun), Gane and Sarson Symbol (Process=rounded rectangle, Data Flow=arrow, Data Store=open-ended rectangle, External Entity=square 3D box), DeMarco and Yourdan Symbol (Process=circle, Data Flow=arrow, Data Store=parallel lines, External Entity=rectangle). Style: educational, dark background #0d1117, accent color #00a8ff, viewBox 0 0 800 500. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg id="dgm-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+        <style>
+            #dgm-1 .title { font-size: 22px; font-weight: 700; fill: var(--text-primary); text-anchor: middle; }
+            #dgm-1 .subtitle { font-size: 16px; font-weight: 400; fill: var(--text-secondary); text-anchor: middle; }
+            #dgm-1 .header-en { font-size: 16px; font-weight: 600; fill: var(--text-primary); text-anchor: middle; }
+            #dgm-1 .header-ar { font-size: 14px; font-weight: 400; fill: var(--text-secondary); text-anchor: middle; }
+            #dgm-1 .cell-en { font-size: 16px; font-weight: 600; fill: var(--text-primary); text-anchor: middle; }
+            #dgm-1 .cell-ar { font-size: 15px; font-weight: 400; fill: var(--text-secondary); text-anchor: middle; }
+            #dgm-1 .cell-desc { font-size: 13px; font-weight: 400; fill: var(--text-muted); text-anchor: middle; }
+            #dgm-1 .symbol-text { font-size: 14px; font-weight: 500; fill: var(--text-primary); text-anchor: middle; }
+            #dgm-1 .symbol-shape { fill: var(--bg-elevated); stroke: var(--brand-500); stroke-width: 2.5; stroke-linejoin: round; }
+            #dgm-1 .symbol-line { stroke: var(--brand-500); stroke-width: 2.5; stroke-linecap: round; }
+            #dgm-1 .grid-line { stroke: var(--border-color); stroke-width: 1.5; }
+        </style>
+    </defs>
+
+    <!-- Main Title -->
+    <text x="450" y="35" class="title">Data Flow Diagram (DFD) Elements</text>
+    <text x="450" y="60" class="subtitle">عناصر مخطط تدفق البيانات</text>
+
+    <!-- Table Background and Frame -->
+    <rect x="20" y="80" width="860" height="70" fill="var(--bg-elevated)" rx="8" opacity="0.5"/>
+    <rect x="20" y="80" width="860" height="550" fill="none" class="grid-line" rx="8"/>
+
+    <!-- Horizontal Grid Lines -->
+    <line x1="20" y1="150" x2="880" y2="150" class="grid-line"/>
+    <line x1="20" y1="270" x2="880" y2="270" class="grid-line"/>
+    <line x1="20" y1="390" x2="880" y2="390" class="grid-line"/>
+    <line x1="20" y1="510" x2="880" y2="510" class="grid-line"/>
+
+    <!-- Vertical Grid Lines -->
+    <line x1="200" y1="80" x2="200" y2="630" class="grid-line"/>
+    <line x1="420" y1="80" x2="420" y2="630" class="grid-line"/>
+    <line x1="650" y1="80" x2="650" y2="630" class="grid-line"/>
+
+    <!-- ================= HEADER ROW ================= -->
+    <text x="110" y="110" class="header-en">Element Name</text>
+    <text x="110" y="135" class="header-ar">اسم العنصر</text>
+
+    <text x="310" y="110" class="header-en">Description</text>
+    <text x="310" y="135" class="header-ar">الوصف</text>
+
+    <text x="535" y="110" class="header-en">Gane &amp; Sarson Symbol</text>
+    <text x="535" y="135" class="header-ar">رمز جين وسارسون</text>
+
+    <text x="765" y="110" class="header-en">DeMarco &amp; Yourdon Symbol</text>
+    <text x="765" y="135" class="header-ar">رمز ديماركو ويوردون</text>
+
+
+    <!-- ================= ROW 1: PROCESS ================= -->
+    <!-- Column 1: Name -->
+    <text x="110" y="200" class="cell-en">Process</text>
+    <text x="110" y="225" class="cell-ar">عملية</text>
+
+    <!-- Column 2: Description -->
+    <text x="310" y="190" class="cell-en">Verb phrase</text>
+    <text x="310" y="215" class="cell-ar">عبارة فعلية</text>
+    <text x="310" y="240" class="cell-desc">(Action / Transformation)</text>
+
+    <!-- Column 3: G&S Symbol -->
+    <g transform="translate(0, 5)">
+        <rect x="475" y="170" width="120" height="65" rx="12" ry="12" class="symbol-shape"/>
+        <line x1="475" y1="195" x2="595" y2="195" class="symbol-line"/>
+        <line x1="510" y1="170" x2="510" y2="195" class="symbol-line"/>
+        <text x="552" y="222" class="symbol-text">Process</text>
+    </g>
+
+    <!-- Column 4: D&Y Symbol -->
+    <g transform="translate(0, 5)">
+        <circle cx="765" cy="202" r="38" class="symbol-shape"/>
+        <text x="765" y="207" class="symbol-text">Process</text>
+    </g>
+
+
+    <!-- ================= ROW 2: DATA FLOW ================= -->
+    <!-- Column 1: Name -->
+    <text x="110" y="320" class="cell-en">Data Flow</text>
+    <text x="110" y="345" class="cell-ar">تدفق البيانات</text>
+
+    <!-- Column 2: Description -->
+    <text x="310" y="310" class="cell-en">Noun phrase</text>
+    <text x="310" y="335" class="cell-ar">اسم</text>
+    <text x="310" y="360" class="cell-desc">(Data in motion)</text>
+
+    <!-- Column 3: G&S Symbol -->
+    <g transform="translate(0, 5)">
+        <path d="M 475 325 L 585 325" class="symbol-line" marker-end="url(#arrow)"/>
+        <text x="530" y="315" class="cell-desc">Data</text>
+    </g>
+
+    <!-- Column 4: D&Y Symbol -->
+    <g transform="translate(0, 5)">
+        <path d="M 705 325 L 815 325" class="symbol-line" marker-end="url(#arrow)"/>
+        <text x="760" y="315" class="cell-desc">Data</text>
+    </g>
+
+
+    <!-- ================= ROW 3: DATA STORE ================= -->
+    <!-- Column 1: Name -->
+    <text x="110" y="440" class="cell-en">Data Store</text>
+    <text x="110" y="465" class="cell-ar">مخزن البيانات</text>
+
+    <!-- Column 2: Description -->
+    <text x="310" y="430" class="cell-en">Noun phrase</text>
+    <text x="310" y="455" class="cell-ar">اسم</text>
+    <text x="310" y="480" class="cell-desc">(Data at rest)</text>
+
+    <!-- Column 3: G&S Symbol -->
+    <g transform="translate(0, 5)">
+        <path d="M 595 420 L 475 420 L 475 475 L 595 475" class="symbol-shape" fill="none"/>
+        <line x1="510" y1="420" x2="510" y2="475" class="symbol-line"/>
+        <text x="552" y="453" class="symbol-text">Store</text>
+    </g>
+
+    <!-- Column 4: D&Y Symbol -->
+    <g transform="translate(0, 5)">
+        <line x1="705" y1="425" x2="825" y2="425" class="symbol-line"/>
+        <line x1="705" y1="470" x2="825" y2="470" class="symbol-line"/>
+        <text x="765" y="453" class="symbol-text">Store</text>
+    </g>
+
+
+    <!-- ================= ROW 4: EXTERNAL ENTITY ================= -->
+    <!-- Column 1: Name -->
+    <text x="110" y="560" class="cell-en">External Entity</text>
+    <text x="110" y="585" class="cell-ar">كيان خارجي</text>
+
+    <!-- Column 2: Description -->
+    <text x="310" y="550" class="cell-en">Noun phrase</text>
+    <text x="310" y="575" class="cell-ar">اسم</text>
+    <text x="310" y="600" class="cell-desc">(Source / Destination)</text>
+
+    <!-- Column 3: G&S Symbol -->
+    <g transform="translate(0, 5)">
+        <!-- 3D Box Top -->
+        <polygon points="495,545 507,533 587,533 575,545" class="symbol-shape"/>
+        <!-- 3D Box Right -->
+        <polygon points="575,545 587,533 587,583 575,595" class="symbol-shape"/>
+        <!-- 3D Box Front -->
+        <rect x="495" y="545" width="80" height="50" class="symbol-shape"/>
+        <text x="535" y="575" class="symbol-text">Entity</text>
+    </g>
+
+    <!-- Column 4: D&Y Symbol -->
+    <g transform="translate(0, 5)">
+        <rect x="710" y="535" width="110" height="60" class="symbol-shape"/>
+        <text x="765" y="570" class="symbol-text">Entity</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يجب تسمية 'العملية' باستخدام فعل (Verb phrase) بينما تسمى باقي العناصر بأسماء (Nouns)؟</template>
+      <template class="content-en">Why must a 'Process' be named using a verb phrase while the other elements are named with nouns?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن العملية تمثل 'فعلاً' أو 'حركة' تقوم بتغيير البيانات أو معالجتها (مثل: حساب الراتب)، بينما العناصر الأخرى تمثل أشياء مادية أو ثابتة (مثل: الموظف، ملف الرواتب).</p></template>
+      <template class="content-en"><p>Because a process represents an 'action' or 'movement' that transforms data (e.g., Calculate Salary), while the other elements represent physical or static things (e.g., Employee, Salary File).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="decomposition-and-balancing" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> التحلل والموازنة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Decomposition and Balancing</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Decomposition" data-ar="التحلل / التفكيك" data-en-def="The process of modeling the system and its components in increasing levels of detail.">التحلل<span class="smart-term-tooltip"></span></span> (Decomposition) هو تكبير الصورة لرؤية التفاصيل الدقيقة، بينما <span class="smart-term" data-term-en="Balancing" data-ar="الموازنة" data-en-def="Insuring that information presented at one level of a DFD is accurately represented in the next level DFD.">الموازنة<span class="smart-term-tooltip"></span></span> (Balancing) هي التأكد من أن المدخلات والمخرجات لم تتغير عند التكبير.</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="Decomposition" data-ar="التحلل / التفكيك" data-en-def="The process of modeling the system and its components in increasing levels of detail.">Decomposition<span class="smart-term-tooltip"></span></span> is zooming in to see finer details, while <span class="smart-term" data-term-en="Balancing" data-ar="الموازنة" data-en-def="Insuring that information presented at one level of a DFD is accurately represented in the next level DFD.">Balancing<span class="smart-term-tooltip"></span></span> is ensuring that inputs and outputs remain consistent when you zoom in.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><strong>التحلل (Decomposition):</strong> هو عملية نمذجة النظام ومكوناته بمستويات متزايدة من التفصيل. نبدأ بمخطط عام (Context Diagram) ثم نفككه إلى مستويات أدنى (Level 0, Level 1, إلخ) لفهم العمليات المعقدة.</li><li><strong>الموازنة (Balancing):</strong> تتضمن التأكد من أن المعلومات المقدمة في مستوى واحد من DFD ممثلة بدقة في المستوى التالي. أي بيانات تدخل أو تخرج من عملية في مستوى معين يجب أن تظهر بنفس الشكل في المستوى المفصل لتلك العملية.</li></ul></template>
+    <template class="content-en"><ul><li><strong>Decomposition:</strong> is the process of modeling the system and its components in increasing levels of detail. We start with a high-level Context Diagram and break it down into lower levels (Level 0, Level 1, etc.) to understand complex processes.</li><li><strong>Balancing:</strong> involves insuring that information presented at one level of a DFD is accurately represented in the next level DFD. Any data entering or leaving a process at one level must appear exactly the same in the detailed level of that process.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>بدون الموازنة، يؤدي التحلل إلى تناقضات في تصميم النظام.</p><p>إذا كان المستوى 0 يوضح أن عملية 'إدارة الطلبات' تستقبل 'بيانات العميل'، فيجب أن يُظهر المستوى 1 (الذي يفصل هذه العملية) نفس تدفق 'بيانات العميل' كمدخل، وإلا فإن النموذج غير متوازن وخاطئ.</p></template>
+    <template class="content-en"><p>Without balancing, decomposition leads to inconsistencies in system design.</p><p>If Level 0 shows that the 'Manage Orders' process receives 'Customer Data', then Level 1 (which details this process) must show the exact same 'Customer Data' flow as an input, otherwise the model is unbalanced and flawed.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لديك عملية في المستوى 0 لها مدخلان ومخرج واحد، وقمت بتفكيكها (Decomposition) إلى المستوى 1، كم عدد المدخلات والمخرجات الخارجية التي يجب أن تظهر في المستوى 1؟</template>
+      <template class="content-en">If you have a process in Level 0 with two inputs and one output, and you decompose it to Level 1, how many external inputs and outputs must show in Level 1?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يجب أن يظهر في المستوى 1 مدخلان ومخرج واحد بالضبط للحفاظ على الموازنة (Balancing).</p></template>
+      <template class="content-en"><p>Level 1 must show exactly two inputs and one output to maintain Balancing.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في هذه المراجعة السريعة والمركزة. في هذه الوحدة، نحن ننتقل من مرحلة 'الكلام' إلى مرحلة 'الرسم الهندسي' للنظام. تخيل أنك تبني منزلاً؛ لا يمكنك البدء بالبناء فوراً، بل تحتاج إلى مخططات. هنا نستخدم 'نماذج العمليات' و'مخططات تدفق البيانات (DFD)' كخرائط لنا. تذكروا جيداً الفرق الجوهري للامتحان: النموذج المنطقي يخبرنا 'ماذا' نريد (غرفة نوم، مطبخ)، بينما النموذج المادي يخبرنا 'كيف' سنبنيها (طوب، أسمنت، تمديدات). في DFD، لدينا 4 أبطال: العملية (وهي الوحيدة التي تأخذ فعلاً لأنها تعمل وتتحرك)، وتدفق البيانات، ومخزن البيانات، والكيان الخارجي (وكلها تأخذ أسماء). وأخيراً، عندما نفكك النظام المعقد إلى أجزاء صغيرة (التحلل)، يجب أن نتأكد أننا لم نفقد أي بيانات في الطريق (الموازنة). ركزوا على هذه المصطلحات، فهي مفتاح اجتياز أسئلة هذه الوحدة بنجاح!</template>
+    <template class="content-en">Welcome, future engineers, to this quick and focused review. In this module, we transition from 'talking' about a system to 'architectural drawing'. Imagine building a house; you can't just start building, you need blueprints. Here, we use 'Process Models' and 'Data Flow Diagrams (DFD)' as our blueprints. Remember this crucial difference for the exam: the Logical model tells us 'what' we want (a bedroom, a kitchen), while the Physical model tells us 'how' we will build it (bricks, cement, wiring). In DFD, we have 4 heroes: the Process (the only one that takes a verb because it acts and moves), Data flow, Data store, and External entity (all take nouns). Finally, when we break down a complex system into smaller parts (Decomposition), we must ensure we didn't lose any data along the way (Balancing). Focus on these terms; they are your key to acing this module's questions!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف الأساسي من استخدام نموذج العملية (Process Model)؟</template>
+          <template class="content-en">What is the primary goal of using a Process Model?</template>
+          <span class="content-target">ما هو الهدف الأساسي من استخدام نموذج العملية (Process Model)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الهدف هو توفير طريقة رسمية لتمثيل كيفية عمل الأعمال التجارية، مما يسهل فهم النظام قبل برمجته.</template>
+          <template class="content-en">The goal is to provide a formal way of representing how a business operates, making it easier to understand the system before programming it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تفرق بين النموذج المنطقي والنموذج المادي في سؤال الخيارات المتعددة؟</template>
+          <template class="content-en">How do you differentiate between a logical and physical model in a multiple-choice question?</template>
+          <span class="content-target">كيف تفرق بين النموذج المنطقي والنموذج المادي في سؤال الخيارات المتعددة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">ابحث عن الكلمات المفتاحية: إذا كان الوصف لا يقترح 'كيفية' التنفيذ فهو منطقي. إذا تضمن معلومات حول التنفيذ (Implementation) فهو مادي.</template>
+          <template class="content-en">Look for keywords: if the description does not suggest 'how' it is conducted, it's logical. If it includes information about implementation, it's physical.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المكونات الثلاثة الأساسية لمسار العمل (Workflow)؟</template>
+          <template class="content-en">What are the three basic components of a Workflow?</template>
+          <span class="content-target">ما هي المكونات الثلاثة الأساسية لمسار العمل (Workflow)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المدخلات (Inputs)، العمليات (Processes)، والمخرجات (Outputs).</template>
+          <template class="content-en">Inputs, Processes, and Outputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم لغة UML في مسارات العمل؟</template>
+          <template class="content-en">Why do we use UML in workflows?</template>
+          <span class="content-target">لماذا نستخدم لغة UML في مسارات العمل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمها لفهم متطلبات البيانات ورسم خرائط لها بشكل قياسي ومفهوم.</template>
+          <template class="content-en">We use it to understand data requirements and map them in a standard, understandable way.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العناصر الأربعة لمخطط تدفق البيانات (DFD)؟</template>
+          <template class="content-en">What are the four elements of a Data Flow Diagram (DFD)?</template>
+          <span class="content-target">ما هي العناصر الأربعة لمخطط تدفق البيانات (DFD)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">العملية (Process)، تدفق البيانات (Data flow)، مخزن البيانات (Data store)، والكيان الخارجي (External entity).</template>
+          <template class="content-en">Process, Data flow, Data store, and External entity.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي القاعدة الذهبية لتسمية 'العملية' في DFD؟</template>
+          <template class="content-en">What is the golden rule for naming a 'Process' in a DFD?</template>
+          <span class="content-target">ما هي القاعدة الذهبية لتسمية 'العملية' في DFD؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يجب أن يكون اسمها دائماً عبارة فعلية (Verb phrase)، مثل 'حساب الضريبة'.</template>
+          <template class="content-en">Its name must always be a verb phrase, such as 'Calculate Tax'.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني مصطلح 'التحلل' (Decomposition) في سياق تحليل النظم؟</template>
+          <template class="content-en">What does the term 'Decomposition' mean in the context of systems analysis?</template>
+          <span class="content-target">ماذا يعني مصطلح 'التحلل' (Decomposition) في سياق تحليل النظم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو عملية نمذجة النظام ومكوناته بمستويات متزايدة من التفصيل (من العام إلى الخاص).</template>
+          <template class="content-en">It is the process of modeling the system and its components in increasing levels of detail (from general to specific).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث إذا قمنا بالتحلل (Decomposition) بدون موازنة (Balancing)؟</template>
+          <template class="content-en">What happens if we do Decomposition without Balancing?</template>
+          <span class="content-target">ماذا يحدث إذا قمنا بالتحلل (Decomposition) بدون موازنة (Balancing)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">سنحصل على نموذج غير دقيق حيث تختلف المدخلات والمخرجات بين المستويات، مما يؤدي إلى أخطاء في تصميم النظام.</template>
+          <template class="content-en">We will get an inaccurate model where inputs and outputs differ between levels, leading to system design errors.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمثل 'مخزن البيانات' في DFD؟</template>
+          <template class="content-en">How is a 'Data store' represented in a DFD?</template>
+          <span class="content-target">كيف يمثل 'مخزن البيانات' في DFD؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يمثل البيانات في حالة سكون، ويجب أن يسمى باسم (Noun)، وعادة ما يكون له مدخلات ومخرجات.</template>
+          <template class="content-en">It represents data at rest, must be named with a noun, and usually has inputs and outputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين البيانات (Data) والمعلومات (Information) في مسارات العمل؟</template>
+          <template class="content-en">What is the difference between Data and Information in workflows?</template>
+          <span class="content-target">ما الفرق بين البيانات (Data) والمعلومات (Information) في مسارات العمل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">البيانات هي المدخلات الخام، بينما المعلومات هي المخرجات الناتجة بعد معالجة هذه البيانات.</template>
+          <template class="content-en">Data is the raw input, while Information is the resulting output after processing this data.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "نموذج العملية (Process Model)",
+      "en": "Process Model"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة رسمية لتمثيل كيفية عمل الأعمال التجارية.",
+        "en": "A formal way of representing how a business operates."
+      },
+      "example": {
+        "ar": "رسم يوضح خطوات الموافقة على إجازة الموظف.",
+        "en": "A diagram showing the steps for employee leave approval."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "رسم مخططات تدفق البيانات (Data Flow Diagramming)",
+      "en": "Data Flow Diagramming"
+    },
+    "back": {
+      "definition": {
+        "ar": "يوضح العمليات التجارية والبيانات التي تتدفق بينها.",
+        "en": "Shows business processes and the data that flows between them."
+      },
+      "example": {
+        "ar": "مخطط يوضح انتقال بيانات الطلب من العميل إلى المستودع.",
+        "en": "A diagram showing order data moving from customer to warehouse."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "النموذج المنطقي (Logical Process Model)",
+      "en": "Logical Process Model"
+    },
+    "back": {
+      "definition": {
+        "ar": "يصف العمليات دون اقتراح كيفية إجرائها (يركز على 'ماذا').",
+        "en": "Describes processes without suggesting how they are conducted (focuses on 'what')."
+      },
+      "example": {
+        "ar": "نموذج يوضح أن النظام يجب أن 'يتحقق من الرصيد'.",
+        "en": "A model showing the system must 'Verify Balance'."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "النموذج المادي (Physical Model)",
+      "en": "Physical Model"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتضمن معلومات حول كيفية تنفيذ العمليات (يركز على 'كيف').",
+        "en": "Includes information about how the processes are implemented (focuses on 'how')."
+      },
+      "example": {
+        "ar": "نموذج يوضح أن التحقق من الرصيد يتم عبر استعلام SQL في قاعدة بيانات Oracle.",
+        "en": "A model showing balance verification is done via SQL query in an Oracle DB."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "مسار العمل (Workflow)",
+      "en": "Workflow"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح بتقديم المتطلبات الأساسية للبرنامج بناءً على المدخلات والعمليات والمخرجات.",
+        "en": "Allows presenting key requirements of software based on Inputs, Processes, and Outputs."
+      },
+      "example": {
+        "ar": "مسار عمل تسجيل الدخول: إدخال بيانات -> تحقق -> دخول النظام.",
+        "en": "Login workflow: Input credentials -> Verify -> System access."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "المدخلات (Inputs)",
+      "en": "Inputs"
+    },
+    "back": {
+      "definition": {
+        "ar": "البيانات الخام التي يتم إدخالها إلى البرنامج لمعالجتها.",
+        "en": "Raw data entered into the software to be processed."
+      },
+      "example": {
+        "ar": "إدخال اسم المستخدم وكلمة المرور.",
+        "en": "Entering username and password."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "العمليات (Processes - in Workflows)",
+      "en": "Processes (in Workflows)"
+    },
+    "back": {
+      "definition": {
+        "ar": "الخطوات التي تحول البيانات المدخلة إلى معلومات مفيدة.",
+        "en": "The steps that transform input data into useful information."
+      },
+      "example": {
+        "ar": "حساب إجمالي الفاتورة بناءً على أسعار المنتجات.",
+        "en": "Calculating the total invoice based on product prices."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "المخرجات (Outputs)",
+      "en": "Outputs"
+    },
+    "back": {
+      "definition": {
+        "ar": "المعلومات الناتجة بعد معالجة البيانات.",
+        "en": "The resulting information after data processing."
+      },
+      "example": {
+        "ar": "طباعة إيصال الدفع للعميل.",
+        "en": "Printing a payment receipt for the customer."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "لغة النمذجة الموحدة (UML)",
+      "en": "UML (Unified Modeling Language)"
+    },
+    "back": {
+      "definition": {
+        "ar": "لغة ضرورية لفهم متطلبات البيانات ورسم خرائط لها.",
+        "en": "A language necessary for understanding data requirements and mapping them."
+      },
+      "example": {
+        "ar": "استخدام مخططات حالة الاستخدام (Use Case) لتمثيل تفاعل المستخدم.",
+        "en": "Using Use Case diagrams to represent user interaction."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "العملية في DFD (Process)",
+      "en": "DFD Process"
+    },
+    "back": {
+      "definition": {
+        "ar": "عنصر في DFD يمتلك رقماً واسماً (عبارة فعلية) ووصفاً، ويحتوي عادة على مدخلات ومخرجات.",
+        "en": "A DFD element with a number, name (verb phrase), and description, usually having inputs and outputs."
+      },
+      "example": {
+        "ar": "عملية 'إدارة الطلبات الواردة'.",
+        "en": "Process 'Manage Inbound orders'."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "تدفق البيانات في DFD (Data Flow)",
+      "en": "DFD Data Flow"
+    },
+    "back": {
+      "definition": {
+        "ar": "عنصر في DFD يسمى باسم (Noun) ويمثل مسار البيانات المتصل بعملية.",
+        "en": "A DFD element named with a noun representing the path of data connected to a process."
+      },
+      "example": {
+        "ar": "سهم يسمى 'تفاصيل الطلب'.",
+        "en": "An arrow named 'Order details'."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "مخزن البيانات في DFD (Data Store)",
+      "en": "DFD Data Store"
+    },
+    "back": {
+      "definition": {
+        "ar": "عنصر في DFD يسمى باسم (Noun) ويمثل البيانات المخزنة، وله مدخلات ومخرجات.",
+        "en": "A DFD element named with a noun representing stored data, having inputs and outputs."
+      },
+      "example": {
+        "ar": "مخزن 'بيانات المخزون'.",
+        "en": "Data store 'Inventory data'."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "الكيان الخارجي في DFD (External Entity)",
+      "en": "DFD External Entity"
+    },
+    "back": {
+      "definition": {
+        "ar": "عنصر في DFD يسمى باسم (Noun) ويمثل مصدراً أو وجهة للبيانات خارج النظام.",
+        "en": "A DFD element named with a noun representing a source or destination of data outside the system."
+      },
+      "example": {
+        "ar": "كيان 'موردي المواد الخام'.",
+        "en": "Entity 'Raw material suppliers'."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "التحلل (Decomposition)",
+      "en": "Decomposition"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية نمذجة النظام ومكوناته بمستويات متزايدة من التفصيل.",
+        "en": "The process of modeling the system and its components in increasing levels of detail."
+      },
+      "example": {
+        "ar": "تفكيك عملية 'إدارة المبيعات' إلى 'استلام الطلب' و'تأكيد الدفع'.",
+        "en": "Breaking down 'Manage Sales' into 'Receive Order' and 'Confirm Payment'."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "الموازنة (Balancing)",
+      "en": "Balancing"
+    },
+    "back": {
+      "definition": {
+        "ar": "ضمان أن المعلومات المقدمة في مستوى واحد من DFD ممثلة بدقة في المستوى التالي.",
+        "en": "Insuring that information presented at one level of a DFD is accurately represented in the next level DFD."
+      },
+      "example": {
+        "ar": "التأكد من أن مدخل 'بيانات العميل' في المستوى 0 موجود أيضاً في المستوى 1.",
+        "en": "Ensuring the 'Customer Data' input in Level 0 also exists in Level 1."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو التعريف الصحيح لنموذج العملية (Process model)؟",
+      "en": "What is the correct definition of a process model?"
+    },
+    "options": {
+      "ar": [
+        "طريقة رسمية لتمثيل كيفية عمل الأعمال التجارية.",
+        "مخطط يوضح فقط الأجهزة المستخدمة في النظام.",
+        "لغة برمجة تستخدم لإنشاء قواعد البيانات.",
+        "أداة لاختبار أمان البرمجيات."
+      ],
+      "en": [
+        "A formal way of representing how a business operates.",
+        "A diagram showing only the hardware used in the system.",
+        "A programming language used to create databases.",
+        "A tool for testing software security."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "نموذج العملية هو طريقة رسمية لتمثيل كيفية عمل الأعمال التجارية، كما هو مذكور في الشريحة 4.",
+      "en": "A process model is a formal way of representing how a business operates, as stated on slide 4."
+    },
+    "hint": {
+      "ar": "تذكر الكلمة المفتاحية 'كيفية عمل الأعمال'.",
+      "en": "Remember the keyword 'how a business operates'."
+    },
+    "difficulty": "easy",
+    "conceptId": "process-models-and-dfd"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما الذي يوضحه مخطط تدفق البيانات (DFD) بشكل أساسي؟",
+      "en": "What does a Data Flow Diagram (DFD) primarily show?"
+    },
+    "options": {
+      "ar": [
+        "هيكلية قاعدة البيانات والعلاقات بين الجداول.",
+        "العمليات التجارية والبيانات التي تتدفق بينها.",
+        "الواجهة الرسومية للمستخدم (GUI).",
+        "الجدول الزمني لتنفيذ المشروع."
+      ],
+      "en": [
+        "Database structure and table relationships.",
+        "Business processes and the data that flows between them.",
+        "Graphical User Interface (GUI).",
+        "Project implementation timeline."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مخطط تدفق البيانات يوضح العمليات التجارية والبيانات التي تتدفق بينها.",
+      "en": "Data flow diagramming shows business processes and the data that flows between them."
+    },
+    "hint": {
+      "ar": "الاسم نفسه 'تدفق البيانات' يعطي تلميحاً للوظيفة.",
+      "en": "The name 'Data flow' gives a hint to its function."
+    },
+    "difficulty": "easy",
+    "conceptId": "process-models-and-dfd"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "أي من النماذج التالية يصف العمليات دون اقتراح كيفية إجرائها؟",
+      "en": "Which of the following models describes processes without suggesting how they are conducted?"
+    },
+    "options": {
+      "ar": [
+        "النموذج المادي (Physical model)",
+        "النموذج المنطقي (Logical process model)",
+        "نموذج قاعدة البيانات (Database model)",
+        "نموذج الشبكة (Network model)"
+      ],
+      "en": [
+        "Physical model",
+        "Logical process model",
+        "Database model",
+        "Network model"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "النماذج المنطقية تصف العمليات دون اقتراح كيفية إجرائها، بينما النماذج المادية تتضمن معلومات التنفيذ.",
+      "en": "Logical process models describe processes without suggesting how they are conducted, whereas physical models include implementation info."
+    },
+    "hint": {
+      "ar": "هذا النموذج يركز على 'ماذا' وليس 'كيف'.",
+      "en": "This model focuses on 'what' rather than 'how'."
+    },
+    "difficulty": "medium",
+    "conceptId": "logical-vs-physical-models"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي العناصر الثلاثة التي تسمح مسارات العمل (Workflows) بتقديم المتطلبات الأساسية بناءً عليها؟",
+      "en": "What are the three elements that workflows allow you to present key requirements based on?"
+    },
+    "options": {
+      "ar": [
+        "الأجهزة، البرمجيات، الشبكات",
+        "المدخلات، العمليات، المخرجات",
+        "الكيانات، العلاقات، السمات",
+        "التخطيط، التحليل، التصميم"
+      ],
+      "en": [
+        "Hardware, Software, Networks",
+        "Inputs, Processes, Outputs",
+        "Entities, Relationships, Attributes",
+        "Planning, Analysis, Design"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مسارات العمل تقدم المتطلبات بناءً على المدخلات (Inputs)، العمليات (Processes)، والمخرجات (Outputs).",
+      "en": "Workflows present requirements based on Inputs, Processes, and Outputs."
+    },
+    "hint": {
+      "ar": "فكر في دورة حياة معالجة البيانات الأساسية.",
+      "en": "Think of the basic data processing lifecycle."
+    },
+    "difficulty": "easy",
+    "conceptId": "workflows-and-data-requirements"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "حسب الوحدة، ما هي اللغة الضرورية لفهم متطلبات البيانات ورسم خرائط لها؟",
+      "en": "According to the module, what language is necessary for understanding data requirements and mapping them?"
+    },
+    "options": {
+      "ar": [
+        "HTML",
+        "SQL",
+        "UML (لغة النمذجة الموحدة)",
+        "Java"
+      ],
+      "en": [
+        "HTML",
+        "SQL",
+        "UML (Unified Modeling Language)",
+        "Java"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الشريحة 7 تنص صراحة على أن فهم متطلبات البيانات ورسم خرائط لها باستخدام UML هو أمر ضروري.",
+      "en": "Slide 7 explicitly states that understanding data requirements and mapping this using UML is necessary."
+    },
+    "hint": {
+      "ar": "هي لغة نمذجة وليست لغة برمجة.",
+      "en": "It is a modeling language, not a programming language."
+    },
+    "difficulty": "medium",
+    "conceptId": "workflows-and-data-requirements"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في مخططات تدفق البيانات (DFD)، أي عنصر يجب أن يكون اسمه عبارة فعلية (Verb phrase)؟",
+      "en": "In Data Flow Diagrams (DFD), which element must be named with a verb phrase?"
+    },
+    "options": {
+      "ar": [
+        "مخزن البيانات (Data store)",
+        "الكيان الخارجي (External entity)",
+        "تدفق البيانات (Data flow)",
+        "العملية (Process)"
+      ],
+      "en": [
+        "Data store",
+        "External entity",
+        "Data flow",
+        "Process"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "العملية (Process) هي العنصر الوحيد الذي يسمى بعبارة فعلية لأنه يمثل نشاطاً، بينما تسمى العناصر الأخرى بأسماء (Nouns).",
+      "en": "The Process is the only element named with a verb phrase because it represents an activity, while others are named with nouns."
+    },
+    "hint": {
+      "ar": "الفعل يدل على حدث أو نشاط.",
+      "en": "A verb indicates an action or activity."
+    },
+    "difficulty": "medium",
+    "conceptId": "dfd-elements"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو المصطلح الذي يصف عملية نمذجة النظام ومكوناته بمستويات متزايدة من التفصيل؟",
+      "en": "What term describes the process of modeling the system and its components in increasing levels of detail?"
+    },
+    "options": {
+      "ar": [
+        "الموازنة (Balancing)",
+        "التحلل (Decomposition)",
+        "التكامل (Integration)",
+        "التوثيق (Documentation)"
+      ],
+      "en": [
+        "Balancing",
+        "Decomposition",
+        "Integration",
+        "Documentation"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التحلل (Decomposition) هو عملية تفكيك النظام إلى مستويات أكثر تفصيلاً.",
+      "en": "Decomposition is the process of breaking down the system into more detailed levels."
+    },
+    "hint": {
+      "ar": "يعني 'تفكيك' الشيء إلى أجزاء أصغر.",
+      "en": "It means breaking something down into smaller parts."
+    },
+    "difficulty": "easy",
+    "conceptId": "decomposition-and-balancing"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هو الغرض من 'الموازنة' (Balancing) في مخططات تدفق البيانات؟",
+      "en": "What is the purpose of 'Balancing' in Data Flow Diagrams?"
+    },
+    "options": {
+      "ar": [
+        "التأكد من أن تكلفة النظام لا تتجاوز الميزانية.",
+        "ضمان أن المعلومات في مستوى واحد ممثلة بدقة في المستوى التالي.",
+        "موازنة الحمل على خوادم قاعدة البيانات.",
+        "التأكد من أن عدد العمليات يساوي عدد مخازن البيانات."
+      ],
+      "en": [
+        "Ensuring the system cost does not exceed the budget.",
+        "Insuring that information presented at one level is accurately represented in the next level.",
+        "Load balancing on database servers.",
+        "Ensuring the number of processes equals the number of data stores."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الموازنة تضمن اتساق البيانات (المدخلات والمخرجات) عند الانتقال من مستوى DFD إلى مستوى أكثر تفصيلاً.",
+      "en": "Balancing ensures data consistency (inputs and outputs) when moving from one DFD level to a more detailed one."
+    },
+    "hint": {
+      "ar": "يتعلق الأمر بالاتساق بين مستويات المخطط.",
+      "en": "It is about consistency between diagram levels."
+    },
+    "difficulty": "medium",
+    "conceptId": "decomposition-and-balancing"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "أي من العناصر التالية يمثل مصدراً أو وجهة للبيانات خارج النظام في DFD؟",
+      "en": "Which of the following elements represents a source or destination of data outside the system in a DFD?"
+    },
+    "options": {
+      "ar": [
+        "العملية (Process)",
+        "مخزن البيانات (Data store)",
+        "الكيان الخارجي (External entity)",
+        "تدفق البيانات (Data flow)"
+      ],
+      "en": [
+        "Process",
+        "Data store",
+        "External entity",
+        "Data flow"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الكيان الخارجي (External entity) يمثل الأشخاص أو الأنظمة الخارجية التي تتفاعل مع النظام.",
+      "en": "An External entity represents people or outside systems that interact with the system."
+    },
+    "hint": {
+      "ar": "كلمة 'خارج النظام' هي المفتاح.",
+      "en": "The word 'outside the system' is the key."
+    },
+    "difficulty": "easy",
+    "conceptId": "dfd-elements"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما الذي يميز النموذج المادي (Physical model) عن النموذج المنطقي؟",
+      "en": "What distinguishes a Physical model from a Logical model?"
+    },
+    "options": {
+      "ar": [
+        "النموذج المادي لا يستخدم في تحليل النظم.",
+        "النموذج المادي يتضمن معلومات حول كيفية تنفيذ العمليات.",
+        "النموذج المادي يركز فقط على متطلبات الأعمال.",
+        "النموذج المادي لا يحتوي على عمليات أو تدفق بيانات."
+      ],
+      "en": [
+        "The physical model is not used in systems analysis.",
+        "The physical model includes information about how the processes are implemented.",
+        "The physical model focuses only on business requirements.",
+        "The physical model does not contain processes or data flows."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "النماذج المادية تتضمن معلومات حول كيفية تنفيذ العمليات (التكنولوجيا، الأجهزة، البرمجيات).",
+      "en": "Physical models include information about how the processes are implemented (technology, hardware, software)."
+    },
+    "hint": {
+      "ar": "النموذج المادي يجيب على سؤال 'كيف؟'.",
+      "en": "The physical model answers the question 'How?'."
+    },
+    "difficulty": "medium",
+    "conceptId": "logical-vs-physical-models"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين النموذج المنطقي والمادي: تذكر دائماً أن المنطقي = 'ماذا' (What)، والمادي = 'كيف' (How). في الامتحان، إذا رأيت تفاصيل تقنية (مثل نوع قاعدة البيانات)، فهو نموذج مادي.</template>
+      <template class="content-en">Confusing Logical and Physical models: Always remember Logical = 'What', Physical = 'How'. In the exam, if you see technical details (like database type), it's a physical model.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين التحلل (Decomposition) والموازنة (Balancing): التحلل هو عملية 'التفكيك' لمستويات أعمق، بينما الموازنة هي 'التحقق' من أن المدخلات والمخرجات متطابقة بين هذه المستويات.</template>
+      <template class="content-en">Confusing Decomposition and Balancing: Decomposition is the act of 'breaking down' into deeper levels, while Balancing is 'verifying' that inputs and outputs match between these levels.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">قواعد تسمية DFD: العملية (Process) هي الوحيدة التي يجب أن تسمى بفعل (Verb phrase). جميع العناصر الأخرى (تدفق البيانات، مخزن البيانات، الكيان الخارجي) تسمى بأسماء (Nouns).</template>
+      <template class="content-en">DFD Naming Rules: The Process is the ONLY element that must be named with a verb phrase. All other elements (Data flow, Data store, External entity) are named with nouns.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في مسارات العمل (Workflows)، البرنامج لا يكتفي بنقل البيانات، بل يعالجها (Processes) لتحويلها من بيانات خام (Data) إلى معلومات مفيدة (Information).</template>
+      <template class="content-en">In Workflows, software doesn't just move data; it processes it to transform raw data into useful information.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">UML (لغة النمذجة الموحدة) هي الأداة القياسية المذكورة في الوحدة لرسم خرائط متطلبات البيانات وفهمها.</template>
+      <template class="content-en">UML (Unified Modeling Language) is the standard tool mentioned in the module for mapping and understanding data requirements.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M07.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M09.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS231" data-module="6">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المنطق التوافقي · CS231 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS231" data-page-title-en="CS231">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M05.html" data-gh-next="M07.html" data-gh-card="../../hub/course.html?code=CS231"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#combinational-circuits" class="toc-link" data-bilingual>
+        <template class="content-ar">الدوائر التوافقية</template>
+        <template class="content-en">Combinational Circuits</template>
+        <span class="content-target">الدوائر التوافقية</span>
+      </a>
+      <a href="#analysis-procedure" class="toc-link" data-bilingual>
+        <template class="content-ar">إجراءات التحليل</template>
+        <template class="content-en">Analysis Procedure</template>
+        <span class="content-target">إجراءات التحليل</span>
+      </a>
+      <a href="#design-procedure" class="toc-link" data-bilingual>
+        <template class="content-ar">إجراءات التصميم</template>
+        <template class="content-en">Design Procedure</template>
+        <span class="content-target">إجراءات التصميم</span>
+      </a>
+      <a href="#code-conversion" class="toc-link" data-bilingual>
+        <template class="content-ar">تحويل الأكواد (مثال: BCD إلى Excess-3)</template>
+        <template class="content-en">Code Conversion (BCD to Excess-3)</template>
+        <span class="content-target">تحويل الأكواد (مثال: BCD إلى Excess-3)</span>
+      </a>
+      <a href="#binary-adder-subtractor" class="toc-link" data-bilingual>
+        <template class="content-ar">الجامع-الطرح الثنائي (نصف الجامع والجامع الكامل)</template>
+        <template class="content-en">Binary Adder-Subtractor (Half & Full Adder)</template>
+        <span class="content-target">الجامع-الطرح الثنائي (نصف الجامع والجامع الكامل)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS231
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">المنطق التوافقي</h1>
+      <p class="hero-description">مقدمة في الدوائر التوافقية، إجراءات التحليل والتصميم، تحويل الأكواد، والجامعات الثنائية (نصف الجامع والجامع الكامل).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Combinational Logic</h1>
+      <p class="hero-description">Introduction to combinational circuits, analysis and design procedures, code conversion, and binary adders (Half Adder and Full Adder).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الدوائر التوافقية</span>
+      <span class="tag">التصميم المنطقي</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Combinational Circuits</span>
+      <span class="tag">Logic Design</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف الدوائر التوافقية وخصائصها.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل الدوائر التوافقية واستنتاج دوالها البولينية.</span></li>
+      <li><span class="obj-icon">✦</span><span>تصميم الدوائر التوافقية بناءً على المواصفات المطلوبة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل دائرة منطقية توافقية من خلال مخططها المنطقي.</span></li>
+      <li><span class="obj-icon">✦</span><span>تصميم الجامع والطرح الثنائي (نصف الجامع).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe Combinational Circuits.</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze Combinational Circuits.</span></li>
+      <li><span class="obj-icon">✦</span><span>Design Combinational Circuits.</span></li>
+      <li><span class="obj-icon">✦</span><span>Given its logic diagram, know how to analyze a combinational logic circuit.</span></li>
+      <li><span class="obj-icon">✦</span><span>Design Binary Adder-Subtractor (Half-adder).</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="combinational-circuits" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الدوائر التوافقية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Combinational Circuits</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>دوائر منطقية تعتمد مخرجاتها فقط على المدخلات الحالية، مثل آلة حاسبة بسيطة لا تتذكر العمليات السابقة.</p></template>
+    <template class="content-en"><p>Logic circuits whose outputs depend ONLY on the present combination of inputs, like a simple calculator with no memory.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتكون الدائرة التوافقية من بوابات منطقية تتفاعل مع قيم الإشارات عند مدخلاتها لإنتاج قيمة إشارة المخرج، مما يحول المعلومات الثنائية من بيانات الإدخال المعطاة إلى بيانات الإخراج المطلوبة.</p><p>لا تحتوي هذه الدوائر على <span class="smart-term" data-term-en="Feedback Path" data-ar="مسار التغذية الراجعة" data-en-def="A connection from the output of one gate to the input of a second gate whose output forms part of the input to the first gate.">مسارات تغذية راجعة</span> (Feedback paths) أو عناصر ذاكرة.</p><p>بالنسبة لـ n من متغيرات الإدخال، هناك 2^n من المجموعات الممكنة، ويمكن تحديد الدائرة باستخدام جدول الحقيقة أو m من الدوال البولينية.</p></template>
+    <template class="content-en"><p>A combinational circuit consists of logic gates whose outputs at any time are determined from only the present combination of inputs.</p><p>It performs an operation that can be specified logically by a set of Boolean functions.</p><p>It has no <span class="smart-term" data-term-en="Feedback Path" data-ar="مسار التغذية الراجعة" data-en-def="A connection from the output of one gate to the input of a second gate whose output forms part of the input to the first gate.">feedback paths</span> or memory elements.</p><p>For n input variables, there are 2^n possible combinations, and the circuit can be specified with a truth table or m Boolean functions.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الغياب التام ل<span class="smart-term" data-term-en="Feedback Path" data-ar="مسار التغذية الراجعة" data-en-def="A connection from the output of one gate to the input of a second gate whose output forms part of the input to the first gate.">مسارات التغذية الراجعة</span> هو ما يميز الدوائر التوافقية عن الدوائر التتابعية.</p><p>في الواقع المادي، توجد الإشارات كإشارات تناظرية، ولكن يتم تفسيرها كإشارات ثنائية (0 و 1).</p><p>أجهزة المحاكاة المنطقية تظهر فقط الأصفار والآحاد ولا تظهر الإشارات التناظرية الفعلية.</p></template>
+    <template class="content-en"><p>The strict absence of <span class="smart-term" data-term-en="Feedback Path" data-ar="مسار التغذية الراجعة" data-en-def="A connection from the output of one gate to the input of a second gate whose output forms part of the input to the first gate.">feedback paths</span> is what distinguishes combinational circuits from sequential ones.</p><p>Physically, inputs and outputs exist as analog signals, but they are interpreted as binary logic 1 and 0.</p><p>Logic simulators abstract this away, showing only 0s and 1s.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد المجموعات الممكنة لـ n من متغيرات الإدخال.</strong></template>
+      <template class="content-en"><strong>Number of possible combinations for n input variables.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$2^n$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A block diagram showing a central rectangle labeled 'Combinational circuit'. On the left, n arrows pointing into the box labeled 'n inputs'. On the right, m arrows pointing out of the box labeled 'm outputs'. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="var(--text-primary)" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+  <!-- Title -->
+  <text x="400" y="50" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Combinational Circuit Block Diagram</text>
+  <text x="400" y="80" font-size="20" fill="var(--text-secondary)" text-anchor="middle">المخطط الصندوقي العام للدائرة التوافقية</text>
+
+  <!-- Central Box -->
+  <rect x="280" y="130" width="240" height="160" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)"/>
+  <text x="400" y="195" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Combinational</text>
+  <text x="400" y="225" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Circuit</text>
+  <text x="400" y="260" font-size="18" fill="var(--text-secondary)" text-anchor="middle">دائرة توافقية</text>
+
+  <!-- Inputs Section -->
+  <g stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)">
+    <line x1="140" y1="160" x2="270" y2="160"/>
+    <line x1="140" y1="190" x2="270" y2="190"/>
+    <line x1="140" y1="260" x2="270" y2="260"/>
+  </g>
+  
+  <!-- Input Variable Labels -->
+  <text x="205" y="152" font-size="15" fill="var(--text-muted)" text-anchor="middle" font-style="italic" font-weight="bold">x₁</text>
+  <text x="205" y="182" font-size="15" fill="var(--text-muted)" text-anchor="middle" font-style="italic" font-weight="bold">x₂</text>
+  <text x="205" y="252" font-size="15" fill="var(--text-muted)" text-anchor="middle" font-style="italic" font-weight="bold">xₙ</text>
+
+  <!-- Input Dots -->
+  <circle cx="205" cy="215" r="2.5" fill="var(--brand-400)"/>
+  <circle cx="205" cy="225" r="2.5" fill="var(--brand-400)"/>
+  <circle cx="205" cy="235" r="2.5" fill="var(--brand-400)"/>
+
+  <!-- Input Main Labels -->
+  <text x="70" y="205" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">n inputs</text>
+  <text x="70" y="235" font-size="18" fill="var(--text-secondary)" text-anchor="middle">n مدخلات</text>
+
+  <!-- Outputs Section -->
+  <g stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)">
+    <line x1="520" y1="160" x2="650" y2="160"/>
+    <line x1="520" y1="190" x2="650" y2="190"/>
+    <line x1="520" y1="260" x2="650" y2="260"/>
+  </g>
+
+  <!-- Output Variable Labels -->
+  <text x="585" y="152" font-size="15" fill="var(--text-muted)" text-anchor="middle" font-style="italic" font-weight="bold">y₁</text>
+  <text x="585" y="182" font-size="15" fill="var(--text-muted)" text-anchor="middle" font-style="italic" font-weight="bold">y₂</text>
+  <text x="585" y="252" font-size="15" fill="var(--text-muted)" text-anchor="middle" font-style="italic" font-weight="bold">yₘ</text>
+
+  <!-- Output Dots -->
+  <circle cx="585" cy="215" r="2.5" fill="var(--brand-400)"/>
+  <circle cx="585" cy="225" r="2.5" fill="var(--brand-400)"/>
+  <circle cx="585" cy="235" r="2.5" fill="var(--brand-400)"/>
+
+  <!-- Output Main Labels -->
+  <text x="730" y="205" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">m outputs</text>
+  <text x="730" y="235" font-size="18" fill="var(--text-secondary)" text-anchor="middle">m مخرجات</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th data-bilingual>
+          <template class="content-ar">الدوائر التوافقية</template>
+          <template class="content-en">Combinational Circuits</template>
+          <span class="content-target"></span>
+        </th>
+        <th data-bilingual>
+          <template class="content-ar">الدوائر التتابعية</template>
+          <template class="content-en">Sequential Circuits</template>
+          <span class="content-target"></span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاعتمادية على المدخلات</template>
+          <template class="content-en">Input Dependency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تعتمد على المدخلات الحالية فقط</template>
+          <template class="content-en">Depends ONLY on present inputs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تعتمد على المدخلات الحالية والحالة السابقة</template>
+          <template class="content-en">Depends on present inputs AND past state</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مسارات التغذية الراجعة</template>
+          <template class="content-en">Feedback Paths</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا توجد</template>
+          <template class="content-en">None</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">موجودة</template>
+          <template class="content-en">Present</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">عناصر الذاكرة</template>
+          <template class="content-en">Memory Elements</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا تحتوي على ذاكرة</template>
+          <template class="content-en">No memory</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تحتوي على ذاكرة</template>
+          <template class="content-en">Contains memory</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن استخدام الدوائر التوافقية لبناء عداد (Counter)؟</template>
+      <template class="content-en">Why can't combinational circuits be used to build a counter?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن العداد يحتاج إلى تذكر حالته السابقة لزيادة القيمة، والدوائر التوافقية لا تحتوي على ذاكرة أو مسارات تغذية راجعة.</p></template>
+      <template class="content-en"><p>Because a counter needs to remember its previous state to increment it, and combinational circuits lack memory or feedback paths.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="analysis-procedure" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> إجراءات التحليل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Analysis Procedure</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>عملية هندسة عكسية تبدأ من المخطط المنطقي للوصول إلى الدوال البولينية وجدول الحقيقة لفهم وظيفة الدائرة.</p></template>
+    <template class="content-en"><p>A reverse-engineering process starting from a logic diagram to derive Boolean functions and truth tables to understand the circuit's behavior.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الخطوة الأولى في التحليل هي التأكد من أن الدائرة توافقية وليست تتابعية (لا توجد مسارات تغذية راجعة). ثم يتم اتباع الخطوات التالية:</p><ol><li>تسمية جميع مخرجات البوابات التي تعتمد على المدخلات بأسماء ذات معنى وإيجاد دوالها.</li><li>تسمية البوابات التي تعتمد على المدخلات والبوابات السابقة وإيجاد دوالها.</li><li>تكرار العملية حتى يتم الحصول على مخرجات الدائرة النهائية.</li><li>التعويض المتكرر للحصول على دوال المخرجات بدلالة متغيرات الإدخال فقط.</li></ol></template>
+    <template class="content-en"><p>The first step is to ensure the circuit is combinational (no feedback paths). Then:</p><ol><li>Label all gate outputs that are a function of input variables.</li><li>Label gates that are a function of inputs and previously labeled gates.</li><li>Repeat until circuit outputs are obtained.</li><li>By repeated substitution, obtain output Boolean functions in terms of input variables.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>مجرد إيجاد الدالة البولينية لا يوفر دائمًا رؤية واضحة لسلوك الدائرة، لذا يُفضل استنتاج جدول الحقيقة مباشرة من المخطط المنطقي عن طريق تقييم المخرجات لكل مجموعة ممكنة من المدخلات.</p></template>
+    <template class="content-en"><p>Merely finding a Boolean representation doesn't always provide insight into behavior.</p><p>Obtaining the truth table directly from the logic diagram by evaluating outputs for all 2^n input combinations gives a complete behavioral map.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا اكتشفت مسار تغذية راجعة أثناء الخطوة الأولى من التحليل؟</template>
+      <template class="content-en">What happens if you discover a feedback path during the first step of analysis?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يجب التوقف عن استخدام إجراءات تحليل الدوائر التوافقية، لأن الدائرة في هذه الحالة هي دائرة تتابعية تتطلب طرق تحليل مختلفة.</p></template>
+      <template class="content-en"><p>You must stop using combinational analysis procedures, as the circuit is sequential and requires different analysis methods involving state tables.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="design-procedure" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> إجراءات التصميم</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Design Procedure</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحويل المواصفات المطلوبة إلى مخطط منطقي فعلي ينجز المهمة.</p></template>
+    <template class="content-en"><p>Transforming required specifications into an actual logic diagram that performs the task.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يبدأ تصميم الدوائر التوافقية من تحديد الهدف وينتهي بمخطط الدائرة المنطقية. الخطوات هي:</p><ol><li>من المواصفات، حدد عدد المدخلات والمخرجات المطلوبة وقم بتعيين رمز لكل منها.</li><li>استنتج جدول الحقيقة الذي يحدد العلاقة المطلوبة بين المدخلات والمخرجات.</li><li>احصل على الدوال البولينية المبسطة لكل مخرج بدلالة متغيرات الإدخال.</li><li>ارسم المخطط المنطقي وتحقق من صحة التصميم (يدويًا أو بالمحاكاة).</li></ol></template>
+    <template class="content-en"><p>The design starts from specifications and culminates in a logic diagram. Steps:</p><ol><li>Determine required number of inputs and outputs and assign symbols.</li><li>Derive the truth table defining the relationship.</li><li>Obtain simplified Boolean functions for each output.</li><li>Draw the logic diagram and verify correctness.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الخطوة الثالثة (التبسيط) حاسمة لتقليل تكلفة الأجهزة (Hardware cost).</p><p>استخدام خرائط كارنوف (K-maps) أو الطرق الجبرية يضمن استخدام أقل عدد ممكن من البوابات المنطقية.</p></template>
+    <template class="content-en"><p>Step 3 (simplification) is critical for minimizing hardware cost.</p><p>Utilizing K-maps or algebraic methods ensures the logic diagram uses the minimum number of gates and literals.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نعتبر خطوة التحقق (Verification) ضرورية في نهاية التصميم؟</template>
+      <template class="content-en">Why is the verification step essential at the end of the design?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لضمان أن التبسيط الجبري أو رسم البوابات لم يغير الوظيفة الأصلية المحددة في جدول الحقيقة.</p></template>
+      <template class="content-en"><p>To ensure that algebraic simplification or gate drawing did not alter the original functionality specified in the truth table.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="code-conversion" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> تحويل الأكواد (مثال: BCD إلى Excess-3)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Code Conversion (BCD to Excess-3)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>دائرة تترجم البيانات من لغة ثنائية (مثل BCD) إلى لغة ثنائية أخرى (مثل Excess-3).</p></template>
+    <template class="content-en"><p>A circuit that translates data from one binary code (like BCD) to another (like Excess-3).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>للتحويل من كود ثنائي A إلى كود ثنائي B، يجب أن توفر خطوط الإدخال تركيبة البتات للكود A وتولد خطوط الإخراج تركيبة البتات للكود B.</p><p>في مثال تحويل BCD إلى Excess-3، نستخدم 4 متغيرات إدخال (A, B, C, D) و 4 متغيرات إخراج (w, x, y, z).</p><p>نظرًا لأن BCD يستخدم فقط الأرقام من 0 إلى 9، فإن الحالات الست المتبقية (10 إلى 15) تعتبر <span class="smart-term" data-term-en="Don't-care condition" data-ar="حالة عدم الاكتراث" data-en-def="Input combinations that will never occur in normal operation, allowing designers to assign them either 0 or 1 to simplify logic.">حالات عدم اكتراث</span> (Don't-care conditions).</p></template>
+    <template class="content-en"><p>To convert from code A to code B, input lines supply the bit combination of code A, and output lines generate code B.</p><p>In the BCD to Excess-3 example, there are 4 inputs (A, B, C, D) and 4 outputs (w, x, y, z).</p><p>Since BCD only represents decimal digits 0-9, the remaining 6 combinations (10-15) are <span class="smart-term" data-term-en="Don't-care condition" data-ar="حالة عدم الاكتراث" data-en-def="Input combinations that will never occur in normal operation, allowing designers to assign them either 0 or 1 to simplify logic.">don't-care conditions</span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام <span class="smart-term" data-term-en="Don't-care condition" data-ar="حالة عدم الاكتراث" data-en-def="Input combinations that will never occur in normal operation, allowing designers to assign them either 0 or 1 to simplify logic.">حالات عدم الاكتراث</span> (X) في خرائط كارنوف يسمح بتبسيط الدوال البولينية بشكل كبير، حيث يمكن افتراض قيمتها 1 أو 0 بما يخدم تكوين مجموعات أكبر في الخريطة، مما يقلل من عدد البوابات المطلوبة.</p></template>
+    <template class="content-en"><p>Leveraging <span class="smart-term" data-term-en="Don't-care condition" data-ar="حالة عدم الاكتراث" data-en-def="Input combinations that will never occur in normal operation, allowing designers to assign them either 0 or 1 to simplify logic.">don't-care conditions</span> (X) in K-maps allows for significant simplification of the Boolean functions.</p><p>By treating X as 1 or 0 strategically, larger groupings can be formed, reducing the final gate count.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Four 4-variable K-maps side by side for outputs z, y, x, w. Show inputs A, B, C, D. Fill cells 10-15 with 'X' (don't cares). Highlight groupings that lead to the simplified equations: z = D', y = CD + C'D', x = B'C + B'D + BC'D', w = A + BC + BD. Style: educational, dark background #0d1117, accent colors for groupings, viewBox 0 0 1000 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 1200 420" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+  <!-- Title -->
+  <text x="600" y="40" font-size="24" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">BCD to Excess-3 Logic Simplification / تبسيط المنطق لـ BCD إلى Excess-3</text>
+  <text x="600" y="65" font-size="16" text-anchor="middle" fill="var(--text-secondary)">K-Maps for outputs w, x, y, z (Cells 10-15 are Don't Cares 'X')</text>
+
+  <defs>
+    <!-- Reusable K-Map Grid -->
+    <g id="kmap-grid">
+      <!-- Main Grid Border -->
+      <rect x="45" y="45" width="180" height="180" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      
+      <!-- Vertical Lines -->
+      <line x1="90" y1="45" x2="90" y2="225" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="135" y1="45" x2="135" y2="225" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="180" y1="45" x2="180" y2="225" stroke="var(--border-color)" stroke-width="1"/>
+      
+      <!-- Horizontal Lines -->
+      <line x1="45" y1="90" x2="225" y2="90" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="45" y1="135" x2="225" y2="135" stroke="var(--border-color)" stroke-width="1"/>
+      <line x1="45" y1="180" x2="225" y2="180" stroke="var(--border-color)" stroke-width="1"/>
+      
+      <!-- Top-Left Label Cell -->
+      <rect x="0" y="0" width="45" height="45" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="0" y1="0" x2="45" y2="45" stroke="var(--border-color)" stroke-width="1"/>
+      <text x="12" y="35" font-size="13" font-weight="bold" fill="var(--text-secondary)">AB</text>
+      <text x="32" y="15" font-size="13" font-weight="bold" fill="var(--text-secondary)">CD</text>
+      
+      <!-- Column Labels (CD) -->
+      <text x="67.5" y="30" font-size="14" text-anchor="middle" fill="var(--text-secondary)">00</text>
+      <text x="112.5" y="30" font-size="14" text-anchor="middle" fill="var(--text-secondary)">01</text>
+      <text x="157.5" y="30" font-size="14" text-anchor="middle" fill="var(--text-secondary)">11</text>
+      <text x="202.5" y="30" font-size="14" text-anchor="middle" fill="var(--text-secondary)">10</text>
+      
+      <!-- Row Labels (AB) -->
+      <text x="22.5" y="72.5" font-size="14" text-anchor="middle" dominant-baseline="central" fill="var(--text-secondary)">00</text>
+      <text x="22.5" y="117.5" font-size="14" text-anchor="middle" dominant-baseline="central" fill="var(--text-secondary)">01</text>
+      <text x="22.5" y="162.5" font-size="14" text-anchor="middle" dominant-baseline="central" fill="var(--text-secondary)">11</text>
+      <text x="22.5" y="207.5" font-size="14" text-anchor="middle" dominant-baseline="central" fill="var(--text-secondary)">10</text>
+    </g>
+  </defs>
+
+  <!-- ========================================== -->
+  <!-- MAP 1: Output w                            -->
+  <!-- ========================================== -->
+  <g transform="translate(60, 100)">
+    <!-- Title -->
+    <text x="135" y="-10" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">w = A + BC + BD</text>
+    
+    <!-- Grid -->
+    <use href="#kmap-grid" x="0" y="0"/>
+    
+    <!-- Groupings -->
+    <!-- Group A (Bottom 8 cells) -->
+    <rect x="50" y="140" width="170" height="80" rx="15" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+    <!-- Group BC (4 cells) -->
+    <rect x="140" y="95" width="80" height="80" rx="15" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2"/>
+    <!-- Group BD (4 cells) -->
+    <rect x="95" y="95" width="80" height="80" rx="15" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="2 4"/>
+
+    <!-- Group Labels -->
+    <text x="135" y="240" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">A</text>
+    <text x="230" y="120" font-size="14" font-weight="bold" text-anchor="start" fill="var(--brand-500)">BC</text>
+    <text x="230" y="150" font-size="14" font-weight="bold" text-anchor="start" fill="var(--brand-500)">BD</text>
+
+    <!-- Cell Values -->
+    <g font-size="18" text-anchor="middle" dominant-baseline="central">
+      <!-- Row 00 -->
+      <text x="67.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="112.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="202.5" y="67.5" fill="var(--text-muted)">0</text>
+      <!-- Row 01 -->
+      <text x="67.5" y="112.5" fill="var(--text-muted)">0</text>
+      <text x="112.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="157.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="202.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <!-- Row 11 -->
+      <text x="67.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="112.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="157.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <!-- Row 10 -->
+      <text x="67.5" y="202.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="202.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="157.5" y="202.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="202.5" fill="var(--text-secondary)">X</text>
+    </g>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- MAP 2: Output x                            -->
+  <!-- ========================================== -->
+  <g transform="translate(345, 100)">
+    <!-- Title -->
+    <text x="135" y="-10" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">x = B'C + B'D + BC'D'</text>
+    
+    <!-- Grid -->
+    <use href="#kmap-grid" x="0" y="0"/>
+    
+    <!-- Groupings -->
+    <!-- Group B'C (Wraps top/bottom, cols 2,3) -->
+    <rect x="140" y="40" width="80" height="45" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+    <rect x="140" y="185" width="80" height="45" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+    <!-- Group B'D (Wraps top/bottom, cols 1,2) -->
+    <rect x="95" y="40" width="80" height="45" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2"/>
+    <rect x="95" y="185" width="80" height="45" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 2"/>
+    <!-- Group BC'D' (Col 0, rows 1,2) -->
+    <rect x="50" y="95" width="35" height="80" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+
+    <!-- Group Labels -->
+    <text x="230" y="60" font-size="14" font-weight="bold" text-anchor="start" fill="var(--brand-500)">B'C</text>
+    <text x="230" y="210" font-size="14" font-weight="bold" text-anchor="start" fill="var(--brand-500)">B'D</text>
+    <text x="40" y="140" font-size="14" font-weight="bold" text-anchor="end" fill="var(--brand-500)">BC'D'</text>
+
+    <!-- Cell Values -->
+    <g font-size="18" text-anchor="middle" dominant-baseline="central">
+      <!-- Row 00 -->
+      <text x="67.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="112.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="157.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="202.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <!-- Row 01 -->
+      <text x="67.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="112.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="112.5" fill="var(--text-muted)">0</text>
+      <text x="202.5" y="112.5" fill="var(--text-muted)">0</text>
+      <!-- Row 11 -->
+      <text x="67.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="112.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="157.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <!-- Row 10 -->
+      <text x="67.5" y="202.5" fill="var(--text-muted)">0</text>
+      <text x="112.5" y="202.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="157.5" y="202.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="202.5" fill="var(--text-secondary)">X</text>
+    </g>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- MAP 3: Output y                            -->
+  <!-- ========================================== -->
+  <g transform="translate(630, 100)">
+    <!-- Title -->
+    <text x="135" y="-10" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">y = CD + C'D'</text>
+    
+    <!-- Grid -->
+    <use href="#kmap-grid" x="0" y="0"/>
+    
+    <!-- Groupings -->
+    <!-- Group CD (Col 2) -->
+    <rect x="140" y="50" width="35" height="170" rx="15" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+    <!-- Group C'D' (Col 0) -->
+    <rect x="50" y="50" width="35" height="170" rx="15" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+
+    <!-- Group Labels -->
+    <text x="157.5" y="240" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">CD</text>
+    <text x="67.5" y="240" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">C'D'</text>
+
+    <!-- Cell Values -->
+    <g font-size="18" text-anchor="middle" dominant-baseline="central">
+      <!-- Row 00 -->
+      <text x="67.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="202.5" y="67.5" fill="var(--text-muted)">0</text>
+      <!-- Row 01 -->
+      <text x="67.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="112.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="202.5" y="112.5" fill="var(--text-muted)">0</text>
+      <!-- Row 11 -->
+      <text x="67.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="112.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="157.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <!-- Row 10 -->
+      <text x="67.5" y="202.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="202.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="202.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="202.5" fill="var(--text-secondary)">X</text>
+    </g>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- MAP 4: Output z                            -->
+  <!-- ========================================== -->
+  <g transform="translate(915, 100)">
+    <!-- Title -->
+    <text x="135" y="-10" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">z = D'</text>
+    
+    <!-- Grid -->
+    <use href="#kmap-grid" x="0" y="0"/>
+    
+    <!-- Groupings -->
+    <!-- Group D' (Wraps left/right, cols 0, 3) -->
+    <rect x="40" y="50" width="45" height="170" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+    <rect x="185" y="50" width="45" height="170" rx="10" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2"/>
+
+    <!-- Group Labels -->
+    <text x="135" y="240" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">D'</text>
+
+    <!-- Cell Values -->
+    <g font-size="18" text-anchor="middle" dominant-baseline="central">
+      <!-- Row 00 -->
+      <text x="67.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="67.5" fill="var(--text-muted)">0</text>
+      <text x="202.5" y="67.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <!-- Row 01 -->
+      <text x="67.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="112.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="112.5" fill="var(--text-muted)">0</text>
+      <text x="202.5" y="112.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <!-- Row 11 -->
+      <text x="67.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="112.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="157.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="157.5" fill="var(--text-secondary)">X</text>
+      <!-- Row 10 -->
+      <text x="67.5" y="202.5" font-weight="bold" fill="var(--text-primary)">1</text>
+      <text x="112.5" y="202.5" fill="var(--text-muted)">0</text>
+      <text x="157.5" y="202.5" fill="var(--text-secondary)">X</text>
+      <text x="202.5" y="202.5" fill="var(--text-secondary)">X</text>
+    </g>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا سيحدث إذا اعتبرنا الحالات من 10 إلى 15 أصفارًا بدلاً من حالات عدم اكتراث؟</template>
+      <template class="content-en">What would happen if we treated combinations 10-15 as zeros instead of don't-cares?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستصبح الدوال البولينية أكثر تعقيدًا وستتطلب الدائرة بوابات منطقية أكثر، مما يزيد من التكلفة.</p></template>
+      <template class="content-en"><p>The Boolean functions would be more complex, requiring more logic gates and increasing hardware cost.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="binary-adder-subtractor" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الجامع-الطرح الثنائي (نصف الجامع والجامع الكامل)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Binary Adder-Subtractor (Half & Full Adder)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نصف الجامع يجمع بتين فقط، بينما الجامع الكامل يجمع ثلاثة بتات (بتين + حمل سابق).</p></template>
+    <template class="content-en"><p>A Half Adder adds two bits, while a Full Adder adds three bits (two bits + previous carry).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>العملية الحسابية الأساسية هي جمع رقمين ثنائيين.</p><p>الدائرة التوافقية التي تقوم بجمع بتين تسمى <span class="smart-term" data-term-en="Half Adder" data-ar="نصف الجامع" data-en-def="A combinational circuit that adds two bits and produces a sum and a carry.">نصف الجامع</span> (Half Adder). تحتاج إلى مدخلين (x, y) ومخرجين: المجموع (S) والحمل (C). المخرج C يكون 1 فقط عندما يكون كلا المدخلين 1.</p><p>الدائرة التي تجمع ثلاثة بتات (بتين أساسيين وحمل سابق) تسمى <span class="smart-term" data-term-en="Full Adder" data-ar="الجامع الكامل" data-en-def="A combinational circuit that adds three bits (two bits and a previous carry).">الجامع الكامل</span> (Full Adder).</p></template>
+    <template class="content-en"><p>The most basic arithmetic operation is the addition of two binary digits.</p><p>A combinational circuit that performs the addition of two bits is a <span class="smart-term" data-term-en="Half Adder" data-ar="نصف الجامع" data-en-def="A combinational circuit that adds two bits and produces a sum and a carry.">Half Adder</span>. It has two inputs (x, y) and two outputs: Sum (S) and Carry (C). C is 1 only when both inputs are 1.</p><p>A circuit that adds three bits (two significant bits and a previous carry) is a <span class="smart-term" data-term-en="Full Adder" data-ar="الجامع الكامل" data-en-def="A combinational circuit that adds three bits (two bits and a previous carry).">Full Adder</span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يمكن تنفيذ <span class="smart-term" data-term-en="Half Adder" data-ar="نصف الجامع" data-en-def="A combinational circuit that adds two bits and produces a sum and a carry.">نصف الجامع</span> باستخدام بوابة XOR للمجموع (S = x ⊕ y) وبوابة AND للحمل (C = xy).</p><p>هذا التنفيذ هو الأكثر كفاءة من حيث عدد البوابات مقارنة باستخدام بوابات AND و OR و NOT الأساسية.</p></template>
+    <template class="content-en"><p>The <span class="smart-term" data-term-en="Half Adder" data-ar="نصف الجامع" data-en-def="A combinational circuit that adds two bits and produces a sum and a carry.">Half Adder</span> can be efficiently implemented using an XOR gate for the Sum (S = x ⊕ y) and an AND gate for the Carry (C = xy).</p><p>This is much more hardware-efficient than using standard sum-of-products with AND/OR/NOT gates.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المعادلات البولينية لمخرجات نصف الجامع.</strong></template>
+      <template class="content-en"><strong>Boolean equations for the Half Adder outputs.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$S = x \oplus y, \quad C = xy$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Logic diagram of a Half Adder. Two inputs x and y. They split and go into an XOR gate (output labeled S) and an AND gate (output labeled C). Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 600 300, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Connection Dot Marker -->
+    <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+      <circle cx="5" cy="5" r="3" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <g text-anchor="middle">
+    <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)">Half Adder Logic Diagram</text>
+    <text x="400" y="65" font-size="18" fill="var(--text-secondary)">مخطط منطقي للجامع النصفي</text>
+  </g>
+
+  <!-- Wires and Connections -->
+  <g fill="none" stroke="var(--brand-500)" stroke-width="3">
+    <!-- Input X to XOR -->
+    <path d="M 90 130 L 348 130" />
+    <!-- Input Y to AND -->
+    <path d="M 90 270 L 360 270" />
+    
+    <!-- Branch X to AND -->
+    <path d="M 150 130 L 150 230 L 360 230" />
+    <!-- Branch Y to XOR -->
+    <path d="M 250 270 L 250 170 L 348 170" />
+    
+    <!-- Outputs -->
+    <path d="M 450 150 L 530 150" marker-end="url(#arrow)" />
+    <path d="M 440 250 L 530 250" marker-end="url(#arrow)" />
+  </g>
+
+  <!-- Connection Dots -->
+  <circle cx="150" cy="130" r="5" fill="var(--brand-500)" />
+  <circle cx="250" cy="270" r="5" fill="var(--brand-500)" />
+
+  <!-- Logic Gates -->
+  <g stroke="var(--brand-500)" stroke-width="3">
+    <!-- XOR Gate -->
+    <!-- Isolated back curve -->
+    <path d="M 345 110 Q 365 150 345 190" fill="none" />
+    <!-- Main body -->
+    <path d="M 355 110 Q 375 150 355 190 Q 410 190 450 150 Q 410 110 355 110 Z" fill="var(--bg-elevated)" />
+    
+    <!-- AND Gate -->
+    <path d="M 360 210 L 400 210 A 40 40 0 0 1 400 290 L 360 290 Z" fill="var(--bg-elevated)" />
+  </g>
+
+  <!-- Gate Labels -->
+  <g text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">
+    <text x="395" y="155">XOR</text>
+    <text x="390" y="255">AND</text>
+  </g>
+
+  <!-- Input Labels -->
+  <g text-anchor="end">
+    <text x="80" y="125" font-size="20" font-weight="bold" fill="var(--brand-500)">X</text>
+    <text x="80" y="145" font-size="14" fill="var(--text-secondary)">Input 1 / المدخل 1</text>
+    
+    <text x="80" y="265" font-size="20" font-weight="bold" fill="var(--brand-500)">Y</text>
+    <text x="80" y="285" font-size="14" fill="var(--text-secondary)">Input 2 / المدخل 2</text>
+  </g>
+
+  <!-- Output Labels -->
+  <g text-anchor="start">
+    <text x="545" y="145" font-size="20" font-weight="bold" fill="var(--brand-500)">S</text>
+    <text x="545" y="165" font-size="14" fill="var(--text-secondary)">Sum / المجموع</text>
+    
+    <text x="545" y="245" font-size="20" font-weight="bold" fill="var(--brand-500)">C</text>
+    <text x="545" y="265" font-size="14" fill="var(--text-secondary)">Carry / المحمول</text>
+  </g>
+
+  <!-- Truth Table -->
+  <g>
+    <text x="695" y="105" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">Truth Table / جدول الحقيقة</text>
+    
+    <rect x="620" y="120" width="150" height="160" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Table Lines -->
+    <line x1="620" y1="155" x2="770" y2="155" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="695" y1="120" x2="695" y2="280" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Table Headers -->
+    <g text-anchor="middle" font-size="16" font-weight="bold" fill="var(--brand-500)">
+      <text x="645" y="145">X</text>
+      <text x="675" y="145">Y</text>
+      <text x="715" y="145">S</text>
+      <text x="745" y="145">C</text>
+    </g>
+    
+    <!-- Table Data -->
+    <g text-anchor="middle" font-size="15" fill="var(--text-primary)">
+      <!-- Row 1 -->
+      <text x="645" y="180">0</text>
+      <text x="675" y="180">0</text>
+      <text x="715" y="180">0</text>
+      <text x="745" y="180">0</text>
+      
+      <!-- Row 2 -->
+      <text x="645" y="210">0</text>
+      <text x="675" y="210">1</text>
+      <text x="715" y="210">1</text>
+      <text x="745" y="210">0</text>
+      
+      <!-- Row 3 -->
+      <text x="645" y="240">1</text>
+      <text x="675" y="240">0</text>
+      <text x="715" y="240">1</text>
+      <text x="745" y="240">0</text>
+      
+      <!-- Row 4 -->
+      <text x="645" y="270">1</text>
+      <text x="675" y="270">1</text>
+      <text x="715" y="270">0</text>
+      <text x="745" y="270">1</text>
+    </g>
+  </g>
+
+  <!-- Boolean Equations -->
+  <g>
+    <rect x="250" y="330" width="300" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="325" y="362" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--text-primary)">S = X ⊕ Y</text>
+    <text x="475" y="362" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--text-primary)">C = X · Y</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكننا بناء آلة حاسبة لجمع أرقام من 8 بت باستخدام أنصاف الجامعات فقط؟</template>
+      <template class="content-en">Why can't we build an 8-bit calculator using only Half Adders?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن نصف الجامع لا يمتلك مدخلاً لاستقبال الحمل (Carry-in) من الخانة السابقة، وهو أمر ضروري عند جمع أرقام متعددة البتات.</p></template>
+      <template class="content-en"><p>Because a Half Adder lacks a carry-in input to receive the carry from the previous lower-order bit addition, which is necessary for multi-bit addition.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في وحدة المنطق التوافقي. هذه الوحدة هي حجر الأساس لكل ما سنبنيه لاحقاً. تخيلوا الدائرة التوافقية كآلة حاسبة بسيطة: تعطيها أرقاماً، تعطيك النتيجة فوراً، ولا تتذكر ما فعلته في العملية السابقة. السر هنا هو 'لا توجد تغذية راجعة'. في الامتحان، ركزوا جيداً على التمييز بين التحليل (حيث نعطيك الرسمة ونطلب المعادلة) والتصميم (حيث نعطيك الفكرة ونطلب الرسمة). لا تنسوا خطوات التصميم الأربع: المدخلات/المخرجات، جدول الحقيقة، التبسيط (وهنا تبرز أهمية حالات عدم الاكتراث كما رأينا في BCD)، وأخيراً الرسم. وأخيراً، الجامعات الثنائية: نصف الجامع هو صديقكم البسيط ببوابتي XOR و AND، لكن تذكروا أنه لا يكفي لجمع أرقام كبيرة لأنه يفتقر لمدخل الحمل السابق، وهنا يأتي دور الجامع الكامل. راجعوا هذه المفاهيم جيداً، فهي مضمونة في الاختبار!</template>
+    <template class="content-en">Welcome, future engineers, to Combinational Logic. This module is the bedrock of digital design. Think of a combinational circuit as a simple calculator: it processes current inputs instantly with zero memory of the past. The golden rule? 'No feedback paths'. For the exam, clearly distinguish between Analysis (we give the diagram, you find the equation) and Design (we give the spec, you draw the diagram). Master the 4 design steps: I/O definition, Truth Table, Simplification (don't-cares are your best friends here, like in BCD), and Logic Diagram. Finally, the adders: the Half Adder is elegant with its XOR and AND gates, but remember its fatal flaw—no carry-in. That's why we need Full Adders for real arithmetic. Review these core concepts; they are guaranteed exam points!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الشرط الأساسي لتصنيف الدائرة على أنها توافقية؟</template>
+          <template class="content-en">What is the primary condition for a circuit to be classified as combinational?</template>
+          <span class="content-target">ما هو الشرط الأساسي لتصنيف الدائرة على أنها توافقية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يجب ألا تحتوي على أي مسارات تغذية راجعة (Feedback paths) أو عناصر ذاكرة. المخرجات تعتمد فقط على المدخلات الحالية.</template>
+          <template class="content-en">It must not contain any feedback paths or memory elements. Outputs depend strictly on present inputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الخطوة الأولى والأهم قبل البدء في تحليل أي دائرة منطقية؟</template>
+          <template class="content-en">What is the first and most important step before analyzing any logic circuit?</template>
+          <span class="content-target">ما هي الخطوة الأولى والأهم قبل البدء في تحليل أي دائرة منطقية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التأكد من أن الدائرة توافقية وليست تتابعية من خلال فحص المخطط للتأكد من عدم وجود تغذية راجعة.</template>
+          <template class="content-en">Verify that the circuit is combinational and not sequential by checking the diagram for the absence of feedback paths.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم التعويض المتكرر في إجراء التحليل؟</template>
+          <template class="content-en">Why do we use repeated substitution in the analysis procedure?</template>
+          <span class="content-target">لماذا نستخدم التعويض المتكرر في إجراء التحليل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">للتخلص من المتغيرات الوسيطة (مخرجات البوابات الداخلية) والتعبير عن المخرج النهائي بدلالة المدخلات الأصلية فقط.</template>
+          <template class="content-en">To eliminate intermediate variables (internal gate outputs) and express the final output solely in terms of the original input variables.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الخطوات الأربع لتصميم دائرة توافقية؟</template>
+          <template class="content-en">What are the four steps to design a combinational circuit?</template>
+          <span class="content-target">ما هي الخطوات الأربع لتصميم دائرة توافقية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">1. تحديد المدخلات والمخرجات. 2. استنتاج جدول الحقيقة. 3. الحصول على الدوال البولينية المبسطة. 4. رسم المخطط المنطقي.</template>
+          <template class="content-en">1. Determine inputs/outputs. 2. Derive truth table. 3. Obtain simplified Boolean functions. 4. Draw logic diagram.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في مثال تحويل BCD إلى Excess-3، لماذا نستخدم حالات عدم الاكتراث (Don't-cares)؟</template>
+          <template class="content-en">In the BCD to Excess-3 example, why do we use don't-care conditions?</template>
+          <span class="content-target">في مثال تحويل BCD إلى Excess-3، لماذا نستخدم حالات عدم الاكتراث (Don't-cares)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن كود BCD يستخدم فقط الأرقام من 0 إلى 9. الحالات من 10 إلى 15 لن تحدث أبداً، لذا نستخدمها كحالات عدم اكتراث لتبسيط الدوال البولينية وتقليل البوابات.</template>
+          <template class="content-en">Because BCD only uses digits 0-9. Combinations 10-15 will never occur, so we use them as don't-cares to simplify the Boolean functions and reduce gate count.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو نصف الجامع (Half Adder)؟</template>
+          <template class="content-en">What is a Half Adder?</template>
+          <span class="content-target">ما هو نصف الجامع (Half Adder)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">دائرة توافقية تجمع بتين ثنائيين وتنتج مخرجين: المجموع (Sum) والحمل (Carry).</template>
+          <template class="content-en">A combinational circuit that adds two binary bits and produces two outputs: Sum and Carry.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم تنفيذ دالة المجموع (Sum) في نصف الجامع بأكثر الطرق كفاءة؟</template>
+          <template class="content-en">How is the Sum function in a Half Adder most efficiently implemented?</template>
+          <span class="content-target">كيف يتم تنفيذ دالة المجموع (Sum) في نصف الجامع بأكثر الطرق كفاءة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام بوابة XOR واحدة (S = x ⊕ y).</template>
+          <template class="content-en">Using a single XOR gate (S = x ⊕ y).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم تنفيذ دالة الحمل (Carry) في نصف الجامع؟</template>
+          <template class="content-en">How is the Carry function in a Half Adder implemented?</template>
+          <span class="content-target">كيف يتم تنفيذ دالة الحمل (Carry) في نصف الجامع؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام بوابة AND واحدة (C = xy).</template>
+          <template class="content-en">Using a single AND gate (C = xy).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو العيب الرئيسي لنصف الجامع الذي يمنع استخدامه وحده لجمع أرقام كبيرة؟</template>
+          <template class="content-en">What is the main drawback of a Half Adder that prevents its sole use in adding large numbers?</template>
+          <span class="content-target">ما هو العيب الرئيسي لنصف الجامع الذي يمنع استخدامه وحده لجمع أرقام كبيرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا يحتوي على مدخل لاستقبال الحمل (Carry-in) من عملية الجمع السابقة.</template>
+          <template class="content-en">It lacks an input to receive a carry (Carry-in) from a previous addition stage.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الجامع الكامل (Full Adder)؟</template>
+          <template class="content-en">What is a Full Adder?</template>
+          <span class="content-target">ما هو الجامع الكامل (Full Adder)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">دائرة توافقية تجمع ثلاثة بتات: بتين أساسيين وحمل قادم من مرحلة سابقة.</template>
+          <template class="content-en">A combinational circuit that adds three bits: two significant bits and a carry from a previous stage.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي الدائرة التوافقية (Combinational Circuit)؟",
+      "en": "What is a Combinational Circuit?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دائرة منطقية تعتمد مخرجاتها في أي وقت على المدخلات الحالية فقط.",
+        "en": "A logic circuit whose outputs at any time are determined from only the present combination of inputs."
+      },
+      "example": {
+        "ar": "نصف الجامع (Half Adder).",
+        "en": "Half Adder."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما الذي يميز الدائرة التتابعية عن التوافقية؟",
+      "en": "What distinguishes a sequential circuit from a combinational one?"
+    },
+    "back": {
+      "definition": {
+        "ar": "وجود مسارات تغذية راجعة (Feedback paths) وعناصر ذاكرة.",
+        "en": "The presence of feedback paths and memory elements."
+      },
+      "example": {
+        "ar": "العدادات (Counters).",
+        "en": "Counters."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو مسار التغذية الراجعة (Feedback Path)؟",
+      "en": "What is a Feedback Path?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اتصال من مخرج بوابة إلى مدخل بوابة أخرى يشكل مخرجها جزءًا من مدخل البوابة الأولى.",
+        "en": "A connection from the output of one gate to the input of a second gate whose output forms part of the input to the first gate."
+      },
+      "example": {
+        "ar": "موجود في الدوائر التتابعية.",
+        "en": "Found in sequential circuits."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "كم عدد المجموعات الممكنة لـ n من متغيرات الإدخال؟",
+      "en": "How many possible combinations exist for n input variables?"
+    },
+    "back": {
+      "definition": {
+        "ar": "2^n مجموعة.",
+        "en": "2^n combinations."
+      },
+      "example": {
+        "ar": "لـ 4 مدخلات، يوجد 16 مجموعة.",
+        "en": "For 4 inputs, there are 16 combinations."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي الخطوة الأولى في إجراء تحليل الدوائر التوافقية؟",
+      "en": "What is the first step in the Analysis Procedure of combinational circuits?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التأكد من أن الدائرة توافقية وليست تتابعية (لا توجد مسارات تغذية راجعة).",
+        "en": "Make sure that the given circuit is combinational and not sequential (no feedback paths)."
+      },
+      "example": {
+        "ar": "فحص المخطط بحثًا عن أي خط يعود من المخرج إلى المدخل.",
+        "en": "Checking the diagram for any line returning from output to input."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي الخطوة الأولى في إجراء تصميم الدوائر التوافقية؟",
+      "en": "What is the first step in the Design Procedure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحديد عدد المدخلات والمخرجات المطلوبة وتعيين رمز لكل منها من المواصفات.",
+        "en": "Determine the required number of inputs and outputs and assign a symbol to each from the specifications."
+      },
+      "example": {
+        "ar": "في محول BCD، تحديد 4 مدخلات و 4 مخرجات.",
+        "en": "In a BCD converter, identifying 4 inputs and 4 outputs."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كم عدد المدخلات والمخرجات في محول BCD إلى Excess-3؟",
+      "en": "How many inputs and outputs are in a BCD to Excess-3 converter?"
+    },
+    "back": {
+      "definition": {
+        "ar": "4 متغيرات إدخال و 4 متغيرات إخراج.",
+        "en": "Four input variables and four output variables."
+      },
+      "example": {
+        "ar": "المدخلات A,B,C,D والمخرجات w,x,y,z.",
+        "en": "Inputs A,B,C,D and outputs w,x,y,z."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي الحالات غير المستخدمة في كود BCD؟",
+      "en": "What are the unused combinations in BCD code?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعات الست من 10 إلى 15، وتعتبر حالات عدم اكتراث (Don't-cares).",
+        "en": "The six bit combinations from 10 to 15, treated as don't-care combinations."
+      },
+      "example": {
+        "ar": "1010, 1011, 1100, 1101, 1110, 1111.",
+        "en": "1010, 1011, 1100, 1101, 1110, 1111."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو نصف الجامع (Half Adder)؟",
+      "en": "What is a Half Adder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دائرة توافقية تقوم بجمع بتين ثنائيين وتنتج مجموعًا وحملاً.",
+        "en": "A combinational circuit that performs the addition of two bits, producing a sum and a carry."
+      },
+      "example": {
+        "ar": "جمع 1 + 1 يعطي المجموع 0 والحمل 1.",
+        "en": "Adding 1 + 1 gives Sum 0 and Carry 1."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو الجامع الكامل (Full Adder)؟",
+      "en": "What is a Full Adder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دائرة توافقية تقوم بجمع ثلاثة بتات (بتين أساسيين وحمل سابق).",
+        "en": "A combinational circuit that performs the addition of three bits (two significant bits and a previous carry)."
+      },
+      "example": {
+        "ar": "يستخدم في جمع الأرقام متعددة البتات.",
+        "en": "Used in multi-bit addition."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي الدالة البولينية لمجموع (Sum) نصف الجامع؟",
+      "en": "What is the Boolean function for the Sum (S) of a Half Adder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "S = x'y + xy' (والتي تكافئ x ⊕ y).",
+        "en": "S = x'y + xy' (which is equivalent to x ⊕ y)."
+      },
+      "example": {
+        "ar": "تنفذ باستخدام بوابة XOR.",
+        "en": "Implemented using an XOR gate."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي الدالة البولينية لحمل (Carry) نصف الجامع؟",
+      "en": "What is the Boolean function for the Carry (C) of a Half Adder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "C = xy",
+        "en": "C = xy"
+      },
+      "example": {
+        "ar": "تنفذ باستخدام بوابة AND.",
+        "en": "Implemented using an AND gate."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف تظهر الإشارات في أجهزة المحاكاة المنطقية مقارنة بالواقع؟",
+      "en": "How do signals appear in logic simulators compared to reality?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تظهر كأصفار وآحاد (0 و 1) فقط، بينما في الواقع هي إشارات تناظرية.",
+        "en": "They show only 0s and 1s, whereas physically they exist as analog signals."
+      },
+      "example": {
+        "ar": "5 فولت تمثل 1، و 0 فولت تمثل 0.",
+        "en": "5V represents 1, 0V represents 0."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو الهدف من استنتاج جدول الحقيقة أثناء التحليل؟",
+      "en": "What is the purpose of obtaining the truth table during analysis?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لتفسير وفهم عملية وسلوك الدائرة بشكل كامل.",
+        "en": "To interpret and fully understand the operation and behavior of the circuit."
+      },
+      "example": {
+        "ar": "رؤية المخرجات لكل حالة إدخال ممكنة.",
+        "en": "Seeing outputs for every possible input state."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي الخطوة التي تسبق رسم المخطط المنطقي في إجراء التصميم؟",
+      "en": "What step precedes drawing the logic diagram in the design procedure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الحصول على الدوال البولينية المبسطة لكل مخرج.",
+        "en": "Obtaining the simplified Boolean functions for each output."
+      },
+      "example": {
+        "ar": "استخدام خرائط كارنوف للتبسيط.",
+        "en": "Using K-maps for simplification."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي مما يلي يصف الدائرة التوافقية بشكل صحيح؟",
+      "en": "Which of the following correctly describes a combinational circuit?"
+    },
+    "options": {
+      "ar": [
+        "تعتمد مخرجاتها على المدخلات الحالية فقط.",
+        "تحتوي على عناصر ذاكرة.",
+        "تعتمد مخرجاتها على المدخلات الحالية والسابقة.",
+        "تحتوي على مسارات تغذية راجعة."
+      ],
+      "en": [
+        "Its outputs depend only on the present combination of inputs.",
+        "It contains memory elements.",
+        "Its outputs depend on present and past inputs.",
+        "It contains feedback paths."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الدوائر التوافقية لا تحتوي على ذاكرة أو تغذية راجعة، وتعتمد فقط على المدخلات الحالية.",
+      "en": "Combinational circuits have no memory or feedback and depend solely on present inputs."
+    },
+    "hint": {
+      "ar": "تذكر كلمة 'حالية'.",
+      "en": "Remember the word 'present'."
+    },
+    "difficulty": "easy",
+    "conceptId": "combinational-circuits"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هي الخطوة الأولى في تحليل الدائرة المنطقية؟",
+      "en": "What is the first step in analyzing a logic circuit?"
+    },
+    "options": {
+      "ar": [
+        "رسم جدول الحقيقة.",
+        "التأكد من أن الدائرة توافقية وليست تتابعية.",
+        "تبسيط الدوال البولينية.",
+        "تسمية البوابات."
+      ],
+      "en": [
+        "Drawing the truth table.",
+        "Making sure the circuit is combinational and not sequential.",
+        "Simplifying Boolean functions.",
+        "Labeling the gates."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يجب التأكد من عدم وجود مسارات تغذية راجعة قبل تطبيق إجراءات التحليل التوافقي.",
+      "en": "You must ensure there are no feedback paths before applying combinational analysis procedures."
+    },
+    "hint": {
+      "ar": "ابحث عن التغذية الراجعة أولاً.",
+      "en": "Look for feedback first."
+    },
+    "difficulty": "medium",
+    "conceptId": "analysis-procedure"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في تصميم الدوائر التوافقية، ماذا نفعل بعد تحديد المدخلات والمخرجات؟",
+      "en": "In combinational circuit design, what do we do after determining inputs and outputs?"
+    },
+    "options": {
+      "ar": [
+        "نرسم المخطط المنطقي.",
+        "نستنتج جدول الحقيقة.",
+        "نبسط الدوال البولينية.",
+        "نختبر الدائرة."
+      ],
+      "en": [
+        "Draw the logic diagram.",
+        "Derive the truth table.",
+        "Simplify Boolean functions.",
+        "Test the circuit."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بعد تحديد المدخلات والمخرجات، يجب استنتاج جدول الحقيقة الذي يحدد العلاقة بينهما.",
+      "en": "After defining inputs and outputs, you must derive the truth table that defines their relationship."
+    },
+    "hint": {
+      "ar": "نحتاج إلى خريطة للسلوك قبل كتابة المعادلات.",
+      "en": "We need a map of behavior before writing equations."
+    },
+    "difficulty": "medium",
+    "conceptId": "design-procedure"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كم عدد حالات عدم الاكتراث (Don't-cares) عند تحويل BCD إلى Excess-3؟",
+      "en": "How many don't-care conditions are there when converting BCD to Excess-3?"
+    },
+    "options": {
+      "ar": [
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "en": [
+        "4",
+        "6",
+        "8",
+        "10"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "BCD يستخدم 10 حالات (0-9) من أصل 16 حالة ممكنة لـ 4 بت، مما يترك 6 حالات غير مستخدمة.",
+      "en": "BCD uses 10 combinations (0-9) out of 16 possible for 4 bits, leaving 6 unused combinations."
+    },
+    "hint": {
+      "ar": "16 ناقص 10.",
+      "en": "16 minus 10."
+    },
+    "difficulty": "medium",
+    "conceptId": "code-conversion"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي مخرجات نصف الجامع (Half Adder)؟",
+      "en": "What are the outputs of a Half Adder?"
+    },
+    "options": {
+      "ar": [
+        "المجموع فقط",
+        "الحمل فقط",
+        "المجموع والحمل",
+        "المجموع والفرق"
+      ],
+      "en": [
+        "Sum only",
+        "Carry only",
+        "Sum and Carry",
+        "Sum and Difference"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "نصف الجامع يجمع بتين وينتج المجموع (Sum) والحمل (Carry).",
+      "en": "A Half Adder adds two bits and produces a Sum and a Carry."
+    },
+    "hint": {
+      "ar": "S و C.",
+      "en": "S and C."
+    },
+    "difficulty": "easy",
+    "conceptId": "binary-adder-subtractor"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي بوابة منطقية تستخدم لتنفيذ دالة المجموع (Sum) في نصف الجامع بشكل مثالي؟",
+      "en": "Which logic gate is ideally used to implement the Sum function in a Half Adder?"
+    },
+    "options": {
+      "ar": [
+        "AND",
+        "OR",
+        "XOR",
+        "NAND"
+      ],
+      "en": [
+        "AND",
+        "OR",
+        "XOR",
+        "NAND"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "دالة المجموع هي S = x'y + xy' والتي تكافئ بوابة XOR.",
+      "en": "The sum function is S = x'y + xy', which is equivalent to an XOR gate."
+    },
+    "hint": {
+      "ar": "تكون 1 عندما يكون المدخلان مختلفين.",
+      "en": "It is 1 when inputs are different."
+    },
+    "difficulty": "medium",
+    "conceptId": "binary-adder-subtractor"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو الفرق الرئيسي بين نصف الجامع والجامع الكامل؟",
+      "en": "What is the main difference between a Half Adder and a Full Adder?"
+    },
+    "options": {
+      "ar": [
+        "نصف الجامع يجمع 3 بتات، والجامع الكامل يجمع 4 بتات.",
+        "نصف الجامع يجمع بتين، والجامع الكامل يجمع 3 بتات.",
+        "الجامع الكامل لا ينتج حملاً (Carry).",
+        "نصف الجامع يحتوي على ذاكرة."
+      ],
+      "en": [
+        "Half Adder adds 3 bits, Full Adder adds 4 bits.",
+        "Half Adder adds 2 bits, Full Adder adds 3 bits.",
+        "Full Adder does not produce a carry.",
+        "Half Adder contains memory."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الجامع الكامل يضيف مدخلاً ثالثًا للحمل السابق (Carry-in).",
+      "en": "A Full Adder adds a third input for the previous carry (Carry-in)."
+    },
+    "hint": {
+      "ar": "الجامع الكامل يتعامل مع الحمل القادم من الخانة السابقة.",
+      "en": "Full adder handles the carry from the previous stage."
+    },
+    "difficulty": "easy",
+    "conceptId": "binary-adder-subtractor"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي الدالة البولينية لحمل (Carry) نصف الجامع؟",
+      "en": "What is the Boolean function for the Carry of a Half Adder?"
+    },
+    "options": {
+      "ar": [
+        "C = x + y",
+        "C = x ⊕ y",
+        "C = xy",
+        "C = x'y'"
+      ],
+      "en": [
+        "C = x + y",
+        "C = x ⊕ y",
+        "C = xy",
+        "C = x'y'"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الحمل يكون 1 فقط عندما يكون كلا المدخلين 1، وهو ما يمثل بوابة AND (C = xy).",
+      "en": "Carry is 1 only when both inputs are 1, which represents an AND gate (C = xy)."
+    },
+    "hint": {
+      "ar": "الضرب المنطقي.",
+      "en": "Logical multiplication."
+    },
+    "difficulty": "easy",
+    "conceptId": "binary-adder-subtractor"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما الذي يحدد الدائرة التتابعية (Sequential Circuit)؟",
+      "en": "What defines a sequential circuit?"
+    },
+    "options": {
+      "ar": [
+        "استخدام بوابات AND فقط.",
+        "وجود مسارات تغذية راجعة.",
+        "عدم وجود ذاكرة.",
+        "الاعتماد على المدخلات الحالية فقط."
+      ],
+      "en": [
+        "Using only AND gates.",
+        "The presence of feedback paths.",
+        "Lack of memory.",
+        "Depending only on present inputs."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مسارات التغذية الراجعة وعناصر الذاكرة هي ما يميز الدوائر التتابعية.",
+      "en": "Feedback paths and memory elements are what distinguish sequential circuits."
+    },
+    "hint": {
+      "ar": "المخرجات تعود لتصبح مدخلات.",
+      "en": "Outputs loop back to become inputs."
+    },
+    "difficulty": "easy",
+    "conceptId": "combinational-circuits"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في إجراء التحليل، لماذا نقوم بالتعويض المتكرر (Repeated substitution)؟",
+      "en": "In the analysis procedure, why do we perform repeated substitution?"
+    },
+    "options": {
+      "ar": [
+        "للحصول على دوال المخرجات بدلالة متغيرات الإدخال فقط.",
+        "لإزالة حالات عدم الاكتراث.",
+        "لتحويل الدائرة إلى دائرة تتابعية.",
+        "لرسم خريطة كارنوف."
+      ],
+      "en": [
+        "To obtain output functions in terms of input variables only.",
+        "To remove don't-care conditions.",
+        "To convert the circuit to a sequential one.",
+        "To draw a K-map."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "التعويض المتكرر يسمح لنا بالتخلص من المتغيرات الوسيطة والتعبير عن المخرج النهائي بناءً على المدخلات الأصلية فقط.",
+      "en": "Repeated substitution allows us to eliminate intermediate variables and express the final output solely based on original inputs."
+    },
+    "hint": {
+      "ar": "نريد ربط النهاية بالبداية مباشرة.",
+      "en": "We want to link the end directly to the beginning."
+    },
+    "difficulty": "medium",
+    "conceptId": "analysis-procedure"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الدوائر التوافقية لا تمتلك ذاكرة. مخرجاتها هي انعكاس فوري لمدخلاتها الحالية. غياب مسارات التغذية الراجعة هو الشرط الأساسي.</template>
+      <template class="content-en">Combinational circuits have no memory. Their outputs are an immediate reflection of their current inputs. The absence of feedback paths is the absolute prerequisite.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين نصف الجامع والجامع الكامل. تذكر: نصف الجامع يجمع بتين (بدون حمل سابق)، الجامع الكامل يجمع ثلاثة بتات (يتضمن الحمل السابق).</template>
+      <template class="content-en">Confusing Half Adder with Full Adder. Remember: Half Adder adds 2 bits (no carry-in), Full Adder adds 3 bits (includes carry-in).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في تحويل الأكواد (مثل BCD)، حالات عدم الاكتراث (Don't-cares) ليست مجرد مساحات فارغة، بل هي أداة قوية لتبسيط الدائرة وتقليل التكلفة بشكل كبير عند استخدام خرائط كارنوف.</template>
+      <template class="content-en">In code conversion (like BCD), don't-care conditions aren't just empty spaces; they are a powerful tool to drastically simplify the circuit and reduce hardware cost using K-maps.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">البدء في تحليل دائرة دون التحقق أولاً مما إذا كانت تحتوي على تغذية راجعة. إذا كان هناك تغذية راجعة، فإن طرق التحليل التوافقي ستفشل.</template>
+      <template class="content-en">Starting to analyze a circuit without first checking for feedback paths. If feedback exists, combinational analysis methods will fail.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M05.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M07.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

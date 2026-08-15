@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS243" data-module="5">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الاحتمالات المتقطعة · CS243 · الحديقة الرقمية</title>
+
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <!-- garden-fontpath -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-arabic-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fonts/garden/cairo-latin-400-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../shared/vendor/fontawesome/webfonts/fa-solid-900.woff2">
+  <link rel="stylesheet" href="../../shared/vendor/fonts/garden/garden-core.css">
+  <!-- /garden-fontpath -->
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" data-src="../../shared/vendor/mathjax/tex-mml-chtml.js"></script>
+
+
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS243" data-page-title-en="CS243">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M04.html" data-gh-next="M06.html" data-gh-card="../../hub/course.html?code=CS243"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#laplace-probability" class="toc-link" data-bilingual>
+        <template class="content-ar">تعريف لابلاس للاحتمال</template>
+        <template class="content-en">Laplace's Definition of Probability</template>
+        <span class="content-target">تعريف لابلاس للاحتمال</span>
+      </a>
+      <a href="#complements-and-unions" class="toc-link" data-bilingual>
+        <template class="content-ar">احتمالات المتممات والاتحادات</template>
+        <template class="content-en">Probability of Complements and Unions</template>
+        <span class="content-target">احتمالات المتممات والاتحادات</span>
+      </a>
+      <a href="#conditional-probability" class="toc-link" data-bilingual>
+        <template class="content-ar">الاحتمال الشرطي والاستقلالية</template>
+        <template class="content-en">Conditional Probability and Independence</template>
+        <span class="content-target">الاحتمال الشرطي والاستقلالية</span>
+      </a>
+      <a href="#bernoulli-trials" class="toc-link" data-bilingual>
+        <template class="content-ar">تجارب برنولي والتوزيع ذو الحدين</template>
+        <template class="content-en">Bernoulli Trials and Binomial Distribution</template>
+        <span class="content-target">تجارب برنولي والتوزيع ذو الحدين</span>
+      </a>
+      <a href="#random-variables" class="toc-link" data-bilingual>
+        <template class="content-ar">المتغيرات العشوائية</template>
+        <template class="content-en">Random Variables</template>
+        <span class="content-target">المتغيرات العشوائية</span>
+      </a>
+      <a href="#bayes-theorem" class="toc-link" data-bilingual>
+        <template class="content-ar">نظرية بايز وتطبيقاتها</template>
+        <template class="content-en">Bayes' Theorem and Applications</template>
+        <span class="content-target">نظرية بايز وتطبيقاتها</span>
+      </a>
+      <a href="#expected-value" class="toc-link" data-bilingual>
+        <template class="content-ar">القيمة المتوقعة وخطية التوقعات</template>
+        <template class="content-en">Expected Value and Linearity of Expectations</template>
+        <span class="content-target">القيمة المتوقعة وخطية التوقعات</span>
+      </a>
+      <a href="#variance-chebyshev" class="toc-link" data-bilingual>
+        <template class="content-ar">التباين ومتباينة تشيبيشيف</template>
+        <template class="content-en">Variance and Chebyshev's Inequality</template>
+        <span class="content-target">التباين ومتباينة تشيبيشيف</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS243
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الاحتمالات المتقطعة</h1>
+      <p class="hero-description">مقدمة شاملة في الاحتمالات المتقطعة، تشمل نظرية الاحتمالات، نظرية بايز، القيمة المتوقعة، والتباين مع تطبيقات في علوم الحاسب.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Discrete Probability</h1>
+      <p class="hero-description">A comprehensive introduction to discrete probability, covering probability theory, Bayes' Theorem, expected value, and variance with applications in computer science.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الاحتمالات</span>
+      <span class="tag">نظرية بايز</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Probability</span>
+      <span class="tag">Bayes' Theorem</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تقديم الاحتمالات المتقطعة ومفاهيمها الأساسية.</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف نظرية الاحتمالات وتطبيقاتها في علوم الحاسب.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح مفاهيم نظرية بايز، القيمة المتوقعة، والتباين.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Introduce Discrete Probability and its concepts.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe probability theory and application of probability theory for computer science.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain the concepts of Bayes Theorem, Expected Value and Variance.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="laplace-probability" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> تعريف لابلاس للاحتمال</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Laplace's Definition of Probability</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الاحتمال هو نسبة النتائج المطلوبة إلى إجمالي النتائج الممكنة، بافتراض أن جميع النتائج متساوية الاحتمال.</p></template>
+    <template class="content-en"><p>Probability is the ratio of desired outcomes to total possible outcomes, assuming all are equally likely.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>قدم بيير سيمون لابلاس النظرية الكلاسيكية للاحتمالات.</p><p>إذا كان S <span class="smart-term" data-term-en="Sample Space" data-ar="فضاء العينة" data-en-def="The set of all possible outcomes of an experiment.">فضاء عينة</span> منتهٍ لنتائج متساوية الاحتمال، وكان E <span class="smart-term" data-term-en="Event" data-ar="الحدث" data-en-def="A subset of the sample space.">حدثاً</span> (مجموعة جزئية من S)، فإن احتمال E هو p(E) = |E|/|S|.</p><p>قيمة الاحتمال دائماً تتراوح بين 0 و 1.</p></template>
+    <template class="content-en"><p>Pierre-Simon Laplace introduced the classical theory of probability.</p><p>If S is a finite <span class="smart-term" data-term-en="Sample Space" data-ar="فضاء العينة" data-en-def="The set of all possible outcomes of an experiment.">sample space</span> of equally likely outcomes, and E is an <span class="smart-term" data-term-en="Event" data-ar="الحدث" data-en-def="A subset of the sample space.">event</span> (a subset of S), then the probability of E is p(E) = |E|/|S|.</p><p>The probability is always between 0 and 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذا التعريف مقيد بافتراض أن جميع النتائج متساوية الاحتمال (Uniform Distribution).</p><p>في الواقع، العديد من الأنظمة (مثل النرد المنحاز) تتطلب توزيعات احتمالية أكثر تعقيداً حيث يتم تعيين احتمالات مختلفة لكل نتيجة.</p></template>
+    <template class="content-en"><p>This definition is restricted by the assumption that all outcomes are equally likely (Uniform Distribution).</p><p>In reality, many systems (like a biased die) require more complex probability distributions where different probabilities are assigned to each outcome.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>احتمال الحدث E يساوي حجم E مقسوماً على حجم فضاء العينة S.</strong></template>
+      <template class="content-en"><strong>Probability of event E equals the size of E divided by the size of sample space S.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$p(E) = \frac{|E|}{|S|}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن أن يكون الاحتمال أكبر من 1؟</template>
+      <template class="content-en">Why can't a probability be greater than 1?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الحدث E هو مجموعة جزئية من فضاء العينة S، وبالتالي فإن حجم E لا يمكن أن يتجاوز حجم S. لذا فإن |E|/|S| أقصى قيمة له هي 1.</p></template>
+      <template class="content-en"><p>Because event E is a subset of sample space S, the size of E cannot exceed the size of S. Thus, |E|/|S| has a maximum value of 1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="complements-and-unions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> احتمالات المتممات والاتحادات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Probability of Complements and Unions</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>احتمال عدم حدوث شيء هو 1 ناقص احتمال حدوثه، واحتمال حدوث أحد حدثين يطرح التقاطع لتجنب العد المزدوج.</p></template>
+    <template class="content-en"><p>The probability of something NOT happening is 1 minus it happening, and the union of two events subtracts their intersection to avoid double counting.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>احتمال <span class="smart-term" data-term-en="Complementary Event" data-ar="الحدث المتمم" data-en-def="The event containing all outcomes in the sample space that are not in E.">الحدث المتمم</span> (عدم وقوع E) هو: p(Ē) = 1 - p(E).</p><p>بالنسبة لاتحاد حدثين E1 و E2، نستخدم مبدأ التضمين والاستبعاد: p(E1 ∪ E2) = p(E1) + p(E2) - p(E1 ∩ E2).</p><p>هذا يضمن عدم حساب النتائج المشتركة مرتين.</p></template>
+    <template class="content-en"><p>The probability of a <span class="smart-term" data-term-en="Complementary Event" data-ar="الحدث المتمم" data-en-def="The event containing all outcomes in the sample space that are not in E.">complementary event</span> (E not happening) is: p(Ē) = 1 - p(E).</p><p>For the union of two events E1 and E2, we use the inclusion-exclusion principle: p(E1 ∪ E2) = p(E1) + p(E2) - p(E1 ∩ E2).</p><p>This ensures shared outcomes are not counted twice.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه القواعد أساسية في حساب الاحتمالات المعقدة حيث يكون حساب المتمم أسهل بكثير من حساب الحدث نفسه (مثل حساب احتمال ظهور '0' واحد على الأقل في سلسلة بتات).</p></template>
+    <template class="content-en"><p>These rules are fundamental in calculating complex probabilities where computing the complement is much easier than the event itself (e.g., finding the probability of at least one '0' in a bit string).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>قاعدة الجمع للاحتمالات.</strong></template>
+      <template class="content-en"><strong>The addition rule for probabilities.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$p(E_1 \cup E_2) = p(E_1) + p(E_2) - p(E_1 \cap E_2)$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: A Venn diagram showing two intersecting circles E1 and E2 inside a rectangle S. The intersection E1 ∩ E2 is highlighted to show it would be counted twice if not subtracted. Dark background #0d1117, accent colors. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 550" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Arrow Marker for Labels -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Diagonal Hatch Pattern for Intersection -->
+        <pattern id="hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="var(--brand-500)" stroke-width="2" opacity="0.5" />
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Diagram Title -->
+    <text x="400" y="45" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Inclusion-Exclusion Principle</text>
+    <text x="400" y="75" font-size="18" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">مبدأ الشمول والاستبعاد</text>
+
+    <!-- Universal Set S -->
+    <rect x="50" y="110" width="700" height="300" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Universal Set Labels -->
+    <text x="120" y="145" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">S</text>
+    <text x="120" y="165" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Universal Set</text>
+    <text x="120" y="185" font-size="13" fill="var(--text-secondary)" text-anchor="middle">المجموعة الشاملة</text>
+
+    <!-- Circle E1 -->
+    <circle cx="300" cy="260" r="130" fill="var(--brand-500)" opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 4" />
+    
+    <!-- Circle E2 -->
+    <circle cx="500" cy="260" r="130" fill="var(--brand-500)" opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 4" />
+
+    <!-- Highlighted Intersection E1 ∩ E2 -->
+    <!-- Path traces the exact overlapping region of the two circles -->
+    <g>
+        <!-- Base subtle fill -->
+        <path d="M 400 176.94 A 130 130 0 0 0 400 343.06 A 130 130 0 0 0 400 176.94 Z" fill="var(--brand-500)" opacity="0.15" />
+        <!-- Hatch pattern for emphasis -->
+        <path d="M 400 176.94 A 130 130 0 0 0 400 343.06 A 130 130 0 0 0 400 176.94 Z" fill="url(#hatch)" />
+        <!-- Solid border for the intersection -->
+        <path d="M 400 176.94 A 130 130 0 0 0 400 343.06 A 130 130 0 0 0 400 176.94 Z" fill="none" stroke="var(--brand-500)" stroke-width="2.5" />
+    </g>
+
+    <!-- Set Labels -->
+    <text x="220" y="265" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">E<tspan baseline-shift="sub" font-size="16">1</tspan></text>
+    <text x="580" y="265" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">E<tspan baseline-shift="sub" font-size="16">2</tspan></text>
+
+    <!-- Intersection Callout -->
+    <line x1="400" y1="420" x2="400" y2="355" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="400" y="445" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">E<tspan baseline-shift="sub" font-size="13">1</tspan> ∩ E<tspan baseline-shift="sub" font-size="13">2</tspan></text>
+    <text x="400" y="465" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Counted twice / محسوب مرتين</text>
+
+    <!-- Formula at the bottom -->
+    <rect x="150" y="490" width="500" height="45" rx="8" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="400" y="520" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        |E<tspan baseline-shift="sub" font-size="14">1</tspan> ∪ E<tspan baseline-shift="sub" font-size="14">2</tspan>| = 
+        |E<tspan baseline-shift="sub" font-size="14">1</tspan>| + 
+        |E<tspan baseline-shift="sub" font-size="14">2</tspan>| - 
+        <tspan fill="var(--brand-500)">|E<tspan baseline-shift="sub" font-size="14">1</tspan> ∩ E<tspan baseline-shift="sub" font-size="14">2</tspan>|</tspan>
+    </text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون p(E1 ∪ E2) = p(E1) + p(E2) بالضبط؟</template>
+      <template class="content-en">When is p(E1 ∪ E2) exactly equal to p(E1) + p(E2)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عندما يكون الحدثان منفصلين (Disjoint)، أي لا يوجد تقاطع بينهما (p(E1 ∩ E2) = 0).</p></template>
+      <template class="content-en"><p>When the events are disjoint (mutually exclusive), meaning their intersection is empty (p(E1 ∩ E2) = 0).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="conditional-probability" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الاحتمال الشرطي والاستقلالية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Conditional Probability and Independence</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الاحتمال الشرطي هو احتمال وقوع حدث بناءً على معرفة أن حدثاً آخر قد وقع بالفعل.</p></template>
+    <template class="content-en"><p>Conditional probability is the likelihood of an event occurring given that another event has already occurred.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُعرّف الاحتمال الشرطي لـ E بشرط F بأنه: p(E|F) = p(E ∩ F) / p(F).</p><p>الحدثان E و F يعتبران <span class="smart-term" data-term-en="Independent Events" data-ar="الأحداث المستقلة" data-en-def="Events where the occurrence of one does not affect the probability of the other.">مستقلين</span> (Independent) إذا وفقط إذا كان p(E ∩ F) = p(E)p(F).</p><p>الاستقلالية تعني أن وقوع أحد الحدثين لا يؤثر على احتمال وقوع الآخر.</p></template>
+    <template class="content-en"><p>The conditional probability of E given F is defined as: p(E|F) = p(E ∩ F) / p(F).</p><p>Events E and F are <span class="smart-term" data-term-en="Independent Events" data-ar="الأحداث المستقلة" data-en-def="Events where the occurrence of one does not affect the probability of the other.">independent</span> if and only if p(E ∩ F) = p(E)p(F).</p><p>Independence means the occurrence of one event does not affect the probability of the other.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يجب التمييز بين الاستقلال المثنى (Pairwise) والاستقلال المتبادل (Mutually Independent).</p><p>الاستقلال المتبادل لعدة أحداث هو شرط أقوى يتطلب أن يكون تقاطع أي مجموعة فرعية من الأحداث مساوياً لحاصل ضرب احتمالاتها.</p></template>
+    <template class="content-en"><p>One must distinguish between pairwise independence and mutual independence.</p><p>Mutual independence of multiple events is a stronger condition requiring the intersection of any subset of events to equal the product of their probabilities.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>صيغة الاحتمال الشرطي.</strong></template>
+      <template class="content-en"><strong>Conditional probability formula.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$p(E|F) = \frac{p(E \cap F)}{p(F)}$$</div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Pairwise Independence</th><th>Mutual Independence</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعريف</template>
+          <template class="content-en">Definition</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كل زوج من الأحداث مستقل عن الآخر.</template>
+          <template class="content-en">Every pair of events is independent of each other.</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كل مجموعة فرعية من الأحداث مستقلة.</template>
+          <template class="content-en">Every subset of events is independent.</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">قوة الشرط</template>
+          <template class="content-en">Condition Strength</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">شرط أضعف.</template>
+          <template class="content-en">Weaker condition.</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">شرط أقوى (يتضمن الاستقلال المثنى).</template>
+          <template class="content-en">Stronger condition (implies pairwise).</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان حدثان متنافيين (Mutually Exclusive) وكلاهما له احتمال أكبر من الصفر، فهل يمكن أن يكونا مستقلين؟</template>
+      <template class="content-en">If two events are mutually exclusive and both have a probability > 0, can they be independent?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا. إذا كانا متنافيين فإن p(E ∩ F) = 0. لكي يكونا مستقلين يجب أن يكون p(E)p(F) = 0، وهذا مستحيل لأن كلاهما أكبر من الصفر.</p></template>
+      <template class="content-en"><p>No. If they are mutually exclusive, p(E ∩ F) = 0. For independence, p(E)p(F) must be 0, which is impossible since both are > 0.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="bernoulli-trials" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> تجارب برنولي والتوزيع ذو الحدين</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Bernoulli Trials and Binomial Distribution</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تجربة برنولي هي تجربة لها نتيجتان فقط: نجاح أو فشل (مثل رمي عملة معدنية).</p></template>
+    <template class="content-en"><p>A Bernoulli trial is an experiment with exactly two possible outcomes: success or failure (like flipping a coin).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>إذا كان احتمال النجاح p واحتمال الفشل q (حيث p+q=1)، فإن احتمال الحصول على k نجاح في n <span class="smart-term" data-term-en="Bernoulli Trial" data-ar="تجربة برنولي" data-en-def="An experiment with only two possible outcomes.">تجربة برنولي</span> مستقلة يُعطى بالتوزيع ذي الحدين: C(n,k) * p^k * q^(n-k).</p><p>يمثل C(n,k) عدد الطرق لاختيار k نجاح من n تجربة.</p></template>
+    <template class="content-en"><p>If the probability of success is p and failure is q (where p+q=1), the probability of exactly k successes in n independent <span class="smart-term" data-term-en="Bernoulli Trial" data-ar="تجربة برنولي" data-en-def="An experiment with only two possible outcomes.">Bernoulli trial</span>s is given by the binomial distribution: C(n,k) * p^k * q^(n-k).</p><p>C(n,k) represents the number of ways to choose k successes out of n trials.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التوزيع ذو الحدين أساسي في تحليل الخوارزميات العشوائية (Randomized Algorithms) وحساب احتمالات الأخطاء في نقل البيانات عبر الشبكات.</p></template>
+    <template class="content-en"><p>The binomial distribution is fundamental in analyzing randomized algorithms and calculating error probabilities in network data transmission.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>احتمال k نجاح في n تجربة.</strong></template>
+      <template class="content-en"><strong>Probability of k successes in n trials.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$b(k:n,p) = C(n,k)p^k q^{n-k}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو مجموع احتمالات جميع قيم k الممكنة (من 0 إلى n) في التوزيع ذي الحدين؟</template>
+      <template class="content-en">What is the sum of probabilities for all possible values of k (from 0 to n) in a binomial distribution?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>المجموع هو 1، بناءً على نظرية ذات الحدين: (p + q)^n = 1^n = 1.</p></template>
+      <template class="content-en"><p>The sum is 1, based on the Binomial Theorem: (p + q)^n = 1^n = 1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="random-variables" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> المتغيرات العشوائية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Random Variables</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المتغير العشوائي ليس متغيراً ولا عشوائياً؛ إنه دالة تربط كل نتيجة في فضاء العينة برقم حقيقي.</p></template>
+    <template class="content-en"><p>A random variable is neither random nor a variable; it is a function that maps each outcome in a sample space to a real number.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المتغير العشوائي X هو دالة من فضاء العينة S إلى مجموعة الأعداد الحقيقية.</p><p>توزيع المتغير العشوائي X هو مجموعة الأزواج (r, p(X=r)) لجميع القيم الممكنة r.</p><p>على سبيل المثال، إذا رمينا عملة 3 مرات، يمكن أن يكون X هو عدد مرات ظهور 'الصورة' (Heads)، وقيمه ستكون 0، 1، 2، أو 3.</p></template>
+    <template class="content-en"><p>A random variable X is a function from the sample space S to the set of real numbers.</p><p>The <span class="smart-term" data-term-en="Distribution" data-ar="التوزيع" data-en-def="The set of probabilities associated with each possible value of a random variable.">distribution</span> of X is the set of pairs (r, p(X=r)) for all possible values r.</p><p>For example, flipping a coin 3 times, X could be the number of Heads, taking values 0, 1, 2, or 3.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التسمية 'متغير عشوائي' مضللة تاريخياً (تم اختيارها في الأربعينيات).</p><p>فهمها كـ 'دالة حتمية' (Deterministic Function) تعمل على مدخلات عشوائية يزيل الكثير من اللبس في الإحصاء المتقدم.</p></template>
+    <template class="content-en"><p>The term 'random variable' is historically misleading (coined in the 1940s).</p><p>Understanding it as a deterministic function acting on random inputs clears up much confusion in advanced statistics.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المتغير العشوائي كدالة.</strong></template>
+      <template class="content-en"><strong>Random variable as a function.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$X: S \rightarrow \mathbb{R}$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: A mapping diagram showing a set S (Sample Space) with outcomes like HHH, HHT, TTT mapping via arrows (function X) to a set of Real Numbers (0, 1, 2, 3). -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Sets -->
+    <ellipse cx="200" cy="270" rx="140" ry="190" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <ellipse cx="600" cy="270" rx="140" ry="190" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+
+    <!-- Function Arrow (Top) -->
+    <path d="M 200,57 L 290,57" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" />
+    <path d="M 510,57 L 584,57" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+
+    <!-- Function Badge -->
+    <rect x="290" y="20" width="220" height="75" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="400" y="42" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Random Variable X</text>
+    <text x="400" y="62" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">(Number of Heads / عدد الصور)</text>
+    <text x="400" y="82" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--brand-500)" text-anchor="middle">المتغير العشوائي</text>
+
+    <!-- Range Box Background & Stroke -->
+    <rect x="530" y="175" width="110" height="250" rx="16" fill="var(--brand-500)" opacity="0.05" />
+    <rect x="530" y="175" width="110" height="250" rx="16" fill="none" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="6,4" />
+    <text x="585" y="445" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Range / المدى</text>
+
+    <!-- Mapping Arrows -->
+    <path d="M 255,180 C 400,180 400,195 542,195" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 255,240 C 400,240 400,265 542,265" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 255,300 C 400,300 400,265 542,265" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 255,360 C 400,360 400,335 542,335" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <path d="M 255,420 C 400,420 400,405 542,405" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Elements S -->
+    <text x="210" y="185" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">TTT</text>
+    <circle cx="250" cy="180" r="5" fill="var(--brand-500)" />
+
+    <text x="210" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">H</tspan>TT</text>
+    <circle cx="250" cy="240" r="5" fill="var(--brand-500)" />
+
+    <text x="210" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">T<tspan fill="var(--brand-500)">H</tspan>T</text>
+    <circle cx="250" cy="300" r="5" fill="var(--brand-500)" />
+
+    <text x="210" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">HH</tspan>T</text>
+    <circle cx="250" cy="360" r="5" fill="var(--brand-500)" />
+
+    <text x="210" y="425" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">HHH</tspan></text>
+    <circle cx="250" cy="420" r="5" fill="var(--brand-500)" />
+
+    <!-- Elements R -->
+    <circle cx="550" cy="195" r="5" fill="var(--brand-500)" />
+    <text x="590" y="201" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">0</text>
+
+    <circle cx="550" cy="265" r="5" fill="var(--brand-500)" />
+    <text x="590" y="271" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1</text>
+
+    <circle cx="550" cy="335" r="5" fill="var(--brand-500)" />
+    <text x="590" y="341" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2</text>
+
+    <circle cx="550" cy="405" r="5" fill="var(--brand-500)" />
+    <text x="590" y="411" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3</text>
+
+    <!-- Titles -->
+    <text x="200" y="110" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Sample Space (S)</text>
+    <text x="200" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">فضاء العينة</text>
+    <text x="200" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">(Domain / المجال)</text>
+
+    <text x="600" y="110" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Real Numbers (ℝ)</text>
+    <text x="600" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الأعداد الحقيقية</text>
+    <text x="600" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">(Codomain / المجال المقابل)</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم المتغيرات العشوائية بدلاً من التعامل مع فضاء العينة مباشرة؟</template>
+      <template class="content-en">Why use random variables instead of dealing with the sample space directly?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنها تحول النتائج المجردة (مثل 'صورة، كتابة') إلى أرقام، مما يسمح لنا بإجراء عمليات رياضية مثل حساب المتوسط (القيمة المتوقعة) والتباين.</p></template>
+      <template class="content-en"><p>Because they convert abstract outcomes (like 'Heads, Tails') into numbers, allowing us to perform mathematical operations like calculating the mean (expected value) and variance.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="bayes-theorem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> نظرية بايز وتطبيقاتها</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Bayes' Theorem and Applications</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تسمح لنا نظرية بايز بتحديث احتمالية فرضية معينة بناءً على أدلة جديدة (مثل تحديث احتمالية أن يكون الإيميل مزعجاً بناءً على الكلمات التي يحتويها).</p></template>
+    <template class="content-en"><p>Bayes' Theorem allows us to update the probability of a hypothesis based on new evidence (e.g., updating the probability an email is spam based on its words).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تنص نظرية بايز على أن: p(F|E) = [p(E|F)p(F)] / [p(E|F)p(F) + p(E|F̄)p(F̄)].</p><p>تُستخدم هذه النظرية بشكل واسع في تعلم الآلة، مثل <span class="smart-term" data-term-en="Bayesian Spam Filter" data-ar="فلتر بايز للبريد المزعج" data-en-def="A tool that uses Bayes' theorem to predict the probability that a new email message is spam based on word occurrences.">فلاتر البريد المزعج</span> (Bayesian Spam Filters)، حيث يتم حساب احتمالية أن تكون الرسالة مزعجة بناءً على وجود كلمات معينة فيها مقارنة بترددها في الرسائل العادية.</p></template>
+    <template class="content-en"><p>Bayes' Theorem states: p(F|E) = [p(E|F)p(F)] / [p(E|F)p(F) + p(E|F̄)p(F̄)].</p><p>It is widely used in machine learning, such as <span class="smart-term" data-term-en="Bayesian Spam Filter" data-ar="فلتر بايز للبريد المزعج" data-en-def="A tool that uses Bayes' theorem to predict the probability that a new email message is spam based on word occurrences.">Bayesian Spam Filters</span>, where the probability of a message being spam is calculated based on the presence of specific words compared to their frequency in non-spam messages.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>النسخة المعممة من نظرية بايز (Generalized Bayes' Theorem) تتعامل مع أحداث متنافية متعددة F1, F2, ..., Fn تشكل تقسيماً لفضاء العينة، مما يسمح بتصنيف البيانات إلى فئات متعددة وليس فقط فئتين.</p></template>
+    <template class="content-en"><p>The Generalized Bayes' Theorem deals with multiple mutually exclusive events F1, F2, ..., Fn that partition the sample space, allowing data classification into multiple categories, not just binary.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>نظرية بايز الأساسية.</strong></template>
+      <template class="content-en"><strong>Basic Bayes' Theorem.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$p(F|E) = \frac{p(E|F)p(F)}{p(E|F)p(F) + p(E|\overline{F})p(\overline{F})}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في الفحص الطبي، إذا كان الفحص دقيقاً بنسبة 99%، لماذا قد يكون احتمال إصابتك بالمرض منخفضاً جداً حتى لو كانت النتيجة إيجابية؟</template>
+      <template class="content-en">In a medical test with 99% accuracy, why might the probability of actually having the disease be very low even if you test positive?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>بسبب 'معدل الأساس' (Base Rate). إذا كان المرض نادراً جداً (مثلاً 1 في 100,000)، فإن عدد الإيجابيات الخاطئة سيفوق بكثير عدد الإيجابيات الحقيقية.</p></template>
+      <template class="content-en"><p>Because of the 'Base Rate'. If the disease is extremely rare (e.g., 1 in 100,000), the number of false positives will vastly outnumber the true positives.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="expected-value" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> القيمة المتوقعة وخطية التوقعات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Expected Value and Linearity of Expectations</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>القيمة المتوقعة هي المتوسط المرجح لجميع النتائج الممكنة لمتغير عشوائي.</p></template>
+    <template class="content-en"><p>The expected value is the weighted average of all possible outcomes of a random variable.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُحسب القيمة المتوقعة E(X) بجمع حاصل ضرب كل نتيجة في احتمال حدوثها: E(X) = Σ p(s)X(s).</p><p>من أهم خصائصها '<span class="smart-term" data-term-en="Linearity of Expectations" data-ar="خطية التوقعات" data-en-def="The property that the expected value of the sum of random variables is the sum of their expected values.">خطية التوقعات</span>' (Linearity of Expectations): E(X1 + X2) = E(X1) + E(X2)، وهذه القاعدة صحيحة دائماً حتى لو لم تكن المتغيرات مستقلة!</p><p>تُستخدم القيمة المتوقعة لحساب تعقيد الحالة المتوسطة (Average-Case Complexity) للخوارزميات.</p></template>
+    <template class="content-en"><p>Expected value E(X) is calculated by summing the product of each outcome and its probability: E(X) = Σ p(s)X(s).</p><p>A crucial property is the '<span class="smart-term" data-term-en="Linearity of Expectations" data-ar="خطية التوقعات" data-en-def="The property that the expected value of the sum of random variables is the sum of their expected values.">Linearity of Expectations</span>': E(X1 + X2) = E(X1) + E(X2), which holds true even if the variables are NOT independent!</p><p>Expected value is used to compute the average-case complexity of algorithms.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في خوارزمية البحث الخطي (Linear Search)، نستخدم القيمة المتوقعة لحساب متوسط عدد المقارنات.</p><p>إذا كان العنصر موجوداً باحتمال p، فإن متوسط المقارنات يعتمد على التوزيع الاحتمالي لموقع العنصر.</p></template>
+    <template class="content-en"><p>In the Linear Search algorithm, we use expected value to calculate the average number of comparisons.</p><p>If the element is present with probability p, the average comparisons depend on the probability distribution of the element's location.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>صيغة القيمة المتوقعة.</strong></template>
+      <template class="content-en"><strong>Expected value formula.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$E(X) = \sum_{s \in S} p(s)X(s)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في مشكلة فحص القبعات (Hatcheck Problem)، ما هو متوسط عدد الأشخاص الذين يستلمون قبعاتهم الصحيحة عشوائياً؟</template>
+      <template class="content-en">In the Hatcheck Problem, what is the expected number of people who receive their correct hat randomly?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الجواب هو 1 دائماً، بغض النظر عن عدد الأشخاص n. هذا تطبيق مباشر لخطية التوقعات حيث E(X) = n * (1/n) = 1.</p></template>
+      <template class="content-en"><p>The answer is always exactly 1, regardless of the number of people n. This is a direct application of linearity of expectations where E(X) = n * (1/n) = 1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="variance-chebyshev" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> التباين ومتباينة تشيبيشيف</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Variance and Chebyshev's Inequality</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التباين يقيس مدى تشتت القيم حول القيمة المتوقعة، ومتباينة تشيبيشيف تعطينا حداً أقصى لاحتمال ابتعاد القيم عن المتوسط.</p></template>
+    <template class="content-en"><p>Variance measures how spread out values are from the expected value, and Chebyshev's Inequality gives an upper bound on the probability of values deviating from the mean.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التباين V(X) هو متوسط مربع الانحرافات عن القيمة المتوقعة: V(X) = E(X^2) - (E(X))^2.</p><p>الانحراف المعياري هو الجذر التربيعي للتباين.</p><p>تنص متباينة تشيبيشيف على أن احتمال انحراف المتغير العشوائي عن متوسطه بمقدار r أو أكثر لا يتجاوز V(X)/r^2.</p><p>هذا مفيد جداً عندما لا نعرف التوزيع الدقيق للمتغير.</p></template>
+    <template class="content-en"><p>Variance V(X) is the expected value of the squared deviations from the mean: V(X) = E(X^2) - (E(X))^2.</p><p>Standard deviation is the square root of variance.</p><p>Chebyshev's Inequality states that the probability of a random variable deviating from its mean by r or more is at most V(X)/r^2.</p><p>This is highly useful when the exact distribution is unknown.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>صيغة Bienaymé تنص على أنه إذا كان X و Y مستقلين، فإن V(X+Y) = V(X) + V(Y).</p><p>على عكس القيمة المتوقعة، التباين ليس خطياً إلا إذا كانت المتغيرات مستقلة (أو غير مرتبطة).</p></template>
+    <template class="content-en"><p>Bienaymé's Formula states that if X and Y are independent, V(X+Y) = V(X) + V(Y).</p><p>Unlike expected value, variance is NOT linear unless the variables are independent (or uncorrelated).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>متباينة تشيبيشيف.</strong></template>
+      <template class="content-en"><strong>Chebyshev's Inequality.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$p(|X(s) - E(X)| \ge r) \le \frac{V(X)}{r^2}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم مربع الانحراف في حساب التباين بدلاً من الانحراف المطلق؟</template>
+      <template class="content-en">Why do we use the squared deviation in calculating variance instead of the absolute deviation?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>التربيع يضمن أن الانحرافات الموجبة والسالبة لا تلغي بعضها البعض، كما أنه يعطي وزناً أكبر للقيم المتطرفة (Outliers) ويسهل التعامل معه رياضياً (قابل للاشتقاق).</p></template>
+      <template class="content-en"><p>Squaring ensures positive and negative deviations don't cancel out, penalizes larger deviations (outliers) more heavily, and is mathematically easier to work with (differentiable).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">مرحباً بكم في الأسبوع السادس! ننتقل هذا الأسبوع من طرق العد إلى الاحتمالات، وهي حجر الزاوية لتعلم الآلة، التشفير، وتحليل الخوارزميات. نبدأ بتعريف لابلاس الكلاسيكي، ثم نعمم ذلك على التوزيعات الاحتمالية. ستتعلمون كيفية التعامل مع الأحداث المعقدة باستخدام المتممات والاتحادات. بعد ذلك، نتعمق في الاحتمال الشرطي ونظرية بايز — وهي الرياضيات الدقيقة وراء كيفية عمل فلتر البريد المزعج! سنغطي أيضاً تجارب برنولي للنتائج الثنائية. وأخيراً، نقدم المتغيرات العشوائية (والتي هي في الواقع دوال، لا تدعوا الاسم يخدعكم!)، القيمة المتوقعة، والتباين. تتيح لنا هذه الأدوات تحليل تعقيد الحالة المتوسطة للخوارزميات. ركزوا جيداً على نظرية بايز والقيمة المتوقعة؛ فهي مضمونة الظهور في الامتحان وفي مسيرتكم المهنية في علوم الحاسب!</template>
+    <template class="content-en">Welcome to Week 6! This week, we transition from counting to probability, a cornerstone for machine learning, cryptography, and algorithm analysis. We start with Laplace's classical definition, assuming equally likely outcomes, and quickly generalize to probability distributions. You'll learn how to handle complex events using complements and unions. Then, we dive into conditional probability and Bayes' Theorem—the exact math behind how your email spam filter works! We'll also cover Bernoulli trials for binary outcomes. Finally, we introduce Random Variables (which are actually functions, don't let the name fool you!), Expected Value, and Variance. These tools allow us to analyze the average-case complexity of algorithms, like linear search. Master Bayes' Theorem and Expected Value; they are guaranteed to show up on your exam and in your future CS career!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين فضاء العينة والحدث؟</template>
+          <template class="content-en">What is the difference between a sample space and an event?</template>
+          <span class="content-target">ما الفرق بين فضاء العينة والحدث؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">فضاء العينة هو المجموعة الكاملة لجميع النتائج الممكنة، بينما الحدث هو مجرد مجموعة جزئية من فضاء العينة.</template>
+          <template class="content-en">The sample space is the complete set of all possible outcomes, while an event is just a subset of the sample space.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو القصور في تعريف لابلاس للاحتمال؟</template>
+          <template class="content-en">What is the limitation of Laplace's definition of probability?</template>
+          <span class="content-target">ما هو القصور في تعريف لابلاس للاحتمال؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إنه يفترض أن جميع النتائج متساوية الاحتمال، وهو ما لا ينطبق على الأنظمة المنحازة مثل عملة غير متزنة.</template>
+          <template class="content-en">It assumes all outcomes are equally likely, which does not apply to biased systems like an unfair coin.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعلمنا لغز مونتي هول عن الاحتمالات؟</template>
+          <template class="content-en">What does the Monty Hall puzzle teach us about probability?</template>
+          <span class="content-target">ماذا يعلمنا لغز مونتي هول عن الاحتمالات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعلمنا أن الاحتمال الشرطي قد يكون مخالفاً للحدس؛ استخدام معلومات جديدة (مثل فتح باب خاطئ) يغير الاحتمالات بشكل جذري.</template>
+          <template class="content-en">It teaches us that conditional probability can be counter-intuitive; using new information (like opening a wrong door) drastically changes the probabilities.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل الأحداث المستقلة مثنى (Pairwise) تكون دائماً مستقلة تبادلياً (Mutually)؟</template>
+          <template class="content-en">Are pairwise independent events always mutually independent?</template>
+          <span class="content-target">هل الأحداث المستقلة مثنى (Pairwise) تكون دائماً مستقلة تبادلياً (Mutually)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، الاستقلال المتبادل هو شرط أقوى يتطلب أن تكون جميع المجموعات الفرعية للأحداث مستقلة، وليس فقط الأزواج.</template>
+          <template class="content-en">No, mutual independence is a stronger condition requiring all subsets of events to be independent, not just pairs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الذي يميز تجربة برنولي؟</template>
+          <template class="content-en">What characterizes a Bernoulli trial?</template>
+          <span class="content-target">ما الذي يميز تجربة برنولي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي تجربة لها نتيجتان ممكنتان فقط: نجاح أو فشل.</template>
+          <template class="content-en">It is an experiment with exactly two possible outcomes: success or failure.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر مصطلح 'المتغير العشوائي' تسمية سيئة؟</template>
+          <template class="content-en">Why is the term 'Random Variable' a poor name?</template>
+          <span class="content-target">لماذا يعتبر مصطلح 'المتغير العشوائي' تسمية سيئة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه ليس عشوائياً ولا متغيراً؛ بل هو دالة رياضية حتمية تربط النتائج بأرقام.</template>
+          <template class="content-en">Because it is neither random nor a variable; it is a deterministic mathematical function mapping outcomes to numbers.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تستخدم خوارزميات مونت كارلو الاحتمالات؟</template>
+          <template class="content-en">How do Monte Carlo algorithms use probability?</template>
+          <span class="content-target">كيف تستخدم خوارزميات مونت كارلو الاحتمالات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تتخذ قرارات عشوائية لحل مشاكل القرار، مع وجود احتمال ضئيل جداً وقابل للحساب لإعطاء إجابة خاطئة.</template>
+          <template class="content-en">They make random choices to solve decision problems, with a very small, calculable probability of giving an incorrect answer.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف الأساسي من نظرية بايز في علوم الحاسب؟</template>
+          <template class="content-en">What is the core purpose of Bayes' Theorem in CS?</template>
+          <span class="content-target">ما هو الهدف الأساسي من نظرية بايز في علوم الحاسب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تسمح لنا بتحديث احتمالية فرضية ما بناءً على أدلة جديدة، وهو أساس العديد من خوارزميات تعلم الآلة مثل تصنيف النصوص.</template>
+          <template class="content-en">It allows us to update the probability of a hypothesis based on new evidence, forming the basis of many machine learning algorithms like text classification.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل تتطلب خطية التوقعات أن تكون المتغيرات مستقلة؟</template>
+          <template class="content-en">Does linearity of expectations require variables to be independent?</template>
+          <span class="content-target">هل تتطلب خطية التوقعات أن تكون المتغيرات مستقلة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، هذه هي قوتها! E(X+Y) = E(X) + E(Y) صحيحة دائماً حتى لو كانت المتغيرات مرتبطة.</template>
+          <template class="content-en">No, that is its power! E(X+Y) = E(X) + E(Y) is always true even if the variables are dependent.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفائدة العملية لمتباينة تشيبيشيف؟</template>
+          <template class="content-en">What is the practical use of Chebyshev's Inequality?</template>
+          <span class="content-target">ما الفائدة العملية لمتباينة تشيبيشيف؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تسمح لنا بوضع حدود لاحتمال انحراف القيم عن المتوسط، حتى عندما لا نعرف التوزيع الاحتمالي الدقيق للمتغير.</template>
+          <template class="content-en">It allows us to bound the probability of values deviating from the mean, even when we don't know the exact probability distribution of the variable.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو تعريف التجربة (Experiment) في الاحتمالات؟",
+      "en": "What is the definition of an Experiment in probability?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إجراء ينتج عنه واحدة من مجموعة محددة من النتائج الممكنة.",
+        "en": "A procedure that yields one of a given set of possible outcomes."
+      },
+      "example": {
+        "ar": "رمي حجر نرد.",
+        "en": "Rolling a die."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو فضاء العينة (Sample Space)؟",
+      "en": "What is a Sample Space?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة كل النتائج الممكنة لتجربة ما.",
+        "en": "The set of all possible outcomes of an experiment."
+      },
+      "example": {
+        "ar": "عند رمي نرد: {1, 2, 3, 4, 5, 6}.",
+        "en": "When rolling a die: {1, 2, 3, 4, 5, 6}."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "كيف يُعرّف الحدث (Event)؟",
+      "en": "How is an Event defined?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة جزئية من فضاء العينة.",
+        "en": "A subset of the sample space."
+      },
+      "example": {
+        "ar": "ظهور رقم زوجي عند رمي النرد: {2, 4, 6}.",
+        "en": "Rolling an even number: {2, 4, 6}."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو تعريف لابلاس للاحتمال؟",
+      "en": "What is Laplace's definition of probability?"
+    },
+    "back": {
+      "definition": {
+        "ar": "p(E) = |E| / |S|، بافتراض أن جميع النتائج متساوية الاحتمال.",
+        "en": "p(E) = |E| / |S|, assuming all outcomes are equally likely."
+      },
+      "example": {
+        "ar": "احتمال ظهور رقم زوجي في نرد هو 3/6 = 1/2.",
+        "en": "Probability of an even number on a die is 3/6 = 1/2."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي صيغة احتمال الحدث المتمم؟",
+      "en": "What is the formula for the probability of a complement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "p(Ē) = 1 - p(E)",
+        "en": "p(Ē) = 1 - p(E)"
+      },
+      "example": {
+        "ar": "إذا كان احتمال الفوز 0.2، فإن احتمال عدم الفوز هو 0.8.",
+        "en": "If probability of winning is 0.2, probability of not winning is 0.8."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي صيغة احتمال اتحاد حدثين؟",
+      "en": "What is the formula for the probability of the union of two events?"
+    },
+    "back": {
+      "definition": {
+        "ar": "p(E1 ∪ E2) = p(E1) + p(E2) - p(E1 ∩ E2)",
+        "en": "p(E1 ∪ E2) = p(E1) + p(E2) - p(E1 ∩ E2)"
+      },
+      "example": {
+        "ar": "احتمال أن يكون الرقم يقبل القسمة على 2 أو 5.",
+        "en": "Probability that a number is divisible by 2 or 5."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو التوزيع المنتظم (Uniform Distribution)؟",
+      "en": "What is a Uniform Distribution?"
+    },
+    "back": {
+      "definition": {
+        "ar": "توزيع يعين نفس الاحتمال (1/n) لكل عنصر في فضاء العينة.",
+        "en": "A distribution that assigns the probability 1/n to each element of S."
+      },
+      "example": {
+        "ar": "رمي عملة عادلة: p(H) = p(T) = 1/2.",
+        "en": "Flipping a fair coin: p(H) = p(T) = 1/2."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي صيغة الاحتمال الشرطي p(E|F)؟",
+      "en": "What is the formula for conditional probability p(E|F)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "p(E|F) = p(E ∩ F) / p(F)",
+        "en": "p(E|F) = p(E ∩ F) / p(F)"
+      },
+      "example": {
+        "ar": "احتمال أن تكون السلسلة تحتوي على صفرين متتاليين علماً بأن البت الأول هو 0.",
+        "en": "Probability of two consecutive 0s given the first bit is 0."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "متى يكون الحدثان E و F مستقلين؟",
+      "en": "When are events E and F independent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا وفقط إذا كان p(E ∩ F) = p(E)p(F).",
+        "en": "If and only if p(E ∩ F) = p(E)p(F)."
+      },
+      "example": {
+        "ar": "رمي عملتين مختلفتين.",
+        "en": "Flipping two different coins."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي تجربة برنولي (Bernoulli Trial)؟",
+      "en": "What is a Bernoulli Trial?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تجربة لها نتيجتان ممكنتان فقط: نجاح أو فشل.",
+        "en": "An experiment that can have only two possible outcomes: success or failure."
+      },
+      "example": {
+        "ar": "توليد بت عشوائي (0 أو 1).",
+        "en": "Random generation of a bit (0 or 1)."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو المتغير العشوائي (Random Variable)؟",
+      "en": "What is a Random Variable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة من فضاء العينة إلى مجموعة الأعداد الحقيقية.",
+        "en": "A function from the sample space of an experiment to the set of real numbers."
+      },
+      "example": {
+        "ar": "دالة تحسب عدد مرات ظهور 'الصورة' في 3 رميات لعملة.",
+        "en": "A function counting the number of Heads in 3 coin flips."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي خوارزميات مونت كارلو (Monte Carlo Algorithms)؟",
+      "en": "What are Monte Carlo Algorithms?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خوارزميات احتمالية تُستخدم للإجابة على مشاكل القرار (صح/خطأ) بناءً على اختبارات عشوائية.",
+        "en": "Probabilistic algorithms used to answer decision problems (true/false) based on random tests."
+      },
+      "example": {
+        "ar": "اختبار أولية الأعداد (Primality Testing).",
+        "en": "Probabilistic primality testing."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو الغرض من نظرية بايز؟",
+      "en": "What is the purpose of Bayes' Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حساب الاحتمال الشرطي p(F|E) باستخدام p(E|F) والاحتمالات السابقة.",
+        "en": "Calculating the conditional probability p(F|E) using p(E|F) and prior probabilities."
+      },
+      "example": {
+        "ar": "تحديد ما إذا كان البريد الإلكتروني مزعجاً بناءً على الكلمات التي يحتويها.",
+        "en": "Determining if an email is spam based on its words."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي القيمة المتوقعة (Expected Value)؟",
+      "en": "What is Expected Value?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المتوسط المرجح لجميع القيم الممكنة لمتغير عشوائي.",
+        "en": "The weighted average of all possible values of a random variable."
+      },
+      "example": {
+        "ar": "القيمة المتوقعة لرمي نرد عادل هي 3.5.",
+        "en": "Expected value of rolling a fair die is 3.5."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي خاصية خطية التوقعات (Linearity of Expectations)؟",
+      "en": "What is the Linearity of Expectations property?"
+    },
+    "back": {
+      "definition": {
+        "ar": "E(X1 + X2) = E(X1) + E(X2)، بغض النظر عن استقلالية المتغيرات.",
+        "en": "E(X1 + X2) = E(X1) + E(X2), regardless of whether the variables are independent."
+      },
+      "example": {
+        "ar": "متوسط عدد القبعات المعادة بشكل صحيح في مشكلة فحص القبعات.",
+        "en": "Expected number of correct hats returned in the hatcheck problem."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو التباين (Variance)؟",
+      "en": "What is Variance?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مقياس لمدى انحراف المتغير العشوائي عن قيمته المتوقعة: V(X) = E(X^2) - E(X)^2.",
+        "en": "A measure of how much a random variable deviates from its expected value: V(X) = E(X^2) - E(X)^2."
+      },
+      "example": {
+        "ar": "تباين عدد النجاحات في n تجارب برنولي هو npq.",
+        "en": "Variance of successes in n Bernoulli trials is npq."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ماذا تنص متباينة تشيبيشيف (Chebyshev's Inequality)؟",
+      "en": "What does Chebyshev's Inequality state?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تضع حداً أقصى لاحتمال انحراف المتغير العشوائي عن متوسطه بمقدار معين.",
+        "en": "It provides an upper bound on the probability that a random variable deviates from its mean by a certain amount."
+      },
+      "example": {
+        "ar": "p(|X - E(X)| ≥ r) ≤ V(X)/r^2",
+        "en": "p(|X - E(X)| ≥ r) ≤ V(X)/r^2"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "إذا رمينا حجري نرد، ما هو احتمال أن يكون مجموع الرقمين 7؟",
+      "en": "If two dice are rolled, what is the probability that the sum of the numbers is 7?"
+    },
+    "options": {
+      "ar": [
+        "1/6",
+        "1/36",
+        "7/36",
+        "1/12"
+      ],
+      "en": [
+        "1/6",
+        "1/36",
+        "7/36",
+        "1/12"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "هناك 36 نتيجة ممكنة. النتائج التي مجموعها 7 هي 6 نتائج: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1). الاحتمال هو 6/36 = 1/6.",
+      "en": "There are 36 possible outcomes. 6 of these sum to 7: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1). Probability is 6/36 = 1/6."
+    },
+    "hint": {
+      "ar": "استخدم قاعدة الضرب لإيجاد إجمالي النتائج الممكنة.",
+      "en": "Use the product rule to find total possible outcomes."
+    },
+    "difficulty": "easy",
+    "conceptId": "laplace-probability"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو احتمال أن يكون عدد صحيح موجب أقل من أو يساوي 100 يقبل القسمة على 2 أو 5؟",
+      "en": "What is the probability that a positive integer not exceeding 100 is divisible by either 2 or 5?"
+    },
+    "options": {
+      "ar": [
+        "3/5",
+        "7/10",
+        "1/2",
+        "4/5"
+      ],
+      "en": [
+        "3/5",
+        "7/10",
+        "1/2",
+        "4/5"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "p(2 أو 5) = p(2) + p(5) - p(10) = 50/100 + 20/100 - 10/100 = 60/100 = 3/5.",
+      "en": "p(2 or 5) = p(2) + p(5) - p(10) = 50/100 + 20/100 - 10/100 = 60/100 = 3/5."
+    },
+    "hint": {
+      "ar": "استخدم قاعدة الاتحاد: p(A ∪ B) = p(A) + p(B) - p(A ∩ B).",
+      "en": "Use the union rule: p(A ∪ B) = p(A) + p(B) - p(A ∩ B)."
+    },
+    "difficulty": "medium",
+    "conceptId": "complements-and-unions"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في لغز مونتي هول، إذا قمت بتبديل الباب، ما هو احتمال فوزك بالجائزة؟",
+      "en": "In the Monty Hall puzzle, if you switch doors, what is the probability of winning the prize?"
+    },
+    "options": {
+      "ar": [
+        "2/3",
+        "1/3",
+        "1/2",
+        "1/4"
+      ],
+      "en": [
+        "2/3",
+        "1/3",
+        "1/2",
+        "1/4"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "احتمال أن يكون اختيارك الأول خاطئاً هو 2/3. إذا بدلت، ستفوز في كل مرة يكون فيها اختيارك الأول خاطئاً.",
+      "en": "The probability your initial pick was wrong is 2/3. If you switch, you win every time your initial pick was wrong."
+    },
+    "hint": {
+      "ar": "فكر في احتمال أن يكون اختيارك الأول خاطئاً.",
+      "en": "Think about the probability that your initial pick was wrong."
+    },
+    "difficulty": "medium",
+    "conceptId": "conditional-probability"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من التالي يمثل شرط الاستقلالية لحدثين E و F؟",
+      "en": "Which of the following represents the condition for independence of two events E and F?"
+    },
+    "options": {
+      "ar": [
+        "p(E ∩ F) = p(E)p(F)",
+        "p(E ∪ F) = p(E) + p(F)",
+        "p(E|F) = p(F|E)",
+        "p(E ∩ F) = 0"
+      ],
+      "en": [
+        "p(E ∩ F) = p(E)p(F)",
+        "p(E ∪ F) = p(E) + p(F)",
+        "p(E|F) = p(F|E)",
+        "p(E ∩ F) = 0"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الحدثان مستقلان إذا كان احتمال تقاطعهما يساوي حاصل ضرب احتماليهما.",
+      "en": "Events are independent if the probability of their intersection equals the product of their probabilities."
+    },
+    "hint": {
+      "ar": "الاستقلالية تعني أن وقوع أحدهما لا يؤثر على الآخر.",
+      "en": "Independence means the occurrence of one doesn't affect the other."
+    },
+    "difficulty": "easy",
+    "conceptId": "conditional-probability"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي القيمة المتوقعة لرمي حجر نرد عادل؟",
+      "en": "What is the expected value of rolling a fair die?"
+    },
+    "options": {
+      "ar": [
+        "3.5",
+        "3",
+        "4",
+        "1/6"
+      ],
+      "en": [
+        "3.5",
+        "3",
+        "4",
+        "1/6"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "E(X) = (1+2+3+4+5+6)/6 = 21/6 = 3.5.",
+      "en": "E(X) = (1+2+3+4+5+6)/6 = 21/6 = 3.5."
+    },
+    "hint": {
+      "ar": "اضرب كل نتيجة في احتمالها (1/6) واجمعها.",
+      "en": "Multiply each outcome by its probability (1/6) and sum them."
+    },
+    "difficulty": "easy",
+    "conceptId": "expected-value"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في تجارب برنولي المستقلة، ما هو تباين عدد النجاحات في n تجربة؟",
+      "en": "In independent Bernoulli trials, what is the variance of the number of successes in n trials?"
+    },
+    "options": {
+      "ar": [
+        "npq",
+        "np",
+        "pq",
+        "n/p"
+      ],
+      "en": [
+        "npq",
+        "np",
+        "pq",
+        "n/p"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "التباين لعدد النجاحات في n تجربة برنولي مستقلة هو npq، حيث p هو احتمال النجاح و q هو احتمال الفشل.",
+      "en": "The variance of successes in n independent Bernoulli trials is npq, where p is success probability and q is failure probability."
+    },
+    "hint": {
+      "ar": "تذكر صيغة Bienaymé.",
+      "en": "Remember Bienaymé's formula."
+    },
+    "difficulty": "medium",
+    "conceptId": "variance-chebyshev"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو المتغير العشوائي رياضياً؟",
+      "en": "What is a random variable mathematically?"
+    },
+    "options": {
+      "ar": [
+        "دالة من فضاء العينة إلى الأعداد الحقيقية",
+        "قيمة تتغير عشوائياً بمرور الوقت",
+        "احتمال وقوع حدث معين",
+        "مجموعة جزئية من فضاء العينة"
+      ],
+      "en": [
+        "A function from the sample space to real numbers",
+        "A value that changes randomly over time",
+        "The probability of a specific event",
+        "A subset of the sample space"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "المتغير العشوائي هو دالة حتمية تعين رقماً حقيقياً لكل نتيجة في فضاء العينة.",
+      "en": "A random variable is a deterministic function that assigns a real number to each outcome in the sample space."
+    },
+    "hint": {
+      "ar": "الاسم مضلل؛ إنه ليس متغيراً ولا عشوائياً.",
+      "en": "The name is misleading; it is neither a variable nor random."
+    },
+    "difficulty": "medium",
+    "conceptId": "random-variables"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي نظرية تُستخدم بشكل أساسي في فلاتر البريد المزعج (Spam Filters)؟",
+      "en": "Which theorem is primarily used in Spam Filters?"
+    },
+    "options": {
+      "ar": [
+        "نظرية بايز",
+        "متباينة تشيبيشيف",
+        "نظرية ذات الحدين",
+        "خطية التوقعات"
+      ],
+      "en": [
+        "Bayes' Theorem",
+        "Chebyshev's Inequality",
+        "Binomial Theorem",
+        "Linearity of Expectations"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "تُستخدم نظرية بايز لتحديث احتمالية أن تكون الرسالة مزعجة بناءً على الكلمات الموجودة فيها.",
+      "en": "Bayes' Theorem is used to update the probability that a message is spam based on the words it contains."
+    },
+    "hint": {
+      "ar": "تتعلق بالاحتمال الشرطي.",
+      "en": "It relates to conditional probability."
+    },
+    "difficulty": "easy",
+    "conceptId": "bayes-theorem"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "هل تتطلب خاصية 'خطية التوقعات' أن تكون المتغيرات العشوائية مستقلة؟",
+      "en": "Does the 'Linearity of Expectations' property require the random variables to be independent?"
+    },
+    "options": {
+      "ar": [
+        "لا، هي صحيحة دائماً",
+        "نعم، يجب أن تكون مستقلة",
+        "فقط إذا كانت المتغيرات منفصلة",
+        "فقط في تجارب برنولي"
+      ],
+      "en": [
+        "No, it is always true",
+        "Yes, they must be independent",
+        "Only if the variables are discrete",
+        "Only in Bernoulli trials"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "خطية التوقعات E(X+Y) = E(X) + E(Y) صحيحة دائماً، بغض النظر عن استقلالية المتغيرات.",
+      "en": "Linearity of expectations E(X+Y) = E(X) + E(Y) is always true, regardless of whether the variables are independent."
+    },
+    "hint": {
+      "ar": "تذكر مشكلة فحص القبعات.",
+      "en": "Remember the hatcheck problem."
+    },
+    "difficulty": "hard",
+    "conceptId": "expected-value"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ماذا توفر متباينة تشيبيشيف؟",
+      "en": "What does Chebyshev's Inequality provide?"
+    },
+    "options": {
+      "ar": [
+        "حداً أقصى لاحتمال انحراف المتغير عن متوسطه",
+        "القيمة الدقيقة للتباين",
+        "احتمال النجاح في تجربة برنولي",
+        "متوسط عدد المقارنات في البحث الخطي"
+      ],
+      "en": [
+        "An upper bound on the probability of a variable deviating from its mean",
+        "The exact value of the variance",
+        "The probability of success in a Bernoulli trial",
+        "The average number of comparisons in linear search"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "توفر متباينة تشيبيشيف حداً أقصى لاحتمال أن يبتعد المتغير العشوائي عن قيمته المتوقعة بمقدار معين.",
+      "en": "Chebyshev's Inequality provides an upper bound on the probability that a random variable deviates from its expected value by a certain amount."
+    },
+    "hint": {
+      "ar": "تتعلق بالتشتت والتباين.",
+      "en": "It relates to dispersion and variance."
+    },
+    "difficulty": "medium",
+    "conceptId": "variance-chebyshev"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن 'المتغير العشوائي' هو متغير أو أنه عشوائي. في الواقع، هو دالة حتمية (Deterministic Function) تربط النتائج بأرقام حقيقية.</template>
+      <template class="content-en">Thinking a 'Random Variable' is a variable or is random. In reality, it is a deterministic function mapping outcomes to real numbers.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان طرح التقاطع عند حساب احتمال اتحاد حدثين غير متنافيين: p(E1 ∪ E2) = p(E1) + p(E2) - p(E1 ∩ E2).</template>
+      <template class="content-en">Forgetting to subtract the intersection when calculating the union of non-mutually exclusive events: p(E1 ∪ E2) = p(E1) + p(E2) - p(E1 ∩ E2).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">خطية التوقعات (Linearity of Expectations) هي أداة سحرية في علوم الحاسب؛ فهي تعمل دائماً حتى لو كانت المتغيرات مرتبطة ببعضها البعض بقوة.</template>
+      <template class="content-en">Linearity of Expectations is a magic tool in CS; it always works even if the random variables are highly dependent on each other.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في لغز مونتي هول، التبديل يضاعف فرصتك في الفوز لأنك تستفيد من المعلومات الجديدة التي قدمها المضيف عندما فتح باباً خاطئاً.</template>
+      <template class="content-en">In the Monty Hall puzzle, switching doubles your chance of winning because you leverage the new information provided by the host opening a wrong door.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين الاستقلال المثنى (Pairwise) والاستقلال المتبادل (Mutual). الاستقلال المتبادل شرط أقوى بكثير ويتطلب استقلال كل مجموعة فرعية ممكنة.</template>
+      <template class="content-en">Confusing pairwise independence with mutual independence. Mutual independence is a much stronger condition requiring every possible subset to be independent.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M04.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M06.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>
