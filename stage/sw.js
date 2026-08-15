@@ -1,7 +1,7 @@
 /*@0.SWJ.1*/
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'stage-garden-1.0.0.49'; /*@0.SWJ.2*/
+var CACHE_NAME = 'stage-1634a41a-garden-1.0.0.49'; /*@0.SWJ.2*/
 /*@0.SWJ.3*/ /*@0.SWJ.4*/ /*@0.SWJ.5*/ /*@0.SWJ.6*/ /*@0.SWJ.7*/ /*@0.SWJ.8*/ /*@0.SWJ.9*/ /*@0.SWJ.10*/ /*@0.SWJ.11*/ /*@0.SWJ.12*/ /*@0.SWJ.13*/ /*@0.SWJ.14*/ /*@0.SWJ.15*/ /*@0.SWJ.16*/ /*@0.SWJ.17*/ /*@0.SWJ.18*/ /*@0.SWJ.19*/ /*@0.SWJ.20*/ /*@0.SWJ.21*/ /*@0.SWJ.22*/ /*@0.SWJ.23*/ /*@0.SWJ.24*/ /*@0.SWJ.25*/ /*@0.SWJ.26*/ /*@0.SWJ.27*/ /*@0.SWJ.28*/ /*@0.SWJ.29*/ /*@0.SWJ.30*/ /*@0.SWJ.31*/ /*@0.SWJ.32*/ /*@0.SWJ.33*/ /*@0.SWJ.34*/ /*@0.SWJ.35*/ /*@0.SWJ.36*/ /*@0.SWJ.37*/ /*@0.SWJ.38*/ /*@0.SWJ.39*/ /*@0.SWJ.40*/ /*@0.SWJ.41*/ /*@0.SWJ.42*/
 var PRECACHE_URLS = [
   'shared/garden.css',
