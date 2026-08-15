@@ -7,10 +7,10 @@ window.GardenEndpoints = {
   push: 'https://garden-push.xxli50xx.workers.dev',
 
   /*@3.ENDJ.4*/
-  sync: 'https://api.libbard.cc',
+  sync: 'https://api.libbard.cc/v1/stage',
 
   /*@3.ENDJ.5*/
-  publicData: 'https://api.libbard.cc',
+  publicData: 'https://api.libbard.cc/v1/stage',
 
   /*@3.ENDJ.6*/
   labs: 'https://labs.libbard.cc',
