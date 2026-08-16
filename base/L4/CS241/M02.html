@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS241" data-module="2">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تمثيل البيانات في أنظمة الحاسب · CS241 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS241" data-page-title-en="CS241">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M01.html" data-gh-next="M03.html" data-gh-card="../../hub/course.html?code=CS241"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#positional-numbering-systems" class="toc-link" data-bilingual>
+        <template class="content-ar">أنظمة الترقيم الموضعية</template>
+        <template class="content-en">Positional Numbering Systems</template>
+        <span class="content-target">أنظمة الترقيم الموضعية</span>
+      </a>
+      <a href="#base-conversions" class="toc-link" data-bilingual>
+        <template class="content-ar">التحويل بين القواعد العددية</template>
+        <template class="content-en">Converting Between Bases</template>
+        <span class="content-target">التحويل بين القواعد العددية</span>
+      </a>
+      <a href="#signed-integer-representation" class="toc-link" data-bilingual>
+        <template class="content-ar">تمثيل الأعداد الصحيحة ذات الإشارة</template>
+        <template class="content-en">Signed-Integer Representation</template>
+        <span class="content-target">تمثيل الأعداد الصحيحة ذات الإشارة</span>
+      </a>
+      <a href="#decimal-complements" class="toc-link" data-bilingual>
+        <template class="content-ar">مكملات الأعداد العشرية</template>
+        <template class="content-en">Decimal Complements</template>
+        <span class="content-target">مكملات الأعداد العشرية</span>
+      </a>
+      <a href="#floating-point-representation" class="toc-link" data-bilingual>
+        <template class="content-ar">تمثيل النقطة العائمة (Floating-Point)</template>
+        <template class="content-en">Floating-Point Representation</template>
+        <span class="content-target">تمثيل النقطة العائمة (Floating-Point)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 2</template>
+      <template class="content-en">Module 2</template>
+      <span class="content-target">الوحدة 2</span>
+    </span> · CS241
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تمثيل البيانات في أنظمة الحاسب</h1>
+      <p class="hero-description">دراسة شاملة لأنظمة الترقيم الموضعية، التحويل بين القواعد العددية، تمثيل الأعداد الصحيحة ذات الإشارة، وتمثيل النقطة العائمة (IEEE 754).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Data Representation in Computer Systems</h1>
+      <p class="hero-description">Comprehensive study of positional numbering systems, base conversions, signed integer representation, and floating-point representation (IEEE 754).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">أنظمة العد</span>
+      <span class="tag">النظام الثنائي</span>
+      <span class="tag">المكمل لـ 2</span>
+      <span class="tag">النقطة العائمة</span>
+      <span class="tag">IEEE 754</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Numbering Systems</span>
+      <span class="tag">Binary</span>
+      <span class="tag">2's Complement</span>
+      <span class="tag">Floating-Point</span>
+      <span class="tag">IEEE 754</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم أساسيات تمثيل البيانات الرقمية ومعالجتها في الحواسيب الرقمية.</span></li>
+      <li><span class="obj-icon">✦</span><span>إتقان مهارة التحويل بين أنظمة القواعد (الأساسات) المختلفة.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم المفاهيم الأساسية لتمثيل النقطة العائمة (Floating-point).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the fundamentals of numerical data representation and manipulation in digital computers.</span></li>
+      <li><span class="obj-icon">✦</span><span>Master the skill of converting between various radix systems.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the fundamental concepts of floating-point representation.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="positional-numbering-systems" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> أنظمة الترقيم الموضعية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Positional Numbering Systems</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نظام يعتمد فيه وزن الرقم على موقعه (خانات الآحاد، العشرات، إلخ)، تماماً مثل عداد المسافات في السيارة.</p></template>
+    <template class="content-en"><p>A system where the value of a digit depends on its position (place value), much like a car's odometer.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتمد الأنظمة الحديثة على التدوين الموضعي (Positional Notation). <span class="smart-term" data-term-en="Radix / Base" data-ar="الأساس" data-en-def="The number of different symbols required to represent any given number in a numbering system.">الأساس</span> (Base/Radix) هو عدد الرموز المختلفة المستخدمة لتمثيل الأرقام.</p><p>النظام العشري (Base 10) يستخدم 10 رموز (0-9)، بينما النظام الثنائي (Base 2) يستخدم رمزين فقط (0 و 1).</p><p>كلما كبر الأساس، زادت الرموز المطلوبة وقلت الخانات اللازمة لتمثيل نفس العدد.</p><p>يمكن حساب نطاق الأرقام الممكنة باستخدام المعادلة R = B^K حيث R هو النطاق، B هو الأساس، و K هو عدد الخانات.</p></template>
+    <template class="content-en"><p>Modern number systems are based on positional notation (place value). The <span class="smart-term" data-term-en="Radix / Base" data-ar="الأساس" data-en-def="The number of different symbols required to represent any given number in a numbering system.">Base or Radix</span> is the number of different symbols required to represent any given number.</p><p>Base 10 uses 0-9, while Base 2 uses 0 and 1.</p><p>The larger the base, the more symbols are required, but the fewer digits are needed.</p><p>The range of possible numbers is calculated as R = B^K, where R is the range, B is the base, and K is the number of digits.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تم اقتراح المعالجة الثنائية للبيانات بواسطة جون فون نيومان عام 1945 لأنها تبسط تصميم الأجهزة (مفاتيح تشغيل/إيقاف) وتتوافق طبيعياً مع المنطق البولياني (Boolean logic).</p><p>يتم تجميع البتات (<span class="smart-term" data-term-en="Bit" data-ar="بت" data-en-def="Binary digit, the smallest unit of data in a computer (0 or 1).">Bits</span>) في بايتات (8 بت) وكلمات (Words) لتسهيل التخزين والمعالجة.</p><p>يحدد عدد البتات دقة النتائج وحجم الأرقام التي يمكن للحاسب معالجتها.</p></template>
+    <template class="content-en"><p>Binary data processing was proposed by John von Neumann in 1945 because it simplified computer hardware design (on/off switches) and naturally mapped to Boolean logic.</p><p>Bits are grouped into bytes (8 bits) and words to facilitate storage and manipulation.</p><p>The number of bits used directly affects the accuracy of results and limits the size of numbers the computer can manipulate.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حساب نطاق الأرقام الممكنة (R) بناءً على الأساس (B) وعدد الخانات (K).</strong></template>
+      <template class="content-en"><strong>Calculate the range of possible numbers (R) based on the base (B) and number of digits (K).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$R = B^K$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Create an educational diagram showing positional notation for Base 10. Show the number 527. Break it down into 3 columns: Place (10^2, 10^1, 10^0), Value (100, 10, 1), Evaluate (5x100, 2x10, 7x1), and Sum (500, 20, 7). Use dark background #0d1117, accent color #00a8ff, viewBox 0 0 800 400, with clear Arabic and English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title -->
+    <text x="400" y="35" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Positional Notation (Base 10)</text>
+    <text x="400" y="60" font-size="18" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">التدوين الموضعي (الأساس 10)</text>
+
+    <!-- Column Bounding Boxes -->
+    <rect x="220" y="75" width="160" height="410" rx="16" fill="none" stroke="var(--border-color)" stroke-dasharray="6 6" opacity="0.7"/>
+    <rect x="420" y="75" width="160" height="410" rx="16" fill="none" stroke="var(--border-color)" stroke-dasharray="6 6" opacity="0.7"/>
+    <rect x="620" y="75" width="160" height="410" rx="16" fill="none" stroke="var(--border-color)" stroke-dasharray="6 6" opacity="0.7"/>
+
+    <!-- Column Headers -->
+    <text x="300" y="95" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Hundreds</text>
+    <text x="300" y="115" font-size="14" fill="var(--text-muted)" text-anchor="middle">المئات</text>
+
+    <text x="500" y="95" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Tens</text>
+    <text x="500" y="115" font-size="14" fill="var(--text-muted)" text-anchor="middle">العشرات</text>
+
+    <text x="700" y="95" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Ones</text>
+    <text x="700" y="115" font-size="14" fill="var(--text-muted)" text-anchor="middle">الآحاد</text>
+
+    <!-- Row Labels -->
+    <g text-anchor="middle">
+        <!-- Digit -->
+        <text x="110" y="145" font-size="16" font-weight="bold" fill="var(--text-secondary)">Digit</text>
+        <text x="110" y="165" font-size="14" fill="var(--text-muted)">الرقم</text>
+        
+        <!-- Place -->
+        <text x="110" y="225" font-size="16" font-weight="bold" fill="var(--text-secondary)">Place</text>
+        <text x="110" y="245" font-size="14" fill="var(--text-muted)">المنزلة</text>
+        
+        <!-- Value -->
+        <text x="110" y="295" font-size="16" font-weight="bold" fill="var(--text-secondary)">Value</text>
+        <text x="110" y="315" font-size="14" fill="var(--text-muted)">القيمة</text>
+        
+        <!-- Evaluate -->
+        <text x="110" y="375" font-size="16" font-weight="bold" fill="var(--text-secondary)">Evaluate</text>
+        <text x="110" y="395" font-size="14" fill="var(--text-muted)">الحساب</text>
+        
+        <!-- Sum -->
+        <text x="110" y="455" font-size="16" font-weight="bold" fill="var(--text-secondary)">Sum</text>
+        <text x="110" y="475" font-size="14" fill="var(--text-muted)">المجموع</text>
+    </g>
+
+    <!-- Row 1: Digits -->
+    <g>
+        <rect x="260" y="130" width="80" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="300" y="164" font-size="28" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">5</text>
+
+        <rect x="460" y="130" width="80" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="500" y="164" font-size="28" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">2</text>
+
+        <rect x="660" y="130" width="80" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="700" y="164" font-size="28" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">7</text>
+    </g>
+
+    <!-- Arrows: Digit to Place -->
+    <path d="M 300 185 L 300 205" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 500 185 L 500 205" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 700 185 L 700 205" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Row 2: Place -->
+    <g text-anchor="middle" fill="var(--text-primary)">
+        <text x="300" y="235" font-size="22" font-weight="bold">10<tspan dy="-12" font-size="14">2</tspan></text>
+        <text x="500" y="235" font-size="22" font-weight="bold">10<tspan dy="-12" font-size="14">1</tspan></text>
+        <text x="700" y="235" font-size="22" font-weight="bold">10<tspan dy="-12" font-size="14">0</tspan></text>
+    </g>
+
+    <!-- Arrows: Place to Value -->
+    <path d="M 300 245 L 300 270" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 500 245 L 500 270" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 700 245 L 700 270" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Row 3: Value -->
+    <g text-anchor="middle" fill="var(--text-primary)">
+        <text x="300" y="300" font-size="20">100</text>
+        <text x="500" y="300" font-size="20">10</text>
+        <text x="700" y="300" font-size="20">1</text>
+    </g>
+
+    <!-- Arrows: Value to Evaluate -->
+    <path d="M 300 310 L 300 340" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 500 310 L 500 340" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 700 310 L 700 340" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Row 4: Evaluate -->
+    <g>
+        <rect x="240" y="350" width="120" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+        <text x="300" y="379" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">5 × 100</text>
+
+        <rect x="440" y="350" width="120" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+        <text x="500" y="379" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2 × 10</text>
+
+        <rect x="640" y="350" width="120" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+        <text x="700" y="379" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">7 × 1</text>
+    </g>
+
+    <!-- Arrows: Evaluate to Sum -->
+    <path d="M 300 400 L 300 425" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 500 400 L 500 425" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M 700 400 L 700 425" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Row 5: Sum -->
+    <g>
+        <rect x="250" y="435" width="100" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1"/>
+        <text x="300" y="465" font-size="22" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">500</text>
+
+        <rect x="450" y="435" width="100" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1"/>
+        <text x="500" y="465" font-size="22" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">20</text>
+
+        <rect x="650" y="435" width="100" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1"/>
+        <text x="700" y="465" font-size="22" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">7</text>
+    </g>
+
+    <!-- Plus Signs between Sums -->
+    <text x="400" y="465" font-size="28" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">+</text>
+    <text x="600" y="465" font-size="28" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">+</text>
+
+    <!-- Final Equation -->
+    <g>
+        <rect x="220" y="500" width="560" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="500" y="533" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+            <tspan fill="var(--brand-500)">500</tspan> + <tspan fill="var(--brand-500)">20</tspan> + <tspan fill="var(--brand-500)">7</tspan> = 527
+        </text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم النظام العشري (Base 10) مباشرة في المعالجات الحديثة بدلاً من النظام الثنائي؟</template>
+      <template class="content-en">Why don't we use the decimal system (Base 10) directly in modern processors instead of binary?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن بناء دوائر إلكترونية تميز بين 10 مستويات مختلفة من الجهد الكهربائي معقد جداً وعرضة للخطأ، بينما التمييز بين حالتين (تشغيل/إيقاف أو جهد مرتفع/منخفض) بسيط وموثوق للغاية.</p></template>
+      <template class="content-en"><p>Because building electronic circuits that distinguish between 10 different voltage levels is highly complex and error-prone, whereas distinguishing between two states (on/off or high/low voltage) is simple and highly reliable.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="base-conversions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> التحويل بين القواعد العددية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Converting Between Bases</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>للتحويل من عشري إلى ثنائي: نقسم العدد الصحيح على 2 ونأخذ الباقي، ونضرب الكسر في 2 ونأخذ العدد الصحيح.</p></template>
+    <template class="content-en"><p>To convert decimal to binary: divide integers by 2 and keep remainders; multiply fractions by 2 and keep the integer part.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>للتحويل من النظام العشري إلى أي نظام آخر، نستخدم طريقة القسمة المتكررة (للأعداد الصحيحة) حيث يمثل الباقي الخانات من الأقل أهمية (LSB) إلى الأكثر أهمية (MSB).</p><p>بالنسبة للكسور، نستخدم الضرب المتكرر في الأساس، حيث يمثل الجزء الصحيح الناتج الخانات الكسرية.</p><p>يجب تحويل الأجزاء الصحيحة والكسرية بشكل منفصل. <span class="smart-term" data-term-en="Radix Point" data-ar="النقطة المرجعية (الفاصلة)" data-en-def="The dot that separates the integer part from the fractional part in any positional numeral system.">النقطة المرجعية</span> (Radix point) تظل ثابتة.</p></template>
+    <template class="content-en"><p>To convert from Base 10 to another base, we use repeated division for integers, where the remainders form the digits from Least Significant Bit (LSB) to Most Significant Bit (MSB).</p><p>For fractions, we use repeated multiplication by the base, taking the integer part as the result.</p><p>Integer and fractional parts must be converted separately. The <span class="smart-term" data-term-en="Radix Point" data-ar="النقطة المرجعية (الفاصلة)" data-en-def="The dot that separates the integer part from the fractional part in any positional numeral system.">radix point</span> acts as a fixed reference.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لا توجد علاقة دقيقة دائماً بين الأرقام الكسرية في أنظمة العد المختلفة. قد يكون الرقم الكسري قابلاً للتمثيل بدقة في النظام العشري (مثل 0.2) ولكنه ينتج كسراً دورياً لا نهائياً في النظام الثنائي.</p><p>لذلك، يتم إيقاف التحويل الكسري إما عند الوصول إلى حل نسبي دقيق أو عند تحقيق الدقة المطلوبة (عدد محدد من البتات).</p></template>
+    <template class="content-en"><p>There is no exact relationship between fractional numbers in different bases. A fraction perfectly representable in base 10 (like 0.2) may result in an infinitely repeating fraction in base 2.</p><p>Therefore, fractional conversions are stopped either when a rational solution is found or when the desired accuracy (a specific number of bits) is attained.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا ينتج عن تحويل الكسر العشري 0.1 إلى النظام الثنائي نمط متكرر لا نهائي؟</template>
+      <template class="content-en">Why does converting the decimal fraction 0.1 to binary result in an infinitely repeating pattern?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن 0.1 (أو 1/10) لا يمكن التعبير عنه كمجموع دقيق لقوى العدد 2 السالبة (1/2، 1/4، 1/8...). تماماً مثلما لا يمكن التعبير عن 1/3 بدقة في النظام العشري.</p></template>
+      <template class="content-en"><p>Because 0.1 (or 1/10) cannot be expressed as an exact sum of negative powers of 2 (1/2, 1/4, 1/8...). Just like 1/3 cannot be expressed exactly in decimal.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="signed-integer-representation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> تمثيل الأعداد الصحيحة ذات الإشارة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Signed-Integer Representation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>طرق لجعل الحاسب يفهم الأرقام السالبة، وأشهرها 'المكمل لـ 2' لأنه يسهل عمليات الجمع ويحتوي على صفر واحد فقط.</p></template>
+    <template class="content-en"><p>Methods to make computers understand negative numbers, the most common being '2's complement' because it simplifies addition and has only one zero.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لا توجد طريقة مباشرة لتمثيل الإشارة في النظام الثنائي. الخيارات المتاحة هي:</p><ol><li><strong>الإشارة والمقدار (Sign-and-magnitude):</strong> البت الأيسر للإشارة (0 لموجب، 1 لسالب)، لكنه يعاني من وجود قيمتين للصفر (+0 و -0) وخوارزميات حسابية معقدة.</li><li><strong>المكمل لـ 1 (1's complement):</strong> يتم بعكس كل البتات (0 إلى 1 والعكس)، ويعاني أيضاً من صفرين ويحتاج إلى '<span class="smart-term" data-term-en="End-around carry" data-ar="الحمل الدوراني" data-en-def="In 1's complement addition, adding the carry out of the most significant bit back to the least significant bit.">حمل دوراني</span>' (End-around carry) عند الجمع.</li><li><strong>المكمل لـ 2 (2's complement):</strong> هو الأكثر شيوعاً، يتم بإيجاد <span class="smart-term" data-term-en="1's Complement" data-ar="المكمل لـ 1" data-en-def="A representation formed by inverting all bits of a binary number.">المكمل لـ 1</span> ثم إضافة 1. يمتلك صفراً واحداً ويسهل عمليات الجمع والطرح في الأجهزة.</li></ol></template>
+    <template class="content-en"><p>There is no obvious direct way to represent signs in binary. Options include:</p><ol><li><strong>Sign-and-magnitude:</strong> left-most bit is the sign (0=plus, 1=minus), but it has two zeros (+0, -0) and complex arithmetic algorithms.</li><li><strong>1's complement:</strong> invert all bits, also has two zeros and requires an '<span class="smart-term" data-term-en="End-around carry" data-ar="الحمل الدوراني" data-en-def="In 1's complement addition, adding the carry out of the most significant bit back to the least significant bit.">end-around carry</span>' during addition.</li><li><strong>2's complement:</strong> the most common, found by taking the <span class="smart-term" data-term-en="1's Complement" data-ar="المكمل لـ 1" data-en-def="A representation formed by inverting all bits of a binary number.">1's complement</span> and adding 1. It has a single zero and simplifies hardware addition/subtraction.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في الحسابات المكملة (Complementary arithmetic)، يتم التعامل مع الطرح على أنه جمع لعدد سالب.</p><p>مشكلة '<span class="smart-term" data-term-en="Overflow" data-ar="الطفح" data-en-def="Occurs when a calculation produces a result that is greater than the maximum representable value for the given number of bits.">الطفح</span>' (Overflow) تحدث عندما يتجاوز ناتج العملية السعة المحددة للبتات. في المكمل لـ 2، نكتشف الطفح إذا قمنا بجمع رقمين لهما نفس الإشارة وكان الناتج يحمل إشارة مختلفة.</p><p>المبرمجون يجب أن يحذروا لأن بعض لغات البرمجة لا تتحقق من الطفح بشكل كافٍ.</p></template>
+    <template class="content-en"><p>In complementary arithmetic, subtraction is handled as the addition of a negative number.</p><p>'<span class="smart-term" data-term-en="Overflow" data-ar="الطفح" data-en-def="Occurs when a calculation produces a result that is greater than the maximum representable value for the given number of bits.">Overflow</span>' occurs when the result exceeds the fixed bit range. In 2's complement, overflow is detected if two inputs with the same sign are added and the output has a different sign.</p><p>Programmers must beware as some high-level languages do not check for overflow adequately.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a diagram showing the Overflow condition in 2's complement. Show two binary additions: 1) 0100 0000 (64) + 0100 0001 (65) = 1000 0001 (-126). Highlight the sign bits (0, 0 -> 1) in red to indicate OVERFLOW. Use dark background #0d1117, accent color #ff4757 for errors, viewBox 0 0 800 300. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title -->
+    <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Overflow Condition in 2's Complement / حالة الطفح في المتمم الثنائي</text>
+
+    <!-- Sign Bit Highlight Box -->
+    <rect x="362" y="125" width="36" height="140" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" />
+
+    <!-- Carry Logic Indicator (C_in != C_out) -->
+    <path d="M 350 92 L 350 82 L 380 82 L 380 92" fill="none" stroke="var(--brand-500)" stroke-width="1.5" />
+    <text x="365" y="75" font-family="monospace, system-ui, sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">C_in &ne; C_out</text>
+
+    <!-- Math Group -->
+    <g font-family="monospace, system-ui, sans-serif" font-size="22" font-weight="bold" text-anchor="middle">
+        
+        <!-- Carries Row -->
+        <g font-size="14" fill="var(--text-muted)">
+            <text x="310" y="105" font-family="system-ui, sans-serif" text-anchor="end">Carries</text>
+            <text x="350" y="105" fill="var(--brand-500)">0</text> <!-- Carry Out -->
+            <text x="380" y="105" fill="var(--brand-500)">1</text> <!-- Carry In to MSB -->
+            <text x="410" y="105">0</text>
+            <text x="440" y="105">0</text>
+            <text x="470" y="105">0</text>
+            <text x="510" y="105">0</text>
+            <text x="540" y="105">0</text>
+            <text x="570" y="105">0</text>
+            <text x="600" y="105">0</text>
+        </g>
+
+        <!-- Row 1: 64 -->
+        <g fill="var(--text-primary)">
+            <text x="380" y="150" fill="var(--brand-500)">0</text>
+            <text x="410" y="150">1</text>
+            <text x="440" y="150">0</text>
+            <text x="470" y="150">0</text>
+            <text x="510" y="150">0</text>
+            <text x="540" y="150">0</text>
+            <text x="570" y="150">0</text>
+            <text x="600" y="150">0</text>
+        </g>
+
+        <!-- Row 2: 65 -->
+        <g fill="var(--text-primary)">
+            <text x="330" y="190" font-size="24" fill="var(--text-secondary)">+</text>
+            <text x="380" y="190" fill="var(--brand-500)">0</text>
+            <text x="410" y="190">1</text>
+            <text x="440" y="190">0</text>
+            <text x="470" y="190">0</text>
+            <text x="510" y="190">0</text>
+            <text x="540" y="190">0</text>
+            <text x="570" y="190">0</text>
+            <text x="600" y="190">1</text>
+        </g>
+
+        <!-- Separator Line -->
+        <line x1="320" y1="210" x2="620" y2="210" stroke="var(--text-secondary)" stroke-width="2" />
+
+        <!-- Row 3: Result (-127) -->
+        <g fill="var(--text-primary)">
+            <text x="380" y="250" fill="var(--brand-500)">1</text>
+            <text x="410" y="250">0</text>
+            <text x="440" y="250">0</text>
+            <text x="470" y="250">0</text>
+            <text x="510" y="250">0</text>
+            <text x="540" y="250">0</text>
+            <text x="570" y="250">0</text>
+            <text x="600" y="250">1</text>
+        </g>
+    </g>
+
+    <!-- Decimal Values -->
+    <g font-family="system-ui, 'Cairo', sans-serif" font-size="18" text-anchor="start">
+        <text x="640" y="150" fill="var(--text-secondary)">(64)</text>
+        <text x="640" y="190" fill="var(--text-secondary)">(65)</text>
+        <text x="640" y="250" fill="var(--brand-500)" font-weight="bold">(-127)</text>
+    </g>
+
+    <!-- Annotations & Arrows -->
+    <path d="M 355 190 L 260 190" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    
+    <g font-family="system-ui, 'Cairo', sans-serif" text-anchor="middle">
+        <text x="150" y="160" font-size="16" font-weight="bold" fill="var(--text-primary)">Sign Bits / بتات الإشارة</text>
+        <text x="150" y="195" font-size="20" font-weight="bold" fill="var(--text-secondary)" font-family="monospace">0 + 0 &rarr; 1</text>
+        <text x="150" y="230" font-size="18" font-weight="bold" fill="var(--brand-500)">OVERFLOW! / طفح!</text>
+    </g>
+
+    <!-- Explanation Box -->
+    <rect x="100" y="300" width="600" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <g font-family="system-ui, 'Cairo', sans-serif" font-size="16" text-anchor="middle">
+        <text x="400" y="335" fill="var(--text-primary)">Overflow occurs when adding two <tspan fill="var(--brand-500)" font-weight="bold">POSITIVE</tspan> numbers yields a <tspan fill="var(--brand-500)" font-weight="bold">NEGATIVE</tspan> result.</text>
+        <text x="400" y="365" fill="var(--text-secondary)">يحدث الطفح عند جمع عددين موجبين وينتج عنهما عدد سالب.</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Sign-and-Magnitude</th>
+        <th>1's Complement</th>
+        <th>2's Complement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تمثيل الصفر</template>
+          <template class="content-en">Representation of Zero</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">قيمتان (+0, -0)</template>
+          <template class="content-en">Two values (+0, -0)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">قيمتان (+0, -0)</template>
+          <template class="content-en">Two values (+0, -0)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">قيمة واحدة فقط</template>
+          <template class="content-en">Single value only</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تعقيد عمليات الجمع/الطرح</template>
+          <template class="content-en">Addition/Subtraction Complexity</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">معقد جداً (يتطلب فحص الإشارات)</template>
+          <template class="content-en">Very complex (requires sign checking)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">متوسط (يتطلب حمل دوراني End-around carry)</template>
+          <template class="content-en">Medium (requires end-around carry)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">بسيط جداً (تجاهل الحمل الخارجي)</template>
+          <template class="content-en">Very simple (discard carry out)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر وجود قيمتين للصفر (+0 و -0) مشكلة في تصميم الحواسيب؟</template>
+      <template class="content-en">Why is having two representations for zero (+0 and -0) a problem in computer design?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يعقد العمليات المنطقية؛ حيث يجب على وحدة الحساب والمنطق (ALU) التحقق من كلا النمطين عند مقارنة قيمة بالصفر، مما يبطئ المعالجة ويزيد من تعقيد الدوائر.</p></template>
+      <template class="content-en"><p>Because it complicates logical operations; the ALU must check for both bit patterns whenever comparing a value to zero, which slows down processing and increases circuit complexity.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="decimal-complements" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> مكملات الأعداد العشرية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Decimal Complements</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نفس فكرة المكملات الثنائية ولكن مطبقة على النظام العشري: المكمل لـ 9 (عكس الأرقام) والمكمل لـ 10 (إضافة 1).</p></template>
+    <template class="content-en"><p>The same concept as binary complements but applied to base 10: 9's complement (diminished radix) and 10's complement (radix).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><strong>المكمل لـ 9 (<span class="smart-term" data-term-en="Diminished Radix Complement" data-ar="مكمل الأساس المنقوص" data-en-def="Complement formed by subtracting the value from the base minus 1 (e.g., 9's complement, 1's complement).">Diminished <span class="smart-term" data-term-en="Radix Complement" data-ar="مكمل الأساس" data-en-def="Complement formed by using the base number itself, effectively the diminished radix complement plus 1 (e.g., 10's complement, 2's complement).">Radix Complement</span></span>):</strong> يتم بطرح كل خانة من الرقم 9. على سبيل المثال، المكمل لـ 9 للرقم 247 في نظام 3 خانات هو (999 - 247) = 752.</li><li><strong>المكمل لـ 10 (<span class="smart-term" data-term-en="Radix Complement" data-ar="مكمل الأساس" data-en-def="Complement formed by using the base number itself, effectively the diminished radix complement plus 1 (e.g., 10's complement, 2's complement).">Radix Complement</span>):</strong> يتم بإيجاد المكمل لـ 9 ثم إضافة 1. مثال: المكمل لـ 10 للرقم 247 هو 752 + 1 = 753.</li></ul><p>هذه الطرق تسمح بإجراء عمليات الطرح باستخدام دوائر الجمع فقط.</p></template>
+    <template class="content-en"><ul><li><strong>9's Complement (<span class="smart-term" data-term-en="Diminished Radix Complement" data-ar="مكمل الأساس المنقوص" data-en-def="Complement formed by subtracting the value from the base minus 1 (e.g., 9's complement, 1's complement).">Diminished <span class="smart-term" data-term-en="Radix Complement" data-ar="مكمل الأساس" data-en-def="Complement formed by using the base number itself, effectively the diminished radix complement plus 1 (e.g., 10's complement, 2's complement).">Radix Complement</span></span>):</strong> Found by subtracting each digit from 9. For example, the 9's complement of 247 in a 3-digit system is (999 - 247) = 752.</li><li><strong>10's Complement (<span class="smart-term" data-term-en="Radix Complement" data-ar="مكمل الأساس" data-en-def="Complement formed by using the base number itself, effectively the diminished radix complement plus 1 (e.g., 10's complement, 2's complement).">Radix Complement</span>):</strong> Found by taking the 9's complement and adding 1. Example: 10's complement of 247 is 752 + 1 = 753.</li></ul><p>These methods allow subtraction to be performed using only addition circuits.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>عند الجمع باستخدام المكمل لـ 9، إذا تجاوز الناتج المقياس (Modulus)، يجب استخدام 'الحمل الدوراني' (End-around carry) وإضافة 1 للناتج.</p><p>بينما في المكمل لـ 10، يتم تجاهل الحمل الخارجي تماماً كما نفعل في المكمل لـ 2 في النظام الثنائي.</p><p>هذا يوضح لماذا المكمل لـ 10 (والمكمل لـ 2) أكثر كفاءة حسابياً.</p></template>
+    <template class="content-en"><p>When adding using 9's complement, if the result crosses the modulus, an 'end-around carry' must be added to the result.</p><p>In 10's complement, the carry out is simply discarded, exactly like in 2's complement in binary.</p><p>This illustrates why radix complements (10's and 2's) are computationally more efficient.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يساعدنا فهم المكمل لـ 10 في فهم المكمل لـ 2 بشكل أفضل؟</template>
+      <template class="content-en">How does understanding 10's complement help us better understand 2's complement?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا نستخدم النظام العشري يومياً، فإن رؤية كيف يتحول الطرح إلى جمع باستخدام المكمل لـ 10 (وتجاهل الحمل) يجعل المفهوم المجرد للمكمل لـ 2 في النظام الثنائي بديهياً ومنطقياً.</p></template>
+      <template class="content-en"><p>Because we use decimal daily, seeing how subtraction turns into addition using 10's complement (and discarding the carry) makes the abstract concept of 2's complement in binary intuitive and logical.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="floating-point-representation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> تمثيل النقطة العائمة (Floating-Point)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Floating-Point Representation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>طريقة لتمثيل الأرقام الكبيرة جداً أو الصغيرة جداً باستخدام التدوين العلمي (Scientific Notation) داخل الحاسب.</p></template>
+    <template class="content-en"><p>A method to represent extremely large or small numbers using scientific notation inside the computer.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتطلب تمثيل النقطة العائمة 4 مواصفات:</p><ul><li>إشارة الرقم،</li><li>المقدار (Mantissa)،</li><li>إشارة <span class="smart-term" data-term-en="Exponent" data-ar="الأس" data-en-def="The part of a floating-point number that determines the position of the radix point.">الأس</span>، و</li><li>مقدار الأس.</li></ul><p>المعيار القياسي هو IEEE 754. في دقة 32-بت، يتم تخصيص بت واحد للإشارة، 8 بتات للأس (باستخدام تدوين Excess-127)، و 23 بت للمقدار (Mantissa).</p><p>يتم '<span class="smart-term" data-term-en="Normalization" data-ar="التطبيع" data-en-def="Adjusting the exponent and mantissa so that the leading digit of the mantissa is non-zero, maximizing precision.">تطبيع</span>' (Normalization) الأرقام للحفاظ على الدقة، مما يعني تعديل الأس بحيث يكون الرقم الأول في <span class="smart-term" data-term-en="Mantissa" data-ar="الجزء الكسري / المقدار" data-en-def="The part of a floating-point number that contains its significant digits.">المقدار</span> دائماً 1 (والذي يتم إخفاؤه عادة لتوفير بت إضافي).</p></template>
+    <template class="content-en"><p>Floating-point representation requires 4 specifications:</p><ul><li>sign of the number,</li><li>magnitude (<span class="smart-term" data-term-en="Mantissa" data-ar="الجزء الكسري / المقدار" data-en-def="The part of a floating-point number that contains its significant digits.">Mantissa</span>),</li><li>sign of the <span class="smart-term" data-term-en="Exponent" data-ar="الأس" data-en-def="The part of a floating-point number that determines the position of the radix point.">exponent</span>, and</li><li>magnitude of the exponent.</li></ul><p>The standard is IEEE 754. In 32-bit precision, 1 bit is for the sign, 8 bits for the exponent (using Excess-127 notation), and 23 bits for the mantissa.</p><p>Numbers are '<span class="smart-term" data-term-en="Normalization" data-ar="التطبيع" data-en-def="Adjusting the exponent and mantissa so that the leading digit of the mantissa is non-zero, maximizing precision.">normalized</span>' to maintain precision, meaning the exponent is adjusted so the first digit of the mantissa is always 1 (which is usually hidden to save a bit).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام تدوين Excess-127 للأس يسمح بمقارنة الأرقام ذات النقطة العائمة بسرعة باستخدام دوائر مقارنة الأعداد الصحيحة العادية، حيث يتم تمثيل الأسس السالبة كأرقام موجبة صغيرة.</p><p>عند إجراء العمليات الحسابية، يجب محاذاة الأسس قبل الجمع/الطرح، مما قد يؤدي إلى فقدان الأرقام الأقل أهمية.</p><p>'<span class="smart-term" data-term-en="Underflow" data-ar="التدفق السفلي" data-en-def="Occurs when a calculation results in a number that is too small (too close to zero) to be represented in the given format.">التدفق السفلي</span>' (Underflow) يحدث عندما يكون الرقم صغيراً جداً (قريباً جداً من الصفر) بحيث لا يمكن تمثيله.</p></template>
+    <template class="content-en"><p>Using Excess-127 notation for the exponent allows floating-point numbers to be compared quickly using standard integer comparison circuits, as negative exponents are represented as small positive numbers.</p><p>During arithmetic, exponents must be aligned before addition/subtraction, which can cause the loss of least significant digits.</p><p>'<span class="smart-term" data-term-en="Underflow" data-ar="التدفق السفلي" data-en-def="Occurs when a calculation results in a number that is too small (too close to zero) to be represented in the given format.">Underflow</span>' occurs when a number is too small (too close to zero) to be represented.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة حساب القيمة في معيار IEEE 754 (دقة 32-بت).</strong></template>
+      <template class="content-en"><strong>Formula to calculate the value in IEEE 754 standard (32-bit precision).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$(-1)^S \times 1.M \times 2^{E-127}$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Draw the IEEE 754 32-bit floating-point format. A long rectangle divided into 3 sections: Sign bit (1 bit, index 31, color #ff4757), Exponent (8 bits, indices 30-23, color #ffa502, label 'Excess-127'), Mantissa (23 bits, indices 22-0, color #2ed573). Use dark background #0d1117, clear text. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrow Markers for Dimension Lines -->
+    <marker id="arrow-start" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto">
+      <path d="M8,0 L0,4 L8,8 Z" fill="var(--brand-500)" />
+    </marker>
+    <marker id="arrow-end" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title Section -->
+  <text x="400" y="45" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)">
+    IEEE 754 Single Precision (32-bit) Floating-Point Format
+  </text>
+  <text x="400" y="75" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-secondary)">
+    معيار IEEE 754 للفاصلة العائمة (32 بت)
+  </text>
+
+  <!-- Bit Indices & Tick Marks -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)">
+    <!-- Sign Bit Index -->
+    <text x="70" y="125" text-anchor="middle">31</text>
+    <line x1="70" y1="132" x2="70" y2="140" stroke="var(--text-muted)" stroke-width="1.5" />
+    
+    <!-- Exponent Bit Indices -->
+    <text x="115" y="125" text-anchor="middle">30</text>
+    <line x1="115" y1="132" x2="115" y2="140" stroke="var(--text-muted)" stroke-width="1.5" />
+    <text x="273" y="125" text-anchor="middle">23</text>
+    <line x1="273" y1="132" x2="273" y2="140" stroke="var(--text-muted)" stroke-width="1.5" />
+    
+    <!-- Mantissa Bit Indices -->
+    <text x="298" y="125" text-anchor="middle">22</text>
+    <line x1="298" y1="132" x2="298" y2="140" stroke="var(--text-muted)" stroke-width="1.5" />
+    <text x="750" y="125" text-anchor="middle">0</text>
+    <line x1="750" y1="132" x2="750" y2="140" stroke="var(--text-muted)" stroke-width="1.5" />
+  </g>
+
+  <!-- Main 32-bit Rectangle Sections -->
+  <g>
+    <!-- Sign Box (1 bit) -->
+    <rect x="40" y="140" width="60" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="70" y="176" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)">S</text>
+
+    <!-- Exponent Box (8 bits) -->
+    <rect x="104" y="140" width="180" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <!-- Exponent Internal Dividers -->
+    <path d="M126.5,140 L126.5,200 M149,140 L149,200 M171.5,140 L171.5,200 M194,140 L194,200 M216.5,140 L216.5,200 M239,140 L239,200 M261.5,140 L261.5,200" stroke="var(--border-color)" stroke-width="1" opacity="0.3" />
+    <text x="194" y="176" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)">Exponent</text>
+
+    <!-- Mantissa Box (23 bits) -->
+    <rect x="288" y="140" width="472" height="60" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <!-- Mantissa Internal Dividers -->
+    <path d="M308.5,140 L308.5,200 M329,140 L329,200 M349.6,140 L349.6,200 M370.1,140 L370.1,200 M390.6,140 L390.6,200 M411.1,140 L411.1,200 M431.7,140 L431.7,200 M452.2,140 L452.2,200 M472.7,140 L472.7,200 M493.2,140 L493.2,200 M513.8,140 L513.8,200 M534.3,140 L534.3,200 M554.8,140 L554.8,200 M575.3,140 L575.3,200 M595.9,140 L595.9,200 M616.4,140 L616.4,200 M636.9,140 L636.9,200 M657.4,140 L657.4,200 M678,140 L678,200 M698.5,140 L698.5,200 M719,140 L719,200 M739.6,140 L739.6,200" stroke="var(--border-color)" stroke-width="1" opacity="0.3" />
+    <text x="524" y="176" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)">Mantissa / Fraction</text>
+  </g>
+
+  <!-- Dimension Lines & Labels -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14">
+    <!-- Sign Dimension -->
+    <line x1="42" y1="220" x2="98" y2="220" stroke="var(--brand-500)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <text x="70" y="242" text-anchor="middle" font-weight="bold" fill="var(--text-primary)">1 bit</text>
+    <text x="70" y="262" text-anchor="middle" fill="var(--text-secondary)">إشارة</text>
+
+    <!-- Exponent Dimension -->
+    <line x1="106" y1="220" x2="282" y2="220" stroke="var(--brand-500)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <text x="194" y="242" text-anchor="middle" font-weight="bold" fill="var(--text-primary)">8 bits (Excess-127)</text>
+    <text x="194" y="262" text-anchor="middle" fill="var(--text-secondary)">الأس</text>
+
+    <!-- Mantissa Dimension -->
+    <line x1="290" y1="220" x2="758" y2="220" stroke="var(--brand-500)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <text x="524" y="242" text-anchor="middle" font-weight="bold" fill="var(--text-primary)">23 bits</text>
+    <text x="524" y="262" text-anchor="middle" fill="var(--text-secondary)">الجزء الكسري</text>
+  </g>
+
+  <!-- Formula Section -->
+  <g transform="translate(0, 300)">
+    <rect x="150" y="0" width="500" height="85" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" stroke-dasharray="6,4" />
+    
+    <text x="400" y="25" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-secondary)">
+      القيمة (Decimal Value)
+    </text>
+
+    <!-- Mathematical Formula -->
+    <text x="400" y="55" text-anchor="middle" font-family="monospace" font-size="24" font-weight="bold" fill="var(--text-primary)">
+      (-1)<tspan dy="-12" font-size="16" fill="var(--brand-500)">S</tspan><tspan dy="12" fill="var(--text-primary)"> × (1.</tspan><tspan fill="var(--brand-500)">M</tspan><tspan fill="var(--text-primary)">)₂ × 2</tspan><tspan dy="-12" font-size="16" fill="var(--brand-500)">E-127</tspan>
+    </text>
+
+    <!-- Legend -->
+    <text x="400" y="75" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">
+      حيث S = الإشارة، E = الأس، M = الجزء الكسري
+    </text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم تدوين Excess-127 للأس بدلاً من المكمل لـ 2؟</template>
+      <template class="content-en">Why do we use Excess-127 notation for the exponent instead of 2's complement?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن تدوين Excess يجعل جميع الأسس (الموجبة والسالبة) تبدو كأرقام موجبة بدون إشارة، مما يسمح لوحدة المعالجة بمقارنة حجم رقمين عائمين بسرعة فائقة باستخدام نفس دوائر المقارنة المستخدمة للأعداد الصحيحة الموجبة.</p></template>
+      <template class="content-en"><p>Because Excess notation makes all exponents (positive and negative) look like unsigned positive numbers, allowing the CPU to compare the magnitude of two floating-point numbers extremely fast using the same hardware comparators used for unsigned integers.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في الأسبوع الثالث! هذا الأسبوع هو حجر الأساس لفهم كيف 'يفكر' الحاسب ويخزن البيانات فعلياً. ننتقل من عالمنا العشري المألوف إلى لغة الآلة الثنائية. لن نتعلم فقط كيف نعد بالثنائي والثماني والسداسي عشر، بل سنغوص في مشكلة برمجية وهندسية عميقة: كيف نمثل الأرقام السالبة؟ سترون كيف تطورت الحلول من 'الإشارة والمقدار' الساذجة إلى 'المكمل لـ 2' العبقري الذي تستخدمه جميع معالجاتنا اليوم لأنه يبسط دوائر الجمع بشكل مذهل. أخيراً، سنعالج الأرقام الكبيرة جداً والصغيرة جداً باستخدام معيار IEEE 754 للنقطة العائمة. ركزوا جيداً على شروط الطفح (Overflow) وطرق التحويل، فهي دائماً موضع أسئلة دقيقة في الامتحانات!</template>
+    <template class="content-en">Welcome to Week 3! This week is the bedrock of understanding how a computer actually 'thinks' and stores data. We transition from our familiar decimal world into the machine's binary language. You won't just learn how to count in binary, octal, and hex; we will dive into a deep engineering problem: how do we represent negative numbers? You'll see how solutions evolved from the naive 'Sign-and-Magnitude' to the brilliant '2's Complement' used in all modern CPUs because it drastically simplifies addition circuits. Finally, we tackle extremely large and small numbers using the IEEE 754 floating-point standard. Pay close attention to Overflow conditions and conversion methods—they are guaranteed exam favorites!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تستخدم الحواسيب النظام الثنائي بدلاً من العشري؟</template>
+          <template class="content-en">Why do computers use binary instead of decimal?</template>
+          <span class="content-target">لماذا تستخدم الحواسيب النظام الثنائي بدلاً من العشري؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن تصميم الدوائر الإلكترونية التي تميز بين حالتين (تشغيل/إيقاف) أبسط بكثير وأكثر موثوقية من تصميم دوائر تميز بين 10 مستويات للجهد. كما أنه يتوافق تماماً مع المنطق البولياني.</template>
+          <template class="content-en">Because designing electronic circuits that distinguish between two states (on/off) is much simpler and more reliable than distinguishing 10 voltage levels. It also maps perfectly to Boolean logic.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نحول الكسر العشري إلى ثنائي؟</template>
+          <template class="content-en">How do we convert a decimal fraction to binary?</template>
+          <span class="content-target">كيف نحول الكسر العشري إلى ثنائي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نضرب الكسر في 2، ونأخذ الجزء الصحيح كأول بت بعد الفاصلة. ثم نأخذ الجزء الكسري المتبقي ونضربه في 2 مجدداً، ونكرر العملية حتى نصل للصفر أو للدقة المطلوبة.</template>
+          <template class="content-en">Multiply the fraction by 2, take the integer part as the first bit after the radix point. Then take the remaining fractional part, multiply by 2 again, and repeat until you reach zero or the desired precision.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المشكلة الرئيسية في تمثيل الإشارة والمقدار (Sign-and-Magnitude)؟</template>
+          <template class="content-en">What is the main problem with Sign-and-Magnitude representation?</template>
+          <span class="content-target">ما هي المشكلة الرئيسية في تمثيل الإشارة والمقدار (Sign-and-Magnitude)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">وجود تمثيلين للصفر (+0 و -0)، مما يعقد تصميم وحدة الحساب والمنطق (ALU) ويبطئ عمليات المقارنة.</template>
+          <template class="content-en">It has two representations for zero (+0 and -0), which complicates the ALU design and slows down comparison operations.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نجد المكمل لـ 2 لأي رقم ثنائي؟</template>
+          <template class="content-en">How do we find the 2's complement of any binary number?</template>
+          <span class="content-target">كيف نجد المكمل لـ 2 لأي رقم ثنائي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أولاً نعكس جميع البتات (نحول 0 إلى 1 و 1 إلى 0) لنحصل على المكمل لـ 1، ثم نضيف 1 للنتيجة.</template>
+          <template class="content-en">First, invert all bits (change 0 to 1 and 1 to 0) to get the 1's complement, then add 1 to the result.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الحمل الدوراني (End-around carry)؟</template>
+          <template class="content-en">What is an end-around carry?</template>
+          <span class="content-target">ما هو الحمل الدوراني (End-around carry)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">في عمليات الجمع باستخدام المكمل لـ 1 (أو المكمل لـ 9)، إذا نتج حمل (Carry) خارج الخانة الأخيرة اليسرى، يجب إضافته مرة أخرى إلى الخانة الأولى اليمنى للحصول على النتيجة الصحيحة.</template>
+          <template class="content-en">In addition operations using 1's complement (or 9's complement), if a carry out of the leftmost bit occurs, it must be added back to the rightmost bit to get the correct result.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نكتشف الطفح (Overflow) في المكمل لـ 2؟</template>
+          <template class="content-en">How do we detect Overflow in 2's complement?</template>
+          <span class="content-target">كيف نكتشف الطفح (Overflow) في المكمل لـ 2؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يحدث الطفح فقط إذا قمنا بجمع رقمين لهما نفس الإشارة، وكان الناتج يحمل إشارة مختلفة (مثلاً: موجب + موجب = سالب).</template>
+          <template class="content-en">Overflow only occurs if we add two numbers with the same sign, and the result has a different sign (e.g., positive + positive = negative).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مكونات الرقم في معيار IEEE 754 (32-بت)؟</template>
+          <template class="content-en">What are the components of a number in the IEEE 754 (32-bit) standard?</template>
+          <span class="content-target">ما هي مكونات الرقم في معيار IEEE 754 (32-بت)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتكون من 32 بت مقسمة كالتالي: 1 بت للإشارة، 8 بت للأس (Exponent)، و 23 بت للمقدار (Mantissa).</template>
+          <template class="content-en">It consists of 32 bits divided as follows: 1 bit for the sign, 8 bits for the exponent, and 23 bits for the mantissa.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم تدوين Excess-127 للأس في النقطة العائمة؟</template>
+          <template class="content-en">Why do we use Excess-127 notation for the exponent in floating-point?</template>
+          <span class="content-target">لماذا نستخدم تدوين Excess-127 للأس في النقطة العائمة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يحول الأسس السالبة والموجبة إلى أرقام موجبة دائماً، مما يسمح للمعالج بمقارنة الأرقام العائمة بسرعة باستخدام نفس الدوائر التي تقارن الأعداد الصحيحة الموجبة.</template>
+          <template class="content-en">Because it shifts negative and positive exponents into strictly positive numbers, allowing the CPU to compare floating-point numbers quickly using the same circuits that compare unsigned integers.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التدفق السفلي (Underflow)؟</template>
+          <template class="content-en">What is Underflow?</template>
+          <span class="content-target">ما هو التدفق السفلي (Underflow)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">حالة تحدث عندما تنتج عملية حسابية رقماً صغيراً جداً (قريباً جداً من الصفر) بحيث لا يمكن تمثيله بالبتات المتاحة في النظام.</template>
+          <template class="content-en">A condition that occurs when a calculation produces a number so small (so close to zero) that it cannot be represented with the available bits in the system.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التطبيع (Normalization) ولماذا هو مهم؟</template>
+          <template class="content-en">What is Normalization and why is it important?</template>
+          <span class="content-target">ما هو التطبيع (Normalization) ولماذا هو مهم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو تعديل الأس بحيث يكون الرقم الأول في المقدار (Mantissa) دائماً غير صفري (دائماً 1 في الثنائي). هذا مهم لأنه يحافظ على أقصى دقة ممكنة للرقم ويمنع إهدار البتات في تخزين أصفار غير ضرورية.</template>
+          <template class="content-en">It is adjusting the exponent so that the leading digit of the mantissa is always non-zero (always 1 in binary). This is important because it maintains maximum precision and prevents wasting bits on storing unnecessary leading zeros.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الأساس (Radix)؟",
+      "en": "What is the Base (Radix)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عدد الرموز المختلفة (بما في ذلك الصفر) المطلوبة لتمثيل أي رقم في نظام معين.",
+        "en": "The number of different symbols (including zero) required to represent any given number in a system."
+      },
+      "example": {
+        "ar": "النظام العشري أساسه 10 (0-9).",
+        "en": "Base 10 has 10 digits (0 through 9)."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي معادلة حساب نطاق الأرقام الممكنة؟",
+      "en": "What is the formula for the Range of Possible Numbers?"
+    },
+    "back": {
+      "definition": {
+        "ar": "R = B^K (حيث R النطاق، B الأساس، K عدد الخانات).",
+        "en": "R = B^K (where R is range, B is base, K is number of digits)."
+      },
+      "example": {
+        "ar": "نظام ثنائي بـ 16 بت: 2^16 = 65,536.",
+        "en": "Base 2, 16 digits: 2^16 = 65,536."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو البت (Bit)؟",
+      "en": "What is a Bit?"
+    },
+    "back": {
+      "definition": {
+        "ar": "رقم ثنائي (Binary digit)، وهو أصغر وحدة بيانات (0 أو 1).",
+        "en": "A binary digit, the smallest unit of data (0 or 1)."
+      },
+      "example": {
+        "ar": "الرقم 1010 يحتوي على 4 بتات.",
+        "en": "The number 1010 has 4 bits."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "كم بت يوجد في البايت (Byte)؟",
+      "en": "How many bits are in a Byte?"
+    },
+    "back": {
+      "definition": {
+        "ar": "8 بتات.",
+        "en": "8 bits."
+      },
+      "example": {
+        "ar": "1 بايت = 8 بت.",
+        "en": "1 byte = 8 bits."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو تمثيل الإشارة والمقدار (Sign-and-Magnitude)؟",
+      "en": "What is Sign-and-Magnitude representation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "استخدام البت الأيسر للإشارة (0 موجب، 1 سالب) وباقي البتات للقيمة.",
+        "en": "Using the left-most bit for sign (0=plus, 1=minus) and the rest for magnitude."
+      },
+      "example": {
+        "ar": "في 8 بت: 10000001 يمثل -1.",
+        "en": "In 8 bits: 10000001 represents -1."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "كيف نجد المكمل لـ 1 (1's Complement)؟",
+      "en": "How do you find the 1's Complement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بعكس جميع البتات (تغيير 1 إلى 0 و 0 إلى 1).",
+        "en": "By inverting all bits (change 1s to 0s and 0s to 1s)."
+      },
+      "example": {
+        "ar": "المكمل لـ 1 للرقم 1010 هو 0101.",
+        "en": "1's complement of 1010 is 0101."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف نجد المكمل لـ 2 (2's Complement)؟",
+      "en": "How do you find the 2's Complement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بإيجاد المكمل لـ 1 ثم إضافة 1.",
+        "en": "By taking the 1's complement and adding 1."
+      },
+      "example": {
+        "ar": "المكمل لـ 2 للرقم 0010 هو 1101 + 1 = 1110.",
+        "en": "2's complement of 0010 is 1101 + 1 = 1110."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو الحمل الدوراني (End-around carry)؟",
+      "en": "What is End-around carry?"
+    },
+    "back": {
+      "definition": {
+        "ar": "في جمع المكمل لـ 1 أو 9، إذا كان هناك حمل خارج الخانة الأخيرة، يتم إضافته إلى الخانة الأولى.",
+        "en": "In 1's or 9's complement addition, if a carry out occurs, it is added back to the least significant bit."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "متى يحدث الطفح (Overflow) في المكمل لـ 2؟",
+      "en": "When does Overflow occur in 2's complement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عند جمع رقمين لهما نفس الإشارة وينتج رقم بإشارة مختلفة.",
+        "en": "If both inputs to an addition have the same sign and the output sign is different."
+      },
+      "example": {
+        "ar": "موجب + موجب = سالب (طفح).",
+        "en": "Positive + Positive = Negative (Overflow)."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو المكمل لـ 9 (9's Complement)؟",
+      "en": "What is the 9's Complement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مكمل الأساس المنقوص للنظام العشري، يتم بطرح كل خانة من 9.",
+        "en": "The diminished radix complement for base 10, found by subtracting each digit from 9."
+      },
+      "example": {
+        "ar": "المكمل لـ 9 للرقم 247 هو 752.",
+        "en": "9's complement of 247 is 752."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو المكمل لـ 10 (10's Complement)؟",
+      "en": "What is the 10's Complement?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مكمل الأساس للنظام العشري، يتم بإيجاد المكمل لـ 9 وإضافة 1.",
+        "en": "The radix complement for base 10, found by taking the 9's complement and adding 1."
+      },
+      "example": {
+        "ar": "المكمل لـ 10 للرقم 247 هو 753.",
+        "en": "10's complement of 247 is 753."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي مكونات الرقم ذو النقطة العائمة (Floating-Point)؟",
+      "en": "What are the components of a Floating-Point number?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الإشارة، المقدار (Mantissa)، الأساس، والأس (Exponent).",
+        "en": "Sign, Magnitude (Mantissa), Base, and Exponent."
+      },
+      "example": {
+        "ar": "-0.357 x 10^-6",
+        "en": "-0.357 x 10^-6"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو التدفق السفلي (Underflow)؟",
+      "en": "What is Underflow?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يحدث عندما يكون الرقم صغيراً جداً (قريباً من الصفر) بحيث لا يمكن تمثيله في النظام.",
+        "en": "Occurs when a number is too small (too close to zero) for representation."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو معيار IEEE 754 لدقة 32-بت؟",
+      "en": "What is the IEEE 754 32-bit standard?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنسيق قياسي للنقطة العائمة: 1 بت للإشارة، 8 بت للأس، 23 بت للمقدار.",
+        "en": "Standard floating-point format: 1 sign bit, 8 exponent bits, 23 mantissa bits."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو تدوين Excess-N؟",
+      "en": "What is Excess-N notation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة لتمثيل الأسس السالبة كأرقام موجبة بإضافة قيمة ثابتة (N) إلى الأس الحقيقي.",
+        "en": "A method to represent negative exponents as positive numbers by adding a fixed offset (N) to the actual exponent."
+      },
+      "example": {
+        "ar": "في Excess-127، الأس 0 يمثل كـ 127.",
+        "en": "In Excess-127, an exponent of 0 is represented as 127."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو التطبيع (Normalization) في النقطة العائمة؟",
+      "en": "What is Normalization in floating-point?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعديل الأس بحيث يكون الرقم الأول في المقدار (Mantissa) غير صفري للحفاظ على الدقة.",
+        "en": "Adjusting the exponent so the leading digit of the mantissa is non-zero to maintain precision."
+      },
+      "example": {
+        "ar": "0.025 x 10^0 يصبح 0.25 x 10^-1",
+        "en": "0.025 x 10^0 becomes 0.25 x 10^-1"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "لماذا اقترح جون فون نيومان استخدام النظام الثنائي في الحواسيب؟",
+      "en": "Why did John von Neumann propose using binary data processing in computers?"
+    },
+    "options": {
+      "ar": [
+        "لأنه يستهلك طاقة أقل من النظام العشري",
+        "لتبسيط تصميم الأجهزة وتوافقه مع المنطق البولياني",
+        "لأنه أسرع في الطباعة على الشاشة",
+        "لأنه يقلل من حجم الذاكرة المطلوبة للنصف"
+      ],
+      "en": [
+        "Because it consumes less power than decimal",
+        "To simplify hardware design and map to Boolean logic",
+        "Because it is faster to print on screen",
+        "Because it halves the required memory size"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "النظام الثنائي يبسط تصميم الأجهزة (مفاتيح تشغيل/إيقاف) ويتوافق طبيعياً مع المنطق البولياني.",
+      "en": "Binary simplifies computer hardware design (on/off switches) and naturally maps to Boolean logic."
+    },
+    "hint": {
+      "ar": "فكر في طبيعة المفاتيح الكهربائية.",
+      "en": "Think about the nature of electrical switches."
+    },
+    "difficulty": "easy",
+    "conceptId": "positional-numbering-systems"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو نطاق الأرقام الممكنة لنظام يستخدم 16 بت؟",
+      "en": "What is the range of possible numbers for a 16-bit system?"
+    },
+    "options": {
+      "ar": [
+        "1,024",
+        "32,768",
+        "65,536",
+        "1,048,576"
+      ],
+      "en": [
+        "1,024",
+        "32,768",
+        "65,536",
+        "1,048,576"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "باستخدام المعادلة R = 2^16، النطاق هو 65,536.",
+      "en": "Using the formula R = 2^16, the range is 65,536."
+    },
+    "hint": {
+      "ar": "استخدم المعادلة R = B^K.",
+      "en": "Use the formula R = B^K."
+    },
+    "difficulty": "medium",
+    "conceptId": "positional-numbering-systems"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو العيب الرئيسي في تمثيل الإشارة والمقدار (Sign-and-Magnitude)؟",
+      "en": "What is the main disadvantage of Sign-and-Magnitude representation?"
+    },
+    "options": {
+      "ar": [
+        "لا يمكنه تمثيل الأرقام السالبة",
+        "يحتوي على قيمتين للصفر (+0 و -0)",
+        "يستهلك مساحة ذاكرة أكبر من المكمل لـ 2",
+        "يتطلب بتات إضافية للإشارة"
+      ],
+      "en": [
+        "It cannot represent negative numbers",
+        "It has two values for zero (+0 and -0)",
+        "It consumes more memory space than 2's complement",
+        "It requires extra bits for the sign"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "وجود قيمتين للصفر يعقد الخوارزميات الحسابية وتصميم الأجهزة.",
+      "en": "Having two values for zero complicates arithmetic algorithms and hardware design."
+    },
+    "hint": {
+      "ar": "ماذا يحدث عندما تكون جميع بتات المقدار أصفاراً والبت الخاص بالإشارة 1؟",
+      "en": "What happens when all magnitude bits are zero and the sign bit is 1?"
+    },
+    "difficulty": "medium",
+    "conceptId": "signed-integer-representation"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كيف تكتشف حدوث طفح (Overflow) في جمع المكمل لـ 2؟",
+      "en": "How do you detect an Overflow in 2's complement addition?"
+    },
+    "options": {
+      "ar": [
+        "إذا كان هناك حمل (Carry) خارج البت الأخير",
+        "إذا جمعنا رقمين موجبين وكان الناتج سالباً، أو رقمين سالبين وكان الناتج موجباً",
+        "إذا كان الناتج يحتوي على أصفار فقط",
+        "إذا جمعنا رقماً موجباً مع رقم سالب"
+      ],
+      "en": [
+        "If there is a carry out of the last bit",
+        "If two positive numbers yield a negative result, or two negative numbers yield a positive result",
+        "If the result contains only zeros",
+        "If we add a positive number to a negative number"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الطفح يحدث عندما تتجاوز النتيجة السعة المتاحة، ويظهر ذلك بتغير إشارة الناتج بشكل غير منطقي عند جمع رقمين من نفس الإشارة.",
+      "en": "Overflow occurs when the result exceeds capacity, indicated by an illogical sign change when adding two numbers of the same sign."
+    },
+    "hint": {
+      "ar": "راقب إشارات المدخلات مقارنة بإشارة المخرجات.",
+      "en": "Observe the signs of the inputs compared to the sign of the output."
+    },
+    "difficulty": "hard",
+    "conceptId": "signed-integer-representation"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو المكمل لـ 9 للرقم العشري 521؟",
+      "en": "What is the 9's complement of the decimal number 521?"
+    },
+    "options": {
+      "ar": [
+        "478",
+        "479",
+        "521",
+        "999"
+      ],
+      "en": [
+        "478",
+        "479",
+        "521",
+        "999"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "المكمل لـ 9 يتم بطرح الرقم من 999. (999 - 521 = 478).",
+      "en": "9's complement is found by subtracting the number from 999. (999 - 521 = 478)."
+    },
+    "hint": {
+      "ar": "اطرح كل خانة من الرقم 9.",
+      "en": "Subtract each digit from 9."
+    },
+    "difficulty": "easy",
+    "conceptId": "decimal-complements"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في معيار IEEE 754 (32-بت)، كم عدد البتات المخصصة للأس (Exponent)؟",
+      "en": "In the IEEE 754 (32-bit) standard, how many bits are allocated for the Exponent?"
+    },
+    "options": {
+      "ar": [
+        "1 بت",
+        "8 بت",
+        "16 بت",
+        "23 بت"
+      ],
+      "en": [
+        "1 bit",
+        "8 bits",
+        "16 bits",
+        "23 bits"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المعيار يخصص 1 بت للإشارة، 8 بت للأس، و 23 بت للمقدار (Mantissa).",
+      "en": "The standard allocates 1 bit for sign, 8 bits for exponent, and 23 bits for mantissa."
+    },
+    "hint": {
+      "ar": "تذكر التقسيم: 1 + X + 23 = 32.",
+      "en": "Remember the split: 1 + X + 23 = 32."
+    },
+    "difficulty": "medium",
+    "conceptId": "floating-point-representation"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو الغرض من 'التطبيع' (Normalization) في النقطة العائمة؟",
+      "en": "What is the purpose of 'Normalization' in floating-point?"
+    },
+    "options": {
+      "ar": [
+        "تحويل الرقم إلى عدد صحيح",
+        "الحفاظ على دقة النتيجة بجعل الرقم الأول غير صفري",
+        "منع حدوث الطفح (Overflow)",
+        "تغيير إشارة الرقم"
+      ],
+      "en": [
+        "To convert the number to an integer",
+        "To maintain precision by making the leading digit non-zero",
+        "To prevent Overflow",
+        "To change the sign of the number"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التطبيع يضمن استخدام جميع بتات المقدار (Mantissa) بشكل فعال لتمثيل الأرقام المعنوية، مما يحافظ على الدقة.",
+      "en": "Normalization ensures all mantissa bits are used effectively for significant digits, maintaining precision."
+    },
+    "hint": {
+      "ar": "يتعلق الأمر بالاستفادة القصوى من البتات المتاحة للمقدار.",
+      "en": "It's about making the most of the available bits for the magnitude."
+    },
+    "difficulty": "medium",
+    "conceptId": "floating-point-representation"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "عند تحويل كسر عشري إلى النظام الثنائي، ماذا نفعل؟",
+      "en": "When converting a decimal fraction to binary, what do we do?"
+    },
+    "options": {
+      "ar": [
+        "نقسم الكسر على 2 بشكل متكرر",
+        "نضرب الكسر في 2 بشكل متكرر ونأخذ الجزء الصحيح",
+        "نطرح 2 من الكسر بشكل متكرر",
+        "نجمع 2 للكسر بشكل متكرر"
+      ],
+      "en": [
+        "Repeatedly divide the fraction by 2",
+        "Repeatedly multiply the fraction by 2 and take the integer part",
+        "Repeatedly subtract 2 from the fraction",
+        "Repeatedly add 2 to the fraction"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لتحويل الكسور، نضرب في الأساس (2) ونأخذ الجزء الصحيح كبت في النتيجة.",
+      "en": "To convert fractions, we multiply by the base (2) and take the integer part as a bit in the result."
+    },
+    "hint": {
+      "ar": "عكس ما تفعله مع الأعداد الصحيحة.",
+      "en": "The opposite of what you do with integers."
+    },
+    "difficulty": "medium",
+    "conceptId": "base-conversions"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الحمل الدوراني (End-around carry) وفي أي نظام يستخدم؟",
+      "en": "What is an End-around carry and in which system is it used?"
+    },
+    "options": {
+      "ar": [
+        "يستخدم في المكمل لـ 2 لتجاهل الحمل الخارجي",
+        "يستخدم في المكمل لـ 1 لإضافة الحمل الخارجي إلى الخانة الأولى",
+        "يستخدم في النقطة العائمة لضبط الأس",
+        "يستخدم في الإشارة والمقدار لتحديد الإشارة"
+      ],
+      "en": [
+        "Used in 2's complement to discard the carry out",
+        "Used in 1's complement to add the carry out back to the least significant bit",
+        "Used in floating-point to adjust the exponent",
+        "Used in sign-and-magnitude to determine the sign"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في حسابات المكمل لـ 1 (والمكمل لـ 9)، يجب إضافة أي حمل يخرج من الخانة الأخيرة مرة أخرى إلى الخانة الأولى للحصول على النتيجة الصحيحة.",
+      "en": "In 1's complement (and 9's complement) arithmetic, any carry out of the MSB must be added back to the LSB to get the correct result."
+    },
+    "hint": {
+      "ar": "يحدث في الأنظمة التي تعاني من وجود صفرين.",
+      "en": "It happens in systems that suffer from having two zeros."
+    },
+    "difficulty": "hard",
+    "conceptId": "signed-integer-representation"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "لماذا قد يكون التحويل الدقيق لكسر عشري إلى ثنائي مستحيلاً أحياناً؟",
+      "en": "Why might an exact conversion of a decimal fraction to binary sometimes be impossible?"
+    },
+    "options": {
+      "ar": [
+        "لأن الحاسب لا يمتلك ذاكرة كافية",
+        "لأنه لا توجد علاقة دقيقة دائماً بين الكسور في القواعد المختلفة، مما قد ينتج كسراً دورياً لا نهائياً",
+        "لأن النظام الثنائي لا يدعم الكسور",
+        "لأن المعالج لا يمكنه ضرب الأرقام الكسرية"
+      ],
+      "en": [
+        "Because the computer lacks sufficient memory",
+        "Because there is no exact relationship between fractions in different bases, potentially resulting in an infinitely repeating fraction",
+        "Because binary does not support fractions",
+        "Because the processor cannot multiply fractional numbers"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بعض الكسور العشرية (مثل 0.1) لا يمكن التعبير عنها كمجموع دقيق لقوى العدد 2، مما يؤدي إلى نمط متكرر لا نهائي.",
+      "en": "Some decimal fractions (like 0.1) cannot be expressed as an exact sum of powers of 2, leading to an infinitely repeating pattern."
+    },
+    "hint": {
+      "ar": "فكر في كيفية تمثيل 1/3 في النظام العشري.",
+      "en": "Think about how 1/3 is represented in decimal."
+    },
+    "difficulty": "medium",
+    "conceptId": "base-conversions"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين طريقة تحويل الأعداد الصحيحة والكسور. تذكر: الأعداد الصحيحة تُقسم على 2، بينما الكسور تُضرب في 2.</template>
+      <template class="content-en">Confusing the conversion method for integers and fractions. Remember: Integers are DIVIDED by 2, while fractions are MULTIPLIED by 2.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المكمل لـ 2 هو ببساطة المكمل لـ 1 مضافاً إليه 1. هذا التعديل البسيط يحل مشكلة الصفر المزدوج ويلغي الحاجة للحمل الدوراني (End-around carry) في الأجهزة.</template>
+      <template class="content-en">2's complement is simply 1's complement plus 1. This tiny adjustment solves the double-zero problem and eliminates the need for end-around carry in hardware.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الطفح (Overflow) في المكمل لـ 2 لا يحدث أبداً عند جمع رقمين بإشارتين مختلفتين. يحدث فقط عند جمع رقمين لهما نفس الإشارة وينتج رقم بإشارة معاكسة.</template>
+      <template class="content-en">Overflow in 2's complement NEVER occurs when adding two numbers with different signs. It ONLY happens when adding two numbers with the same sign and getting a result with the opposite sign.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان أن تمثيل الإشارة والمقدار (Sign-and-Magnitude) والمكمل لـ 1 يمتلكان قيمتين للصفر (+0 و -0)، مما يعقد تصميم المعالجات.</template>
+      <template class="content-en">Forgetting that Sign-and-Magnitude and 1's Complement have TWO representations for zero (+0 and -0), which complicates processor design.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في معيار IEEE 754، نستخدم تدوين Excess-127 للأس. هذا يعني أننا نضيف 127 للأس الحقيقي لكي نخزن دائماً رقماً موجباً، مما يسرع عمليات المقارنة في المعالج.</template>
+      <template class="content-en">In IEEE 754, we use Excess-127 notation for the exponent. This means we add 127 to the actual exponent so we always store a positive number, speeding up comparisons in the CPU.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M01.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M03.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

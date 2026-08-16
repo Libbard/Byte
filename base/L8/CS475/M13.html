@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS475" data-module="13">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحديد الموقع الجغرافي، الخرائط، والمستشعرات · CS475 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS475" data-page-title-en="CS475">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M12.html" data-gh-next="index.html" data-gh-card="../../hub/course.html?code=CS475"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#geolocation-api" class="toc-link" data-bilingual>
+        <template class="content-ar">واجهة برمجة تطبيقات تحديد الموقع الجغرافي (Geolocation API)</template>
+        <template class="content-en">Geolocation API</template>
+        <span class="content-target">واجهة برمجة تطبيقات تحديد الموقع الجغرافي (Geolocation API)</span>
+      </a>
+      <a href="#mapview-component" class="toc-link" data-bilingual>
+        <template class="content-ar">مكون عرض الخريطة (MapView)</template>
+        <template class="content-en">MapView Component</template>
+        <span class="content-target">مكون عرض الخريطة (MapView)</span>
+      </a>
+      <a href="#map-annotations-overlays" class="toc-link" data-bilingual>
+        <template class="content-ar">التعليقات التوضيحية والتراكبات (Annotations & Overlays)</template>
+        <template class="content-en">Annotations and Overlays</template>
+        <span class="content-target">التعليقات التوضيحية والتراكبات (Annotations & Overlays)</span>
+      </a>
+      <a href="#android-sensor-framework" class="toc-link" data-bilingual>
+        <template class="content-ar">إطار عمل مستشعرات أندرويد (Android Sensor Framework)</template>
+        <template class="content-en">Android Sensor Framework</template>
+        <span class="content-target">إطار عمل مستشعرات أندرويد (Android Sensor Framework)</span>
+      </a>
+      <a href="#sensor-coordinate-system" class="toc-link" data-bilingual>
+        <template class="content-ar">نظام إحداثيات المستشعر (Sensor Coordinate System)</template>
+        <template class="content-en">Sensor Coordinate System</template>
+        <span class="content-target">نظام إحداثيات المستشعر (Sensor Coordinate System)</span>
+      </a>
+      <a href="#motion-sensors" class="toc-link" data-bilingual>
+        <template class="content-ar">مستشعرات الحركة (Motion Sensors)</template>
+        <template class="content-en">Motion Sensors</template>
+        <span class="content-target">مستشعرات الحركة (Motion Sensors)</span>
+      </a>
+      <a href="#position-sensors" class="toc-link" data-bilingual>
+        <template class="content-ar">مستشعرات الموضع (Position Sensors)</template>
+        <template class="content-en">Position Sensors</template>
+        <span class="content-target">مستشعرات الموضع (Position Sensors)</span>
+      </a>
+      <a href="#environment-sensors" class="toc-link" data-bilingual>
+        <template class="content-ar">مستشعرات البيئة (Environment Sensors)</template>
+        <template class="content-en">Environment Sensors</template>
+        <span class="content-target">مستشعرات البيئة (Environment Sensors)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 13</template>
+      <template class="content-en">Module 13</template>
+      <span class="content-target">الوحدة 13</span>
+    </span> · CS475
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تحديد الموقع الجغرافي، الخرائط، والمستشعرات</h1>
+      <p class="hero-description">تغطي هذه الوحدة كيفية استخدام واجهة برمجة تطبيقات تحديد الموقع الجغرافي في React Native، وعرض الخرائط وإضافة العلامات عليها، بالإضافة إلى نظرة شاملة على إطار عمل المستشعرات في نظام Android وأنواعها المختلفة.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Geolocation, Maps and Sensors</h1>
+      <p class="hero-description">This module covers using the Geolocation API in React Native, rendering maps and annotations, and provides a comprehensive overview of the Android Sensor Framework and various sensor types.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">تحديد الموقع</span>
+      <span class="tag">الخرائط</span>
+      <span class="tag">المستشعرات</span>
+      <span class="tag">تطوير تطبيقات الهاتف</span>
+      <span class="tag">React Native</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Geolocation</span>
+      <span class="tag">Maps</span>
+      <span class="tag">Sensors</span>
+      <span class="tag">Mobile Development</span>
+      <span class="tag">React Native</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح قدرات تحديد الموقع الجغرافي ورسم الخرائط في React Native.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح التكوين الأساسي لمكونات MapView.</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف الأنواع المختلفة للمستشعرات في الأجهزة المحمولة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain about the geolocation and mapping capabilities of React Native.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain the basic configuration MapView components.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe various types of sensors.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="geolocation-api" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> واجهة برمجة تطبيقات تحديد الموقع الجغرافي (Geolocation API)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Geolocation API</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>واجهة برمجية تُستخدم لمعرفة الموقع الدقيق للمستخدم عبر نظام تحديد المواقع (GPS)، وهي مدعومة في React Native.</p></template>
+    <template class="content-en"><p>An API used to figure out the precise location of the user via GPS, <span class="smart-term" data-term-en="Polyfill" data-ar="بولي فيل (توفير دعم برمجي)" data-en-def="Code that implements a feature on web browsers or environments that do not support the feature natively.">polyfilled</span> in React Native applications.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم واجهة تحديد الموقع الجغرافي للحصول على إحداثيات دقيقة (خطوط الطول والعرض) من نظام GPS في الأجهزة المحمولة.</p><p>يتم استخدام هذه الإحداثيات لعرض بيانات موقع ذات معنى للمستخدم، مثل البحث عن عنوان مقروء باستخدام واجهة برمجة تطبيقات خرائط جوجل (Google Maps API).</p><p>الدوال الأساسية تشمل:</p><ol><li><strong><code>getCurrentPosition()</code></strong>: تُستدعى مرة واحدة عند تحميل المكون للحصول على الموقع الحالي.</li><li><strong><code>watchPosition()</code></strong>: تستدعي دالة رد الاتصال (callback) في كل مرة يتغير فيها موقع المستخدم.</li><li><strong><code>clearWatch()</code></strong>: لإيقاف تتبع الموقع.</li></ol></template>
+    <template class="content-en"><p>The geolocation API is useful for getting precise coordinates from the GPS on mobile devices.</p><p>This information is used to display meaningful location data to the user, such as looking up human-readable location information from the Google Maps API.</p><p>Key functions include:</p><ol><li><strong><code>getCurrentPosition()</code></strong>: Called once when the component is mounted.</li><li><strong><code>watchPosition()</code></strong>: Calls the callback any time the user's position changes.</li><li><strong><code>clearWatch()</code></strong>: Stops watching for position changes.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا تم توفير هذه الواجهة في React Native؟</p><p>تم عمل <span class="smart-term" data-term-en="Polyfill" data-ar="بولي فيل (توفير دعم برمجي)" data-en-def="Code that implements a feature on web browsers or environments that do not support the feature natively.">Polyfill</span> لنفس الواجهة المستخدمة في تطبيقات الويب لتسهيل انتقال مطوري الويب إلى تطوير تطبيقات الهاتف المحمول دون الحاجة لتعلم واجهات جديدة بالكامل.</p><p>من التحديات الشائعة أن خطوط الطول والعرض لا تعني شيئاً للمستخدم العادي، لذا يجب دائماً دمجها مع خدمات التشفير الجغرافي العكسي (Reverse Geocoding) لتحويلها إلى عناوين مفهومة.</p><p>عند اختبار التطبيق، توفر محاكيات iOS و Android Studio خيارات لتغيير الموقع افتراضياً، مما يلغي الحاجة لاختبار التطبيق على جهاز حقيقي أثناء الحركة.</p></template>
+    <template class="content-en"><p>Why is this API <span class="smart-term" data-term-en="Polyfill" data-ar="بولي فيل (توفير دعم برمجي)" data-en-def="Code that implements a feature on web browsers or environments that do not support the feature natively.">polyfilled</span>?</p><p>The same API used by web applications has been polyfilled in React Native to provide a consistent and familiar interface for developers transitioning from web to mobile.</p><p>A common challenge is that raw latitude and longitude mean nothing to the user.</p><p>Therefore, this data must be used to look up human-readable addresses (Reverse Geocoding) to be useful.</p><p>For testing, the iOS emulator and Android Studio enable location changes via menu options, so it is not required to install the app on a physical device every time when testing by changing locations.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يجب استخدام `getCurrentPosition` بدلاً من `watchPosition`؟</template>
+      <template class="content-en">When should you use `getCurrentPosition` instead of `watchPosition`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يُستخدم `getCurrentPosition` عندما تحتاج إلى معرفة موقع المستخدم لمرة واحدة فقط (مثل تسجيل الدخول من موقع معين)، بينما يُستخدم `watchPosition` للتطبيقات التي تتطلب تتبعاً مستمراً للموقع (مثل تطبيقات الملاحة أو التوصيل).</p></template>
+      <template class="content-en"><p>Use `getCurrentPosition` when you only need the user's location once (e.g., tagging a post with a location). Use `watchPosition` for applications that require continuous tracking (e.g., navigation or fitness tracking apps).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="mapview-component" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> مكون عرض الخريطة (MapView)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> MapView Component</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المكون الأساسي من مكتبة `react-native-maps` المستخدم لعرض الخرائط في تطبيقات React Native.</p></template>
+    <template class="content-en"><p>The main tool from `react-native-maps` used to render maps in React Native applications.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُستخدم مكون <code>MapView</code> لتقديم الخرائط الجغرافية.</p><p>يحتوي على خاصيتين منطقيتين (Boolean) هامتان:</p><ol><li><strong><code>showsUserLocation</code></strong>: تقوم بتفعيل العلامة (marker) على الخريطة التي تدل على الموقع الفعلي للجهاز.</li><li><strong><code>followUserLocation</code></strong>: تخبر الخريطة بتحديث علامة الموقع وتوسيط الخريطة (zoom) على المنطقة التي يتواجد فيها المستخدم أثناء تحركه.</li></ol><p>افتراضياً، يتم عرض <span class="smart-term" data-term-en="Points of Interest (POI)" data-ar="نقاط الاهتمام" data-en-def="Specific point locations that someone may find useful or interesting, rendered by default on maps.">نقاط الاهتمام</span> (Points of Interest) على الخريطة، ولكن يمكن إخفاؤها باستخدام الخاصية <code>showsPointsOfInterest={false}</code>.</p></template>
+    <template class="content-en"><p>The <code>MapView</code> component is used to render maps.</p><p>It has two important Boolean properties:</p><ol><li><strong><code>showsUserLocation</code></strong>: Activates the marker on the map, which denotes the physical location of the device.</li><li><strong><code>followUserLocation</code></strong>: Tells the map to update the location marker as the device moves around, making the map zoom to the region where the user is located.</li></ol><p>By default, <span class="smart-term" data-term-en="Points of Interest (POI)" data-ar="نقاط الاهتمام" data-en-def="Specific point locations that someone may find useful or interesting, rendered by default on maps.">points of interest</span> are rendered on the map.</p><p>This can be disabled by setting the <code>showsPointsOfInterest</code> property to false.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من الجيد عموماً استخدام خاصية <code>followUserLocation</code> متى ما تم استخدام <code>showsUserLocation</code> لضمان بقاء المستخدم في مركز الرؤية.</p><p>التحدي في نقاط الاهتمام الافتراضية هو أن المطور غالباً ما يرغب في إظهار نقاط اهتمام مخصصة وذات صلة بتطبيقه الخاص، بدلاً من النقاط الافتراضية التي توفرها الخريطة، مما يستدعي إخفاء الافتراضية ورسم علامات مخصصة.</p></template>
+    <template class="content-en"><p>It's generally a good idea to use the <code>followUserLocation</code> property whenever using <code>showsUserLocation</code> to ensure the user remains in the visible region.</p><p>The challenge with default points of interest is that you probably want to show points of interest that are relevant to your application, instead of the points of interest that are rendered by default.</p><p>This requires disabling the default ones and plotting custom annotations.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>showsUserLocation</th><th>followUserLocation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الوظيفة</template>
+          <template class="content-en">Function</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يُظهر علامة (نقطة) تمثل موقع الجهاز الفعلي</template>
+          <template class="content-en">Activates the marker denoting physical location</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يُحدّث الخريطة لتتبع العلامة أثناء تحرك الجهاز</template>
+          <template class="content-en">Updates the map to follow the marker as it moves</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا قمت بتفعيل `showsUserLocation` دون تفعيل `followUserLocation`؟</template>
+      <template class="content-en">What happens if you enable `showsUserLocation` without enabling `followUserLocation`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستظهر النقطة الزرقاء التي تمثل موقع المستخدم على الخريطة، ولكن إذا تحرك المستخدم خارج الإطار المعروض حالياً، فلن تتحرك الخريطة تلقائياً لتتبعه، وقد يختفي من الشاشة.</p></template>
+      <template class="content-en"><p>The blue dot representing the user's location will appear, but if the user moves outside the currently visible region, the map will not automatically pan to follow them, and the marker may go off-screen.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="map-annotations-overlays" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> التعليقات التوضيحية والتراكبات (Annotations & Overlays)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Annotations and Overlays</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>معلومات إضافية يتم رسمها فوق جغرافية الخريطة الأساسية، مثل العلامات (Markers) والمضلعات (Polygons).</p></template>
+    <template class="content-en"><p>Additional information rendered on top of the basic map geography, such as Markers and Polygons.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تنقسم الإضافات على الخريطة إلى نوعين رئيسيين:</p><ol><li><strong>العلامات (Markers):</strong> تُستخدم لرسم نقاط محددة (إحداثي خط طول/عرض واحد). يتم استخدام المكون <code>&lt;MapView.Marker&gt;</code> ويأخذ خصائص مثل العنوان (title) والوصف (description). عند النقر على العلامة، يظهر <span class="smart-term" data-term-en="Callout" data-ar="مربع الشرح / وسيلة الشرح" data-en-def="A small pop-up window that appears when a map marker is clicked, displaying the title and description.">مربع نصي (callout)</span> يعرض هذه المعلومات.</li><li><strong>التراكبات (Overlays):</strong> تُستخدم لتسليط الضوء على منطقة بدلاً من نقطة واحدة. المنطقة هي مساحة محاطة بخط يربط بين عدة إحداثيات. يتم استخدام مكونات مثل <code>&lt;MapView.Polygon&gt;</code> لرسم هذه المناطق.</li></ol></template>
+    <template class="content-en"><p>Map additions are divided into two main types:</p><ol><li><strong>Markers:</strong> Used to plot specific points (a single latitude/longitude coordinate). The <code>&lt;MapView.Marker&gt;</code> component is used, taking properties like title and description. A <span class="smart-term" data-term-en="Callout" data-ar="مربع الشرح / وسيلة الشرح" data-en-def="A small pop-up window that appears when a map marker is clicked, displaying the title and description.">callout</span> is displayed when the marker is clicked.</li><li><strong>Overlays:</strong> Useful to highlight an area instead of a single point. A region is an area enclosed by the line connecting the points of several coordinates. Components like <code>&lt;MapView.Polygon&gt;</code> are used to render these.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تُعد التراكبات (Overlays) قوية جداً عند الحاجة لتحديد مناطق جغرافية معينة (Geofencing) أو إظهار مناطق التغطية لخدمة ما.</p><p>يمكن التحكم في مظهر التراكب باستخدام خصائص مثل <code>strokeColor</code> و <code>strokeWidth</code>.</p><p>يمكن إدارة حالة التطبيق (State) للتبديل بين التراكبات المختلفة ديناميكياً بناءً على تفاعل المستخدم (مثل النقر على أزرار لتغيير المنطقة المظللة).</p></template>
+    <template class="content-en"><p>Overlays are extremely powerful for geofencing or showing service coverage areas.</p><p>The appearance can be customized using properties like <code>strokeColor</code> and <code>strokeWidth</code>.</p><p>Application state can be managed to dynamically switch between different overlays based on user interaction (e.g., pressing text links to change the highlighted region).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى تفضل استخدام التراكب (Overlay) بدلاً من العلامة (Marker)؟</template>
+      <template class="content-en">When would you prefer using an Overlay instead of a Marker?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>أفضل استخدام التراكب عندما أريد تمثيل مساحة جغرافية أو حدود معينة (مثل حدود مدينة، أو منطقة توصيل مطعم)، بينما أستخدم العلامة لتمثيل نقطة محددة بدقة (مثل موقع المطعم نفسه).</p></template>
+      <template class="content-en"><p>I would use an overlay when I need to represent a geographic area or boundary (like city limits or a delivery zone), whereas a marker is used for a specific, exact point (like the restaurant's location itself).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="android-sensor-framework" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> إطار عمل مستشعرات أندرويد (Android Sensor Framework)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Android Sensor Framework</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>إطار عمل يتيح الوصول إلى العديد من أنواع المستشعرات المدمجة في أجهزة أندرويد لقياس الحركة والاتجاه والظروف البيئية.</p></template>
+    <template class="content-en"><p>A framework that allows access to many types of built-in sensors on Android devices to measure motion, orientation, and environmental conditions.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتكون إطار عمل المستشعرات من عدة فئات (Classes) وواجهات (Interfaces) رئيسية:</p><ol><li><strong><code>SensorManager</code></strong>: يُستخدم للوصول إلى المستشعرات، سردها، تسجيل/إلغاء تسجيل مستمعي أحداث المستشعرات، والحصول على معلومات الاتجاه.</li><li><strong><code>Sensor</code></strong>: يُستخدم لتحديد قدرات مستشعر معين.</li><li><strong><code>SensorEvent</code></strong>: يوفر معلومات حول أحداث المستشعر، بما في ذلك البيانات الخام، دقة المستشعر، والطابع الزمني (timestamp).</li><li><strong><code>SensorEventListener</code></strong>: يحتوي على دوال رد الاتصال (callbacks) لتلقي إشعارات بأحداث المستشعر.</li></ol></template>
+    <template class="content-en"><p>The sensor framework consists of several key classes and interfaces:</p><ol><li><strong><code>SensorManager</code></strong>: Used for accessing/listing sensors, registering/unregistering sensor event listeners, and acquiring orientation information.</li><li><strong><code>Sensor</code></strong>: Used for determining the capability of sensors.</li><li><strong><code>SensorEvent</code></strong>: Provides information about sensor events, including raw sensor data, the accuracy, and timestamp.</li><li><strong><code>SensorEventListener</code></strong>: Contains callbacks to receive notifications of sensor events.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تنقسم المستشعرات إلى نوعين:</p><ul><li><strong>مستشعرات تعتمد على الأجهزة (Hardware-based)</strong> وهي مكونات مادية تقيس الخصائص البيئية مباشرة،</li><li><strong>ومستشعرات تعتمد على البرمجيات (Software-based أو <span class="smart-term" data-term-en="Synthetic Sensors" data-ar="المستشعرات الاصطناعية / الافتراضية" data-en-def="Software-based sensors that derive their data from one or more hardware-based sensors.">Virtual/Synthetic</span>)</strong> والتي تستمد بياناتها من مستشعر مادي واحد أو أكثر (مثل مستشعر الجاذبية أو التسارع الخطي).</li></ul><p>توفر هذه المستشعرات بيانات خام بدقة عالية، وتُستخدم في تطبيقات متنوعة مثل الألعاب (تتبع الإيماءات)، تطبيقات الطقس، وتطبيقات الملاحة.</p></template>
+    <template class="content-en"><p>Sensors are categorized into two types:</p><ul><li><strong>Hardware-based sensors</strong> (physical components that directly measure environmental properties)</li><li>and <strong>Software-based sensors</strong> (<span class="smart-term" data-term-en="Synthetic Sensors" data-ar="المستشعرات الاصطناعية / الافتراضية" data-en-def="Software-based sensors that derive their data from one or more hardware-based sensors.">virtual/synthetic sensors</span> that derive their data from one or more hardware sensors, like gravity or linear acceleration sensors).</li></ul><p>These sensors provide raw data with high precision and accuracy, useful for monitoring 3D device movement or ambient environment changes in games, weather, and travel apps.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Hardware-based Sensors</th><th>Software-based Sensors</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المصدر</template>
+          <template class="content-en">Source</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مكونات مادية فعلية مدمجة في الجهاز</template>
+          <template class="content-en">Physical components built into the device</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ليست أجهزة مادية، تُشتق من مستشعرات أخرى</template>
+          <template class="content-en">Not physical devices, derived from other sensors</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أمثلة</template>
+          <template class="content-en">Examples</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مقياس التسارع، الجيروسكوب، مستشعر الضوء</template>
+          <template class="content-en">Accelerometer, Gyroscope, Light sensor</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">التسارع الخطي، الجاذبية، متجه الدوران</template>
+          <template class="content-en">Linear acceleration, Gravity, Rotation vector</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نحتاج إلى مستشعرات برمجية (Software-based) إذا كانت المستشعرات المادية موجودة؟</template>
+      <template class="content-en">Why do we need software-based sensors if hardware sensors exist?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تقوم المستشعرات البرمجية بدمج ومعالجة البيانات من عدة مستشعرات مادية لتوفير قراءات أكثر تعقيداً وفائدة (مثل فصل قوة الجاذبية عن التسارع الخطي للمستخدم)، مما يسهل على المطورين استخدامها دون الحاجة لكتابة خوارزميات رياضية معقدة.</p></template>
+      <template class="content-en"><p>Software sensors fuse and process data from multiple hardware sensors to provide more complex and useful readings (like isolating gravity from linear acceleration), saving developers from writing complex mathematical algorithms.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="sensor-coordinate-system" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> نظام إحداثيات المستشعر (Sensor Coordinate System)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Sensor Coordinate System</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نظام ثلاثي الأبعاد (X, Y, Z) ثابت بالنسبة للاتجاه الافتراضي للجهاز، ولا يتغير بتغير دوران الشاشة.</p></template>
+    <template class="content-en"><p>A 3D system (X, Y, Z) fixed to the device's default orientation, which does not change when the screen orientation changes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تستخدم المستشعرات نظام إحداثيات قياسي يعتمد على الاتجاه الافتراضي للجهاز:</p><ol><li><strong>المحور X:</strong> أفقي يشير إلى اليمين.</li><li><strong>المحور Y:</strong> عمودي يشير إلى الأعلى.</li><li><strong>المحور Z:</strong> يشير نحو الخارج من واجهة الشاشة.</li></ol><p>أهم قاعدة هي أن <strong>نظام الإحداثيات لا يتغير عندما يتغير اتجاه الشاشة</strong> (مثلاً من الوضع العمودي إلى الأفقي).</p></template>
+    <template class="content-en"><p>Sensors use a standard coordinate system based on the device's default orientation:</p><ol><li><strong>X axis:</strong> horizontal pointing right.</li><li><strong>Y axis:</strong> vertical pointing up.</li><li><strong>Z axis:</strong> pointing toward the outside of the screen face.</li></ol><p>The most important rule is that the <strong>coordinate system does not change when the screen orientation changes</strong>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>نظراً لأن الإحداثيات ثابتة بالنسبة للجهاز وليس الشاشة، يجب على المطورين استخدام دوال مثل <code>getOrientation()</code> لتحديد دوران الشاشة الحالي، و <code>remapCoordinateSystem()</code> لتعيين إحداثيات المستشعر لتتطابق مع إحداثيات الشاشة الحالية إذا كان التطبيق يدعم الدوران.</p></template>
+    <template class="content-en"><p>Because the coordinates are fixed to the device and not the screen, developers must use functions like <code>getOrientation()</code> to determine screen rotation and <code>remapCoordinateSystem()</code> to map sensor coordinates to screen coordinates if the application supports rotation.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Draw a smartphone in portrait orientation. Draw three colored arrows originating from the center of the screen. A red arrow pointing right labeled 'X axis'. A blue arrow pointing up labeled 'Y axis'. A green arrow pointing diagonally down-left (to simulate coming out of the screen towards the viewer) labeled 'Z axis'. Style: educational, dark background #0d1117, accent color #00ffff, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrow Markers -->
+        <marker id="arrow-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--axis-x, #ef4444)" />
+        </marker>
+        <marker id="arrow-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--axis-y, #3b82f6)" />
+        </marker>
+        <marker id="arrow-z" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--axis-z, #22c55e)" />
+        </marker>
+
+        <!-- Screen Grid Pattern -->
+        <pattern id="screen-grid" width="20" height="20" patternUnits="userSpaceOnUse" x="400" y="200">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="var(--border-color)" stroke-width="1" opacity="0.3" />
+        </pattern>
+
+        <!-- Drop Shadow for Phone -->
+        <filter id="phone-shadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000000" flood-opacity="0.2" />
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title & Legend -->
+    <g transform="translate(40, 40)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--text-primary)" font-size="20" font-weight="bold">Smartphone 3D Axes</text>
+        <text x="0" y="25" fill="var(--text-secondary)" font-size="16">المحاور ثلاثية الأبعاد في الهاتف</text>
+    </g>
+
+    <g transform="translate(40, 340)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--text-muted)" font-size="14">Z axis represents depth (coming out of screen)</text>
+        <text x="0" y="20" fill="var(--text-muted)" font-size="14">محور Z يمثل العمق (يخرج من الشاشة باتجاهك)</text>
+    </g>
+
+    <!-- Smartphone Body -->
+    <rect x="310" y="30" width="180" height="340" rx="24" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="4" filter="url(#phone-shadow)" />
+    
+    <!-- Smartphone Screen -->
+    <rect x="320" y="50" width="160" height="300" rx="12" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <rect x="320" y="50" width="160" height="300" rx="12" fill="url(#screen-grid)" />
+
+    <!-- Screen Plane Label -->
+    <g transform="translate(328, 70)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--text-muted)" font-size="13">Screen Plane (X-Y)</text>
+        <text x="0" y="18" fill="var(--text-muted)" font-size="13">مستوى الشاشة</text>
+    </g>
+
+    <!-- Smartphone Notch -->
+    <rect x="365" y="38" width="70" height="12" rx="6" fill="var(--border-color)" />
+
+    <!-- Negative Axes (Dashed, inside/behind screen concept) -->
+    <line x1="400" y1="200" x2="330" y2="200" stroke="var(--axis-x, #ef4444)" stroke-width="2" stroke-dasharray="4,4" opacity="0.5" />
+    <line x1="400" y1="200" x2="400" y2="340" stroke="var(--axis-y, #3b82f6)" stroke-width="2" stroke-dasharray="4,4" opacity="0.5" />
+    <line x1="400" y1="200" x2="450" y2="150" stroke="var(--axis-z, #22c55e)" stroke-width="2" stroke-dasharray="4,4" opacity="0.5" />
+
+    <!-- Positive Axes (Solid with arrows) -->
+    <!-- X Axis (Red, Right) -->
+    <line x1="400" y1="200" x2="560" y2="200" stroke="var(--axis-x, #ef4444)" stroke-width="4" marker-end="url(#arrow-x)" />
+    
+    <!-- Y Axis (Blue, Up) -->
+    <line x1="400" y1="200" x2="400" y2="70" stroke="var(--axis-y, #3b82f6)" stroke-width="4" marker-end="url(#arrow-y)" />
+    
+    <!-- Z Axis (Green, Down-Left / Out of screen) -->
+    <line x1="400" y1="200" x2="260" y2="340" stroke="var(--axis-z, #22c55e)" stroke-width="4" marker-end="url(#arrow-z)" />
+
+    <!-- Origin Point -->
+    <circle cx="400" cy="200" r="5" fill="var(--text-primary)" />
+    <g transform="translate(415, 225)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--text-primary)" font-size="14" font-weight="bold">Origin (0,0,0)</text>
+        <text x="0" y="20" fill="var(--text-primary)" font-size="14" font-weight="bold">نقطة الأصل</text>
+    </g>
+
+    <!-- Axis Labels -->
+    <!-- X Axis Label -->
+    <g transform="translate(610, 195)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--axis-x, #ef4444)" font-size="16" font-weight="bold" text-anchor="middle">X axis</text>
+        <text x="0" y="22" fill="var(--axis-x, #ef4444)" font-size="16" font-weight="bold" text-anchor="middle">محور X</text>
+    </g>
+
+    <!-- Y Axis Label -->
+    <g transform="translate(400, 30)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--axis-y, #3b82f6)" font-size="16" font-weight="bold" text-anchor="middle">Y axis</text>
+        <text x="0" y="22" fill="var(--axis-y, #3b82f6)" font-size="16" font-weight="bold" text-anchor="middle">محور Y</text>
+    </g>
+
+    <!-- Z Axis Label -->
+    <g transform="translate(210, 350)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="0" y="0" fill="var(--axis-z, #22c55e)" font-size="16" font-weight="bold" text-anchor="middle">Z axis</text>
+        <text x="0" y="22" fill="var(--axis-z, #22c55e)" font-size="16" font-weight="bold" text-anchor="middle">محور Z</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا وضعت هاتفك مسطحاً على الطاولة وشاشته متجهة للأعلى، أي محور سيسجل قوة الجاذبية الأرضية؟</template>
+      <template class="content-en">If you lay your phone flat on a table with the screen facing up, which axis will register the force of gravity?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>المحور Z سيسجل قوة الجاذبية (حوالي 9.8 م/ث²) لأنه المحور العمودي على شاشة الجهاز.</p></template>
+      <template class="content-en"><p>The Z-axis will register the force of gravity (approx 9.8 m/s²) because it is the axis perpendicular to the screen face.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="motion-sensors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> مستشعرات الحركة (Motion Sensors)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Motion Sensors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مستشعرات تقيس قوى التسارع والقوى الدورانية على طول المحاور الثلاثة، مثل مقياس التسارع والجيروسكوب.</p></template>
+    <template class="content-en"><p>Sensors that measure acceleration forces and rotational forces along three axes, such as accelerometers and gyroscopes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم مستشعرات الحركة لمراقبة حركة الجهاز مثل الإمالة، الاهتزاز، الدوران، أو التأرجح.</p><p>تشمل هذه الفئة:</p><ol><li><strong>مقياس التسارع (Accelerometer)</strong> - يعتمد دائماً على الأجهزة (Hardware).</li><li><strong>الجيروسكوب (Gyroscope)</strong> - يعتمد دائماً على الأجهزة.</li><li><strong>مستشعرات الجاذبية والتسارع الخطي</strong> - يمكن أن تكون أجهزة أو برمجيات.</li></ol><p>تُرجع جميع مستشعرات الحركة مصفوفات متعددة الأبعاد من قيم المستشعر لكل حدث (SensorEvent) تمثل المحاور الثلاثة.</p></template>
+    <template class="content-en"><p>Motion sensors are useful for monitoring device movement, such as tilt, shake, rotation, or swing.</p><p>This category includes:</p><ol><li><strong><span class="smart-term" data-term-en="Accelerometer" data-ar="مقياس التسارع" data-en-def="A hardware sensor that measures the acceleration force in m/s² applied to a device on all three physical axes, including gravity.">Accelerometers</span></strong> - always hardware-based.</li><li><strong><span class="smart-term" data-term-en="Gyroscope" data-ar="الجيروسكوب / مستشعر الدوران" data-en-def="A hardware sensor that measures a device's rate of rotation in rad/s around each of the three physical axes.">Gyroscopes</span></strong> - always hardware-based.</li><li><strong>Gravity and linear acceleration sensors</strong> - can be hardware or software-based.</li></ol><p>All motion sensors return multi-dimensional arrays of sensor values for each SensorEvent, representing the three coordinate axes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الحركة يمكن أن تكون انعكاساً لإدخال المستخدم المباشر (مثل توجيه سيارة في لعبة) أو انعكاساً للبيئة المادية (مثل تحرك الجهاز معك أثناء قيادة السيارة).</p><p>لا تُستخدم مستشعرات الحركة عادةً بمفردها لتحديد موقع الجهاز المطلق، بل تُستخدم مع مستشعرات أخرى.</p><p>على سبيل المثال، يُرجع <span class="smart-term" data-term-en="Accelerometer" data-ar="مقياس التسارع" data-en-def="A hardware sensor that measures the acceleration force in m/s² applied to a device on all three physical axes, including gravity.">مقياس التسارع</span> بيانات قوة التسارع للمحاور الثلاثة، بينما يُرجع <span class="smart-term" data-term-en="Gyroscope" data-ar="الجيروسكوب / مستشعر الدوران" data-en-def="A hardware sensor that measures a device's rate of rotation in rad/s around each of the three physical axes.">الجيروسكوب</span> بيانات معدل الدوران.</p></template>
+    <template class="content-en"><p>Movement can be a reflection of direct user input (steering a car in a game) or the physical environment (moving with you while driving).</p><p>Motion sensors by themselves are not typically used to monitor absolute device position, but they can be used with other sensors.</p><p>For example, the <span class="smart-term" data-term-en="Accelerometer" data-ar="مقياس التسارع" data-en-def="A hardware sensor that measures the acceleration force in m/s² applied to a device on all three physical axes, including gravity.">accelerometer</span> returns acceleration force data, and the <span class="smart-term" data-term-en="Gyroscope" data-ar="الجيروسكوب / مستشعر الدوران" data-en-def="A hardware sensor that measures a device's rate of rotation in rad/s around each of the three physical axes.">gyroscope</span> returns rate of rotation data.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يختلف مقياس التسارع الخطي (Linear Acceleration) عن مقياس التسارع العادي (Accelerometer)؟</template>
+      <template class="content-en">How does Linear Acceleration differ from a standard Accelerometer?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>مقياس التسارع العادي يقيس جميع قوى التسارع بما في ذلك قوة الجاذبية الأرضية، بينما مقياس التسارع الخطي (وهو غالباً مستشعر برمجي) يقوم باستبعاد قوة الجاذبية ليعطيك فقط التسارع الناتج عن حركة المستخدم الفعلية.</p></template>
+      <template class="content-en"><p>A standard accelerometer measures all acceleration forces including gravity. A linear acceleration sensor (often software-based) excludes the force of gravity, providing only the acceleration caused by the user's actual movement.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="position-sensors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> مستشعرات الموضع (Position Sensors)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Position Sensors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مستشعرات تقيس الموضع المادي للجهاز في الإطار المرجعي للعالم، مثل مستشعر المجال المغناطيسي ومستشعر التقارب.</p></template>
+    <template class="content-en"><p>Sensors that measure the physical position of a device in the world's frame of reference, such as geomagnetic field and proximity sensors.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُستخدم مستشعرات الموضع لتحديد موقع الجهاز الفعلي.</p><p>هناك مستشعران رئيسيان يعتمدان على الأجهزة:</p><ol><li><strong>مستشعر المجال المغناطيسي (Geomagnetic field sensor):</strong> يُستخدم مع مقياس التسارع لتحديد اتجاه الجهاز بالنسبة للقطب الشمالي المغناطيسي (إنشاء بوصلة).</li><li><strong>مستشعر التقارب (Proximity sensor):</strong> يحدد مدى قرب وجه الجهاز من كائن ما (مثل إغلاق الشاشة عند وضع الهاتف على الأذن أثناء المكالمة).</li></ol></template>
+    <template class="content-en"><p>Position sensors measure the physical position of a device.</p><p>There are two main hardware-based sensors:</p><ol><li><strong>Geomagnetic field sensor:</strong> Used in combination with the accelerometer to determine a device's position relative to the magnetic north pole (creating a compass).</li><li><strong>Proximity sensor:</strong> Determines how close the face of a device is to an object (e.g., turning off the screen during a phone call).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على عكس مستشعرات الحركة، فإن مستشعرات الموضع لا تراقب حركة الجهاز (مثل الاهتزاز أو الإمالة).</p><p>مستشعر المجال المغناطيسي ومقياس التسارع يرجعان مصفوفات متعددة الأبعاد (للمحاور الثلاثة).</p><p>تُعد قراءات <span class="smart-term" data-term-en="Geomagnetic Field Sensor" data-ar="مستشعر المجال المغناطيسي الأرضي" data-en-def="A hardware sensor that measures the ambient geomagnetic field for all three physical axes in micro-Tesla (μT).">مستشعر المجال المغناطيسي</span> ضرورية لتحديد اتجاه الجهاز في الإطار المرجعي للتطبيق، وهي متوفرة في معظم الهواتف والأجهزة اللوحية.</p></template>
+    <template class="content-en"><p>Unlike motion sensors, position sensors do not monitor device movement or motion, such as shake, tilt, or thrust.</p><p>The <span class="smart-term" data-term-en="Geomagnetic Field Sensor" data-ar="مستشعر المجال المغناطيسي الأرضي" data-en-def="A hardware sensor that measures the ambient geomagnetic field for all three physical axes in micro-Tesla (μT).">geomagnetic field sensor</span> returns multi-dimensional arrays of sensor values for each of the three coordinate axes.</p><p>Readings from the device's accelerometer and the geomagnetic field sensor are essential to determine a device's orientation in your application's frame of reference.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُستخدم مستشعر التقارب بشكل أساسي أثناء المكالمات الهاتفية؟</template>
+      <template class="content-en">Why is the proximity sensor primarily used during phone calls?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لمنع اللمسات غير المقصودة على الشاشة بواسطة وجه المستخدم أو أذنه، ولتوفير طاقة البطارية عن طريق إيقاف تشغيل الشاشة عندما يكون الهاتف قريباً من الوجه.</p></template>
+      <template class="content-en"><p>To prevent accidental screen touches by the user's face or ear, and to save battery power by turning off the display when the phone is held close to the face.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="environment-sensors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> مستشعرات البيئة (Environment Sensors)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Environment Sensors</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مستشعرات تقيس المعلمات البيئية المحيطة مثل درجة الحرارة، الضغط، الإضاءة، والرطوبة.</p></template>
+    <template class="content-en"><p>Sensors that measure various environmental parameters, such as ambient air temperature, pressure, illumination, and humidity.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تراقب هذه المستشعرات الخصائص البيئية المحيطة بالجهاز.</p><p>تشمل:</p><ol><li><strong>البارومترات (Barometers)</strong> لقياس الضغط الجوي.</li><li><strong>الفوتومترات (Photometers)</strong> لقياس مستوى الإضاءة المحيطة.</li><li><strong>موازين الحرارة (Thermometers)</strong> لقياس درجة الحرارة.</li><li><strong>مستشعرات الرطوبة (Humidity sensors)</strong>.</li></ol><p>جميع مستشعرات البيئة الأربعة تعتمد على الأجهزة (Hardware-based) وتتوفر فقط إذا قامت الشركة المصنعة بدمجها في الجهاز.</p></template>
+    <template class="content-en"><p>These sensors monitor various environmental properties near an Android-powered device.</p><p>They include:</p><ol><li><strong><span class="smart-term" data-term-en="Barometer" data-ar="البارومتر (مقياس الضغط الجوي)" data-en-def="An instrument used to measure ambient air pressure, often used to determine altitude.">Barometers</span></strong> for ambient pressure.</li><li><strong>Photometers</strong> for illuminance.</li><li><strong>Thermometers</strong> for ambient temperature.</li><li><strong>Humidity sensors</strong> for relative ambient humidity.</li></ol><p>All four environment sensors are hardware-based and are available only if a device manufacturer has built them into a device.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على عكس مستشعرات الحركة والموضع التي تُرجع مصفوفات متعددة الأبعاد، تُرجع مستشعرات البيئة قيمة مستشعر واحدة فقط لكل حدث بيانات (على سبيل المثال، درجة الحرارة بالدرجة المئوية أو الضغط بوحدة hPa).</p><p>ميزة أخرى لهذه المستشعرات هي أنها لا تتطلب عادةً أي تصفية للبيانات (Data filtering) أو معالجة معقدة للبيانات، حيث أن القراءات تكون مباشرة ومستقرة نسبياً.</p></template>
+    <template class="content-en"><p>Unlike motion and position sensors that return multi-dimensional arrays, environment sensors return a single sensor value for each data event (e.g., temperature in °C or pressure in hPa).</p><p>Another characteristic is that environment sensors do not typically require any data filtering or complex data processing, as the readings are straightforward and relatively stable.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا تتوفر مستشعرات البيئة في جميع الهواتف الذكية؟</template>
+      <template class="content-en">Why aren't environment sensors available on all smartphones?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنها تتطلب مكونات مادية (Hardware) إضافية تزيد من تكلفة تصنيع الجهاز، واستخداماتها تعتبر متخصصة (مثل تطبيقات الطقس المتقدمة) وليست ضرورية للمستخدم العادي مقارنة بمقياس التسارع أو مستشعر التقارب.</p></template>
+      <template class="content-en"><p>Because they require additional physical hardware components that increase manufacturing costs, and their use cases are specialized (like advanced weather apps) rather than essential for average users compared to accelerometers or proximity sensors.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في هذه الوحدة الممتعة. اليوم نربط تطبيقاتنا بالعالم الحقيقي! بدأنا بواجهة تحديد الموقع الجغرافي (Geolocation API)، وتذكروا دائماً الفرق الجوهري للامتحان: `getCurrentPosition` لمرة واحدة، و `watchPosition` للتتبع المستمر. ثم انتقلنا إلى الخرائط (MapView)، وهنا ركزوا على كيفية إخفاء النقاط الافتراضية ورسم علاماتكم (Markers) ومضلعاتكم (Polygons) الخاصة. الجزء الثاني من الوحدة كان عن المستشعرات. السر هنا هو فهم التصنيفات: مستشعرات حركة (مثل التسارع)، مستشعرات موضع (مثل التقارب والمجال المغناطيسي)، ومستشعرات بيئة (حرارة، ضغط). الفخ الأكبر في الامتحان هو نظام الإحداثيات؛ تذكروا دائماً أنه ثابت مع الجهاز ولا يدور مع الشاشة! المحور Z يخرج من الشاشة باتجاهكم. ركزوا على التمييز بين المستشعرات المادية (Hardware) والبرمجية (Software). بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, future engineers, to this exciting module where we connect our apps to the real world! We started with the Geolocation API. For the exam, always remember the core difference: `getCurrentPosition` is for a one-time fix, while `watchPosition` is for continuous tracking. We then explored Maps (MapView), focusing on hiding default POIs and plotting custom Markers and Polygons (Overlays). The second half was all about the Android Sensor Framework. The key to mastering this is categorization: Motion sensors (Accelerometer), Position sensors (Proximity, Geomagnetic), and Environment sensors (Temperature, Pressure). The biggest exam trap is the coordinate system—remember, it is fixed to the physical device and does NOT rotate with the screen! The Z-axis points straight out of the screen. Finally, ensure you can distinguish between hardware-based and software-based sensors. Good luck with your studies!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين المستشعرات المادية (Hardware) والبرمجية (Software)؟</template>
+          <template class="content-en">What is the main difference between hardware and software sensors?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين المستشعرات المادية (Hardware) والبرمجية (Software)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المستشعرات المادية هي قطع إلكترونية فعلية داخل الجهاز تقيس الخصائص مباشرة (مثل مقياس التسارع). المستشعرات البرمجية هي خوارزميات تستمد بياناتها من مستشعر مادي واحد أو أكثر (مثل مستشعر الجاذبية).</template>
+          <template class="content-en">Hardware sensors are physical electronic components inside the device that measure properties directly (e.g., accelerometer). Software sensors are algorithms that derive their data from one or more hardware sensors (e.g., gravity sensor).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكنك تتبع موقع المستخدم باستمرار في React Native؟</template>
+          <template class="content-en">How can you continuously track a user's location in React Native?</template>
+          <span class="content-target">كيف يمكنك تتبع موقع المستخدم باستمرار في React Native؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام دالة `navigator.geolocation.watchPosition()` التي تستدعي دالة رد الاتصال (callback) في كل مرة يتغير فيها الموقع.</template>
+          <template class="content-en">By using the `navigator.geolocation.watchPosition()` function, which calls a callback every time the user's position changes.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تمنع الخريطة من عرض نقاط الاهتمام الافتراضية (مثل المطاعم والمتاجر)؟</template>
+          <template class="content-en">How do you prevent the map from displaying default points of interest (like restaurants and shops)?</template>
+          <span class="content-target">كيف تمنع الخريطة من عرض نقاط الاهتمام الافتراضية (مثل المطاعم والمتاجر)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عن طريق تمرير الخاصية `showsPointsOfInterest={false}` إلى مكون `&lt;MapView&gt;`.</template>
+          <template class="content-en">By passing the property `showsPointsOfInterest={false}` to the `&lt;MapView&gt;` component.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الفئة المسؤولة عن تسجيل مستمعي أحداث المستشعرات في أندرويد؟</template>
+          <template class="content-en">Which class is responsible for registering sensor event listeners in Android?</template>
+          <span class="content-target">ما هي الفئة المسؤولة عن تسجيل مستمعي أحداث المستشعرات في أندرويد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">فئة `SensorManager` هي المسؤولة عن الوصول للمستشعرات وتسجيل أو إلغاء تسجيل المستمعين.</template>
+          <template class="content-en">The `SensorManager` class is responsible for accessing sensors and registering/unregistering event listeners.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي البيانات التي يحتوي عليها كائن `SensorEvent`؟</template>
+          <template class="content-en">What data does a `SensorEvent` object contain?</template>
+          <span class="content-target">ما هي البيانات التي يحتوي عليها كائن `SensorEvent`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يحتوي على البيانات الخام للمستشعر (غالباً مصفوفة للمحاور الثلاثة)، دقة المستشعر، والطابع الزمني (timestamp) للحدث.</template>
+          <template class="content-en">It contains the raw sensor data (often an array for the 3 axes), the accuracy of the sensor, and the timestamp of the event.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">إذا قمت بتدوير هاتفك للوضع الأفقي، هل يتغير اتجاه المحور X للمستشعر؟</template>
+          <template class="content-en">If you rotate your phone to landscape mode, does the sensor's X-axis direction change?</template>
+          <span class="content-target">إذا قمت بتدوير هاتفك للوضع الأفقي، هل يتغير اتجاه المحور X للمستشعر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، نظام إحداثيات المستشعر ثابت بالنسبة للاتجاه الافتراضي للجهاز ولا يتأثر بدوران الشاشة.</template>
+          <template class="content-en">No, the sensor coordinate system is fixed relative to the device's default orientation and is not affected by screen rotation.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">أعط مثالاً على مستشعر حركة ومستشعر موضع.</template>
+          <template class="content-en">Give an example of a motion sensor and a position sensor.</template>
+          <span class="content-target">أعط مثالاً على مستشعر حركة ومستشعر موضع.</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">مستشعر حركة: مقياس التسارع (Accelerometer). مستشعر موضع: مستشعر التقارب (Proximity sensor).</template>
+          <template class="content-en">Motion sensor: Accelerometer. Position sensor: Proximity sensor.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم تحديد اتجاه الجهاز بالنسبة للقطب الشمالي المغناطيسي (البوصلة)؟</template>
+          <template class="content-en">How is the device's orientation relative to the magnetic north pole (compass) determined?</template>
+          <span class="content-target">كيف يتم تحديد اتجاه الجهاز بالنسبة للقطب الشمالي المغناطيسي (البوصلة)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عن طريق دمج القراءات من مستشعر المجال المغناطيسي (Geomagnetic field sensor) ومقياس التسارع (Accelerometer).</template>
+          <template class="content-en">By combining readings from the geomagnetic field sensor and the accelerometer.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل تتطلب مستشعرات البيئة (مثل مقياس الحرارة) تصفية معقدة للبيانات؟</template>
+          <template class="content-en">Do environment sensors (like thermometers) require complex data filtering?</template>
+          <span class="content-target">هل تتطلب مستشعرات البيئة (مثل مقياس الحرارة) تصفية معقدة للبيانات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، مستشعرات البيئة تُرجع قيمة واحدة مستقرة نسبياً لكل حدث ولا تتطلب عادةً تصفية أو معالجة معقدة للبيانات.</template>
+          <template class="content-en">No, environment sensors return a single, relatively stable value per event and do not typically require complex data filtering or processing.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نستخدم التراكبات (Overlays) بدلاً من العلامات (Markers) في الخرائط؟</template>
+          <template class="content-en">When do we use Overlays instead of Markers in maps?</template>
+          <span class="content-target">متى نستخدم التراكبات (Overlays) بدلاً من العلامات (Markers) في الخرائط؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدم التراكبات (مثل المضلعات) عندما نريد تسليط الضوء على منطقة جغرافية كاملة (مثل منطقة توصيل)، بينما نستخدم العلامات للإشارة إلى نقطة محددة واحدة.</template>
+          <template class="content-en">We use overlays (like polygons) when we want to highlight an entire geographic area (like a delivery zone), whereas markers are used to point to a single specific location.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي واجهة برمجة تطبيقات تحديد الموقع الجغرافي (Geolocation API)؟",
+      "en": "What is the Geolocation API?"
+    },
+    "back": {
+      "definition": {
+        "ar": "واجهة تُستخدم لمعرفة الموقع الدقيق للمستخدم (خطوط الطول والعرض) من نظام GPS.",
+        "en": "An API used to figure out the precise location of the user (latitude and longitude) from the GPS."
+      },
+      "example": {
+        "ar": "استخدامها لعرض موقع المستخدم الحالي على الخريطة.",
+        "en": "Using it to display where the user is currently located."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي وظيفة `getCurrentPosition()`؟",
+      "en": "What is the function of `getCurrentPosition()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة تُستدعى مرة واحدة للحصول على إحداثيات الموقع الحالي عند تحميل المكون.",
+        "en": "A callback used to get the current position only once when the component is mounted."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي وظيفة `watchPosition()`؟",
+      "en": "What is the function of `watchPosition()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة تستدعي رد الاتصال (callback) في كل مرة يتغير فيها موقع المستخدم لتتبع حركته.",
+        "en": "A function that calls the callback any time the user's position changes."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو مكون `MapView`؟",
+      "en": "What is the `MapView` component?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المكون الأساسي من مكتبة `react-native-maps` المستخدم لعرض الخرائط في تطبيقات React Native.",
+        "en": "The main tool from `react-native-maps` used to render maps in React Native applications."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ماذا تفعل خاصية `showsUserLocation`؟",
+      "en": "What does the `showsUserLocation` property do?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقوم بتفعيل العلامة على الخريطة التي تدل على الموقع الفعلي للجهاز.",
+        "en": "It activates the marker on the map, which denotes the physical location of the device."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ماذا تفعل خاصية `followUserLocation`؟",
+      "en": "What does the `followUserLocation` property do?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تخبر الخريطة بتحديث علامة الموقع وتوسيط الخريطة أثناء تحرك الجهاز.",
+        "en": "It tells the map to update the location marker and zoom to the region as the device moves around."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف تخفي نقاط الاهتمام الافتراضية على الخريطة؟",
+      "en": "How do you hide default points of interest on the map?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عن طريق تعيين خاصية `showsPointsOfInterest` إلى `false`.",
+        "en": "By setting the `showsPointsOfInterest` property to `false`."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو مكون `&lt;MapView.Marker&gt;`؟",
+      "en": "What is the `&lt;MapView.Marker&gt;` component?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مكون يُستخدم لرسم نقطة محددة (إحداثي واحد) على الخريطة مع عنوان ووصف.",
+        "en": "A component used to plot a single latitude/longitude coordinate on the map with a title and description."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو التراكب (Overlay) في الخرائط؟",
+      "en": "What is an Overlay in maps?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مساحة محاطة بخط يربط بين عدة إحداثيات، تُستخدم لتسليط الضوء على منطقة بدلاً من نقطة.",
+        "en": "An area enclosed by a line connecting several coordinates, useful to highlight a region instead of a point."
+      },
+      "example": {
+        "ar": "استخدام `&lt;MapView.Polygon&gt;` لرسم حدود منطقة معينة.",
+        "en": "Using `&lt;MapView.Polygon&gt;` to draw the boundaries of a specific region."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي المستشعرات المعتمدة على الأجهزة (Hardware-based sensors)؟",
+      "en": "What are Hardware-based sensors?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مكونات مادية فعلية مدمجة في الجهاز تقيس الخصائص البيئية مباشرة.",
+        "en": "Physical components built into a handset or tablet device that directly measure specific environmental properties."
+      },
+      "example": {
+        "ar": "مقياس التسارع (Accelerometer).",
+        "en": "Accelerometer."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي المستشعرات المعتمدة على البرمجيات (Software-based sensors)؟",
+      "en": "What are Software-based sensors?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مستشعرات افتراضية تستمد بياناتها من مستشعر مادي واحد أو أكثر.",
+        "en": "Virtual or synthetic sensors that are not physical devices, deriving their data from one or more hardware-based sensors."
+      },
+      "example": {
+        "ar": "مستشعر الجاذبية (Gravity sensor).",
+        "en": "Gravity sensor."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي وظيفة `SensorManager`؟",
+      "en": "What is the role of `SensorManager`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة تُستخدم للوصول إلى المستشعرات، سردها، وتسجيل مستمعي الأحداث.",
+        "en": "A class used for accessing/listing sensors, registering event listeners, and acquiring orientation info."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي المعلومات التي يوفرها `SensorEvent`؟",
+      "en": "What information does `SensorEvent` provide?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يوفر معلومات حول أحداث المستشعر، بما في ذلك البيانات الخام، الدقة، والطابع الزمني.",
+        "en": "It provides information about sensor events, including raw sensor data, the accuracy, and timestamp."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "إلى أين يشير المحور Z في نظام إحداثيات المستشعر؟",
+      "en": "Where does the Z axis point in the sensor coordinate system?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يشير نحو الخارج من واجهة الشاشة.",
+        "en": "It points toward the outside of the screen face."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "هل يتغير نظام إحداثيات المستشعر عند تغير اتجاه الشاشة؟",
+      "en": "Does the sensor coordinate system change when screen orientation changes?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا، نظام الإحداثيات ثابت بالنسبة للاتجاه الافتراضي للجهاز ولا يتغير بدوران الشاشة.",
+        "en": "No, the coordinate system does not change when orientation changes; it is fixed to the device's default orientation."
+      },
+      "example": {
+        "ar": "null",
+        "en": "null"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي مستشعرات الحركة (Motion sensors)؟",
+      "en": "What are Motion sensors?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مستشعرات تقيس قوى التسارع والقوى الدورانية على طول المحاور الثلاثة.",
+        "en": "Sensors that measure acceleration forces and rotational forces along three axes."
+      },
+      "example": {
+        "ar": "مقياس التسارع والجيروسكوب.",
+        "en": "Accelerometer and Gyroscope."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هي مستشعرات الموضع (Position sensors)؟",
+      "en": "What are Position sensors?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مستشعرات تقيس الموضع المادي للجهاز في الإطار المرجعي للعالم.",
+        "en": "Sensors that measure the physical position of a device in the world's frame of reference."
+      },
+      "example": {
+        "ar": "مستشعر المجال المغناطيسي ومستشعر التقارب.",
+        "en": "Geomagnetic field sensor and proximity sensor."
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما هي مستشعرات البيئة (Environment sensors)؟",
+      "en": "What are Environment sensors?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مستشعرات تقيس المعلمات البيئية المحيطة مثل درجة الحرارة والضغط.",
+        "en": "Sensors that measure various environmental parameters, such as ambient air temperature and pressure."
+      },
+      "example": {
+        "ar": "البارومتر ومقياس الحرارة.",
+        "en": "Barometer and Thermometer."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي واجهة برمجة تطبيقات تم عمل Polyfill لها في React Native لمعرفة موقع المستخدم؟",
+      "en": "Which API has been polyfilled in React Native to figure out the location of the user?"
+    },
+    "options": {
+      "ar": [
+        "واجهة برمجة تطبيقات الخرائط (Maps API)",
+        "واجهة برمجة تطبيقات تحديد الموقع الجغرافي (Geolocation API)",
+        "واجهة برمجة تطبيقات المستشعرات (Sensor API)",
+        "واجهة برمجة تطبيقات البوصلة (Compass API)"
+      ],
+      "en": [
+        "Maps API",
+        "Geolocation API",
+        "Sensor API",
+        "Compass API"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تم عمل Polyfill لواجهة Geolocation API المستخدمة في تطبيقات الويب لتعمل في تطبيقات React Native للحصول على إحداثيات GPS.",
+      "en": "The Geolocation API used by web applications has been polyfilled in React Native to get precise coordinates from the GPS."
+    },
+    "hint": {
+      "ar": "تبدأ بكلمة Geo...",
+      "en": "Starts with Geo..."
+    },
+    "difficulty": "easy",
+    "conceptId": "geolocation-api"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي خاصية في MapView تخبر الخريطة بتحديث علامة الموقع أثناء تحرك الجهاز؟",
+      "en": "Which MapView property tells the map to update the location marker as the device moves around?"
+    },
+    "options": {
+      "ar": [
+        "showsUserLocation",
+        "showsPointsOfInterest",
+        "followUserLocation",
+        "trackUserMovement"
+      ],
+      "en": [
+        "showsUserLocation",
+        "showsPointsOfInterest",
+        "followUserLocation",
+        "trackUserMovement"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "خاصية followUserLocation تجعل الخريطة تتمركز حول المستخدم وتتبعه أثناء حركته.",
+      "en": "The followUserLocation property tells the map to update the location marker and zoom to the region as the device moves."
+    },
+    "hint": {
+      "ar": "تحتوي على كلمة follow.",
+      "en": "Contains the word 'follow'."
+    },
+    "difficulty": "medium",
+    "conceptId": "mapview-component"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو المكون المستخدم لرسم منطقة محاطة بخط يربط بين عدة إحداثيات على الخريطة؟",
+      "en": "Which component is used to render an area enclosed by a line connecting several coordinates on the map?"
+    },
+    "options": {
+      "ar": [
+        "&lt;MapView.Marker&gt;",
+        "&lt;MapView.Polygon&gt;",
+        "&lt;MapView.Overlay&gt;",
+        "&lt;MapView.Region&gt;"
+      ],
+      "en": [
+        "&lt;MapView.Marker&gt;",
+        "&lt;MapView.Polygon&gt;",
+        "&lt;MapView.Overlay&gt;",
+        "&lt;MapView.Region&gt;"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يُستخدم &lt;MapView.Polygon&gt; لرسم التراكبات (Overlays) التي تمثل مناطق جغرافية.",
+      "en": "&lt;MapView.Polygon&gt; is used to render overlays that highlight an area enclosed by several coordinates."
+    },
+    "hint": {
+      "ar": "شكل هندسي متعدد الأضلاع.",
+      "en": "A multi-sided geometric shape."
+    },
+    "difficulty": "medium",
+    "conceptId": "map-annotations-overlays"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من المستشعرات التالية يُعتبر دائماً مستشعراً يعتمد على الأجهزة (Hardware-based)؟",
+      "en": "Which of the following sensors is ALWAYS hardware-based?"
+    },
+    "options": {
+      "ar": [
+        "مستشعر الجاذبية (Gravity sensor)",
+        "مستشعر التسارع الخطي (Linear acceleration sensor)",
+        "مقياس التسارع (Accelerometer)",
+        "مستشعر متجه الدوران (Rotation vector sensor)"
+      ],
+      "en": [
+        "Gravity sensor",
+        "Linear acceleration sensor",
+        "Accelerometer",
+        "Rotation vector sensor"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مقياس التسارع والجيروسكوب هما دائماً مستشعرات مادية (Hardware-based)، بينما الجاذبية والتسارع الخطي يمكن أن تكون برمجية.",
+      "en": "The accelerometer and gyroscope sensors are always hardware-based, whereas gravity and linear acceleration can be software-based."
+    },
+    "hint": {
+      "ar": "يقيس قوى التسارع الأساسية.",
+      "en": "Measures raw acceleration forces."
+    },
+    "difficulty": "hard",
+    "conceptId": "motion-sensors"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في نظام إحداثيات المستشعر، إلى أين يشير المحور Z؟",
+      "en": "In the sensor coordinate system, where does the Z axis point?"
+    },
+    "options": {
+      "ar": [
+        "أفقياً إلى اليمين",
+        "عمودياً إلى الأعلى",
+        "نحو الخارج من واجهة الشاشة",
+        "نحو الداخل إلى واجهة الشاشة"
+      ],
+      "en": [
+        "Horizontal pointing right",
+        "Vertical pointing up",
+        "Toward the outside of the screen face",
+        "Toward the inside of the screen face"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المحور Z يشير نحو الخارج من واجهة الشاشة، المحور X لليمين، والمحور Y للأعلى.",
+      "en": "The Z axis points toward the outside of the screen face. X is right, Y is up."
+    },
+    "hint": {
+      "ar": "يخرج من الشاشة باتجاهك.",
+      "en": "Comes out of the screen towards you."
+    },
+    "difficulty": "medium",
+    "conceptId": "sensor-coordinate-system"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ماذا يحدث لنظام إحداثيات المستشعر عندما يتغير اتجاه الشاشة (مثلاً من عمودي إلى أفقي)؟",
+      "en": "What happens to the sensor coordinate system when the screen orientation changes (e.g., portrait to landscape)?"
+    },
+    "options": {
+      "ar": [
+        "يدور بمقدار 90 درجة",
+        "لا يتغير",
+        "ينعكس المحور X مع Y",
+        "يتم إعادة تعيينه إلى الصفر"
+      ],
+      "en": [
+        "It rotates by 90 degrees",
+        "It does not change",
+        "X and Y axes are swapped",
+        "It resets to zero"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نظام إحداثيات المستشعر ثابت بالنسبة للاتجاه الافتراضي للجهاز ولا يتغير بتغير دوران الشاشة.",
+      "en": "The coordinate system does not change when orientation changes; it is fixed to the device's default orientation."
+    },
+    "hint": {
+      "ar": "هل هو مرتبط بالشاشة أم بالجهاز المادي؟",
+      "en": "Is it tied to the screen or the physical device?"
+    },
+    "difficulty": "hard",
+    "conceptId": "sensor-coordinate-system"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي فئة توفر معلومات حول البيانات الخام للمستشعر، الدقة، والطابع الزمني؟",
+      "en": "Which class provides information about raw sensor data, accuracy, and timestamp?"
+    },
+    "options": {
+      "ar": [
+        "SensorManager",
+        "Sensor",
+        "SensorEvent",
+        "SensorEventListener"
+      ],
+      "en": [
+        "SensorManager",
+        "Sensor",
+        "SensorEvent",
+        "SensorEventListener"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "فئة SensorEvent هي التي تحتوي على بيانات الحدث الفعلية مثل القيم الخام والطابع الزمني.",
+      "en": "The SensorEvent class provides information about sensor events, including raw sensor data, accuracy, and timestamp."
+    },
+    "hint": {
+      "ar": "تحتوي على كلمة Event.",
+      "en": "Contains the word 'Event'."
+    },
+    "difficulty": "medium",
+    "conceptId": "android-sensor-framework"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي مستشعر يُستخدم لتحديد مدى قرب وجه الجهاز من كائن ما (مثل أذن المستخدم)؟",
+      "en": "Which sensor is used to determine how close the face of a device is to an object (like a user's ear)?"
+    },
+    "options": {
+      "ar": [
+        "مستشعر المجال المغناطيسي (Geomagnetic field sensor)",
+        "مستشعر التقارب (Proximity sensor)",
+        "مقياس التسارع (Accelerometer)",
+        "مستشعر الإضاءة (Light sensor)"
+      ],
+      "en": [
+        "Geomagnetic field sensor",
+        "Proximity sensor",
+        "Accelerometer",
+        "Light sensor"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مستشعر التقارب يقيس المسافة بين الجهاز والكائنات القريبة، ويُستخدم غالباً أثناء المكالمات.",
+      "en": "The proximity sensor measures the proximity of an object in cm relative to the view screen, typically used during phone calls."
+    },
+    "hint": {
+      "ar": "يقيس مدى 'القرب'.",
+      "en": "Measures how 'proximate' something is."
+    },
+    "difficulty": "easy",
+    "conceptId": "position-sensors"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "كم عدد القيم التي تُرجعها مستشعرات البيئة (Environment sensors) عادةً لكل حدث بيانات؟",
+      "en": "How many values do environment sensors typically return for each data event?"
+    },
+    "options": {
+      "ar": [
+        "قيمة واحدة فقط",
+        "قيمتان (X و Y)",
+        "ثلاث قيم (X و Y و Z)",
+        "مصفوفة متعددة الأبعاد"
+      ],
+      "en": [
+        "A single sensor value",
+        "Two values (X and Y)",
+        "Three values (X, Y, and Z)",
+        "A multi-dimensional array"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "على عكس مستشعرات الحركة التي تُرجع مصفوفات للمحاور الثلاثة، تُرجع مستشعرات البيئة قيمة واحدة فقط (مثل درجة الحرارة).",
+      "en": "Environment sensors return a single sensor value for each data event (e.g., temperature in °C), unlike motion sensors which return multi-dimensional arrays."
+    },
+    "hint": {
+      "ar": "درجة الحرارة هي رقم واحد.",
+      "en": "Temperature is just one number."
+    },
+    "difficulty": "medium",
+    "conceptId": "environment-sensors"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من التالي يُعد مثالاً على مستشعر برمجي (Software-based sensor)؟",
+      "en": "Which of the following is an example of a software-based sensor?"
+    },
+    "options": {
+      "ar": [
+        "مقياس التسارع (Accelerometer)",
+        "الجيروسكوب (Gyroscope)",
+        "مستشعر الجاذبية (Gravity sensor)",
+        "مستشعر الإضاءة (Light sensor)"
+      ],
+      "en": [
+        "Accelerometer",
+        "Gyroscope",
+        "Gravity sensor",
+        "Light sensor"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مستشعر الجاذبية ومستشعر التسارع الخطي هما أمثلة على المستشعرات البرمجية التي تستمد بياناتها من مستشعرات مادية أخرى.",
+      "en": "The linear acceleration sensor and the gravity sensor are examples of software-based sensors."
+    },
+    "hint": {
+      "ar": "يتم اشتقاقه من مقياس التسارع.",
+      "en": "It is derived from the accelerometer."
+    },
+    "difficulty": "hard",
+    "conceptId": "android-sensor-framework"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن نظام إحداثيات المستشعر يدور مع دوران الشاشة. هذا خطأ فادح؛ نظام الإحداثيات ثابت بالنسبة لهيكل الجهاز المادي. يجب استخدام `remapCoordinateSystem()` إذا كان تطبيقك يدعم دوران الشاشة.</template>
+      <template class="content-en">Assuming the sensor coordinate system rotates with the screen. This is a critical mistake; the coordinate system is fixed to the physical device. You must use `remapCoordinateSystem()` if your app supports screen rotation.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المستشعرات البرمجية (Software-based) ليست قطعاً مادية داخل الهاتف، بل هي خوارزميات تأخذ البيانات من مستشعرات مادية (مثل مقياس التسارع) وتقوم بتصفيتها لإنتاج بيانات جديدة (مثل التسارع الخطي بدون جاذبية).</template>
+      <template class="content-en">Software-based sensors are not physical chips; they are algorithms that fuse and filter data from hardware sensors (like the accelerometer) to produce new data (like linear acceleration without gravity).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام `getCurrentPosition()` لتطبيق ملاحة. هذه الدالة تجلب الموقع مرة واحدة فقط. لتطبيقات التتبع، يجب استخدام `watchPosition()`.</template>
+      <template class="content-en">Using `getCurrentPosition()` for a navigation app. This function fetches the location only once. For tracking applications, you must use `watchPosition()`.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">مستشعرات البيئة (مثل مقياس الحرارة والضغط) تُرجع قيمة واحدة فقط ولا تتطلب عادةً أي معالجة أو تصفية للبيانات، على عكس مستشعرات الحركة التي تتطلب خوارزميات معقدة للتعامل مع الضوضاء (Noise).</template>
+      <template class="content-en">Environment sensors (like temperature and pressure) return a single value and typically do not require any data filtering or processing, unlike motion sensors which often require complex algorithms to handle noise.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الفرق بين `showsUserLocation` و `followUserLocation`: الأولى تكتفي برسم النقطة الزرقاء على الخريطة، بينما الثانية تجبر الكاميرا على التحرك لتوسيط النقطة الزرقاء باستمرار.</template>
+      <template class="content-en">The difference between `showsUserLocation` and `followUserLocation`: the first merely draws the blue dot on the map, while the second forces the camera to continuously pan and center on that blue dot.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M12.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

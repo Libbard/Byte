@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS478" data-module="4">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الفصل الثامن: خط أنابيب الرسترة · CS478 · الحديقة الرقمية</title>
+
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS478" data-page-title-en="CS478">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M03.html" data-gh-next="M05.html" data-gh-card="../../hub/course.html?code=CS478"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#rasterization-pipeline" class="toc-link" data-bilingual>
+        <template class="content-ar">خط أنابيب الرسترة</template>
+        <template class="content-en">The Rasterization Pipeline</template>
+        <span class="content-target">خط أنابيب الرسترة</span>
+      </a>
+      <a href="#line-rasterization-dda" class="toc-link" data-bilingual>
+        <template class="content-ar">رسترة الخطوط وخوارزمية DDA</template>
+        <template class="content-en">Line Rasterization and DDA</template>
+        <span class="content-target">رسترة الخطوط وخوارزمية DDA</span>
+      </a>
+      <a href="#triangle-rasterization" class="toc-link" data-bilingual>
+        <template class="content-ar">رسترة المثلثات واختبار الداخل-الخارج</template>
+        <template class="content-en">Triangle Rasterization and Inside-Outside Testing</template>
+        <span class="content-target">رسترة المثلثات واختبار الداخل-الخارج</span>
+      </a>
+      <a href="#triangle-edge-cases-optimization" class="toc-link" data-bilingual>
+        <template class="content-ar">حالات حافة المثلث والتحسينات</template>
+        <template class="content-en">Triangle Edge Cases and Optimizations</template>
+        <span class="content-target">حالات حافة المثلث والتحسينات</span>
+      </a>
+      <a href="#barycentric-interpolation" class="toc-link" data-bilingual>
+        <template class="content-ar">الاستيفاء الباريسينتري</template>
+        <template class="content-en">Barycentric Interpolation</template>
+        <span class="content-target">الاستيفاء الباريسينتري</span>
+      </a>
+      <a href="#visibility-z-buffer" class="toc-link" data-bilingual>
+        <template class="content-ar">الرؤية وخوارزمية مخزن العمق (Z-buffer)</template>
+        <template class="content-en">Visibility and the Z-buffer Algorithm</template>
+        <span class="content-target">الرؤية وخوارزمية مخزن العمق (Z-buffer)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 4</template>
+      <template class="content-en">Module 4</template>
+      <span class="content-target">الوحدة 4</span>
+    </span> · CS478
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الفصل الثامن: خط أنابيب الرسترة</h1>
+      <p class="hero-description">تغطي هذه الوحدة خط أنابيب الرسترة، ورسترة الخطوط والمثلثات، والاستيفاء الباريسينتري، وخوارزمية مخزن العمق (Z-buffer).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Chapter 8: Rasterization Pipeline</h1>
+      <p class="hero-description">This module covers the rasterization pipeline, line and triangle rasterization, barycentric interpolation, and the Z-buffer algorithm.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الرسترة</span>
+      <span class="tag">رسومات الحاسب</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Rasterization</span>
+      <span class="tag">Computer Graphics</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم مراحل خط أنابيب الرسترة من الفضاء العالمي إلى الشاشة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق خوارزميات رسترة الخطوط والمثلثات.</span></li>
+      <li><span class="obj-icon">✦</span><span>استخدام الاستيفاء الباريسينتري لحساب قيم الألوان داخل المثلث.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم وتطبيق خوارزمية مخزن العمق (Z-buffer) لتحديد الرؤية.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the stages of the rasterization pipeline from world space to screen space.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply line and triangle rasterization algorithms.</span></li>
+      <li><span class="obj-icon">✦</span><span>Use barycentric interpolation to calculate color values inside a triangle.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand and apply the Z-buffer algorithm for visibility determination.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="rasterization-pipeline" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> خط أنابيب الرسترة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> The Rasterization Pipeline</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>سلسلة من التحويلات التي تنقل الأشكال الهندسية ثلاثية الأبعاد إلى بكسلات ثنائية الأبعاد على الشاشة باستخدام <span class="smart-term" data-term-en="Rasterization" data-ar="الرسترة" data-en-def="The process of converting vector graphics (shapes) into a raster image (pixels).">الرسترة<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>A sequence of transformations that converts 3D geometry into 2D pixels on a screen using <span class="smart-term" data-term-en="Rasterization" data-ar="الرسترة" data-en-def="The process of converting vector graphics (shapes) into a raster image (pixels).">rasterization<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمر خط أنابيب <span class="smart-term" data-term-en="Rasterization" data-ar="الرسترة" data-en-def="The process of converting vector graphics (shapes) into a raster image (pixels).">الرسترة<span class="smart-term-tooltip"></span></span> بعدة مراحل أساسية لتحويل المشهد:</p><ol><li><b>الفضاء العالمي (World space):</b> الإحداثيات الأصلية للأجسام.</li><li><b>فضاء الكاميرا (Camera space):</b> بعد تطبيق تحويلات الرؤية (Viewing).</li><li><b>فضاء القص (Clip space):</b> بعد عملية القص (Clipping) لإزالة الأجزاء الخارجة عن مجال الرؤية.</li><li><b>فضاء الشاشة (Screen space):</b> تحديد الرؤية والتغطية (Visibility/Coverage).</li><li><b>مخزن الإطارات (Framebuffer):</b> بعد الاستيفاء وأخذ العينات (Interpolation & sampling).</li></ol></template>
+    <template class="content-en"><p>The <span class="smart-term" data-term-en="Rasterization" data-ar="الرسترة" data-en-def="The process of converting vector graphics (shapes) into a raster image (pixels).">rasterization<span class="smart-term-tooltip"></span></span> pipeline goes through several key stages to transform a scene:</p><ol><li><b>World space:</b> Original object coordinates.</li><li><b>Camera space:</b> After Viewing transformations.</li><li><b>Clip space:</b> After Clipping to remove parts outside the view frustum.</li><li><b>Screen space:</b> Visibility and Coverage determination.</li><li><b>Framebuffer:</b> After Interpolation and sampling.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تعمل وحدات معالجة الرسومات (GPUs) الحديثة باستخدام واجهات برمجة التطبيقات مثل OpenGL و Direct3D بناءً على هذا الخط الأساسي، مع وجود بعض الاختلافات التجميلية في الواجهة.</p><p>الفرق الرئيسي بين <span class="smart-term" data-term-en="Rasterization" data-ar="الرسترة" data-en-def="The process of converting vector graphics (shapes) into a raster image (pixels).">الرسترة<span class="smart-term-tooltip"></span></span> وتتبع الأشعة (Ray Tracing) هو أن الرسترة تسقط الأشكال الهندسية على الشاشة، بينما يطلق تتبع الأشعة أشعة من الشاشة لاختبار التقاطع مع الأشكال.</p></template>
+    <template class="content-en"><p>Modern GPUs using APIs like OpenGL and Direct3D work based on this fundamental pipeline, with some cosmetic API differences.</p><p>The main difference between <span class="smart-term" data-term-en="Rasterization" data-ar="الرسترة" data-en-def="The process of converting vector graphics (shapes) into a raster image (pixels).">rasterization<span class="smart-term-tooltip"></span></span> and ray tracing is that rasterization projects geometry onto the screen, whereas ray tracing shoots rays from the screen to intersect with geometry.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[6]: Detailed SVG generation prompt: A flowchart showing the rasterization pipeline. Start with 'World space' (3D axes x,y,z with a camera and triangles), arrow 'Viewing' to 'Camera space' (triangles inside a viewing box), arrow 'Clipping' to 'Clip space' (2D projection box), arrow 'Visibility / Coverage' to 'Screen space' (pixel grid with dotted triangles), arrow 'Interpolation & sampling' to 'Framebuffer' (colored pixels). Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 1000 300, English labels. -->
+<div class="svg-diagram" data-diagram-id="6">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead Marker -->
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Drop Shadow for Cards -->
+        <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.1" />
+        </filter>
+
+        <!-- Pixel Grid Pattern with Sampling Dots (Screen Space) -->
+        <pattern id="pixel-grid" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="translate(790, 165)">
+            <rect width="10" height="10" fill="none" stroke="var(--border-color)" stroke-width="0.5" />
+            <circle cx="5" cy="5" r="1" fill="var(--text-muted)" />
+        </pattern>
+
+        <!-- Pixel Grid Pattern without Dots (Framebuffer) -->
+        <pattern id="pixel-grid-nodot" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="translate(1030, 165)">
+            <rect width="10" height="10" fill="none" stroke="var(--border-color)" stroke-width="0.5" />
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Main Title -->
+    <text x="600" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">The Rasterization Pipeline</text>
+    <text x="600" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-muted)" text-anchor="middle">مراحل خط أنابيب التنقيط</text>
+
+    <!-- ================= STAGE CARDS ================= -->
+    <!-- Stage 1 Card -->
+    <rect x="40" y="100" width="160" height="240" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#card-shadow)" />
+    <text x="120" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">World Space</text>
+    <line x1="50" y1="140" x2="190" y2="140" stroke="var(--border-color)" stroke-width="1" />
+    <text x="120" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">فضاء العالم</text>
+
+    <!-- Stage 2 Card -->
+    <rect x="280" y="100" width="160" height="240" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#card-shadow)" />
+    <text x="360" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Camera Space</text>
+    <line x1="290" y1="140" x2="430" y2="140" stroke="var(--border-color)" stroke-width="1" />
+    <text x="360" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">فضاء الكاميرا</text>
+
+    <!-- Stage 3 Card -->
+    <rect x="520" y="100" width="160" height="240" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#card-shadow)" />
+    <text x="600" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Clip Space</text>
+    <line x1="530" y1="140" x2="670" y2="140" stroke="var(--border-color)" stroke-width="1" />
+    <text x="600" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">فضاء القص</text>
+
+    <!-- Stage 4 Card -->
+    <rect x="760" y="100" width="160" height="240" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#card-shadow)" />
+    <text x="840" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Screen Space</text>
+    <line x1="770" y1="140" x2="910" y2="140" stroke="var(--border-color)" stroke-width="1" />
+    <text x="840" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">فضاء الشاشة</text>
+
+    <!-- Stage 5 Card -->
+    <rect x="1000" y="100" width="160" height="240" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#card-shadow)" />
+    <text x="1080" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Framebuffer</text>
+    <line x1="1010" y1="140" x2="1150" y2="140" stroke="var(--border-color)" stroke-width="1" />
+    <text x="1080" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">مخزن الإطارات</text>
+
+
+    <!-- ================= ARROWS & TRANSITIONS ================= -->
+    <!-- Arrow 1 -->
+    <line x1="208" y1="215" x2="268" y2="215" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrowhead)" />
+    <text x="240" y="195" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Viewing</text>
+    <text x="240" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">الرؤية</text>
+
+    <!-- Arrow 2 -->
+    <line x1="448" y1="215" x2="508" y2="215" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrowhead)" />
+    <text x="480" y="195" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Clipping</text>
+    <text x="480" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">القص</text>
+
+    <!-- Arrow 3 -->
+    <line x1="688" y1="215" x2="748" y2="215" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrowhead)" />
+    <text x="720" y="185" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Visibility /</text>
+    <text x="720" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Coverage</text>
+    <text x="720" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">التغطية</text>
+
+    <!-- Arrow 4 -->
+    <line x1="928" y1="215" x2="988" y2="215" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrowhead)" />
+    <text x="960" y="185" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Interpolation</text>
+    <text x="960" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">&amp; Sampling</text>
+    <text x="960" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">الاستيفاء</text>
+
+
+    <!-- ================= STAGE 1: WORLD SPACE ================= -->
+    <g id="stage1-world">
+        <!-- 3D Axes -->
+        <line x1="120" y1="235" x2="120" y2="165" stroke="var(--text-muted)" stroke-width="2" />
+        <line x1="120" y1="235" x2="180" y2="235" stroke="var(--text-muted)" stroke-width="2" />
+        <line x1="120" y1="235" x2="80" y2="265" stroke="var(--text-muted)" stroke-width="2" />
+        <text x="110" y="165" font-family="system-ui, sans-serif" font-size="13" fill="var(--text-muted)">y</text>
+        <text x="180" y="250" font-family="system-ui, sans-serif" font-size="13" fill="var(--text-muted)">x</text>
+        <text x="70" y="265" font-family="system-ui, sans-serif" font-size="13" fill="var(--text-muted)">z</text>
+
+        <!-- Camera -->
+        <rect x="50" y="185" width="24" height="16" rx="2" fill="var(--text-secondary)" />
+        <polygon points="74,189 86,181 86,205 74,197" fill="var(--text-secondary)" />
+        <circle cx="62" cy="193" r="4" fill="var(--bg-elevated)" />
+
+        <!-- Triangles -->
+        <polygon points="130,165 155,145 170,175" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+        <polygon points="140,205 180,195 165,225" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+    </g>
+
+
+    <!-- ================= STAGE 2: CAMERA SPACE ================= -->
+    <g id="stage2-camera">
+        <!-- Viewing Frustum -->
+        <polygon points="320,195 410,165 410,265 320,235" fill="var(--brand-500)" fill-opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4 4" />
+        
+        <!-- Camera Apex -->
+        <circle cx="290" cy="215" r="4" fill="var(--text-secondary)" />
+        <line x1="290" y1="215" x2="320" y2="195" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="2 2" />
+        <line x1="290" y1="215" x2="320" y2="235" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="2 2" />
+
+        <!-- Triangles inside Frustum -->
+        <polygon points="340,185 365,165 380,195" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+        <polygon points="350,225 390,215 375,245" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+    </g>
+
+
+    <!-- ================= STAGE 3: CLIP SPACE ================= -->
+    <g id="stage3-clip">
+        <!-- NDC Box -->
+        <rect x="550" y="165" width="100" height="100" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+        
+        <!-- NDC Axes -->
+        <line x1="600" y1="165" x2="600" y2="265" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="2 2" />
+        <line x1="550" y1="215" x2="650" y2="215" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="2 2" />
+        <text x="555" y="210" font-family="system-ui, sans-serif" font-size="11" fill="var(--text-muted)">-1</text>
+        <text x="635" y="210" font-family="system-ui, sans-serif" font-size="11" fill="var(--text-muted)">+1</text>
+
+        <!-- Triangle 1 (Fully Inside) -->
+        <polygon points="560,195 585,175 600,205" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+        
+        <!-- Triangle 2 (Clipped at bottom edge Y=265) -->
+        <!-- Inside part -->
+        <polygon points="570,235 610,225 598,265 588.75,265" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+        <!-- Outside part (discarded) -->
+        <polygon points="588.75,265 598,265 595,275" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="3 3" stroke-linejoin="round" />
+    </g>
+
+
+    <!-- ================= STAGE 4: SCREEN SPACE ================= -->
+    <g id="stage4-screen">
+        <!-- Pixel Grid with Sampling Dots -->
+        <rect x="790" y="165" width="100" height="100" fill="url(#pixel-grid)" stroke="var(--text-primary)" stroke-width="2" />
+
+        <!-- Triangle 1 (Mapped to Screen) -->
+        <polygon points="800,195 825,175 840,205" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" />
+        
+        <!-- Triangle 2 (Clipped part mapped to Screen) -->
+        <polygon points="810,235 850,225 838,265 828.75,265" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" />
+    </g>
+
+
+    <!-- ================= STAGE 5: FRAMEBUFFER ================= -->
+    <g id="stage5-framebuffer">
+        <!-- Base Grid -->
+        <rect x="1030" y="165" width="100" height="100" fill="url(#pixel-grid-nodot)" stroke="var(--text-primary)" stroke-width="2" />
+
+        <!-- Rasterized Pixels for Triangle 1 -->
+        <g fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="1">
+            <!-- Row Y=175 -->
+            <rect x="1050" y="175" width="10" height="10" />
+            <rect x="1060" y="175" width="10" height="10" />
+            <!-- Row Y=185 -->
+            <rect x="1040" y="185" width="10" height="10" />
+            <rect x="1050" y="185" width="10" height="10" />
+            <rect x="1060" y="185" width="10" height="10" />
+            <rect x="1070" y="185" width="10" height="10" />
+            <!-- Row Y=195 -->
+            <rect x="1050" y="195" width="10" height="10" />
+            <rect x="1060" y="195" width="10" height="10" />
+            <rect x="1070" y="195" width="10" height="10" />
+        </g>
+
+        <!-- Rasterized Pixels for Triangle 2 -->
+        <g fill="var(--brand-400)" stroke="var(--bg-surface)" stroke-width="1">
+            <!-- Row Y=225 -->
+            <rect x="1070" y="225" width="10" height="10" />
+            <rect x="1080" y="225" width="10" height="10" />
+            <!-- Row Y=235 -->
+            <rect x="1060" y="235" width="10" height="10" />
+            <rect x="1070" y="235" width="10" height="10" />
+            <rect x="1080" y="235" width="10" height="10" />
+            <!-- Row Y=245 -->
+            <rect x="1060" y="245" width="10" height="10" />
+            <rect x="1070" y="245" width="10" height="10" />
+            <rect x="1080" y="245" width="10" height="10" />
+            <!-- Row Y=255 -->
+            <rect x="1070" y="255" width="10" height="10" />
+        </g>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Rasterization</th><th>Ray Tracing</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">آلية العمل</template>
+          <template class="content-en">Mechanism</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">إسقاط الأشكال الهندسية على شبكة الشاشة</template>
+          <template class="content-en">Projects geometry onto the screen grid</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">إطلاق أشعة من الشاشة لاختبار التقاطع مع الأشكال</template>
+          <template class="content-en">Shoots rays from the screen to intersect geometry</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يتم إجراء عملية القص (Clipping) قبل الانتقال إلى فضاء الشاشة؟</template>
+      <template class="content-en">Why is Clipping performed before moving to Screen space?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لتوفير الموارد الحسابية عن طريق التخلص من الأشكال الهندسية التي لن تظهر على الشاشة قبل إجراء حسابات الرسترة المعقدة لكل بكسل.</p></template>
+      <template class="content-en"><p>To save computational resources by discarding geometry that won't be visible on the screen before performing expensive per-pixel rasterization calculations.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="line-rasterization-dda" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> رسترة الخطوط وخوارزمية DDA</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Line Rasterization and DDA</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحديد البكسلات التي يمر بها الخط باستخدام قاعدة الماس (Diamond rule) وخوارزمية <span class="smart-term" data-term-en="DDA" data-ar="المحلل التفاضلي الرقمي" data-en-def="Digital Differential Analyzer, an algorithm for interpolating variables over an interval, used for line rasterization.">DDA<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>Determining which pixels a line passes through using the Diamond rule and the <span class="smart-term" data-term-en="DDA" data-ar="المحلل التفاضلي الرقمي" data-en-def="Digital Differential Analyzer, an algorithm for interpolating variables over an interval, used for line rasterization.">DDA<span class="smart-term-tooltip"></span></span> algorithm.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لتحويل خط إلى بكسلات، يجب تحديد البكسلات التي يمر بها الخط. يتم استخدام <b>قاعدة الماس (Diamond rule)</b>: يتم تفعيل البكسل إذا كان الخط يمر عبر منطقة 'الماس' الخاصة به.</p><p>بدلاً من فحص كل بكسل في الشاشة (والذي يستغرق وقتاً $O(n^2)$)، نستخدم خوارزمية <b>DDA</b> التي تفحص فقط البكسلات على طول الخط ($O(n)$).</p><p>تعتمد <span class="smart-term" data-term-en="DDA" data-ar="المحلل التفاضلي الرقمي" data-en-def="Digital Differential Analyzer, an algorithm for interpolating variables over an interval, used for line rasterization.">DDA<span class="smart-term-tooltip"></span></span> على حساب الميل $m = \Delta y / \Delta x$. نتحرك من $x_1$ إلى $x_2$ بخطوات مقدارها 1، ونزيد $y$ بمقدار $m$.</p></template>
+    <template class="content-en"><p>To convert a line to pixels, we must determine which pixels the line passes through. The <b>Diamond rule</b> is used: a pixel is turned on if the line passes through its 'diamond' region.</p><p>Instead of checking every pixel naively ($O(n^2)$), we use the <b>DDA</b> algorithm which only checks pixels along the line ($O(n)$).</p><p>DDA relies on the slope $m = \Delta y / \Delta x$. We move from $x_1$ to $x_2$ by steps of 1, increasing $y$ by $m$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تفترض خوارزمية DDA الأساسية أن $0 \le m \le 1$ وأن $x_1 < x_2$. بالنسبة للحالات الأخرى، يتم توسيع الخوارزمية باستخدام التناظر (Symmetry).</p><p>ملاحظة هامة: خوارزمية DDA ليست الطريقة المستخدمة في الأجهزة والبرامج الحديثة. بدلاً من ذلك، تُستخدم خوارزمية بريسنهام (Bresenham's algorithm) لأنها تتجنب حسابات الفاصلة العائمة (floating-point) وتعتمد فقط على الأعداد الصحيحة، مما يجعلها أسرع بكثير.</p></template>
+    <template class="content-en"><p>The basic DDA algorithm assumes $0 \le m \le 1$ and $x_1 < x_2$. For other cases, the algorithm is extended by symmetry.</p><p>Important note: DDA is NOT how lines are rasterized in modern hardware and software. Instead, Bresenham's algorithm is used because it avoids floating-point arithmetic and uses only integers, making it much faster.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة الميل المستخدمة في خوارزمية DDA.</strong></template>
+      <template class="content-en"><strong>Slope equation used in the DDA algorithm.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$m = \frac{y_2 - y_1}{x_2 - x_1}$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button></div>
+    <pre class="pseudo-block"><code>y = y1;
+for (x = x1; x <= x2; ++x) {
+  y += m;
+  setPixel(x, round(y), color);
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: A grid of pixels showing line rasterization. An orange line passes through the grid from bottom-left to top-right. Inside each grid cell, there is a light gray diamond shape. The cells where the orange line intersects the diamond are highlighted in light orange. Labels: 'Diamond rule: pixel is on if line passes through diamond'. Style: educational, dark background #0d1117, accent color #f97316, viewBox 0 0 600 300. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrow Markers -->
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+    </marker>
+
+    <!-- Grid Cell: OFF (Line misses diamond) -->
+    <g id="cell-off">
+      <rect width="70" height="70" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+      <polygon points="35,0 70,35 35,70 0,35" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.5" />
+      <circle cx="35" cy="35" r="1.5" fill="var(--text-muted)" opacity="0.5" />
+    </g>
+
+    <!-- Grid Cell: ON (Line intersects diamond) -->
+    <g id="cell-on">
+      <rect width="70" height="70" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+      <rect width="70" height="70" fill="var(--brand-500)" opacity="0.15" />
+      <polygon points="35,0 70,35 35,70 0,35" fill="var(--brand-500)" fill-opacity="0.1" stroke="var(--brand-500)" stroke-width="2" />
+      <circle cx="35" cy="35" r="2.5" fill="var(--brand-500)" />
+    </g>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="400" y="45" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Line Rasterization: Diamond Rule</text>
+  <text x="400" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle">تنقيط الخطوط: قاعدة المعين</text>
+
+  <!-- Axis Labels -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">
+    <text x="225" y="110">x=0</text>
+    <text x="295" y="110">1</text>
+    <text x="365" y="110">2</text>
+    <text x="435" y="110">3</text>
+    <text x="505" y="110">4</text>
+    <text x="575" y="110">5</text>
+  </g>
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="end" dominant-baseline="middle">
+    <text x="175" y="155">y=0</text>
+    <text x="175" y="225">1</text>
+    <text x="175" y="295">2</text>
+    <text x="175" y="365">3</text>
+  </g>
+
+  <!-- Pixel Grid -->
+  <g transform="translate(190, 120)">
+    <!-- Row 0 -->
+    <use href="#cell-off" x="0" y="0" />
+    <use href="#cell-off" x="70" y="0" />
+    <use href="#cell-off" x="140" y="0" />
+    <use href="#cell-off" x="210" y="0" />
+    <use href="#cell-off" x="280" y="0" />
+    <use href="#cell-on" x="350" y="0" />
+    
+    <!-- Row 1 -->
+    <use href="#cell-off" x="0" y="70" />
+    <use href="#cell-off" x="70" y="70" />
+    <use href="#cell-off" x="140" y="70" />
+    <use href="#cell-on" x="210" y="70" />
+    <use href="#cell-on" x="280" y="70" />
+    <use href="#cell-off" x="350" y="70" />
+    
+    <!-- Row 2 -->
+    <use href="#cell-off" x="0" y="140" />
+    <use href="#cell-on" x="70" y="140" />
+    <use href="#cell-on" x="140" y="140" />
+    <use href="#cell-off" x="210" y="140" />
+    <use href="#cell-off" x="280" y="140" />
+    <use href="#cell-off" x="350" y="140" />
+    
+    <!-- Row 3 -->
+    <use href="#cell-on" x="0" y="210" />
+    <use href="#cell-off" x="70" y="210" />
+    <use href="#cell-off" x="140" y="210" />
+    <use href="#cell-off" x="210" y="210" />
+    <use href="#cell-off" x="280" y="210" />
+    <use href="#cell-off" x="350" y="210" />
+  </g>
+
+  <!-- The Rasterized Line -->
+  <!-- Background stroke to create a cutout effect over the grid lines -->
+  <line x1="150" y1="402.8" x2="650" y2="117.1" stroke="var(--bg-surface)" stroke-width="8" stroke-linecap="round" />
+  <!-- Main colored line -->
+  <line x1="150" y1="402.8" x2="650" y2="117.1" stroke="var(--brand-500)" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Annotations -->
+  <!-- Left Annotation: Pixel ON -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <text x="95" y="265" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Pixel ON</text>
+    <text x="95" y="285" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Line intersects</text>
+    <text x="95" y="305" font-size="13" fill="var(--text-secondary)" text-anchor="middle">يتقاطع مع المعين</text>
+    <path d="M 145 280 L 255 280" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+  </g>
+
+  <!-- Right Annotation: Pixel OFF -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <text x="705" y="135" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Pixel OFF</text>
+    <text x="705" y="155" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Line misses</text>
+    <text x="705" y="175" font-size="13" fill="var(--text-secondary)" text-anchor="middle">لا يتقاطع</text>
+    <path d="M 655 150 L 545 150" fill="none" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" />
+  </g>
+
+  <!-- Bottom Rule Box -->
+  <rect x="150" y="420" width="500" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="400" y="444" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Diamond Rule: Pixel is ON if line passes through diamond</text>
+  <text x="400" y="466" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">قاعدة المعين: يتم تفعيل البكسل إذا مر الخط عبر المعين</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر خوارزمية بريسنهام أفضل من DDA في الأجهزة الحديثة؟</template>
+      <template class="content-en">Why is Bresenham's algorithm preferred over DDA in modern hardware?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن خوارزمية DDA تتطلب حسابات الفاصلة العائمة (إضافة الميل m وتقريب y)، بينما تستخدم خوارزمية بريسنهام عمليات الجمع والطرح للأعداد الصحيحة فقط، وهي أسرع وأقل تكلفة في العتاد.</p></template>
+      <template class="content-en"><p>Because DDA requires floating-point arithmetic (adding slope m and rounding y), whereas Bresenham's uses only integer addition and subtraction, which is faster and cheaper in hardware.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="triangle-rasterization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> رسترة المثلثات واختبار الداخل-الخارج</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Triangle Rasterization and Inside-Outside Testing</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحديد ما إذا كان البكسل يقع داخل المثلث باستخدام تقاطع ثلاثة <span class="smart-term" data-term-en="Half-plane" data-ar="نصف المستوى" data-en-def="A planar region consisting of all points on one side of an infinite straight line.">أنصاف مستويات<span class="smart-term-tooltip"></span></span> (Half-planes).</p></template>
+    <template class="content-en"><p>Determining if a pixel lies inside a triangle using the intersection of three <span class="smart-term" data-term-en="Half-plane" data-ar="نصف المستوى" data-en-def="A planar region consisting of all points on one side of an infinite straight line.">half-planes<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لماذا نستخدم المثلثات؟</p><ul><li>يمكن تحليل أي مضلع إلى مثلثات،</li><li>جميع المثلثات محدبة (convex)،</li><li>مسطحة في الفضاء ثلاثي الأبعاد،</li><li>وتسمح بخوارزميات رسترة واستيفاء أبسط ('اجعل شيئاً واحداً سريعاً').</li></ul><p>لرسترة مثلث، نطرح السؤال: 'هل الجزء (fragment) مغطى بالمثلث؟' يُعرف هذا باختبار الداخل-الخارج (Inside-outside testing).</p><p>هندسياً، يتكون المثلث من 3 خطوط تشكل 3 أنصاف مستويات. النقطة $p$ تقع داخل المثلث إذا كانت تقع داخل جميع أنصاف المستويات الثلاثة.</p></template>
+    <template class="content-en"><p>Why triangles?</p><ul><li>Any polygon can be decomposed into triangles,</li><li>all triangles are convex,</li><li>flat in 3D,</li><li>and allow for simpler rasterization and interpolation algorithms ('Make one thing fast').</li></ul><p>To rasterize a triangle, we ask: 'is fragment covered by triangle?' This is known as inside-outside testing.</p><p>Geometrically, a triangle is defined by 3 lines forming 3 half-planes. A point $p$ is inside the triangle if it is inside all 3 half-planes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم تحديد كل خط بمعادلة $ax + by + c = 0$. المتجه العمودي $n = (a, b)$ يشير إلى 'يسار الخط'.</p><p>الاصطلاح المتبع: 'الداخل' يقع على يسار الخط بالنسبة للمضلعات المرسومة عكس اتجاه عقارب الساعة (counter-clockwise).</p><p>الخوارزمية: لكل نقطة $(x,y)$، تحقق مما إذا كانت تقع داخل الخطوط الثلاثة التي تشكل المثلث.</p></template>
+    <template class="content-en"><p>Each line is defined by the equation $ax + by + c = 0$. The normal vector $n = (a, b)$ points to the 'left of line'.</p><p>Convention: 'inside' is on the left for a counter-clockwise polygon.</p><p>Algorithm: for each point $(x,y)$, check whether it is inside all three lines forming the triangle.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معاملات معادلة الخط المار بالنقطتين v0 و v1.</strong></template>
+      <template class="content-en"><strong>Coefficients of the line equation passing through v0 and v1.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$a = y_1 - y_0, \quad b = x_0 - x_1, \quad c = x_1 y_0 - x_0 y_1$$</div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: A triangle with vertices v0, v1, v2. A point p is inside. A normal vector n=(a,b) points perpendicular to the edge v0-v1 towards the inside. The edge v0-v1 has the equation ax+by+c=0. The area inside the triangle is shaded. Labels: 'v0(x0,y0)', 'v1(x1,y1)', '>0', '<0' indicating half-planes. Style: educational, dark background #0d1117, accent color #10b981, viewBox 0 0 600 400. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-primary)" />
+    </marker>
+
+    <!-- Triangle Shading Gradient -->
+    <linearGradient id="triGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Subtle Background Grid -->
+    <pattern id="dotGrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="var(--text-muted)" opacity="0.15" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+  <rect width="100%" height="100%" fill="url(#dotGrid)" />
+
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    
+    <!-- Title -->
+    <text x="400" y="40" font-size="24" fill="var(--text-primary)" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="6">Triangle Half-Space Test</text>
+    <text x="400" y="65" font-size="16" fill="var(--text-secondary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">اختبار نصف الفضاء للمثلث</text>
+
+    <!-- Half-plane Background Labels -->
+    <!-- Inside (> 0) -->
+    <text x="250" y="220" font-size="24" fill="var(--brand-500)" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="6">ax + by + c &gt; 0</text>
+    <text x="250" y="245" font-size="15" fill="var(--text-secondary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">Inside / الداخل</text>
+
+    <!-- Outside (< 0) -->
+    <text x="250" y="440" font-size="24" fill="var(--text-muted)" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="6">ax + by + c &lt; 0</text>
+    <text x="250" y="465" font-size="15" fill="var(--text-muted)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">Outside / الخارج</text>
+
+    <!-- Extended Edge Line (Infinite Line) -->
+    <line x1="50" y1="410" x2="750" y2="270" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="8,6" opacity="0.5" />
+
+    <!-- Triangle Polygon -->
+    <polygon points="200,380 600,300 350,100" fill="url(#triGrad)" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+
+    <!-- Highlighted Edge v0-v1 -->
+    <line x1="200" y1="380" x2="600" y2="300" stroke="var(--brand-500)" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Right Angle Symbol -->
+    <polyline points="414.7,337 411.7,322.3 397,325.3" fill="none" stroke="var(--text-primary)" stroke-width="2" opacity="0.8" />
+
+    <!-- Normal Vector -->
+    <line x1="400" y1="340" x2="384" y2="262" stroke="var(--text-primary)" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="400" cy="340" r="4" fill="var(--text-primary)" />
+
+    <!-- Edge Equation Label (Rotated to align with edge) -->
+    <g transform="rotate(-11.3, 550, 325)">
+      <text x="550" y="325" font-size="16" fill="var(--brand-500)" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">ax + by + c = 0</text>
+      <text x="550" y="345" font-size="14" fill="var(--text-secondary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">معادلة الحافة</text>
+    </g>
+
+    <!-- Normal Vector Label -->
+    <text x="350" y="230" font-size="16" fill="var(--text-primary)" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">n = (a, b)</text>
+    <text x="350" y="210" font-size="13" fill="var(--text-secondary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">المتجه العمودي</text>
+
+    <!-- Vertices -->
+    <!-- v0 -->
+    <circle cx="200" cy="380" r="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="180" y="415" font-size="16" fill="var(--text-primary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">v<tspan baseline-shift="sub" font-size="12">0</tspan>(x<tspan baseline-shift="sub" font-size="12">0</tspan>, y<tspan baseline-shift="sub" font-size="12">0</tspan>)</text>
+    
+    <!-- v1 -->
+    <circle cx="600" cy="300" r="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="630" y="325" font-size="16" fill="var(--text-primary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">v<tspan baseline-shift="sub" font-size="12">1</tspan>(x<tspan baseline-shift="sub" font-size="12">1</tspan>, y<tspan baseline-shift="sub" font-size="12">1</tspan>)</text>
+    
+    <!-- v2 -->
+    <circle cx="350" cy="100" r="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="350" y="85" font-size="16" fill="var(--text-primary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">v<tspan baseline-shift="sub" font-size="12">2</tspan>(x<tspan baseline-shift="sub" font-size="12">2</tspan>, y<tspan baseline-shift="sub" font-size="12">2</tspan>)</text>
+
+    <!-- Point p (Inside) -->
+    <circle cx="400" cy="250" r="5" fill="var(--brand-500)" />
+    <text x="430" y="255" font-size="16" fill="var(--text-primary)" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">p</text>
+    <text x="430" y="275" font-size="13" fill="var(--text-secondary)" text-anchor="middle" paint-order="stroke" stroke="var(--bg-surface)" stroke-width="4">نقطة داخلية</text>
+
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا تم رسم رؤوس المثلث في اتجاه عقارب الساعة بدلاً من عكس اتجاه عقارب الساعة؟</template>
+      <template class="content-en">What happens if the triangle vertices are specified in clockwise order instead of counter-clockwise?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستشير المتجهات العمودية إلى الخارج بدلاً من الداخل، مما سيؤدي إلى فشل اختبار الداخل-الخارج (سيعتبر أن جميع النقاط خارج المثلث).</p></template>
+      <template class="content-en"><p>The normal vectors would point outwards instead of inwards, causing the inside-outside test to fail (it would consider all points to be outside the triangle).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="triangle-edge-cases-optimization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> حالات حافة المثلث والتحسينات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Triangle Edge Cases and Optimizations</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>استخدام <span class="smart-term" data-term-en="Top-left rule" data-ar="قاعدة أعلى-يسار" data-en-def="A tie-breaking rule used in rasterization to assign a pixel exactly on a shared edge to only one triangle.">قاعدة أعلى-يسار<span class="smart-term-tooltip"></span></span> لحل مشكلة الحواف المشتركة، واستخدام '<span class="smart-term" data-term-en="Bounding Box" data-ar="صندوق الإحاطة" data-en-def="The smallest rectangle, aligned with the axes, that completely encloses a given shape.">صندوق الإحاطة<span class="smart-term-tooltip"></span></span>' لتسريع الرسترة.</p></template>
+    <template class="content-en"><p>Using the '<span class="smart-term" data-term-en="Top-left rule" data-ar="قاعدة أعلى-يسار" data-en-def="A tie-breaking rule used in rasterization to assign a pixel exactly on a shared edge to only one triangle.">top-left rule<span class="smart-term-tooltip"></span></span>' to resolve shared edges, and using a '<span class="smart-term" data-term-en="Bounding Box" data-ar="صندوق الإحاطة" data-en-def="The smallest rectangle, aligned with the axes, that completely encloses a given shape.">bounding box<span class="smart-term-tooltip"></span></span>' to speed up rasterization.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b>حالات الحافة (Edge Cases):</b> عندما تقع نقطة العينة بالضبط على حافة بين مثلثين (معادلة الخط = 0)، يجب تبني اصطلاح لإنشاء جزء (fragment) واحد فقط لتجنب الرسم المزدوج. الاصطلاح الشائع هو <b>قاعدة أعلى-يسار (top-left rule)</b>.</p><p>تعتبر النقطة داخل المثلث إذا كانت على:</p><ul><li><b>الحافة العلوية (Top edge):</b> حافة أفقية تماماً وتقع فوق الحواف الأخرى.</li><li><b>الحافة اليسرى (Left edge):</b> حافة غير أفقية تماماً وتقع على الجانب الأيسر للمثلث.</li></ul><p><b>التحسين (Optimization):</b> حساب اختبار الداخل-الخارج لجميع بكسلات الشاشة مكلف جداً. بدلاً من ذلك، نحسب <b>صندوق الإحاطة (Bounding Box)</b> للمثلث أولاً، ونجري الاختبار فقط للنقاط داخل هذا الصندوق.</p></template>
+    <template class="content-en"><p><b>Edge Cases:</b> When a sample point lies exactly on an edge between two triangles (line equation = 0), a convention is needed to create only one fragment to avoid double-drawing. The common convention is the <b>top-left rule</b>.</p><p>A point is inside the triangle if it is on:</p><ul><li><b>Top edge:</b> edge exactly horizontal and above other edges.</li><li><b>Left edge:</b> not exactly horizontal and is on the left side of the triangle.</li></ul><p><b>Optimization:</b> Computing the inside test for all screen pixels is wasteful. Instead, compute the triangle's <b>bounding box</b> first and do the inside test only for points within the bounding box.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم حساب صندوق الإحاطة بإيجاد القيم الدنيا والقصوى لإحداثيات الرؤوس: <code>xmin = ceil(min(v0x, v1x, v2x))</code> وهكذا.</p><p>قاعدة أعلى-يسار مستخدمة في قواعد رسترة Direct3D لضمان عدم وجود فجوات أو تداخلات بين المثلثات المتجاورة في الشبكات المضلعة (Meshes).</p></template>
+    <template class="content-en"><p>The bounding box is calculated by finding the minimum and maximum coordinates of the vertices: <code>xmin = ceil(min(v0x, v1x, v2x))</code>, etc.</p><p>The top-left rule is used in Direct3D rasterization rules to ensure no gaps or overlaps exist between adjacent triangles in a mesh.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button></div>
+    <pre class="pseudo-block"><code>xmin=ceil(min(v0x,v1x,v2x));
+xmax=ceil(max(v0x,v1x,v2x));
+ymin=ceil(min(v0y,v1y,v2y));
+ymax=ceil(max(v0y,v1y,v2y));</code></pre>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A triangle enclosed in an orange rectangular bounding box. The bottom-left corner of the box is labeled (xmin, ymin) and the top-right corner is labeled (xmax, ymax). Style: educational, dark background #0d1117, accent color #f97316, viewBox 0 0 500 300. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for Axes -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-primary)" />
+        </marker>
+        <!-- Arrowhead for Annotations -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" fill="var(--text-primary)" text-anchor="middle" font-weight="bold">Bounding Box of a Triangle</text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">الصندوق المحيط للمثلث</text>
+
+    <!-- Axes -->
+    <!-- X Axis -->
+    <line x1="100" y1="420" x2="700" y2="420" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="710" y="426" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-primary)" font-weight="bold">X</text>
+    
+    <!-- Y Axis -->
+    <line x1="150" y1="450" x2="150" y2="90" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="150" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-primary)" font-weight="bold" text-anchor="middle">Y</text>
+
+    <!-- Projection Lines (Dashed) -->
+    <g stroke="var(--text-muted)" stroke-dasharray="6,4" stroke-width="1.5">
+        <!-- Vertical Projections to X-axis -->
+        <line x1="250" y1="120" x2="250" y2="420" />
+        <line x1="550" y1="120" x2="550" y2="420" />
+        <!-- Horizontal Projections to Y-axis -->
+        <line x1="150" y1="120" x2="550" y2="120" />
+        <line x1="150" y1="320" x2="550" y2="320" />
+    </g>
+
+    <!-- Axis Ticks -->
+    <g stroke="var(--text-primary)" stroke-width="2">
+        <line x1="250" y1="415" x2="250" y2="425" />
+        <line x1="550" y1="415" x2="550" y2="425" />
+        <line x1="145" y1="120" x2="155" y2="120" />
+        <line x1="145" y1="320" x2="155" y2="320" />
+    </g>
+
+    <!-- Axis Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-primary)">
+        <text x="250" y="445" text-anchor="middle" font-weight="bold">xmin</text>
+        <text x="550" y="445" text-anchor="middle" font-weight="bold">xmax</text>
+        <text x="135" y="125" text-anchor="end" font-weight="bold">ymax</text>
+        <text x="135" y="325" text-anchor="end" font-weight="bold">ymin</text>
+    </g>
+
+    <!-- Bounding Box -->
+    <rect x="250" y="120" width="300" height="200" fill="var(--brand-500)" fill-opacity="0.08" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="8,4" />
+
+    <!-- Triangle -->
+    <polygon points="350,120 250,250 550,320" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2.5" stroke-linejoin="round" />
+
+    <!-- Triangle Vertices (Dots) -->
+    <circle cx="350" cy="120" r="5" fill="var(--text-primary)" />
+    <circle cx="250" cy="250" r="5" fill="var(--text-primary)" />
+    <circle cx="550" cy="320" r="5" fill="var(--text-primary)" />
+
+    <!-- Bounding Box Corners (Highlighted Dots) -->
+    <circle cx="250" cy="320" r="7" fill="var(--brand-500)" />
+    <circle cx="550" cy="120" r="7" fill="var(--brand-500)" />
+
+    <!-- Corner Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <!-- Bottom Left Corner -->
+        <text x="235" y="340" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="end">(xmin, ymin)</text>
+        <text x="180" y="365" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الزاوية السفلى اليسرى</text>
+
+        <!-- Top Right Corner -->
+        <text x="565" y="115" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="start">(xmax, ymax)</text>
+        <text x="620" y="140" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الزاوية العليا اليمنى</text>
+    </g>
+
+    <!-- Triangle Label -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        <text x="380" y="225" font-size="16" font-weight="bold" fill="var(--text-primary)">Triangle</text>
+        <text x="380" y="248" font-size="14" fill="var(--text-secondary)">مثلث</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم دالة ceil() عند حساب حدود صندوق الإحاطة؟</template>
+      <template class="content-en">Why do we use the ceil() function when calculating the bounding box limits?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لضمان أننا نغطي مراكز البكسلات الصحيحة التي قد تقع داخل المثلث، حيث أن الإحداثيات قد تكون أرقاماً كسرية ونحن بحاجة إلى أرقام صحيحة تمثل شبكة البكسلات.</p></template>
+      <template class="content-en"><p>To ensure we cover the correct integer pixel centers that might fall inside the triangle, since vertex coordinates can be floating-point numbers and we need integer bounds for the pixel grid.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="barycentric-interpolation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الاستيفاء الباريسينتري</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Barycentric Interpolation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>طريقة لحساب قيم (مثل الألوان) لأي نقطة داخل المثلث بناءً على قيم رؤوسه الثلاثة ومساحات المثلثات الفرعية باستخدام <span class="smart-term" data-term-en="Barycentric Coordinates" data-ar="الإحداثيات الباريسينترية" data-en-def="A coordinate system in which the location of a point is specified by reference to a simplex (e.g., a triangle).">الإحداثيات الباريسينترية<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>A method to calculate values (like colors) for any point inside a triangle based on its three vertices and sub-triangle areas using <span class="smart-term" data-term-en="Barycentric Coordinates" data-ar="الإحداثيات الباريسينترية" data-en-def="A coordinate system in which the location of a point is specified by reference to a simplex (e.g., a triangle).">Barycentric coordinates<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>السؤال الأساسي: 'بمعلومية قيم الألوان عند رؤوس المثلث، ما هي قيمة اللون عند كل نقطة بداخله؟'</p><p>نستخدم <b>الإحداثيات الباريسينترية (Barycentric coordinates)</b>: $u, v, w$.</p><p>تُحسب هذه الإحداثيات بناءً على مساحة المثلثات الثلاثة الفرعية التي تشكلها النقطة $p$ مع الرؤوس $v_0, v_1, v_2$.</p><ul><li>$u = a_0 / A$</li><li>$v = a_1 / A$</li><li>$w = a_2 / A$</li></ul><p>حيث $A$ هي المساحة الكلية للمثلث، ويجب أن يكون المجموع $u + v + w = 1$.</p><p>للحصول على اللون عند النقطة $p$: $p_c = u \cdot v0_c + v \cdot v1_c + w \cdot v2_c$.</p></template>
+    <template class="content-en"><p>Core question: 'given color values at triangle vertices, what is the color value at each point inside?'</p><p>We use <b>Barycentric coordinates</b>: $u, v, w$.</p><p>These are computed based on the area of the three sub-triangles formed by point $p$ and vertices $v_0, v_1, v_2$.</p><ul><li>$u = a_0 / A$</li><li>$v = a_1 / A$</li><li>$w = a_2 / A$</li></ul><p>Where $A$ is the total area of the big triangle, and the sum must be $u + v + w = 1$.</p><p>To get the color at $p$: $p_c = u \cdot v0_c + v \cdot v1_c + w \cdot v2_c$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>كيف نحسب مساحة المثلث؟ إحدى الطرق هي استخدام خدعة هندسية: تحويل الرؤوس إلى <b>إحداثيات متجانسة (Homogeneous coordinates)</b> بإضافة 1؛ مثلاً $v_0 = (x_0, y_0, 1)$.</p><p>المساحة تتناسب مع حجم متوازي السطوح، والذي يُعطى بالضرب الثلاثي: $Volume = (v_0 \times v_1) \cdot v_2$.</p><p>الضرب الاتجاهي $v_0 \times v_1$ يعطي المعاملات $(a, b, c)$ لمعادلة الخط $v_0 \to v_1$. لذا، بالنسبة لنقطة $p(x,y)$ داخل المثلث، المساحة هي $(v_0 \times v_1) \cdot p = ax + by + c$. هذا يعني أنه يمكننا إعادة استخدام معادلة الخط من اختبار الداخل-الخارج!</p></template>
+    <template class="content-en"><p>How to compute triangle area? One way uses a geometric trick: turn vertices into <b>homogeneous coordinates</b> by adding a 1; e.g., $v_0 = (x_0, y_0, 1)$.</p><p>The area is proportional to the volume given by the triple product: $Volume = (v_0 \times v_1) \cdot v_2$.</p><p>The cross product $v_0 \times v_1$ gives the coefficients $(a, b, c)$ from the line equation $v_0 \to v_1$. So for a point $p(x,y)$ inside the triangle, the area is $(v_0 \times v_1) \cdot p = ax + by + c$. This means we can reuse the line equation from the inside test!</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة الاستيفاء اللوني باستخدام الإحداثيات الباريسينترية.</strong></template>
+      <template class="content-en"><strong>Color interpolation equation using barycentric coordinates.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$p_c = u \cdot v0_c + v \cdot v1_c + w \cdot v2_c \quad \text{where} \quad u+v+w=1$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A triangle with vertices v0 (red), v1 (green), v2 (blue). A point p is inside. Lines connect p to v0, v1, and v2, dividing the main triangle into three sub-triangles labeled a0, a1, a2. The colors smoothly interpolate across the triangle. Style: educational, dark background #0d1117, vibrant RGB colors, viewBox 0 0 500 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <!-- Grid Pattern -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="0.5" opacity="0.3"/>
+        </pattern>
+
+        <!-- Radial Gradients for Barycentric Color Interpolation -->
+        <!-- Red Gradient from v0 (Top Center of bounding box) -->
+        <radialGradient id="gradR" cx="50%" cy="0%" r="100%">
+            <stop offset="0%" stop-color="#ff4444" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#ff4444" stop-opacity="0"/>
+        </radialGradient>
+        
+        <!-- Green Gradient from v1 (Bottom Left of bounding box) -->
+        <radialGradient id="gradG" cx="0%" cy="100%" r="100%">
+            <stop offset="0%" stop-color="#44ff44" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#44ff44" stop-opacity="0"/>
+        </radialGradient>
+        
+        <!-- Blue Gradient from v2 (Bottom Right of bounding box) -->
+        <radialGradient id="gradB" cx="100%" cy="100%" r="100%">
+            <stop offset="0%" stop-color="#4444ff" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#4444ff" stop-opacity="0"/>
+        </radialGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+    <rect width="100%" height="100%" fill="url(#grid)"/>
+
+    <!-- Main Triangle Group -->
+    <g id="main-triangle" transform="translate(30, 0)">
+        
+        <!-- Interpolated Color Triangle (Isolated for blend modes) -->
+        <g style="isolation: isolate;">
+            <!-- Base black to allow additive screen blending -->
+            <polygon points="260,100 60,400 460,400" fill="#000000" stroke="var(--border-color)" stroke-width="2" stroke-linejoin="round"/>
+            
+            <!-- Additive RGB Layers -->
+            <polygon points="260,100 60,400 460,400" fill="url(#gradR)" style="mix-blend-mode: screen;"/>
+            <polygon points="260,100 60,400 460,400" fill="url(#gradG)" style="mix-blend-mode: screen;"/>
+            <polygon points="260,100 60,400 460,400" fill="url(#gradB)" style="mix-blend-mode: screen;"/>
+        </g>
+
+        <!-- Inner Sub-triangle Borders (Dashed) -->
+        <line x1="280" y1="280" x2="260" y2="100" stroke="var(--bg-surface)" stroke-width="2.5" stroke-dasharray="6,4" opacity="0.9"/>
+        <line x1="280" y1="280" x2="60" y2="400" stroke="var(--bg-surface)" stroke-width="2.5" stroke-dasharray="6,4" opacity="0.9"/>
+        <line x1="280" y1="280" x2="460" y2="400" stroke="var(--bg-surface)" stroke-width="2.5" stroke-dasharray="6,4" opacity="0.9"/>
+
+        <!-- Area Labels (A0, A1, A2) -->
+        <!-- A0 (Opposite v0/Red) -->
+        <g transform="translate(266, 360)">
+            <circle cx="0" cy="0" r="18" fill="var(--bg-surface)" opacity="0.9"/>
+            <text x="0" y="5" fill="#ff4444" font-size="16" font-weight="bold" text-anchor="middle">A<tspan dy="4" font-size="11">0</tspan></text>
+        </g>
+        
+        <!-- A1 (Opposite v1/Green) -->
+        <g transform="translate(333, 260)">
+            <circle cx="0" cy="0" r="18" fill="var(--bg-surface)" opacity="0.9"/>
+            <text x="0" y="5" fill="#44ff44" font-size="16" font-weight="bold" text-anchor="middle">A<tspan dy="4" font-size="11">1</tspan></text>
+        </g>
+        
+        <!-- A2 (Opposite v2/Blue) -->
+        <g transform="translate(200, 260)">
+            <circle cx="0" cy="0" r="18" fill="var(--bg-surface)" opacity="0.9"/>
+            <text x="0" y="5" fill="#4444ff" font-size="16" font-weight="bold" text-anchor="middle">A<tspan dy="4" font-size="11">2</tspan></text>
+        </g>
+
+        <!-- Vertices -->
+        <circle cx="260" cy="100" r="7" fill="#ff4444" stroke="var(--bg-surface)" stroke-width="2"/>
+        <circle cx="60" cy="400" r="7" fill="#44ff44" stroke="var(--bg-surface)" stroke-width="2"/>
+        <circle cx="460" cy="400" r="7" fill="#4444ff" stroke="var(--bg-surface)" stroke-width="2"/>
+
+        <!-- Point p -->
+        <circle cx="280" cy="280" r="6" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="2"/>
+
+        <!-- Vertex Labels -->
+        <text x="260" y="80" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">v<tspan dy="4" font-size="12">0</tspan><tspan dy="-4" fill="var(--text-secondary)"> (Red)</tspan></text>
+        <text x="50" y="425" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">v<tspan dy="4" font-size="12">1</tspan><tspan dy="-4" fill="var(--text-secondary)"> (Green)</tspan></text>
+        <text x="470" y="425" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">v<tspan dy="4" font-size="12">2</tspan><tspan dy="-4" fill="var(--text-secondary)"> (Blue)</tspan></text>
+
+        <!-- Point p Label -->
+        <g transform="translate(295, 275)">
+            <rect x="-8" y="-16" width="24" height="24" rx="4" fill="var(--bg-surface)" opacity="0.7"/>
+            <text x="4" y="2" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">p</text>
+        </g>
+    </g>
+
+    <!-- Information Panel (Right Side) -->
+    <g id="info-panel" transform="translate(530, 50)">
+        <rect x="0" y="0" width="240" height="400" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+
+        <!-- Title -->
+        <text x="120" y="35" fill="var(--text-primary)" font-size="18" font-weight="bold" text-anchor="middle">Barycentric Coordinates</text>
+        <text x="120" y="60" fill="var(--text-secondary)" font-size="15" font-weight="bold" text-anchor="middle">الإحداثيات المركزية</text>
+
+        <line x1="20" y1="75" x2="220" y2="75" stroke="var(--border-color)" stroke-width="1"/>
+
+        <!-- Weights Section -->
+        <text x="20" y="105" fill="var(--text-primary)" font-size="15" font-weight="bold">Weights (الأوزان):</text>
+
+        <g transform="translate(20, 135)" font-family="monospace" font-size="14" fill="var(--text-primary)">
+            <text x="0" y="0">u = <tspan fill="#ff4444">A</tspan><tspan fill="#ff4444" dy="4" font-size="10">0</tspan><tspan dy="-4"> / A</tspan><tspan dy="4" font-size="10">total</tspan></text>
+            <text x="0" y="30">v = <tspan fill="#44ff44">A</tspan><tspan fill="#44ff44" dy="4" font-size="10">1</tspan><tspan dy="-4"> / A</tspan><tspan dy="4" font-size="10">total</tspan></text>
+            <text x="0" y="60">w = <tspan fill="#4444ff">A</tspan><tspan fill="#4444ff" dy="4" font-size="10">2</tspan><tspan dy="-4"> / A</tspan><tspan dy="4" font-size="10">total</tspan></text>
+        </g>
+
+        <line x1="20" y1="215" x2="220" y2="215" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- Position Section -->
+        <text x="20" y="245" fill="var(--text-primary)" font-size="15" font-weight="bold">Position (الموقع):</text>
+        <text x="20" y="275" fill="var(--text-primary)" font-size="14" font-family="monospace">p = u·v<tspan dy="4" font-size="10">0</tspan><tspan dy="-4"> + v·v</tspan><tspan dy="4" font-size="10">1</tspan><tspan dy="-4"> + w·v</tspan><tspan dy="4" font-size="10">2</tspan></text>
+
+        <line x1="20" y1="300" x2="220" y2="300" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- Color Section -->
+        <text x="20" y="330" fill="var(--text-primary)" font-size="15" font-weight="bold">Color (اللون):</text>
+        <text x="20" y="360" fill="var(--text-primary)" font-size="14" font-family="monospace">C(p) = u·<tspan fill="#ff4444">R</tspan> + v·<tspan fill="#44ff44">G</tspan> + w·<tspan fill="#4444ff">B</tspan></text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت الإحداثيات الباريسينترية لنقطة هي u=0.5, v=0.5, w=0، أين تقع هذه النقطة؟</template>
+      <template class="content-en">If the barycentric coordinates of a point are u=0.5, v=0.5, w=0, where is this point located?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تقع النقطة بالضبط في منتصف الحافة التي تصل بين الرأسين v0 و v1.</p></template>
+      <template class="content-en"><p>The point is located exactly at the midpoint of the edge connecting vertices v0 and v1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="visibility-z-buffer" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> الرؤية وخوارزمية مخزن العمق (Z-buffer)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Visibility and the Z-buffer Algorithm</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحديد الأجسام التي تظهر في المقدمة باستخدام <span class="smart-term" data-term-en="Z-buffer" data-ar="مخزن العمق" data-en-def="A 2D array that stores the depth (Z-coordinate) of the closest rendered polygon for each pixel.">مخزن العمق<span class="smart-term-tooltip"></span></span> يخزن قيمة العمق (Z) لكل بكسل.</p></template>
+    <template class="content-en"><p>Determining which objects are in front using a <span class="smart-term" data-term-en="Z-buffer" data-ar="مخزن العمق" data-en-def="A 2D array that stores the depth (Z-coordinate) of the closest rendered polygon for each pixel.">Z-buffer<span class="smart-term-tooltip"></span></span> that stores the depth (Z) value for each pixel.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>كيف نحدد ما هو في المقدمة عند رسترة عدة مثلثات؟</p><p><b>خوارزمية الرسام (Painter's Algorithm):</b> تُعرف أيضاً بفرز العمق. تقوم بفرز المثلثات من الأبعد إلى الأقرب (باستخدام قيمة z في فضاء الكاميرا)، ثم ترسمها بهذا الترتيب. تعمل جيداً في الحالات البسيطة لكنها <b>تفشل</b> عندما تتداخل المثلثات أو تتقاطع.</p><p><b>خوارزمية مخزن العمق (Z-buffer):</b> فكرة أفضل بكثير. تخزن قيمة z لكل جزء (fragment).</p><ul><li>تهيئة مخزن الإطارات بقيمة $z = -\infty$ لجميع البكسلات.</li><li>عند إنشاء جزء جديد، نتحقق من قيمة z الحالية في المخزن.</li><li>نكتب اللون وقيمة z الجديدة فقط إذا كانت $z < \text{current } z$ (يُعرف هذا باختبار العمق).</li></ul></template>
+    <template class="content-en"><p>How to determine what is in front when rasterizing multiple triangles?</p><p><b>Painter's Algorithm:</b> Also known as depth sort. Sort triangles from farthest to nearest (using camera space z), then rasterize in that order. Works well in simple scenarios but <b>fails</b> when triangles overlap or interpenetrate.</p><p><b>Z-buffer Algorithm:</b> A much better approach. Store the z value for each fragment.</p><ul><li>Initialize framebuffer with $z = -\infty$ for all pixels.</li><li>When creating a fragment, check the current z value in the framebuffer.</li><li>Only write color and z if $z < \text{current } z$ (known as the depth test).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>خوارزمية مخزن العمق بسيطة وسريعة جداً، ويمكن تنفيذها بسهولة في العتاد (Hardware). العيب الوحيد هو أنها تتطلب ذاكرة إضافية لمخزن الإطارات (Framebuffer memory) لتخزين قيم العمق.</p><p>ملاحظة: في العديد من التطبيقات العملية (مثل OpenGL)، يتم تهيئة مخزن العمق بقيمة $1.0$ (أو $+\infty$) ويتم التحديث إذا كانت القيمة الجديدة أقل، ولكن الشريحة هنا تذكر التهيئة بـ $-\infty$ بناءً على نظام الإحداثيات المستخدم.</p></template>
+    <template class="content-en"><p>The Z-buffer algorithm is simple, fast, and easily implemented in hardware. The only drawback is that it requires more framebuffer memory to store the depth values.</p><p>Note: In many practical implementations (like OpenGL), the depth buffer is initialized to $1.0$ (or $+\infty$) and updated if the new value is smaller, but the slide specifies initializing to $-\infty$ depending on the coordinate system convention used.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Two diagrams comparing Painter's algorithm and Z-buffer. Top: Painter's algorithm showing a green triangle and a blue triangle intersecting, with a red cross indicating failure. Bottom: Z-buffer showing a pixel grid updating depth values as a green triangle is drawn over a blue one. Style: educational, dark background #0d1117, accent colors #10b981 and #3b82f6, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg id="dgm-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 750" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrow Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500, #8b5cf6)" />
+        </marker>
+        <!-- Dot Marker -->
+        <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+            <circle cx="5" cy="5" r="5" fill="var(--text-muted, #9ca3af)" />
+        </marker>
+    </defs>
+
+    <style>
+        #dgm-1 .title { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 22px; font-weight: bold; fill: var(--text-primary, #f3f4f6); text-anchor: middle; }
+        #dgm-1 .subtitle { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 16px; fill: var(--text-secondary, #d1d5db); text-anchor: middle; }
+        #dgm-1 .label { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 15px; font-weight: 600; fill: var(--text-primary, #f3f4f6); text-anchor: middle; }
+        #dgm-1 .small-label { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 13px; fill: var(--text-muted, #9ca3af); }
+        #dgm-1 .grid-text { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; }
+        #dgm-1 .grid-text-infinity { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 18px; fill: var(--text-muted, #9ca3af); text-anchor: middle; dominant-baseline: middle; }
+        #dgm-1 .grid-line { stroke: var(--border-color, #4b5563); stroke-width: 1; }
+        #dgm-1 .highlight-box { stroke: var(--error-500, #ef4444); stroke-width: 3; fill: none; }
+    </style>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface, #0d1117)" />
+
+    <!-- ========================================== -->
+    <!-- TOP SECTION: PAINTER'S ALGORITHM FAILURE   -->
+    <!-- ========================================== -->
+    <g transform="translate(0, 0)">
+        <text x="400" y="40" class="title">Painter's Algorithm / خوارزمية الرسام</text>
+        <text x="400" y="65" class="subtitle">Fails with mutually overlapping polygons / تفشل مع المضلعات المتداخلة</text>
+
+        <!-- Triangles -->
+        <g transform="translate(0, 10)">
+            <!-- Main Blue Triangle -->
+            <polygon points="250,140 550,140 400,300" fill="var(--info-500, #3b82f6)" />
+            
+            <!-- Green Triangle (Drawn over Blue) -->
+            <polygon points="250,240 550,240 400,80" fill="var(--success-500, #10b981)" />
+            
+            <!-- Extra Blue Triangle Piece (Drawn over Green to create mutual overlap) -->
+            <polygon points="456.25,140 550,140 503.125,190" fill="var(--info-500, #3b82f6)" />
+
+            <!-- Red Cross indicating failure -->
+            <circle cx="400" cy="190" r="22" fill="var(--bg-surface, #0d1117)" opacity="0.8" />
+            <path d="M 388 178 L 412 202 M 412 178 L 388 202" stroke="var(--error-500, #ef4444)" stroke-width="6" stroke-linecap="round" />
+
+            <!-- Labels pointing to overlaps -->
+            <!-- Left side: Green over Blue -->
+            <line x1="240" y1="190" x2="285" y2="190" stroke="var(--text-muted, #9ca3af)" stroke-width="2" marker-end="url(#dot)" />
+            <text x="230" y="185" class="small-label" text-anchor="end">Green over Blue</text>
+            <text x="230" y="205" class="small-label" text-anchor="end">الأخضر فوق الأزرق</text>
+
+            <!-- Right side: Blue over Green -->
+            <line x1="560" y1="190" x2="515" y2="190" stroke="var(--text-muted, #9ca3af)" stroke-width="2" marker-end="url(#dot)" />
+            <text x="570" y="185" class="small-label" text-anchor="start">Blue over Green</text>
+            <text x="570" y="205" class="small-label" text-anchor="start">الأزرق فوق الأخضر</text>
+
+            <!-- Center Label -->
+            <line x1="400" y1="215" x2="400" y2="235" stroke="var(--text-muted, #9ca3af)" stroke-width="2" />
+            <text x="400" y="255" class="label">Unresolvable Cycle</text>
+            <text x="400" y="275" class="label">حلقة غير قابلة للحل</text>
+        </g>
+    </g>
+
+    <!-- Divider -->
+    <line x1="100" y1="340" x2="700" y2="340" stroke="var(--border-color, #4b5563)" stroke-dasharray="6,6" stroke-width="2" opacity="0.5" />
+
+    <!-- ========================================== -->
+    <!-- BOTTOM SECTION: Z-BUFFER ALGORITHM         -->
+    <!-- ========================================== -->
+    <g transform="translate(0, 370)">
+        <text x="400" y="20" class="title">Z-Buffer Algorithm / خوارزمية Z-Buffer</text>
+        <text x="400" y="45" class="subtitle">Per-pixel depth testing resolves overlaps / اختبار العمق لكل بكسل يحل التداخل</text>
+
+        <!-- Grid 1: Draw Blue -->
+        <text x="250" y="90" class="label">1. Draw Blue (Z=0.8) / رسم الأزرق</text>
+        <g transform="translate(150, 110)">
+            <!-- Base Background -->
+            <rect x="0" y="0" width="200" height="200" fill="var(--bg-elevated, #1f2937)" rx="4" />
+            
+            <!-- Colored Rects (Blue) -->
+            <rect x="120" y="40" width="40" height="40" fill="var(--info-500, #3b82f6)" opacity="0.25" />
+            <rect x="80" y="80" width="80" height="40" fill="var(--info-500, #3b82f6)" opacity="0.25" />
+            <rect x="40" y="120" width="120" height="40" fill="var(--info-500, #3b82f6)" opacity="0.25" />
+            <rect x="0" y="160" width="160" height="40" fill="var(--info-500, #3b82f6)" opacity="0.25" />
+            
+            <!-- Grid Lines -->
+            <path d="M0,40 L200,40 M0,80 L200,80 M0,120 L200,120 M0,160 L200,160 M40,0 L40,200 M80,0 L80,200 M120,0 L120,200 M160,0 L160,200" class="grid-line" />
+            
+            <!-- Text Values -->
+            <g fill="var(--info-500, #3b82f6)" class="grid-text">
+                <text x="140" y="60">0.8</text>
+                <text x="100" y="100">0.8</text> <text x="140" y="100">0.8</text>
+                <text x="60" y="140">0.8</text> <text x="100" y="140">0.8</text> <text x="140" y="140">0.8</text>
+                <text x="20" y="180">0.8</text> <text x="60" y="180">0.8</text> <text x="100" y="180">0.8</text> <text x="140" y="180">0.8</text>
+            </g>
+            <g class="grid-text-infinity">
+                <text x="20" y="20">∞</text> <text x="60" y="20">∞</text> <text x="100" y="20">∞</text> <text x="140" y="20">∞</text> <text x="180" y="20">∞</text>
+                <text x="20" y="60">∞</text> <text x="60" y="60">∞</text> <text x="100" y="60">∞</text> <text x="180" y="60">∞</text>
+                <text x="20" y="100">∞</text> <text x="60" y="100">∞</text> <text x="180" y="100">∞</text>
+                <text x="20" y="140">∞</text> <text x="180" y="140">∞</text>
+                <text x="180" y="180">∞</text>
+            </g>
+        </g>
+
+        <!-- Arrow between Grids -->
+        <line x1="365" y1="210" x2="435" y2="210" stroke="var(--brand-500, #8b5cf6)" stroke-width="3" marker-end="url(#arrow)" />
+        <text x="400" y="185" class="small-label" text-anchor="middle">Depth Test</text>
+        <text x="400" y="200" class="small-label" text-anchor="middle">اختبار العمق</text>
+        <text x="400" y="230" class="small-label" text-anchor="middle" fill="var(--brand-500, #8b5cf6)" font-weight="bold">Z_new &lt; Z_old</text>
+
+        <!-- Grid 2: Draw Green -->
+        <text x="550" y="90" class="label">2. Draw Green (Z=0.5) / رسم الأخضر</text>
+        <g transform="translate(450, 110)">
+            <!-- Base Background -->
+            <rect x="0" y="0" width="200" height="200" fill="var(--bg-elevated, #1f2937)" rx="4" />
+            
+            <!-- Colored Rects (Blue - Remaining) -->
+            <rect x="40" y="120" width="80" height="40" fill="var(--info-500, #3b82f6)" opacity="0.25" />
+            <rect x="0" y="160" width="160" height="40" fill="var(--info-500, #3b82f6)" opacity="0.25" />
+            
+            <!-- Colored Rects (Green - New) -->
+            <rect x="0" y="0" width="160" height="40" fill="var(--success-500, #10b981)" opacity="0.25" />
+            <rect x="40" y="40" width="120" height="40" fill="var(--success-500, #10b981)" opacity="0.25" />
+            <rect x="80" y="80" width="80" height="40" fill="var(--success-500, #10b981)" opacity="0.25" />
+            <rect x="120" y="120" width="40" height="40" fill="var(--success-500, #10b981)" opacity="0.25" />
+            
+            <!-- Grid Lines -->
+            <path d="M0,40 L200,40 M0,80 L200,80 M0,120 L200,120 M0,160 L200,160 M40,0 L40,200 M80,0 L80,200 M120,0 L120,200 M160,0 L160,200" class="grid-line" />
+            
+            <!-- Highlight Overwritten Cells (Red Border) -->
+            <rect x="120" y="40" width="40" height="40" class="highlight-box" />
+            <rect x="80" y="80" width="40" height="40" class="highlight-box" />
+            <rect x="120" y="80" width="40" height="40" class="highlight-box" />
+            <rect x="120" y="120" width="40" height="40" class="highlight-box" />
+
+            <!-- Text Values -->
+            <g fill="var(--success-500, #10b981)" class="grid-text">
+                <text x="20" y="20">0.5</text> <text x="60" y="20">0.5</text> <text x="100" y="20">0.5</text> <text x="140" y="20">0.5</text>
+                <text x="60" y="60">0.5</text> <text x="100" y="60">0.5</text> <text x="140" y="60">0.5</text>
+                <text x="100" y="100">0.5</text> <text x="140" y="100">0.5</text>
+                <text x="140" y="140">0.5</text>
+            </g>
+            <g fill="var(--info-500, #3b82f6)" class="grid-text">
+                <text x="60" y="140">0.8</text> <text x="100" y="140">0.8</text>
+                <text x="20" y="180">0.8</text> <text x="60" y="180">0.8</text> <text x="100" y="180">0.8</text> <text x="140" y="180">0.8</text>
+            </g>
+            <g class="grid-text-infinity">
+                <text x="180" y="20">∞</text>
+                <text x="20" y="60">∞</text> <text x="180" y="60">∞</text>
+                <text x="20" y="100">∞</text> <text x="60" y="100">∞</text> <text x="180" y="100">∞</text>
+                <text x="20" y="140">∞</text> <text x="180" y="140">∞</text>
+                <text x="180" y="180">∞</text>
+            </g>
+        </g>
+
+        <!-- Legend for Grid 2 -->
+        <g transform="translate(450, 330)">
+            <rect x="0" y="0" width="16" height="16" class="highlight-box" />
+            <text x="25" y="13" class="small-label" text-anchor="start">Z_new (0.5) &lt; Z_old (0.8) → Overwrite / استبدال</text>
+        </g>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Painter's Algorithm</th><th>Z-buffer Algorithm</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعامل مع التداخل</template>
+          <template class="content-en">Handling Overlaps/Intersections</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تفشل مع المثلثات المتقاطعة</template>
+          <template class="content-en">Fails with interpenetrating triangles</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تتعامل معها بشكل مثالي على مستوى البكسل</template>
+          <template class="content-en">Handles perfectly at the pixel level</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استهلاك الذاكرة</template>
+          <template class="content-en">Memory Consumption</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا تتطلب ذاكرة إضافية للعمق</template>
+          <template class="content-en">No extra depth memory required</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تتطلب ذاكرة إضافية لمخزن الإطارات</template>
+          <template class="content-en">Needs more framebuffer memory</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تفشل خوارزمية الرسام مع المثلثات المتقاطعة؟</template>
+      <template class="content-en">Why does the Painter's algorithm fail with intersecting triangles?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه لا يمكن فرز المثلثات المتقاطعة ترتيباً خطياً بسيطاً (من الأبعد للأقرب)؛ جزء من المثلث الأول قد يكون أمام الثاني، بينما جزء آخر منه يقع خلفه.</p></template>
+      <template class="content-en"><p>Because intersecting triangles cannot be strictly sorted from back to front; part of triangle A may be in front of B, while another part of A is behind B.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في قلب رسومات الحاسب: خط أنابيب الرسترة! تخيلوا أن لدينا عالماً ثلاثي الأبعاد مليئاً بالمجسمات، ومهمتنا هي 'تسطيح' هذا العالم ليظهر على شاشاتكم ثنائية الأبعاد. نبدأ بتحويل الخطوط باستخدام خوارزمية DDA، لكن سرعان ما ندرك أن المثلثات هي أبطالنا الحقيقيون لأنها مسطحة ومحدبة دائماً. لرسم مثلث، نستخدم 'اختبار الداخل-الخارج' عبر ثلاثة أنصاف مستويات، ولتجنب رسم البكسلات المشتركة مرتين، نطبق 'قاعدة أعلى-يسار'. ولأننا نهتم بالسرعة، نستخدم 'صندوق الإحاطة' لتقليل الحسابات. بمجرد تحديد البكسلات، نستخدم 'الاستيفاء الباريسينتري' لتلوينها بسلاسة. وأخيراً، لكي لا يظهر جسم بعيد فوق جسم قريب، نستخدم 'مخزن العمق' (Z-buffer) الذي يتفوق على 'خوارزمية الرسام' في التعامل مع التداخلات. ركزوا على هذه المفاهيم، فهي الأساس الذي تُبنى عليه كل ألعاب الفيديو الحديثة!</template>
+    <template class="content-en">Welcome to the heart of computer graphics: the Rasterization Pipeline! Imagine we have a 3D world full of objects, and our job is to 'flatten' it onto your 2D screens. We start by rasterizing lines using the DDA algorithm, but soon realize triangles are our true heroes because they are always flat and convex. To draw a triangle, we use the 'inside-outside test' with three half-planes, and to avoid drawing shared pixels twice, we apply the 'top-left rule'. Because speed is key, we use a 'bounding box' to limit calculations. Once pixels are found, we use 'barycentric interpolation' to color them smoothly. Finally, to ensure distant objects don't render on top of near ones, we use the 'Z-buffer', which beats the 'Painter's algorithm' by handling intersections perfectly. Master these concepts; they are the foundation of all modern video games!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين الرسترة وتتبع الأشعة؟</template>
+          <template class="content-en">What is the fundamental difference between rasterization and ray tracing?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين الرسترة وتتبع الأشعة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الرسترة تأخذ الأشكال الهندسية وتسقطها على الشاشة (من المجسم إلى البكسل)، بينما تتبع الأشعة يطلق أشعة من الشاشة لاختبار تقاطعها مع الأشكال (من البكسل إلى المجسم).</template>
+          <template class="content-en">Rasterization takes geometry and projects it onto the screen (object to pixel), whereas ray tracing shoots rays from the screen to intersect with geometry (pixel to object).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نعتبر خوارزمية DDA أفضل من الفحص الساذج لكل بكسل؟</template>
+          <template class="content-en">Why is the DDA algorithm considered better than naive per-pixel checking?</template>
+          <span class="content-target">لماذا نعتبر خوارزمية DDA أفضل من الفحص الساذج لكل بكسل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الفحص الساذج يختبر كل بكسل في الشاشة بتعقيد O(n^2)، بينما DDA تتتبع مسار الخط فقط بتعقيد O(n).</template>
+          <template class="content-en">Because naive checking tests every pixel on the screen with O(n^2) complexity, while DDA only traces the path of the line with O(n) complexity.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يتم تحويل جميع المضلعات إلى مثلثات قبل الرسترة؟</template>
+          <template class="content-en">Why are all polygons converted into triangles before rasterization?</template>
+          <span class="content-target">لماذا يتم تحويل جميع المضلعات إلى مثلثات قبل الرسترة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن المثلثات مضمونة أن تكون محدبة ومسطحة في الفضاء ثلاثي الأبعاد، مما يبسط خوارزميات الرسترة والاستيفاء بشكل كبير في العتاد.</template>
+          <template class="content-en">Because triangles are guaranteed to be convex and flat in 3D space, which vastly simplifies rasterization and interpolation algorithms in hardware.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يعمل اختبار الداخل-الخارج للمثلثات؟</template>
+          <template class="content-en">How does the inside-outside test for triangles work?</template>
+          <span class="content-target">كيف يعمل اختبار الداخل-الخارج للمثلثات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعتبر المثلث تقاطعاً لثلاثة أنصاف مستويات. النقطة تكون داخل المثلث إذا كانت تقع على 'يسار' الخطوط الثلاثة الموجهة التي تشكل حوافه.</template>
+          <template class="content-en">A triangle is treated as the intersection of three half-planes. A point is inside if it lies to the 'left' of all three directed lines forming its edges.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المشكلة التي تحدث عند الحواف المشتركة بين مثلثين، وكيف نحلها؟</template>
+          <template class="content-en">What problem occurs at shared edges between two triangles, and how do we solve it?</template>
+          <span class="content-target">ما هي المشكلة التي تحدث عند الحواف المشتركة بين مثلثين، وكيف نحلها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المشكلة هي أن البكسل قد يُرسم مرتين. نحلها باستخدام 'قاعدة أعلى-يسار' التي تعطي ملكية البكسل لمثلث واحد فقط بناءً على اتجاه الحافة.</template>
+          <template class="content-en">The problem is that a pixel might be drawn twice. We solve it using the 'top-left rule', which assigns ownership of the pixel to only one triangle based on edge orientation.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يساهم صندوق الإحاطة (Bounding box) في تسريع الرسترة؟</template>
+          <template class="content-en">How does a bounding box contribute to speeding up rasterization?</template>
+          <span class="content-target">كيف يساهم صندوق الإحاطة (Bounding box) في تسريع الرسترة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بدلاً من إجراء اختبار الداخل-الخارج المكلف لكل بكسل في الشاشة، نقوم بإجرائه فقط للبكسلات التي تقع داخل المستطيل الصغير الذي يحيط بالمثلث.</template>
+          <template class="content-en">Instead of performing the expensive inside-outside test for every pixel on the screen, we only perform it for pixels within the small rectangle enclosing the triangle.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الإحداثيات الباريسينترية وفيما تستخدم؟</template>
+          <template class="content-en">What are barycentric coordinates and what are they used for?</template>
+          <span class="content-target">ما هي الإحداثيات الباريسينترية وفيما تستخدم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي أوزان (u, v, w) مجموعها 1، تمثل موقع النقطة داخل المثلث. تُستخدم لاستيفاء الخصائص مثل الألوان من رؤوس المثلث إلى أي نقطة بداخله.</template>
+          <template class="content-en">They are weights (u, v, w) that sum to 1, representing a point's location inside a triangle. They are used to interpolate properties like colors from the vertices to any point inside.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا حساب مساحة المثلثات الفرعية بكفاءة للإحداثيات الباريسينترية؟</template>
+          <template class="content-en">How can we efficiently calculate sub-triangle areas for barycentric coordinates?</template>
+          <span class="content-target">كيف يمكننا حساب مساحة المثلثات الفرعية بكفاءة للإحداثيات الباريسينترية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام الإحداثيات المتجانسة والضرب الثلاثي، والذي يتبين أنه نفس معادلة الخط (ax + by + c) المستخدمة مسبقاً في اختبار الداخل-الخارج.</template>
+          <template class="content-en">By using homogeneous coordinates and the triple product, which turns out to be the exact same line equation (ax + by + c) already used in the inside-outside test.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا نكتفي بخوارزمية الرسام لتحديد الرؤية؟</template>
+          <template class="content-en">Why don't we just rely on the Painter's algorithm for visibility?</template>
+          <span class="content-target">لماذا لا نكتفي بخوارزمية الرسام لتحديد الرؤية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها تفشل عندما تتقاطع المثلثات أو تتداخل بشكل دائري، حيث لا يمكن فرزها ترتيباً خطياً صحيحاً من الخلف إلى الأمام.</template>
+          <template class="content-en">Because it fails when triangles intersect or overlap cyclically, as they cannot be strictly sorted from back to front.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل مخزن العمق (Z-buffer) مشكلة الرؤية؟</template>
+          <template class="content-en">How does the Z-buffer solve the visibility problem?</template>
+          <span class="content-target">كيف يحل مخزن العمق (Z-buffer) مشكلة الرؤية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يخزن قيمة العمق لكل بكسل. عند رسم بكسل جديد، يقارن عمقه بالعمق المخزن؛ إذا كان أقرب، يتم رسمه وتحديث المخزن، وإلا يتم تجاهله.</template>
+          <template class="content-en">It stores a depth value for each pixel. When drawing a new pixel, it compares its depth to the stored one; if it's closer, it draws it and updates the buffer, otherwise it discards it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي المراحل الرئيسية لخط أنابيب الرسترة؟",
+      "en": "What are the main stages of the rasterization pipeline?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الفضاء العالمي -> فضاء الكاميرا -> فضاء القص -> فضاء الشاشة -> مخزن الإطارات.",
+        "en": "World space -> Camera space -> Clip space -> Screen space -> Framebuffer."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي قاعدة الماس (Diamond rule) في رسترة الخطوط؟",
+      "en": "What is the Diamond rule in line rasterization?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتم تفعيل البكسل إذا كان الخط يمر عبر منطقة 'الماس' الخاصة به.",
+        "en": "A pixel is turned on if the line passes through its 'diamond' region."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لخوارزمية DDA مقارنة بالفحص الساذج؟",
+      "en": "What is the time complexity of the DDA algorithm compared to naive checking?"
+    },
+    "back": {
+      "definition": {
+        "ar": "DDA تستغرق O(n) بينما الفحص الساذج لكل بكسل يستغرق O(n^2).",
+        "en": "DDA takes O(n) while naive checking of all pixels takes O(n^2)."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "لماذا نفضل استخدام المثلثات في الرسترة؟",
+      "en": "Why do we prefer using triangles in rasterization?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأنها محدبة دائماً، مسطحة في الفضاء ثلاثي الأبعاد، وتسمح بخوارزميات أبسط وأسرع.",
+        "en": "Because they are always convex, flat in 3D, and allow for simpler and faster algorithms."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "كيف يعمل اختبار الداخل-الخارج للمثلث؟",
+      "en": "How does the inside-outside test for a triangle work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتحقق مما إذا كانت النقطة تقع داخل أنصاف المستويات الثلاثة (على يسار الخطوط الثلاثة الموجهة).",
+        "en": "It checks if a point is inside all 3 half-planes (on the left of the 3 directed lines)."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو الغرض من قاعدة أعلى-يسار (Top-left rule)؟",
+      "en": "What is the purpose of the top-left rule?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمنع رسم البكسل مرتين عندما يقع بالضبط على حافة مشتركة بين مثلثين.",
+        "en": "It prevents drawing a pixel twice when it lies exactly on a shared edge between two triangles."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف نزيد من كفاءة رسترة المثلثات؟",
+      "en": "How do we make triangle rasterization more efficient?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بحساب صندوق الإحاطة (Bounding box) وإجراء اختبار الداخل-الخارج فقط للبكسلات التي بداخله.",
+        "en": "By computing a bounding box and doing the inside-outside test only for pixels within it."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي الإحداثيات الباريسينترية (Barycentric coordinates)؟",
+      "en": "What are Barycentric coordinates?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام إحداثيات (u, v, w) يستخدم لاستيفاء القيم داخل المثلث بناءً على مساحات المثلثات الفرعية.",
+        "en": "A coordinate system (u, v, w) used to interpolate values inside a triangle based on sub-triangle areas."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو الشرط الأساسي للإحداثيات الباريسينترية؟",
+      "en": "What is the fundamental condition for Barycentric coordinates?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجب أن يكون مجموعها يساوي 1 (u + v + w = 1).",
+        "en": "Their sum must equal 1 (u + v + w = 1)."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "كيف يتم حساب اللون باستخدام الإحداثيات الباريسينترية؟",
+      "en": "How is color calculated using Barycentric coordinates?"
+    },
+    "back": {
+      "definition": {
+        "ar": "pc = u*v0c + v*v1c + w*v2c",
+        "en": "pc = u*v0c + v*v1c + w*v2c"
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي خدعة الإحداثيات المتجانسة لحساب مساحة المثلث؟",
+      "en": "What is the homogeneous coordinates trick to compute triangle area?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إضافة 1 للرؤوس واستخدام الضرب الثلاثي (v0 x v1) · v2 لحساب الحجم الذي يتناسب مع المساحة.",
+        "en": "Adding a 1 to vertices and using the triple product (v0 x v1) · v2 to compute volume proportional to area."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي خوارزمية الرسام (Painter's algorithm)؟",
+      "en": "What is the Painter's algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خوارزمية تفرز المثلثات من الأبعد إلى الأقرب وترسمها بهذا الترتيب.",
+        "en": "An algorithm that sorts triangles from farthest to nearest and rasterizes them in that order."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "متى تفشل خوارزمية الرسام؟",
+      "en": "When does the Painter's algorithm fail?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تكون المثلثات متداخلة (overlapping) أو متقاطعة (interpenetrating).",
+        "en": "When triangles are overlapping or interpenetrating."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي الفكرة الأساسية لخوارزمية مخزن العمق (Z-buffer)؟",
+      "en": "What is the core idea of the Z-buffer algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تخزين قيمة العمق (z) لكل جزء، وكتابة اللون فقط إذا كان الجزء الجديد أقرب من الجزء المخزن حالياً.",
+        "en": "Store the z value for each fragment, and only write color if the new fragment is closer than the currently stored one."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو العيب الرئيسي لخوارزمية مخزن العمق؟",
+      "en": "What is the main drawback of the Z-buffer algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تتطلب ذاكرة إضافية لمخزن الإطارات لتخزين قيم العمق.",
+        "en": "It requires more framebuffer memory to store the depth values."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الترتيب الصحيح لمراحل خط أنابيب الرسترة؟",
+      "en": "What is the correct order of the rasterization pipeline stages?"
+    },
+    "options": {
+      "ar": [
+        "فضاء الكاميرا -> الفضاء العالمي -> فضاء القص -> فضاء الشاشة",
+        "الفضاء العالمي -> فضاء الكاميرا -> فضاء القص -> فضاء الشاشة",
+        "فضاء القص -> فضاء الشاشة -> الفضاء العالمي -> فضاء الكاميرا",
+        "الفضاء العالمي -> فضاء القص -> فضاء الكاميرا -> فضاء الشاشة"
+      ],
+      "en": [
+        "Camera space -> World space -> Clip space -> Screen space",
+        "World space -> Camera space -> Clip space -> Screen space",
+        "Clip space -> Screen space -> World space -> Camera space",
+        "World space -> Clip space -> Camera space -> Screen space"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يبدأ الخط بالفضاء العالمي، ثم يُحول إلى فضاء الكاميرا، ثم يُقص في فضاء القص، وأخيراً يُسقط على فضاء الشاشة.",
+      "en": "The pipeline starts in World space, transforms to Camera space, clips in Clip space, and projects to Screen space."
+    },
+    "hint": {
+      "ar": "فكر في كيفية التقاط صورة: العالم أولاً، ثم الكاميرا.",
+      "en": "Think of taking a photo: the world first, then the camera."
+    },
+    "difficulty": "easy",
+    "conceptId": "rasterization-pipeline"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لخوارزمية DDA لرسترة الخطوط؟",
+      "en": "What is the time complexity of the DDA algorithm for line rasterization?"
+    },
+    "options": {
+      "ar": [
+        "O(1)",
+        "O(log n)",
+        "O(n)",
+        "O(n^2)"
+      ],
+      "en": [
+        "O(1)",
+        "O(log n)",
+        "O(n)",
+        "O(n^2)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "خوارزمية DDA تفحص فقط البكسلات التي تقع على طول الخط، مما يجعل تعقيدها O(n) مقارنة بالفحص الساذج O(n^2).",
+      "en": "The DDA algorithm only checks pixels along the line, making its complexity O(n) compared to the naive O(n^2) approach."
+    },
+    "hint": {
+      "ar": "إنها تتناسب طردياً مع طول الخط.",
+      "en": "It is directly proportional to the length of the line."
+    },
+    "difficulty": "medium",
+    "conceptId": "line-rasterization-dda"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "لماذا تُفضل المثلثات في الرسترة؟",
+      "en": "Why are triangles preferred in rasterization?"
+    },
+    "options": {
+      "ar": [
+        "لأنها دائماً مقعرة",
+        "لأنها دائماً محدبة ومسطحة في الفضاء ثلاثي الأبعاد",
+        "لأنها تتطلب ذاكرة أقل من النقطة",
+        "لأنها لا تحتاج إلى فضاء الكاميرا"
+      ],
+      "en": [
+        "Because they are always concave",
+        "Because they are always convex and flat in 3D",
+        "Because they require less memory than a point",
+        "Because they do not need camera space"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المثلثات مفضلة لأنها محدبة دائماً، مسطحة، وتسمح بخوارزميات رسترة واستيفاء أبسط.",
+      "en": "Triangles are preferred because they are always convex, flat, and allow for simpler rasterization and interpolation algorithms."
+    },
+    "hint": {
+      "ar": "فكر في الخصائص الهندسية التي تجعل الحسابات أسهل.",
+      "en": "Think about geometric properties that make calculations easier."
+    },
+    "difficulty": "easy",
+    "conceptId": "triangle-rasterization"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كيف يتم تحديد ما إذا كانت نقطة تقع داخل مثلث؟",
+      "en": "How is it determined if a point lies inside a triangle?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام خوارزمية DDA",
+        "بالتحقق مما إذا كانت تقع داخل 3 أنصاف مستويات",
+        "باستخدام خوارزمية الرسام",
+        "بقياس المسافة إلى المركز"
+      ],
+      "en": [
+        "Using the DDA algorithm",
+        "By checking if it lies inside 3 half-planes",
+        "Using the Painter's algorithm",
+        "By measuring the distance to the center"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم استخدام اختبار الداخل-الخارج للتحقق مما إذا كانت النقطة تقع على الجانب الصحيح (اليسار) من الخطوط الثلاثة التي تشكل المثلث.",
+      "en": "The inside-outside test is used to check if the point lies on the correct side (left) of all three lines forming the triangle."
+    },
+    "hint": {
+      "ar": "المثلث يتكون من 3 خطوط متقاطعة.",
+      "en": "A triangle is formed by 3 intersecting lines."
+    },
+    "difficulty": "medium",
+    "conceptId": "triangle-rasterization"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي المشكلة التي تحلها قاعدة أعلى-يسار (Top-left rule)؟",
+      "en": "What problem does the top-left rule solve?"
+    },
+    "options": {
+      "ar": [
+        "بطء خوارزمية DDA",
+        "تداخل المثلثات في العمق",
+        "الرسم المزدوج للبكسلات على الحواف المشتركة",
+        "حساب مساحة المثلث"
+      ],
+      "en": [
+        "The slowness of the DDA algorithm",
+        "Depth overlapping of triangles",
+        "Double-drawing of pixels on shared edges",
+        "Calculating the area of a triangle"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تضمن القاعدة أن البكسل الذي يقع بالضبط على حافة مشتركة بين مثلثين يتم رسمه مرة واحدة فقط.",
+      "en": "The rule ensures that a pixel lying exactly on a shared edge between two triangles is drawn only once."
+    },
+    "hint": {
+      "ar": "تتعلق بحالات الحافة (Edge cases).",
+      "en": "It relates to edge cases."
+    },
+    "difficulty": "medium",
+    "conceptId": "triangle-edge-cases-optimization"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الغرض من استخدام صندوق الإحاطة (Bounding box) في رسترة المثلثات؟",
+      "en": "What is the purpose of using a bounding box in triangle rasterization?"
+    },
+    "options": {
+      "ar": [
+        "تحديد لون المثلث",
+        "تقليل عدد البكسلات التي يتم اختبارها",
+        "حساب الإحداثيات الباريسينترية",
+        "فرز المثلثات حسب العمق"
+      ],
+      "en": [
+        "Determining the triangle's color",
+        "Reducing the number of pixels tested",
+        "Calculating barycentric coordinates",
+        "Sorting triangles by depth"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بدلاً من اختبار جميع بكسلات الشاشة، يقتصر الاختبار على البكسلات الموجودة داخل صندوق الإحاطة، مما يزيد من الكفاءة.",
+      "en": "Instead of testing all screen pixels, the test is restricted to pixels inside the bounding box, increasing efficiency."
+    },
+    "hint": {
+      "ar": "إنه تحسين للأداء.",
+      "en": "It is a performance optimization."
+    },
+    "difficulty": "easy",
+    "conceptId": "triangle-edge-cases-optimization"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في الإحداثيات الباريسينترية (u, v, w)، ما هو الشرط الذي يجب أن يتحقق دائماً؟",
+      "en": "In Barycentric coordinates (u, v, w), what condition must always be met?"
+    },
+    "options": {
+      "ar": [
+        "u * v * w = 1",
+        "u + v + w = 0",
+        "u + v + w = 1",
+        "u = v = w"
+      ],
+      "en": [
+        "u * v * w = 1",
+        "u + v + w = 0",
+        "u + v + w = 1",
+        "u = v = w"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مجموع الإحداثيات الباريسينترية يجب أن يساوي 1 دائماً لأنها تمثل نسب مساحات المثلثات الفرعية إلى المساحة الكلية.",
+      "en": "The sum of barycentric coordinates must always equal 1 because they represent the ratios of sub-triangle areas to the total area."
+    },
+    "hint": {
+      "ar": "إنها تمثل أوزاناً نسبية.",
+      "en": "They represent relative weights."
+    },
+    "difficulty": "easy",
+    "conceptId": "barycentric-interpolation"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "متى تفشل خوارزمية الرسام (Painter's algorithm)؟",
+      "en": "When does the Painter's algorithm fail?"
+    },
+    "options": {
+      "ar": [
+        "عندما تكون المثلثات صغيرة جداً",
+        "عندما تتداخل المثلثات أو تتقاطع",
+        "عندما تكون المثلثات شفافة",
+        "عندما تكون الكاميرا قريبة جداً"
+      ],
+      "en": [
+        "When triangles are very small",
+        "When triangles overlap or interpenetrate",
+        "When triangles are transparent",
+        "When the camera is too close"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تفشل خوارزمية الرسام في فرز المثلثات بشكل صحيح إذا كانت تتقاطع مع بعضها البعض.",
+      "en": "The Painter's algorithm fails to sort triangles correctly if they intersect each other."
+    },
+    "hint": {
+      "ar": "فكر في شكلين يخترقان بعضهما البعض.",
+      "en": "Think of two shapes piercing through each other."
+    },
+    "difficulty": "medium",
+    "conceptId": "visibility-z-buffer"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "بأي قيمة يتم تهيئة مخزن العمق (Z-buffer) عادةً (حسب الشريحة)؟",
+      "en": "With what value is the Z-buffer typically initialized (according to the slide)?"
+    },
+    "options": {
+      "ar": [
+        "0",
+        "1",
+        "-infinity",
+        "+infinity"
+      ],
+      "en": [
+        "0",
+        "1",
+        "-infinity",
+        "+infinity"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "حسب الشريحة، يتم تهيئة مخزن العمق بقيمة سالب ما لا نهاية (-infinity)، ويتم التحديث إذا كانت القيمة الجديدة أكبر (أو العكس حسب نظام الإحداثيات، الشريحة تذكر -infinity).",
+      "en": "According to the slide, the Z-buffer is initialized to -infinity."
+    },
+    "hint": {
+      "ar": "أبعد نقطة ممكنة في الاتجاه السالب.",
+      "en": "The furthest possible point in the negative direction."
+    },
+    "difficulty": "hard",
+    "conceptId": "visibility-z-buffer"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هو العيب الرئيسي لخوارزمية مخزن العمق (Z-buffer)؟",
+      "en": "What is the main drawback of the Z-buffer algorithm?"
+    },
+    "options": {
+      "ar": [
+        "بطيئة جداً في التنفيذ",
+        "لا يمكن تنفيذها في العتاد (Hardware)",
+        "تتطلب ذاكرة إضافية لمخزن الإطارات",
+        "تفشل مع المثلثات المتقاطعة"
+      ],
+      "en": [
+        "Very slow to execute",
+        "Cannot be implemented in hardware",
+        "Requires extra framebuffer memory",
+        "Fails with intersecting triangles"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الخوارزمية سريعة وتعمل مع المثلثات المتقاطعة، لكنها تتطلب ذاكرة إضافية لتخزين قيم العمق لكل بكسل.",
+      "en": "The algorithm is fast and works with intersecting triangles, but it requires extra memory to store depth values for each pixel."
+    },
+    "hint": {
+      "ar": "تخزين قيمة إضافية لكل بكسل له تكلفة.",
+      "en": "Storing an extra value per pixel has a cost."
+    },
+    "difficulty": "medium",
+    "conceptId": "visibility-z-buffer"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">قد تعتقد أن خوارزمية DDA هي المستخدمة فعلياً في كروت الشاشة الحديثة لرسترة الخطوط. هذا فخ! الأجهزة الحديثة تستخدم خوارزمية بريسنهام (Bresenham) لأنها تتجنب حسابات الفاصلة العائمة البطيئة.</template>
+      <template class="content-en">You might think the DDA algorithm is what modern GPUs use for line rasterization. Trap! Modern hardware uses Bresenham's algorithm because it avoids slow floating-point arithmetic.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">قاعدة أعلى-يسار (Top-left rule) ليست مجرد تفصيل نظري، بل هي ضرورية لمنع ظهور فجوات أو بكسلات مضاعفة الإضاءة عند رسم مجسمات ثلاثية الأبعاد تتكون من آلاف المثلثات المتجاورة.</template>
+      <template class="content-en">The top-left rule is not just a theoretical detail; it is essential to prevent gaps or double-lit pixels when rendering 3D models composed of thousands of adjacent triangles.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">سر الكفاءة: عند حساب مساحة المثلثات الفرعية للإحداثيات الباريسينترية، يمكنك إعادة استخدام نفس معادلة الخط (ax + by + c) التي قمت بحسابها مسبقاً في اختبار الداخل-الخارج!</template>
+      <template class="content-en">Efficiency secret: When calculating sub-triangle areas for barycentric coordinates, you can reuse the exact same line equation (ax + by + c) you already computed for the inside-outside test!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">لا تخلط بين خوارزمية الرسام ومخزن العمق. خوارزمية الرسام تفرز المضلعات بالكامل (وتفشل عند التقاطع)، بينما مخزن العمق يحل المشكلة على مستوى البكسل الفردي.</template>
+      <template class="content-en">Don't confuse Painter's algorithm with Z-buffer. Painter's sorts entire polygons (and fails on intersections), while Z-buffer solves visibility at the individual pixel level.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M03.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M05.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

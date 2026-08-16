@@ -1,0 +1,2419 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS360" data-module="5">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>شبكات الحاسوب: طبقة ربط البيانات، الإيثرنت، والشبكات اللاسلكية · CS360 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS360" data-page-title-en="CS360">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M04.html" data-gh-next="M06.html" data-gh-card="../../hub/course.html?code=CS360"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#data-link-layer-basics" class="toc-link" data-bilingual>
+        <template class="content-ar">أساسيات طبقة ربط البيانات</template>
+        <template class="content-en">Data-Link Layer Basics</template>
+        <span class="content-target">أساسيات طبقة ربط البيانات</span>
+      </a>
+      <a href="#link-layer-addressing-arp" class="toc-link" data-bilingual>
+        <template class="content-ar">عنونة طبقة الربط وبروتوكول ARP</template>
+        <template class="content-en">Link-Layer Addressing & ARP</template>
+        <span class="content-target">عنونة طبقة الربط وبروتوكول ARP</span>
+      </a>
+      <a href="#random-access-protocols" class="toc-link" data-bilingual>
+        <template class="content-ar">بروتوكولات الوصول العشوائي</template>
+        <template class="content-en">Random Access Protocols</template>
+        <span class="content-target">بروتوكولات الوصول العشوائي</span>
+      </a>
+      <a href="#controlled-access-channelization" class="toc-link" data-bilingual>
+        <template class="content-ar">الوصول المتحكم به وتقسيم القنوات</template>
+        <template class="content-en">Controlled Access & Channelization</template>
+        <span class="content-target">الوصول المتحكم به وتقسيم القنوات</span>
+      </a>
+      <a href="#ethernet-evolution" class="toc-link" data-bilingual>
+        <template class="content-ar">تطور الإيثرنت وإطار MAC</template>
+        <template class="content-en">Ethernet Evolution & MAC Frame</template>
+        <span class="content-target">تطور الإيثرنت وإطار MAC</span>
+      </a>
+      <a href="#wireless-lan-hidden-station" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات اللاسلكية ومشكلة المحطة المخفية</template>
+        <template class="content-en">Wireless LANs & Hidden Station Problem</template>
+        <span class="content-target">الشبكات اللاسلكية ومشكلة المحطة المخفية</span>
+      </a>
+      <a href="#bluetooth-architecture" class="toc-link" data-bilingual>
+        <template class="content-ar">معمارية البلوتوث</template>
+        <template class="content-en">Bluetooth Architecture</template>
+        <span class="content-target">معمارية البلوتوث</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 5</template>
+      <template class="content-en">Module 5</template>
+      <span class="content-target">الوحدة 5</span>
+    </span> · CS360
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">شبكات الحاسوب: طبقة ربط البيانات، الإيثرنت، والشبكات اللاسلكية</h1>
+      <p class="hero-description">تغطية شاملة لطبقة ربط البيانات، بروتوكولات الوصول المتعدد، تطور شبكات الإيثرنت، والشبكات المحلية اللاسلكية بما في ذلك البلوتوث.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Computer Networks: Data-Link Layer, Ethernet, and Wireless LANs</h1>
+      <p class="hero-description">Comprehensive coverage of the Data-Link layer, Multiple-Access protocols, Ethernet evolution, and Wireless LANs including Bluetooth.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">طبقة ربط البيانات</span>
+      <span class="tag">الإيثرنت</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Data-Link Layer</span>
+      <span class="tag">Ethernet</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم خدمات طبقة ربط البيانات والطبقات الفرعية (DLC و MAC).</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل بروتوكولات الوصول المتعدد (العشوائي، المتحكم به، وتقسيم القنوات).</span></li>
+      <li><span class="obj-icon">✦</span><span>تتبع تطور شبكات الإيثرنت من المعيارية إلى 10 جيجابت.</span></li>
+      <li><span class="obj-icon">✦</span><span>استيعاب معمارية الشبكات المحلية اللاسلكية وحل مشكلة المحطة المخفية.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على معمارية شبكات البلوتوث (Piconet و Scatternet).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand Data-Link layer services and sublayers (DLC and MAC).</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze Multiple-Access protocols (Random, Controlled, and Channelization).</span></li>
+      <li><span class="obj-icon">✦</span><span>Trace the evolution of Ethernet from Standard to 10-Gigabit.</span></li>
+      <li><span class="obj-icon">✦</span><span>Comprehend Wireless LAN architecture and solve the hidden station problem.</span></li>
+      <li><span class="obj-icon">✦</span><span>Identify Bluetooth network architecture (Piconet and Scatternet).</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="data-link-layer-basics" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> أساسيات طبقة ربط البيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Data-Link Layer Basics</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>طبقة ربط البيانات مسؤولة عن الاتصال من <span class="smart-term" data-term-en="Node" data-ar="عقدة" data-en-def="End hosts and routers in a network.">عقدة<span class="smart-term-tooltip"></span></span> إلى عقدة (Node-to-Node) عبر <span class="smart-term" data-term-en="Link" data-ar="رابط" data-en-def="The networks in between nodes.">الروابط<span class="smart-term-tooltip"></span></span> (Links).</p></template>
+    <template class="content-en"><p>The data-link layer is responsible for <span class="smart-term" data-term-en="Node" data-ar="عقدة" data-en-def="End hosts and routers in a network.">node<span class="smart-term-tooltip"></span></span>-to-node communication across <span class="smart-term" data-term-en="Link" data-ar="رابط" data-en-def="The networks in between nodes.">links<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تقع طبقة ربط البيانات بين الطبقة الفيزيائية وطبقة الشبكة. تقدم خدمات لطبقة الشبكة وتتلقى خدمات من الطبقة الفيزيائية.</p><p>تشمل خدماتها الأساسية:</p><ul><li><strong>التأطير (Framing)</strong>،</li><li><strong>التحكم في التدفق (Flow Control)</strong>،</li><li><strong>التحكم في الأخطاء (Error Control)</strong>،</li><li><strong>والتحكم في الازدحام (Congestion Control)</strong>.</li></ul><p>تنقسم هذه الطبقة إلى طبقتين فرعيتين:</p><ul><li><strong>التحكم في الارتباط المنطقي (DLC)</strong></li><li><strong>والتحكم في الوصول إلى الوسائط (MAC)</strong>.</li></ul></template>
+    <template class="content-en"><p>The data-link layer is located between the physical and network layers. It provides services to the network layer and receives services from the physical layer.</p><p>Its main services include:</p><ul><li><strong>Framing</strong>,</li><li><strong>Flow Control</strong>,</li><li><strong>Error Control</strong>,</li><li>and <strong>Congestion Control</strong>.</li></ul><p>It is divided into two sublayers:</p><ul><li><strong>Data Link Control (DLC)</strong></li><li>and <strong>Media Access Control (MAC)</strong>.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تم تقسيم الطبقة إلى DLC و MAC لفصل الوظائف المنطقية عن تفاصيل الوصول الفيزيائي للوسائط.</p><p>هذا يسمح لبروتوكولات الطبقات العليا بالعمل دون الحاجة لمعرفة نوع الوسيط الفيزيائي (سلكي أو لاسلكي).</p></template>
+    <template class="content-en"><p>The layer is divided into DLC and MAC to separate logical functions from physical media access details.</p><p>This allows upper-layer protocols to operate without needing to know the specific physical medium (wired or wireless).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[7]: Detailed SVG generation prompt: Show the OSI model layers focusing on Data Link Layer. Split Data Link Layer into two sublayers: 'Data link control sublayer (DLC)' on top and 'Media access control sublayer (MAC)' on bottom. Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="7">
+<svg viewBox="0 0 800 660" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <!-- Arrow Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+
+    <!-- Highlight Gradient for Layer 2 and Sublayers -->
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-800)" />
+      <stop offset="100%" stop-color="var(--brand-600)" />
+    </linearGradient>
+
+    <!-- Subtle Grid Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="1" opacity="0.15" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Main Titles -->
+  <g id="titles">
+    <text x="400" y="45" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">OSI Model: Data Link Layer Sublayers</text>
+    <text x="400" y="75" font-size="18" fill="var(--text-secondary)" text-anchor="middle">نموذج OSI: الطبقات الفرعية لطبقة ربط البيانات</text>
+  </g>
+
+  <!-- Column Headers -->
+  <g id="headers">
+    <text x="150" y="125" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">OSI Layers</text>
+    <text x="150" y="145" font-size="15" fill="var(--text-secondary)" text-anchor="middle">طبقات نموذج OSI</text>
+
+    <text x="580" y="125" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Layer 2 Expanded</text>
+    <text x="580" y="145" font-size="15" fill="var(--text-secondary)" text-anchor="middle">تفصيل الطبقة الثانية</text>
+  </g>
+
+  <!-- Connections & Expansion Polygon -->
+  <g id="connections">
+    <!-- Polygon showing expansion from Layer 2 to Sublayers -->
+    <polygon points="250,445 420,325 420,535 250,490" fill="var(--brand-500)" opacity="0.1" />
+    <line x1="250" y1="445" x2="420" y2="325" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6,6" opacity="0.6" />
+    <line x1="250" y1="490" x2="420" y2="535" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6,6" opacity="0.6" />
+
+    <!-- Data Flow Arrows -->
+    <!-- L3 to DLC -->
+    <line x1="580" y1="250" x2="580" y2="315" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <circle cx="580" cy="250" r="4" fill="var(--brand-500)" />
+    
+    <!-- DLC to MAC -->
+    <line x1="580" y1="410" x2="580" y2="440" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <circle cx="580" cy="410" r="4" fill="var(--brand-500)" />
+    
+    <!-- MAC to L1 -->
+    <line x1="580" y1="535" x2="580" y2="565" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <circle cx="580" cy="535" r="4" fill="var(--brand-500)" />
+  </g>
+
+  <!-- Left Stack: OSI Layers -->
+  <g id="left-stack">
+    <!-- Layer 7 -->
+    <rect x="50" y="170" width="200" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="150" y="188" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">7. Application</text>
+    <text x="150" y="206" font-size="14" fill="var(--text-secondary)" text-anchor="middle">تطبيق</text>
+
+    <!-- Layer 6 -->
+    <rect x="50" y="225" width="200" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="150" y="243" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">6. Presentation</text>
+    <text x="150" y="261" font-size="14" fill="var(--text-secondary)" text-anchor="middle">تقديم</text>
+
+    <!-- Layer 5 -->
+    <rect x="50" y="280" width="200" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="150" y="298" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">5. Session</text>
+    <text x="150" y="316" font-size="14" fill="var(--text-secondary)" text-anchor="middle">جلسة</text>
+
+    <!-- Layer 4 -->
+    <rect x="50" y="335" width="200" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="150" y="353" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">4. Transport</text>
+    <text x="150" y="371" font-size="14" fill="var(--text-secondary)" text-anchor="middle">نقل</text>
+
+    <!-- Layer 3 -->
+    <rect x="50" y="390" width="200" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="150" y="408" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3. Network</text>
+    <text x="150" y="426" font-size="14" fill="var(--text-secondary)" text-anchor="middle">شبكة</text>
+
+    <!-- Layer 2 (Highlighted) -->
+    <rect x="50" y="445" width="200" height="45" rx="6" fill="url(#brandGrad)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="150" y="463" font-size="15" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">2. Data Link</text>
+    <text x="150" y="481" font-size="14" fill="var(--bg-surface)" opacity="0.9" text-anchor="middle">ربط البيانات</text>
+
+    <!-- Layer 1 -->
+    <rect x="50" y="500" width="200" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="150" y="518" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1. Physical</text>
+    <text x="150" y="536" font-size="14" fill="var(--text-secondary)" text-anchor="middle">فيزيائية</text>
+  </g>
+
+  <!-- Right Stack: Expanded Layer 2 & Context -->
+  <g id="right-stack">
+    <!-- Context: Layer 3 -->
+    <rect x="420" y="200" width="320" height="50" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="580" y="220" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Network Layer (Layer 3)</text>
+    <text x="580" y="240" font-size="14" fill="var(--text-muted)" text-anchor="middle">طبقة الشبكة</text>
+
+    <!-- Sublayer: DLC -->
+    <rect x="420" y="325" width="320" height="85" rx="8" fill="url(#brandGrad)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="580" y="348" font-size="16" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">Data Link Control (DLC)</text>
+    <text x="580" y="368" font-size="15" font-weight="bold" fill="var(--bg-surface)" opacity="0.95" text-anchor="middle">التحكم في ارتباط البيانات</text>
+    <text x="580" y="388" font-size="13" fill="var(--bg-surface)" opacity="0.85" text-anchor="middle">Logical connection, Error control, Framing</text>
+    <text x="580" y="404" font-size="13" fill="var(--bg-surface)" opacity="0.85" text-anchor="middle">اتصال منطقي، تحكم في الأخطاء، تأطير</text>
+
+    <!-- Sublayer: MAC -->
+    <rect x="420" y="450" width="320" height="85" rx="8" fill="url(#brandGrad)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="580" y="473" font-size="16" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">Media Access Control (MAC)</text>
+    <text x="580" y="493" font-size="15" font-weight="bold" fill="var(--bg-surface)" opacity="0.95" text-anchor="middle">التحكم في الوصول للوسائط</text>
+    <text x="580" y="513" font-size="13" fill="var(--bg-surface)" opacity="0.85" text-anchor="middle">Hardware addressing, Channel access control</text>
+    <text x="580" y="529" font-size="13" fill="var(--bg-surface)" opacity="0.85" text-anchor="middle">عنونة الأجهزة، التحكم في الوصول للقناة</text>
+
+    <!-- Context: Layer 1 -->
+    <rect x="420" y="575" width="320" height="50" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="580" y="595" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Physical Layer (Layer 1)</text>
+    <text x="580" y="615" font-size="14" fill="var(--text-muted)" text-anchor="middle">الطبقة الفيزيائية</text>
+  </g>
+
+  <!-- Arrow Labels (Data Units) -->
+  <g id="arrow-labels">
+    <!-- Packets -->
+    <text x="595" y="275" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="start">Packets</text>
+    <text x="595" y="295" font-size="14" fill="var(--text-secondary)" text-anchor="start">حزم</text>
+
+    <!-- Frames -->
+    <text x="595" y="420" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="start">Frames</text>
+    <text x="595" y="440" font-size="14" fill="var(--text-secondary)" text-anchor="start">إطارات</text>
+
+    <!-- Bits -->
+    <text x="595" y="545" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="start">Bits</text>
+    <text x="595" y="565" font-size="14" fill="var(--text-secondary)" text-anchor="start">بتات</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نحتاج إلى طبقة فرعية للتحكم في الوصول إلى الوسائط (MAC) في الشبكات المشتركة (Broadcast) بينما قد لا تكون ضرورية في الروابط من نقطة لنقطة (Point-to-Point)؟</template>
+      <template class="content-en">Why do we need a MAC sublayer in broadcast networks while it might not be necessary in point-to-point links?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في الشبكات المشتركة، تتنافس عدة أجهزة على نفس الوسيط، لذا نحتاج لـ MAC لتنظيم الوصول ومنع التصادم. في الروابط من نقطة لنقطة، يوجد جهازان فقط، لذا لا توجد منافسة على الوسيط.</p></template>
+      <template class="content-en"><p>In broadcast networks, multiple devices compete for the same medium, requiring MAC to coordinate access and prevent collisions. In point-to-point links, only two devices exist, so there is no medium contention.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="link-layer-addressing-arp" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> عنونة طبقة الربط وبروتوكول ARP</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Link-Layer Addressing & ARP</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>عناوين MAC تحدد الأجهزة محلياً، وبروتوكول <span class="smart-term" data-term-en="ARP" data-ar="بروتوكول تحليل العناوين" data-en-def="Address Resolution Protocol; maps IP addresses to MAC addresses.">ARP<span class="smart-term-tooltip"></span></span> يترجم عناوين IP إلى عناوين MAC.</p></template>
+    <template class="content-en"><p>MAC addresses identify devices locally, and <span class="smart-term" data-term-en="ARP" data-ar="بروتوكول تحليل العناوين" data-en-def="Address Resolution Protocol; maps IP addresses to MAC addresses.">ARP<span class="smart-term-tooltip"></span></span> translates IP addresses to MAC addresses.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عناوين IP تحدد المصدر والوجهة النهائية، لكنها لا تحدد الروابط التي يجب أن تمر عبرها الحزمة. لذلك نستخدم عناوين طبقة الربط (MAC Address).</p><p>هناك ثلاثة أنواع من العناوين:</p><ul><li><strong><span class="smart-term" data-term-en="Unicast" data-ar="بث أحادي" data-en-def="One-to-one communication.">Unicast<span class="smart-term-tooltip"></span></span></strong> (من واحد لواحد)،</li><li><strong>Multicast</strong> (من واحد لمجموعة)،</li><li><strong>و Broadcast</strong> (من واحد للكل).</li></ul><p>بروتوكول ARP (Address Resolution Protocol) يقبل عنوان IP ويقوم بتعيينه إلى عنوان MAC المقابل لتتمكن الحزمة من الانتقال عبر الرابط المحلي.</p></template>
+    <template class="content-en"><p>IP addresses define the final source and destination but cannot define which links the packet should pass through. Thus, we use link-layer addresses (MAC addresses).</p><p>There are three types:</p><ul><li><strong><span class="smart-term" data-term-en="Unicast" data-ar="بث أحادي" data-en-def="One-to-one communication.">Unicast<span class="smart-term-tooltip"></span></span></strong> (one-to-one),</li><li><strong>Multicast</strong> (one-to-many),</li><li>and <strong>Broadcast</strong> (one-to-all).</li></ul><p>ARP (Address Resolution Protocol) accepts an IP address and maps it to the corresponding MAC address so the frame can move across the local link.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>طلب ARP يكون Broadcast (لأن المرسل لا يعرف عنوان MAC للوجهة)، بينما رد ARP يكون Unicast (لأن الوجهة أصبحت تعرف عنوان MAC للمرسل).</p><p>يتم تغيير عناوين MAC في كل قفزة (Hop) بين الموجهات، بينما تبقى عناوين IP ثابتة.</p></template>
+    <template class="content-en"><p>An ARP request is broadcast (because the sender doesn't know the destination's MAC), while an ARP reply is unicast (because the destination now knows the sender's MAC).</p><p>MAC addresses change at every hop between routers, while IP addresses remain constant.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[6]: Detailed SVG generation prompt: Show Host A sending an ARP request (Broadcast) to a network switch, which forwards it to Host B, C, and D. Host C (the target) replies with an ARP reply (Unicast) directly back to Host A. Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="6">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrow Markers -->
+        <marker id="arrow-broadcast" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+        <marker id="arrow-unicast" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Gradients & Shadows -->
+        <linearGradient id="target-gradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">ARP Protocol: Request &amp; Reply / بروتوكول ARP: الطلب والرد</text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">Resolving an IP address to a MAC address / تحويل عنوان IP إلى عنوان MAC</text>
+
+    <!-- ==================== CONNECTION PATHS ==================== -->
+    
+    <!-- 1. Host A to Switch (Broadcast Request) -->
+    <path d="M 170 290 L 320 290" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrow-broadcast)" />
+    
+    <!-- 4. Switch to Host A (Unicast Reply) -->
+    <path d="M 330 310 L 180 310" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow-unicast)" />
+
+    <!-- 2. Switch to Host B (Broadcast Request) -->
+    <path d="M 470 280 C 530 280, 550 120, 620 120" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrow-broadcast)" />
+    
+    <!-- 2. Switch to Host C (Broadcast Request) -->
+    <path d="M 470 290 L 620 290" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrow-broadcast)" />
+    
+    <!-- 3. Host C to Switch (Unicast Reply) -->
+    <path d="M 630 310 L 480 310" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow-unicast)" />
+
+    <!-- 2. Switch to Host D (Broadcast Request) -->
+    <path d="M 470 320 C 530 320, 550 480, 620 480" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrow-broadcast)" />
+
+
+    <!-- ==================== PATH LABELS ==================== -->
+
+    <!-- Host A <-> Switch Labels -->
+    <text x="250" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">1. ARP Request</text>
+    <text x="250" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--brand-400)" text-anchor="middle">طلب (بث / Broadcast)</text>
+    <rect x="180" y="255" width="140" height="24" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="1"/>
+    <text x="250" y="272" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Who has 10.0.0.3?</text>
+
+    <rect x="180" y="320" width="140" height="24" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1"/>
+    <text x="250" y="337" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">10.0.0.3 is CC:CC</text>
+    <text x="250" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">4. ARP Reply</text>
+    <text x="250" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--brand-500)" text-anchor="middle">رد (أحادي / Unicast)</text>
+
+    <!-- Switch -> Host B Labels -->
+    <text x="550" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">2. Broadcast / بث</text>
+    <text x="550" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Dst: FF:FF:FF:FF:FF:FF</text>
+
+    <!-- Switch <-> Host C Labels -->
+    <text x="550" y="260" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">2. Broadcast / بث</text>
+    <text x="550" y="278" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Dst: FF:FF:FF:FF:FF:FF</text>
+
+    <text x="550" y="335" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">3. Unicast / أحادي</text>
+    <text x="550" y="355" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Dst: AA:AA</text>
+
+    <!-- Switch -> Host D Labels -->
+    <text x="550" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">2. Broadcast / بث</text>
+    <text x="550" y="405" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Dst: FF:FF:FF:FF:FF:FF</text>
+
+
+    <!-- ==================== NODES ==================== -->
+
+    <!-- Host A -->
+    <g filter="url(#shadow)">
+        <rect x="30" y="260" width="140" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <path d="M 30 268 Q 30 260 38 260 L 162 260 Q 170 260 170 268 L 170 285 L 30 285 Z" fill="var(--border-color)" opacity="0.2"/>
+        <text x="100" y="278" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Host A / المضيف أ</text>
+        <text x="100" y="308" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">IP: 10.0.0.1</text>
+        <text x="100" y="328" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">MAC: AA:AA</text>
+    </g>
+
+    <!-- Switch -->
+    <g filter="url(#shadow)">
+        <rect x="330" y="260" width="140" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <path d="M 330 268 Q 330 260 338 260 L 462 260 Q 470 260 470 268 L 470 285 L 330 285 Z" fill="var(--brand-500)" opacity="0.15"/>
+        <text x="400" y="278" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Switch</text>
+        <text x="400" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">محول الشبكة</text>
+    </g>
+
+    <!-- Host B -->
+    <g filter="url(#shadow)">
+        <rect x="630" y="80" width="140" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <path d="M 630 88 Q 630 80 638 80 L 762 80 Q 770 80 770 88 L 770 105 L 630 105 Z" fill="var(--border-color)" opacity="0.2"/>
+        <text x="700" y="98" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Host B / المضيف ب</text>
+        <text x="700" y="128" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">IP: 10.0.0.2</text>
+        <text x="700" y="148" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">MAC: BB:BB</text>
+    </g>
+
+    <!-- Host C (Target) -->
+    <g filter="url(#shadow)">
+        <rect x="630" y="260" width="140" height="80" rx="8" fill="url(#target-gradient)" stroke="var(--brand-500)" stroke-width="2" />
+        <path d="M 630 268 Q 630 260 638 260 L 762 260 Q 770 260 770 268 L 770 285 L 630 285 Z" fill="#000000" opacity="0.2"/>
+        <text x="700" y="278" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">Host C (Target)</text>
+        <text x="700" y="308" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="#ffffff" opacity="0.9" text-anchor="middle">IP: 10.0.0.3</text>
+        <text x="700" y="328" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="#ffffff" opacity="0.9" text-anchor="middle">MAC: CC:CC</text>
+    </g>
+
+    <!-- Host D -->
+    <g filter="url(#shadow)">
+        <rect x="630" y="440" width="140" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <path d="M 630 448 Q 630 440 638 440 L 762 440 Q 770 440 770 448 L 770 465 L 630 465 Z" fill="var(--border-color)" opacity="0.2"/>
+        <text x="700" y="458" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Host D / المضيف د</text>
+        <text x="700" y="488" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">IP: 10.0.0.4</text>
+        <text x="700" y="508" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">MAC: DD:DD</text>
+    </g>
+
+
+    <!-- ==================== STATUS LABELS ==================== -->
+
+    <!-- Host B Ignored -->
+    <rect x="630" y="170" width="140" height="26" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="1"/>
+    <text x="700" y="188" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">❌ Ignored / تجاهل</text>
+
+    <!-- Host C Match -->
+    <rect x="630" y="350" width="140" height="26" rx="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1"/>
+    <text x="700" y="368" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">✅ Match / تطابق</text>
+
+    <!-- Host D Ignored -->
+    <rect x="630" y="530" width="140" height="26" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="1"/>
+    <text x="700" y="548" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">❌ Ignored / تجاهل</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th data-bilingual><template class="content-ar">Unicast</template><template class="content-en">Unicast</template><span class="content-target"></span></th>
+        <th data-bilingual><template class="content-ar">Multicast</template><template class="content-en">Multicast</template><span class="content-target"></span></th>
+        <th data-bilingual><template class="content-ar">Broadcast</template><template class="content-en">Broadcast</template><span class="content-target"></span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الرقم السداسي عشر الثاني</template>
+          <template class="content-en">Second Hexadecimal Digit</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">زوجي (Even)</template>
+          <template class="content-en">Even</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">فردي (Odd)</template>
+          <template class="content-en">Odd</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الكل Fs</template>
+          <template class="content-en">All Fs</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع الاتصال</template>
+          <template class="content-en">Communication Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">من واحد لواحد</template>
+          <template class="content-en">One-to-one</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">من واحد لمجموعة</template>
+          <template class="content-en">One-to-many</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">من واحد للكل</template>
+          <template class="content-en">One-to-all</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكنك معرفة نوع عنوان MAC (Unicast أو Multicast) من خلال النظر إلى العنوان السداسي عشر؟</template>
+      <template class="content-en">How can you determine the type of a MAC address (Unicast or Multicast) by looking at its hexadecimal representation?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ننظر إلى الرقم السداسي عشر الثاني من اليسار. إذا كان زوجياً (Even)، فهو Unicast. إذا كان فردياً (Odd)، فهو Multicast. إذا كانت كل الأرقام F، فهو Broadcast.</p></template>
+      <template class="content-en"><p>Look at the second hexadecimal digit from the left. If it is even, it's Unicast. If it is odd, it's Multicast. If all digits are Fs, it's Broadcast.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="random-access-protocols" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> بروتوكولات الوصول العشوائي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Random Access Protocols</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>في الوصول العشوائي، تتنافس المحطات على الوسيط دون تحكم مركزي، مما قد يؤدي إلى تصادمات.</p></template>
+    <template class="content-en"><p>In random access, stations compete for the medium without central control, which can lead to collisions.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تشمل بروتوكولات الوصول العشوائي:</p><ul><li><strong>ALOHA</strong> (الأساسي، حيث ترسل المحطة متى شاءت مما يسبب تصادمات كثيرة)،</li><li><strong>و CSMA</strong> (تحسس الناقل قبل الإرسال لتقليل التصادم).</li></ul><p>تم تطوير <span class="smart-term" data-term-en="CSMA/CD" data-ar="تحسس الناقل مع اكتشاف التصادم" data-en-def="Carrier Sense Multiple Access with Collision Detection.">CSMA/CD<span class="smart-term-tooltip"></span></span> (اكتشاف التصادم) للشبكات السلكية حيث تستمع المحطة أثناء الإرسال وتتوقف إذا حدث تصادم.</p><p>أما للشبكات اللاسلكية، فتم تطوير <span class="smart-term" data-term-en="CSMA/CA" data-ar="تحسس الناقل مع تجنب التصادم" data-en-def="Carrier Sense Multiple Access with Collision Avoidance.">CSMA/CA<span class="smart-term-tooltip"></span></span> (تجنب التصادم) باستخدام مسافات بين الإطارات (IFS)، نافذة التنافس، والإقرارات (ACK) لتجنب التصادمات قدر الإمكان.</p></template>
+    <template class="content-en"><p>Random access protocols include:</p><ul><li><strong>ALOHA</strong> (basic, stations send whenever, causing many collisions),</li><li>and <strong>CSMA</strong> (listen before talk to reduce collisions).</li></ul><p>CSMA/CD (Collision Detection) was developed for wired networks where a station monitors the medium while sending and aborts if a collision occurs.</p><p>For wireless networks, <span class="smart-term" data-term-en="CSMA/CA" data-ar="تحسس الناقل مع تجنب التصادم" data-en-def="Carrier Sense Multiple Access with Collision Avoidance.">CSMA/CA<span class="smart-term-tooltip"></span></span> (Collision Avoidance) was developed using Interframe Space (IFS), contention windows, and acknowledgments (ACK) to avoid collisions.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لا يمكن استخدام CSMA/CD في الشبكات اللاسلكية لأن المحطة اللاسلكية لا تمتلك طاقة كافية للإرسال والاستقبال في نفس الوقت لاكتشاف التصادم، ولأن مشكلة المحطة المخفية تمنع اكتشاف التصادمات بدقة.</p></template>
+    <template class="content-en"><p>CSMA/CD cannot be used in wireless networks because a wireless station lacks the power to send and receive simultaneously to detect collisions, and the hidden station problem prevents accurate collision detection.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: Flowchart showing CSMA/CD vs CSMA/CA. CSMA/CD shows 'Send -> Detect Collision -> Abort & Retry'. CSMA/CA shows 'Listen -> Wait DIFS -> Send RTS -> Receive CTS -> Send Data -> Receive ACK'. Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 760" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Standard Arrowhead -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Highlight Gradient for Success Nodes -->
+        <linearGradient id="success-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Center Divider -->
+    <line x1="450" y1="120" x2="450" y2="700" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,8" opacity="0.6" />
+
+    <!-- Main Title -->
+    <text x="450" y="40" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)">CSMA/CD vs CSMA/CA</text>
+
+    <!-- Column Headers -->
+    <text x="250" y="85" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)">CSMA/CD (Ethernet)</text>
+    <text x="250" y="105" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">Collision Detection / اكتشاف التصادم</text>
+
+    <text x="650" y="85" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)">CSMA/CA (Wi-Fi)</text>
+    <text x="650" y="105" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">Collision Avoidance / تجنب التصادم</text>
+
+    <!-- ========================================== -->
+    <!-- CSMA/CD FLOWCHART (LEFT COLUMN)            -->
+    <!-- ========================================== -->
+
+    <!-- 1. Listen to Channel -->
+    <rect x="150" y="132" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="250" y="156" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Listen to Channel</text>
+    <text x="250" y="176" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">الاستماع للقناة</text>
+
+    <!-- 2. Send Data -->
+    <rect x="150" y="264" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="250" y="288" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Send Data</text>
+    <text x="250" y="308" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">إرسال البيانات</text>
+
+    <!-- 3. Collision Detection (Diamond) -->
+    <polygon points="250,380 350,440 250,500 150,440" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="250" y="435" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Collision?</text>
+    <text x="250" y="455" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">هل يوجد تصادم؟</text>
+
+    <!-- 4. Abort & Jam (Side Node) -->
+    <rect x="10" y="412" width="110" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="65" y="436" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)">Abort &amp; Jam</text>
+    <text x="65" y="456" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">إحباط وتشويش</text>
+
+    <!-- 5. Wait Backoff (Side Node) -->
+    <rect x="10" y="264" width="110" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="65" y="288" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)">Wait Backoff</text>
+    <text x="65" y="308" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">انتظار عشوائي</text>
+
+    <!-- 6. Success (CSMA/CD) -->
+    <rect x="150" y="660" width="200" height="56" rx="8" fill="url(#success-grad)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="250" y="684" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--bg-surface)">Success</text>
+    <text x="250" y="704" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--bg-surface)">نجاح الإرسال</text>
+
+    <!-- CSMA/CD Arrows -->
+    <path d="M 250 188 L 250 264" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <path d="M 250 320 L 250 380" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- Collision -> Success (No) -->
+    <path d="M 250 500 L 250 660" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="265" y="580" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">No / لا</text>
+
+    <!-- Collision -> Abort (Yes) -->
+    <path d="M 150 440 L 120 440" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="135" y="430" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">Yes / نعم</text>
+
+    <!-- Abort -> Backoff -->
+    <path d="M 65 412 L 65 320" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+    <!-- Backoff -> Listen -->
+    <path d="M 65 264 L 65 160 L 150 160" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+
+    <!-- ========================================== -->
+    <!-- CSMA/CA FLOWCHART (RIGHT COLUMN)           -->
+    <!-- ========================================== -->
+
+    <!-- 1. Listen to Channel -->
+    <rect x="550" y="132" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="650" y="156" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Listen to Channel</text>
+    <text x="650" y="176" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">الاستماع للقناة</text>
+
+    <!-- 2. Wait DIFS -->
+    <rect x="550" y="220" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="650" y="244" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Wait DIFS</text>
+    <text x="650" y="264" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">انتظار فترة DIFS</text>
+
+    <!-- 3. Send RTS -->
+    <rect x="550" y="308" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="650" y="332" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Send RTS</text>
+    <text x="650" y="352" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">إرسال طلب إرسال</text>
+
+    <!-- 4. Receive CTS -->
+    <rect x="550" y="396" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="650" y="420" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Receive CTS</text>
+    <text x="650" y="440" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">استقبال جاهزية الإرسال</text>
+
+    <!-- 5. Send Data -->
+    <rect x="550" y="484" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="650" y="508" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Send Data</text>
+    <text x="650" y="528" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">إرسال البيانات</text>
+
+    <!-- 6. Receive ACK -->
+    <rect x="550" y="572" width="200" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="650" y="596" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Receive ACK</text>
+    <text x="650" y="616" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">استقبال إقرار</text>
+
+    <!-- 7. Success (CSMA/CA) -->
+    <rect x="550" y="660" width="200" height="56" rx="8" fill="url(#success-grad)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="650" y="684" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--bg-surface)">Success</text>
+    <text x="650" y="704" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--bg-surface)">نجاح الإرسال</text>
+
+    <!-- CSMA/CA Arrows -->
+    <path d="M 650 188 L 650 220" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <path d="M 650 276 L 650 308" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <path d="M 650 364 L 650 396" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <path d="M 650 452 L 650 484" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <path d="M 650 540 L 650 572" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <path d="M 650 628 L 650 660" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+    <!-- Footer Note -->
+    <text x="450" y="745" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)">CSMA/CD is used in wired networks (Ethernet), while CSMA/CA is used in wireless networks (Wi-Fi).</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th data-bilingual><template class="content-ar">CSMA/CD</template><template class="content-en">CSMA/CD</template><span class="content-target"></span></th>
+        <th data-bilingual><template class="content-ar">CSMA/CA</template><template class="content-en">CSMA/CA</template><span class="content-target"></span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاستخدام الأساسي</template>
+          <template class="content-en">Primary Use</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الشبكات السلكية (Ethernet)</template>
+          <template class="content-en">Wired LANs (Ethernet)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الشبكات اللاسلكية (Wi-Fi)</template>
+          <template class="content-en">Wireless LANs (Wi-Fi)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">آلية التعامل مع التصادم</template>
+          <template class="content-en">Collision Handling Mechanism</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">اكتشاف التصادم (Detection) وإيقاف الإرسال</template>
+          <template class="content-en">Collision Detection and abort</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تجنب التصادم (Avoidance) باستخدام IFS و ACK</template>
+          <template class="content-en">Collision Avoidance using IFS and ACK</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هي استراتيجيات CSMA/CA الثلاث لتجنب التصادم؟</template>
+      <template class="content-en">What are the three strategies of CSMA/CA to avoid collisions?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>1. المسافة بين الإطارات (IFS). 2. نافذة التنافس (Contention Window). 3. الإقرارات (Acknowledgments).</p></template>
+      <template class="content-en"><p>1. Interframe Space (IFS). 2. Contention Window. 3. Acknowledgments.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="controlled-access-channelization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الوصول المتحكم به وتقسيم القنوات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Controlled Access & Channelization</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الوصول المتحكم به ينظم دور المحطات، بينما تقسيم القنوات يوزع النطاق الترددي عبر الوقت، التردد، أو الكود.</p></template>
+    <template class="content-en"><p>Controlled access organizes station turns, while channelization shares bandwidth via time, frequency, or code.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في الوصول المتحكم به (Controlled Access)، تتشاور المحطات لمعرفة من له الحق في الإرسال. طرقه تشمل:</p><ul><li><strong>الحجز (Reservation)</strong>،</li><li><strong><span class="smart-term" data-term-en="Polling" data-ar="الاقتراع" data-en-def="A primary station controls secondary stations using Select and Poll functions.">الاقتراع<span class="smart-term-tooltip"></span></span></strong> (Polling - جهاز رئيسي يتحكم بأجهزة فرعية عبر Select و Poll)،</li><li><strong>وتمرير الرمز</strong> (Token Passing - حلقة منطقية).</li></ul><p>أما تقسيم القنوات (Channelization) فيشمل:</p><ul><li><strong>FDMA</strong> (تقسيم التردد)،</li><li><strong>TDMA</strong> (تقسيم الوقت)،</li><li><strong>و <span class="smart-term" data-term-en="CDMA" data-ar="الوصول المتعدد بتقسيم الكود" data-en-def="Code-Division Multiple Access; stations share the entire bandwidth simultaneously using unique codes.">CDMA<span class="smart-term-tooltip"></span></span></strong> (تقسيم الكود، حيث ترسل كل المحطات في نفس الوقت ونفس التردد باستخدام أكواد رياضية مختلفة).</li></ul></template>
+    <template class="content-en"><p>In Controlled Access, stations consult one another to find which has the right to send. Methods include:</p><ul><li><strong>Reservation</strong>,</li><li><strong><span class="smart-term" data-term-en="Polling" data-ar="الاقتراع" data-en-def="A primary station controls secondary stations using Select and Poll functions.">Polling<span class="smart-term-tooltip"></span></span></strong> (primary device controls secondaries via Select and Poll),</li><li>and <strong>Token Passing</strong> (logical ring).</li></ul><p>Channelization includes:</p><ul><li><strong>FDMA</strong> (frequency division),</li><li><strong>TDMA</strong> (time division),</li><li>and <strong><span class="smart-term" data-term-en="CDMA" data-ar="الوصول المتعدد بتقسيم الكود" data-en-def="Code-Division Multiple Access; stations share the entire bandwidth simultaneously using unique codes.">CDMA<span class="smart-term-tooltip"></span></span></strong> (code division, where all stations send simultaneously on the same frequency using different mathematical codes).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في CDMA، يتم استخدام نظرية التشفير (Coding Theory) حيث يُعطى كل جهاز تسلسل من الرقائق (Chips).</p><p>تختلف CDMA عن TDMA بأنه لا يوجد مشاركة للوقت، وتختلف عن FDMA بأن قناة واحدة تشغل كامل النطاق الترددي للرابط.</p></template>
+    <template class="content-en"><p>In CDMA, coding theory is used where each device is assigned a sequence of chips.</p><p>CDMA differs from TDMA because there is no timesharing, and differs from FDMA because only one channel occupies the entire bandwidth of the link.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة دمج البيانات في CDMA حيث d هي البيانات و c هو الكود.</strong></template>
+      <template class="content-en"><strong>CDMA data multiplexing formula where d is data and c is the code.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Data = d_1 \cdot c_1 + d_2 \cdot c_2 + d_3 \cdot c_3 + d_4 \cdot c_4$$</div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: Visual comparison of FDMA, TDMA, and CDMA. FDMA shows bandwidth split horizontally by frequency. TDMA shows bandwidth split vertically by time slots. CDMA shows full bandwidth and full time used simultaneously, differentiated by code patterns. Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <!-- Arrow Marker for Axes -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-muted)" />
+        </marker>
+
+        <!-- Pattern for User 2 (Diagonal Stripes) -->
+        <pattern id="pat-user2" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+            <rect width="10" height="10" fill="var(--bg-elevated)" />
+            <line x1="0" y1="0" x2="0" y2="10" stroke="var(--brand-500)" stroke-width="3" opacity="0.8" />
+        </pattern>
+
+        <!-- Pattern for User 3 (Dots/Grid) -->
+        <pattern id="pat-user3" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="var(--bg-elevated)" />
+            <circle cx="6" cy="6" r="2.5" fill="var(--text-primary)" opacity="0.5" />
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Main Title -->
+    <text x="400" y="35" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--text-primary)">Multiple Access Techniques / تقنيات الوصول المتعدد</text>
+
+    <!-- ========================================== -->
+    <!-- CHART 1: FDMA                              -->
+    <!-- ========================================== -->
+    <g id="fdma-chart">
+        <!-- Titles -->
+        <text x="145" y="75" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--brand-500)">FDMA</text>
+        <text x="145" y="95" text-anchor="middle" font-size="14" fill="var(--text-secondary)">Frequency Division</text>
+        <text x="145" y="115" text-anchor="middle" font-size="14" fill="var(--text-secondary)">تقسيم التردد</text>
+
+        <!-- Axes -->
+        <line x1="40" y1="380" x2="40" y2="140" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)" />
+        <line x1="40" y1="380" x2="250" y2="380" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)" />
+        
+        <!-- Axis Labels -->
+        <text transform="rotate(-90)" x="-260" y="25" text-anchor="middle" font-size="13" fill="var(--text-muted)">Frequency / التردد</text>
+        <text x="145" y="415" text-anchor="middle" font-size="13" fill="var(--text-muted)">Time / الوقت</text>
+
+        <!-- Spectrum Background (shows guard bands) -->
+        <rect x="45" y="145" width="195" height="230" fill="var(--bg-elevated)" opacity="0.3" rx="4" />
+
+        <!-- User Blocks -->
+        <!-- User 3 (Top Frequency) -->
+        <rect x="45" y="150" width="195" height="65" fill="url(#pat-user3)" stroke="var(--brand-500)" stroke-width="1" rx="4" />
+        <text x="142" y="187" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="4" paint-order="stroke">User 3 / مستخدم 3</text>
+
+        <!-- User 2 (Middle Frequency) -->
+        <rect x="45" y="225" width="195" height="65" fill="url(#pat-user2)" stroke="var(--brand-500)" stroke-width="1" rx="4" />
+        <text x="142" y="262" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="4" paint-order="stroke">User 2 / مستخدم 2</text>
+
+        <!-- User 1 (Bottom Frequency) -->
+        <rect x="45" y="300" width="195" height="65" fill="var(--brand-500)" opacity="0.85" stroke="var(--brand-500)" stroke-width="1" rx="4" />
+        <text x="142" y="337" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="4" paint-order="stroke">User 1 / مستخدم 1</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- CHART 2: TDMA                              -->
+    <!-- ========================================== -->
+    <g id="tdma-chart">
+        <!-- Titles -->
+        <text x="405" y="75" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--brand-500)">TDMA</text>
+        <text x="405" y="95" text-anchor="middle" font-size="14" fill="var(--text-secondary)">Time Division</text>
+        <text x="405" y="115" text-anchor="middle" font-size="14" fill="var(--text-secondary)">تقسيم الوقت</text>
+
+        <!-- Axes -->
+        <line x1="300" y1="380" x2="300" y2="140" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)" />
+        <line x1="300" y1="380" x2="510" y2="380" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)" />
+        
+        <!-- Axis Labels -->
+        <text transform="rotate(-90)" x="-260" y="285" text-anchor="middle" font-size="13" fill="var(--text-muted)">Frequency / التردد</text>
+        <text x="405" y="415" text-anchor="middle" font-size="13" fill="var(--text-muted)">Time / الوقت</text>
+
+        <!-- Spectrum Background (shows guard times) -->
+        <rect x="305" y="145" width="195" height="230" fill="var(--bg-elevated)" opacity="0.3" rx="4" />
+
+        <!-- User Blocks -->
+        <!-- User 1 (Time Slot 1) -->
+        <rect x="305" y="145" width="60" height="230" fill="var(--brand-500)" opacity="0.85" stroke="var(--brand-500)" stroke-width="1" rx="4" />
+        <text transform="rotate(-90 335 260)" x="335" y="260" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="4" paint-order="stroke">User 1 / مستخدم 1</text>
+
+        <!-- User 2 (Time Slot 2) -->
+        <rect x="375" y="145" width="60" height="230" fill="url(#pat-user2)" stroke="var(--brand-500)" stroke-width="1" rx="4" />
+        <text transform="rotate(-90 405 260)" x="405" y="260" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="4" paint-order="stroke">User 2 / مستخدم 2</text>
+
+        <!-- User 3 (Time Slot 3) -->
+        <rect x="445" y="145" width="60" height="230" fill="url(#pat-user3)" stroke="var(--brand-500)" stroke-width="1" rx="4" />
+        <text transform="rotate(-90 475 260)" x="475" y="260" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)" stroke="var(--bg-surface)" stroke-width="4" paint-order="stroke">User 3 / مستخدم 3</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- CHART 3: CDMA                              -->
+    <!-- ========================================== -->
+    <g id="cdma-chart">
+        <!-- Titles -->
+        <text x="665" y="75" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--brand-500)">CDMA</text>
+        <text x="665" y="95" text-anchor="middle" font-size="14" fill="var(--text-secondary)">Code Division</text>
+        <text x="665" y="115" text-anchor="middle" font-size="14" fill="var(--text-secondary)">تقسيم الكود</text>
+
+        <!-- Axes -->
+        <line x1="560" y1="380" x2="560" y2="140" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)" />
+        <line x1="560" y1="380" x2="770" y2="380" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)" />
+        
+        <!-- Axis Labels -->
+        <text transform="rotate(-90)" x="-260" y="545" text-anchor="middle" font-size="13" fill="var(--text-muted)">Frequency / التردد</text>
+        <text x="665" y="415" text-anchor="middle" font-size="13" fill="var(--text-muted)">Time / الوقت</text>
+
+        <!-- CDMA Grid (Spread Spectrum Representation) -->
+        <!-- User 1 Cells -->
+        <g fill="var(--brand-500)" opacity="0.85">
+            <rect x="565" y="145" width="39" height="46" /> <rect x="682" y="145" width="39" height="46" />
+            <rect x="604" y="191" width="39" height="46" /> <rect x="721" y="191" width="39" height="46" />
+            <rect x="643" y="237" width="39" height="46" />
+            <rect x="565" y="283" width="39" height="46" /> <rect x="682" y="283" width="39" height="46" />
+            <rect x="604" y="329" width="39" height="46" /> <rect x="721" y="329" width="39" height="46" />
+        </g>
+        
+        <!-- User 2 Cells -->
+        <g fill="url(#pat-user2)">
+            <rect x="604" y="145" width="39" height="46" /> <rect x="721" y="145" width="39" height="46" />
+            <rect x="643" y="191" width="39" height="46" />
+            <rect x="565" y="237" width="39" height="46" /> <rect x="682" y="237" width="39" height="46" />
+            <rect x="604" y="283" width="39" height="46" /> <rect x="721" y="283" width="39" height="46" />
+            <rect x="643" y="329" width="39" height="46" />
+        </g>
+
+        <!-- User 3 Cells -->
+        <g fill="url(#pat-user3)">
+            <rect x="643" y="145" width="39" height="46" />
+            <rect x="565" y="191" width="39" height="46" /> <rect x="682" y="191" width="39" height="46" />
+            <rect x="604" y="237" width="39" height="46" /> <rect x="721" y="237" width="39" height="46" />
+            <rect x="643" y="283" width="39" height="46" />
+            <rect x="565" y="329" width="39" height="46" /> <rect x="682" y="329" width="39" height="46" />
+        </g>
+
+        <!-- Grid Border -->
+        <rect x="565" y="145" width="195" height="230" fill="none" stroke="var(--brand-500)" stroke-width="2" rx="4" />
+
+        <!-- Overlay Label -->
+        <rect x="580" y="230" width="165" height="60" fill="var(--bg-surface)" opacity="0.9" rx="8" stroke="var(--brand-500)" stroke-width="1" />
+        <text x="662" y="255" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">All Users / جميع المستخدمين</text>
+        <text x="662" y="275" text-anchor="middle" font-size="12" fill="var(--text-secondary)">Separated by Code / مفصولين بالكود</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- LEGEND                                     -->
+    <!-- ========================================== -->
+    <g id="legend" transform="translate(0, 450)">
+        <!-- User 1 -->
+        <rect x="160" y="0" width="20" height="20" fill="var(--brand-500)" opacity="0.85" rx="4" />
+        <text x="190" y="15" font-size="14" font-weight="bold" fill="var(--text-primary)">User 1 / مستخدم 1</text>
+
+        <!-- User 2 -->
+        <rect x="360" y="0" width="20" height="20" fill="url(#pat-user2)" rx="4" />
+        <rect x="360" y="0" width="20" height="20" fill="none" stroke="var(--border-color)" stroke-width="1" rx="4" />
+        <text x="390" y="15" font-size="14" font-weight="bold" fill="var(--text-primary)">User 2 / مستخدم 2</text>
+
+        <!-- User 3 -->
+        <rect x="560" y="0" width="20" height="20" fill="url(#pat-user3)" rx="4" />
+        <rect x="560" y="0" width="20" height="20" fill="none" stroke="var(--border-color)" stroke-width="1" rx="4" />
+        <text x="590" y="15" font-size="14" font-weight="bold" fill="var(--text-primary)">User 3 / مستخدم 3</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في نظام الاقتراع (Polling)، متى يستخدم الجهاز الرئيسي وظيفة Select ومتى يستخدم وظيفة Poll؟</template>
+      <template class="content-en">In a Polling system, when does the primary device use the Select function and when does it use the Poll function?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يستخدم Select عندما يكون لدى الجهاز الرئيسي بيانات يريد إرسالها. ويستخدم Poll عندما يكون الجهاز الرئيسي مستعداً لاستقبال بيانات من الأجهزة الفرعية.</p></template>
+      <template class="content-en"><p>Select is used when the primary device has data to send. Poll is used when the primary device is ready to receive data from secondary devices.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="ethernet-evolution" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> تطور الإيثرنت وإطار MAC</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Ethernet Evolution & MAC Frame</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تطور الإيثرنت من 10 ميجابت/ثانية إلى 10 جيجابت/ثانية مع الحفاظ على نفس تنسيق الإطار.</p></template>
+    <template class="content-en"><p>Ethernet evolved from 10 Mbps to 10 Gbps while maintaining the same frame format.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تطور الإيثرنت عبر أربعة أجيال:</p><ul><li><strong>Standard</strong> (10 Mbps)،</li><li><strong>Fast</strong> (100 Mbps)،</li><li><strong>Gigabit</strong> (1 Gbps)،</li><li><strong>و 10-Gigabit</strong> (10 Gbps).</li></ul><p>الإيثرنت القياسي يقدم خدمة غير موثوقة وبدون اتصال (Connectionless and Unreliable).</p><p>يتكون إطار الإيثرنت من 7 حقول:</p><ul><li><strong><span class="smart-term" data-term-en="Preamble" data-ar="الديباجة" data-en-def="56 bits of alternating 1s and 0s used for synchronization in Ethernet frames.">Preamble<span class="smart-term-tooltip"></span></span></strong>،</li><li><strong><span class="smart-term" data-term-en="SFD" data-ar="محدد بداية الإطار" data-en-def="Start Frame Delimiter; a 1-byte flag (10101011) indicating the start of the frame.">SFD<span class="smart-term-tooltip"></span></span></strong>،</li><li><strong>عنوان الوجهة</strong>،</li><li><strong>عنوان المصدر</strong>،</li><li><strong>النوع (Type)</strong>،</li><li><strong>البيانات والحشو (Data and padding)</strong>،</li><li><strong>و CRC</strong>.</li></ul><p>الحد الأدنى لطول الإطار هو 64 بايت والحد الأقصى 1518 بايت.</p></template>
+    <template class="content-en"><p>Ethernet evolved through four generations:</p><ul><li><strong>Standard</strong> (10 Mbps),</li><li><strong>Fast</strong> (100 Mbps),</li><li><strong>Gigabit</strong> (1 Gbps),</li><li>and <strong>10-Gigabit</strong> (10 Gbps).</li></ul><p>Standard Ethernet provides connectionless and unreliable service.</p><p>The Ethernet frame contains 7 fields:</p><ul><li><strong><span class="smart-term" data-term-en="Preamble" data-ar="الديباجة" data-en-def="56 bits of alternating 1s and 0s used for synchronization in Ethernet frames.">Preamble<span class="smart-term-tooltip"></span></span></strong>,</li><li><strong><span class="smart-term" data-term-en="SFD" data-ar="محدد بداية الإطار" data-en-def="Start Frame Delimiter; a 1-byte flag (10101011) indicating the start of the frame.">SFD<span class="smart-term-tooltip"></span></span></strong>,</li><li><strong>Destination address</strong>,</li><li><strong>Source address</strong>,</li><li><strong>Type</strong>,</li><li><strong>Data and padding</strong>,</li><li>and <strong>CRC</strong>.</li></ul><p>The minimum frame length is 64 bytes and the maximum is 1518 bytes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>للحفاظ على التوافقية، أبقت الأجيال الأحدث (مثل Fast و Gigabit) على طبقة MAC وتنسيق الإطار دون تغيير.</p><p>ولكن لزيادة السرعة مع الحفاظ على الحد الأدنى لحجم الإطار في CSMA/CD، كان يجب تقليل الحد الأقصى لطول الشبكة.</p><p>في 10-Gigabit Ethernet، يتم استخدام وضع Full-Duplex فقط، مما يلغي الحاجة لـ CSMA/CD تماماً.</p></template>
+    <template class="content-en"><p>To maintain compatibility, newer generations (Fast, Gigabit) kept the MAC sublayer and frame format unchanged.</p><p>However, to increase speed while keeping the minimum frame size in CSMA/CD, the maximum network length had to be reduced.</p><p>In 10-Gigabit Ethernet, only full-duplex mode is used, completely eliminating the need for CSMA/CD.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Diagram of the IEEE 802.3 Ethernet Frame format. Show fields sequentially: Preamble (7 bytes), SFD (1 byte), Destination address (6 bytes), Source address (6 bytes), Type (2 bytes), Data and padding (46-1500 bytes), CRC (4 bytes). Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title -->
+    <text x="400" y="45" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">IEEE 802.3 Ethernet Frame Format</text>
+    <text x="400" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">بنية إطار الإيثرنت</text>
+
+    <!-- Top Brackets (Field Groups) -->
+    <!-- Physical Layer Header -->
+    <path d="M 58 125 v -8 h 124 v 8" fill="none" stroke="var(--brand-400)" stroke-width="1.5"/>
+    <text x="120" y="108" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Sync / مزامنة</text>
+
+    <!-- MAC Header -->
+    <path d="M 186 125 v -8 h 268 v 8" fill="none" stroke="var(--brand-400)" stroke-width="1.5"/>
+    <text x="320" y="108" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">MAC Header / رأس الإطار</text>
+
+    <!-- Payload -->
+    <path d="M 458 125 v -8 h 200 v 8" fill="none" stroke="var(--brand-400)" stroke-width="1.5"/>
+    <text x="558" y="108" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Payload / الحمولة</text>
+
+    <!-- Trailer -->
+    <path d="M 662 125 v -8 h 80 v 8" fill="none" stroke="var(--brand-400)" stroke-width="1.5"/>
+    <text x="702" y="108" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Trailer / الذيل</text>
+
+    <!-- Main Frame Blocks -->
+    <!-- Preamble -->
+    <rect x="58" y="135" width="80" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="98" y="172" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Preamble</text>
+    <text x="98" y="196" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">التمهيد</text>
+
+    <!-- SFD -->
+    <rect x="142" y="135" width="40" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="162" y="182" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">SFD</text>
+
+    <!-- Destination MAC -->
+    <rect x="186" y="135" width="100" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="236" y="172" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Dest MAC</text>
+    <text x="236" y="196" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">MAC الوجهة</text>
+
+    <!-- Source MAC -->
+    <rect x="290" y="135" width="100" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="340" y="172" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Src MAC</text>
+    <text x="340" y="196" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">MAC المصدر</text>
+
+    <!-- Type / Length -->
+    <rect x="394" y="135" width="60" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="424" y="172" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Type</text>
+    <text x="424" y="196" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">النوع</text>
+
+    <!-- Data and Padding -->
+    <rect x="458" y="135" width="200" height="80" fill="url(#highlightGrad)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="558" y="172" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Data &amp; Padding</text>
+    <text x="558" y="196" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="middle">البيانات والحشو</text>
+
+    <!-- CRC -->
+    <rect x="662" y="135" width="80" height="80" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="4"/>
+    <text x="702" y="172" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">CRC</text>
+    <text x="702" y="196" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">التحقق</text>
+
+    <!-- Byte Size Labels -->
+    <text x="98" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">7 Bytes</text>
+    <text x="162" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">1 Byte</text>
+    <text x="236" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">6 Bytes</text>
+    <text x="340" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">6 Bytes</text>
+    <text x="424" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">2 Bytes</text>
+    <text x="558" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">46 - 1500 Bytes</text>
+    <text x="702" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-muted)" text-anchor="middle">4 Bytes</text>
+
+    <!-- Bottom Brackets (OSI Layers) -->
+    <!-- Layer 1 -->
+    <path d="M 58 255 v 8 h 124 v -8" fill="none" stroke="var(--brand-400)" stroke-width="1.5"/>
+    <text x="120" y="285" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">L1: Physical Layer</text>
+    <text x="120" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الطبقة الفيزيائية</text>
+
+    <!-- Layer 2 -->
+    <path d="M 186 255 v 8 h 556 v -8" fill="none" stroke="var(--brand-400)" stroke-width="1.5"/>
+    <text x="464" y="285" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">L2: Data Link Layer (MAC Sublayer)</text>
+    <text x="464" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">طبقة ربط البيانات</text>
+
+    <!-- Transmission Order Arrow -->
+    <text x="400" y="350" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Transmission Order / اتجاه الإرسال</text>
+    <path d="M 250 365 L 540 365" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يُستخدم بروتوكول CSMA/CD في شبكات 10-Gigabit Ethernet؟</template>
+      <template class="content-en">Why is the CSMA/CD protocol not used in 10-Gigabit Ethernet?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن شبكات 10-Gigabit Ethernet تعمل فقط في وضع الازدواج الكامل (Full-Duplex)، مما يعني أن الإرسال والاستقبال يتمان في مسارات منفصلة، فلا يوجد تنافس على الوسيط ولا تحدث تصادمات.</p></template>
+      <template class="content-en"><p>Because 10-Gigabit Ethernet operates only in full-duplex mode, meaning transmission and reception occur on separate paths. There is no contention for the medium, so collisions do not occur.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="wireless-lan-hidden-station" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> الشبكات اللاسلكية ومشكلة المحطة المخفية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Wireless LANs & Hidden Station Problem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>في الشبكات اللاسلكية، قد لا ترى المحطات بعضها البعض، مما يسبب تصادمات لا يمكن اكتشافها (<span class="smart-term" data-term-en="Hidden Station Problem" data-ar="مشكلة المحطة المخفية" data-en-def="A situation where two stations cannot hear each other but transmit to the same receiver, causing a collision.">مشكلة المحطة المخفية<span class="smart-term-tooltip"></span></span>).</p></template>
+    <template class="content-en"><p>In wireless LANs, stations might not see each other, causing undetectable collisions (<span class="smart-term" data-term-en="Hidden Station Problem" data-ar="مشكلة المحطة المخفية" data-en-def="A situation where two stations cannot hear each other but transmit to the same receiver, causing a collision.">Hidden Station Problem<span class="smart-term-tooltip"></span></span>).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تختلف الشبكات اللاسلكية عن السلكية في أن الوسيط هو الهواء (بث) والمضيفون غير متصلين فيزيائياً. يمكن أن تكون الشبكة معزولة (<span class="smart-term" data-term-en="Ad hoc network" data-ar="شبكة مخصصة (Ad hoc)" data-en-def="A wireless isolated LAN where hosts communicate freely with each other without an infrastructure.">Ad hoc<span class="smart-term-tooltip"></span></span>) أو متصلة ببنية تحتية (Infrastructure).</p><p>المشكلة الكبرى هي التحكم في الوصول. لا يعمل CSMA/CD بسبب مشكلة المحطة المخفية (Hidden Station Problem): إذا كانت المحطة A والمحطة C خارج نطاق بعضهما البعض، ولكنهما في نطاق المحطة B، فقد يرسلان إلى B في نفس الوقت معتقدين أن القناة فارغة، مما يسبب تصادماً في B لا تستطيع A أو C اكتشافه.</p></template>
+    <template class="content-en"><p>Wireless LANs differ from wired LANs as the medium is air (broadcast) and hosts are not physically connected. They can be isolated (<span class="smart-term" data-term-en="Ad hoc network" data-ar="شبكة مخصصة (Ad hoc)" data-en-def="A wireless isolated LAN where hosts communicate freely with each other without an infrastructure.">Ad hoc<span class="smart-term-tooltip"></span></span>) or connected to an Infrastructure.</p><p>The major issue is access control. CSMA/CD fails due to the Hidden Station Problem: If stations A and C are out of each other's range but both are in range of B, they might transmit to B simultaneously thinking the channel is idle, causing a collision at B that neither A nor C can detect.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لحل هذه المشكلة، تستخدم شبكات IEEE 802.11 بروتوكول CSMA/CA مع إشارات RTS (طلب إرسال) و CTS (جاهز للإرسال).</p><p>عندما ترسل A إشارة RTS إلى B، ترد B بإشارة CTS تصل إلى كل من A و C. هكذا تعلم C أن القناة محجوزة وتمتنع عن الإرسال (تحديث NAV).</p></template>
+    <template class="content-en"><p>To solve this, IEEE 802.11 uses CSMA/CA with RTS (Request to Send) and CTS (Clear to Send) frames.</p><p>When A sends RTS to B, B replies with CTS which reaches both A and C. C now knows the channel is reserved and refrains from sending (updates its NAV).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Illustration of the Hidden Station Problem. Show three laptops: A, B, C. Draw a circle representing A's range covering B but not C. Draw a circle representing C's range covering B but not A. Show arrows from A and C pointing to B, colliding at B. Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for Node A -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Arrowhead for Node C -->
+        <marker id="arrow-brand-400" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--brand-400)"/>
+        </marker>
+
+        <!-- Laptop Icon -->
+        <g id="laptop">
+            <!-- Screen Border -->
+            <rect x="-26" y="-18" width="52" height="34" rx="3" fill="var(--bg-elevated)" stroke="var(--text-secondary)" stroke-width="2"/>
+            <!-- Inner Screen -->
+            <rect x="-22" y="-14" width="44" height="26" rx="1" fill="var(--bg-surface)"/>
+            <!-- Base -->
+            <path d="M -32 16 L 32 16 L 36 22 L -36 22 Z" fill="var(--text-secondary)"/>
+            <!-- Trackpad -->
+            <rect x="-6" y="18" width="12" height="2" fill="var(--bg-elevated)" opacity="0.5"/>
+        </g>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Range Fills -->
+    <circle cx="150" cy="260" r="280" fill="var(--brand-500)" opacity="0.05"/>
+    <circle cx="650" cy="260" r="280" fill="var(--brand-400)" opacity="0.05"/>
+
+    <!-- Range Borders -->
+    <circle cx="150" cy="260" r="280" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="8 6"/>
+    <circle cx="650" cy="260" r="280" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8 6"/>
+
+    <!-- Out of Range Indicator (A to C) -->
+    <path d="M 150 350 L 330 350" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="6 6"/>
+    <path d="M 470 350 L 650 350" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="6 6"/>
+    <rect x="330" y="335" width="140" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="1"/>
+    <text x="400" y="355" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Out of Range / خارج النطاق</text>
+
+    <!-- Range Labels -->
+    <text x="150" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">A's Range / نطاق أ</text>
+    <text x="650" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">C's Range / نطاق ج</text>
+
+    <!-- Laptops -->
+    <use href="#laptop" x="150" y="260"/>
+    <use href="#laptop" x="400" y="260"/>
+    <use href="#laptop" x="650" y="260"/>
+
+    <!-- Laptop Labels -->
+    <text x="150" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Node A</text>
+    <text x="150" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">العقدة أ</text>
+
+    <text x="400" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Node B</text>
+    <text x="400" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">العقدة ب</text>
+
+    <text x="650" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Node C</text>
+    <text x="650" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">العقدة ج</text>
+
+    <!-- Transmission Arrows -->
+    <path d="M 190 240 L 360 240" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)"/>
+    <text x="275" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Data / بيانات</text>
+
+    <path d="M 610 240 L 440 240" stroke="var(--brand-400)" stroke-width="3" marker-end="url(#arrow-brand-400)"/>
+    <text x="525" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">Data / بيانات</text>
+
+    <!-- Collision Graphic -->
+    <path d="M 400 210 L 408 225 L 425 220 L 415 235 L 430 250 L 410 245 L 400 265 L 390 245 L 370 250 L 385 235 L 375 220 L 392 225 Z" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M 400 220 L 405 230 L 415 228 L 410 238 L 420 245 L 408 242 L 400 255 L 392 242 L 380 245 L 390 238 L 385 228 L 395 230 Z" fill="var(--brand-500)"/>
+    
+    <!-- Collision Text Box -->
+    <rect x="345" y="150" width="110" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1"/>
+    <text x="400" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Collision!</text>
+    <text x="400" y="190" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">تصادم!</text>
+
+    <!-- Bottom Annotations -->
+    <rect x="50" y="395" width="200" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+    <text x="150" y="420" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="middle">A cannot hear C</text>
+    <text x="150" y="440" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">أ لا يمكنه سماع ج</text>
+
+    <rect x="550" y="395" width="200" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+    <text x="650" y="420" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-primary)" text-anchor="middle">C cannot hear A</text>
+    <text x="650" y="440" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">ج لا يمكنه سماع أ</text>
+
+    <!-- Main Title -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Hidden Station Problem / مشكلة المحطة المخفية</text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">Nodes A and C transmit simultaneously to B, causing a collision</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هي مشكلة المحطة المكشوفة (Exposed Station Problem) وكيف تختلف عن المحطة المخفية؟</template>
+      <template class="content-en">What is the Exposed Station Problem and how does it differ from the Hidden Station Problem?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في المحطة المكشوفة، تمتنع محطة عن استخدام القناة رغم أنها متاحة فعلياً، لأنها تسمع إرسالاً موجهاً لمحطة أخرى خارج نطاقها. المحطة المخفية تسبب تصادمات، بينما المحطة المكشوفة تسبب إهداراً للنطاق الترددي.</p></template>
+      <template class="content-en"><p>In the Exposed Station Problem, a station refrains from using a channel when it is actually available, because it hears a transmission intended for another station out of its range. Hidden stations cause collisions, while exposed stations cause wasted bandwidth.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="bluetooth-architecture" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> معمارية البلوتوث</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Bluetooth Architecture</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>البلوتوث شبكة لاسلكية قصيرة المدى تتكون من شبكات صغيرة تسمى <span class="smart-term" data-term-en="Piconet" data-ar="بيكونيت" data-en-def="A small Bluetooth network with one primary and multiple secondary devices.">Piconets<span class="smart-term-tooltip"></span></span> يمكن دمجها لتكوين <span class="smart-term" data-term-en="Scatternet" data-ar="سكاترنيت" data-en-def="A combination of multiple interconnected piconets.">Scatternets<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>Bluetooth is a short-range wireless LAN consisting of small networks called <span class="smart-term" data-term-en="Piconet" data-ar="بيكونيت" data-en-def="A small Bluetooth network with one primary and multiple secondary devices.">Piconets<span class="smart-term-tooltip"></span></span> that can combine into <span class="smart-term" data-term-en="Scatternet" data-ar="سكاترنيت" data-en-def="A combination of multiple interconnected piconets.">Scatternets<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>البلوتوث هي تقنية شبكات محلية لاسلكية مصممة لربط الأجهزة على مسافات قصيرة (Ad hoc network).</p><p>تحدد معمارية البلوتوث نوعين من الشبكات:</p><ul><li><strong>Piconet</strong></li><li><strong>و Scatternet</strong>.</li></ul><p>في الـ Piconet، يوجد جهاز واحد يعمل كجهاز رئيسي (Primary) وبقية الأجهزة تعمل كأجهزة فرعية (Secondaries).</p><p>الـ Scatternet هو عبارة عن مجموعة من الـ Piconets المدمجة معاً.</p></template>
+    <template class="content-en"><p>Bluetooth is a wireless LAN technology designed to connect devices at a short distance (Ad hoc network).</p><p>The architecture defines two types of networks:</p><ul><li><strong>Piconet</strong></li><li>and <strong>Scatternet</strong>.</li></ul><p>In a Piconet, one device is called the primary, and the rest are secondaries.</p><p>A Scatternet is a combination of a group of piconets.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في الـ Scatternet، يمكن لجهاز فرعي في Piconet معين أن يعمل كجهاز رئيسي في Piconet آخر، مما يسمح بتوسيع نطاق الشبكة وتمرير البيانات بين الشبكات الصغيرة المختلفة.</p></template>
+    <template class="content-en"><p>In a Scatternet, a secondary station in one piconet can act as the primary station in another piconet, allowing the network to expand and pass data between different small networks.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Diagram showing a Scatternet. Draw two Piconets. Piconet 1 has a Primary node connected to three Secondary nodes. Piconet 2 has a Primary node connected to two Secondary nodes. One of the Secondary nodes in Piconet 1 is acting as the Primary node for Piconet 2. Style: educational, dark background #0d1117, accent colors, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 530" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Gradients for Primary Nodes -->
+        <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-600)" />
+            <stop offset="100%" stop-color="var(--brand-800)" />
+        </linearGradient>
+        
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Drop Shadow for Nodes -->
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Scatternet Topology</text>
+    <text x="400" y="70" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">طوبولوجيا الشبكة المبعثرة</text>
+
+    <!-- Piconet 1 Boundary -->
+    <circle cx="300" cy="250" r="200" fill="var(--brand-500)" fill-opacity="0.04" stroke="var(--brand-400)" stroke-dasharray="8 8" stroke-width="2" />
+    <text x="200" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Piconet 1</text>
+    <text x="200" y="95" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">شبكة بيكو 1</text>
+
+    <!-- Piconet 2 Boundary -->
+    <circle cx="500" cy="250" r="200" fill="var(--brand-500)" fill-opacity="0.04" stroke="var(--brand-500)" stroke-dasharray="8 8" stroke-width="2" />
+    <text x="600" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Piconet 2</text>
+    <text x="600" y="95" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">شبكة بيكو 2</text>
+
+    <!-- Connections (Lines with Arrows) -->
+    <!-- P1 to S1 -->
+    <line x1="264.9" y1="221.9" x2="185.1" y2="158.1" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <!-- P1 to S2 -->
+    <line x1="264.9" y1="278.1" x2="185.1" y2="341.9" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <!-- P1 to Bridge -->
+    <line x1="345" y1="250" x2="455" y2="250" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <!-- Bridge to S4 -->
+    <line x1="535.1" y1="221.9" x2="614.9" y2="158.1" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <!-- Bridge to S5 -->
+    <line x1="535.1" y1="278.1" x2="614.9" y2="341.9" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Nodes for Piconet 1 -->
+    <!-- Secondary 1 -->
+    <circle cx="150" cy="130" r="45" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    <text x="150" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Secondary</text>
+    <text x="150" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-secondary)" text-anchor="middle">ثانوي</text>
+
+    <!-- Secondary 2 -->
+    <circle cx="150" cy="370" r="45" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    <text x="150" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Secondary</text>
+    <text x="150" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-secondary)" text-anchor="middle">ثانوي</text>
+
+    <!-- Primary 1 -->
+    <circle cx="300" cy="250" r="45" fill="url(#primaryGrad)" filter="url(#shadow)" />
+    <text x="300" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">Primary</text>
+    <text x="300" y="265" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">أساسي</text>
+
+    <!-- Nodes for Piconet 2 -->
+    <!-- Secondary 4 -->
+    <circle cx="650" cy="130" r="45" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    <text x="650" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Secondary</text>
+    <text x="650" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-secondary)" text-anchor="middle">ثانوي</text>
+
+    <!-- Secondary 5 -->
+    <circle cx="650" cy="370" r="45" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+    <text x="650" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Secondary</text>
+    <text x="650" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-secondary)" text-anchor="middle">ثانوي</text>
+
+    <!-- Bridge Node (Secondary in P1, Primary in P2) -->
+    <circle cx="500" cy="250" r="45" fill="url(#primaryGrad)" filter="url(#shadow)" />
+    <text x="500" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">Bridge</text>
+    <text x="500" y="265" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">جسر</text>
+
+    <!-- Bridge Node Annotations -->
+    <rect x="420" y="150" width="160" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+    <text x="500" y="168" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Secondary in P1</text>
+    <text x="500" y="186" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-secondary)" text-anchor="middle">ثانوي في بيكو 1</text>
+
+    <rect x="420" y="305" width="160" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+    <text x="500" y="323" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Primary in P2</text>
+    <text x="500" y="341" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" fill="var(--text-secondary)" text-anchor="middle">أساسي في بيكو 2</text>
+
+    <!-- Legend -->
+    <rect x="100" y="465" width="600" height="55" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)" />
+    
+    <!-- Legend: Primary -->
+    <circle cx="150" cy="492" r="12" fill="url(#primaryGrad)" />
+    <text x="215" y="488" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Primary Node</text>
+    <text x="215" y="508" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">عقدة أساسية</text>
+
+    <!-- Legend: Secondary -->
+    <circle cx="330" cy="492" r="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="395" y="488" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Secondary Node</text>
+    <text x="395" y="508" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">عقدة ثانوية</text>
+
+    <!-- Legend: Boundary -->
+    <line x1="510" y1="492" x2="540" y2="492" stroke="var(--brand-500)" stroke-dasharray="4 4" stroke-width="2" />
+    <text x="615" y="488" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Piconet Boundary</text>
+    <text x="615" y="508" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">حدود شبكة بيكو</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر البلوتوث شبكة Ad hoc؟</template>
+      <template class="content-en">Why is Bluetooth considered an Ad hoc network?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يتم تشكيله ديناميكياً بين الأجهزة المتاحة دون الحاجة إلى بنية تحتية ثابتة مثل أجهزة التوجيه (Routers) أو نقاط الوصول (Access Points).</p></template>
+      <template class="content-en"><p>Because it is formed dynamically between available devices without the need for a fixed infrastructure like routers or access points.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في ليلة الامتحان! دعونا نربط خيوط هذه الوحدة معاً. بدأنا بطبقة ربط البيانات، وهي الطبقة التي تضمن انتقال البيانات بأمان عبر 'الرابط' المحلي. تذكروا دائماً أننا قسمناها إلى DLC للتحكم المنطقي و MAC للتحكم في الوصول للوسيط. عندما نتحدث عن MAC، فنحن نتحدث عن 'من له الحق في التحدث الآن؟'. في الشبكات السلكية (الإيثرنت)، استخدمنا CSMA/CD لاكتشاف التصادمات، ومع تطور الإيثرنت وصولاً إلى 10 جيجابت، تخلصنا من التصادمات تماماً باستخدام الازدواج الكامل (Full-Duplex). أما في العالم اللاسلكي، فالأمور أعقد! الهواء وسيط مشترك، ولا يمكننا الاستماع أثناء التحدث، وهناك 'محطات مخفية' تسبب تصادمات لا نراها. لذلك لجأنا إلى CSMA/CA لتجنب التصادمات قدر الإمكان. وأخيراً، ألقينا نظرة على البلوتوث، تلك الشبكة الصغيرة (Piconet) التي يمكن أن تتشابك لتكوين شبكة أكبر (Scatternet). ركزوا جيداً على الفرق بين Unicast و Multicast في عناوين MAC، وافهموا دور ARP كالمترجم بين عالم IP وعالم MAC. بالتوفيق في الامتحان!</template>
+    <template class="content-en">Welcome, my friends, to exam eve! Let's tie the threads of this module together. We started with the Data-Link layer, which ensures safe data transit across a local 'link'. Remember, we split it into DLC for logical control and MAC for media access. When we talk about MAC, we're asking 'who has the right to speak now?'. In wired networks (Ethernet), we used CSMA/CD to detect collisions. As Ethernet evolved to 10-Gigabit, we eliminated collisions entirely using Full-Duplex. But in the wireless world, things are trickier! Air is a shared medium, we can't listen while talking, and 'hidden stations' cause unseen collisions. Thus, we shifted to CSMA/CA to avoid collisions. Finally, we looked at Bluetooth, a small ad hoc network (Piconet) that can link up to form a Scatternet. Focus heavily on distinguishing Unicast from Multicast MAC addresses, and understand ARP's role as the translator between the IP and MAC worlds. Good luck on the exam!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تم تقسيم طبقة ربط البيانات إلى طبقتين فرعيتين (DLC و MAC)؟</template>
+          <template class="content-en">Why was the data-link layer divided into two sublayers (DLC and MAC)?</template>
+          <span class="content-target">لماذا تم تقسيم طبقة ربط البيانات إلى طبقتين فرعيتين (DLC و MAC)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لفصل الوظائف المنطقية (مثل التأطير والتحكم في الأخطاء في DLC) عن تفاصيل الوصول الفيزيائي للوسائط (في MAC)، مما يسهل دعم وسائط فيزيائية مختلفة دون تغيير البروتوكولات العليا.</template>
+          <template class="content-en">To separate logical functions (like framing and error control in DLC) from physical media access details (in MAC), making it easier to support different physical media without changing upper protocols.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يختلف طلب ARP عن رد ARP من حيث نوع البث؟</template>
+          <template class="content-en">How does an ARP request differ from an ARP reply in terms of broadcast type?</template>
+          <span class="content-target">كيف يختلف طلب ARP عن رد ARP من حيث نوع البث؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">طلب ARP يكون Broadcast (لأن المرسل يبحث عن الوجهة)، بينما رد ARP يكون Unicast (لأن الوجهة تعرف الآن عنوان المرسل).</template>
+          <template class="content-en">An ARP request is Broadcast (because the sender is searching for the destination), while an ARP reply is Unicast (because the destination now knows the sender's address).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين CSMA/CD و CSMA/CA؟</template>
+          <template class="content-en">What is the main difference between CSMA/CD and CSMA/CA?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين CSMA/CD و CSMA/CA؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">CSMA/CD (اكتشاف التصادم) يُستخدم في الشبكات السلكية حيث يمكن للمحطة الاستماع أثناء الإرسال. CSMA/CA (تجنب التصادم) يُستخدم في الشبكات اللاسلكية حيث لا يمكن الاستماع أثناء الإرسال لتجنب التصادمات مسبقاً.</template>
+          <template class="content-en">CSMA/CD (Collision Detection) is used in wired networks where a station can listen while sending. CSMA/CA (Collision Avoidance) is used in wireless networks where listening while sending is impossible, aiming to prevent collisions beforehand.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مشكلة المحطة المخفية (Hidden Station)؟</template>
+          <template class="content-en">What is the Hidden Station problem?</template>
+          <span class="content-target">ما هي مشكلة المحطة المخفية (Hidden Station)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحدث عندما تكون محطتان (A و C) خارج نطاق بعضهما البعض ولكنهما في نطاق محطة ثالثة (B). قد ترسلان لـ B في نفس الوقت مما يسبب تصادماً لا يمكنهما اكتشافه.</template>
+          <template class="content-en">It occurs when two stations (A and C) are out of each other's range but within range of a third station (B). They might transmit to B simultaneously, causing a collision they cannot detect.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل بروتوكول CSMA/CA مشكلة المحطة المخفية؟</template>
+          <template class="content-en">How does the CSMA/CA protocol solve the hidden station problem?</template>
+          <span class="content-target">كيف يحل بروتوكول CSMA/CA مشكلة المحطة المخفية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام إشارات RTS (طلب إرسال) و CTS (جاهز للإرسال). إشارة CTS التي يرسلها المستقبل تُعلم جميع المحطات المخفية بأن القناة محجوزة.</template>
+          <template class="content-en">By using RTS (Request to Send) and CTS (Clear to Send) frames. The CTS frame sent by the receiver informs all hidden stations that the channel is reserved.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين FDMA و TDMA و CDMA؟</template>
+          <template class="content-en">What is the difference between FDMA, TDMA, and CDMA?</template>
+          <span class="content-target">ما هو الفرق بين FDMA و TDMA و CDMA؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">FDMA يقسم النطاق الترددي إلى قنوات. TDMA يقسم الوقت إلى فترات زمنية. CDMA يسمح للجميع بالإرسال في نفس الوقت وعلى نفس التردد باستخدام أكواد رياضية مميزة.</template>
+          <template class="content-en">FDMA divides bandwidth into frequency channels. TDMA divides time into slots. CDMA allows everyone to transmit simultaneously on the same frequency using distinct mathematical codes.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تم تقليل الحد الأقصى لطول الشبكة في Fast Ethernet مقارنة بـ Standard Ethernet؟</template>
+          <template class="content-en">Why was the maximum network length reduced in Fast Ethernet compared to Standard Ethernet?</template>
+          <span class="content-target">لماذا تم تقليل الحد الأقصى لطول الشبكة في Fast Ethernet مقارنة بـ Standard Ethernet؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">للحفاظ على الحد الأدنى لحجم الإطار (512 بت) مع زيادة السرعة 10 أضعاف، كان يجب تقليل طول الشبكة 10 أضعاف لضمان اكتشاف التصادمات في الوقت المناسب (CSMA/CD).</template>
+          <template class="content-en">To keep the minimum frame size (512 bits) while increasing speed 10x, the network length had to be reduced 10x to ensure collisions could still be detected in time (CSMA/CD).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الـ Piconet في البلوتوث؟</template>
+          <template class="content-en">What is a Piconet in Bluetooth?</template>
+          <span class="content-target">ما هو الـ Piconet في البلوتوث؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو شبكة بلوتوث صغيرة تتكون من جهاز رئيسي واحد (Primary) وما يصل إلى 7 أجهزة فرعية (Secondaries) نشطة.</template>
+          <template class="content-en">It is a small Bluetooth network consisting of one primary device and up to 7 active secondary devices.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكن معرفة ما إذا كان عنوان MAC هو Multicast؟</template>
+          <template class="content-en">How can you tell if a MAC address is Multicast?</template>
+          <span class="content-target">كيف يمكن معرفة ما إذا كان عنوان MAC هو Multicast؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بالنظر إلى الرقم السداسي عشر الثاني من اليسار؛ إذا كان رقماً فردياً (مثل 1, 3, 5, 7, 9, B, D, F)، فالعنوان هو Multicast.</template>
+          <template class="content-en">By looking at the second hexadecimal digit from the left; if it is an odd number (like 1, 3, 5, 7, 9, B, D, F), the address is Multicast.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا نحتاج إلى CSMA/CD في 10-Gigabit Ethernet؟</template>
+          <template class="content-en">Why do we not need CSMA/CD in 10-Gigabit Ethernet?</template>
+          <span class="content-target">لماذا لا نحتاج إلى CSMA/CD في 10-Gigabit Ethernet؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن 10-Gigabit Ethernet يعمل حصرياً في وضع الازدواج الكامل (Full-Duplex)، مما يعني وجود مسارات منفصلة للإرسال والاستقبال، وبالتالي تنعدم فرصة حدوث تصادمات.</template>
+          <template class="content-en">Because 10-Gigabit Ethernet operates exclusively in Full-Duplex mode, meaning there are separate paths for transmission and reception, thus eliminating the chance of collisions.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي الطبقتان الفرعيتان لطبقة ربط البيانات؟",
+      "en": "What are the two sublayers of the data-link layer?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التحكم في الارتباط المنطقي (DLC) والتحكم في الوصول إلى الوسائط (MAC).",
+        "en": "Data Link Control (DLC) and Media Access Control (MAC)."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي وظيفة بروتوكول ARP؟",
+      "en": "What is the function of the ARP protocol?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقوم بتعيين عنوان IP إلى عنوان MAC المقابل له في الشبكة المحلية.",
+        "en": "Maps an IP address to its corresponding MAC address on the local network."
+      },
+      "example": {
+        "ar": "إرسال طلب ARP لمعرفة عنوان MAC الخاص بـ 10.10.10.3.",
+        "en": "Sending an ARP request to find the MAC address of 10.10.10.3."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "كيف نميز عنوان MAC من نوع Unicast؟",
+      "en": "How do we identify a Unicast MAC address?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الرقم السداسي عشر الثاني من اليسار يكون رقماً زوجياً.",
+        "en": "The second hexadecimal digit from the left is an even number."
+      },
+      "example": {
+        "ar": "4A:30:10:21:10:1A (A هو 10 وهو زوجي).",
+        "en": "4A:30:10:21:10:1A (A is 10, which is even)."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "كيف نميز عنوان MAC من نوع Multicast؟",
+      "en": "How do we identify a Multicast MAC address?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الرقم السداسي عشر الثاني من اليسار يكون رقماً فردياً.",
+        "en": "The second hexadecimal digit from the left is an odd number."
+      },
+      "example": {
+        "ar": "47:20:1B:2E:08:EE (7 هو فردي).",
+        "en": "47:20:1B:2E:08:EE (7 is odd)."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو عنوان Broadcast في MAC؟",
+      "en": "What is the Broadcast MAC address?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عنوان يتكون من 48 بت كلها 1s، ويُكتب كـ FF:FF:FF:FF:FF:FF.",
+        "en": "A 48-bit address of all 1s, written as FF:FF:FF:FF:FF:FF."
+      },
+      "example": {
+        "ar": "FF:FF:FF:FF:FF:FF",
+        "en": "FF:FF:FF:FF:FF:FF"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو مبدأ عمل CSMA؟",
+      "en": "What is the principle of CSMA?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحسس الناقل قبل الإرسال (استمع قبل أن تتحدث) لتقليل فرص التصادم.",
+        "en": "Sense before transmit (listen before talk) to reduce the chance of collision."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "لماذا لا يعمل CSMA/CD في الشبكات اللاسلكية؟",
+      "en": "Why doesn't CSMA/CD work in wireless LANs?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بسبب مشكلة المحطة المخفية وعدم امتلاك المحطات طاقة كافية للإرسال والاستقبال معاً لاكتشاف التصادم.",
+        "en": "Due to the hidden station problem and stations lacking power to send and receive simultaneously to detect collisions."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي استراتيجيات CSMA/CA الثلاث؟",
+      "en": "What are the three strategies of CSMA/CA?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المسافة بين الإطارات (IFS)، نافذة التنافس، والإقرارات (ACK).",
+        "en": "Interframe space (IFS), contention window, and acknowledgments."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي طرق الوصول المتحكم به (Controlled Access)؟",
+      "en": "What are the Controlled Access methods?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الحجز (Reservation)، الاقتراع (Polling)، وتمرير الرمز (Token Passing).",
+        "en": "Reservation, Polling, and Token Passing."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو الفرق بين Select و Poll في نظام الاقتراع؟",
+      "en": "What is the difference between Select and Poll in a polling system?"
+    },
+    "back": {
+      "definition": {
+        "ar": "Select يُستخدم عندما يريد الرئيسي الإرسال، و Poll يُستخدم عندما يكون مستعداً للاستقبال.",
+        "en": "Select is used when the primary wants to send, Poll is used when it is ready to receive."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي بروتوكولات تقسيم القنوات (Channelization) الثلاثة؟",
+      "en": "What are the three Channelization protocols?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقسيم التردد (FDMA)، تقسيم الوقت (TDMA)، وتقسيم الكود (CDMA).",
+        "en": "Frequency-Division (FDMA), Time-Division (TDMA), and Code-Division (CDMA)."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو الحد الأدنى والأقصى لطول إطار الإيثرنت؟",
+      "en": "What is the minimum and maximum length of an Ethernet frame?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الحد الأدنى 64 بايت، والحد الأقصى 1518 بايت.",
+        "en": "Minimum 64 bytes, Maximum 1518 bytes."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي مشكلة المحطة المخفية (Hidden Station Problem)؟",
+      "en": "What is the Hidden Station Problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "محطتان لا تريان بعضهما البعض ترسلان لنفس الوجهة في نفس الوقت، مما يسبب تصادماً لا يمكنهما اكتشافه.",
+        "en": "Two stations that cannot hear each other transmit to the same destination simultaneously, causing an undetectable collision."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو الـ Piconet في البلوتوث؟",
+      "en": "What is a Piconet in Bluetooth?"
+    },
+    "back": {
+      "definition": {
+        "ar": "شبكة بلوتوث صغيرة تتكون من جهاز رئيسي واحد وعدة أجهزة فرعية.",
+        "en": "A small Bluetooth network consisting of one primary device and multiple secondary devices."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو الـ Scatternet؟",
+      "en": "What is a Scatternet?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من شبكات Piconet المترابطة، حيث يمكن لجهاز فرعي في إحداها أن يكون رئيسياً في أخرى.",
+        "en": "A combination of interconnected Piconets, where a secondary in one can be a primary in another."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من الطبقات الفرعية التالية مسؤولة عن تنفيذ بروتوكول الإيثرنت في الأجهزة (Hardware)؟",
+      "en": "Which of the following sublayers is responsible for implementing the Ethernet protocol in hardware?"
+    },
+    "options": {
+      "ar": [
+        "طبقة LLC",
+        "طبقة MAC",
+        "طبقة الشبكة",
+        "طبقة النقل"
+      ],
+      "en": [
+        "LLC sublayer",
+        "MAC sublayer",
+        "Network layer",
+        "Transport layer"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "طبقة MAC (IEEE 802.3) تُنفذ عادة في الأجهزة (Hardware) مثل بطاقة الشبكة (NIC)، بينما LLC تُنفذ في البرمجيات.",
+      "en": "The MAC sublayer (IEEE 802.3) is typically implemented in hardware like the NIC, while LLC is implemented in software."
+    },
+    "hint": {
+      "ar": "تذكر أين توجد بطاقة الشبكة (NIC).",
+      "en": "Remember where the Network Interface Card (NIC) operates."
+    },
+    "difficulty": "medium",
+    "conceptId": "data-link-layer-basics"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو نوع عنوان MAC إذا كان الرقم السداسي عشر الثاني من اليسار هو 'B'؟",
+      "en": "What type of MAC address is it if the second hexadecimal digit from the left is 'B'?"
+    },
+    "options": {
+      "ar": [
+        "Unicast",
+        "Multicast",
+        "Broadcast",
+        "Anycast"
+      ],
+      "en": [
+        "Unicast",
+        "Multicast",
+        "Broadcast",
+        "Anycast"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الحرف B في النظام السداسي عشر يعادل 11 في النظام العشري، وهو رقم فردي، مما يعني أن العنوان هو Multicast.",
+      "en": "The letter B in hexadecimal equals 11 in decimal, which is an odd number, meaning the address is Multicast."
+    },
+    "hint": {
+      "ar": "B = 11. هل 11 زوجي أم فردي؟",
+      "en": "B = 11. Is 11 even or odd?"
+    },
+    "difficulty": "medium",
+    "conceptId": "link-layer-addressing-arp"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو البروتوكول المستخدم لتعيين عنوان IP إلى عنوان MAC؟",
+      "en": "Which protocol is used to map an IP address to a MAC address?"
+    },
+    "options": {
+      "ar": [
+        "DHCP",
+        "DNS",
+        "ARP",
+        "ICMP"
+      ],
+      "en": [
+        "DHCP",
+        "DNS",
+        "ARP",
+        "ICMP"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بروتوكول ARP (Address Resolution Protocol) يقبل عنوان IP ويقوم بتعيينه إلى عنوان MAC المقابل.",
+      "en": "ARP (Address Resolution Protocol) accepts an IP address and maps it to the corresponding MAC address."
+    },
+    "hint": {
+      "ar": "يبدأ بحرف A.",
+      "en": "Starts with the letter A."
+    },
+    "difficulty": "easy",
+    "conceptId": "link-layer-addressing-arp"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "لماذا لا يمكن استخدام CSMA/CD في الشبكات اللاسلكية؟",
+      "en": "Why cannot CSMA/CD be used in wireless networks?"
+    },
+    "options": {
+      "ar": [
+        "لأن الشبكات اللاسلكية أسرع بكثير من السلكية.",
+        "بسبب مشكلة المحطة المخفية وعدم القدرة على الإرسال والاستقبال معاً.",
+        "لأن عناوين MAC غير مستخدمة في الشبكات اللاسلكية.",
+        "لأن الشبكات اللاسلكية تستخدم وضع الازدواج الكامل فقط."
+      ],
+      "en": [
+        "Because wireless networks are much faster than wired.",
+        "Due to the hidden station problem and inability to send and receive simultaneously.",
+        "Because MAC addresses are not used in wireless networks.",
+        "Because wireless networks only use full-duplex mode."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المحطات اللاسلكية لا تملك طاقة كافية للإرسال والاستقبال في نفس الوقت لاكتشاف التصادم، ومشكلة المحطة المخفية تمنع اكتشاف التصادمات بدقة.",
+      "en": "Wireless stations lack the power to send and receive simultaneously to detect collisions, and the hidden station problem prevents accurate collision detection."
+    },
+    "hint": {
+      "ar": "تذكر مشكلة المحطات التي لا ترى بعضها.",
+      "en": "Remember the problem of stations that cannot see each other."
+    },
+    "difficulty": "medium",
+    "conceptId": "random-access-protocols"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في نظام الاقتراع (Polling)، متى يستخدم الجهاز الرئيسي وظيفة Poll؟",
+      "en": "In a Polling system, when does the primary device use the Poll function?"
+    },
+    "options": {
+      "ar": [
+        "عندما يكون لديه بيانات يريد إرسالها للأجهزة الفرعية.",
+        "عندما يريد إيقاف تشغيل الشبكة.",
+        "عندما يكون مستعداً لاستقبال بيانات من الأجهزة الفرعية.",
+        "عندما يحدث تصادم في الشبكة."
+      ],
+      "en": [
+        "When it has data to send to secondary devices.",
+        "When it wants to shut down the network.",
+        "When it is ready to receive data from secondary devices.",
+        "When a collision occurs in the network."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "وظيفة Poll تُستخدم لسؤال الأجهزة الفرعية عما إذا كان لديها بيانات ترغب في إرسالها إلى الجهاز الرئيسي.",
+      "en": "The Poll function is used to ask secondary devices if they have data to send to the primary device."
+    },
+    "hint": {
+      "ar": "Poll تعني استطلاع أو سؤال.",
+      "en": "Poll means to ask or survey."
+    },
+    "difficulty": "medium",
+    "conceptId": "controlled-access-channelization"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي بروتوكول تقسيم قنوات يسمح لجميع المحطات بالإرسال في نفس الوقت وعلى نفس التردد؟",
+      "en": "Which channelization protocol allows all stations to transmit simultaneously and on the same frequency?"
+    },
+    "options": {
+      "ar": [
+        "FDMA",
+        "TDMA",
+        "CDMA",
+        "CSMA"
+      ],
+      "en": [
+        "FDMA",
+        "TDMA",
+        "CDMA",
+        "CSMA"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في CDMA (تقسيم الكود)، ترسل جميع المحطات في نفس الوقت وتستخدم النطاق الترددي بالكامل، ويتم التمييز بينها باستخدام أكواد رياضية.",
+      "en": "In CDMA (Code-Division), all stations transmit simultaneously using the entire bandwidth, differentiated by mathematical codes."
+    },
+    "hint": {
+      "ar": "يعتمد على نظرية التشفير (Coding Theory).",
+      "en": "Relies on Coding Theory."
+    },
+    "difficulty": "hard",
+    "conceptId": "controlled-access-channelization"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو الحد الأدنى لطول إطار الإيثرنت القياسي؟",
+      "en": "What is the minimum length of a Standard Ethernet frame?"
+    },
+    "options": {
+      "ar": [
+        "46 بايت",
+        "64 بايت",
+        "512 بايت",
+        "1518 بايت"
+      ],
+      "en": [
+        "46 bytes",
+        "64 bytes",
+        "512 bytes",
+        "1518 bytes"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الحد الأدنى لطول إطار الإيثرنت هو 64 بايت (أو 512 بت). 46 بايت هو الحد الأدنى لحقل البيانات فقط.",
+      "en": "The minimum Ethernet frame length is 64 bytes (or 512 bits). 46 bytes is the minimum for the data payload alone."
+    },
+    "hint": {
+      "ar": "تذكر الرقم 64.",
+      "en": "Remember the number 64."
+    },
+    "difficulty": "medium",
+    "conceptId": "ethernet-evolution"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "لماذا لا يُستخدم CSMA/CD في شبكات 10-Gigabit Ethernet؟",
+      "en": "Why is CSMA/CD not used in 10-Gigabit Ethernet?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تستخدم شبكات لاسلكية فقط.",
+        "لأنها تعمل فقط في وضع الازدواج الكامل (Full-Duplex) فلا يوجد تنافس.",
+        "لأن الإطارات أصبحت كبيرة جداً.",
+        "لأنها تستخدم بروتوكول Token Passing بدلاً منه."
+      ],
+      "en": [
+        "Because it only uses wireless networks.",
+        "Because it operates only in full-duplex mode, so there is no contention.",
+        "Because the frames became too large.",
+        "Because it uses Token Passing instead."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في وضع الازدواج الكامل، يتم الإرسال والاستقبال في مسارات منفصلة، مما يلغي احتمالية التصادم تماماً.",
+      "en": "In full-duplex mode, transmission and reception occur on separate paths, completely eliminating the possibility of collisions."
+    },
+    "hint": {
+      "ar": "فكر في مسارات الإرسال والاستقبال المنفصلة.",
+      "en": "Think about separate transmission and reception paths."
+    },
+    "difficulty": "hard",
+    "conceptId": "ethernet-evolution"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الـ Scatternet في شبكات البلوتوث؟",
+      "en": "What is a Scatternet in Bluetooth networks?"
+    },
+    "options": {
+      "ar": [
+        "جهاز رئيسي واحد متصل بعدة أجهزة فرعية.",
+        "بروتوكول لتجنب التصادم في البلوتوث.",
+        "مجموعة من شبكات Piconet المترابطة معاً.",
+        "نوع من الكابلات المستخدمة لربط أجهزة البلوتوث."
+      ],
+      "en": [
+        "One primary device connected to multiple secondaries.",
+        "A collision avoidance protocol in Bluetooth.",
+        "A combination of interconnected Piconets.",
+        "A type of cable used to connect Bluetooth devices."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الـ Scatternet يتكون من دمج عدة شبكات Piconet، حيث يمكن لجهاز أن يكون فرعياً في إحداها ورئيسياً في أخرى.",
+      "en": "A Scatternet is formed by combining multiple Piconets, where a device can be a secondary in one and a primary in another."
+    },
+    "hint": {
+      "ar": "Scatter تعني مبعثر أو منتشر، وهي شبكة أوسع من Piconet.",
+      "en": "Scatter implies spreading out; it's a broader network than a Piconet."
+    },
+    "difficulty": "easy",
+    "conceptId": "bluetooth-architecture"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في مشكلة المحطة المخفية، ماذا يحدث عندما ترسل المحطتان A و C إلى B في نفس الوقت؟",
+      "en": "In the Hidden Station Problem, what happens when stations A and C transmit to B at the same time?"
+    },
+    "options": {
+      "ar": [
+        "تكتشف A و C التصادم وتتوقفان فوراً.",
+        "تستقبل B كلتا الرسالتين بنجاح.",
+        "يحدث تصادم في B ولا تستطيع A أو C اكتشافه.",
+        "تقوم B بإرسال إشارة إيقاف لـ A و C."
+      ],
+      "en": [
+        "A and C detect the collision and abort immediately.",
+        "B receives both messages successfully.",
+        "A collision occurs at B and neither A nor C can detect it.",
+        "B sends a stop signal to A and C."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لأن A و C خارج نطاق بعضهما البعض، فإنهما لا تسمعان إرسال بعضهما، مما يؤدي إلى تصادم البيانات عند B دون علمهما.",
+      "en": "Because A and C are out of each other's range, they cannot hear each other's transmission, leading to a collision at B without their knowledge."
+    },
+    "hint": {
+      "ar": "تذكر أن A و C 'مخفيتان' عن بعضهما.",
+      "en": "Remember that A and C are 'hidden' from each other."
+    },
+    "difficulty": "medium",
+    "conceptId": "wireless-lan-hidden-station"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين CSMA/CD و CSMA/CA: تذكر أن CD (اكتشاف) يُستخدم في الشبكات السلكية (Ethernet)، بينما CA (تجنب) يُستخدم في الشبكات اللاسلكية (Wi-Fi).</template>
+      <template class="content-en">Confusing CSMA/CD and CSMA/CA: Remember that CD (Detection) is for wired networks (Ethernet), while CA (Avoidance) is for wireless networks (Wi-Fi).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في عناوين MAC، الرقم السداسي عشر الثاني من اليسار هو الذي يحدد نوع العنوان (زوجي = Unicast، فردي = Multicast). لا تنظر للرقم الأول!</template>
+      <template class="content-en">In MAC addresses, the SECOND hexadecimal digit from the left determines the type (Even = Unicast, Odd = Multicast). Do not look at the first digit!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">بروتوكول ARP ضروري جداً لأن عناوين IP تحدد الوجهة النهائية فقط، بينما عناوين MAC ضرورية لتوجيه الحزمة عبر الرابط المحلي (القفزة الحالية).</template>
+      <template class="content-en">ARP is crucial because IP addresses only define the final destination, while MAC addresses are necessary to route the frame across the local link (current hop).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">قد تعتقد أن 10-Gigabit Ethernet لا يزال يستخدم CSMA/CD. هذا خطأ! لأنه يعمل بنظام الازدواج الكامل (Full-Duplex) فقط، تم الاستغناء عن CSMA/CD تماماً.</template>
+      <template class="content-en">You might think 10-Gigabit Ethernet still uses CSMA/CD. False! Because it operates strictly in Full-Duplex mode, CSMA/CD is completely eliminated.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">مشكلة المحطة المخفية (Hidden Station) تسبب تصادمات غير مكتشفة، بينما مشكلة المحطة المكشوفة (Exposed Station) تسبب إهداراً للنطاق الترددي بسبب الامتناع غير المبرر عن الإرسال.</template>
+      <template class="content-en">The Hidden Station problem causes undetected collisions, while the Exposed Station problem causes wasted bandwidth due to unjustified refraining from transmission.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M04.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M06.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

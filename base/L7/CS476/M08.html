@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS476" data-module="8">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>برمجة منصات مساحة العناوين المشتركة · CS476 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS476" data-page-title-en="CS476">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M07.html" data-gh-next="M09.html" data-gh-card="../../hub/course.html?code=CS476"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#threads-vs-processes" class="toc-link" data-bilingual>
+        <template class="content-ar">الخيوط مقابل العمليات وتبديل السياق</template>
+        <template class="content-en">Threads vs Processes and Context Switching</template>
+        <span class="content-target">الخيوط مقابل العمليات وتبديل السياق</span>
+      </a>
+      <a href="#user-vs-kernel-threads" class="toc-link" data-bilingual>
+        <template class="content-ar">خيوط مستوى المستخدم مقابل خيوط مستوى النواة</template>
+        <template class="content-en">User-level vs Kernel-level Threads</template>
+        <span class="content-target">خيوط مستوى المستخدم مقابل خيوط مستوى النواة</span>
+      </a>
+      <a href="#posix-threads-api" class="toc-link" data-bilingual>
+        <template class="content-ar">واجهة برمجة تطبيقات POSIX (Pthreads)</template>
+        <template class="content-en">The POSIX Thread API (Pthreads)</template>
+        <span class="content-target">واجهة برمجة تطبيقات POSIX (Pthreads)</span>
+      </a>
+      <a href="#mutual-exclusion-mutexes" class="toc-link" data-bilingual>
+        <template class="content-ar">الاستبعاد المتبادل والأقفال (Mutexes)</template>
+        <template class="content-en">Mutual Exclusion and Mutexes</template>
+        <span class="content-target">الاستبعاد المتبادل والأقفال (Mutexes)</span>
+      </a>
+      <a href="#condition-variables" class="toc-link" data-bilingual>
+        <template class="content-ar">متغيرات الحالة للمزامنة</template>
+        <template class="content-en">Condition Variables for Synchronization</template>
+        <span class="content-target">متغيرات الحالة للمزامنة</span>
+      </a>
+      <a href="#composite-synchronization" class="toc-link" data-bilingual>
+        <template class="content-ar">هياكل المزامنة المركبة (أقفال القراءة/الكتابة والحواجز)</template>
+        <template class="content-en">Composite Synchronization Constructs (RW Locks & Barriers)</template>
+        <span class="content-target">هياكل المزامنة المركبة (أقفال القراءة/الكتابة والحواجز)</span>
+      </a>
+      <a href="#openmp-programming-model" class="toc-link" data-bilingual>
+        <template class="content-ar">نموذج برمجة OpenMP</template>
+        <template class="content-en">OpenMP Programming Model</template>
+        <span class="content-target">نموذج برمجة OpenMP</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 8</template>
+      <template class="content-en">Module 8</template>
+      <span class="content-target">الوحدة 8</span>
+    </span> · CS476
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">برمجة منصات مساحة العناوين المشتركة</h1>
+      <p class="hero-description">تغطي هذه الوحدة أساسيات الخيوط (Threads)، واجهة برمجة تطبيقات POSIX (Pthreads)، آليات المزامنة مثل الأقفال ومتغيرات الحالة، والمفاهيم المتقدمة مثل الحواجز وأقفال القراءة والكتابة، بالإضافة إلى البرمجة الموجهة باستخدام OpenMP.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Programming Shared Address Space Platforms</h1>
+      <p class="hero-description">This module covers thread basics, the POSIX Thread API (Pthreads), synchronization primitives like mutexes and condition variables, composite constructs like barriers and read-write locks, and directive-based programming using OpenMP.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الخيوط</span>
+      <span class="tag">المزامنة</span>
+      <span class="tag">Pthreads</span>
+      <span class="tag">OpenMP</span>
+      <span class="tag">الحوسبة المتوازية</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Threads</span>
+      <span class="tag">Synchronization</span>
+      <span class="tag">Pthreads</span>
+      <span class="tag">OpenMP</span>
+      <span class="tag">Parallel Computing</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح المفهوم الأساسي للخيوط (Threads) والفرق بينها وبين العمليات (Processes).</span></li>
+      <li><span class="obj-icon">✦</span><span>استخدام واجهة برمجة تطبيقات POSIX (Pthreads) لإنشاء الخيوط وإدارتها.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق آليات المزامنة مثل أقفال الاستبعاد المتبادل (Mutexes) ومتغيرات الحالة (Condition Variables).</span></li>
+      <li><span class="obj-icon">✦</span><span>تصميم هياكل مزامنة مركبة مثل أقفال القراءة/الكتابة والحواجز (Barriers).</span></li>
+      <li><span class="obj-icon">✦</span><span>استخدام OpenMP كمعيار للبرمجة المتوازية المعتمدة على التوجيهات (Directives).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain the basic concept of thread basics and the difference between threads and processes.</span></li>
+      <li><span class="obj-icon">✦</span><span>Use the POSIX Thread API (Pthreads) to create and manage threads.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply synchronization primitives such as Mutexes and Condition Variables.</span></li>
+      <li><span class="obj-icon">✦</span><span>Design composite synchronization constructs like read-write locks and barriers.</span></li>
+      <li><span class="obj-icon">✦</span><span>Utilize OpenMP as a standard for directive-based parallel programming.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="threads-vs-processes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الخيوط مقابل العمليات وتبديل السياق</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Threads vs Processes and Context Switching</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الخيط هو معالج برمجي مصغر يتشارك مساحة العناوين مع خيوط أخرى، مما يجعل إنشائه و<span class="smart-term" data-term-en="Context Switching" data-ar="تبديل السياق" data-en-def="The process of storing and restoring the state of a thread or process so that execution can be resumed from the same point at a later time.">تبديل سياقه<span class="smart-term-tooltip"></span></span> أسرع بكثير من العمليات.</p>
+    </template>
+    <template class="content-en">
+      <p>A thread is a minimal software processor sharing the same address space, making its creation and <span class="smart-term" data-term-en="Context Switching" data-ar="تبديل السياق" data-en-def="The process of storing and restoring the state of a thread or process so that execution can be resumed from the same point at a later time.">context switching<span class="smart-term-tooltip"></span></span> much cheaper than processes.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>نحن نبني معالجات افتراضية في البرمجيات فوق المعالجات المادية.</p><ul><li><strong><b>العملية (Process)</b></strong> هي معالج برمجي يمكن أن يُنفذ في سياقه خيط واحد أو أكثر.</li><li><strong><b>الخيط (Thread)</b></strong> هو معالج برمجي مصغر يتم في سياقه تنفيذ سلسلة من التعليمات.</li></ul><p>أنواع السياقات:</p><ul><li><strong><b>سياق المعالج:</b></strong> القيم في سجلات المعالج (مثل عداد البرنامج).</li><li><strong><b>سياق الخيط:</b></strong> القيم في السجلات والذاكرة المستخدمة لتنفيذ الخيط.</li><li><strong><b>سياق العملية:</b></strong> يتضمن سياق الخيط بالإضافة إلى قيم سجلات وحدة إدارة الذاكرة (MMU).</li></ul><p>أسباب استخدام الخيوط تشمل تجنب الحظر غير الضروري (عند الإدخال/الإخراج)، استغلال التوازي، وتجنب التكلفة العالية لتبديل سياق العمليات.</p></template>
+    <template class="content-en"><p>We build virtual processors in software on top of physical processors.</p><ul><li><strong>A <b>Process</b></strong> is a software processor in whose context one or more threads may be executed.</li><li><strong>A <b>Thread</b></strong> is a minimal software processor in whose context a series of instructions can be executed.</li></ul><p>Context types:</p><ul><li><strong><b>Processor context:</b></strong> Values in processor registers (e.g., program counter).</li><li><strong><b>Thread context:</b></strong> Values in registers and memory used for thread execution.</li><li><strong><b>Process context:</b></strong> Includes thread context plus MMU register values.</li></ul><p>Reasons to use threads include avoiding needless blocking (during I/O), exploiting parallelism, and avoiding expensive process context switching.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على الرغم من أن الخيوط توفر أداءً أعلى بسبب مشاركة مساحة العناوين، إلا أن هذه المشاركة تجعلها أكثر عرضة للأخطاء.</p><p>لا يوجد دعم من نظام التشغيل أو الأجهزة لحماية الخيوط من استخدام ذاكرة بعضها البعض، مما يتطلب آليات مزامنة دقيقة من المبرمج.</p><p>تبديل سياق الخيط يمكن أن يتم بشكل مستقل تماماً عن نظام التشغيل، مما يتجنب تكلفة الاستدعاءات النظامية (Trapping to the kernel) المرتبطة بتبديل العمليات.</p></template>
+    <template class="content-en"><p>While threads offer higher performance due to shared address spaces, this sharing makes them more prone to errors.</p><p>There is no OS or hardware support to protect threads from accessing each other's memory, necessitating careful synchronization by the programmer.</p><p>Thread context switching can be done entirely independent of the operating system, avoiding the expensive kernel traps associated with process switching.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Create a diagram showing 'Avoid expensive context switching'. Show two large boxes labeled 'Process A' and 'Process B'. Inside Process A, show a thread line. Show an arrow pointing down to a lower box labeled 'Operating system' (S1: Switch from user space to kernel space). Show a horizontal line in the OS box (S2: Switch context from process A to process B). Show an arrow pointing up to Process B (S3: Switch from kernel space to user space). Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" rx="8" />
+
+  <!-- Title -->
+  <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    Avoid Expensive Context Switching
+  </text>
+  <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">
+    تجنب عبء تبديل السياق
+  </text>
+
+  <!-- User/Kernel Space Boundary -->
+  <line x1="40" y1="270" x2="760" y2="270" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,6" opacity="0.6" />
+  <text x="400" y="255" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">
+    User Space / مساحة المستخدم
+  </text>
+  <text x="400" y="290" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">
+    Kernel Space / مساحة النواة
+  </text>
+
+  <!-- Process A Box -->
+  <rect x="80" y="90" width="240" height="130" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+  <text x="200" y="120" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Process A</text>
+  <text x="200" y="140" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">العملية أ</text>
+
+  <!-- Process B Box -->
+  <rect x="480" y="90" width="240" height="130" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+  <text x="600" y="120" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Process B</text>
+  <text x="600" y="140" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">العملية ب</text>
+
+  <!-- Operating System Box -->
+  <rect x="80" y="320" width="640" height="140" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="400" y="345" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Operating System</text>
+  <text x="400" y="365" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">نظام التشغيل</text>
+
+  <!-- OS Inner Nodes (Save/Restore State) -->
+  <rect x="140" y="380" width="120" height="50" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="200" y="400" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Save State</text>
+  <text x="200" y="418" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-secondary)" text-anchor="middle">حفظ الحالة</text>
+
+  <rect x="540" y="380" width="120" height="50" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="600" y="400" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Restore State</text>
+  <text x="600" y="418" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-secondary)" text-anchor="middle">استعادة الحالة</text>
+
+  <!-- Execution Flow Paths -->
+  
+  <!-- Thread in Process A -->
+  <circle cx="200" cy="155" r="5" fill="var(--brand-500)" />
+  <line x1="200" y1="155" x2="200" y2="220" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,4" />
+  
+  <!-- S1: Switch to Kernel Space -->
+  <line x1="200" y1="220" x2="200" y2="370" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <text x="185" y="255" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="end">S1: Switch to kernel space</text>
+  <text x="185" y="275" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="end">الانتقال إلى مساحة النواة</text>
+
+  <!-- S2: Context Switch (Horizontal Line) -->
+  <line x1="270" y1="405" x2="530" y2="405" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <text x="400" y="390" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">S2: Switch context (A → B)</text>
+  <text x="400" y="425" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">تبديل السياق</text>
+
+  <!-- High Overhead Warning Badge -->
+  <rect x="340" y="435" width="120" height="24" rx="12" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1" />
+  <text x="400" y="452" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">High Overhead</text>
+
+  <!-- S3: Switch to User Space -->
+  <line x1="600" y1="380" x2="600" y2="230" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <text x="615" y="255" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="start">S3: Switch to user space</text>
+  <text x="615" y="275" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="start">الانتقال إلى مساحة المستخدم</text>
+
+  <!-- Thread in Process B -->
+  <line x1="600" y1="220" x2="600" y2="165" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  <circle cx="600" cy="155" r="5" fill="var(--brand-500)" />
+  <circle cx="600" cy="155" r="8" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر تبديل سياق العملية أكثر تكلفة من تبديل سياق الخيط؟</template>
+      <template class="content-en">Why is process context switching more expensive than thread context switching?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن تبديل العملية يتطلب تدخل نظام التشغيل (Trapping to the kernel) وتحديث سجلات وحدة إدارة الذاكرة (MMU)، بينما تتشارك الخيوط نفس مساحة العناوين ويمكن تبديلها في مساحة المستخدم.</p></template>
+      <template class="content-en"><p>Because process switching involves getting the OS in the loop (trapping to the kernel) and updating MMU registers, whereas threads share the same address space and can be switched in user space.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="user-vs-kernel-threads" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> خيوط مستوى المستخدم مقابل خيوط مستوى النواة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> User-level vs Kernel-level Threads</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تُدار خيوط مستوى المستخدم بكفاءة عالية داخل العملية ولكنها تُحظر بالكامل إذا حُظر خيط واحد، بينما تُدار خيوط مستوى النواة بواسطة نظام التشغيل مما يمنع الحظر الشامل ولكن بتكلفة أداء أعلى بسبب <span class="smart-term" data-term-en="Kernel Trap" data-ar="استدعاء النواة" data-en-def="A synchronous interrupt caused by an exceptional condition or a specific instruction, transferring control to the OS kernel.">استدعاء النواة<span class="smart-term-tooltip"></span></span>.</p>
+    </template>
+    <template class="content-en">
+      <p>User-level threads are highly efficient but block the entire process if one thread blocks, whereas kernel-level threads prevent full-process blocking but incur higher performance costs due to <span class="smart-term" data-term-en="Kernel Trap" data-ar="استدعاء النواة" data-en-def="A synchronous interrupt caused by an exceptional condition or a specific instruction, transferring control to the OS kernel.">kernel traps<span class="smart-term-tooltip"></span></span>.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك طريقتان رئيسيتان لتنفيذ الخيوط:</p><ol><li><strong><b>حل مساحة المستخدم (User-space):</b></strong> تتم معالجة جميع العمليات داخل عملية واحدة. هذا فعال للغاية، ولكن إذا قررت النواة حظر خيط (مثلاً بسبب الإدخال/الإخراج)، فسيتم حظر العملية بأكملها.</li><li><strong><b>حل النواة (Kernel solution):</b></strong> تحتوي النواة على تنفيذ حزمة الخيوط. العمليات التي تحظر خيطاً لم تعد مشكلة لأن النواة تجدول خيطاً آخر. المشكلة هي فقدان الكفاءة بسبب الحاجة إلى استدعاء النواة (Trap) لكل عملية خيط.</li></ol><p><strong><b>النهج المدمج:</b></strong> نهج خيوط ثنائي المستوى حيث تقوم خيوط النواة بتنفيذ خيوط مستوى المستخدم.</p></template>
+    <template class="content-en"><p>There are two main approaches to implementing threads:</p><ol><li><strong><b>User-space solution:</b></strong> All operations are handled within a single process. Extremely efficient, but if the kernel blocks a thread (e.g., for I/O), the entire process is blocked.</li><li><strong><b>Kernel solution:</b></strong> The kernel contains the thread package implementation. Blocking operations are no longer a problem as the kernel schedules another thread. The downside is loss of efficiency due to kernel traps.</li></ol><p><strong><b>Combined approach:</b></strong> A two-level threading approach introduces kernel threads that can execute user-level threads.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في مساحة المستخدم، لا تستطيع النواة التمييز بين الخيوط الفردية، مما يجعل من الصعب دعم إشارات الأحداث (Signaling events) الموجهة لخيط معين.</p><p>محاولة دمج خيوط مستوى المستخدم ومستوى النواة في مفهوم واحد تزيد من التعقيد، وغالباً ما لا يفوق مكسب الأداء هذا التعقيد المتزايد.</p></template>
+    <template class="content-en"><p>In user-space, the kernel cannot distinguish individual threads, making it difficult to support signaling events on a per-thread basis.</p><p>Trying to mix user-level and kernel-level threads into a single concept increases complexity, and the performance gain has generally not outweighed this increased complexity.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a diagram showing 'Combining user-level and kernel-level threads'. Split the diagram horizontally into 'User space' (top) and 'Kernel space' (bottom). In User space, show multiple grey squares (User threads) connected to 'Thread state' boxes. In Kernel space, show boxes representing 'Kernel threads'. Draw dashed lines showing Kernel threads executing specific user threads. Style: educational, dark background #0d1117, accent color #10b981, viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <linearGradient id="kt-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--brand-800)" />
+      <stop offset="100%" stop-color="var(--brand-600)" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <text x="400" y="35" fill="var(--text-primary)" font-size="20" font-weight="bold" text-anchor="middle">Combining User-Level and Kernel-Level Threads (Many-to-Many)</text>
+
+  <!-- Regions -->
+  <rect x="20" y="60" width="760" height="210" fill="var(--bg-elevated)" opacity="0.4" rx="12" />
+  <rect x="20" y="280" width="760" height="200" fill="var(--bg-elevated)" opacity="0.2" rx="12" />
+  
+  <!-- Separator Line -->
+  <line x1="20" y1="275" x2="780" y2="275" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" />
+  <text x="40" y="265" fill="var(--text-secondary)" font-size="14" font-weight="bold">Thread Library Mapping / تعيين مكتبة الخيوط</text>
+
+  <!-- Region Labels -->
+  <text x="40" y="90" fill="var(--text-primary)" font-size="18" font-weight="bold">User Space / مساحة المستخدم</text>
+  <text x="40" y="310" fill="var(--text-primary)" font-size="18" font-weight="bold">Kernel Space / مساحة النواة</text>
+
+  <!-- Process Box -->
+  <rect x="80" y="100" width="640" height="150" fill="none" stroke="var(--border-color)" stroke-width="2" rx="8" stroke-dasharray="4,4" />
+  <text x="400" y="120" fill="var(--text-secondary)" font-size="16" font-weight="bold" text-anchor="middle">Process / عملية</text>
+
+  <!-- User Threads -->
+  <!-- UT 1 -->
+  <rect x="120" y="135" width="80" height="65" rx="6" fill="var(--bg-elevated)" stroke="var(--text-muted)" stroke-width="2" />
+  <text x="160" y="160" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">UT 1</text>
+  <text x="160" y="180" fill="var(--text-secondary)" font-size="12" text-anchor="middle">خيط مستخدم</text>
+  <!-- UT 1 State -->
+  <rect x="120" y="205" width="80" height="25" rx="4" fill="var(--brand-800)" stroke="var(--brand-500)" stroke-width="1" />
+  <text x="160" y="222" fill="var(--text-primary)" font-size="13" text-anchor="middle">Running</text>
+
+  <!-- UT 2 -->
+  <rect x="280" y="135" width="80" height="65" rx="6" fill="var(--bg-elevated)" stroke="var(--text-muted)" stroke-width="2" />
+  <text x="320" y="160" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">UT 2</text>
+  <text x="320" y="180" fill="var(--text-secondary)" font-size="12" text-anchor="middle">خيط مستخدم</text>
+  <!-- UT 2 State -->
+  <rect x="280" y="205" width="80" height="25" rx="4" fill="var(--brand-800)" stroke="var(--brand-500)" stroke-width="1" />
+  <text x="320" y="222" fill="var(--text-primary)" font-size="13" text-anchor="middle">Running</text>
+
+  <!-- UT 3 (Idle/Ready) -->
+  <rect x="440" y="135" width="80" height="65" rx="6" fill="var(--bg-elevated)" stroke="var(--text-muted)" stroke-width="2" />
+  <text x="480" y="160" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">UT 3</text>
+  <text x="480" y="180" fill="var(--text-secondary)" font-size="12" text-anchor="middle">خيط مستخدم</text>
+  <!-- UT 3 State -->
+  <rect x="440" y="205" width="80" height="25" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="1" />
+  <text x="480" y="222" fill="var(--text-muted)" font-size="13" text-anchor="middle">Ready / جاهز</text>
+
+  <!-- UT 4 -->
+  <rect x="600" y="135" width="80" height="65" rx="6" fill="var(--bg-elevated)" stroke="var(--text-muted)" stroke-width="2" />
+  <text x="640" y="160" fill="var(--text-primary)" font-size="15" font-weight="bold" text-anchor="middle">UT 4</text>
+  <text x="640" y="180" fill="var(--text-secondary)" font-size="12" text-anchor="middle">خيط مستخدم</text>
+  <!-- UT 4 State -->
+  <rect x="600" y="205" width="80" height="25" rx="4" fill="var(--brand-800)" stroke="var(--brand-500)" stroke-width="1" />
+  <text x="640" y="222" fill="var(--text-primary)" font-size="13" text-anchor="middle">Running</text>
+
+  <!-- Kernel Threads -->
+  <!-- KT 1 -->
+  <rect x="140" y="340" width="120" height="80" rx="8" fill="url(#kt-grad)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="200" y="375" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">KT 1</text>
+  <text x="200" y="395" fill="var(--text-primary)" font-size="14" text-anchor="middle">خيط نواة</text>
+
+  <!-- KT 2 -->
+  <rect x="340" y="340" width="120" height="80" rx="8" fill="url(#kt-grad)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="400" y="375" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">KT 2</text>
+  <text x="400" y="395" fill="var(--text-primary)" font-size="14" text-anchor="middle">خيط نواة</text>
+
+  <!-- KT 3 -->
+  <rect x="540" y="340" width="120" height="80" rx="8" fill="url(#kt-grad)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="600" y="375" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">KT 3</text>
+  <text x="600" y="395" fill="var(--text-primary)" font-size="14" text-anchor="middle">خيط نواة</text>
+
+  <!-- Connections (Kernel Threads executing User Threads) -->
+  <!-- KT1 to UT1 -->
+  <path d="M 200 340 C 200 285, 160 285, 160 235" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  
+  <!-- KT2 to UT2 -->
+  <path d="M 400 340 C 400 285, 320 285, 320 235" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  
+  <!-- KT3 to UT4 -->
+  <path d="M 600 340 C 600 285, 640 285, 640 235" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>User-level Threads</th><th>Kernel-level Threads</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الكفاءة وسرعة التبديل</template>
+          <template class="content-en">Efficiency and Switching Speed</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عالية جداً (لا تتطلب استدعاء النواة)</template>
+          <template class="content-en">Extremely efficient (no kernel traps)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">أقل كفاءة (تتطلب استدعاء النواة لكل عملية)</template>
+          <template class="content-en">Less efficient (requires trap to kernel)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعامل مع الحظر (Blocking)</template>
+          <template class="content-en">Handling Blocking Operations</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يحظر العملية بأكملها إذا حُظر خيط واحد</template>
+          <template class="content-en">Blocks entire process if one thread blocks</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تجدول النواة خيطاً آخر متاحاً</template>
+          <template class="content-en">Kernel schedules another available thread</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان تطبيقك يعتمد بشكل كبير على عمليات الإدخال والإخراج (I/O)، فأي نموذج خيوط ستختار ولماذا؟</template>
+      <template class="content-en">If your application relies heavily on I/O operations, which threading model would you choose and why?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سأختار خيوط مستوى النواة (Kernel-level threads)، لأنه في خيوط مستوى المستخدم، سيؤدي أي حظر بسبب الإدخال/الإخراج إلى حظر العملية بأكملها، بينما يمكن للنواة جدولة خيوط أخرى.</p></template>
+      <template class="content-en"><p>I would choose Kernel-level threads, because in user-level threads, any I/O block would block the entire process, whereas the kernel can schedule other available threads.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="posix-threads-api" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> واجهة برمجة تطبيقات POSIX (Pthreads)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> The POSIX Thread API (Pthreads)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>Pthreads هو المعيار القياسي لإنشاء وإدارة الخيوط في لغة C، باستخدام دوال أساسية مثل <code>pthread_create</code> للإنشاء و <code>pthread_join</code> للانتظار.</p>
+    </template>
+    <template class="content-en">
+      <p>Pthreads is the standard API for creating and managing threads in C, using core functions like <code>pthread_create</code> to spawn and <code>pthread_join</code> to wait.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>توفر Pthreads دالتين أساسيتين لتحديد التزامن:</p><ul><li><strong><code>pthread_create</code>:</strong> تستدعي دالة كخيط جديد. تأخذ مؤشراً لمقبض الخيط، وسمات الخيط، والدالة المراد تنفيذها، والوسائط.</li><li><strong><code>pthread_join</code>:</strong> تجعل الخيط المستدعي ينتظر حتى ينتهي الخيط المحدد.</li></ul><p>في نموذج الآلة المنطقي للخيوط، تكون جميع الذاكرة قابلة للوصول عالمياً (Global Memory) بشكل افتراضي، بينما يُعامل المكدس (Stack) الخاص باستدعاءات الدوال كذاكرة محلية للخيط لأسباب تتعلق ب<span class="smart-term" data-term-en="Liveness" data-ar="الحيوية" data-en-def="A property of concurrent systems ensuring that a program eventually makes progress and does not stall indefinitely.">الحيوية<span class="smart-term-tooltip"></span></span> (Liveness).</p></template>
+    <template class="content-en"><p>Pthreads provides two basic functions for specifying concurrency:</p><ul><li><strong><code>pthread_create</code>:</strong> Invokes a function as a new thread. It takes a thread handle, attributes, the function pointer, and arguments.</li><li><strong><code>pthread_join</code>:</strong> Makes the calling thread wait until the specified thread terminates.</li></ul><p>In the logical machine model of threads, all memory is globally accessible by default, while the stack corresponding to function calls is treated as local to the thread for <span class="smart-term" data-term-en="Liveness" data-ar="الحيوية" data-en-def="A property of concurrent systems ensuring that a program eventually makes progress and does not stall indefinitely.">liveness<span class="smart-term-tooltip"></span></span> reasons.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من المهم ملاحظة أن نموذج الذاكرة المسطح (Flat model) الذي تفترضه الخيوط قد يؤدي إلى أداء ضعيف جداً في الواقع، لأن الذاكرة موزعة مادياً في الآلات النموذجية.</p><p>يمكن استخدام كائنات السمات (Attributes objects) لتغيير الخصائص الافتراضية للخيوط قبل إنشائها، مما يعزز النمطية وسهولة التعديل.</p></template>
+    <template class="content-en"><p>It is important to note that the flat memory model assumed by threads may result in very poor performance since memory is physically distributed in typical machines.</p><p>Attributes objects can be used to change the default properties of threads before creation, enhancing modularity, readability, and ease of modification.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>#include &lt;pthread.h&gt;
+
+int pthread_create (
+  pthread_t *thread_handle, 
+  const pthread_attr_t *attribute,
+  void * (*thread_function)(void *),
+  void *arg);
+
+int pthread_join (
+  pthread_t thread,
+  void **ptr);</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر المكدس (Stack) محلياً لكل خيط بينما الذاكرة الأخرى مشتركة؟</template>
+      <template class="content-en">Why is the stack considered local to each thread while other memory is shared?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن كل خيط ينفذ مسار تحكم مستقل ويحتاج إلى تتبع استدعاءات الدوال والمتغيرات المحلية الخاصة به دون تداخل مع الخيوط الأخرى.</p></template>
+      <template class="content-en"><p>Because each thread executes an independent control path and needs to track its own function calls and local variables without interference from other threads.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="mutual-exclusion-mutexes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الاستبعاد المتبادل والأقفال (Mutexes)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Mutual Exclusion and Mutexes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تُستخدم أقفال Mutex لحماية <span class="smart-term" data-term-en="Critical Section" data-ar="المقطع الحرج" data-en-def="A piece of code that accesses a shared resource and must not be concurrently executed by more than one thread.">المقاطع الحرجة<span class="smart-term-tooltip"></span></span> لضمان تنفيذها بواسطة خيط واحد فقط في كل مرة.</p>
+    </template>
+    <template class="content-en">
+      <p>Mutex locks are used to protect <span class="smart-term" data-term-en="Critical Section" data-ar="المقطع الحرج" data-en-def="A piece of code that accesses a shared resource and must not be concurrently executed by more than one thread.">critical sections<span class="smart-term-tooltip"></span></span>, ensuring they are executed by only one thread at any given time.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المقطع الحرج هو جزء من الكود يجب ألا يُنفذ إلا بواسطة خيط واحد في أي وقت.</p><p>في Pthreads، يتم تنفيذ ذلك باستخدام أقفال Mutex.</p><p>أنواع أقفال Mutex:</p><ul><li><strong><b>عادي (Normal):</b></strong> يحدث <span class="smart-term" data-term-en="Deadlock" data-ar="التوقف التام" data-en-def="A situation where a thread is waiting for a lock that it already holds (in normal mutexes) or two threads wait indefinitely for each other.">توقف تام<span class="smart-term-tooltip"></span></span> (Deadlock) إذا حاول خيط يمتلك القفل بالفعل قفله مرة أخرى.</li><li><strong><b>عودي (Recursive):</b></strong> يسمح لنفس الخيط بقفل الـ Mutex عدة مرات. يزيد العداد، ويتم تحرير القفل عندما يصل العداد إلى الصفر.</li><li><strong><b>فحص الأخطاء (Error-check):</b></strong> يُبلغ عن خطأ إذا حاول خيط يمتلك القفل قفله مرة أخرى بدلاً من التوقف التام.</li></ul></template>
+    <template class="content-en"><p>A critical segment is code that must be executed by only one thread at any time.</p><p>In Pthreads, this is implemented using mutex locks.</p><p>Types of Mutexes:</p><ul><li><strong><b>Normal:</b></strong> <span class="smart-term" data-term-en="Deadlock" data-ar="التوقف التام" data-en-def="A situation where a thread is waiting for a lock that it already holds (in normal mutexes) or two threads wait indefinitely for each other.">Deadlocks<span class="smart-term-tooltip"></span></span> if a thread that already has the lock tries to lock it again.</li><li><strong><b>Recursive:</b></strong> Allows a single thread to lock a mutex multiple times. It increments a count, and the lock is relinquished when the count becomes zero.</li><li><strong><b>Error-check:</b></strong> Reports an error when a thread with a lock tries to lock it again (instead of deadlocking).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تمثل الأقفال نقاط تسلسل (Serialization points) لأن المقاطع الحرجة تُنفذ بالتتابع، مما قد يؤدي إلى تدهور كبير في الأداء إذا كانت المقاطع كبيرة.</p><p>لتقليل وقت الخمول (Idling overhead)، يمكن استخدام الدالة <code>pthread_mutex_trylock</code>.</p><p>هذه الدالة أسرع بكثير من <code>pthread_mutex_lock</code> لأنها لا تتعامل مع طوابير الانتظار؛ فهي إما تحصل على القفل فوراً أو تعود بخطأ إذا كان مقفولاً.</p></template>
+    <template class="content-en"><p>Locks represent serialization points since critical sections must be executed sequentially, which can lead to significant performance degradation if large segments are encapsulated.</p><p>To reduce idling overhead, <code>pthread_mutex_trylock</code> can be used.</p><p>It is typically much faster than <code>pthread_mutex_lock</code> because it doesn't deal with queues associated with multiple threads waiting on the lock; it either gets the lock or returns immediately.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>int pthread_mutex_trylock (
+  pthread_mutex_t *mutex_lock);</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون استخدام القفل العودي (Recursive Mutex) ضرورياً؟</template>
+      <template class="content-en">When is the use of a Recursive Mutex necessary?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يكون ضرورياً عندما تستدعي دالة تحتوي على قفل دالة أخرى (أو تستدعي نفسها بشكل عودي) تحاول الحصول على نفس القفل، لتجنب التوقف التام (Deadlock) الذاتي.</p></template>
+      <template class="content-en"><p>It is necessary when a function holding a lock calls another function (or itself recursively) that also attempts to acquire the same lock, to prevent self-deadlock.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="condition-variables" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> متغيرات الحالة للمزامنة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Condition Variables for Synchronization</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يسمح متغير الحالة للخيط بحظر نفسه حتى تصل بيانات معينة إلى حالة محددة مسبقاً (<span class="smart-term" data-term-en="Predicate" data-ar="الشرط المنطقي" data-en-def="A logical condition or state of shared data that a thread checks before proceeding.">Predicate<span class="smart-term-tooltip"></span></span>).</p>
+    </template>
+    <template class="content-en">
+      <p>A condition variable allows a thread to block itself until specified data reaches a predefined state (<span class="smart-term" data-term-en="Predicate" data-ar="الشرط المنطقي" data-en-def="A logical condition or state of shared data that a thread checks before proceeding.">predicate<span class="smart-term-tooltip"></span></span>).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يرتبط متغير الحالة دائماً بـ <strong><b>شرط منطقي (Predicate)</b></strong>.</p><p>عندما يصبح الشرط صحيحاً، يُستخدم متغير الحالة لإرسال إشارة (Signal) لواحد أو أكثر من الخيوط المنتظرة.</p><p>يجب أن يرتبط متغير الحالة دائماً بـ <strong><b>Mutex</b></strong>.</p><p>يقوم الخيط بقفل هذا الـ Mutex ثم يختبر الشرط المعرف على المتغير المشترك.</p><p>إذا لم يكن الشرط صحيحاً، ينتظر الخيط على متغير الحالة باستخدام الدالة <code>pthread_cond_wait</code>، والتي تقوم تلقائياً بتحرير الـ Mutex أثناء الانتظار.</p></template>
+    <template class="content-en"><p>A condition variable is associated with a <strong><b>predicate</b></strong>.</p><p>When the predicate becomes true, the condition variable is used to signal one or more waiting threads.</p><p>A condition variable always has a <strong><b>mutex</b></strong> associated with it.</p><p>A thread locks this mutex and tests the predicate defined on the shared variable.</p><p>If the predicate is not true, the thread waits on the condition variable using <code>pthread_cond_wait</code>, which atomically releases the mutex while waiting.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>السبب في ضرورة وجود Mutex هو منع ظروف السباق (Race conditions) بين اختبار الشرط (Predicate) والذهاب إلى حالة النوم (Waiting).</p><p>بدون الـ Mutex، قد تتغير حالة البيانات بين الاختبار والانتظار، مما يؤدي إلى فقدان الإشارة (Lost wakeup).</p><p>يمكن أن يرتبط متغير حالة واحد بأكثر من شرط منطقي واحد.</p></template>
+    <template class="content-en"><p>The mutex is required to prevent race conditions between testing the predicate and going to sleep.</p><p>Without it, the data state could change between the test and the wait, leading to a lost wakeup signal.</p><p>A single condition variable may be associated with more than one predicate.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في سيناريو المنتج والمستهلك، ماذا يحدث إذا لم يستخدم المستهلك متغير حالة للانتظار؟</template>
+      <template class="content-en">In a producer-consumer scenario, what happens if the consumer does not use a condition variable to wait?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيضطر المستهلك إلى استخدام الاستقصاء النشط (Busy waiting)، مما يستهلك دورات المعالج بشكل غير ضروري أثناء التحقق المستمر من وجود مهام.</p></template>
+      <template class="content-en"><p>The consumer would have to use busy waiting (polling), unnecessarily consuming CPU cycles while continuously checking if tasks are present.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="composite-synchronization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> هياكل المزامنة المركبة (أقفال القراءة/الكتابة والحواجز)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Composite Synchronization Constructs (RW Locks & Barriers)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تُبنى الهياكل المتقدمة مثل أقفال القراءة/الكتابة (للقراءات المتكررة) و<span class="smart-term" data-term-en="Barrier" data-ar="الحواجز" data-en-def="A synchronization method where threads must stop and wait until all threads have reached that point.">الحواجز<span class="smart-term-tooltip"></span></span> (لمزامنة المجموعات) باستخدام العمليات الأساسية لـ Pthreads.</p>
+    </template>
+    <template class="content-en">
+      <p>Advanced constructs like read-write locks (for frequent reads) and <span class="smart-term" data-term-en="Barrier" data-ar="الحواجز" data-en-def="A synchronization method where threads must stop and wait until all threads have reached that point.">barriers<span class="smart-term-tooltip"></span></span> (for group synchronization) are built using basic Pthreads operations.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><b>أقفال القراءة والكتابة (Read-Write Locks):</b></strong> تُستخدم عندما تُقرأ بنية البيانات بشكل متكرر ولكن تُكتب بشكل غير متكرر. يُمنح قفل القراءة حتى لو كان هناك خيوط أخرى تمتلك أقفال قراءة. إذا كان هناك قفل كتابة (أو طلبات كتابة في الطابور)، يجب على الخيط الانتظار.</p><p><strong><b>الحواجز (Barriers):</b></strong> تُستخدم لمزامنة مجموعة من الخيوط عند نقطة معينة.</p><ul><li><strong><b>الحاجز الخطي (Linear Barrier):</b></strong> وقت التنفيذ هو O(n) لعدد n من الخيوط.</li><li><strong><b>الحاجز الشجري/اللوغاريتمي (Log/Tree Barrier):</b></strong> يستخدم أزواجاً من (متغير حالة - Mutex) منظمة في شجرة. يتم إقران الخيوط، وعند وصول كليهما، يتقدم أحدهما وينتظر الآخر. ينمو وقت التشغيل بمعدل O(log p).</li></ul></template>
+    <template class="content-en"><p><strong><b>Read-Write Locks:</b></strong> Used when a data structure is read frequently but written infrequently. A read lock is granted even if other threads have read locks. If there is a write lock (or queued write locks), the thread must wait.</p><p><strong><b>Barriers:</b></strong> Used to synchronize a group of threads at a specific point.</p><ul><li><strong><b>Linear Barrier:</b></strong> Execution time is O(n) for n threads.</li><li><strong><b>Log/Tree Barrier:</b></strong> Uses condition variable-mutex pairs organized in a tree. Threads are paired up; once both arrive, one moves on and the other waits. Runtime grows as O(log p).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في الحاجز الشجري، نحتاج إلى n/2 زوج من (متغير حالة - Mutex) لتنفيذ حاجز لـ n خيط.</p><p>هذا يقلل بشكل كبير من التنافس (Contention) مقارنة بالحاجز الخطي حيث تتنافس جميع الخيوط على قفل واحد.</p><p>نصائح للتصميم غير المتزامن:</p><ul><li>لا تعتمد أبداً على افتراضات الجدولة (Scheduling assumptions) عند تبادل البيانات أو المزامنة.</li><li>استخدم المزامنة الجماعية (Group synchronizations) حيثما أمكن.</li></ul></template>
+    <template class="content-en"><p>In a tree barrier, we use n/2 condition variable-mutex pairs for n threads.</p><p>This drastically reduces contention compared to a linear barrier where all threads contend for a single lock.</p><p>Tips for asynchronous design:</p><ul><li>Never rely on scheduling assumptions when exchanging data or for synchronization.</li><li>Use group synchronizations where possible.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a line graph comparing 'Linear Barrier' and 'Log Barrier'. X-axis: 'Number of threads' (0 to 140). Y-axis: 'Time (seconds)' (0 to 50). The Linear Barrier line should grow steeply and linearly (e.g., reaching 45s at 130 threads). The Log Barrier line should grow very slowly, curving slightly (e.g., reaching 15s at 130 threads). Style: educational, dark background #0d1117, accent colors #ef4444 (Linear) and #10b981 (Log), viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="var(--text-primary)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="400" y="30" fill="var(--text-primary)" font-size="20" font-weight="bold" text-anchor="middle">Linear vs Log Barrier Performance / أداء الحواجز الخطية واللوغاريتمية</text>
+
+  <!-- Grid Lines (Horizontal) -->
+  <path d="M80,284 L760,284 M80,228 L760,228 M80,172 L760,172 M80,116 L760,116 M80,60 L760,60" stroke="var(--border-color)" stroke-dasharray="4 4" stroke-width="1" />
+  
+  <!-- Grid Lines (Vertical) -->
+  <path d="M177.1,340 L177.1,60 M274.3,340 L274.3,60 M371.4,340 L371.4,60 M468.6,340 L468.6,60 M565.7,340 L565.7,60 M662.9,340 L662.9,60 M760,340 L760,60" stroke="var(--border-color)" stroke-dasharray="4 4" stroke-width="1" />
+
+  <!-- Axes -->
+  <line x1="80" y1="340" x2="770" y2="340" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="80" y1="340" x2="80" y2="50" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Y-axis Labels -->
+  <text x="70" y="345" fill="var(--text-secondary)" font-size="13" text-anchor="end">0</text>
+  <text x="70" y="289" fill="var(--text-secondary)" font-size="13" text-anchor="end">10</text>
+  <text x="70" y="233" fill="var(--text-secondary)" font-size="13" text-anchor="end">20</text>
+  <text x="70" y="177" fill="var(--text-secondary)" font-size="13" text-anchor="end">30</text>
+  <text x="70" y="121" fill="var(--text-secondary)" font-size="13" text-anchor="end">40</text>
+  <text x="70" y="65" fill="var(--text-secondary)" font-size="13" text-anchor="end">50</text>
+
+  <!-- X-axis Labels -->
+  <text x="80" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">0</text>
+  <text x="177.1" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">20</text>
+  <text x="274.3" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">40</text>
+  <text x="371.4" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">60</text>
+  <text x="468.6" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">80</text>
+  <text x="565.7" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">100</text>
+  <text x="662.9" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">120</text>
+  <text x="760" y="360" fill="var(--text-secondary)" font-size="13" text-anchor="middle">140</text>
+
+  <!-- Axis Titles -->
+  <text x="420" y="390" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Number of Threads / عدد الخيوط</text>
+  <text x="-190" y="25" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle" transform="rotate(-90)">Time (seconds) / الزمن (ثواني)</text>
+
+  <!-- Linear Barrier Line -->
+  <path d="M80,340 L177.1,301.2 L274.3,262.5 L371.4,223.7 L468.6,185.0 L565.7,146.2 L662.9,107.4 L760,68.7" stroke="var(--brand-500)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Linear Barrier Data Points -->
+  <circle cx="177.1" cy="301.2" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="274.3" cy="262.5" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="371.4" cy="223.7" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="468.6" cy="185.0" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="565.7" cy="146.2" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="662.9" cy="107.4" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="760" cy="68.7" r="5" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+
+  <!-- Log Barrier Line -->
+  <path d="M80,340 L128.6,298.7 L177.1,287.6 L225.7,280.8 L274.3,276.1 L322.9,272.3 L371.4,269.2 L420.0,266.6 L468.6,264.3 L517.1,262.3 L565.7,260.5 L614.3,258.9 L662.9,257.4 L711.4,256.0 L760,254.8" stroke="var(--text-primary)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Log Barrier Data Points -->
+  <circle cx="177.1" cy="287.6" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <circle cx="274.3" cy="276.1" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <circle cx="371.4" cy="269.2" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <circle cx="468.6" cy="264.3" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <circle cx="565.7" cy="260.5" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <circle cx="662.9" cy="257.4" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <circle cx="760" cy="254.8" r="5" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+
+  <!-- Legend -->
+  <rect x="100" y="60" width="280" height="90" fill="var(--bg-elevated)" stroke="var(--border-color)" rx="8" />
+  
+  <!-- Legend: Linear -->
+  <line x1="120" y1="85" x2="150" y2="85" stroke="var(--brand-500)" stroke-width="4" />
+  <circle cx="135" cy="85" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="255" y="90" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle">Linear Barrier / حاجز خطي</text>
+  
+  <!-- Legend: Log -->
+  <line x1="120" y1="120" x2="150" y2="120" stroke="var(--text-primary)" stroke-width="4" />
+  <circle cx="135" cy="120" r="4" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" />
+  <text x="255" y="125" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle">Log Barrier / حاجز لوغاريتمي</text>
+
+  <!-- Annotations -->
+  <rect x="570" y="40" width="180" height="26" fill="var(--bg-elevated)" rx="4" stroke="var(--brand-500)" stroke-width="1"/>
+  <text x="660" y="58" fill="var(--brand-500)" font-size="13" font-weight="bold" text-anchor="middle">O(N) Scaling / نمو خطي</text>
+
+  <rect x="570" y="215" width="180" height="26" fill="var(--bg-elevated)" rx="4" stroke="var(--text-primary)" stroke-width="1"/>
+  <text x="660" y="233" fill="var(--text-primary)" font-size="13" font-weight="bold" text-anchor="middle">O(log N) Scaling / نمو لوغاريتمي</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر الحاجز اللوغاريتمي أسرع من الحاجز الخطي عند زيادة عدد الخيوط؟</template>
+      <template class="content-en">Why is a logarithmic barrier faster than a linear barrier as the number of threads increases?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يوزع عملية المزامنة عبر هيكل شجري، مما يقلل من التنافس على قفل واحد ويسمح بعمليات المزامنة بالحدوث بالتوازي، مما يقلل التعقيد الزمني من O(n) إلى O(log n).</p></template>
+      <template class="content-en"><p>Because it distributes the synchronization process across a tree structure, reducing contention on a single lock and allowing synchronizations to happen in parallel, reducing time complexity from O(n) to O(log n).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="openmp-programming-model" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> نموذج برمجة OpenMP</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> OpenMP Programming Model</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>OpenMP هي واجهة برمجة تعتمد على <span class="smart-term" data-term-en="Directive" data-ar="التوجيهات" data-en-def="A compiler pragma that instructs the compiler to parallelize a block of code automatically.">التوجيهات<span class="smart-term-tooltip"></span></span> لتسهيل البرمجة المتوازية في الذاكرة المشتركة دون الحاجة لإعداد الأقفال والخيوط يدوياً.</p>
+    </template>
+    <template class="content-en">
+      <p>OpenMP is a <span class="smart-term" data-term-en="Directive" data-ar="التوجيهات" data-en-def="A compiler pragma that instructs the compiler to parallelize a block of code automatically.">directive<span class="smart-term-tooltip"></span></span>-based API that simplifies shared-memory parallel programming without the need to manually set up locks and threads.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>توفر توجيهات OpenMP دعماً للتزامن والمزامنة ومعالجة البيانات، مما يلغي الحاجة إلى إعداد أقفال Mutex ومتغيرات الحالة يدوياً.</p><p>تُستخدم قائمة الشروط (Clause list) لتحديد سلوك التوازي:</p><ul><li><strong><b>التوازي المشروط:</b></strong> <code>if (scalar expression)</code> يحدد ما إذا كان سيتم إنشاء خيوط.</li><li><strong><b>درجة التزامن:</b></strong> <code>num_threads(integer)</code> يحدد عدد الخيوط.</li><li><strong><b>معالجة البيانات:</b></strong><ul><li><strong><code>private</code>:</strong> متغيرات محلية لكل خيط (غير مهيأة).</li><li><strong><code>firstprivate</code>:</strong> مثل private ولكن يتم تهيئتها بالقيم الموجودة قبل التوجيه.</li><li><strong><code>shared</code>:</strong> متغيرات مشتركة عبر جميع الخيوط.</li></ul></li></ul><p>توجيه <code>#pragma omp for</code> يُستخدم لتقسيم مساحات التكرار (الحلقات) عبر الخيوط.</p></template>
+    <template class="content-en"><p>OpenMP directives provide support for concurrency, synchronization, and data handling, obviating the need for explicitly setting up mutexes and condition variables.</p><p>The clause list is used to specify behavior:</p><ul><li><strong><b>Conditional Parallelization:</b></strong> <code>if (scalar expression)</code> determines if threads are created.</li><li><strong><b>Degree of Concurrency:</b></strong> <code>num_threads(integer)</code> specifies the number of threads.</li><li><strong><b>Data Handling:</b></strong><ul><li><strong><code>private</code>:</strong> Variables local to each thread (uninitialized).</li><li><strong><code>firstprivate</code>:</strong> Like private, but initialized to values before the parallel directive.</li><li><strong><code>shared</code>:</strong> Variables shared across all threads.</li></ul></li></ul><p>The <code>#pragma omp for</code> directive is used to split parallel iteration spaces (loops) across threads.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p><strong><b>العيوب مقارنة بالخيوط الصريحة (Pthreads):</b></strong></p><ul><li>في الخيوط الصريحة، يكون تبادل البيانات أكثر وضوحاً، مما يساعد في تخفيف النفقات العامة الناتجة عن حركة البيانات والمشاركة الزائفة (False sharing).</li><li>توفر الخيوط الصريحة واجهة برمجة تطبيقات أكثر ثراءً (أنواع مختلفة من الأقفال، متغيرات الحالة) ومرونة أكبر لبناء عمليات مزامنة مركبة.</li><li>نظراً لأن Pthreads تُستخدم على نطاق أوسع، فإن الأدوات والدعم لبرامج Pthreads أسهل في العثور عليها مقارنة بـ OpenMP.</li></ul></template>
+    <template class="content-en"><p><strong><b>Drawbacks compared to explicit threads (Pthreads):</b></strong></p><ul><li>In explicit threading, data exchange is more apparent, which helps in alleviating overheads from data movement and false sharing.</li><li>Explicit threading provides a richer API (different lock types, condition waits) and increased flexibility for building composite synchronization operations.</li><li>Since explicit threading is used more widely, tools and support for Pthreads programs are easier to find than for OpenMP.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>#pragma omp parallel num_threads(8) private(a) shared(b)
+{
+    // parallel segment
+}</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Explicit Threads (Pthreads)</th><th>Directive Based (OpenMP)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">سهولة البرمجة</template>
+          <template class="content-en">Ease of Programming</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تتطلب إعداداً يدوياً للأقفال والسمات</template>
+          <template class="content-en">Requires manual setup of locks and attributes</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهلة، تلغي الحاجة للإعداد اليدوي</template>
+          <template class="content-en">Easy, obviates need for manual setup</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المرونة والتحكم</template>
+          <template class="content-en">Flexibility and Control</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">واجهة غنية، تحكم دقيق في المزامنة</template>
+          <template class="content-en">Richer API, fine-grained control</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرونة أقل في بناء عمليات مزامنة مركبة</template>
+          <template class="content-en">Less flexibility for composite synchronization</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">وضوح تبادل البيانات</template>
+          <template class="content-en">Data Exchange Visibility</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أكثر وضوحاً، يساعد في تقليل المشاركة الزائفة</template>
+          <template class="content-en">More apparent, helps alleviate false sharing</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مخفي خلف التوجيهات</template>
+          <template class="content-en">Hidden behind directives</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى تفضل استخدام Pthreads بدلاً من OpenMP؟</template>
+      <template class="content-en">When would you prefer using Pthreads over OpenMP?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>أفضل Pthreads عندما أحتاج إلى تحكم دقيق جداً في المزامنة، أو بناء هياكل مزامنة معقدة، أو عندما أحتاج إلى تجنب المشاركة الزائفة (False sharing) من خلال إدارة الذاكرة بشكل صريح.</p></template>
+      <template class="content-en"><p>I would prefer Pthreads when I need fine-grained control over synchronization, building complex synchronization constructs, or explicitly managing memory to avoid false sharing.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة الحاسمة. تخيلوا أن المعالج هو مطبخ، والعملية (Process) هي مطعم كامل. إنشاء مطعم جديد مكلف جداً، لذا بدلاً من ذلك، نقوم بتعيين طهاة إضافيين (Threads) في نفس المطبخ. هؤلاء الطهاة يتشاركون نفس المكونات (الذاكرة المشتركة)، مما يجعلهم سريعين جداً، ولكن إذا لم ننظم عملهم، فسوف يصطدمون ببعضهم البعض! هنا يأتي دور أدوات المزامنة. نستخدم أقفال Mutex كـ 'ملعقة خشبية' واحدة؛ من يمسكها هو فقط من يحق له استخدام الموقد (المقطع الحرج). وإذا كان الطاهي ينتظر مكوناً لم يجهز بعد، فإنه يستخدم متغير الحالة (Condition Variable) ليأخذ غفوة حتى يوقظه طاهٍ آخر. في الامتحان، ركزوا جيداً على الفرق بين خيوط المستخدم والنواة، ولماذا نستخدم `trylock` لتحسين الأداء، وكيف يقلل الحاجز الشجري (Log Barrier) الوقت من O(n) إلى O(log p). وأخيراً، تذكروا أن OpenMP هو السحر الذي يكتب هذه الأقفال نيابة عنكم باستخدام التوجيهات (Directives)، لكنه يخفي التفاصيل التي قد تسبب مشاكل في الأداء. بالتوفيق!</template>
+    <template class="content-en">Welcome, my friends, to this crucial module. Imagine the processor is a kitchen, and a Process is an entire restaurant. Building a new restaurant is expensive, so instead, we hire extra chefs (Threads) in the same kitchen. They share the same ingredients (shared memory), making them very fast, but without organization, they will crash into each other! This is where synchronization comes in. We use Mutexes as a single 'wooden spoon'; only the chef holding it can use the stove (critical section). If a chef is waiting for an ingredient, they use a Condition Variable to take a nap until another chef wakes them up. For the exam, focus heavily on the difference between user and kernel threads, why we use `trylock` for performance, and how a Log Barrier reduces time from O(n) to O(log p). Finally, remember that OpenMP is the magic that writes these locks for you using directives, but it hides details that might cause performance issues. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نفضل استخدام الخيوط (Threads) على العمليات (Processes) في البرمجة المتوازية؟</template>
+          <template class="content-en">Why do we prefer using threads over processes in parallel programming?</template>
+          <span class="content-target">لماذا نفضل استخدام الخيوط (Threads) على العمليات (Processes) في البرمجة المتوازية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الخيوط تتشارك نفس مساحة العناوين، مما يجعل إنشاءها وتدميرها وتبديل سياقها أسرع وأقل تكلفة بكثير من العمليات التي تتطلب تدخل نظام التشغيل (Kernel traps).</template>
+          <template class="content-en">Because threads share the same address space, making their creation, destruction, and context switching much faster and cheaper than processes, which require kernel traps.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو العيب القاتل لخيوط مستوى المستخدم (User-level threads)؟</template>
+          <template class="content-en">What is the fatal flaw of user-level threads?</template>
+          <span class="content-target">ما هو العيب القاتل لخيوط مستوى المستخدم (User-level threads)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بما أن نظام التشغيل لا يرى سوى العملية ككل، فإذا قام خيط واحد بعملية حظر (مثل الإدخال/الإخراج)، فسيقوم نظام التشغيل بحظر العملية بأكملها، مما يوقف جميع الخيوط الأخرى.</template>
+          <template class="content-en">Since the OS only sees the process as a whole, if one thread performs a blocking operation (like I/O), the OS blocks the entire process, halting all other threads.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الغرض من الدالة `pthread_join`؟</template>
+          <template class="content-en">What is the purpose of the `pthread_join` function?</template>
+          <span class="content-target">ما هو الغرض من الدالة `pthread_join`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم لجعل الخيط المستدعي (عادةً الخيط الرئيسي) ينتظر حتى ينتهي الخيط المحدد من التنفيذ، مما يضمن عدم انتهاء البرنامج قبل اكتمال الخيوط.</template>
+          <template class="content-en">It is used to make the calling thread (usually the main thread) wait until the specified thread finishes execution, ensuring the program doesn't terminate before threads complete.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يجب استخدام قفل القراءة والكتابة (Read-Write Lock) بدلاً من الـ Mutex العادي؟</template>
+          <template class="content-en">When should a Read-Write Lock be used instead of a normal Mutex?</template>
+          <span class="content-target">متى يجب استخدام قفل القراءة والكتابة (Read-Write Lock) بدلاً من الـ Mutex العادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عندما تكون بنية البيانات تُقرأ بشكل متكرر جداً ولكن تُكتب نادراً. هذا يسمح لعدة خيوط بالقراءة في نفس الوقت، مما يحسن الأداء.</template>
+          <template class="content-en">When a data structure is read very frequently but written infrequently. This allows multiple threads to read simultaneously, improving performance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يجب أن يقترن متغير الحالة (Condition Variable) دائماً بقفل Mutex؟</template>
+          <template class="content-en">Why must a condition variable always be paired with a mutex?</template>
+          <span class="content-target">لماذا يجب أن يقترن متغير الحالة (Condition Variable) دائماً بقفل Mutex؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لمنع ظروف السباق (Race conditions) أثناء اختبار الشرط المنطقي (Predicate). بدون القفل، قد تتغير حالة البيانات بين لحظة الاختبار ولحظة الدخول في حالة الانتظار.</template>
+          <template class="content-en">To prevent race conditions while testing the predicate. Without the lock, the data state could change between the moment of testing and the moment of going to sleep.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين الحاجز الخطي (Linear Barrier) والحاجز الشجري (Log Barrier)؟</template>
+          <template class="content-en">What is the difference between a Linear Barrier and a Log Barrier?</template>
+          <span class="content-target">ما الفرق بين الحاجز الخطي (Linear Barrier) والحاجز الشجري (Log Barrier)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الحاجز الخطي يجعل جميع الخيوط تتنافس على قفل واحد بتعقيد O(n). الحاجز الشجري يقرن الخيوط في مستويات شجرية، مما يقلل التنافس ويحسن التعقيد الزمني إلى O(log p).</template>
+          <template class="content-en">A linear barrier makes all threads contend for a single lock with O(n) complexity. A log barrier pairs threads in tree levels, reducing contention and improving time complexity to O(log p).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تفعل الكلمة المفتاحية `firstprivate` في OpenMP؟</template>
+          <template class="content-en">What does the `firstprivate` clause do in OpenMP?</template>
+          <span class="content-target">ماذا تفعل الكلمة المفتاحية `firstprivate` في OpenMP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تنشئ نسخة محلية من المتغير لكل خيط، وتقوم بتهيئتها بالقيمة التي كان يحملها المتغير الأصلي قبل الدخول في المنطقة المتوازية.</template>
+          <template class="content-en">It creates a local copy of the variable for each thread and initializes it with the value the original variable held before entering the parallel region.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا قد يكون استخدام `pthread_mutex_trylock` أفضل من `pthread_mutex_lock`؟</template>
+          <template class="content-en">Why might using `pthread_mutex_trylock` be better than `pthread_mutex_lock`?</template>
+          <span class="content-target">لماذا قد يكون استخدام `pthread_mutex_trylock` أفضل من `pthread_mutex_lock`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يقلل من وقت الخمول (Idling overhead). إذا كان القفل غير متاح، فإنه يعود فوراً بدلاً من وضع الخيط في طابور انتظار نظام التشغيل، مما يوفر الوقت.</template>
+          <template class="content-en">Because it reduces idling overhead. If the lock is unavailable, it returns immediately instead of putting the thread in the OS wait queue, saving time.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الـ Mutex العودي (Recursive Mutex)؟</template>
+          <template class="content-en">What is a Recursive Mutex?</template>
+          <span class="content-target">ما هو الـ Mutex العودي (Recursive Mutex)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو قفل يسمح لنفس الخيط بقفله عدة مرات دون أن يتسبب في توقف تام (Deadlock). يقوم بزيادة عداد داخلي، ولا يُحرر القفل فعلياً حتى يصل العداد إلى الصفر.</template>
+          <template class="content-en">It is a lock that allows the same thread to lock it multiple times without causing a deadlock. It increments an internal counter and only truly releases the lock when the counter reaches zero.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو العيب الرئيسي لاستخدام OpenMP مقارنة بـ Pthreads؟</template>
+          <template class="content-en">What is the main drawback of using OpenMP compared to Pthreads?</template>
+          <span class="content-target">ما هو العيب الرئيسي لاستخدام OpenMP مقارنة بـ Pthreads؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">OpenMP يخفي تفاصيل تبادل البيانات خلف التوجيهات، مما يجعل من الصعب اكتشاف وحل مشاكل الأداء مثل المشاركة الزائفة (False sharing). كما أنه يوفر مرونة أقل في بناء هياكل مزامنة معقدة.</template>
+          <template class="content-en">OpenMP hides data exchange details behind directives, making it harder to detect and resolve performance issues like false sharing. It also offers less flexibility in building complex synchronization constructs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو سياق المعالج (Processor context)؟",
+      "en": "What is Processor context?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الحد الأدنى من القيم المخزنة في سجلات المعالج (مثل عداد البرنامج) لتنفيذ التعليمات.",
+        "en": "The minimal collection of values stored in processor registers (e.g., program counter) used for execution."
+      },
+      "example": {
+        "ar": "مؤشر المكدس (Stack pointer) وسجلات العناوين.",
+        "en": "Stack pointer and addressing registers."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو سياق الخيط (Thread context)؟",
+      "en": "What is Thread context?"
+    },
+    "back": {
+      "definition": {
+        "ar": "القيم المخزنة في السجلات والذاكرة المستخدمة لتنفيذ الخيط (سياق المعالج + الحالة).",
+        "en": "The minimal collection of values stored in registers and memory used for the execution of a thread."
+      },
+      "example": {
+        "ar": "حالة الخيط الحالية وسياق المعالج الخاص به.",
+        "en": "The thread's current state and its processor context."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو سياق العملية (Process context)؟",
+      "en": "What is Process context?"
+    },
+    "back": {
+      "definition": {
+        "ar": "سياق الخيط بالإضافة إلى قيم سجلات وحدة إدارة الذاكرة (MMU).",
+        "en": "Thread context plus at least MMU register values."
+      },
+      "example": {
+        "ar": "تبديل سياق العملية يتطلب تحديث MMU.",
+        "en": "Process context switching requires updating the MMU."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي المشكلة الرئيسية في خيوط مستوى المستخدم (User-level threads)؟",
+      "en": "What is the main issue with User-level threads?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا قررت النواة حظر خيط واحد، فسيتم حظر العملية بأكملها.",
+        "en": "If the kernel decides to block a thread, the entire process will be blocked."
+      },
+      "example": {
+        "ar": "خيط ينتظر إدخال من المستخدم يوقف جميع الخيوط الأخرى.",
+        "en": "A thread waiting for user input halts all other threads."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي ميزة خيوط مستوى النواة (Kernel-level threads)؟",
+      "en": "What is the advantage of Kernel-level threads?"
+    },
+    "back": {
+      "definition": {
+        "ar": "العمليات التي تحظر خيطاً لا تحظر العملية؛ النواة تجدول خيطاً آخر.",
+        "en": "Operations that block a thread don't block the process; the kernel schedules another available thread."
+      },
+      "example": {
+        "ar": "خيط يقوم بـ I/O بينما خيط آخر يواصل الحساب.",
+        "en": "One thread does I/O while another continues computation."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي دالة إنشاء خيط في Pthreads؟",
+      "en": "What is the function to create a thread in Pthreads?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الدالة `pthread_create`.",
+        "en": "The `pthread_create` function."
+      },
+      "example": {
+        "ar": "`pthread_create(&thread, NULL, function, arg);`",
+        "en": "`pthread_create(&thread, NULL, function, arg);`"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي دالة انتظار انتهاء خيط في Pthreads؟",
+      "en": "What is the function to wait for a thread to finish in Pthreads?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الدالة `pthread_join`.",
+        "en": "The `pthread_join` function."
+      },
+      "example": {
+        "ar": "`pthread_join(thread, &result);`",
+        "en": "`pthread_join(thread, &result);`"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو الـ Mutex العادي (Normal Mutex)؟",
+      "en": "What is a Normal Mutex?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قفل يسبب توقفاً تاماً (Deadlock) إذا حاول الخيط الذي يمتلكه قفله مرة أخرى.",
+        "en": "A lock that deadlocks if a thread that already has the lock tries a second lock on it."
+      },
+      "example": {
+        "ar": "استدعاء `lock()` مرتين متتاليتين في نفس الخيط.",
+        "en": "Calling `lock()` twice sequentially in the same thread."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو الـ Mutex العودي (Recursive Mutex)؟",
+      "en": "What is a Recursive Mutex?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح لنفس الخيط بقفل الـ Mutex عدة مرات عن طريق زيادة عداد.",
+        "en": "Allows a single thread to lock a mutex multiple times by incrementing a count."
+      },
+      "example": {
+        "ar": "دالة عودية تحتاج إلى قفل نفس المورد في كل استدعاء.",
+        "en": "A recursive function needing to lock the same resource in each call."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "لماذا نستخدم `pthread_mutex_trylock`؟",
+      "en": "Why use `pthread_mutex_trylock`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لتقليل وقت الخمول؛ فهي أسرع لأنها لا تتعامل مع طوابير الانتظار.",
+        "en": "To reduce idling overhead; it's faster as it doesn't deal with queues associated with waiting threads."
+      },
+      "example": {
+        "ar": "محاولة الحصول على القفل، وإذا فشل، القيام بعمل آخر بدلاً من الانتظار.",
+        "en": "Attempting to lock, and if it fails, doing other work instead of waiting."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو متغير الحالة (Condition Variable)؟",
+      "en": "What is a Condition Variable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح للخيط بحظر نفسه حتى تصل بيانات معينة إلى حالة محددة (Predicate).",
+        "en": "Allows a thread to block itself until specified data reaches a predefined state (predicate)."
+      },
+      "example": {
+        "ar": "الانتظار حتى يصبح المخزن المؤقت غير فارغ.",
+        "en": "Waiting until a buffer is not empty."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "متى نستخدم أقفال القراءة والكتابة (Read-Write Locks)؟",
+      "en": "When do we use Read-Write Locks?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تُقرأ بنية البيانات بشكل متكرر ولكن تُكتب بشكل غير متكرر.",
+        "en": "When a data structure is read frequently but written infrequently."
+      },
+      "example": {
+        "ar": "قاعدة بيانات يتم البحث فيها آلاف المرات وتحديثها مرة واحدة.",
+        "en": "A database searched thousands of times but updated once."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو التعقيد الزمني للحاجز الخطي (Linear Barrier)؟",
+      "en": "What is the time complexity of a Linear Barrier?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(n) لعدد n من الخيوط.",
+        "en": "O(n) for n threads."
+      },
+      "example": {
+        "ar": "كل خيط يمر عبر نفس القفل المركزي.",
+        "en": "Every thread goes through the same central lock."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو التعقيد الزمني للحاجز الشجري (Log Barrier)؟",
+      "en": "What is the time complexity of a Log/Tree Barrier?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(log p) لعدد p من الخيوط.",
+        "en": "O(log p) for p threads."
+      },
+      "example": {
+        "ar": "إقران الخيوط في مستويات شجرية لتقليل التنافس.",
+        "en": "Pairing threads in tree levels to reduce contention."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ماذا تفعل الكلمة المفتاحية `private` في OpenMP؟",
+      "en": "What does the `private` clause do in OpenMP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تشير إلى أن المتغيرات محلية لكل خيط (غير مهيأة).",
+        "en": "Indicates variables are local to each thread (uninitialized)."
+      },
+      "example": {
+        "ar": "`#pragma omp parallel private(x)`",
+        "en": "`#pragma omp parallel private(x)`"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما الفرق بين `private` و `firstprivate` في OpenMP؟",
+      "en": "What is the difference between `private` and `firstprivate` in OpenMP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "`firstprivate` تهيئ المتغيرات بالقيم الموجودة قبل التوجيه المتوازي، بينما `private` تتركها غير مهيأة.",
+        "en": "`firstprivate` initializes variables to values before the parallel directive, while `private` leaves them uninitialized."
+      },
+      "example": {
+        "ar": "تمرير قيمة ابتدائية لعداد داخل الخيط.",
+        "en": "Passing an initial value to a counter inside the thread."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من السياقات التالية يتضمن سجلات وحدة إدارة الذاكرة (MMU)؟",
+      "en": "Which of the following contexts includes MMU register values?"
+    },
+    "options": {
+      "ar": [
+        "سياق المعالج (Processor context)",
+        "سياق الخيط (Thread context)",
+        "سياق العملية (Process context)",
+        "سياق المستخدم (User context)"
+      ],
+      "en": [
+        "Processor context",
+        "Thread context",
+        "Process context",
+        "User context"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "سياق العملية هو الوحيد الذي يتضمن سجلات MMU لأن العمليات تمتلك مساحات عناوين منفصلة.",
+      "en": "Process context is the only one that includes MMU registers because processes have separate address spaces."
+    },
+    "hint": {
+      "ar": "تذكر أن الخيوط تتشارك مساحة العناوين، لذا لا تحتاج إلى تبديل هذا السجل.",
+      "en": "Remember that threads share the address space, so they don't need to switch this register."
+    },
+    "difficulty": "easy",
+    "conceptId": "threads-vs-processes"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هي المشكلة الرئيسية في تنفيذ خيوط مستوى المستخدم (User-level threads)؟",
+      "en": "What is the main problem with user-level thread implementation?"
+    },
+    "options": {
+      "ar": [
+        "بطيئة جداً في تبديل السياق",
+        "تتطلب استدعاءات كثيرة للنواة (Kernel traps)",
+        "إذا حُظر خيط واحد، تُحظر العملية بأكملها",
+        "لا يمكنها مشاركة الذاكرة"
+      ],
+      "en": [
+        "Very slow context switching",
+        "Requires many kernel traps",
+        "If one thread blocks, the entire process is blocked",
+        "They cannot share memory"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لأن النواة لا ترى سوى العملية ككل، فإذا قام خيط بعملية إدخال/إخراج تحظر التنفيذ، فإن النواة تحظر العملية بأكملها.",
+      "en": "Because the kernel only sees the process as a whole, if a thread performs a blocking I/O operation, the kernel blocks the entire process."
+    },
+    "hint": {
+      "ar": "النواة لا تعرف بوجود هذه الخيوط الفردية.",
+      "en": "The kernel is unaware of these individual threads."
+    },
+    "difficulty": "medium",
+    "conceptId": "user-vs-kernel-threads"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في نموذج الذاكرة الخاص بالخيوط، أي جزء من الذاكرة يُعامل عادةً كذاكرة محلية للخيط؟",
+      "en": "In the logical machine model of threads, which part of memory is generally treated as local to the thread?"
+    },
+    "options": {
+      "ar": [
+        "الكومة (Heap)",
+        "المكدس (Stack)",
+        "البيانات العامة (Global Data)",
+        "مساحة الكود (Code Segment)"
+      ],
+      "en": [
+        "Heap",
+        "Stack",
+        "Global Data",
+        "Code Segment"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يُعامل المكدس كذاكرة محلية لكل خيط لتتبع استدعاءات الدوال الخاصة به لأسباب تتعلق بالحيوية (Liveness).",
+      "en": "The stack corresponding to function calls is generally treated as local to the thread for liveness reasons."
+    },
+    "hint": {
+      "ar": "أين يتم تخزين المتغيرات المحلية للدوال؟",
+      "en": "Where are local variables for functions stored?"
+    },
+    "difficulty": "medium",
+    "conceptId": "posix-threads-api"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي نوع من أقفال Mutex يسمح لنفس الخيط بقفله عدة مرات دون حدوث توقف تام (Deadlock)؟",
+      "en": "Which type of mutex allows a single thread to lock it multiple times without deadlocking?"
+    },
+    "options": {
+      "ar": [
+        "الـ Mutex العادي (Normal)",
+        "الـ Mutex العودي (Recursive)",
+        "الـ Mutex فاحص الأخطاء (Error-check)",
+        "قفل القراءة والكتابة (Read-Write Lock)"
+      ],
+      "en": [
+        "Normal mutex",
+        "Recursive mutex",
+        "Error-check mutex",
+        "Read-Write lock"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الـ Mutex العودي يزيد عداداً في كل مرة يتم قفله من نفس الخيط، ويحرره عندما يصل العداد إلى الصفر.",
+      "en": "A recursive mutex increments a count each time it is locked by the same thread, and relinquishes it when the count reaches zero."
+    },
+    "hint": {
+      "ar": "فكر في الدوال التي تستدعي نفسها.",
+      "en": "Think of functions that call themselves."
+    },
+    "difficulty": "easy",
+    "conceptId": "mutual-exclusion-mutexes"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "لماذا تعتبر الدالة `pthread_mutex_trylock` أسرع عادةً من `pthread_mutex_lock`؟",
+      "en": "Why is `pthread_mutex_trylock` typically faster than `pthread_mutex_lock`?"
+    },
+    "options": {
+      "ar": [
+        "لأنها لا تستخدم الذاكرة المشتركة",
+        "لأنها تتجاهل الأقفال الموجودة",
+        "لأنها لا تتعامل مع طوابير الانتظار المرتبطة بالخيوط المتعددة",
+        "لأنها تُنفذ في مساحة النواة فقط"
+      ],
+      "en": [
+        "Because it doesn't use shared memory",
+        "Because it ignores existing locks",
+        "Because it does not have to deal with queues associated with multiple threads waiting",
+        "Because it executes only in kernel space"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الدالة trylock إما تحصل على القفل فوراً أو تعود بخطأ، مما يجنبها النفقات العامة لإدارة طوابير الانتظار.",
+      "en": "trylock either gets the lock immediately or returns an error, avoiding the overhead of managing wait queues."
+    },
+    "hint": {
+      "ar": "ماذا يحدث عندما ينتظر خيط قفلاً عادياً؟",
+      "en": "What happens when a thread waits for a normal lock?"
+    },
+    "difficulty": "medium",
+    "conceptId": "mutual-exclusion-mutexes"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما الذي يجب أن يرتبط دائماً بمتغير الحالة (Condition Variable)؟",
+      "en": "What must always be associated with a condition variable?"
+    },
+    "options": {
+      "ar": [
+        "قفل قراءة/كتابة (Read-Write Lock)",
+        "حاجز (Barrier)",
+        "قفل Mutex",
+        "خيط نواة (Kernel thread)"
+      ],
+      "en": [
+        "Read-Write Lock",
+        "Barrier",
+        "Mutex",
+        "Kernel thread"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يجب أن يرتبط متغير الحالة دائماً بـ Mutex لمنع ظروف السباق أثناء اختبار الشرط (Predicate).",
+      "en": "A condition variable always has a mutex associated with it to prevent race conditions while testing the predicate."
+    },
+    "hint": {
+      "ar": "نحتاج إلى حماية الشرط المنطقي (Predicate) أثناء اختباره.",
+      "en": "We need to protect the predicate while testing it."
+    },
+    "difficulty": "easy",
+    "conceptId": "condition-variables"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو التعقيد الزمني للحاجز الشجري (Log Barrier) لعدد p من الخيوط؟",
+      "en": "What is the runtime complexity of a Log/Tree Barrier for p threads?"
+    },
+    "options": {
+      "ar": [
+        "O(1)",
+        "O(p)",
+        "O(p^2)",
+        "O(log p)"
+      ],
+      "en": [
+        "O(1)",
+        "O(p)",
+        "O(p^2)",
+        "O(log p)"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "الحاجز الشجري يقرن الخيوط في مستويات، مما يقلل وقت التنفيذ إلى O(log p) مقارنة بـ O(p) للحاجز الخطي.",
+      "en": "A tree barrier pairs threads up in levels, reducing the runtime to O(log p) compared to O(p) for a linear barrier."
+    },
+    "hint": {
+      "ar": "الاسم يعطي تلميحاً (Log Barrier).",
+      "en": "The name gives a hint (Log Barrier)."
+    },
+    "difficulty": "easy",
+    "conceptId": "composite-synchronization"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "في OpenMP، أي شرط (Clause) يُستخدم لتهيئة المتغيرات المحلية بالقيم الموجودة قبل التوجيه المتوازي؟",
+      "en": "In OpenMP, which clause is used to initialize local variables to values present before the parallel directive?"
+    },
+    "options": {
+      "ar": [
+        "private",
+        "shared",
+        "firstprivate",
+        "reduction"
+      ],
+      "en": [
+        "private",
+        "shared",
+        "firstprivate",
+        "reduction"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الشرط firstprivate يجعل المتغير محلياً لكل خيط ولكنه ينسخ القيمة الأولية من المتغير الأصلي قبل بدء التوازي.",
+      "en": "The firstprivate clause makes the variable local to each thread but initializes it with the value from before the parallel region."
+    },
+    "hint": {
+      "ar": "إنه يشبه private ولكنه يتعامل مع القيمة 'الأولى'.",
+      "en": "It's like private but deals with the 'first' value."
+    },
+    "difficulty": "medium",
+    "conceptId": "openmp-programming-model"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو أحد عيوب استخدام OpenMP مقارنة بالخيوط الصريحة (Pthreads)؟",
+      "en": "What is one drawback of using OpenMP compared to explicit threads (Pthreads)?"
+    },
+    "options": {
+      "ar": [
+        "يتطلب كتابة كود أطول بكثير",
+        "تبادل البيانات أقل وضوحاً، مما قد يخفي مشاكل الأداء",
+        "لا يدعم لغة C++",
+        "لا يمكن استخدامه على الأجهزة متعددة النواة"
+      ],
+      "en": [
+        "Requires writing much more code",
+        "Data exchange is less apparent, potentially hiding performance issues",
+        "Does not support C++",
+        "Cannot be used on multicore processors"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في OpenMP، التوجيهات تخفي تفاصيل تبادل البيانات، مما يجعل من الصعب اكتشاف مشاكل مثل المشاركة الزائفة (False sharing).",
+      "en": "In OpenMP, directives hide data exchange details, making it harder to spot issues like false sharing compared to explicit threading."
+    },
+    "hint": {
+      "ar": "التجريد العالي يخفي التفاصيل الدقيقة.",
+      "en": "High abstraction hides fine-grained details."
+    },
+    "difficulty": "medium",
+    "conceptId": "openmp-programming-model"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "وفقاً لنصائح تصميم البرامج غير المتزامنة، على ماذا يجب ألا تعتمد أبداً عند تبادل البيانات؟",
+      "en": "According to the tips for designing asynchronous programs, what should you never rely on when exchanging data?"
+    },
+    "options": {
+      "ar": [
+        "أقفال Mutex",
+        "متغيرات الحالة (Condition Variables)",
+        "افتراضات الجدولة (Scheduling assumptions)",
+        "الحواجز (Barriers)"
+      ],
+      "en": [
+        "Mutex locks",
+        "Condition Variables",
+        "Scheduling assumptions",
+        "Barriers"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الاعتماد على افتراضات الجدولة (مثل افتراض أن خيطاً سينتهي قبل الآخر دائماً) يؤدي إلى أخطاء يصعب تتبعها (Race conditions).",
+      "en": "Relying on scheduling assumptions (e.g., assuming one thread will always finish before another) leads to race conditions."
+    },
+    "hint": {
+      "ar": "لا تفترض متى سيقوم نظام التشغيل بتشغيل خيط معين.",
+      "en": "Don't assume when the OS will run a specific thread."
+    },
+    "difficulty": "easy",
+    "conceptId": "composite-synchronization"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن نظام التشغيل يحمي ذاكرة الخيوط من بعضها البعض. الحقيقة: الخيوط تتشارك نفس مساحة العناوين ولا يوجد دعم من نظام التشغيل لحماية ذاكرتها، مما يتطلب مزامنة دقيقة.</template>
+      <template class="content-en">Believing the OS protects threads' memory from each other. Fact: Threads share the same address space and there is no OS support to protect them, requiring careful synchronization.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">متغيرات الحالة (Condition Variables) لا تعمل بمفردها؛ يجب أن تقترن دائماً بقفل Mutex لحماية الشرط المنطقي (Predicate) من التغيير أثناء الفحص.</template>
+      <template class="content-en">Condition Variables do not work alone; they must always be paired with a Mutex to protect the predicate from changing during the check.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام `pthread_mutex_trylock` بدلاً من `pthread_mutex_lock` يمكن أن يحسن الأداء بشكل كبير لأنه يتجنب النفقات العامة لإدارة طوابير الانتظار في نظام التشغيل.</template>
+      <template class="content-en">Using `pthread_mutex_trylock` instead of `pthread_mutex_lock` can significantly improve performance because it avoids the overhead of managing OS wait queues.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتماد على سرعة تنفيذ الخيوط (Scheduling) للمزامنة. هذا خطأ فادح؛ يجب دائماً استخدام أدوات المزامنة الصريحة (الأقفال، الحواجز) لضمان صحة البرنامج.</template>
+      <template class="content-en">Relying on thread execution speed (scheduling) for synchronization. This is a fatal flaw; always use explicit synchronization tools (locks, barriers) to ensure program correctness.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الحاجز الشجري (Log Barrier) يحل مشكلة عنق الزجاجة في الحاجز الخطي عن طريق تقليل التعقيد الزمني من O(n) إلى O(log p) باستخدام أزواج متعددة من متغيرات الحالة والأقفال.</template>
+      <template class="content-en">The Log Barrier solves the bottleneck of the linear barrier by reducing time complexity from O(n) to O(log p) using multiple condition variable-mutex pairs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M07.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M09.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

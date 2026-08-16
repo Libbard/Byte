@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS362" data-module="4">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التعلم العميق · CS362 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS362" data-page-title-en="CS362">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M03.html" data-gh-next="M05.html" data-gh-card="../../hub/course.html?code=CS362"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#tensors-and-operations" class="toc-link" data-bilingual>
+        <template class="content-ar">الموترات وعملياتها (Tensors)</template>
+        <template class="content-en">Tensors and Tensor Operations</template>
+        <span class="content-target">الموترات وعملياتها (Tensors)</span>
+      </a>
+      <a href="#feedforward-networks" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات العصبية ذات التغذية الأمامية</template>
+        <template class="content-en">Feedforward Neural Networks</template>
+        <span class="content-target">الشبكات العصبية ذات التغذية الأمامية</span>
+      </a>
+      <a href="#computation-graphs" class="toc-link" data-bilingual>
+        <template class="content-ar">الرسوم البيانية الحسابية</template>
+        <template class="content-en">Computation Graphs for Deep Learning</template>
+        <span class="content-target">الرسوم البيانية الحسابية</span>
+      </a>
+      <a href="#convolutional-networks" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات العصبية التلافيفية (CNNs)</template>
+        <template class="content-en">Convolutional Networks</template>
+        <span class="content-target">الشبكات العصبية التلافيفية (CNNs)</span>
+      </a>
+      <a href="#recurrent-networks" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات العصبية المتكررة (RNNs)</template>
+        <template class="content-en">Recurrent Neural Networks</template>
+        <span class="content-target">الشبكات العصبية المتكررة (RNNs)</span>
+      </a>
+      <a href="#learning-algorithms" class="toc-link" data-bilingual>
+        <template class="content-ar">خوارزميات التعلم (الانتشار العكسي والانحدار التدريجي)</template>
+        <template class="content-en">Learning Algorithms (Backpropagation & Gradient Descent)</template>
+        <span class="content-target">خوارزميات التعلم (الانتشار العكسي والانحدار التدريجي)</span>
+      </a>
+      <a href="#generalization-and-regularization" class="toc-link" data-bilingual>
+        <template class="content-ar">التعميم والتنظيم</template>
+        <template class="content-en">Generalization and Regularization</template>
+        <span class="content-target">التعميم والتنظيم</span>
+      </a>
+      <a href="#unsupervised-learning" class="toc-link" data-bilingual>
+        <template class="content-ar">التعلم غير الخاضع للإشراف</template>
+        <template class="content-en">Unsupervised Learning</template>
+        <span class="content-target">التعلم غير الخاضع للإشراف</span>
+      </a>
+      <a href="#transfer-learning" class="toc-link" data-bilingual>
+        <template class="content-ar">نقل التعلم</template>
+        <template class="content-en">Transfer Learning</template>
+        <span class="content-target">نقل التعلم</span>
+      </a>
+      <a href="#deep-learning-applications" class="toc-link" data-bilingual>
+        <template class="content-ar">تطبيقات التعلم العميق</template>
+        <template class="content-en">Deep Learning Applications</template>
+        <span class="content-target">تطبيقات التعلم العميق</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 4</template>
+      <template class="content-en">Module 4</template>
+      <span class="content-target">الوحدة 4</span>
+    </span> · CS362
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">التعلم العميق</h1>
+      <p class="hero-description">مقدمة شاملة للتعلم العميق، تشمل الموترات، الشبكات العصبية (الأمامية، التلافيفية، والمتكررة)، خوارزميات التعلم، التعميم، التعلم غير الخاضع للإشراف، ونقل التعلم.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Deep Learning</h1>
+      <p class="hero-description">A comprehensive introduction to Deep Learning, covering tensors, neural networks (Feedforward, CNNs, RNNs), learning algorithms, generalization, unsupervised learning, and transfer learning.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">التعلم العميق</span>
+      <span class="tag">الشبكات العصبية</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Deep Learning</span>
+      <span class="tag">Neural Networks</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تعريف الموترات والعمليات التي تتم عليها.</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف الشبكات الأمامية البسيطة، الرسوم البيانية الحسابية، الشبكات التلافيفية، والشبكات المتكررة.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح تعميم خوارزميات التعلم.</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف التعلم غير الخاضع للإشراف ونقل التعلم.</span></li>
+      <li><span class="obj-icon">✦</span><span>تقييم تطبيقات التعلم العميق.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Define tensors, and tensor operations.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe Simple Feedforward Networks, Computation Graphs for Deep Learning, Convolutional Networks and Recurrent Neural Networks.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain Learning Algorithms Generalization.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe unsupervised learning and Transfer Learning.</span></li>
+      <li><span class="obj-icon">✦</span><span>Evaluate Deep Learning Applications.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="tensors-and-operations" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الموترات وعملياتها (Tensors)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Tensors and Tensor Operations</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Tensor" data-ar="موتر" data-en-def="An N-dimensional data structure used in deep learning.">الموترات<span class="smart-term-tooltip"></span></span> هي هياكل بيانات متعددة الأبعاد تمثل الحاوية الأساسية لجميع أنواع البيانات في التعلم العميق.</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="Tensor" data-ar="موتر" data-en-def="An N-dimensional data structure used in deep learning.">Tensors<span class="smart-term-tooltip"></span></span> are N-dimensional data structures that act as the universal containers for all data in deep learning.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الموترات هي هياكل بيانات ذات N بُعد (حيث يمكن أن يكون N كبيرًا جدًا)، والأكثر شيوعًا هي:</p><ul><li>القيم العددية (Scalars)،</li><li>المتجهات (Vectors)،</li><li>والمصفوفات (Matrices).</li></ul><p>يمكن لعناصر الموتر أن تحتوي على قيم صحيحة، أو عائمة، أو نصية. أي شكل من أشكال البيانات (جدولية، نصية، صور، فيديو، صوت) يمكن استخدامه مع التعلم العميق إذا تم تحويله إلى موترات.</p><p>يمكن إجراء مجموعة متنوعة من الوظائف والعمليات الرياضية على الموترات.</p></template>
+    <template class="content-en"><p>Tensors are N-dimensional (where N could be very large) data structures, most commonly:</p><ul><li>scalars,</li><li>vectors,</li><li>or matrices.</li></ul><p>The elements of a Tensor can hold integer, floating-point, or string values. Any form of data (tabular, text, image, video, sound) can be utilised with deep learning if transformed into Tensors.</p><p>You can perform a variety of math functions/operations to tensors.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تعتبر الموترات ضرورية لأنها توفر تنسيقًا رياضيًا موحدًا يمكن معالجته بكفاءة عالية بواسطة الأجهزة المتخصصة مثل وحدات المعالجة الرسومية (GPUs) ووحدات معالجة الموترات (TPUs).</p><p>تحويل البيانات المعقدة (مثل بكسلات الصور أو الترددات الصوتية) إلى موترات يسمح للشبكات العصبية باكتشاف الأنماط من خلال عمليات ضرب المصفوفات المعقدة.</p></template>
+    <template class="content-en"><p>Tensors are essential because they provide a unified mathematical format that can be processed highly efficiently by specialized hardware like GPUs and TPUs.</p><p>Transforming complex data (like image pixels or audio frequencies) into tensors allows neural networks to discover patterns through massive parallel matrix multiplications.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[6]: Detailed SVG generation prompt: Show the progression of dimensions in tensors. A single block for Scalar (0D), a row of blocks for Vector (1D), a grid of blocks for Matrix (2D), and a 3D cube of blocks for a Tensor (3D). Use educational styling, dark background #0d1117, accent colors for each dimension type, and clear English and Arabic labels. -->
+<div class="svg-diagram" data-diagram-id="6">
+<svg viewBox="0 0 1000 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow-progression" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-axis" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Main Title -->
+    <text x="500" y="45" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)">
+        Progression of Tensor Dimensions
+    </text>
+    <text x="500" y="75" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-secondary)">
+        تطور أبعاد الموتر
+    </text>
+
+    <!-- Progression Arrows -->
+    <!-- Arrow 1 -->
+    <line x1="160" y1="220" x2="235" y2="220" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-progression)" />
+    <text x="197.5" y="205" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">+1 Dim</text>
+    <text x="197.5" y="240" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">+1 بُعد</text>
+
+    <!-- Arrow 2 -->
+    <line x1="400" y1="220" x2="475" y2="220" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-progression)" />
+    <text x="437.5" y="205" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">+1 Dim</text>
+    <text x="437.5" y="240" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">+1 بُعد</text>
+
+    <!-- Arrow 3 -->
+    <line x1="640" y1="220" x2="715" y2="220" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-progression)" />
+    <text x="677.5" y="205" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">+1 Dim</text>
+    <text x="677.5" y="240" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">+1 بُعد</text>
+
+    <!-- ==================== SCALAR (0D) ==================== -->
+    <g>
+        <text x="125" y="125" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Scalar (0D)</text>
+        <text x="125" y="150" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">كمية قياسية</text>
+
+        <rect x="110" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="125" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">7</text>
+
+        <rect x="85" y="350" width="80" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="125" y="370" text-anchor="middle" font-family="monospace" font-size="14" fill="var(--text-primary)">Shape: []</text>
+    </g>
+
+    <!-- ==================== VECTOR (1D) ==================== -->
+    <g>
+        <text x="320" y="125" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Vector (1D)</text>
+        <text x="320" y="150" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">متجه</text>
+
+        <!-- Blocks -->
+        <rect x="260" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="275" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">2</text>
+        
+        <rect x="290" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="305" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">5</text>
+        
+        <rect x="320" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="335" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">1</text>
+        
+        <rect x="350" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="365" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">9</text>
+
+        <!-- Axis -->
+        <line x1="260" y1="255" x2="375" y2="255" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-axis)" />
+        <text x="320" y="275" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Axis 0 (Length: 4)</text>
+
+        <rect x="270" y="350" width="100" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="320" y="370" text-anchor="middle" font-family="monospace" font-size="14" fill="var(--text-primary)">Shape: [4]</text>
+    </g>
+
+    <!-- ==================== MATRIX (2D) ==================== -->
+    <g>
+        <text x="560" y="125" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Matrix (2D)</text>
+        <text x="560" y="150" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">مصفوفة</text>
+
+        <!-- Blocks Row 0 -->
+        <rect x="500" y="175" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="515" y="190" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">3</text>
+        <rect x="530" y="175" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="545" y="190" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">1</text>
+        <rect x="560" y="175" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="575" y="190" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">4</text>
+        <rect x="590" y="175" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="605" y="190" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">2</text>
+
+        <!-- Blocks Row 1 -->
+        <rect x="500" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="515" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">8</text>
+        <rect x="530" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="545" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">5</text>
+        <rect x="560" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="575" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">7</text>
+        <rect x="590" y="205" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="605" y="220" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">9</text>
+
+        <!-- Blocks Row 2 -->
+        <rect x="500" y="235" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="515" y="250" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">0</text>
+        <rect x="530" y="235" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="545" y="250" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">6</text>
+        <rect x="560" y="235" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="575" y="250" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">2</text>
+        <rect x="590" y="235" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="605" y="250" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">1</text>
+
+        <!-- Axes -->
+        <line x1="500" y1="285" x2="615" y2="285" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-axis)" />
+        <text x="560" y="305" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Axis 1 (Cols: 4)</text>
+
+        <line x1="480" y1="175" x2="480" y2="260" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-axis)" />
+        <text x="465" y="220" text-anchor="middle" transform="rotate(-90 465 220)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Axis 0 (Rows: 3)</text>
+
+        <rect x="500" y="350" width="120" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="560" y="370" text-anchor="middle" font-family="monospace" font-size="14" fill="var(--text-primary)">Shape: [3, 4]</text>
+    </g>
+
+    <!-- ==================== TENSOR (3D) ==================== -->
+    <g>
+        <text x="815" y="125" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Tensor (3D)</text>
+        <text x="815" y="150" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">موتر</text>
+
+        <!-- Layer 0 (Back) -->
+        <g transform="translate(770, 145)">
+            <rect x="0" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="30" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="60" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="90" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="0" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="30" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="60" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="90" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="0" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="30" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="60" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="90" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+        </g>
+
+        <!-- Layer 1 (Middle) -->
+        <g transform="translate(755, 160)">
+            <rect x="0" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="30" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="60" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="90" y="0" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="0" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="30" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="60" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="90" y="30" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="0" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="30" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="60" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+            <rect x="90" y="60" width="30" height="30" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1.5" />
+        </g>
+
+        <!-- Layer 2 (Front) -->
+        <g transform="translate(740, 175)">
+            <rect x="0" y="0" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="15" y="15" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">1</text>
+            <rect x="30" y="0" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="45" y="15" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">9</text>
+            <rect x="60" y="0" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="75" y="15" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">2</text>
+            <rect x="90" y="0" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="105" y="15" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">5</text>
+
+            <rect x="0" y="30" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="15" y="45" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">4</text>
+            <rect x="30" y="30" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="45" y="45" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">7</text>
+            <rect x="60" y="30" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="75" y="45" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">3</text>
+            <rect x="90" y="30" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="105" y="45" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">8</text>
+
+            <rect x="0" y="60" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="15" y="75" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">6</text>
+            <rect x="30" y="60" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="45" y="75" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">0</text>
+            <rect x="60" y="60" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="75" y="75" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">1</text>
+            <rect x="90" y="60" width="30" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+            <text x="105" y="75" text-anchor="middle" dominant-baseline="central" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">4</text>
+        </g>
+
+        <!-- Axes -->
+        <line x1="740" y1="285" x2="855" y2="285" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-axis)" />
+        <text x="800" y="305" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Axis 2 (Cols: 4)</text>
+
+        <line x1="720" y1="175" x2="720" y2="260" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-axis)" />
+        <text x="705" y="220" text-anchor="middle" transform="rotate(-90 705 220)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Axis 1 (Rows: 3)</text>
+
+        <line x1="720" y1="175" x2="750" y2="145" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-axis)" />
+        <text x="730" y="135" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Axis 0 (Depth: 3)</text>
+
+        <rect x="745" y="350" width="140" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="815" y="370" text-anchor="middle" font-family="monospace" font-size="14" fill="var(--text-primary)">Shape: [3, 3, 4]</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يجب تحويل جميع أنواع البيانات (نص، صورة، صوت) إلى موترات قبل إدخالها في نموذج التعلم العميق؟</template>
+      <template class="content-en">Why must all data types (text, image, audio) be converted into tensors before being fed into a deep learning model?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الشبكات العصبية هي في الأساس نماذج رياضية تعتمد على العمليات الحسابية (مثل الجمع والضرب). الموترات توفر لغة رياضية موحدة يمكن للشبكة معالجتها.</p></template>
+      <template class="content-en"><p>Because neural networks are fundamentally mathematical models that rely on arithmetic operations (like addition and multiplication). Tensors provide a unified mathematical language that the network can process.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="feedforward-networks" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الشبكات العصبية ذات التغذية الأمامية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Feedforward Neural Networks</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هي أبسط أنواع الشبكات العصبية حيث تتدفق البيانات في اتجاه واحد فقط من المدخلات إلى المخرجات دون أي حلقات.</p></template>
+    <template class="content-en"><p>The simplest type of neural network where data flows in only one direction from input to output without any loops.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الشبكة العصبية ذات التغذية الأمامية هي شبكة عصبية بدون اتصالات دورية أو متكررة. يُعتبر هذا التصميم الأول والأكثر أساسية للشبكات العصبية الاصطناعية. تتكون من:</p><ul><li>طبقة إدخال،</li><li>وطبقات مخفية (اختيارية)،</li><li>وطبقة إخراج.</li></ul><p>يتم حساب المخرجات عن طريق جمع المدخلات المضروبة في الأوزان، وإضافة التحيز (Bias)، ثم تمرير النتيجة عبر دالة تنشيط غير خطية.</p></template>
+    <template class="content-en"><p>A neural network without cyclic or recursive connections. The first and most basic artificial neural network design was the <span class="smart-term" data-term-en="Feedforward" data-ar="تغذية أمامية" data-en-def="Data moves in one direction from input nodes, through hidden nodes, to output nodes.">feedforward<span class="smart-term-tooltip"></span></span> neural network. It consists of:</p><ul><li>an input layer,</li><li>hidden layers,</li><li>and an output layer.</li></ul><p>The output is calculated by summing the inputs multiplied by their weights, adding a bias, and passing the result through a non-linear activation function.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الافتقار إلى الاتصالات الدورية يعني أن هذه الشبكات ليس لديها 'ذاكرة' للحالات السابقة، مما يجعلها غير مناسبة للبيانات المتسلسلة مثل النصوص أو السلاسل الزمنية.</p><p>ومع ذلك، فهي الأساس الذي تُبنى عليه البنى الأكثر تعقيدًا.</p></template>
+    <template class="content-en"><p>The lack of cyclic connections means these networks have no 'memory' of previous states, making them unsuitable for sequential data like text or time series.</p><p>However, they serve as the foundational building block for more complex architectures.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة التركيب الخطي للمدخلات مع الأوزان والتحيز، متبوعة بدالة التنشيط.</strong></template>
+      <template class="content-en"><strong>Linear combination of inputs with weights and bias, followed by an activation function.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\hat{y} = g\left(w_0 + \sum_{i=1}^{m} x_i w_i\right)$$</div>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: A diagram showing inputs (x1, x2, xm) with corresponding weights (w1, w2, wm) pointing to a summation node (Sigma). A bias (w0) also points to the summation. The output of the summation points to a non-linear activation function node (integral-like symbol), which then outputs y-hat. Dark background, clear labels. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)"/>
+    </marker>
+    
+    <!-- Gradient for Main Nodes -->
+    <linearGradient id="node-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-600)" />
+      <stop offset="100%" stop-color="var(--brand-800)" />
+    </linearGradient>
+    
+    <!-- Drop Shadow for Nodes -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" rx="12"/>
+
+  <!-- Main Title -->
+  <text x="400" y="375" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Artificial Neuron Model / نموذج العصبون الاصطناعي</text>
+
+  <!-- Section Headers -->
+  <text x="100" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Inputs / المدخلات</text>
+  <text x="220" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">Weights / الأوزان</text>
+
+  <!-- ================= CONNECTIONS (EDGES) ================= -->
+  
+  <!-- x1 to Summation -->
+  <path d="M 120 100 L 296 194" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <!-- x2 to Summation -->
+  <path d="M 120 180 L 291 210" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <!-- xm to Summation -->
+  <path d="M 120 340 L 297 247" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Bias to Summation -->
+  <path d="M 350 90 L 350 160" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Summation to Activation -->
+  <path d="M 400 220 L 490 220" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  
+  <!-- Activation to Output -->
+  <path d="M 600 220 L 690 220" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- ================= LABELS ON EDGES ================= -->
+  
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    <!-- Weights -->
+    <text x="200" y="135">w<tspan dy="4" font-size="12">1</tspan></text>
+    <text x="200" y="185">w<tspan dy="4" font-size="12">2</tspan></text>
+    <text x="200" y="305">w<tspan dy="4" font-size="12">m</tspan></text>
+    <text x="365" y="135">w<tspan dy="4" font-size="12">0</tspan></text>
+    
+    <!-- Intermediate Output (z) -->
+    <text x="445" y="210">z</text>
+  </g>
+
+  <!-- ================= NODES ================= -->
+  
+  <!-- Input Nodes -->
+  <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)">
+    <circle cx="100" cy="100" r="20"/>
+    <circle cx="100" cy="180" r="20"/>
+    <circle cx="100" cy="340" r="20"/>
+    <!-- Bias Node -->
+    <circle cx="350" cy="70" r="20"/>
+  </g>
+
+  <!-- Input Node Labels -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    <text x="100" y="105">x<tspan dy="4" font-size="12">1</tspan></text>
+    <text x="100" y="185">x<tspan dy="4" font-size="12">2</tspan></text>
+    <text x="100" y="345">x<tspan dy="4" font-size="12">m</tspan></text>
+    <text x="350" y="76">1</text>
+  </g>
+
+  <!-- Bias Explanation Label -->
+  <text x="385" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="start">Bias / الانحياز (b)</text>
+
+  <!-- Ellipsis (Dots) for omitted inputs -->
+  <g fill="var(--text-muted)">
+    <circle cx="100" cy="240" r="3"/>
+    <circle cx="100" cy="260" r="3"/>
+    <circle cx="100" cy="280" r="3"/>
+  </g>
+
+  <!-- Summation Node -->
+  <circle cx="350" cy="220" r="50" fill="url(#node-grad)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="350" y="236" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="44" font-weight="bold" fill="#ffffff" text-anchor="middle">Σ</text>
+  
+  <text x="350" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Summation / الجمع</text>
+  <text x="350" y="320" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">
+    z = Σ w<tspan dy="4" font-size="10">i</tspan><tspan dy="-4"> x</tspan><tspan dy="4" font-size="10">i</tspan><tspan dy="-4"> + b</tspan>
+  </text>
+
+  <!-- Activation Node -->
+  <circle cx="550" cy="220" r="50" fill="url(#node-grad)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+  
+  <!-- Activation Function Graphic (Axes + Integral/Sigmoid Curve) -->
+  <path d="M 515 220 L 585 220 M 550 185 L 550 255" stroke="#ffffff" stroke-width="1.5" opacity="0.4"/>
+  <path d="M 535 245 C 535 220, 565 220, 565 195" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <text x="550" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Activation / التنشيط</text>
+  <text x="550" y="320" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">ŷ = f(z)</text>
+
+  <!-- Output Node / Label -->
+  <text x="720" y="228" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">ŷ</text>
+  <text x="720" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Output / المخرجات</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو القيد الرئيسي للشبكات ذات التغذية الأمامية عند التعامل مع الجمل النصية؟</template>
+      <template class="content-en">What is the main limitation of feedforward networks when dealing with text sentences?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا يمكنها تذكر الكلمات السابقة في الجملة لأنها تفتقر إلى الاتصالات المتكررة (الذاكرة)، مما يجعل فهم السياق صعبًا.</p></template>
+      <template class="content-en"><p>They cannot remember previous words in the sentence because they lack recursive connections (memory), making context understanding difficult.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="computation-graphs" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الرسوم البيانية الحسابية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Computation Graphs for Deep Learning</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هي خرائط مرئية تمثل المعادلات الرياضية كعقد وحواف، وتستخدمها أطر العمل مثل TensorFlow لتنفيذ العمليات بكفاءة.</p></template>
+    <template class="content-en"><p>Visual maps representing mathematical equations as nodes and edges, used by frameworks like TensorFlow to execute operations efficiently.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الرسوم البيانية التي تحتوي على بيانات معادلات تُعرف ب<span class="smart-term" data-term-en="Computation Graph" data-ar="رسم بياني حسابي" data-en-def="A directed graph where nodes correspond to operations or variables.">الرسوم البيانية الحسابية<span class="smart-term-tooltip"></span></span>. هي نوع من الرسوم البيانية الموجهة التي تصور تعبيرًا في الرياضيات. تستخدم أطر عمل التعلم العميق مثل TensorFlow الرسوم البيانية كتنسيق للنماذج المحفوظة عند تصديرها من Python.</p><p>يتكون TensorFlow من عنصرين أساسيين:</p><ul><li><strong>وقت تشغيل (runtime)</strong> لتنفيذ الرسوم البيانية الحسابية على مجموعة متنوعة من الأجهزة،</li><li><strong>ومكتبة</strong> لبناء هذه الرسوم البيانية.</li></ul></template>
+    <template class="content-en"><p>Graphs having equational data are known as <span class="smart-term" data-term-en="Computation Graph" data-ar="رسم بياني حسابي" data-en-def="A directed graph where nodes correspond to operations or variables.">computation graphs<span class="smart-term-tooltip"></span></span>. They are a type of directed graph that depicts an expression in mathematics. Deep Learning frameworks like TensorFlow use graphs as the format for saved models when it exports them from Python.</p><ul><li>A <strong>runtime</strong> for executing computational graphs on a variety of hardware</li><li>and a <strong>library</strong> for constructing such graphs</li></ul><p>make up the two main building elements of the framework known as TensorFlow.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تسمح الرسوم البيانية الحسابية بالاشتقاق التلقائي (Automatic Differentiation)، وهو أمر بالغ الأهمية لخوارزمية الانتشار العكسي.</p><p>من خلال تتبع مسار العمليات من المدخلات إلى المخرجات، يمكن للإطار حساب التدرجات (Gradients) بكفاءة عن طريق تطبيق قاعدة السلسلة (Chain Rule) بشكل عكسي.</p></template>
+    <template class="content-en"><p>Computation graphs enable Automatic Differentiation (Autodiff), which is crucial for the backpropagation algorithm.</p><p>By tracing the path of operations from inputs to outputs, the framework can efficiently compute gradients by applying the chain rule in reverse.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: A directed graph showing nodes with values (15, 5) pointing to operation nodes (Mul, Add). The outputs of Mul and Add point to a Div node. This represents a topological ordering of mathematical operations. Dark background, clear arrows. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Definitions for Arrow Markers -->
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="29" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Titles and Headers -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <!-- Main Title -->
+        <text x="400" y="35" fill="var(--text-primary)" font-size="22" font-weight="bold">Topological Ordering of Mathematical Operations</text>
+        <text x="400" y="60" fill="var(--text-secondary)" font-size="16">الترتيب الطوبولوجي للعمليات الرياضية</text>
+
+        <!-- Column Headers -->
+        <text x="150" y="100" fill="var(--text-muted)" font-size="15" font-weight="600">Inputs / المدخلات</text>
+        <text x="400" y="100" fill="var(--text-muted)" font-size="15" font-weight="600">Operations / العمليات</text>
+        <text x="650" y="100" fill="var(--text-muted)" font-size="15" font-weight="600">Output / المخرجات</text>
+    </g>
+
+    <!-- Edges (Dependencies) -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow)">
+        <!-- 15 to Mul -->
+        <path d="M 150 160 L 400 160" />
+        <!-- 15 to Add -->
+        <path d="M 150 160 C 275 160, 275 300, 400 300" />
+        
+        <!-- 5 to Mul -->
+        <path d="M 150 300 C 275 300, 275 160, 400 160" />
+        <!-- 5 to Add -->
+        <path d="M 150 300 L 400 300" />
+        
+        <!-- Mul to Div -->
+        <path d="M 400 160 C 525 160, 525 230, 650 230" />
+        <!-- Add to Div -->
+        <path d="M 400 300 C 525 300, 525 230, 650 230" />
+    </g>
+
+    <!-- Nodes -->
+    <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2.5">
+        <!-- Input Nodes -->
+        <circle cx="150" cy="160" r="45" />
+        <circle cx="150" cy="300" r="45" />
+        
+        <!-- Intermediate Operation Nodes -->
+        <circle cx="400" cy="160" r="45" />
+        <circle cx="400" cy="300" r="45" />
+        
+        <!-- Final Output Node (Highlighted with outer dashed ring) -->
+        <circle cx="650" cy="230" r="53" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="5 5" />
+        <circle cx="650" cy="230" r="45" stroke-width="3" />
+    </g>
+
+    <!-- Node Labels -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <!-- Input 15 -->
+        <text x="150" y="168" fill="var(--text-primary)" font-size="24" font-weight="bold">15</text>
+
+        <!-- Input 5 -->
+        <text x="150" y="308" fill="var(--text-primary)" font-size="24" font-weight="bold">5</text>
+
+        <!-- Mul Node -->
+        <text x="400" y="155" fill="var(--text-primary)" font-size="20" font-weight="bold">Mul</text>
+        <text x="400" y="175" fill="var(--text-secondary)" font-size="14">× 75</text>
+
+        <!-- Add Node -->
+        <text x="400" y="295" fill="var(--text-primary)" font-size="20" font-weight="bold">Add</text>
+        <text x="400" y="315" fill="var(--text-secondary)" font-size="14">+ 20</text>
+
+        <!-- Div Node -->
+        <text x="650" y="225" fill="var(--text-primary)" font-size="20" font-weight="bold">Div</text>
+        <text x="650" y="245" fill="var(--text-secondary)" font-size="14">÷ 3.75</text>
+    </g>
+
+    <!-- Topological Order Badges -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        <!-- Step 1 -->
+        <circle cx="115" cy="125" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="115" y="130" fill="var(--text-primary)" font-size="13" font-weight="bold">1</text>
+
+        <!-- Step 2 -->
+        <circle cx="115" cy="265" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="115" y="270" fill="var(--text-primary)" font-size="13" font-weight="bold">2</text>
+
+        <!-- Step 3 -->
+        <circle cx="365" cy="125" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="365" y="130" fill="var(--text-primary)" font-size="13" font-weight="bold">3</text>
+
+        <!-- Step 4 -->
+        <circle cx="365" cy="265" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="365" y="270" fill="var(--text-primary)" font-size="13" font-weight="bold">4</text>
+
+        <!-- Step 5 -->
+        <circle cx="615" cy="195" r="14" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="615" y="200" fill="var(--text-primary)" font-size="13" font-weight="bold">5</text>
+    </g>
+
+    <!-- Legend -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <rect x="200" y="355" width="400" height="36" rx="18" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+        <circle cx="230" cy="373" r="10" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="230" y="377" fill="var(--text-primary)" font-size="11" font-weight="bold" text-anchor="middle">#</text>
+        <text x="420" y="378" fill="var(--text-secondary)" font-size="14" text-anchor="middle">Execution Order (Topological Sort) / ترتيب التنفيذ</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تفصل أطر العمل مثل TensorFlow بين بناء الرسم البياني الحسابي وتنفيذه؟</template>
+      <template class="content-en">Why do frameworks like TensorFlow separate the construction of the computation graph from its execution?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>للسماح بتحسين الرسم البياني (مثل دمج العمليات) قبل التنفيذ، ولتمكين تشغيل نفس الرسم البياني على أجهزة مختلفة (CPU، GPU) دون إعادة كتابة الكود.</p></template>
+      <template class="content-en"><p>To allow for graph optimization (like fusing operations) before execution, and to enable running the same graph on different hardware (CPU, GPU) without rewriting code.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="convolutional-networks" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الشبكات العصبية التلافيفية (CNNs)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Convolutional Networks</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>شبكات متخصصة في معالجة البيانات المرئية (الصور) باستخدام مرشحات تكتشف الأنماط المكانية مثل الحواف والأشكال.</p></template>
+    <template class="content-en"><p>Specialized networks for processing visual data (images) using filters that detect spatial patterns like edges and shapes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الشبكات العصبية ال<span class="smart-term" data-term-en="Convolution" data-ar="تلافيف" data-en-def="A mathematical operation applying a filter to an input to produce a feature map.">تلافيف<span class="smart-term-tooltip"></span></span>ية (CNNs أو ConvNets) هي عائلة من الشبكات العصبية الاصطناعية (ANNs) تُستخدم بشكل متكرر في التعلم العميق لمعالجة البيانات المرئية. تعتمد على:</p><ul><li><strong>طبقات التلافيف (Convolution)</strong> التي تطبق مرشحات (Kernels) على أجزاء صغيرة من الصورة لاستخراج الميزات،</li><li>تليها <strong>طبقات ال<span class="smart-term" data-term-en="Pooling" data-ar="تجميع" data-en-def="Downsampling operation to reduce the spatial dimensions of the feature map.">تجميع<span class="smart-term-tooltip"></span></span> (Pooling)</strong> لتقليل الأبعاد،</li><li>ثم <strong>طبقات متصلة بالكامل (Fully-Connected)</strong> للتصنيف النهائي.</li></ul></template>
+    <template class="content-en"><p>Convolutional neural networks (CNNs, or ConvNets) are a family of artificial neural networks (ANNs) used most frequently in deep learning to process visual data. They rely on:</p><ul><li><strong>convolution layers</strong> that apply kernels to small regions of an image to extract features,</li><li>followed by <strong>pooling layers</strong> to reduce dimensionality,</li><li>and finally <strong>fully-connected layers</strong> for classification.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تتفوق CNNs على الشبكات الأمامية التقليدية في معالجة الصور لأنها تحافظ على العلاقات المكانية بين البكسلات وتقلل بشكل كبير من عدد المعلمات (Parameters) المطلوبة من خلال مشاركة الأوزان (Weight Sharing) في المرشحات.</p></template>
+    <template class="content-en"><p>CNNs outperform traditional feedforward networks in image processing because they preserve the spatial relationships between pixels and drastically reduce the number of required parameters through weight sharing in the filters.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Architecture of a CNN. Start with an input image of a digit '2'. Show a Conv layer extracting feature maps, followed by a Max-Pooling layer reducing size. Repeat Conv and Pooling. Then show a 'Flattened' layer connecting to a Fully-Connected Neural Network with a final output layer of 10 nodes (0-9). Dark theme. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Drop Shadow for Layers -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="3" stdDeviation="2" flood-opacity="0.15" flood-color="var(--brand-800)" />
+    </filter>
+
+    <!-- Highlight Gradient -->
+    <linearGradient id="highlight-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-600)" />
+      <stop offset="100%" stop-color="var(--brand-800)" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <text x="600" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Convolutional Neural Network (CNN) Architecture</text>
+  <text x="600" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle">بنية الشبكة العصبية التلافيفية</text>
+
+  <!-- ========================================== -->
+  <!-- CONNECTIONS (Drawn first to stay behind)   -->
+  <!-- ========================================== -->
+
+  <!-- Input to Conv1 (Convolution Operation Hint) -->
+  <path d="M 120 190 L 244 164" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.7" />
+  <path d="M 120 210 L 244 184" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.7" />
+  
+  <!-- Conv1 to Pool1 (Pooling Operation Hint) -->
+  <path d="M 304 204 L 418 203" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.7" />
+  <path d="M 304 224 L 418 228" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.7" />
+
+  <!-- Layer to Layer Arrows -->
+  <line x1="335" y1="204" x2="385" y2="204" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="480" y1="204" x2="540" y2="204" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="655" y1="204" x2="705" y2="204" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Pool2 to Flatten -->
+  <path d="M 770 215 L 860 110" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.7" />
+  <path d="M 770 245 L 860 330" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4,4" fill="none" opacity="0.7" />
+
+  <!-- Flatten to Dense (Web of lines) -->
+  <g stroke="var(--border-color)" stroke-width="1" opacity="0.3">
+    <!-- From Flatten y=130 -->
+    <line x1="860" y1="130" x2="980" y2="140" /><line x1="860" y1="130" x2="980" y2="180" /><line x1="860" y1="130" x2="980" y2="220" /><line x1="860" y1="130" x2="980" y2="260" />
+    <!-- From Flatten y=190 -->
+    <line x1="860" y1="190" x2="980" y2="140" /><line x1="860" y1="190" x2="980" y2="180" /><line x1="860" y1="190" x2="980" y2="220" /><line x1="860" y1="190" x2="980" y2="260" />
+    <!-- From Flatten y=250 -->
+    <line x1="860" y1="250" x2="980" y2="160" /><line x1="860" y1="250" x2="980" y2="200" /><line x1="860" y1="250" x2="980" y2="240" /><line x1="860" y1="250" x2="980" y2="280" />
+    <!-- From Flatten y=310 -->
+    <line x1="860" y1="310" x2="980" y2="160" /><line x1="860" y1="310" x2="980" y2="200" /><line x1="860" y1="310" x2="980" y2="240" /><line x1="860" y1="310" x2="980" y2="280" />
+  </g>
+
+  <!-- Dense to Output (Web of lines) -->
+  <g stroke="var(--border-color)" stroke-width="1" opacity="0.3">
+    <!-- To Output y=100 (0) -->
+    <line x1="980" y1="140" x2="1100" y2="100" /><line x1="980" y1="200" x2="1100" y2="100" /><line x1="980" y1="260" x2="1100" y2="100" />
+    <!-- To Output y=225 (5) -->
+    <line x1="980" y1="160" x2="1100" y2="225" /><line x1="980" y1="220" x2="1100" y2="225" /><line x1="980" y1="280" x2="1100" y2="225" />
+    <!-- To Output y=300 (8) -->
+    <line x1="980" y1="180" x2="1100" y2="300" /><line x1="980" y1="240" x2="1100" y2="300" /><line x1="980" y1="280" x2="1100" y2="300" />
+  </g>
+  
+  <!-- Highlighted Dense to Output lines (Targeting '2') -->
+  <g stroke="var(--brand-500)" stroke-width="1.5" opacity="0.8">
+    <line x1="980" y1="160" x2="1100" y2="150" />
+    <line x1="980" y1="200" x2="1100" y2="150" />
+    <line x1="980" y1="240" x2="1100" y2="150" />
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- NODES & LAYERS                             -->
+  <!-- ========================================== -->
+
+  <!-- 1. Input Image -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="164" width="80" height="80" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="100" y="220" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="48" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2</text>
+    <!-- Kernel Box -->
+    <rect x="100" y="190" width="20" height="20" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="2,2" />
+  </g>
+
+  <!-- 2. Conv Layer 1 -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="140" width="80" height="80" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="228" y="148" width="80" height="80" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="236" y="156" width="80" height="80" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="244" y="164" width="80" height="80" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="1" />
+    <!-- Grid on front feature map -->
+    <path d="M 244 184 L 324 184 M 244 204 L 324 204 M 244 224 L 324 224 M 264 164 L 264 244 M 284 164 L 284 244 M 304 164 L 304 244" stroke="var(--brand-500)" stroke-width="0.5" opacity="0.4" />
+    <!-- Target Pixel from Input -->
+    <rect x="244" y="164" width="20" height="20" fill="var(--brand-500)" fill-opacity="0.3" stroke="var(--brand-500)" stroke-width="1.5" />
+    <!-- Pooling Box -->
+    <rect x="284" y="204" width="20" height="20" fill="var(--brand-500)" fill-opacity="0.2" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="2,2" />
+  </g>
+
+  <!-- 3. Max Pooling 1 -->
+  <g filter="url(#shadow)">
+    <rect x="400" y="185" width="50" height="50" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="406" y="191" width="50" height="50" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="412" y="197" width="50" height="50" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="418" y="203" width="50" height="50" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="1" />
+    <!-- Grid on front feature map -->
+    <path d="M 418 228 L 468 228 M 443 203 L 443 253" stroke="var(--brand-500)" stroke-width="0.5" opacity="0.4" />
+    <!-- Target Pixel from Conv1 -->
+    <rect x="418" y="228" width="25" height="25" fill="var(--brand-500)" fill-opacity="0.3" stroke="var(--brand-500)" stroke-width="1.5" />
+  </g>
+
+  <!-- 4. Conv Layer 2 -->
+  <g filter="url(#shadow)">
+    <rect x="560" y="175" width="60" height="60" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="565" y="180" width="60" height="60" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="570" y="185" width="60" height="60" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="575" y="190" width="60" height="60" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="580" y="195" width="60" height="60" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="585" y="200" width="60" height="60" rx="2" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="1" />
+    <!-- Grid on front feature map -->
+    <path d="M 585 220 L 645 220 M 585 240 L 645 240 M 605 200 L 605 260 M 625 200 L 625 260" stroke="var(--brand-500)" stroke-width="0.5" opacity="0.4" />
+  </g>
+
+  <!-- 5. Max Pooling 2 -->
+  <g filter="url(#shadow)">
+    <rect x="720" y="195" width="30" height="30" rx="1" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="724" y="199" width="30" height="30" rx="1" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="728" y="203" width="30" height="30" rx="1" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="732" y="207" width="30" height="30" rx="1" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="736" y="211" width="30" height="30" rx="1" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="0.9" />
+    <rect x="740" y="215" width="30" height="30" rx="1" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" opacity="1" />
+    <!-- Grid on front feature map -->
+    <path d="M 740 230 L 770 230 M 755 215 L 755 245" stroke="var(--brand-500)" stroke-width="0.5" opacity="0.4" />
+  </g>
+
+  <!-- 6. Flatten Layer -->
+  <g filter="url(#shadow)">
+    <!-- 12 nodes -->
+    <circle cx="860" cy="110" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="130" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="150" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="170" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="190" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="210" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="230" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="250" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="270" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="290" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="310" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="860" cy="330" r="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  </g>
+
+  <!-- 7. Dense Layer (Fully Connected) -->
+  <g filter="url(#shadow)">
+    <!-- 8 nodes -->
+    <circle cx="980" cy="140" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="160" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="180" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="200" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="220" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="240" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="260" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+    <circle cx="980" cy="280" r="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+  </g>
+
+  <!-- 8. Output Layer -->
+  <g filter="url(#shadow)">
+    <!-- 10 nodes -->
+    <circle cx="1100" cy="100" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="125" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    
+    <!-- Highlighted Node '2' -->
+    <circle cx="1100" cy="150" r="12" fill="url(#highlight-grad)" stroke="var(--brand-500)" stroke-width="2" />
+    
+    <circle cx="1100" cy="175" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="200" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="225" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="250" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="275" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="300" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+    <circle cx="1100" cy="325" r="10" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  </g>
+
+  <!-- Output Labels (Digits 0-9) -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="start">
+    <text x="1120" y="105">0</text>
+    <text x="1120" y="130">1</text>
+    <text x="1120" y="155" font-size="18" font-weight="bold" fill="var(--brand-500)">2</text>
+    <text x="1120" y="180">3</text>
+    <text x="1120" y="205">4</text>
+    <text x="1120" y="230">5</text>
+    <text x="1120" y="255">6</text>
+    <text x="1120" y="280">7</text>
+    <text x="1120" y="305">8</text>
+    <text x="1120" y="330">9</text>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- TEXT LABELS & DIMENSIONS                   -->
+  <!-- ========================================== -->
+
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+    <!-- Input -->
+    <text x="100" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Input Image</text>
+    <text x="100" y="400" font-size="15" fill="var(--text-secondary)">صورة الإدخال</text>
+    <text x="100" y="420" font-size="13" fill="var(--text-muted)">28 x 28</text>
+
+    <!-- Conv 1 -->
+    <text x="280" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Conv Layer 1</text>
+    <text x="280" y="400" font-size="15" fill="var(--text-secondary)">طبقة الالتفاف</text>
+    <text x="280" y="420" font-size="13" fill="var(--text-muted)">24 x 24 x 4</text>
+
+    <!-- Pool 1 -->
+    <text x="435" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Max Pooling</text>
+    <text x="435" y="400" font-size="15" fill="var(--text-secondary)">تجميع أقصى</text>
+    <text x="435" y="420" font-size="13" fill="var(--text-muted)">12 x 12 x 4</text>
+
+    <!-- Conv 2 -->
+    <text x="600" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Conv Layer 2</text>
+    <text x="600" y="400" font-size="15" fill="var(--text-secondary)">طبقة الالتفاف</text>
+    <text x="600" y="420" font-size="13" fill="var(--text-muted)">8 x 8 x 6</text>
+
+    <!-- Pool 2 -->
+    <text x="745" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Max Pooling</text>
+    <text x="745" y="400" font-size="15" fill="var(--text-secondary)">تجميع أقصى</text>
+    <text x="745" y="420" font-size="13" fill="var(--text-muted)">4 x 4 x 6</text>
+
+    <!-- Flatten -->
+    <text x="860" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Flatten</text>
+    <text x="860" y="400" font-size="15" fill="var(--text-secondary)">تسطيح</text>
+    <text x="860" y="420" font-size="13" fill="var(--text-muted)">96 nodes</text>
+
+    <!-- Dense -->
+    <text x="980" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Dense Layer</text>
+    <text x="980" y="400" font-size="15" fill="var(--text-secondary)">طبقة متصلة</text>
+    <text x="980" y="420" font-size="13" fill="var(--text-muted)">128 nodes</text>
+
+    <!-- Output -->
+    <text x="1100" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)">Output</text>
+    <text x="1100" y="400" font-size="15" fill="var(--text-secondary)">المخرجات</text>
+    <text x="1100" y="420" font-size="13" fill="var(--text-muted)">10 classes</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف تساعد طبقة التجميع (Pooling) في منع الحفظ الأعمى (Overfitting) في الشبكات التلافيفية؟</template>
+      <template class="content-en">How does the Pooling layer help prevent overfitting in CNNs?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال تقليل الأبعاد المكانية للبيانات، مما يقلل من عدد المعلمات (الأوزان) التي يجب على الشبكة تعلمها، ويجعل النموذج أقل حساسية للتغيرات الطفيفة في موقع الميزات في الصورة.</p></template>
+      <template class="content-en"><p>By reducing the spatial dimensions of the data, which decreases the number of parameters (weights) the network must learn, and makes the model less sensitive to slight translations of features in the image.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="recurrent-networks" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الشبكات العصبية المتكررة (RNNs)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Recurrent Neural Networks</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>شبكات تمتلك 'ذاكرة' داخلية تسمح لها بمعالجة البيانات المتسلسلة مثل النصوص والصوت من خلال تمرير المعلومات من خطوة إلى التي تليها.</p></template>
+    <template class="content-en"><p>Networks with an internal 'memory' that allows them to process sequential data like text and audio by passing information from one step to the next.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الشبكة العصبية ال<span class="smart-term" data-term-en="Recurrent" data-ar="متكرر" data-en-def="Occurring often or repeatedly; in networks, referring to loops in the architecture.">متكررة<span class="smart-term-tooltip"></span></span> هي شبكة عصبية يتم تشغيلها عمدًا عدة مرات، حيث تغذي أجزاء من كل تشغيل التشغيل التالي.</p><p>على وجه التحديد، توفر الطبقات المخفية من التشغيل السابق جزءًا من المدخلات لنفس الطبقة المخفية في التشغيل التالي.</p><p>تعتبر الشبكات العصبية المتكررة مفيدة بشكل خاص لتقييم التسلسلات، بحيث يمكن للطبقات المخفية التعلم من التشغيلات السابقة للشبكة العصبية على الأجزاء السابقة من التسلسل.</p></template>
+    <template class="content-en"><p>A neural network that is intentionally run multiple times, where parts of each run feed into the next run.</p><p>Specifically, hidden layers from the previous run provide part of the input to the same hidden layer in the next run.</p><p>Recurrent neural networks are particularly useful for evaluating sequences, so that the hidden layers can learn from previous runs of the neural network on earlier parts of the sequence.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على الرغم من قوتها، تعاني شبكات RNN التقليدية من مشكلة 'تلاشي التدرج' (Vanishing Gradient) عند التعامل مع تسلسلات طويلة، مما يجعلها تنسى المعلومات القديمة.</p><p>تم حل هذه المشكلة لاحقًا باستخدام بنيات متقدمة مثل LSTM و GRU.</p></template>
+    <template class="content-en"><p>Despite their power, traditional RNNs suffer from the 'vanishing gradient' problem when dealing with long sequences, causing them to forget older information.</p><p>This was later solved by advanced architectures like LSTMs and GRUs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Side-by-side comparison of an RNN and a Feed-Forward Network. Left side (RNN): Nodes in the hidden layer have looping arrows pointing back to themselves. Right side (Feed-Forward): Arrows only point forward from input to hidden to output. Dark background, clear labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 440" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <!-- Marker for standard feed-forward connections -->
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="26" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-400)" opacity="0.8"/>
+        </marker>
+        
+        <!-- Marker for RNN loops -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Subtle glow for highlighted hidden layers -->
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Center Divider -->
+    <line x1="400" y1="20" x2="400" y2="420" stroke="var(--border-color)" stroke-dasharray="6,6" stroke-width="2" />
+
+    <!-- ========================================== -->
+    <!-- TITLES                                     -->
+    <!-- ========================================== -->
+    <g text-anchor="middle">
+        <!-- RNN Title -->
+        <text x="200" y="40" font-size="20" font-weight="bold" fill="var(--text-primary)">Recurrent Neural Network</text>
+        <text x="200" y="62" font-size="15" fill="var(--text-secondary)">الشبكة العصبية المتكررة (RNN)</text>
+        
+        <!-- FFN Title -->
+        <text x="600" y="40" font-size="20" font-weight="bold" fill="var(--text-primary)">Feed-Forward Network</text>
+        <text x="600" y="62" font-size="15" fill="var(--text-secondary)">الشبكة العصبية الأمامية (FFN)</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- HIGHLIGHT BOXES FOR HIDDEN LAYERS          -->
+    <!-- ========================================== -->
+    <rect x="160" y="80" width="80" height="240" rx="12" fill="var(--brand-500)" opacity="0.05" stroke="var(--brand-500)" stroke-dasharray="4,4" stroke-width="1.5" />
+    <rect x="560" y="80" width="80" height="240" rx="12" fill="var(--brand-500)" opacity="0.05" stroke="var(--brand-500)" stroke-dasharray="4,4" stroke-width="1.5" />
+
+    <!-- ========================================== -->
+    <!-- CONNECTIONS (Drawn first to be under nodes)-->
+    <!-- ========================================== -->
+    <g stroke="var(--brand-400)" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow-muted)">
+        <!-- RNN: Input to Hidden -->
+        <line x1="80" y1="140" x2="200" y2="140" />
+        <line x1="80" y1="140" x2="200" y2="210" />
+        <line x1="80" y1="140" x2="200" y2="280" />
+        <line x1="80" y1="210" x2="200" y2="140" />
+        <line x1="80" y1="210" x2="200" y2="210" />
+        <line x1="80" y1="210" x2="200" y2="280" />
+        <line x1="80" y1="280" x2="200" y2="140" />
+        <line x1="80" y1="280" x2="200" y2="210" />
+        <line x1="80" y1="280" x2="200" y2="280" />
+
+        <!-- RNN: Hidden to Output -->
+        <line x1="200" y1="140" x2="320" y2="140" />
+        <line x1="200" y1="140" x2="320" y2="210" />
+        <line x1="200" y1="140" x2="320" y2="280" />
+        <line x1="200" y1="210" x2="320" y2="140" />
+        <line x1="200" y1="210" x2="320" y2="210" />
+        <line x1="200" y1="210" x2="320" y2="280" />
+        <line x1="200" y1="280" x2="320" y2="140" />
+        <line x1="200" y1="280" x2="320" y2="210" />
+        <line x1="200" y1="280" x2="320" y2="280" />
+
+        <!-- FFN: Input to Hidden -->
+        <line x1="480" y1="140" x2="600" y2="140" />
+        <line x1="480" y1="140" x2="600" y2="210" />
+        <line x1="480" y1="140" x2="600" y2="280" />
+        <line x1="480" y1="210" x2="600" y2="140" />
+        <line x1="480" y1="210" x2="600" y2="210" />
+        <line x1="480" y1="210" x2="600" y2="280" />
+        <line x1="480" y1="280" x2="600" y2="140" />
+        <line x1="480" y1="280" x2="600" y2="210" />
+        <line x1="480" y1="280" x2="600" y2="280" />
+
+        <!-- FFN: Hidden to Output -->
+        <line x1="600" y1="140" x2="720" y2="140" />
+        <line x1="600" y1="140" x2="720" y2="210" />
+        <line x1="600" y1="140" x2="720" y2="280" />
+        <line x1="600" y1="210" x2="720" y2="140" />
+        <line x1="600" y1="210" x2="720" y2="210" />
+        <line x1="600" y1="210" x2="720" y2="280" />
+        <line x1="600" y1="280" x2="720" y2="140" />
+        <line x1="600" y1="280" x2="720" y2="210" />
+        <line x1="600" y1="280" x2="720" y2="280" />
+    </g>
+
+    <!-- ========================================== -->
+    <!-- RNN LOOPS (The core difference)            -->
+    <!-- ========================================== -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow-brand)">
+        <!-- Loop 1 -->
+        <path d="M 190, 124 C 165, 65 235, 65 208, 124" />
+        <!-- Loop 2 -->
+        <path d="M 190, 194 C 165, 135 235, 135 208, 194" />
+        <!-- Loop 3 -->
+        <path d="M 190, 264 C 165, 205 235, 205 208, 264" />
+    </g>
+
+    <!-- ========================================== -->
+    <!-- NODES                                      -->
+    <!-- ========================================== -->
+    <g stroke-width="2">
+        <!-- RNN Input Nodes -->
+        <circle cx="80" cy="140" r="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" />
+        <circle cx="80" cy="210" r="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" />
+        <circle cx="80" cy="280" r="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" />
+
+        <!-- RNN Hidden Nodes (Highlighted) -->
+        <circle cx="200" cy="140" r="18" fill="var(--brand-500)" stroke="var(--bg-surface)" filter="url(#glow)" />
+        <circle cx="200" cy="210" r="18" fill="var(--brand-500)" stroke="var(--bg-surface)" filter="url(#glow)" />
+        <circle cx="200" cy="280" r="18" fill="var(--brand-500)" stroke="var(--bg-surface)" filter="url(#glow)" />
+
+        <!-- RNN Output Nodes -->
+        <circle cx="320" cy="140" r="18" fill="var(--bg-elevated)" stroke="var(--brand-500)" />
+        <circle cx="320" cy="210" r="18" fill="var(--bg-elevated)" stroke="var(--brand-500)" />
+        <circle cx="320" cy="280" r="18" fill="var(--bg-elevated)" stroke="var(--brand-500)" />
+
+        <!-- FFN Input Nodes -->
+        <circle cx="480" cy="140" r="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" />
+        <circle cx="480" cy="210" r="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" />
+        <circle cx="480" cy="280" r="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" />
+
+        <!-- FFN Hidden Nodes (Highlighted) -->
+        <circle cx="600" cy="140" r="18" fill="var(--brand-500)" stroke="var(--bg-surface)" filter="url(#glow)" />
+        <circle cx="600" cy="210" r="18" fill="var(--brand-500)" stroke="var(--bg-surface)" filter="url(#glow)" />
+        <circle cx="600" cy="280" r="18" fill="var(--brand-500)" stroke="var(--bg-surface)" filter="url(#glow)" />
+
+        <!-- FFN Output Nodes -->
+        <circle cx="720" cy="140" r="18" fill="var(--bg-elevated)" stroke="var(--brand-500)" />
+        <circle cx="720" cy="210" r="18" fill="var(--bg-elevated)" stroke="var(--brand-500)" />
+        <circle cx="720" cy="280" r="18" fill="var(--bg-elevated)" stroke="var(--brand-500)" />
+    </g>
+
+    <!-- ========================================== -->
+    <!-- ANNOTATIONS & CALLOUTS                     -->
+    <!-- ========================================== -->
+    <!-- RNN Loop Callout -->
+    <path d="M 175, 90 L 125, 75" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="3,3" />
+    <text x="120" y="70" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="end">Recurrent Loop</text>
+    <text x="120" y="88" font-size="13" fill="var(--text-muted)" text-anchor="end">حلقة تكرار</text>
+
+    <!-- FFN Forward Callout -->
+    <path d="M 660, 140 L 660, 100" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="3,3" />
+    <text x="660" y="80" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Forward Only</text>
+    <text x="660" y="98" font-size="13" fill="var(--text-muted)" text-anchor="middle">اتجاه أمامي فقط</text>
+
+    <!-- ========================================== -->
+    <!-- LAYER LABELS                               -->
+    <!-- ========================================== -->
+    <g font-size="14" fill="var(--text-secondary)" text-anchor="middle">
+        <!-- RNN Labels -->
+        <text x="80" y="335">Input Layer</text>
+        <text x="80" y="355" font-size="13">طبقة الإدخال</text>
+        
+        <text x="200" y="335" font-weight="bold" fill="var(--text-primary)">Hidden Layer</text>
+        <text x="200" y="355" font-size="13">الطبقة المخفية</text>
+        
+        <text x="320" y="335">Output Layer</text>
+        <text x="320" y="355" font-size="13">طبقة الإخراج</text>
+
+        <!-- FFN Labels -->
+        <text x="480" y="335">Input Layer</text>
+        <text x="480" y="355" font-size="13">طبقة الإدخال</text>
+        
+        <text x="600" y="335" font-weight="bold" fill="var(--text-primary)">Hidden Layer</text>
+        <text x="600" y="355" font-size="13">الطبقة المخفية</text>
+        
+        <text x="720" y="335">Output Layer</text>
+        <text x="720" y="355" font-size="13">طبقة الإخراج</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- BOTTOM EXPLANATORY TEXT                    -->
+    <!-- ========================================== -->
+    <g text-anchor="middle">
+        <!-- RNN Explanation -->
+        <text x="200" y="395" font-size="15" font-weight="bold" fill="var(--text-primary)">Loops retain memory of previous states</text>
+        <text x="200" y="415" font-size="14" fill="var(--text-muted)">الحلقات تحتفظ بذاكرة الحالات السابقة</text>
+
+        <!-- FFN Explanation -->
+        <text x="600" y="395" font-size="15" font-weight="bold" fill="var(--text-primary)">Information flows in one direction only</text>
+        <text x="600" y="415" font-size="14" fill="var(--text-muted)">المعلومات تتدفق في اتجاه واحد فقط</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Feedforward Networks</th><th>Recurrent Neural Networks (RNNs)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تدفق البيانات</template>
+          <template class="content-en">Data Flow</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">اتجاه واحد (من الإدخال للإخراج)</template>
+          <template class="content-en">One direction (Input to Output)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يحتوي على حلقات (تغذية راجعة)</template>
+          <template class="content-en">Contains loops (Feedback)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الذاكرة</template>
+          <template class="content-en">Memory</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا توجد ذاكرة للحالات السابقة</template>
+          <template class="content-en">No memory of previous states</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يحتفظ بمعلومات من التشغيلات السابقة</template>
+          <template class="content-en">Retains info from previous runs</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أفضل استخدام</template>
+          <template class="content-en">Best Use Case</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">البيانات المستقلة غير المتسلسلة</template>
+          <template class="content-en">Independent, non-sequential data</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">البيانات المتسلسلة (نصوص، صوت)</template>
+          <template class="content-en">Sequential data (Text, Audio)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تُفضل شبكات RNN على شبكات CNN عند بناء تطبيق للترجمة الآلية؟</template>
+      <template class="content-en">Why are RNNs preferred over CNNs when building a machine translation application?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الترجمة تتعامل مع نصوص ذات أطوال متغيرة وتعتمد بشكل كبير على ترتيب الكلمات والسياق الزمني، وهو ما تتفوق فيه شبكات RNN بفضل ذاكرتها الداخلية.</p></template>
+      <template class="content-en"><p>Because translation deals with text of variable lengths and relies heavily on word order and temporal context, which RNNs excel at due to their internal memory.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="learning-algorithms" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> خوارزميات التعلم (الانتشار العكسي والانحدار التدريجي)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Learning Algorithms (Backpropagation & Gradient Descent)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الآلية التي تتعلم بها الشبكة من أخطائها؛ حيث يقيس الانحدار التدريجي الخطأ، ويقوم الانتشار العكسي بتعديل الأوزان لإصلاحه.</p></template>
+    <template class="content-en"><p>The mechanism by which a network learns from its mistakes; Gradient Descent measures the error, and Backpropagation adjusts the weights to fix it.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>طريقة التدريب الشائعة للشبكات العصبية ذات التغذية الأمامية هي <span class="smart-term" data-term-en="Backpropagation" data-ar="الانتشار العكسي" data-en-def="Algorithm to calculate gradients of the cost function with respect to neural network weights.">الانتشار العكسي<span class="smart-term-tooltip"></span></span> (Backpropagation). الهدف من الانتشار العكسي هو فهم كيف تؤثر أوزان الشبكة وتحيزاتها على <span class="smart-term" data-term-en="Cost Function" data-ar="دالة التكلفة" data-en-def="A measure of how wrong the model is in terms of its ability to estimate the relationship between X and y.">دالة التكلفة<span class="smart-term-tooltip"></span></span> (Cost Function).</p><p>يتم حساب تدرجات الأوزان (Weight Gradients) لهيكل الرسم البياني للشبكة العصبية تلقائيًا باستخدام هذه التقنية.</p><p>الانحدار التدريجي (Gradient Descent) هو تقنية لتحديد الحد الأدنى لدالة التكلفة ذات المتغيرات المتعددة. دالة التكلفة هي عامل أساسي في تحديد مدى جودة أداء نموذج التعلم الآلي لمجموعة بيانات معينة.</p></template>
+    <template class="content-en"><p>A popular training method for feedforward neural networks is <span class="smart-term" data-term-en="Backpropagation" data-ar="الانتشار العكسي" data-en-def="Algorithm to calculate gradients of the cost function with respect to neural network weights.">backpropagation<span class="smart-term-tooltip"></span></span>. Understanding how a network's weights and biases affect its <span class="smart-term" data-term-en="Cost Function" data-ar="دالة التكلفة" data-en-def="A measure of how wrong the model is in terms of its ability to estimate the relationship between X and y.">cost function<span class="smart-term-tooltip"></span></span> is the goal of backpropagation.</p><p>A neural network graph structure's weight gradients are calculated automatically using the back-propagation technique.</p><p>A technique for determining the minimum of a cost function with multiple variables is <span class="smart-term" data-term-en="Gradient Descent" data-ar="الانحدار التدريجي" data-en-def="Optimization algorithm used to minimize the cost function.">gradient descent<span class="smart-term-tooltip"></span></span>. An essential factor in determining how well a machine learning model performs for a certain dataset is the cost function.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يعمل الانتشار العكسي كتطبيق عملي لقاعدة السلسلة (Chain Rule) في التفاضل والتكامل. فهو يحسب المشتقة الجزئية للخطأ بالنسبة لكل وزن في الشبكة، بدءًا من طبقة الإخراج وصولاً إلى طبقة الإدخال.</p><p>يخبرنا هذا التدرج بالاتجاه الذي يجب أن نعدل فيه الوزن لتقليل الخطأ.</p></template>
+    <template class="content-en"><p>Backpropagation acts as a practical application of the chain rule from calculus. It computes the partial derivative of the error with respect to each weight in the network, starting from the output layer backward to the input layer.</p><p>This gradient tells us the direction to adjust the weight to minimize the error.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت دالة التكلفة تساوي صفرًا، فماذا يعني ذلك بالنسبة للنموذج؟</template>
+      <template class="content-en">If the cost function equals zero, what does that mean for the model?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يعني أن النموذج يتوقع جميع بيانات التدريب بشكل مثالي دون أي خطأ. ومع ذلك، قد يكون هذا مؤشرًا خطيرًا على الحفظ الأعمى (Overfitting)، مما يعني أنه قد يفشل في بيانات جديدة.</p></template>
+      <template class="content-en"><p>It means the model predicts all training data perfectly with zero error. However, this could be a dangerous sign of overfitting, meaning it might fail on new, unseen data.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="generalization-and-regularization" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> التعميم والتنظيم</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Generalization and Regularization</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التعميم هو قدرة النموذج على الأداء الجيد على بيانات لم يرها من قبل، والتنظيم هو التقنيات المستخدمة لمنعه من حفظ بيانات التدريب.</p></template>
+    <template class="content-en"><p>Generalization is the model's ability to perform well on unseen data, and regularization are the techniques used to prevent it from just memorizing the training data.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يشير <span class="smart-term" data-term-en="Generalization" data-ar="التعميم" data-en-def="The ability of a model to perform well on new, unseen data.">التعميم<span class="smart-term-tooltip"></span></span> (Generalization) إلى قدرة النموذج الخاص بك على التكيف بشكل صحيح مع بيانات جديدة غير مرئية مسبقًا، مستمدة من نفس التوزيع مثل تلك المستخدمة لإنشاء النموذج.</p><p>تُعرف قدرة النموذج على تقليل التباين (Variance) في المعلمات المقدرة عبر العينات عن طريق زيادة تحيز المعلمة المقدرة (Bias) باسم مقايضة التحيز والتباين (Bias-variance tradeoff).</p><p>تشمل تقنيات التنظيم (Regularization) الشائعة:</p><ul><li>تسوية الدفعة (Batch Normalization)،</li><li>التوقف المبكر (Early Stopping)،</li><li>الإسقاط (Dropout)،</li><li>وتقليل تعقيد النموذج.</li></ul></template>
+    <template class="content-en"><p>Generalization refers to your model's ability to adapt properly to new, previously unseen data, drawn from the same distribution as the one used to create the model.</p><p>A model's ability to minimise variation in parameters estimated across samples by boosting estimated parameter bias is known as the bias-variance tradeoff.</p><p>Common regularisation techniques include:</p><ul><li>batch normalisation,</li><li>early stopping,</li><li>dropout,</li><li>and reducing model complexity.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تقنية الإسقاط (Dropout) تعمل عن طريق إيقاف تشغيل نسبة عشوائية من الخلايا العصبية أثناء كل خطوة تدريب.</p><p>هذا يجبر الشبكة على عدم الاعتماد بشكل مفرط على أي خلية عصبية واحدة، مما يؤدي إلى تعلم ميزات أكثر قوة وتعميمًا.</p></template>
+    <template class="content-en"><p>The Dropout technique works by randomly turning off a percentage of neurons during each training step.</p><p>This forces the network not to rely too heavily on any single neuron, leading to the learning of more robust and generalized features.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A graph illustrating the Bias-Variance Tradeoff. X-axis is 'Model Capacity', Y-axis is 'Error'. Show a descending blue curve for 'Bias' and an ascending green curve for 'Variance'. A red U-shaped curve represents 'Generalization Error'. The lowest point of the red curve is marked 'optimal capacity'. Left side is 'underfitting zone', right side is 'overfitting zone'. Dark background. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead for Axes -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-primary)" />
+    </marker>
+    <!-- Arrowhead for Annotations -->
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Zones Backgrounds -->
+  <rect x="100" y="40" width="310" height="360" fill="var(--text-muted)" opacity="0.05" />
+  <rect x="410" y="40" width="340" height="360" fill="var(--brand-500)" opacity="0.05" />
+
+  <!-- Zone Divider -->
+  <line x1="410" y1="40" x2="410" y2="400" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+
+  <!-- Axes -->
+  <line x1="100" y1="400" x2="760" y2="400" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="100" y1="400" x2="100" y2="40" stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Irreducible Error Line -->
+  <line x1="100" y1="380" x2="750" y2="380" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,4" />
+  <text x="740" y="370" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="end">Irreducible Error / الخطأ الأساسي</text>
+
+  <!-- Curves -->
+  <!-- Bias Curve (Descending) -->
+  <path d="M 120 100 Q 265 380 700 380" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="8,4" />
+  
+  <!-- Variance Curve (Ascending) -->
+  <path d="M 120 380 Q 555 380 700 100" fill="none" stroke="var(--text-secondary)" stroke-width="3" stroke-dasharray="3,3" />
+  
+  <!-- Generalization Error Curve (U-shaped) -->
+  <path d="M 120 60 Q 410 460 700 60" fill="none" stroke="var(--brand-500)" stroke-width="4" />
+
+  <!-- Optimal Capacity Marker -->
+  <line x1="410" y1="260" x2="410" y2="420" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="5,5" />
+  <circle cx="410" cy="260" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="3" />
+
+  <!-- Text Labels: Axes -->
+  <text x="430" y="475" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Model Capacity / سعة النموذج</text>
+  <text x="-220" y="60" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" transform="rotate(-90)">Error / الخطأ</text>
+
+  <!-- Text Labels: Optimal Capacity -->
+  <text x="410" y="440" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" text-anchor="middle">Optimal Capacity / السعة المثلى</text>
+
+  <!-- Text Labels: Zones -->
+  <!-- Underfitting Zone -->
+  <text x="255" y="75" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Underfitting Zone</text>
+  <text x="255" y="100" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">منطقة نقص التخصيص</text>
+  <text x="255" y="125" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">• High Bias / تحيز عالٍ</text>
+  <text x="255" y="145" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">• Low Variance / تباين منخفض</text>
+
+  <!-- Overfitting Zone -->
+  <text x="580" y="75" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Overfitting Zone</text>
+  <text x="580" y="100" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">منطقة فرط التخصيص</text>
+  <text x="580" y="125" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">• Low Bias / تحيز منخفض</text>
+  <text x="580" y="145" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">• High Variance / تباين عالٍ</text>
+
+  <!-- Text Labels: Curves -->
+  <!-- Bias Label -->
+  <text x="180" y="260" fill="var(--brand-400)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">Bias</text>
+  <text x="180" y="280" fill="var(--brand-400)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">التحيز</text>
+
+  <!-- Variance Label -->
+  <text x="640" y="260" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">Variance</text>
+  <text x="640" y="280" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">التباين</text>
+
+  <!-- Generalization Error Label -->
+  <text x="410" y="210" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">Generalization Error</text>
+  <text x="410" y="230" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">خطأ التعميم</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نعتبر 'التوقف المبكر' (Early Stopping) تقنية تنظيم؟</template>
+      <template class="content-en">Why is 'Early Stopping' considered a regularization technique?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يوقف عملية التدريب قبل أن تتاح للنموذج فرصة لحفظ ضوضاء بيانات التدريب (Overfitting)، مما يحد فعليًا من تعقيد النموذج ويحسن التعميم.</p></template>
+      <template class="content-en"><p>Because it halts the training process before the model has a chance to memorize the noise in the training data (overfitting), effectively limiting the model's complexity and improving generalization.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="unsupervised-learning" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> التعلم غير الخاضع للإشراف</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Unsupervised Learning</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>إعطاء الذكاء الاصطناعي بيانات بدون تصنيفات وتركه يكتشف الأنماط والمجموعات المخفية بنفسه.</p></template>
+    <template class="content-en"><p>Giving AI unlabeled data and letting it discover hidden patterns and groupings on its own.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يحلل التعلم غير الخاضع للإشراف ويجمع مجموعات البيانات غير المسماة (Unlabeled datasets) باستخدام أساليب التعلم الآلي. تحدد هذه الخوارزميات الأنماط المخفية أو مجموعات البيانات دون مساعدة من الإنسان.</p><p>إنه الخيار الأفضل لتحليل البيانات الاستكشافي لأنه يمكن أن يجد أوجه التشابه والاختلاف المعلوماتية. تشمل التقنيات الشائعة:</p><ul><li>تقليل الأبعاد (Dimensionality reduction)،</li><li>التجميع الهرمي (Hierarchical clustering)،</li><li>و<span class="smart-term" data-term-en="Clustering" data-ar="التجميع" data-en-def="Grouping a set of objects in such a way that objects in the same group are more similar to each other than to those in other groups.">التجميع<span class="smart-term-tooltip"></span></span> (Clustering).</li></ul><p>من تطبيقاته:</p><ul><li>اكتشاف الشذوذ (Anomaly detection)،</li><li>ملفات تعريف العملاء،</li><li>ومحركات التوصية.</li></ul></template>
+    <template class="content-en"><p>Unsupervised learning analyses and groups unlabeled datasets using machine learning methods. These algorithms identify hidden patterns or data clusters without the assistance of a human.</p><p>It is the best option for exploratory data analysis since it can find informational similarities and contrasts.</p><ul><li>Dimensionality reduction,</li><li>hierarchical <span class="smart-term" data-term-en="Clustering" data-ar="التجميع" data-en-def="Grouping a set of objects in such a way that objects in the same group are more similar to each other than to those in other groups.">clustering<span class="smart-term-tooltip"></span></span>,</li><li>and clustering</li></ul><p>are common unsupervised learning techniques.</p><ul><li>Anomaly detection,</li><li>customer profiles,</li><li>and recommendation engines</li></ul><p>are a few applications.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في التعلم العميق، تُستخدم تقنيات غير خاضعة للإشراف مثل أجهزة التشفير التلقائي (Autoencoders) لتعلم تمثيلات مضغوطة للبيانات (تقليل الأبعاد) أو لتوليد بيانات جديدة، وهو ما يمهد الطريق للنماذج التوليدية الحديثة.</p></template>
+    <template class="content-en"><p>In deep learning, unsupervised techniques like Autoencoders are used to learn compressed representations of data (dimensionality reduction) or to generate new data, paving the way for modern generative models.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكن استخدام التعلم غير الخاضع للإشراف في أمن المعلومات؟</template>
+      <template class="content-en">How can unsupervised learning be used in information security?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال 'اكتشاف الشذوذ'؛ يمكن للنموذج تعلم النمط الطبيعي لحركة مرور الشبكة، ثم الإبلاغ عن أي نشاط غير معتاد (مثل هجوم سيبراني) كشذوذ دون الحاجة إلى تدريبه مسبقًا على شكل الهجوم.</p></template>
+      <template class="content-en"><p>Through 'anomaly detection'; the model can learn the normal pattern of network traffic and then flag any unusual activity (like a cyberattack) as an anomaly without needing prior training on what the attack looks like.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="transfer-learning" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">9</span> نقل التعلم</h2></template>
+    <template class="content-en"><h2><span class="concept-number">9</span> Transfer Learning</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أخذ المعرفة التي اكتسبها نموذج من حل مشكلة معينة واستخدامها كبداية سريعة لحل مشكلة أخرى مختلفة ولكن ذات صلة.</p></template>
+    <template class="content-en"><p>Taking the knowledge a model gained from solving one problem and using it as a head start to solve a different but related problem.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>نقل التعلم هو نقل المعلومات من مهمة تعلم آلي إلى أخرى. قد يتضمن <span class="smart-term" data-term-en="Transfer Learning" data-ar="نقل التعلم" data-en-def="Reusing a pre-trained model on a new problem.">نقل التعلم<span class="smart-term-tooltip"></span></span>:</p><ul><li>نقل المعرفة من حل مهمة أبسط إلى مهمة أكثر تعقيدًا،</li><li>أو يتضمن نقل المعرفة من مهمة تتوفر فيها بيانات كثيرة إلى مهمة تتوفر فيها بيانات أقل.</li></ul><p>تحل معظم أنظمة التعلم الآلي مهمة واحدة. يعتبر نقل التعلم خطوة صغيرة نحو الذكاء الاصطناعي العام حيث يمكن لبرنامج واحد حل مهام متعددة.</p></template>
+    <template class="content-en"><p>Transferring information from one machine learning task to another. <span class="smart-term" data-term-en="Transfer Learning" data-ar="نقل التعلم" data-en-def="Reusing a pre-trained model on a new problem.">Transfer learning<span class="smart-term-tooltip"></span></span> might involve:</p><ul><li>transferring knowledge from the solution of a simpler task to a more complex one,</li><li>or involve transferring knowledge from a task where there is more data to one where there is less data.</li></ul><p>Most machine learning systems solve a single task. Transfer learning is a baby step towards artificial intelligence in which a single program can solve multiple tasks.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>عمليًا، يتم ذلك غالبًا عن طريق أخذ شبكة عصبية مدربة مسبقًا (مثل ResNet المدربة على ملايين الصور)، وتجميد (Freezing) طبقاتها الأولى التي تكتشف الميزات العامة (مثل الحواف)، وإعادة تدريب الطبقات الأخيرة فقط على مجموعة البيانات الجديدة الصغيرة الخاصة بك.</p></template>
+    <template class="content-en"><p>Practically, this is often done by taking a pre-trained neural network (like ResNet trained on millions of images), freezing its early layers that detect general features (like edges), and retraining only the final layers on your specific, smaller dataset.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر نقل التعلم ثورة للشركات الناشئة في مجال الذكاء الاصطناعي؟</template>
+      <template class="content-en">Why is transfer learning a revolution for AI startups?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يسمح لهم ببناء نماذج قوية دون الحاجة إلى امتلاك مجموعات بيانات ضخمة أو قوة حاسوبية هائلة، حيث يمكنهم البناء فوق النماذج التي دربتها الشركات الكبرى.</p></template>
+      <template class="content-en"><p>Because it allows them to build powerful models without needing massive datasets or enormous computational power, as they can build on top of models trained by large tech companies.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="deep-learning-applications" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">10</span> تطبيقات التعلم العميق</h2></template>
+    <template class="content-en"><h2><span class="concept-number">10</span> Deep Learning Applications</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التعلم العميق هو المحرك وراء التقنيات الحديثة مثل التعرف على الوجوه، المساعدات الصوتية، والترجمة الفورية.</p></template>
+    <template class="content-en"><p>Deep learning is the engine behind modern technologies like facial recognition, voice assistants, and real-time translation.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتمتع التعلم العميق بمجموعة واسعة من التطبيقات، وتدمج العديد من التقنيات المتميزة الآن التعلم العميق لتعزيز العمل. الميزة الأكثر أهمية للتعلم العميق هي أنه يمكن استخدام أي شكل من أشكال البيانات (جدولية، نصية، صور، فيديو، صوت).</p><p>تشمل التطبيقات الرئيسية:</p><ul><li><strong><span class="smart-term" data-term-en="Computer Vision" data-ar="الرؤية الحاسوبية" data-en-def="A field of AI that enables computers to derive meaningful information from digital images and videos.">الرؤية الحاسوبية<span class="smart-term-tooltip"></span></span></strong> (تصنيف الصور، اكتشاف الكائنات، التجزئة)،</li><li><strong>معالجة الكلام والصوت</strong> (التعرف على الصوت، الترجمة)،</li><li><strong>و<span class="smart-term" data-term-en="Natural Language Processing (NLP)" data-ar="معالجة اللغات الطبيعية" data-en-def="A field of AI focused on the interaction between computers and humans through natural language.">معالجة اللغات الطبيعية<span class="smart-term-tooltip"></span></span></strong> (تحليل المشاعر، الترجمة الآلية، الإجابة على الأسئلة).</li></ul></template>
+    <template class="content-en"><p>Deep learning has a wide range of applications, and many outstanding technologies now integrate deep learning to enhance the work. The most significant advantage of deep learning is that any form of data (tabular, text, image, video, sound) can be utilised with deep learning.</p><p>Key applications include:</p><ul><li><strong><span class="smart-term" data-term-en="Computer Vision" data-ar="الرؤية الحاسوبية" data-en-def="A field of AI that enables computers to derive meaningful information from digital images and videos.">Computer Vision<span class="smart-term-tooltip"></span></span></strong> (Image Classification, Object Detection),</li><li><strong>Speech & Audio</strong> (Voice Recognition),</li><li>and <strong><span class="smart-term" data-term-en="Natural Language Processing (NLP)" data-ar="معالجة اللغات الطبيعية" data-en-def="A field of AI focused on the interaction between computers and humans through natural language.">Natural Language Processing<span class="smart-term-tooltip"></span></span></strong> (Sentiment Analysis, Neural Machine Translation).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>القدرة على معالجة البيانات غير المهيكلة (Unstructured Data) هي ما يميز التعلم العميق عن التعلم الآلي التقليدي.</p><p>بفضل الموترات والشبكات المتخصصة (CNNs للصور، RNNs/Transformers للنصوص)، أصبح الذكاء الاصطناعي قادرًا على 'الرؤية' و'السمع' و'القراءة' بمستويات تقارب أو تتجاوز القدرات البشرية.</p></template>
+    <template class="content-en"><p>The ability to process unstructured data is what sets deep learning apart from traditional machine learning.</p><p>Thanks to tensors and specialized networks (CNNs for images, RNNs/Transformers for text), AI can now 'see', 'hear', and 'read' at levels approaching or exceeding human capabilities.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يجمع نظام السيارة ذاتية القيادة بين تطبيقات التعلم العميق المختلفة؟</template>
+      <template class="content-en">How does a self-driving car system combine different deep learning applications?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تستخدم الرؤية الحاسوبية (CNNs) لاكتشاف المشاة والسيارات من الكاميرات، وتستخدم معالجة السلاسل الزمنية (RNNs) لتوقع حركة الأجسام، وقد تستخدم معالجة الصوت لسماع صفارات الإنذار.</p></template>
+      <template class="content-en"><p>It uses Computer Vision (CNNs) to detect pedestrians and cars from cameras, time-series processing (RNNs) to predict the movement of objects, and potentially audio processing to hear emergency sirens.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبطال الذكاء الاصطناعي في الأسبوع الرابع. هذا الأسبوع هو قلب التعلم العميق. تخيلوا أننا نبني عقلاً إلكترونياً؛ أولاً نحتاج إلى لغة يتحدث بها هذا العقل، وهذه اللغة هي 'الموترات' (Tensors). ثم نحتاج إلى هيكل، وهنا تأتي الشبكات العصبية. بدأنا بالشبكات الأمامية البسيطة، لكننا سرعان ما أدركنا أننا نحتاج إلى عيون لترى (CNNs للصور) وذاكرة لتتذكر الكلمات (RNNs للنصوص). ولكن كيف يتعلم هذا العقل؟ هنا يتدخل 'الانتشار العكسي' ليصحح الأخطاء خطوة بخطوة عبر 'الانحدار التدريجي'. في الامتحان، ركزوا جداً على التفريق بين متى نستخدم CNN ومتى نستخدم RNN، وافهموا جيداً لماذا نستخدم تقنيات التنظيم (Regularization) مثل الإسقاط (Dropout) لمنع النموذج من الغش وحفظ الإجابات (Overfitting). أخيراً، تذكروا أن 'نقل التعلم' هو الحيلة الذكية التي نستخدمها لعدم اختراع العجلة من جديد. راجعوا هذه المفاهيم جيداً، فأنتم الآن تفهمون السحر الحقيقي وراء الذكاء الاصطناعي الحديث!</template>
+    <template class="content-en">Welcome, AI champions, to Week 4. This week is the beating heart of Deep Learning. Imagine we are building an electronic brain; first, we need a language for it to speak, and that language is 'Tensors'. Then we need a structure, which is where Neural Networks come in. We started with simple Feedforward networks, but soon realized we needed eyes to see (CNNs for images) and memory to remember words (RNNs for text). But how does this brain learn? That's where 'Backpropagation' steps in to correct mistakes step-by-step via 'Gradient Descent'. For the exam, focus heavily on distinguishing when to use a CNN versus an RNN, and understand exactly why we use Regularization techniques like Dropout to prevent the model from cheating and memorizing answers (Overfitting). Finally, remember that 'Transfer Learning' is the smart trick we use to avoid reinventing the wheel. Review these concepts well; you now understand the real magic behind modern AI!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الأساسي بين المتجه (Vector) والمصفوفة (Matrix) في سياق الموترات؟</template>
+          <template class="content-en">What is the fundamental difference between a Vector and a Matrix in the context of tensors?</template>
+          <span class="content-target">ما هو الفرق الأساسي بين المتجه (Vector) والمصفوفة (Matrix) في سياق الموترات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المتجه هو موتر أحادي البعد (1D) يمثل خطاً من الأرقام، بينما المصفوفة هي موتر ثنائي الأبعاد (2D) يمثل شبكة (صفوف وأعمدة) من الأرقام.</template>
+          <template class="content-en">A vector is a 1-dimensional (1D) tensor representing a line of numbers, while a matrix is a 2-dimensional (2D) tensor representing a grid (rows and columns) of numbers.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا نستخدم الشبكات ذات التغذية الأمامية (Feedforward) لترجمة اللغات؟</template>
+          <template class="content-en">Why don't we use Feedforward networks for language translation?</template>
+          <span class="content-target">لماذا لا نستخدم الشبكات ذات التغذية الأمامية (Feedforward) لترجمة اللغات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها لا تمتلك اتصالات دورية (ذاكرة). ترجمة اللغات تتطلب فهم السياق وتذكر الكلمات السابقة في الجملة، وهو ما تتفوق فيه شبكات RNN.</template>
+          <template class="content-en">Because they lack cyclic connections (memory). Language translation requires understanding context and remembering previous words in a sentence, which RNNs excel at.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يساهم الرسم البياني الحسابي (Computation Graph) في تسريع التدريب؟</template>
+          <template class="content-en">How does a Computation Graph contribute to speeding up training?</template>
+          <span class="content-target">كيف يساهم الرسم البياني الحسابي (Computation Graph) في تسريع التدريب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إنه يمثل العمليات الرياضية كعقد، مما يسمح لأطر العمل مثل TensorFlow بتحسين مسار العمليات وحساب المشتقات (التدرجات) تلقائياً وبكفاءة عالية لعملية الانتشار العكسي.</template>
+          <template class="content-en">It represents mathematical operations as nodes, allowing frameworks like TensorFlow to optimize the operation path and compute derivatives (gradients) automatically and highly efficiently for backpropagation.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في شبكات CNN، ما هو دور طبقة التجميع (Pooling)؟</template>
+          <template class="content-en">In CNNs, what is the role of the Pooling layer?</template>
+          <span class="content-target">في شبكات CNN، ما هو دور طبقة التجميع (Pooling)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم بتقليل الأبعاد المكانية للبيانات (تصغير حجم الصورة)، مما يقلل من العبء الحسابي ويساعد في منع الحفظ الأعمى (Overfitting).</template>
+          <template class="content-en">It reduces the spatial dimensions of the data (downsampling the image), which decreases computational load and helps prevent overfitting.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العلاقة بين دالة التكلفة (Cost Function) والانحدار التدريجي (Gradient Descent)؟</template>
+          <template class="content-en">What is the relationship between the Cost Function and Gradient Descent?</template>
+          <span class="content-target">ما هي العلاقة بين دالة التكلفة (Cost Function) والانحدار التدريجي (Gradient Descent)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">دالة التكلفة تقيس مقدار الخطأ في النموذج، بينما الانحدار التدريجي هو الخوارزمية التي تبحث عن أقل قيمة (الحد الأدنى) لهذا الخطأ عن طريق تعديل الأوزان.</template>
+          <template class="content-en">The cost function measures the amount of error in the model, while gradient descent is the algorithm that searches for the lowest value (minimum) of this error by adjusting weights.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا نعني بمقايضة التحيز والتباين (Bias-Variance Tradeoff)؟</template>
+          <template class="content-en">What do we mean by the Bias-Variance Tradeoff?</template>
+          <span class="content-target">ماذا نعني بمقايضة التحيز والتباين (Bias-Variance Tradeoff)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو التحدي المتمثل في إيجاد التوازن المثالي للنموذج؛ بحيث لا يكون بسيطاً جداً فيفشل في التعلم (تحيز عالي/Underfitting)، ولا معقداً جداً فيحفظ ضوضاء البيانات (تباين عالي/Overfitting).</template>
+          <template class="content-en">It is the challenge of finding the perfect balance for the model; so it's not too simple that it fails to learn (high bias/underfitting), nor too complex that it memorizes data noise (high variance/overfitting).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل تقنية الإسقاط (Dropout) كطريقة للتنظيم؟</template>
+          <template class="content-en">How does the Dropout technique work as a regularization method?</template>
+          <span class="content-target">كيف تعمل تقنية الإسقاط (Dropout) كطريقة للتنظيم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم بتعطيل نسبة عشوائية من الخلايا العصبية أثناء التدريب، مما يجبر الشبكة على عدم الاعتماد على مسار واحد وتوزيع التعلم، مما يحسن قدرتها على التعميم.</template>
+          <template class="content-en">It disables a random percentage of neurons during training, forcing the network not to rely on a single path and distributing the learning, which improves its ability to generalize.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نلجأ إلى التعلم غير الخاضع للإشراف (Unsupervised Learning)؟</template>
+          <template class="content-en">When do we resort to Unsupervised Learning?</template>
+          <span class="content-target">متى نلجأ إلى التعلم غير الخاضع للإشراف (Unsupervised Learning)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نلجأ إليه عندما نمتلك كميات كبيرة من البيانات ولكنها غير مصنفة (Unlabeled)، ونريد من الخوارزمية اكتشاف الأنماط المخفية أو تجميع البيانات المتشابهة.</template>
+          <template class="content-en">We resort to it when we have large amounts of data but it is unlabeled, and we want the algorithm to discover hidden patterns or cluster similar data.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">أعط مثالاً عملياً على نقل التعلم (Transfer Learning).</template>
+          <template class="content-en">Give a practical example of Transfer Learning.</template>
+          <span class="content-target">أعط مثالاً عملياً على نقل التعلم (Transfer Learning).</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أخذ نموذج ذكاء اصطناعي تم تدريبه مسبقاً بواسطة جوجل للتعرف على ملايين الصور العامة، وإعادة تدريب الطبقة الأخيرة منه فقط للتعرف على أنواع محددة من الخلايا السرطانية في الصور الطبية.</template>
+          <template class="content-en">Taking an AI model pre-trained by Google to recognize millions of general images, and retraining only its final layer to recognize specific types of cancer cells in medical images.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر التعلم العميق قادراً على التعامل مع البيانات غير المهيكلة (كالصور والصوت) أفضل من التعلم الآلي التقليدي؟</template>
+          <template class="content-en">Why is Deep Learning able to handle unstructured data (like images and audio) better than traditional machine learning?</template>
+          <span class="content-target">لماذا يعتبر التعلم العميق قادراً على التعامل مع البيانات غير المهيكلة (كالصور والصوت) أفضل من التعلم الآلي التقليدي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يستخدم الموترات لتمثيل هذه البيانات المعقدة، ويستخدم شبكات متخصصة (مثل CNN و RNN) قادرة على استخراج الميزات (Features) تلقائياً دون الحاجة لتدخل بشري لهندسة هذه الميزات.</template>
+          <template class="content-en">Because it uses tensors to represent this complex data, and employs specialized networks (like CNNs and RNNs) capable of extracting features automatically without the need for human intervention to engineer these features.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "الموتر (Tensor)",
+      "en": "Tensor"
+    },
+    "back": {
+      "definition": {
+        "ar": "هيكل بيانات متعدد الأبعاد (N-dimensional) يستخدم كحاوية أساسية للبيانات في التعلم العميق.",
+        "en": "An N-dimensional data structure used as the primary data container in deep learning."
+      },
+      "example": {
+        "ar": "صورة ملونة تمثل كموتر ثلاثي الأبعاد (الارتفاع، العرض، قنوات الألوان).",
+        "en": "A color image represented as a 3D tensor (height, width, color channels)."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "القيمة العددية (Scalar)",
+      "en": "Scalar"
+    },
+    "back": {
+      "definition": {
+        "ar": "موتر ذو بُعد صفري (0D) يحتوي على قيمة واحدة فقط.",
+        "en": "A 0-dimensional tensor containing only a single value."
+      },
+      "example": {
+        "ar": "الرقم 5.",
+        "en": "The number 5."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "المتجه (Vector)",
+      "en": "Vector"
+    },
+    "back": {
+      "definition": {
+        "ar": "موتر أحادي البعد (1D) يمثل صفًا أو عمودًا من الأرقام.",
+        "en": "A 1-dimensional tensor representing a row or column of numbers."
+      },
+      "example": {
+        "ar": "[5, 3, 7]",
+        "en": "[5, 3, 7]"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "المصفوفة (Matrix)",
+      "en": "Matrix"
+    },
+    "back": {
+      "definition": {
+        "ar": "موتر ثنائي الأبعاد (2D) يتكون من صفوف وأعمدة.",
+        "en": "A 2-dimensional tensor consisting of rows and columns."
+      },
+      "example": {
+        "ar": "جدول بيانات بالأرقام.",
+        "en": "A spreadsheet of numbers."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "الشبكة ذات التغذية الأمامية (Feedforward Network)",
+      "en": "Feedforward Network"
+    },
+    "back": {
+      "definition": {
+        "ar": "شبكة عصبية تتدفق فيها البيانات في اتجاه واحد فقط دون اتصالات دورية.",
+        "en": "A neural network where data flows in only one direction without cyclic connections."
+      },
+      "example": {
+        "ar": "نموذج يتوقع سعر المنزل بناءً على مساحته.",
+        "en": "A model predicting house price based on its area."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "الرسم البياني الحسابي (Computation Graph)",
+      "en": "Computation Graph"
+    },
+    "back": {
+      "definition": {
+        "ar": "رسم بياني موجه يصور التعبيرات الرياضية، تستخدمه أطر العمل مثل TensorFlow.",
+        "en": "A directed graph depicting mathematical expressions, used by frameworks like TensorFlow."
+      },
+      "example": {
+        "ar": "عقدتان للجمع والضرب متصلتان بأسهم.",
+        "en": "Two nodes for addition and multiplication connected by arrows."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "الشبكة العصبية التلافيفية (CNN)",
+      "en": "Convolutional Neural Network (CNN)"
+    },
+    "back": {
+      "definition": {
+        "ar": "عائلة من الشبكات العصبية تستخدم بشكل متكرر لمعالجة البيانات المرئية والصور.",
+        "en": "A family of neural networks used most frequently to process visual data and images."
+      },
+      "example": {
+        "ar": "نظام التعرف على الوجوه في الهواتف الذكية.",
+        "en": "Facial recognition system in smartphones."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "الشبكة العصبية المتكررة (RNN)",
+      "en": "Recurrent Neural Network (RNN)"
+    },
+    "back": {
+      "definition": {
+        "ar": "شبكة عصبية تحتوي على حلقات تغذية راجعة، مما يجعلها مثالية لتقييم التسلسلات.",
+        "en": "A neural network with feedback loops, making it ideal for evaluating sequences."
+      },
+      "example": {
+        "ar": "تطبيق التنبؤ بالكلمة التالية في لوحة المفاتيح.",
+        "en": "Next-word prediction app on a keyboard."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "الانتشار العكسي (Backpropagation)",
+      "en": "Backpropagation"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة تدريب تحسب كيفية تأثير أوزان الشبكة على دالة التكلفة لتحديثها.",
+        "en": "A training method that calculates how network weights affect the cost function to update them."
+      },
+      "example": {
+        "ar": "إرسال إشارة الخطأ من المخرجات إلى المدخلات لتعديل الأوزان.",
+        "en": "Sending the error signal from output back to input to adjust weights."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "الانحدار التدريجي (Gradient Descent)",
+      "en": "Gradient Descent"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقنية لتحديد الحد الأدنى لدالة التكلفة ذات المتغيرات المتعددة.",
+        "en": "A technique for determining the minimum of a cost function with multiple variables."
+      },
+      "example": {
+        "ar": "النزول من قمة جبل بخطوات صغيرة للوصول إلى الوادي (أقل خطأ).",
+        "en": "Walking down a mountain in small steps to reach the valley (lowest error)."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "دالة التكلفة (Cost Function)",
+      "en": "Cost Function"
+    },
+    "back": {
+      "definition": {
+        "ar": "عامل أساسي يحدد مدى جودة أداء نموذج التعلم الآلي عن طريق قياس الخطأ.",
+        "en": "An essential factor determining how well a model performs by measuring the error."
+      },
+      "example": {
+        "ar": "متوسط الخطأ التربيعي (MSE).",
+        "en": "Mean Squared Error (MSE)."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "التعميم (Generalization)",
+      "en": "Generalization"
+    },
+    "back": {
+      "definition": {
+        "ar": "قدرة النموذج على التكيف بشكل صحيح مع بيانات جديدة غير مرئية مسبقًا.",
+        "en": "The model's ability to adapt properly to new, previously unseen data."
+      },
+      "example": {
+        "ar": "نموذج تدرب على صور قطط وكلاب ويستطيع التعرف عليها في صور جديدة.",
+        "en": "A model trained on cat/dog images successfully classifying new photos."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "مقايضة التحيز والتباين (Bias-Variance Tradeoff)",
+      "en": "Bias-Variance Tradeoff"
+    },
+    "back": {
+      "definition": {
+        "ar": "التوازن بين تبسيط النموذج أكثر من اللازم (تحيز عالي) أو جعله معقدًا جدًا يحفظ البيانات (تباين عالي).",
+        "en": "The balance between oversimplifying a model (high bias) and making it too complex (high variance)."
+      },
+      "example": {
+        "ar": "إيجاد السعة المثلى للنموذج لتقليل خطأ التعميم.",
+        "en": "Finding the optimal model capacity to minimize generalization error."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "التنظيم (Regularization)",
+      "en": "Regularization"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقنيات تستخدم لمنع النموذج من الحفظ الأعمى (Overfitting) مثل الإسقاط والتوقف المبكر.",
+        "en": "Techniques used to prevent overfitting, such as dropout and early stopping."
+      },
+      "example": {
+        "ar": "إيقاف التدريب مبكرًا قبل أن يبدأ خطأ الاختبار في الارتفاع.",
+        "en": "Stopping training early before the validation error starts rising."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "التعلم غير الخاضع للإشراف (Unsupervised Learning)",
+      "en": "Unsupervised Learning"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحليل وتجميع مجموعات البيانات غير المسماة لاكتشاف الأنماط المخفية.",
+        "en": "Analyzing and grouping unlabeled datasets to discover hidden patterns."
+      },
+      "example": {
+        "ar": "تجميع العملاء إلى فئات بناءً على سلوك الشراء دون تصنيفات مسبقة.",
+        "en": "Clustering customers based on purchasing behavior without prior labels."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "نقل التعلم (Transfer Learning)",
+      "en": "Transfer Learning"
+    },
+    "back": {
+      "definition": {
+        "ar": "نقل المعلومات والمعرفة من مهمة تعلم آلي إلى مهمة أخرى.",
+        "en": "Transferring information and knowledge from one machine learning task to another."
+      },
+      "example": {
+        "ar": "استخدام نموذج مدرب على التعرف على السيارات لتسريع تدريب نموذج للتعرف على الشاحنات.",
+        "en": "Using a model trained on cars to speed up training a model for trucks."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو الهيكل البياني الأساسي المستخدم لتمثيل البيانات في التعلم العميق؟",
+      "en": "What is the primary data structure used to represent data in deep learning?"
+    },
+    "options": {
+      "ar": [
+        "المصفوفات فقط",
+        "الموترات (Tensors)",
+        "القوائم المترابطة",
+        "الأشجار الثنائية"
+      ],
+      "en": [
+        "Matrices only",
+        "Tensors",
+        "Linked Lists",
+        "Binary Trees"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الموترات هي هياكل بيانات متعددة الأبعاد (N-dimensional) وهي الحاوية الأساسية لجميع أنواع البيانات في التعلم العميق.",
+      "en": "Tensors are N-dimensional data structures and act as the primary container for all data types in deep learning."
+    },
+    "hint": {
+      "ar": "اسم إطار العمل الشهير من جوجل (TensorFlow) مشتق منها.",
+      "en": "Google's famous framework (TensorFlow) is named after it."
+    },
+    "difficulty": "easy",
+    "conceptId": "tensors-and-operations"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي نوع من الشبكات العصبية لا يحتوي على اتصالات دورية أو متكررة؟",
+      "en": "Which type of neural network does NOT have cyclic or recursive connections?"
+    },
+    "options": {
+      "ar": [
+        "الشبكات العصبية المتكررة (RNN)",
+        "الشبكات ذات التغذية الأمامية (Feedforward)",
+        "الشبكات التلافيفية (CNN)",
+        "الشبكات التوليدية"
+      ],
+      "en": [
+        "Recurrent Neural Networks (RNN)",
+        "Feedforward Neural Networks",
+        "Convolutional Neural Networks (CNN)",
+        "Generative Networks"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الشبكات ذات التغذية الأمامية هي أبسط تصميم حيث تتدفق البيانات في اتجاه واحد فقط.",
+      "en": "Feedforward networks are the simplest design where data flows in only one direction."
+    },
+    "hint": {
+      "ar": "البيانات تذهب 'للأمام' فقط.",
+      "en": "Data only goes 'forward'."
+    },
+    "difficulty": "easy",
+    "conceptId": "feedforward-networks"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو التنسيق الذي يستخدمه TensorFlow لحفظ النماذج عند تصديرها من Python؟",
+      "en": "What format does TensorFlow use for saved models when exporting them from Python?"
+    },
+    "options": {
+      "ar": [
+        "جداول البيانات",
+        "الرسوم البيانية الحسابية (Computation Graphs)",
+        "قواعد البيانات العلائقية",
+        "ملفات نصية بسيطة"
+      ],
+      "en": [
+        "Spreadsheets",
+        "Computation Graphs",
+        "Relational Databases",
+        "Plain text files"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يستخدم TensorFlow الرسوم البيانية الحسابية لتمثيل العمليات الرياضية وتنفيذها بكفاءة.",
+      "en": "TensorFlow uses computation graphs to represent mathematical operations and execute them efficiently."
+    },
+    "hint": {
+      "ar": "إنها رسوم بيانية موجهة تصور التعبيرات الرياضية.",
+      "en": "They are directed graphs depicting mathematical expressions."
+    },
+    "difficulty": "medium",
+    "conceptId": "computation-graphs"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي عائلة من الشبكات العصبية تُستخدم بشكل متكرر لمعالجة البيانات المرئية (الصور)؟",
+      "en": "Which family of neural networks is used most frequently to process visual data (images)?"
+    },
+    "options": {
+      "ar": [
+        "الشبكات العصبية المتكررة (RNN)",
+        "الشبكات العصبية التلافيفية (CNN)",
+        "الشبكات الأمامية البسيطة",
+        "أجهزة التشفير التلقائي"
+      ],
+      "en": [
+        "Recurrent Neural Networks (RNN)",
+        "Convolutional Neural Networks (CNN)",
+        "Simple Feedforward Networks",
+        "Autoencoders"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الشبكات التلافيفية (CNNs) مصممة خصيصًا لاستخراج الميزات المكانية من الصور.",
+      "en": "Convolutional Neural Networks (CNNs) are specifically designed to extract spatial features from images."
+    },
+    "hint": {
+      "ar": "تستخدم عمليات 'التلافيف' (Convolution).",
+      "en": "They use 'Convolution' operations."
+    },
+    "difficulty": "easy",
+    "conceptId": "convolutional-networks"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "لماذا تعتبر الشبكات العصبية المتكررة (RNNs) مفيدة لتقييم التسلسلات؟",
+      "en": "Why are Recurrent Neural Networks (RNNs) useful for evaluating sequences?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تعالج الصور بشكل أسرع.",
+        "لأنها لا تحتوي على طبقات مخفية.",
+        "لأن الطبقات المخفية تتعلم من التشغيلات السابقة (تمتلك ذاكرة).",
+        "لأنها تستخدم التجميع (Pooling) لتقليل الأبعاد."
+      ],
+      "en": [
+        "Because they process images faster.",
+        "Because they have no hidden layers.",
+        "Because hidden layers learn from previous runs (they have memory).",
+        "Because they use pooling to reduce dimensions."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "شبكات RNN تمرر المعلومات من خطوة زمنية إلى أخرى، مما يسمح لها بفهم السياق في البيانات المتسلسلة.",
+      "en": "RNNs pass information from one time step to the next, allowing them to understand context in sequential data."
+    },
+    "hint": {
+      "ar": "فكر في كيفية قراءتك لجملة؛ أنت تتذكر الكلمات السابقة.",
+      "en": "Think about how you read a sentence; you remember previous words."
+    },
+    "difficulty": "medium",
+    "conceptId": "recurrent-networks"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الهدف الأساسي من خوارزمية الانتشار العكسي (Backpropagation)؟",
+      "en": "What is the primary goal of the backpropagation algorithm?"
+    },
+    "options": {
+      "ar": [
+        "تحويل الصور إلى موترات.",
+        "فهم كيف تؤثر أوزان الشبكة وتحيزاتها على دالة التكلفة.",
+        "تقليل أبعاد البيانات.",
+        "نقل المعرفة من نموذج إلى آخر."
+      ],
+      "en": [
+        "Converting images to tensors.",
+        "Understanding how a network's weights and biases affect its cost function.",
+        "Reducing data dimensionality.",
+        "Transferring knowledge from one model to another."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الانتشار العكسي يحسب التدرجات (Gradients) لمعرفة الاتجاه الذي يجب تعديل الأوزان فيه لتقليل الخطأ.",
+      "en": "Backpropagation calculates gradients to know in which direction to adjust weights to reduce the error."
+    },
+    "hint": {
+      "ar": "يتعلق الأمر بحساب التدرجات للأوزان.",
+      "en": "It's about calculating gradients for the weights."
+    },
+    "difficulty": "medium",
+    "conceptId": "learning-algorithms"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي من التقنيات التالية تُعتبر من تقنيات التنظيم (Regularization) لمنع الحفظ الأعمى؟",
+      "en": "Which of the following is considered a regularization technique to prevent overfitting?"
+    },
+    "options": {
+      "ar": [
+        "الانحدار التدريجي (Gradient Descent)",
+        "الإسقاط (Dropout)",
+        "التجميع (Clustering)",
+        "الانتشار العكسي (Backpropagation)"
+      ],
+      "en": [
+        "Gradient Descent",
+        "Dropout",
+        "Clustering",
+        "Backpropagation"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الإسقاط (Dropout) والتوقف المبكر وتسوية الدفعة هي تقنيات تنظيم شائعة لتحسين التعميم.",
+      "en": "Dropout, early stopping, and batch normalization are common regularization techniques to improve generalization."
+    },
+    "hint": {
+      "ar": "تقنية تقوم بإيقاف تشغيل بعض الخلايا العصبية عشوائياً.",
+      "en": "A technique that randomly turns off some neurons."
+    },
+    "difficulty": "hard",
+    "conceptId": "generalization-and-regularization"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هو أفضل خيار لتحليل البيانات الاستكشافي عندما تكون البيانات غير مسماة (Unlabeled)؟",
+      "en": "What is the best option for exploratory data analysis when the data is unlabeled?"
+    },
+    "options": {
+      "ar": [
+        "التعلم الخاضع للإشراف",
+        "التعلم غير الخاضع للإشراف",
+        "الشبكات التلافيفية",
+        "نقل التعلم"
+      ],
+      "en": [
+        "Supervised Learning",
+        "Unsupervised Learning",
+        "Convolutional Networks",
+        "Transfer Learning"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التعلم غير الخاضع للإشراف يحدد الأنماط المخفية أو مجموعات البيانات دون مساعدة من الإنسان أو تصنيفات مسبقة.",
+      "en": "Unsupervised learning identifies hidden patterns or data clusters without human assistance or prior labels."
+    },
+    "hint": {
+      "ar": "لا يوجد 'مشرف' أو 'تسميات' لتوجيه النموذج.",
+      "en": "There is no 'supervisor' or 'labels' to guide the model."
+    },
+    "difficulty": "easy",
+    "conceptId": "unsupervised-learning"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو المصطلح الذي يصف نقل المعلومات من مهمة تعلم آلي إلى أخرى؟",
+      "en": "What term describes transferring information from one machine learning task to another?"
+    },
+    "options": {
+      "ar": [
+        "التعميم (Generalization)",
+        "الانتشار العكسي (Backpropagation)",
+        "نقل التعلم (Transfer Learning)",
+        "التجميع (Clustering)"
+      ],
+      "en": [
+        "Generalization",
+        "Backpropagation",
+        "Transfer Learning",
+        "Clustering"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "نقل التعلم يسمح باستخدام المعرفة المكتسبة من مهمة (مثل التعرف على الأشكال) في مهمة أخرى (مثل التعرف على الوجوه).",
+      "en": "Transfer learning allows using knowledge gained from one task (like shape recognition) in another task (like facial recognition)."
+    },
+    "hint": {
+      "ar": "الاسم يشرح نفسه: 'نقل' المعرفة.",
+      "en": "The name is self-explanatory: 'transferring' knowledge."
+    },
+    "difficulty": "easy",
+    "conceptId": "transfer-learning"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من التطبيقات التالية يُعد تطبيقًا لمعالجة اللغات الطبيعية (NLP)؟",
+      "en": "Which of the following is an application of Natural Language Processing (NLP)?"
+    },
+    "options": {
+      "ar": [
+        "اكتشاف الكائنات (Object Detection)",
+        "تحليل المشاعر (Sentiment Analysis)",
+        "تجزئة الصور (Image Segmentation)",
+        "اكتشاف الشذوذ في الشبكات"
+      ],
+      "en": [
+        "Object Detection",
+        "Sentiment Analysis",
+        "Image Segmentation",
+        "Network Anomaly Detection"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تحليل المشاعر يتعامل مع فهم النصوص واللغة البشرية، وهو من صميم معالجة اللغات الطبيعية.",
+      "en": "Sentiment analysis deals with understanding text and human language, which is at the core of NLP."
+    },
+    "hint": {
+      "ar": "ابحث عن الخيار الذي يتعامل مع النصوص أو الكلمات.",
+      "en": "Look for the option that deals with text or words."
+    },
+    "difficulty": "medium",
+    "conceptId": "deep-learning-applications"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الموترات (Tensors) هي لغة التعلم العميق. لا يهم إذا كانت بياناتك صورة أو صوت أو نص؛ يجب أن تتحول إلى أرقام مرتبة في مصفوفات متعددة الأبعاد لكي تفهمها الشبكة العصبية.</template>
+      <template class="content-en">Tensors are the language of deep learning. It doesn't matter if your data is an image, audio, or text; it must be converted into numbers arranged in multi-dimensional arrays for the neural network to understand it.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين CNN و RNN: تذكر دائمًا أن CNN (التلافيفية) مخصصة للبيانات المكانية مثل الصور (C = Camera/Computer Vision)، بينما RNN (المتكررة) مخصصة للبيانات المتسلسلة والزمنية مثل النصوص والصوت (R = Reading/Recurrent).</template>
+      <template class="content-en">Confusing CNN and RNN: Always remember that CNNs are for spatial data like images (C = Camera/Computer Vision), while RNNs are for sequential and temporal data like text and audio (R = Reading/Recurrent).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">اسم إطار العمل TensorFlow يأتي حرفيًا من تدفق (Flow) الموترات (Tensors) عبر الرسوم البيانية الحسابية (Computation Graphs).</template>
+      <template class="content-en">The name of the TensorFlow framework literally comes from Tensors flowing through Computation Graphs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن دالة تكلفة (Cost Function) تساوي صفر هو أمر جيد دائمًا. في الواقع، الخطأ الصفري على بيانات التدريب غالبًا ما يعني أن النموذج قد حفظ البيانات (Overfitting) وسيفشل فشلاً ذريعًا في الاختبار.</template>
+      <template class="content-en">Believing that a Cost Function of zero is always good. In reality, zero error on training data often means the model has memorized the data (Overfitting) and will fail miserably on the test set.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نقل التعلم (Transfer Learning) هو ما يجعل الذكاء الاصطناعي الحديث ممكنًا للشركات الصغيرة. لست بحاجة لتدريب نموذج من الصفر؛ يمكنك أخذ نموذج درّبته جوجل أو ميتا وتعديله قليلاً ليناسب مشكلتك.</template>
+      <template class="content-en">Transfer Learning is what makes modern AI accessible to small companies. You don't need to train a model from scratch; you can take a model trained by Google or Meta and fine-tune it for your specific problem.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M03.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M05.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

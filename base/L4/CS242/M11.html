@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS242" data-module="11">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المشاكل المستعصية (Intractable Problems) · CS242 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS242" data-page-title-en="CS242">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M10.html" data-gh-next="M12.html" data-gh-card="../../hub/course.html?code=CS242"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#posts-correspondence-problem" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة المراسلة لبوست (PCP)</template>
+        <template class="content-en">Post's Correspondence Problem (PCP)</template>
+        <span class="content-target">مشكلة المراسلة لبوست (PCP)</span>
+      </a>
+      <a href="#class-p-and-np" class="toc-link" data-bilingual>
+        <template class="content-ar">الفئات P و NP</template>
+        <template class="content-en">The Classes P and NP</template>
+        <span class="content-target">الفئات P و NP</span>
+      </a>
+      <a href="#np-complete-and-reductions" class="toc-link" data-bilingual>
+        <template class="content-ar">المشاكل الكاملة في NP والاختزالات</template>
+        <template class="content-en">NP-Complete Problems and Reductions</template>
+        <span class="content-target">المشاكل الكاملة في NP والاختزالات</span>
+      </a>
+      <a href="#cooks-theorem-and-sat" class="toc-link" data-bilingual>
+        <template class="content-ar">نظرية كوك ومشكلة الإرضاء (SAT)</template>
+        <template class="content-en">Cook's Theorem and SAT</template>
+        <span class="content-target">نظرية كوك ومشكلة الإرضاء (SAT)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 11</template>
+      <template class="content-en">Module 11</template>
+      <span class="content-target">الوحدة 11</span>
+    </span> · CS242
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">المشاكل المستعصية (Intractable Problems)</h1>
+      <p class="hero-description">دراسة المشاكل غير القابلة للحل مثل مشكلة المراسلة لبوست (PCP)، ومقدمة في نظرية التعقيد الحسابي بما في ذلك الفئات P و NP والمشاكل الكاملة في NP (NP-Complete) ونظرية كوك.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Intractable Problems</h1>
+      <p class="hero-description">Study of undecidable problems like Post's Correspondence Problem (PCP), and an introduction to computational complexity theory including classes P, NP, NP-Complete problems, and Cook's Theorem.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">مشكلة المراسلة لبوست</span>
+      <span class="tag">الفئة P</span>
+      <span class="tag">NP-Complete</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">PCP</span>
+      <span class="tag">Class P</span>
+      <span class="tag">NP-Complete</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح الفئات الحسابية P و NP والفرق بينهما.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم المشاكل الكاملة في NP (NP-Complete) وأهميتها في علوم الحاسب.</span></li>
+      <li><span class="obj-icon">✦</span><span>استيعاب مشكلة المراسلة لبوست (PCP) وكيفية استخدامها لإثبات عدم قابلية حل مشاكل أخرى.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق مفهوم الاختزال في وقت كثير الحدود (Polytime Reductions) بين المشاكل.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain computational classes P and NP and the difference between them.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand NP-Complete problems and their significance in computer science.</span></li>
+      <li><span class="obj-icon">✦</span><span>Comprehend Post's Correspondence Problem (PCP) and how it is used to prove other problems undecidable.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply the concept of polynomial-time reductions between problems.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="posts-correspondence-problem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مشكلة المراسلة لبوست (PCP)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Post's Correspondence Problem (PCP)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>مشكلة <span class="smart-term" data-term-en="Undecidable" data-ar="غير قابل للحل / غير قابل للتقرير" data-en-def="A problem for which no algorithm can always provide a correct yes/no answer.">غير قابلة للحل</span> تعتمد على إيجاد تسلسل من أزواج السلاسل النصية بحيث يتطابق النص العلوي مع النص السفلي عند دمجها. تشبه محاولة ترتيب قطع دومينو نصية لتكوين نفس الكلمة في الأعلى والأسفل.</p>
+    </template>
+    <template class="content-en">
+      <p>An <span class="smart-term" data-term-en="Undecidable" data-ar="غير قابل للحل / غير قابل للتقرير" data-en-def="A problem for which no algorithm can always provide a correct yes/no answer.">undecidable</span> problem about finding a sequence of string pairs such that the concatenated top strings equal the concatenated bottom strings. Like arranging text dominoes to spell the same word on top and bottom.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مشكلة المراسلة لبوست (PCP) هي مثال لمشكلة لا تذكر آلات تورينج في صياغتها، ومع ذلك فهي <span class="smart-term" data-term-en="Undecidable" data-ar="غير قابل للحل / غير قابل للتقرير" data-en-def="A problem for which no algorithm can always provide a correct yes/no answer.">غير قابلة للحل (Undecidable)</span>.</p><p>تتكون المشكلة من قائمة من أزواج السلاسل النصية غير الفارغة $(w_1, x_1), (w_2, x_2), \dots, (w_n, x_n)$.</p><p>الحل هو إيجاد تسلسل من المؤشرات $i_1, \dots, i_k$ بحيث يكون دمج السلاسل $w_{i_1}\dots w_{i_k} = x_{i_1}\dots x_{i_k}$.</p><p>النسخة المعدلة (MPCP) تشترط أن يبدأ الحل بالزوج الأول في القائمة.</p></template>
+    <template class="content-en"><p>Post's Correspondence Problem (PCP) is an example of a problem that does not mention Turing Machines in its statement, yet is <span class="smart-term" data-term-en="Undecidable" data-ar="غير قابل للحل / غير قابل للتقرير" data-en-def="A problem for which no algorithm can always provide a correct yes/no answer.">undecidable</span>.</p><p>An instance consists of a list of pairs of nonempty strings $(w_1, x_1), (w_2, x_2), \dots, (w_n, x_n)$.</p><p>The answer is 'yes' if there exists a sequence of indices $i_1, \dots, i_k$ such that $w_{i_1}\dots w_{i_k} = x_{i_1}\dots x_{i_k}$.</p><p>The Modified PCP (MPCP) requires the solution to start with the first pair.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لإثبات أن PCP <span class="smart-term" data-term-en="Undecidable" data-ar="غير قابل للحل / غير قابل للتقرير" data-en-def="A problem for which no algorithm can always provide a correct yes/no answer.">غير قابلة للحل</span>، نقوم باختزال لغة آلة تورينج العالمية ($L_u$) إلى MPCP، ثم نختزل MPCP إلى PCP.</p><p>يتم الاختزال من MPCP إلى PCP عن طريق إضافة رموز خاصة (* و $) لضمان أن الزوج الأول فقط هو الذي يمكن أن يبدأ التطابق.</p><p>هذا يثبت أن مشاكل بسيطة ظاهرياً يمكن أن تحتوي على تعقيد حسابي يعادل آلة تورينج.</p></template>
+    <template class="content-en"><p>To prove PCP is <span class="smart-term" data-term-en="Undecidable" data-ar="غير قابل للحل / غير قابل للتقرير" data-en-def="A problem for which no algorithm can always provide a correct yes/no answer.">undecidable</span>, we reduce the universal language ($L_u$) to MPCP, and then MPCP to PCP.</p><p>The reduction from MPCP to PCP involves padding strings with special symbols (* and $) to force the sequence to start with the specific first pair.</p><p>This demonstrates how seemingly simple string matching problems can encode the full computational power (and undecidability) of a Turing Machine.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>شرط التطابق في مشكلة المراسلة لبوست.</strong></template>
+      <template class="content-en"><strong>The matching condition in Post's Correspondence Problem.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$w_{i_1}\dots w_{i_k} = x_{i_1}\dots x_{i_k}$$</div>
+  </div>
+
+  <!-- DIAGRAM[4]: A flowchart showing the reduction path for undecidability: L_u (Universal Language) -> MPCP (Modified PCP) -> PCP (Post's Correspondence Problem). Use educational style, dark background #0d1117, accent color #007acc, viewBox 0 0 800 400, with clear directional arrows and Arabic/English labels. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Drop Shadow for Nodes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+        </filter>
+
+        <!-- Subtle Background Grid -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="0.5" stroke-opacity="0.2"/>
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+    <rect width="100%" height="100%" fill="url(#grid)" />
+
+    <!-- Main Title -->
+    <text x="400" y="50" text-anchor="middle" font-size="24" font-weight="bold" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        Undecidability Reduction Path
+    </text>
+    <text x="400" y="80" text-anchor="middle" font-size="18" font-weight="bold" fill="var(--brand-400)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        مسار اختزال عدم القابلية للتقرير
+    </text>
+
+    <!-- Node 1: Universal Language (L_u) -->
+    <g transform="translate(30, 130)">
+        <rect width="180" height="160" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+        
+        <text x="90" y="30" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+            <tspan font-style="italic">L</tspan><tspan baseline-shift="sub" font-size="14">u</tspan>
+        </text>
+        
+        <text x="90" y="55" text-anchor="middle" font-size="15" font-weight="600" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Universal Language</text>
+        <text x="90" y="75" text-anchor="middle" font-size="15" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">اللغة الكونية</text>
+        
+        <line x1="20" y1="90" x2="160" y2="90" stroke="var(--border-color)" stroke-width="1" />
+        
+        <text x="90" y="115" text-anchor="middle" font-size="13" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Does TM M accept w?</text>
+        <text x="90" y="135" text-anchor="middle" font-size="13" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">هل تقبل الآلة M المدخل w؟</text>
+    </g>
+
+    <!-- Arrow 1: L_u to MPCP -->
+    <line x1="210" y1="210" x2="298" y2="210" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="254" y="190" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--brand-400)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        Reduction (≤<tspan baseline-shift="sub" font-size="10">m</tspan>)
+    </text>
+    <text x="254" y="235" text-anchor="middle" font-size="14" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">اختزال دالي</text>
+
+    <!-- Node 2: Modified PCP (MPCP) -->
+    <g transform="translate(310, 130)">
+        <rect width="180" height="160" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+        
+        <text x="90" y="30" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">MPCP</text>
+        
+        <text x="90" y="55" text-anchor="middle" font-size="15" font-weight="600" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Modified PCP</text>
+        <text x="90" y="75" text-anchor="middle" font-size="15" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">مشكلة بوست المعدلة</text>
+        
+        <line x1="20" y1="90" x2="160" y2="90" stroke="var(--border-color)" stroke-width="1" />
+        
+        <text x="90" y="115" text-anchor="middle" font-size="13" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Match starting w/ tile 1?</text>
+        <text x="90" y="135" text-anchor="middle" font-size="13" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">تطابق يبدأ بالقطعة 1؟</text>
+    </g>
+
+    <!-- Arrow 2: MPCP to PCP -->
+    <line x1="490" y1="210" x2="578" y2="210" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="534" y="190" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--brand-400)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        Reduction (≤<tspan baseline-shift="sub" font-size="10">m</tspan>)
+    </text>
+    <text x="534" y="235" text-anchor="middle" font-size="14" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">اختزال دالي</text>
+
+    <!-- Node 3: Post's Correspondence Problem (PCP) -->
+    <g transform="translate(590, 130)">
+        <rect width="180" height="160" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+        
+        <text x="90" y="30" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">PCP</text>
+        
+        <text x="90" y="55" text-anchor="middle" font-size="15" font-weight="600" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Post's Correspondence</text>
+        <text x="90" y="75" text-anchor="middle" font-size="15" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">مشكلة بوست للتوافق</text>
+        
+        <line x1="20" y1="90" x2="160" y2="90" stroke="var(--border-color)" stroke-width="1" />
+        
+        <text x="90" y="115" text-anchor="middle" font-size="13" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Is there any match?</text>
+        <text x="90" y="135" text-anchor="middle" font-size="13" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">هل يوجد أي تطابق؟</text>
+    </g>
+
+    <!-- Bottom Summary Box -->
+    <g transform="translate(100, 330)">
+        <rect width="600" height="90" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="6 4" filter="url(#shadow)" />
+        
+        <text x="300" y="35" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+            Since L<tspan baseline-shift="sub" font-size="11">u</tspan> is undecidable, the reductions prove MPCP and PCP are also undecidable.
+        </text>
+        
+        <text x="300" y="65" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+            بما أن L<tspan baseline-shift="sub" font-size="11">u</tspan> غير قابلة للتقرير، فإن الاختزالات تثبت أن MPCP و PCP غير قابلة للتقرير أيضاً.
+        </text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>PCP</th><th>MPCP</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">شرط البداية</template>
+          <template class="content-en">Starting Condition</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يمكن البدء بأي زوج</template>
+          <template class="content-en">Can start with any pair</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يجب البدء بالزوج الأول</template>
+          <template class="content-en">Must start with the FIRST pair</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاستخدام في الإثبات</template>
+          <template class="content-en">Use in Proofs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الهدف النهائي للإثبات</template>
+          <template class="content-en">Final target of the proof</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">خطوة وسيطة لمحاكاة الآلة</template>
+          <template class="content-en">Intermediate step to simulate TM</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نحتاج إلى MPCP كخطوة وسيطة لإثبات عدم قابلية حل PCP؟</template>
+      <template class="content-en">Why do we need MPCP as an intermediate step to prove the undecidability of PCP?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن محاكاة آلة تورينج تتطلب نقطة بداية محددة (الحالة الابتدائية). MPCP يجبر الحل على البدء بالزوج الأول الذي يمثل التكوين الابتدائي لآلة تورينج.</p></template>
+      <template class="content-en"><p>Because simulating a Turing Machine requires a specific starting point (the initial configuration). MPCP forces the solution to start with the first pair, which encodes the initial ID of the TM.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="class-p-and-np" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الفئات P و NP</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> The Classes P and NP</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الفئة P هي المشاكل التي يمكن حلها بسرعة (في <span class="smart-term" data-term-en="Polynomial Time" data-ar="وقت كثير الحدود" data-en-def="An algorithm whose execution time is upper bounded by a polynomial expression in the size of the input.">وقت كثير الحدود</span>)، بينما الفئة NP هي المشاكل التي يمكن التحقق من صحة حلها بسرعة إذا أُعطينا الحل.</p>
+    </template>
+    <template class="content-en">
+      <p>Class P contains problems that can be solved quickly (in <span class="smart-term" data-term-en="Polynomial Time" data-ar="وقت كثير الحدود" data-en-def="An algorithm whose execution time is upper bounded by a polynomial expression in the size of the input.">polynomial time</span>), while Class NP contains problems whose solutions can be verified quickly if given a guess.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الفئة P تتكون من اللغات (أو المشاكل) التي يمكن تقريرها بواسطة آلة تورينج حتمية (DTM) في <span class="smart-term" data-term-en="Polynomial Time" data-ar="وقت كثير الحدود" data-en-def="An algorithm whose execution time is upper bounded by a polynomial expression in the size of the input.">وقت مقيد بكثيرة حدود</span> $O(T(n))$. أمثلة: خوارزمية CYK ($O(n^3)$) وخوارزمية ديكسترا ($O(n \log n)$).</p><p>الفئة NP تتكون من اللغات التي يمكن تقريرها بواسطة آلة تورينج غير حتمية (NTM) في وقت كثير الحدود.</p><p>في NP، نستخدم اللاحتمية لتخمين الحل ثم نتحقق منه في وقت كثير الحدود. مثال: مشكلة حقيبة الظهر (Knapsack) ومشكلة الإرضاء (SAT).</p></template>
+    <template class="content-en"><p>Class P consists of languages (problems) decidable by a Deterministic Turing Machine (DTM) in <span class="smart-term" data-term-en="Polynomial Time" data-ar="وقت كثير الحدود" data-en-def="An algorithm whose execution time is upper bounded by a polynomial expression in the size of the input.">polynomial time</span> $O(T(n))$. Examples include the CYK algorithm ($O(n^3)$) and Dijkstra's algorithm ($O(n \log n)$).</p><p>Class NP consists of languages decidable by a Nondeterministic Turing Machine (NTM) in polynomial time.</p><p>In NP, we use nondeterminism to 'guess' a solution and then verify it in polynomial time. Examples include the Knapsack problem and the Satisfiability (SAT) problem.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>سؤال P مقابل NP هو أحد أهم الأسئلة المفتوحة في علوم الحاسب. هل P = NP؟</p><p>إذا كان الأمر كذلك، فإن كل مشكلة يمكن التحقق من حلها بسرعة يمكن أيضاً حلها بسرعة.</p><p>على الرغم من وجود آلاف المشاكل في NP التي لا يبدو أنها في P، إلا أنه لا يوجد إثبات قاطع على أنها ليست في P.</p><p>مشكلة حقيبة الظهر تبدو وكأنها تحل في <span class="smart-term" data-term-en="Polynomial Time" data-ar="وقت كثير الحدود" data-en-def="An algorithm whose execution time is upper bounded by a polynomial expression in the size of the input.">وقت كثير الحدود</span> $O(m^2)$ باستخدام البرمجة الديناميكية، لكن حجم الإدخال الفعلي هو $O(\log m)$، مما يجعل الخوارزمية أسية $O(n 2^n)$ بالنسبة لحجم الإدخال.</p></template>
+    <template class="content-en"><p>The P vs NP question is one of the most important open problems in computer science. Is P = NP?</p><p>If so, every problem whose solution can be verified quickly can also be solved quickly.</p><p>Despite thousands of problems in NP appearing not to be in P, there is no proof they aren't.</p><p>The Knapsack problem has a dynamic programming algorithm taking $O(m^2)$ time, but since the input size is $O(\log m)$ bits, the algorithm is actually exponential $O(n 2^n)$ relative to the input length (pseudo-polynomial).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>كل مشكلة في P هي بالضرورة في NP.</strong></template>
+      <template class="content-en"><strong>Every problem in P is necessarily in NP.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$P \subseteq NP$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: A Venn diagram showing the relationship between P, NP, and NP-Complete classes. P is a subset of NP. NP-Complete is a subset of NP, disjoint from P (assuming P != NP). Style: educational, dark background #0d1117, vibrant colors for sets. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Gradients for Venn Diagram Shapes -->
+        <linearGradient id="np-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.1" />
+            <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.02" />
+        </linearGradient>
+        
+        <linearGradient id="nph-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--text-secondary)" stop-opacity="0.1" />
+            <stop offset="100%" stop-color="var(--text-secondary)" stop-opacity="0.02" />
+        </linearGradient>
+        
+        <linearGradient id="p-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.05" />
+        </linearGradient>
+        
+        <linearGradient id="npc-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.4" />
+            <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.15" />
+        </linearGradient>
+
+        <!-- Clip path to perfectly isolate the NP-Complete intersection -->
+        <clipPath id="np-clip">
+            <ellipse cx="310" cy="350" rx="220" ry="180" />
+        </clipPath>
+
+        <!-- Arrow Marker for Callouts -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <g text-anchor="middle">
+        <text x="400" y="60" font-size="26" font-weight="bold" fill="var(--text-primary)">Complexity Classes: P vs NP</text>
+        <text x="400" y="90" font-size="18" fill="var(--text-secondary)">فئات التعقيد (بافتراض P ≠ NP)</text>
+    </g>
+
+    <!-- Venn Diagram Shapes -->
+    <g>
+        <!-- NP Class (Base) -->
+        <ellipse cx="310" cy="350" rx="220" ry="180" fill="url(#np-grad)" />
+        
+        <!-- NP-Hard Class (Base) -->
+        <circle cx="530" cy="350" r="180" fill="url(#nph-grad)" />
+        
+        <!-- NP-Complete Class (Intersection of NP and NP-Hard) -->
+        <circle cx="530" cy="350" r="180" clip-path="url(#np-clip)" fill="url(#npc-grad)" />
+        
+        <!-- P Class (Inside NP, disjoint from NP-Complete) -->
+        <circle cx="200" cy="350" r="80" fill="url(#p-grad)" />
+    </g>
+
+    <!-- Shape Borders (Drawn after fills for crisp edges) -->
+    <g fill="none">
+        <ellipse cx="310" cy="350" rx="220" ry="180" stroke="var(--brand-500)" stroke-width="2.5" />
+        <circle cx="530" cy="350" r="180" stroke="var(--brand-400)" stroke-width="2.5" stroke-dasharray="8 6" />
+        <circle cx="200" cy="350" r="80" stroke="var(--brand-500)" stroke-width="2" />
+    </g>
+
+    <!-- Labels Inside Shapes -->
+    <g text-anchor="middle">
+        <!-- NP Label -->
+        <text x="310" y="210" font-size="24" font-weight="bold" fill="var(--brand-500)">NP</text>
+        
+        <!-- P Label -->
+        <text x="200" y="345" font-size="22" font-weight="bold" fill="var(--text-primary)">P</text>
+        <text x="200" y="365" font-size="14" fill="var(--text-secondary)">كثيرة الحدود</text>
+        
+        <!-- NP-Complete Label -->
+        <text x="440" y="345" font-size="18" font-weight="bold" fill="var(--text-primary)">NP-Complete</text>
+        <text x="440" y="365" font-size="14" fill="var(--text-secondary)">NP كاملة</text>
+        
+        <!-- NP-Hard Label -->
+        <text x="630" y="345" font-size="20" font-weight="bold" fill="var(--text-primary)">NP-Hard</text>
+        <text x="630" y="365" font-size="14" fill="var(--text-secondary)">NP صعبة</text>
+
+        <!-- NP-Intermediate Label -->
+        <text x="310" y="470" font-size="15" font-weight="bold" fill="var(--text-muted)">NP-Intermediate</text>
+        <text x="310" y="490" font-size="13" fill="var(--text-muted)">NP متوسطة</text>
+    </g>
+
+    <!-- Educational Callouts -->
+    <g>
+        <!-- NP Callout -->
+        <line x1="150" y1="145" x2="215" y2="195" stroke="var(--brand-500)" stroke-width="1.5" stroke-opacity="0.7" marker-end="url(#arrow)" />
+        <text x="150" y="120" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Verifiable in polynomial time</text>
+        <text x="150" y="138" font-size="13" fill="var(--text-secondary)" text-anchor="middle">يمكن التحقق منها في وقت كثير الحدود</text>
+
+        <!-- P Callout -->
+        <line x1="120" y1="485" x2="155" y2="415" stroke="var(--brand-500)" stroke-width="1.5" stroke-opacity="0.7" marker-end="url(#arrow)" />
+        <text x="120" y="510" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Solvable in polynomial time</text>
+        <text x="120" y="528" font-size="13" fill="var(--text-secondary)" text-anchor="middle">يمكن حلها في وقت كثير الحدود</text>
+
+        <!-- NP-Complete Callout -->
+        <line x1="440" y1="145" x2="440" y2="235" stroke="var(--brand-500)" stroke-width="1.5" stroke-opacity="0.7" marker-end="url(#arrow)" />
+        <text x="440" y="120" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Hardest problems in NP</text>
+        <text x="440" y="138" font-size="13" fill="var(--text-secondary)" text-anchor="middle">أصعب المشاكل في NP</text>
+
+        <!-- NP-Hard Callout -->
+        <line x1="680" y1="485" x2="645" y2="445" stroke="var(--brand-500)" stroke-width="1.5" stroke-opacity="0.7" marker-end="url(#arrow)" />
+        <text x="680" y="510" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">At least as hard as NP</text>
+        <text x="680" y="528" font-size="13" fill="var(--text-secondary)" text-anchor="middle">بصعوبة NP على الأقل</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Class P</th><th>Class NP</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع الآلة</template>
+          <template class="content-en">Machine Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">آلة تورينج حتمية (DTM)</template>
+          <template class="content-en">Deterministic Turing Machine (DTM)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">آلة تورينج غير حتمية (NTM)</template>
+          <template class="content-en">Nondeterministic Turing Machine (NTM)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">طبيعة الحل</template>
+          <template class="content-en">Solution Nature</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يمكن إيجاد الحل بسرعة</template>
+          <template class="content-en">Solution can be FOUND quickly</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يمكن التحقق من الحل بسرعة</template>
+          <template class="content-en">Solution can be VERIFIED quickly</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أمثلة</template>
+          <template class="content-en">Examples</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">خوارزمية CYK، ديكسترا</template>
+          <template class="content-en">CYK, Dijkstra</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">حقيبة الظهر (Knapsack)، SAT</template>
+          <template class="content-en">Knapsack, SAT</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر خوارزمية البرمجة الديناميكية لمشكلة حقيبة الظهر (Knapsack) غير كافية لوضع المشكلة في الفئة P؟</template>
+      <template class="content-en">Why is the dynamic programming algorithm for the Knapsack problem insufficient to place it in class P?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن وقت التشغيل يعتمد على قيمة الأرقام المدخلة (m) وليس على عدد البتات اللازمة لتمثيلها. تمثيل الرقم m يحتاج إلى log(m) بت، مما يجعل وقت التشغيل أسيًا بالنسبة لحجم الإدخال الفعلي.</p></template>
+      <template class="content-en"><p>Because the running time depends on the magnitude of the numbers (m), not the number of bits needed to represent them. Representing m takes log(m) bits, making the running time exponential relative to the actual input size.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="np-complete-and-reductions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> المشاكل الكاملة في NP والاختزالات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> NP-Complete Problems and Reductions</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>المشكلة الكاملة في NP هي أصعب مشكلة في فئة NP؛ إذا تمكنا من حلها بسرعة، يمكننا حل كل مشاكل NP بسرعة. نثبت ذلك باستخدام الاختزال في وقت كثير الحدود.</p>
+    </template>
+    <template class="content-en">
+      <p>An NP-Complete problem is the hardest problem in NP; if we can solve it quickly, we can solve all NP problems quickly. We prove this using polynomial-time reductions.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُعرف المشكلة $M$ بأنها NP-Complete إذا كانت تنتمي إلى NP، ولكل لغة $L$ في NP يوجد اختزال في وقت كثير الحدود من $L$ إلى $M$.</p><p>الخاصية الأساسية: إذا كان لـ $M$ خوارزمية في وقت كثير الحدود (أي $M \in P$)، فإن كل $L \in NP$ لها أيضاً خوارزمية في وقت كثير الحدود، مما يعني أن $P = NP$.</p><p>يتم الاختزال باستخدام <span class="smart-term" data-term-en="Polytime Transducer" data-ar="محول في وقت كثير الحدود" data-en-def="A deterministic Turing machine that computes a function in polynomial time, used for reductions.">محول (Transducer)</span> يعمل في وقت كثير الحدود $p(n)$ ويحول الإدخال $w$ إلى مخرجات $x$ بحيث $w \in L \iff x \in M$.</p></template>
+    <template class="content-en"><p>A problem $M$ is NP-complete if it is in NP, and for every language $L$ in NP, there is a polytime reduction from $L$ to $M$.</p><p>Fundamental property: if $M$ has a polytime algorithm (i.e., $M \in P$), then every $L \in NP$ also has a polytime algorithm, meaning $P = NP$.</p><p>Reductions use a <span class="smart-term" data-term-en="Polytime Transducer" data-ar="محول في وقت كثير الحدود" data-en-def="A deterministic Turing machine that computes a function in polynomial time, used for reductions.">polytime transducer</span> that takes input $w$, runs in time $p(n)$, and produces output $x$ such that $w \in L \iff x \in M$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المحول (Transducer) يجب أن ينهي عمله في وقت $p(n)$، وهذا يفرض قيداً مهماً: طول المخرجات لا يمكن أن يتجاوز $p(n)$.</p><p>إذا كان لدينا خوارزمية تحل $M$ في وقت $q(n)$، فإن حل $L$ سيستغرق وقتاً أقصاه $p(n) + q(p(n))$، وهو ما يظل كثيرة حدود.</p><p>هذا يثبت أن الاختزالات تحافظ على خاصية الانتماء للفئة P.</p></template>
+    <template class="content-en"><p>The <span class="smart-term" data-term-en="Polytime Transducer" data-ar="محول في وقت كثير الحدود" data-en-def="A deterministic Turing machine that computes a function in polynomial time, used for reductions.">polytime transducer</span> must finish in time $p(n)$, which imposes a critical constraint: the output length can be at most $p(n)$.</p><p>If we have an algorithm for $M$ taking time $q(n)$, solving $L$ takes at most $p(n) + q(p(n))$ time, which is still a polynomial.</p><p>This proves that polytime reductions preserve membership in class P.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>شرط صحة الاختزال من L إلى M باستخدام المحول T.</strong></template>
+      <template class="content-en"><strong>The correctness condition for a reduction from L to M using transducer T.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$w \in L \iff T(w) \in M$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Diagram of a Polytime Transducer. Show a box labeled 'Transducer T' taking an input 'w' (in L) and producing output 'x' (in M). Show the mapping: 'in L' maps to 'in M', 'not in L' maps to 'not in M'. Add a label 'Time <= p(n)'. Style: educational, dark background. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Arrowhead for main input/output -->
+        <marker id="arrow-main" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-primary)"/>
+        </marker>
+        
+        <!-- Arrowhead for brand-colored mapping (in L -> in M) -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Arrowhead for secondary-colored mapping (not in L -> not in M) -->
+        <marker id="arrow-secondary" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-secondary)"/>
+        </marker>
+
+        <!-- Drop shadow for the main transducer box -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Header / Title -->
+    <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Polynomial-Time Transducer</text>
+    <text x="400" y="65" font-size="16" fill="var(--text-secondary)" text-anchor="middle">محول بوقت كثير الحدود</text>
+
+    <!-- ========================================== -->
+    <!-- TOP SECTION: The Transducer Machine        -->
+    <!-- ========================================== -->
+
+    <!-- Input Arrow & Labels -->
+    <path d="M 100 160 L 280 160" stroke="var(--text-primary)" stroke-width="4" marker-end="url(#arrow-main)"/>
+    <text x="190" y="135" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Input w</text>
+    <text x="190" y="152" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المدخل</text>
+
+    <!-- Output Arrow & Labels -->
+    <path d="M 520 160 L 700 160" stroke="var(--text-primary)" stroke-width="4" marker-end="url(#arrow-main)"/>
+    <text x="610" y="135" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Output x = f(w)</text>
+    <text x="610" y="152" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المخرج</text>
+
+    <!-- Transducer Box -->
+    <rect x="300" y="100" width="200" height="120" rx="16" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)"/>
+    
+    <!-- Transducer Box Text -->
+    <text x="400" y="140" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Transducer T</text>
+    <text x="400" y="165" font-size="16" fill="var(--text-secondary)" text-anchor="middle">محول T</text>
+    
+    <!-- Time Constraint Badge -->
+    <rect x="325" y="185" width="150" height="28" rx="14" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1"/>
+    <text x="400" y="204" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Time ≤ p(|w|)</text>
+
+    <!-- ========================================== -->
+    <!-- BOTTOM SECTION: Mapping Logic (Reduction)  -->
+    <!-- ========================================== -->
+
+    <!-- Separator Line -->
+    <line x1="80" y1="250" x2="720" y2="250" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,6"/>
+    
+    <!-- Mapping Section Title -->
+    <rect x="300" y="238" width="200" height="24" fill="var(--bg-surface)"/>
+    <text x="400" y="255" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Mapping Logic / منطق التحويل</text>
+
+    <!-- Left Side: Language L (Input Space) -->
+    <g transform="translate(100, 280)">
+        <!-- Universe Sigma* -->
+        <rect x="0" y="0" width="220" height="160" rx="12" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="15" y="25" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="start">Σ*</text>
+        
+        <!-- Set L -->
+        <ellipse cx="110" cy="90" rx="75" ry="50" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="110" y="65" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Language L</text>
+        
+        <!-- Element w IN L -->
+        <circle cx="110" cy="105" r="6" fill="var(--brand-500)"/>
+        <text x="110" y="128" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">w ∈ L</text>
+        
+        <!-- Element w NOT IN L -->
+        <circle cx="35" cy="35" r="6" fill="var(--text-secondary)"/>
+        <text x="45" y="25" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="start">w ∉ L</text>
+    </g>
+
+    <!-- Right Side: Language M (Output Space) -->
+    <g transform="translate(480, 280)">
+        <!-- Universe Sigma* -->
+        <rect x="0" y="0" width="220" height="160" rx="12" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="15" y="25" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="start">Σ*</text>
+        
+        <!-- Set M -->
+        <ellipse cx="110" cy="90" rx="75" ry="50" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="110" y="65" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Language M</text>
+        
+        <!-- Element x IN M -->
+        <circle cx="110" cy="105" r="6" fill="var(--brand-500)"/>
+        <text x="110" y="128" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">x ∈ M</text>
+        
+        <!-- Element x NOT IN M -->
+        <circle cx="35" cy="35" r="6" fill="var(--text-secondary)"/>
+        <text x="45" y="25" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="start">x ∉ M</text>
+    </g>
+
+    <!-- Mapping Arrows between sets -->
+    
+    <!-- Arrow: w in L -> x in M -->
+    <path d="M 225 385 Q 400 430 575 385" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-brand)"/>
+    <!-- Label Background to hide the line behind text -->
+    <rect x="365" y="395" width="70" height="24" rx="4" fill="var(--bg-surface)"/>
+    <text x="400" y="412" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">f(w)</text>
+
+    <!-- Arrow: w not in L -> x not in M -->
+    <path d="M 145 315 Q 400 270 505 315" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-secondary)"/>
+    <!-- Label Background -->
+    <rect x="365" y="280" width="70" height="24" rx="4" fill="var(--bg-surface)"/>
+    <text x="400" y="297" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">f(w)</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يجب أن يكون الاختزال في وقت كثير الحدود (Polytime) وليس أي وقت آخر؟</template>
+      <template class="content-en">Why must the reduction be in polynomial time (Polytime) and not any other time bound?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الهدف هو إثبات أنه إذا كانت المشكلة الهدف في P، فإن المشكلة الأصلية في P أيضاً. إذا استغرق الاختزال وقتاً أسياً، فلن نتمكن من ضمان أن الحل الكلي سيبقى ضمن وقت كثير الحدود.</p></template>
+      <template class="content-en"><p>Because the goal is to prove that if the target problem is in P, the original problem is also in P. If the reduction took exponential time, we could not guarantee the overall solution remains in polynomial time.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="cooks-theorem-and-sat" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> نظرية كوك ومشكلة الإرضاء (SAT)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Cook's Theorem and SAT</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>نظرية كوك تثبت أن <span class="smart-term" data-term-en="Satisfiability (SAT)" data-ar="القابلية للإرضاء" data-en-def="The problem of determining if there exists an interpretation that satisfies a given boolean formula.">مشكلة الإرضاء المنطقي (SAT)</span> هي أول مشكلة تُصنف كـ NP-Complete. تقوم الفكرة على تحويل أي عملية حسابية لآلة تورينج إلى معادلة منطقية.</p>
+    </template>
+    <template class="content-en">
+      <p>Cook's Theorem proves that the <span class="smart-term" data-term-en="Satisfiability (SAT)" data-ar="القابلية للإرضاء" data-en-def="The problem of determining if there exists an interpretation that satisfies a given boolean formula.">Boolean Satisfiability Problem (SAT)</span> is NP-Complete. The core idea is translating any Turing Machine computation into a massive boolean formula.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مشكلة SAT تسأل: هل يوجد تعيين للقيم (صح/خطأ) للمتغيرات يجعل المعادلة المنطقية صحيحة؟</p><p>تنص نظرية كوك على أن SAT هي NP-Complete.</p><p>لإثبات ذلك، نأخذ أي لغة $L \in NP$ (والتي لها آلة تورينج غير حتمية $M$ تحلها في وقت $p(n)$) ونبني محولاً ينتج معادلة منطقية.</p><p>هذه المعادلة تكون قابلة للإرضاء إذا وفقط إذا كانت الآلة $M$ تقبل الإدخال $w$.</p></template>
+    <template class="content-en"><p>The SAT problem asks: given a boolean formula, does there exist a truth assignment to variables that makes the expression true?</p><p>Cook's Theorem states that SAT is NP-Complete.</p><p>To prove this, we take any language $L \in NP$ (which has an NTM $M$ deciding it in time $p(n)$) and construct a transducer that outputs a boolean formula.</p><p>This formula is satisfiable if and only if $M$ accepts input $w$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المعادلة المنطقية في إثبات كوك تتكون من 4 أجزاء رئيسية تصف مصفوفة الحساب (Computation Array):</p><ol><li><strong>Unique</strong> (رمز واحد فقط لكل خلية)</li><li><strong>Starts Right</strong> (التكوين الابتدائي صحيح)</li><li><strong>Moves Right</strong> (كل انتقال يتوافق مع قواعد الآلة $M$)</li><li><strong>Finishes Right</strong> (الوصول إلى حالة قبول)</li></ol><p>يتم بناء هذه المعادلة في وقت $O(p^2(n) \log n)$، مما يثبت أن الاختزال يتم في وقت كثير الحدود.</p></template>
+    <template class="content-en"><p>The boolean formula in Cook's proof consists of 4 main parts describing the computation array:</p><ol><li><strong>Unique</strong> (only one symbol per cell)</li><li><strong>Starts Right</strong> (initial ID is correct)</li><li><strong>Moves Right</strong> (each transition follows $M$'s rules)</li><li><strong>Finishes Right</strong> (reaches an accepting state)</li></ol><p>This formula is constructed in $O(p^2(n) \log n)$ time, proving the reduction is polytime.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المعادلة المنطقية الكلية في إثبات نظرية كوك.</strong></template>
+      <template class="content-en"><strong>The overall boolean formula in Cook's Theorem proof.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F = F_{unique} \land F_{starts} \land F_{moves} \land F_{finishes}$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: A grid representing the computation array of a Turing Machine. Rows represent time steps (I_0 to I_{p(n)}), columns represent tape positions (0 to p(n)). Cells contain variables X_{ij}. Show how 'Moves Right' constrains a 2x3 window of cells. Style: educational, dark background. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Arrowhead for transition -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        <!-- Arrowhead for axes -->
+        <marker id="arrow-axis" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title and Subtitle -->
+    <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--text-primary)">Turing Machine Computation Tableau / جدول حساب آلة تورنغ</text>
+    <text x="400" y="65" text-anchor="middle" font-size="15" fill="var(--text-secondary)">Local 2×3 Window Constraint for "Move Right" / قيد النافذة المحلية 2×3 لحركة اليمين</text>
+
+    <!-- Axes -->
+    <!-- Top Axis (Tape Position) -->
+    <line x1="100" y1="95" x2="620" y2="95" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-axis)"/>
+    <text x="360" y="80" text-anchor="middle" font-size="14" fill="var(--text-muted)">Tape Position / موقع الشريط (j)</text>
+    
+    <g text-anchor="middle" font-size="13" fill="var(--text-muted)">
+        <text x="135" y="110">0</text>
+        <text x="265" y="110">j-1</text>
+        <text x="355" y="110">j</text>
+        <text x="445" y="110">j+1</text>
+        <text x="580" y="110">p(n)</text>
+    </g>
+
+    <!-- Left Axis (Time Step) -->
+    <line x1="70" y1="120" x2="70" y2="440" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-axis)"/>
+    <text x="50" y="280" text-anchor="middle" font-size="14" fill="var(--text-muted)" transform="rotate(-90, 50, 280)">Time Step / الخطوة الزمنية (i)</text>
+    
+    <g text-anchor="end" dominant-baseline="middle" font-size="13" fill="var(--text-muted)">
+        <text x="85" y="145">0</text>
+        <text x="85" y="245">i</text>
+        <text x="85" y="315">i+1</text>
+        <text x="85" y="415">p(n)</text>
+    </g>
+
+    <!-- Grid Cells (Rectangles) -->
+    <g stroke="var(--border-color)" fill="var(--bg-elevated)" stroke-width="1">
+        <!-- Row 0 -->
+        <rect x="100" y="120" width="70" height="50"/>
+        <rect x="170" y="120" width="50" height="50"/>
+        <rect x="220" y="120" width="90" height="50"/>
+        <rect x="310" y="120" width="90" height="50"/>
+        <rect x="400" y="120" width="90" height="50"/>
+        <rect x="490" y="120" width="50" height="50"/>
+        <rect x="540" y="120" width="80" height="50"/>
+        
+        <!-- Row 1 (...) -->
+        <rect x="100" y="170" width="70" height="40"/>
+        <rect x="170" y="170" width="50" height="40"/>
+        <rect x="220" y="170" width="90" height="40"/>
+        <rect x="310" y="170" width="90" height="40"/>
+        <rect x="400" y="170" width="90" height="40"/>
+        <rect x="490" y="170" width="50" height="40"/>
+        <rect x="540" y="170" width="80" height="40"/>
+
+        <!-- Row 2 (i) -->
+        <rect x="100" y="210" width="70" height="70"/>
+        <rect x="170" y="210" width="50" height="70"/>
+        <rect x="220" y="210" width="90" height="70"/>
+        <rect x="310" y="210" width="90" height="70"/>
+        <rect x="400" y="210" width="90" height="70"/>
+        <rect x="490" y="210" width="50" height="70"/>
+        <rect x="540" y="210" width="80" height="70"/>
+
+        <!-- Row 3 (i+1) -->
+        <rect x="100" y="280" width="70" height="70"/>
+        <rect x="170" y="280" width="50" height="70"/>
+        <rect x="220" y="280" width="90" height="70"/>
+        <rect x="310" y="280" width="90" height="70"/>
+        <rect x="400" y="280" width="90" height="70"/>
+        <rect x="490" y="280" width="50" height="70"/>
+        <rect x="540" y="280" width="80" height="70"/>
+
+        <!-- Row 4 (...) -->
+        <rect x="100" y="350" width="70" height="40"/>
+        <rect x="170" y="350" width="50" height="40"/>
+        <rect x="220" y="350" width="90" height="40"/>
+        <rect x="310" y="350" width="90" height="40"/>
+        <rect x="400" y="350" width="90" height="40"/>
+        <rect x="490" y="350" width="50" height="40"/>
+        <rect x="540" y="350" width="80" height="40"/>
+
+        <!-- Row 5 (p(n)) -->
+        <rect x="100" y="390" width="70" height="50"/>
+        <rect x="170" y="390" width="50" height="50"/>
+        <rect x="220" y="390" width="90" height="50"/>
+        <rect x="310" y="390" width="90" height="50"/>
+        <rect x="400" y="390" width="90" height="50"/>
+        <rect x="490" y="390" width="50" height="50"/>
+        <rect x="540" y="390" width="80" height="50"/>
+    </g>
+
+    <!-- 2x3 Window Highlight -->
+    <text x="355" y="200" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--brand-500)">2×3 Window / نافذة 2×3</text>
+    <rect x="220" y="210" width="270" height="140" fill="var(--brand-500)" fill-opacity="0.12" stroke="var(--brand-500)" stroke-width="3" rx="4"/>
+
+    <!-- Grid Text Content -->
+    <g text-anchor="middle" dominant-baseline="middle" font-size="15" fill="var(--text-primary)">
+        <!-- Row 0 -->
+        <text x="135" y="145">X<tspan baseline-shift="sub" font-size="12">0,0</tspan></text>
+        <text x="195" y="145" fill="var(--text-muted)">...</text>
+        <text x="265" y="145">X<tspan baseline-shift="sub" font-size="12">0,j-1</tspan></text>
+        <text x="355" y="145">X<tspan baseline-shift="sub" font-size="12">0,j</tspan></text>
+        <text x="445" y="145">X<tspan baseline-shift="sub" font-size="12">0,j+1</tspan></text>
+        <text x="515" y="145" fill="var(--text-muted)">...</text>
+        <text x="580" y="145">X<tspan baseline-shift="sub" font-size="12">0,p(n)</tspan></text>
+
+        <!-- Row 1 -->
+        <text x="135" y="190" fill="var(--text-muted)">⋮</text>
+        <text x="195" y="190" fill="var(--text-muted)">⋱</text>
+        <text x="265" y="190" fill="var(--text-muted)">⋮</text>
+        <text x="355" y="190" fill="var(--text-muted)">⋮</text>
+        <text x="445" y="190" fill="var(--text-muted)">⋮</text>
+        <text x="515" y="190" fill="var(--text-muted)">⋱</text>
+        <text x="580" y="190" fill="var(--text-muted)">⋮</text>
+
+        <!-- Row 2 -->
+        <text x="135" y="245">X<tspan baseline-shift="sub" font-size="12">i,0</tspan></text>
+        <text x="195" y="245" fill="var(--text-muted)">...</text>
+        <text x="265" y="245" font-weight="bold">B</text>
+        <text x="355" y="245" font-weight="bold">(q, A)</text>
+        <text x="445" y="245" font-weight="bold">C</text>
+        <text x="515" y="245" fill="var(--text-muted)">...</text>
+        <text x="580" y="245">X<tspan baseline-shift="sub" font-size="12">i,p(n)</tspan></text>
+
+        <!-- Row 3 -->
+        <text x="135" y="315">X<tspan baseline-shift="sub" font-size="12">i+1,0</tspan></text>
+        <text x="195" y="315" fill="var(--text-muted)">...</text>
+        <text x="265" y="315" font-weight="bold">B</text>
+        <text x="355" y="315" font-weight="bold">A'</text>
+        <text x="445" y="315" font-weight="bold">(q', C)</text>
+        <text x="515" y="315" fill="var(--text-muted)">...</text>
+        <text x="580" y="315">X<tspan baseline-shift="sub" font-size="12">i+1,p(n)</tspan></text>
+
+        <!-- Row 4 -->
+        <text x="135" y="370" fill="var(--text-muted)">⋮</text>
+        <text x="195" y="370" fill="var(--text-muted)">⋱</text>
+        <text x="265" y="370" fill="var(--text-muted)">⋮</text>
+        <text x="355" y="370" fill="var(--text-muted)">⋮</text>
+        <text x="445" y="370" fill="var(--text-muted)">⋮</text>
+        <text x="515" y="370" fill="var(--text-muted)">⋱</text>
+        <text x="580" y="370" fill="var(--text-muted)">⋮</text>
+
+        <!-- Row 5 -->
+        <text x="135" y="415">X<tspan baseline-shift="sub" font-size="12">p(n),0</tspan></text>
+        <text x="195" y="415" fill="var(--text-muted)">...</text>
+        <text x="265" y="415">X<tspan baseline-shift="sub" font-size="12">p(n),j-1</tspan></text>
+        <text x="355" y="415">X<tspan baseline-shift="sub" font-size="12">p(n),j</tspan></text>
+        <text x="445" y="415">X<tspan baseline-shift="sub" font-size="12">p(n),j+1</tspan></text>
+        <text x="515" y="415" fill="var(--text-muted)">...</text>
+        <text x="580" y="415">X<tspan baseline-shift="sub" font-size="12">p(n),p(n)</tspan></text>
+    </g>
+
+    <!-- Internal Arrow showing Head Movement -->
+    <line x1="365" y1="260" x2="435" y2="300" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Annotation Box -->
+    <line x1="640" y1="280" x2="490" y2="280" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrow)"/>
+    <rect x="640" y="235" width="150" height="90" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" rx="6"/>
+    
+    <g text-anchor="middle">
+        <text x="715" y="255" font-size="14" font-weight="bold" fill="var(--brand-500)">Transition / انتقال</text>
+        <text x="715" y="275" font-size="14" fill="var(--text-primary)">δ(q, A) = (q', A', R)</text>
+        <text x="715" y="295" font-size="13" fill="var(--text-secondary)">Head moves Right</text>
+        <text x="715" y="312" font-size="13" fill="var(--text-secondary)">الرأس يتحرك يميناً</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">في إثبات نظرية كوك، لماذا نحتاج إلى شرط 'Unique'؟</template>
+      <template class="content-en">In Cook's Theorem proof, why do we need the 'Unique' condition?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لضمان أن كل خلية في شريط آلة تورينج في وقت معين تحتوي على رمز واحد فقط (أو حالة واحدة). بدون هذا الشرط، قد تأخذ المتغيرات المنطقية قيماً متناقضة تجعل المعادلة صحيحة رياضياً ولكنها لا تمثل حساباً حقيقياً للآلة.</p></template>
+      <template class="content-en"><p>To ensure that each cell on the TM tape at a specific time holds exactly one symbol (or state). Without it, boolean variables might take contradictory values that satisfy the math but don't represent a valid TM computation.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في التحدي الأكبر في نظرية الحوسبة! في هذه الوحدة، ننتقل من المشاكل التي يمكن حلها إلى تلك التي تتحدى أقوى حواسيبنا. نبدأ بمشكلة المراسلة لبوست (PCP)، وهي مشكلة تبدو كلعبة ألغاز بسيطة ولكنها في الحقيقة غير قابلة للحل، ونستخدمها كأداة لإثبات استحالة حل مشاكل أخرى. ثم ندخل إلى قلب علوم الحاسب الحديثة: معركة P مقابل NP. هل كل ما يمكن التحقق منه بسرعة يمكن حله بسرعة؟ هذا هو سؤال المليون دولار. نختتم بنظرية كوك العبقرية التي أثبتت أن مشكلة الإرضاء (SAT) هي 'أم المشاكل' (NP-Complete). ركزوا جيداً على اتجاهات الاختزال (Reductions) والفرق بين حجم الإدخال الفعلي والقيمة الرقمية، فهذه هي الفخاخ الكلاسيكية في الامتحانات. بالتوفيق!</template>
+    <template class="content-en">Welcome to the ultimate challenge in computation theory! In this module, we transition from solvable problems to those that defy our most powerful computers. We start with Post's Correspondence Problem (PCP), a seemingly simple puzzle that is actually undecidable, using it as a tool to prove other problems unsolvable. Then, we dive into the heart of modern computer science: the P vs NP battle. Can everything verified quickly also be solved quickly? That's the million-dollar question. We conclude with Cook's brilliant theorem, proving SAT is the 'mother of all problems' (NP-Complete). Pay close attention to the direction of reductions and the difference between actual input size and numerical value—these are classic exam traps. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا ندرس مشكلة المراسلة لبوست (PCP) رغم أنها لا تتعلق بآلات تورينج مباشرة؟</template>
+          <template class="content-en">Why do we study Post's Correspondence Problem (PCP) even though it doesn't directly relate to Turing Machines?</template>
+          <span class="content-target">لماذا ندرس مشكلة المراسلة لبوست (PCP) رغم أنها لا تتعلق بآلات تورينج مباشرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها أداة قوية جداً! صياغتها البسيطة (مجرد مطابقة نصوص) تجعل من السهل استخدامها لاختزال وإثبات عدم قابلية حل مشاكل أخرى لا تتعلق بآلات تورينج، مثل مشاكل اللغات الخالية من السياق (CFL).</template>
+          <template class="content-en">Because it's a very powerful tool! Its simple formulation (just string matching) makes it easy to use for reducing and proving the undecidability of other non-TM problems, like Context-Free Language (CFL) problems.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نختزل MPCP إلى PCP؟</template>
+          <template class="content-en">How do we reduce MPCP to PCP?</template>
+          <span class="content-target">كيف نختزل MPCP إلى PCP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نقوم بتعديل السلاسل النصية بإضافة رموز خاصة (* و $) بطريقة تجعل التطابق مستحيلاً إلا إذا بدأنا بالزوج الأول المخصص. هذا يحول شرط MPCP (البدء بالزوج الأول) إلى هيكل داخلي في PCP.</template>
+          <template class="content-en">We modify the strings by adding special symbols (* and $) in a way that makes matching impossible unless we start with the specific first pair. This bakes the MPCP requirement (starting with the first pair) into the internal structure of PCP.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعتبر خوارزمية O(n log n) ضمن الفئة P؟ أليس اللوغاريتم مختلفاً عن كثيرة الحدود؟</template>
+          <template class="content-en">Why is an O(n log n) algorithm considered in Class P? Isn't a logarithm different from a polynomial?</template>
+          <span class="content-target">لماذا تعتبر خوارزمية O(n log n) ضمن الفئة P؟ أليس اللوغاريتم مختلفاً عن كثيرة الحدود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لتكون المشكلة في P، يكفي أن يكون وقت التشغيل *أقل من أو يساوي* كثيرة حدود معينة. بما أن O(n log n) ينمو بشكل أبطأ من O(n^2)، فهو مقيد بكثيرة حدود، وبالتالي ينتمي لـ P.</template>
+          <template class="content-en">To be in P, the running time only needs to be *bounded by* some polynomial. Since O(n log n) grows slower than O(n^2), it is bounded by a polynomial, and thus belongs to P.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفخ الشائع عند حساب تعقيد مشكلة حقيبة الظهر (Knapsack)؟</template>
+          <template class="content-en">What is the common trap when calculating the complexity of the Knapsack problem?</template>
+          <span class="content-target">ما هو الفخ الشائع عند حساب تعقيد مشكلة حقيبة الظهر (Knapsack)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الفخ هو الخلط بين 'قيمة الرقم' و 'حجم الإدخال'. الخوارزمية تأخذ وقت O(m^2) حيث m هو مجموع الأرقام. لكن تمثيل m يحتاج فقط إلى n = log(m) بت. لذا، بالنسبة لحجم الإدخال n، الوقت هو O(2^n) وهو أسي وليس كثير حدود.</template>
+          <template class="content-en">The trap is confusing 'number value' with 'input size'. The algorithm takes O(m^2) time where m is the sum of numbers. But representing m only takes n = log(m) bits. So, relative to input size n, the time is O(2^n), which is exponential, not polynomial.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو المحول (Transducer) وما أهميته في الاختزالات؟</template>
+          <template class="content-en">What is a Transducer and why is it important in reductions?</template>
+          <span class="content-target">ما هو المحول (Transducer) وما أهميته في الاختزالات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المحول هو آلة تورينج تقرأ إدخالاً وتكتب مخرجات بدلاً من مجرد القبول أو الرفض. في الاختزالات، نستخدم محولاً يعمل في وقت كثير الحدود لتحويل مشكلة صعبة إلى مشكلة أخرى، مما يثبت العلاقة بين تعقيدهما.</template>
+          <template class="content-en">A transducer is a TM that reads input and writes output instead of just accepting/rejecting. In reductions, we use a polytime transducer to transform a hard problem into another, proving the relationship between their complexities.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني عبارة 'SAT هي مشكلة NP-Complete'؟</template>
+          <template class="content-en">What does it mean that 'SAT is an NP-Complete problem'?</template>
+          <span class="content-target">ماذا تعني عبارة 'SAT هي مشكلة NP-Complete'؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعني أمرين: 1) SAT تنتمي للفئة NP. 2) أي مشكلة أخرى في الفئة NP يمكن تحويلها إلى SAT في وقت كثير الحدود. إنها تمثل 'أصعب' المشاكل في NP.</template>
+          <template class="content-en">It means two things: 1) SAT is in Class NP. 2) ANY other problem in Class NP can be transformed into SAT in polynomial time. It represents the 'hardest' problems in NP.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في إثبات نظرية كوك، كيف نمثل حسابات آلة تورينج؟</template>
+          <template class="content-en">In Cook's Theorem proof, how do we represent Turing Machine computations?</template>
+          <span class="content-target">في إثبات نظرية كوك، كيف نمثل حسابات آلة تورينج؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نمثلها كمصفوفة (شبكة) حيث تمثل الصفوف خطوات الزمن والأعمدة تمثل خلايا الشريط. نستخدم متغيرات منطقية (Boolean Variables) لتمثيل ما إذا كانت خلية معينة تحتوي على رمز معين في وقت معين.</template>
+          <template class="content-en">We represent them as an array (grid) where rows are time steps and columns are tape cells. We use Boolean variables to represent whether a specific cell contains a specific symbol at a specific time.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو شرط 'Moves Right' في إثبات كوك؟</template>
+          <template class="content-en">What is the 'Moves Right' condition in Cook's proof?</template>
+          <span class="content-target">ما هو شرط 'Moves Right' في إثبات كوك؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو جزء من المعادلة المنطقية يضمن أن التغيير من صف (وقت) إلى الصف الذي يليه يتوافق تماماً مع قواعد الانتقال (Transition Function) الخاصة بآلة تورينج.</template>
+          <template class="content-en">It is a part of the boolean formula that ensures the change from one row (time step) to the next strictly follows the Turing Machine's transition rules.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">إذا أثبتنا أن مشكلة في NP لا يمكن حلها في وقت كثير الحدود، ماذا يحدث لـ P vs NP؟</template>
+          <template class="content-en">If we prove that a problem in NP cannot be solved in polynomial time, what happens to P vs NP?</template>
+          <span class="content-target">إذا أثبتنا أن مشكلة في NP لا يمكن حلها في وقت كثير الحدود، ماذا يحدث لـ P vs NP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هذا سيثبت بشكل قاطع أن P لا تساوي NP (P != NP)، وهو الاعتقاد السائد بين معظم علماء الحاسب، لكنه لم يُثبت رياضياً بعد.</template>
+          <template class="content-en">This would definitively prove that P does not equal NP (P != NP), which is the prevailing belief among most computer scientists, though it remains mathematically unproven.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم الاختزالات (Reductions) بدلاً من محاولة حل المشكلة مباشرة؟</template>
+          <template class="content-en">Why do we use reductions instead of trying to solve the problem directly?</template>
+          <span class="content-target">لماذا نستخدم الاختزالات (Reductions) بدلاً من محاولة حل المشكلة مباشرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الاختزالات تسمح لنا بنقل المعرفة. إذا أثبتنا أن مشكلة جديدة يمكن اختزالها إلى مشكلة معروفة (مثل SAT)، فإننا نرث كل ما نعرفه عن تعقيد تلك المشكلة المعروفة دون الحاجة للبدء من الصفر.</template>
+          <template class="content-en">Because reductions allow us to transfer knowledge. If we prove a new problem reduces to a known one (like SAT), we inherit everything we know about the known problem's complexity without starting from scratch.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي مشكلة المراسلة لبوست (PCP)؟",
+      "en": "What is Post's Correspondence Problem (PCP)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مشكلة غير قابلة للحل تتطلب إيجاد تسلسل من أزواج السلاسل النصية بحيث يتطابق دمج السلاسل العلوية مع السلاسل السفلية.",
+        "en": "An undecidable problem requiring a sequence of string pairs where the concatenated top strings equal the concatenated bottom strings."
+      },
+      "example": {
+        "ar": "الزوج (100, 001) و (0, 01)",
+        "en": "Pairs (100, 001) and (0, 01)"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو الفرق الرئيسي بين PCP و MPCP؟",
+      "en": "What is the main difference between PCP and MPCP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "في MPCP، يجب أن يبدأ الحل بالزوج الأول في القائمة، بينما في PCP يمكن البدء بأي زوج.",
+        "en": "In MPCP, the solution MUST start with the first pair in the list, whereas PCP can start with any pair."
+      },
+      "example": {
+        "ar": "استخدام الزوج الأول لتمثيل الحالة الابتدائية لآلة تورينج.",
+        "en": "Using the first pair to represent the initial state of a TM."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو تسلسل الاختزال لإثبات عدم قابلية حل PCP؟",
+      "en": "What is the reduction sequence to prove PCP is undecidable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتم اختزال لغة آلة تورينج العالمية (Lu) إلى MPCP، ثم يختزل MPCP إلى PCP.",
+        "en": "The Universal Language (Lu) is reduced to MPCP, and then MPCP is reduced to PCP."
+      },
+      "example": {
+        "ar": "Lu -> MPCP -> PCP",
+        "en": "Lu -> MPCP -> PCP"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "هل مشكلة 'هل لغة خالية من السياق (CFL) تساوي Σ*' قابلة للحل؟",
+      "en": "Is the problem 'Is a given CFL equal to Σ*' decidable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا، هي مشكلة غير قابلة للحل (Undecidable)، ويتم إثبات ذلك بالاختزال من PCP.",
+        "en": "No, it is undecidable, proven by a reduction from PCP."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "هل مشكلة 'هل لغة خالية من السياق (CFL) هي لغة منتظمة (Regular)' قابلة للحل؟",
+      "en": "Is the problem 'Is a CFL a regular language' decidable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا، هي مشكلة غير قابلة للحل (Undecidable).",
+        "en": "No, it is an undecidable problem."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "عرّف الفئة P (Class P).",
+      "en": "Define the Class P."
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة المشاكل التي يمكن حلها بواسطة آلة تورينج حتمية في وقت مقيد بكثيرة حدود O(T(n)).",
+        "en": "The set of problems solvable by a Deterministic Turing Machine in polynomial time O(T(n))."
+      },
+      "example": {
+        "ar": "خوارزمية CYK، خوارزمية ديكسترا.",
+        "en": "CYK algorithm, Dijkstra's algorithm."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "عرّف الفئة NP (Class NP).",
+      "en": "Define the Class NP."
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة المشاكل التي يمكن حلها بواسطة آلة تورينج غير حتمية في وقت كثير الحدود (أو التحقق من حلها في وقت كثير الحدود).",
+        "en": "The set of problems solvable by a Nondeterministic Turing Machine in polynomial time (or verifiable in polytime)."
+      },
+      "example": {
+        "ar": "مشكلة حقيبة الظهر (Knapsack)، مشكلة SAT.",
+        "en": "Knapsack problem, SAT problem."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو تعريف المشكلة الكاملة في NP (NP-Complete)؟",
+      "en": "What is the definition of an NP-Complete problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مشكلة M تنتمي إلى NP، وكل مشكلة L في NP يمكن اختزالها إلى M في وقت كثير الحدود.",
+        "en": "A problem M is in NP, and every problem L in NP can be polytime reduced to M."
+      },
+      "example": {
+        "ar": "مشكلة الإرضاء (SAT).",
+        "en": "The Satisfiability (SAT) problem."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي الخاصية الأساسية للمشاكل الكاملة في NP؟",
+      "en": "What is the fundamental property of NP-Complete problems?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا تم إيجاد خوارزمية تحل مشكلة NP-Complete واحدة في وقت كثير الحدود، فإن P = NP.",
+        "en": "If a polytime algorithm is found for one NP-Complete problem, then P = NP."
+      },
+      "example": {
+        "ar": "إذا كانت SAT في P، فإن كل مشاكل NP في P.",
+        "en": "If SAT is in P, then all NP problems are in P."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو المحول في وقت كثير الحدود (Polytime Transducer)؟",
+      "en": "What is a Polytime Transducer?"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلة تورينج حتمية تأخذ إدخالاً، وتعمل لوقت كثير الحدود p(n)، وتنتج مخرجات على شريط منفصل.",
+        "en": "A deterministic TM that takes an input, operates for polynomial time p(n), and produces output on a separate tape."
+      },
+      "example": {
+        "ar": "يستخدم في الاختزالات بين المشاكل.",
+        "en": "Used for reductions between problems."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو الحد الأقصى لطول المخرجات من محول يعمل في وقت p(n)؟",
+      "en": "What is the maximum output length of a transducer running in time p(n)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طول المخرجات لا يمكن أن يتجاوز p(n).",
+        "en": "The output length can be at most p(n)."
+      },
+      "example": {
+        "ar": "لأنه لا يمكن كتابة أكثر من رمز واحد في كل خطوة زمنية.",
+        "en": "Because it can write at most one symbol per time step."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي مشكلة الإرضاء (SAT)؟",
+      "en": "What is the Satisfiability (SAT) problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحديد ما إذا كان يوجد تعيين للقيم (صح/خطأ) للمتغيرات يجعل المعادلة المنطقية المعطاة صحيحة.",
+        "en": "Determining if there exists a truth assignment to variables that makes a given boolean formula true."
+      },
+      "example": {
+        "ar": "(x+y)(-x + -y) قابلة للإرضاء.",
+        "en": "(x+y)(-x + -y) is satisfiable."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ماذا تنص نظرية كوك (Cook's Theorem)؟",
+      "en": "What does Cook's Theorem state?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنص على أن مشكلة الإرضاء (SAT) هي مشكلة كاملة في NP (NP-Complete).",
+        "en": "It states that the Satisfiability (SAT) problem is NP-Complete."
+      },
+      "example": {
+        "ar": "أول مشكلة تم إثبات أنها NP-Complete.",
+        "en": "The first problem proven to be NP-Complete."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي الشروط الأربعة للمعادلة المنطقية في إثبات نظرية كوك؟",
+      "en": "What are the 4 conditions of the boolean formula in Cook's Theorem proof?"
+    },
+    "back": {
+      "definition": {
+        "ar": "Unique (فريد)، Starts right (يبدأ صحيحاً)، Moves right (يتحرك صحيحاً)، Finishes right (ينتهي صحيحاً).",
+        "en": "Unique, Starts right, Moves right, and Finishes right."
+      },
+      "example": {
+        "ar": "Starts right يضمن أن التكوين الابتدائي هو q0w.",
+        "en": "Starts right ensures the initial ID is q0w."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "لماذا تعتبر مشكلة حقيبة الظهر (Knapsack) في NP وليست في P؟",
+      "en": "Why is the Knapsack problem in NP and not in P?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأن خوارزمية البرمجة الديناميكية الخاصة بها تستغرق وقتاً أسياً O(n 2^n) بالنسبة لطول الإدخال الفعلي (عدد البتات).",
+        "en": "Because its dynamic programming algorithm takes exponential time O(n 2^n) relative to the actual input length (number of bits)."
+      },
+      "example": {
+        "ar": "تمثيل الرقم m يحتاج log(m) مساحة.",
+        "en": "Representing number m takes log(m) space."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "كيف يتم قياس 'حجم الإدخال' (Input Size) في نظرية التعقيد؟",
+      "en": "How is 'Input Size' measured in complexity theory?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طول تمثيل حالة المشكلة كما يتم إدخالها إلى آلة تورينج (عادة بالبتات).",
+        "en": "The length of the representation of the problem instance as it is input to a TM (usually in bits)."
+      },
+      "example": {
+        "ar": "الرقم 1000 حجمه ليس 1000، بل عدد البتات لتمثيله ثنائياً.",
+        "en": "The number 1000 has a size of its binary representation length, not 1000."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من المشاكل التالية تعتبر غير قابلة للحل (Undecidable) ولا تذكر آلات تورينج في صياغتها؟",
+      "en": "Which of the following problems is undecidable and does not mention Turing Machines in its statement?"
+    },
+    "options": {
+      "ar": [
+        "مشكلة الإرضاء (SAT)",
+        "مشكلة المراسلة لبوست (PCP)",
+        "مشكلة حقيبة الظهر (Knapsack)",
+        "خوارزمية ديكسترا"
+      ],
+      "en": [
+        "Satisfiability (SAT)",
+        "Post's Correspondence Problem (PCP)",
+        "Knapsack Problem",
+        "Dijkstra's Algorithm"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مشكلة PCP تتعلق بمطابقة السلاسل النصية وهي غير قابلة للحل، ولا تعتمد صياغتها على آلات تورينج.",
+      "en": "PCP is about string matching and is undecidable, yet its formulation does not rely on Turing Machines."
+    },
+    "hint": {
+      "ar": "تذكر المشكلة التي تستخدم أزواجاً من السلاسل النصية.",
+      "en": "Remember the problem that uses pairs of strings."
+    },
+    "difficulty": "easy",
+    "conceptId": "posts-correspondence-problem"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو الفرق الرئيسي بين PCP و MPCP؟",
+      "en": "What is the main difference between PCP and MPCP?"
+    },
+    "options": {
+      "ar": [
+        "MPCP قابلة للحل بينما PCP غير قابلة للحل.",
+        "MPCP تتطلب أن يبدأ الحل بالزوج الأول في القائمة.",
+        "PCP تستخدم أبجدية لا نهائية.",
+        "MPCP تستخدم آلات تورينج غير حتمية."
+      ],
+      "en": [
+        "MPCP is decidable while PCP is undecidable.",
+        "MPCP requires the solution to start with the first pair in the list.",
+        "PCP uses an infinite alphabet.",
+        "MPCP uses nondeterministic Turing machines."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "النسخة المعدلة (MPCP) تفرض قيداً إضافياً وهو ضرورة البدء بالزوج الأول، مما يسهل محاكاة الحالة الابتدائية لآلة تورينج.",
+      "en": "Modified PCP (MPCP) imposes an additional constraint: the sequence must start with the first pair, facilitating the simulation of a TM's initial state."
+    },
+    "hint": {
+      "ar": "حرف M يرمز إلى Modified (معدل).",
+      "en": "The M stands for Modified."
+    },
+    "difficulty": "medium",
+    "conceptId": "posts-correspondence-problem"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "إذا كان لدينا خوارزمية تعمل في وقت O(n log n)، في أي فئة تصنف هذه المشكلة؟",
+      "en": "If we have an algorithm that runs in O(n log n) time, in which class is this problem categorized?"
+    },
+    "options": {
+      "ar": [
+        "الفئة NP فقط",
+        "الفئة P",
+        "NP-Complete",
+        "غير قابلة للحل (Undecidable)"
+      ],
+      "en": [
+        "Class NP only",
+        "Class P",
+        "NP-Complete",
+        "Undecidable"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "O(n log n) هو وقت أقل من كثيرة الحدود O(n^2)، وبالتالي المشكلة تنتمي إلى الفئة P.",
+      "en": "O(n log n) is bounded by the polynomial O(n^2), so the problem belongs to Class P."
+    },
+    "hint": {
+      "ar": "هل O(n log n) يعتبر وقت كثير الحدود؟",
+      "en": "Is O(n log n) considered polynomial time?"
+    },
+    "difficulty": "easy",
+    "conceptId": "class-p-and-np"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي الخاصية التي تجعل مشكلة ما NP-Complete؟",
+      "en": "What property makes a problem NP-Complete?"
+    },
+    "options": {
+      "ar": [
+        "أنها في P وكل مشكلة في NP تختزل إليها.",
+        "أنها في NP وكل مشكلة في NP تختزل إليها في وقت كثير الحدود.",
+        "أنها لا يمكن حلها بواسطة أي آلة تورينج.",
+        "أنها تتطلب وقتاً أسياً دائماً."
+      ],
+      "en": [
+        "It is in P and every problem in NP reduces to it.",
+        "It is in NP and every problem in NP polytime reduces to it.",
+        "It cannot be solved by any Turing Machine.",
+        "It always requires exponential time."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التعريف الرسمي لـ NP-Complete هو أن المشكلة تنتمي لـ NP، وكل مشكلة أخرى في NP يمكن تحويلها (اختزالها) إليها في وقت كثير الحدود.",
+      "en": "The formal definition of NP-Complete is that the problem is in NP, and every other problem in NP can be reduced to it in polynomial time."
+    },
+    "hint": {
+      "ar": "تذكر شرطي الانتماء والاختزال.",
+      "en": "Remember the two conditions: membership and reduction."
+    },
+    "difficulty": "medium",
+    "conceptId": "np-complete-and-reductions"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الحد الأقصى لطول المخرجات التي يمكن أن ينتجها محول (Transducer) يعمل في وقت p(n)؟",
+      "en": "What is the maximum length of the output produced by a transducer running in time p(n)?"
+    },
+    "options": {
+      "ar": [
+        "O(2^n)",
+        "غير محدود",
+        "p(n)",
+        "log(n)"
+      ],
+      "en": [
+        "O(2^n)",
+        "Unlimited",
+        "p(n)",
+        "log(n)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بما أن المحول يعمل لعدد p(n) من الخطوات، فإنه لا يمكنه كتابة أكثر من p(n) رمز على شريط المخرجات.",
+      "en": "Since the transducer runs for at most p(n) steps, it can write at most p(n) symbols on the output tape."
+    },
+    "hint": {
+      "ar": "كم رمزاً يمكن لآلة تورينج كتابته في خطوة واحدة؟",
+      "en": "How many symbols can a TM write in one step?"
+    },
+    "difficulty": "medium",
+    "conceptId": "np-complete-and-reductions"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ماذا تثبت نظرية كوك (Cook's Theorem)؟",
+      "en": "What does Cook's Theorem prove?"
+    },
+    "options": {
+      "ar": [
+        "أن P = NP.",
+        "أن مشكلة PCP غير قابلة للحل.",
+        "أن مشكلة SAT هي NP-Complete.",
+        "أن كل اللغات الخالية من السياق منتظمة."
+      ],
+      "en": [
+        "That P = NP.",
+        "That PCP is undecidable.",
+        "That SAT is NP-Complete.",
+        "That all context-free languages are regular."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "نظرية كوك هي أول إثبات على وجود مشكلة كاملة في NP، وهي مشكلة الإرضاء المنطقي (SAT).",
+      "en": "Cook's Theorem is the first proof of an NP-Complete problem, specifically the Boolean Satisfiability Problem (SAT)."
+    },
+    "hint": {
+      "ar": "ترتبط هذه النظرية بالمعادلات المنطقية.",
+      "en": "This theorem is related to boolean formulas."
+    },
+    "difficulty": "easy",
+    "conceptId": "cooks-theorem-and-sat"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في إثبات نظرية كوك، ما هو دور شرط 'Moves Right'؟",
+      "en": "In Cook's Theorem proof, what is the role of the 'Moves Right' condition?"
+    },
+    "options": {
+      "ar": [
+        "يضمن أن التكوين الابتدائي صحيح.",
+        "يضمن أن الآلة تصل إلى حالة قبول.",
+        "يضمن أن كل انتقال بين الحالات يتبع قواعد آلة تورينج.",
+        "يضمن وجود رمز واحد فقط في كل خلية."
+      ],
+      "en": [
+        "Ensures the initial configuration is correct.",
+        "Ensures the machine reaches an accepting state.",
+        "Ensures each transition follows the Turing Machine's rules.",
+        "Ensures there is only one symbol per cell."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "شرط Moves Right يربط بين التكوين الحالي والتكوين التالي لضمان أن التغييرات على الشريط تتوافق مع دالة الانتقال للآلة.",
+      "en": "The Moves Right condition links the current ID to the next ID to ensure tape changes correspond to the TM's transition function."
+    },
+    "hint": {
+      "ar": "يتعلق بحركة الآلة وانتقالاتها.",
+      "en": "It relates to the machine's movement and transitions."
+    },
+    "difficulty": "hard",
+    "conceptId": "cooks-theorem-and-sat"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "لماذا لا تعتبر مشكلة حقيبة الظهر (Knapsack) في الفئة P رغم وجود خوارزمية برمجة ديناميكية لها؟",
+      "en": "Why is the Knapsack problem not considered in Class P despite having a dynamic programming algorithm?"
+    },
+    "options": {
+      "ar": [
+        "لأن الخوارزمية تعطي إجابات خاطئة.",
+        "لأن وقت التشغيل أسي بالنسبة لعدد البتات المستخدمة لتمثيل الإدخال.",
+        "لأنها تتطلب آلة تورينج غير حتمية لتعمل.",
+        "لأنها مشكلة غير قابلة للحل (Undecidable)."
+      ],
+      "en": [
+        "Because the algorithm gives incorrect answers.",
+        "Because the running time is exponential relative to the number of bits used to represent the input.",
+        "Because it requires a nondeterministic TM to run.",
+        "Because it is an undecidable problem."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "حجم الإدخال يقاس بعدد البتات. تمثيل الرقم m يحتاج log(m) بت، مما يجعل خوارزمية O(m^2) أسية O(2^n) بالنسبة لحجم الإدخال n.",
+      "en": "Input size is measured in bits. Representing m takes log(m) bits, making an O(m^2) algorithm exponential O(2^n) relative to input size n."
+    },
+    "hint": {
+      "ar": "تذكر كيف نقيس 'حجم الإدخال' (Input Size).",
+      "en": "Remember how we measure 'Input Size'."
+    },
+    "difficulty": "hard",
+    "conceptId": "class-p-and-np"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "إذا أثبتنا أن مشكلة SAT يمكن حلها في وقت كثير الحدود، فما هي النتيجة المباشرة؟",
+      "en": "If we prove that the SAT problem can be solved in polynomial time, what is the direct consequence?"
+    },
+    "options": {
+      "ar": [
+        "P = NP",
+        "P != NP",
+        "SAT تصبح غير قابلة للحل",
+        "آلات تورينج غير الحتمية تصبح أبطأ"
+      ],
+      "en": [
+        "P = NP",
+        "P != NP",
+        "SAT becomes undecidable",
+        "Nondeterministic TMs become slower"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "بما أن SAT هي NP-Complete، فإن إيجاد خوارزمية P لها يعني أن كل مشكلة في NP يمكن اختزالها وحلها في P، مما يثبت أن P = NP.",
+      "en": "Since SAT is NP-Complete, finding a P algorithm for it means every problem in NP can be reduced and solved in P, proving P = NP."
+    },
+    "hint": {
+      "ar": "تذكر الخاصية الأساسية للمشاكل الكاملة في NP.",
+      "en": "Recall the fundamental property of NP-Complete problems."
+    },
+    "difficulty": "medium",
+    "conceptId": "np-complete-and-reductions"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في سياق الاختزالات، ماذا يعني أن L قابلة للاختزال في وقت كثير الحدود إلى M؟",
+      "en": "In the context of reductions, what does it mean that L is polytime reducible to M?"
+    },
+    "options": {
+      "ar": [
+        "M أسهل من L.",
+        "يوجد محول يحول إدخال L إلى إدخال M في وقت كثير الحدود بحيث يحافظ على النتيجة.",
+        "L و M هما نفس المشكلة.",
+        "لا يمكن حل L إلا إذا تم حل M أولاً."
+      ],
+      "en": [
+        "M is easier than L.",
+        "There is a transducer converting L's input to M's input in polytime preserving the answer.",
+        "L and M are the exact same problem.",
+        "L can only be solved if M is solved first."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الاختزال يعني وجود دالة (محول) تعمل في وقت كثير الحدود تحول مثيلات L إلى مثيلات M بحيث w في L إذا وفقط إذا كان T(w) في M.",
+      "en": "Reduction means there is a polytime computable function (transducer) mapping instances of L to M such that w is in L iff T(w) is in M."
+    },
+    "hint": {
+      "ar": "الاختزال هو عملية تحويل.",
+      "en": "Reduction is a transformation process."
+    },
+    "difficulty": "medium",
+    "conceptId": "np-complete-and-reductions"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن خوارزمية تعمل في وقت O(n log n) ليست كثيرة الحدود. في الواقع، O(n log n) أصغر من O(n^2)، لذا فهي تعتبر ضمن الفئة P.</template>
+      <template class="content-en">Thinking that an O(n log n) algorithm is not polynomial. In fact, O(n log n) is strictly less than O(n^2), so it is considered polynomial and belongs to Class P.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">مشكلة حقيبة الظهر (Knapsack) تبدو وكأنها في P بسبب خوارزمية البرمجة الديناميكية O(m^2). السر هو أن 'حجم الإدخال' يقاس بالبتات (log m)، مما يجعل الخوارزمية أسية O(2^n) بالنسبة لحجم الإدخال الفعلي.</template>
+      <template class="content-en">The Knapsack problem seems to be in P due to its O(m^2) dynamic programming algorithm. The secret is that 'input size' is measured in bits (log m), making the algorithm exponential O(2^n) relative to the actual input size.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في الاختزالات (Reductions)، اتجاه الاختزال مهم جداً! لإثبات أن مشكلة M هي NP-Complete، يجب أن تختزل *كل* مشكلة في NP إلى M، وليس العكس.</template>
+      <template class="content-en">In reductions, the direction is crucial! To prove a problem M is NP-Complete, you must reduce *every* problem in NP to M, not the other way around.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين PCP و MPCP. تذكر أن MPCP هي مجرد خطوة وسيطة في الإثبات لأنها تجبر الحل على البدء بالزوج الأول (مما يحاكي الحالة الابتدائية لآلة تورينج).</template>
+      <template class="content-en">Confusing PCP and MPCP. Remember that MPCP is just an intermediate step in the proof because it forces the solution to start with the first pair (simulating the TM's initial state).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المحول (Transducer) الذي يعمل في وقت كثير الحدود p(n) لا يمكنه إنتاج مخرجات أطول من p(n). هذا القيد الفيزيائي يضمن أن المشكلة المحولة لن تنفجر في الحجم وتخرج من الفئة P.</template>
+      <template class="content-en">A transducer running in polytime p(n) cannot produce an output longer than p(n). This physical constraint ensures the transformed problem doesn't blow up in size and escape Class P.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M10.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M12.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

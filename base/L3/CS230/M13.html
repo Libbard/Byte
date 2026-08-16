@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS230" data-module="13">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>البرمجة كائنية التوجه: العودية (الاستدعاء الذاتي) · CS230 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS230" data-page-title-en="CS230">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M12.html" data-gh-next="index.html" data-gh-card="../../hub/course.html?code=CS230"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#recursion-concepts" class="toc-link" data-bilingual>
+        <template class="content-ar">مفاهيم العودية الأساسية</template>
+        <template class="content-en">Recursion Concepts</template>
+        <span class="content-target">مفاهيم العودية الأساسية</span>
+      </a>
+      <a href="#recursion-factorials" class="toc-link" data-bilingual>
+        <template class="content-ar">استخدام العودية: المضروب (Factorials)</template>
+        <template class="content-en">Using Recursion: Factorials</template>
+        <span class="content-target">استخدام العودية: المضروب (Factorials)</span>
+      </a>
+      <a href="#recursion-fibonacci" class="toc-link" data-bilingual>
+        <template class="content-ar">استخدام العودية: سلسلة فيبوناتشي</template>
+        <template class="content-en">Using Recursion: Fibonacci Series</template>
+        <span class="content-target">استخدام العودية: سلسلة فيبوناتشي</span>
+      </a>
+      <a href="#recursion-vs-iteration" class="toc-link" data-bilingual>
+        <template class="content-ar">العودية مقابل التكرار</template>
+        <template class="content-en">Recursion vs. Iteration</template>
+        <span class="content-target">العودية مقابل التكرار</span>
+      </a>
+      <a href="#towers-of-hanoi" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة أبراج هانوي</template>
+        <template class="content-en">Towers of Hanoi</template>
+        <span class="content-target">مشكلة أبراج هانوي</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 13</template>
+      <template class="content-en">Module 13</template>
+      <span class="content-target">الوحدة 13</span>
+    </span> · CS230
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">البرمجة كائنية التوجه: العودية (الاستدعاء الذاتي)</h1>
+      <p class="hero-description">مقدمة شاملة لمفهوم العودية في لغة جافا، بما في ذلك الحالات الأساسية، الخطوات العودية، ومقارنة بين العودية والتكرار مع أمثلة تطبيقية مثل المضروب وفيبوناتشي وأبراج هانوي.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Object Oriented Programming: Recursion</h1>
+      <p class="hero-description">A comprehensive introduction to the concept of recursion in Java, including base cases, recursive steps, and a comparison between recursion and iteration with practical examples like Factorials, Fibonacci series, and Towers of Hanoi.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">العودية</span>
+      <span class="tag">جافا</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Recursion</span>
+      <span class="tag">Java</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح وتوضيح مفهوم العودية (الاستدعاء الذاتي) في البرمجة.</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين العودية (Recursion) والتكرار (Iteration) في لغة جافا.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق العودية لحل المشكلات الرياضية والمنطقية مثل المضروب وسلسلة فيبوناتشي.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Demonstrate the concept of Recursion in programming.</span></li>
+      <li><span class="obj-icon">✦</span><span>Differentiate between recursion and iteration in Java.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply recursion to solve mathematical and logical problems such as Factorials and Fibonacci series.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="recursion-concepts" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مفاهيم العودية الأساسية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Recursion Concepts</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>العودية هي دالة تستدعي نفسها لحل مشكلة عن طريق تقسيمها إلى مشاكل أصغر، تماماً مثل دمى الماتريوشكا الروسية التي تحتوي كل واحدة منها على نسخة أصغر من نفسها.</p></template>
+    <template class="content-en"><p>Recursion is a method that calls itself to solve a problem by breaking it down into smaller problems, much like Russian nesting dolls.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتكون الدالة العودية (Recursive Method) من عنصرين أساسيين:</p><ul><li><span class="smart-term" data-term-en="Base Case" data-ar="حالة الأساس" data-en-def="The condition under which a recursive function stops calling itself."><strong>حالة الأساس (Base Case)</strong><span class="smart-term-tooltip"></span></span> وهي الحالة البسيطة التي تعرف الدالة كيفية حلها وتؤدي إلى إيقاف الاستدعاء الذاتي،</li><li>و<span class="smart-term" data-term-en="Recursive Step" data-ar="الخطوة العودية" data-en-def="The part of a recursive function where it calls itself with a simpler version of the original problem."><strong>الخطوة العودية (Recursive Step)</strong><span class="smart-term-tooltip"></span></span> حيث تقوم الدالة بتقسيم المشكلة المعقدة إلى مشكلة أبسط وتستدعي نفسها لحلها.</li></ul><p>يمكن أن يكون الاستدعاء مباشراً (الدالة تستدعي نفسها) أو غير مباشر (الدالة أ تستدعي الدالة ب التي بدورها تستدعي الدالة أ).</p></template>
+    <template class="content-en"><p>A recursive method consists of two main components:</p><ul><li>the <span class="smart-term" data-term-en="Base Case" data-ar="حالة الأساس" data-en-def="The condition under which a recursive function stops calling itself."><strong>Base Case</strong><span class="smart-term-tooltip"></span></span>, which is the simple condition the method knows how to solve and stops the recursion,</li><li>and the <span class="smart-term" data-term-en="Recursive Step" data-ar="الخطوة العودية" data-en-def="The part of a recursive function where it calls itself with a simpler version of the original problem."><strong>Recursive Step</strong><span class="smart-term-tooltip"></span></span>, where the method divides the problem into a simpler problem and calls itself.</li></ul><p>Recursion can be direct (method calls itself) or indirect (method A calls method B, which calls method A).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تصميم الدوال العودية يتطلب حذراً شديداً لضمان الوصول إلى حالة الأساس.</p><p>إذا لم يتم الوصول إليها، سيستمر البرنامج في استدعاء الدالة إلى ما لا نهاية مما يؤدي إلى خطأ امتلاء المكدس (StackOverflowError).</p><p>العودية تستخدم بنية الاختيار (if/else) للتحكم في مسار التنفيذ بدلاً من بنية التكرار (loops).</p></template>
+    <template class="content-en"><p>Designing recursive methods requires strict attention to ensure the base case is eventually reached.</p><p>If it is not, the program will infinitely call the method, leading to a StackOverflowError.</p><p>Recursion uses selection structures (if/else) to control the execution flow rather than repetition structures (loops).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>// Direct Recursion
+public double A() {
+    // ...
+    A();
+}
+
+// Indirect Recursion
+public double A() {
+    // ...
+    B();
+}
+public double B() {
+    // ...
+    A();
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا نسي المبرمج كتابة حالة الأساس في دالة عودية؟</template>
+      <template class="content-en">What happens if a programmer forgets to write a base case in a recursive method?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستستمر الدالة في استدعاء نفسها إلى ما لا نهاية، مما يستهلك ذاكرة المكدس (Stack) ويؤدي في النهاية إلى انهيار البرنامج بخطأ StackOverflowError.</p></template>
+      <template class="content-en"><p>The method will continue to call itself infinitely, consuming stack memory and eventually crashing the program with a StackOverflowError.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="recursion-factorials" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> استخدام العودية: المضروب (Factorials)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Using Recursion: Factorials</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مضروب العدد (n!) هو حاصل ضرب العدد في مضروب العدد الذي يسبقه، حيث مضروب 1 يساوي 1.</p></template>
+    <template class="content-en"><p>The factorial of a number (n!) is the product of the number and the factorial of the preceding number, where 1! equals 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُعرّف مضروب العدد الصحيح الموجب n رياضياً بأنه n * (n-1) * (n-2) ... * 1.</p><p>برمجياً باستخدام العودية، نحدد حالة الأساس بأنها 1! = 1 (أو 0! = 1). أما الخطوة العودية فهي n! = n * (n-1)!.</p><p>عند استدعاء الدالة، يتم تعليق العمليات الحسابية في المكدس (Stack) حتى يتم الوصول إلى حالة الأساس، ثم تبدأ القيم بالعودة (Return) ليتم ضربها تباعاً.</p></template>
+    <template class="content-en"><p>The factorial of a positive integer n is mathematically defined as n * (n-1) * (n-2) ... * 1.</p><p>Programmatically using recursion, we define the base case as 1! = 1 (or 0! = 1). The recursive step is n! = n * (n-1)!.</p><p>When the method is called, calculations are suspended in the call stack until the base case is reached, then values are returned and multiplied sequentially.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يوضح تتبع (Debugging) دالة المضروب كيف يتم بناء <span class="smart-term" data-term-en="Call Stack" data-ar="مكدس الاستدعاءات" data-en-def="A stack data structure that stores information about the active subroutines of a computer program.">مكدس الاستدعاءات (Call Stack)<span class="smart-term-tooltip"></span></span>.</p><p>كل استدعاء عودي ينشئ إطاراً جديداً في الذاكرة يحتوي على المتغيرات المحلية.</p><p>هذا يفسر لماذا تستهلك العودية ذاكرة أكبر مقارنة بالتكرار (Iteration).</p></template>
+    <template class="content-en"><p>Debugging the factorial method illustrates how the <span class="smart-term" data-term-en="Call Stack" data-ar="مكدس الاستدعاءات" data-en-def="A stack data structure that stores information about the active subroutines of a computer program.">Call Stack<span class="smart-term-tooltip"></span></span> is built.</p><p>Each recursive call creates a new frame in memory containing local variables.</p><p>This explains why recursion is more memory-intensive compared to iteration.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المعادلة العودية لحساب المضروب.</strong></template>
+      <template class="content-en"><strong>Recursive formula for calculating factorial.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$n! = n \times (n-1)!$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public static long factorial(long number) {
+    if (number <= 1) // test for base case
+        return 1; // base cases: 0! = 1 and 1! = 1
+    else // recursion step
+        return number * factorial(number - 1);
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Create a vertical flow diagram showing the recursive evaluation of 5!. Top down: 5! -> 5 * 4! -> 4 * 3! -> 3 * 2! -> 2 * 1! -> 1. Then show arrows returning back up with values: 1 returned -> 2*1=2 returned -> 3*2=6 returned -> 4*6=24 returned -> 5*24=120 returned. Style: educational, dark background #0d1117, accent color #3b82f6, viewBox 0 0 800 600, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Drop shadow for nodes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+
+        <!-- Arrow markers -->
+        <marker id="arrow-call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-return" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title and Subtitle -->
+    <text x="400" y="50" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Recursive Evaluation of 5! / التقييم العودي لمضروب 5</text>
+    <text x="400" y="80" font-size="16" fill="var(--text-secondary)" text-anchor="middle">Call Stack &amp; Returns / مكدس الاستدعاءات والإرجاع</text>
+
+    <!-- Stack Container Background -->
+    <rect x="270" y="130" width="260" height="820" rx="16" fill="var(--bg-elevated)" opacity="0.4" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+    <text x="400" y="155" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Call Stack / مكدس الاستدعاءات</text>
+
+    <!-- ==================== CALL PATHS (LEFT) ==================== -->
+    <!-- Initial Call -->
+    <path d="M 400 120 C 210 120, 210 220, 300 220" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-call)" />
+    <text x="150" y="165" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">factorial(5)</text>
+    <text x="150" y="185" font-size="13" fill="var(--text-muted)" text-anchor="middle">الاستدعاء الأولي</text>
+
+    <!-- Call 1 (5 to 4) -->
+    <path d="M 300 220 C 210 220, 210 380, 300 380" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-call)" />
+    <text x="150" y="295" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">factorial(4)</text>
+    <text x="150" y="315" font-size="13" fill="var(--text-muted)" text-anchor="middle">استدعاء</text>
+
+    <!-- Call 2 (4 to 3) -->
+    <path d="M 300 380 C 210 380, 210 540, 300 540" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-call)" />
+    <text x="150" y="455" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">factorial(3)</text>
+    <text x="150" y="475" font-size="13" fill="var(--text-muted)" text-anchor="middle">استدعاء</text>
+
+    <!-- Call 3 (3 to 2) -->
+    <path d="M 300 540 C 210 540, 210 700, 300 700" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-call)" />
+    <text x="150" y="615" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">factorial(2)</text>
+    <text x="150" y="635" font-size="13" fill="var(--text-muted)" text-anchor="middle">استدعاء</text>
+
+    <!-- Call 4 (2 to 1) -->
+    <path d="M 300 700 C 210 700, 210 860, 300 860" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-call)" />
+    <text x="150" y="775" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">factorial(1)</text>
+    <text x="150" y="795" font-size="13" fill="var(--text-muted)" text-anchor="middle">استدعاء</text>
+
+
+    <!-- ==================== RETURN PATHS (RIGHT) ==================== -->
+    <!-- Return 1 (1 to 2) -->
+    <path d="M 500 860 C 590 860, 590 700, 500 700" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-return)" />
+    <text x="650" y="775" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1</text>
+    <text x="650" y="795" font-size="13" fill="var(--text-muted)" text-anchor="middle">إرجاع</text>
+
+    <!-- Return 2 (2 to 3) -->
+    <path d="M 500 700 C 590 700, 590 540, 500 540" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-return)" />
+    <text x="650" y="615" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2 * 1 = 2</text>
+    <text x="650" y="635" font-size="13" fill="var(--text-muted)" text-anchor="middle">إرجاع</text>
+
+    <!-- Return 3 (3 to 4) -->
+    <path d="M 500 540 C 590 540, 590 380, 500 380" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-return)" />
+    <text x="650" y="455" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3 * 2 = 6</text>
+    <text x="650" y="475" font-size="13" fill="var(--text-muted)" text-anchor="middle">إرجاع</text>
+
+    <!-- Return 4 (4 to 5) -->
+    <path d="M 500 380 C 590 380, 590 220, 500 220" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-return)" />
+    <text x="650" y="295" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">4 * 6 = 24</text>
+    <text x="650" y="315" font-size="13" fill="var(--text-muted)" text-anchor="middle">إرجاع</text>
+
+    <!-- Final Return -->
+    <path d="M 500 220 C 590 220, 590 120, 400 120" fill="none" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-return)" />
+    <text x="650" y="165" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">5 * 24 = 120</text>
+    <text x="650" y="185" font-size="13" fill="var(--text-muted)" text-anchor="middle">النتيجة النهائية</text>
+
+
+    <!-- ==================== STACK NODES (CENTER) ==================== -->
+    <!-- Node 1 (n=5) -->
+    <rect x="300" y="180" width="200" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <text x="400" y="205" font-size="16" fill="var(--text-secondary)" text-anchor="middle">n = 5</text>
+    <line x1="300" y1="220" x2="500" y2="220" stroke="var(--border-color)" />
+    <text x="400" y="245" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">return</tspan> 5 * 4!</text>
+
+    <!-- Node 2 (n=4) -->
+    <rect x="300" y="340" width="200" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <text x="400" y="365" font-size="16" fill="var(--text-secondary)" text-anchor="middle">n = 4</text>
+    <line x1="300" y1="380" x2="500" y2="380" stroke="var(--border-color)" />
+    <text x="400" y="405" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">return</tspan> 4 * 3!</text>
+
+    <!-- Node 3 (n=3) -->
+    <rect x="300" y="500" width="200" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <text x="400" y="525" font-size="16" fill="var(--text-secondary)" text-anchor="middle">n = 3</text>
+    <line x1="300" y1="540" x2="500" y2="540" stroke="var(--border-color)" />
+    <text x="400" y="565" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">return</tspan> 3 * 2!</text>
+
+    <!-- Node 4 (n=2) -->
+    <rect x="300" y="660" width="200" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <text x="400" y="685" font-size="16" fill="var(--text-secondary)" text-anchor="middle">n = 2</text>
+    <line x1="300" y1="700" x2="500" y2="700" stroke="var(--border-color)" />
+    <text x="400" y="725" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">return</tspan> 2 * 1!</text>
+
+    <!-- Node 5 (n=1) - Base Case -->
+    <text x="400" y="805" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Base Case / الحالة الأساسية</text>
+    <rect x="300" y="820" width="200" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)" />
+    <text x="400" y="845" font-size="16" fill="var(--text-secondary)" text-anchor="middle">n = 1</text>
+    <line x1="300" y1="860" x2="500" y2="860" stroke="var(--brand-500)" opacity="0.5" />
+    <text x="400" y="885" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle"><tspan fill="var(--brand-500)">return</tspan> 1</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم نوع البيانات `long` بدلاً من `int` عند حساب المضروب؟</template>
+      <template class="content-en">Why do we use the `long` data type instead of `int` when calculating factorials?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن قيم المضروب تنمو بسرعة هائلة جداً، وتتجاوز السعة القصوى لنوع البيانات `int` عند أرقام صغيرة نسبياً (مثل 13!).</p></template>
+      <template class="content-en"><p>Because factorial values grow extremely fast and exceed the maximum capacity of the `int` data type at relatively small numbers (like 13!).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="recursion-fibonacci" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> استخدام العودية: سلسلة فيبوناتشي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Using Recursion: Fibonacci Series</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>سلسلة فيبوناتشي هي متتالية رقمية يبدأ فيها الرقمان الأول والثاني بـ 0 و 1، وكل رقم تالٍ هو مجموع الرقمين السابقين له.</p></template>
+    <template class="content-en"><p>The Fibonacci series is a sequence where the first two numbers are 0 and 1, and each subsequent number is the sum of the previous two.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تبدأ سلسلة فيبوناتشي بالأرقام: 0, 1, 1, 2, 3, 5, 8, 13, 21... يمكن تعريفها عودياً كالتالي:</p><ul><li><strong>حالة الأساس</strong> هي fibonacci(0) = 0 و fibonacci(1) = 1.</li><li><strong>الخطوة العودية</strong> هي fibonacci(n) = fibonacci(n-1) + fibonacci(n-2).</li></ul><p>هذا يعني أن كل استدعاء للدالة يولد استدعاءين جديدين، مما يخلق شجرة استدعاءات (Call Tree) تنمو بشكل أسي.</p></template>
+    <template class="content-en"><p>The Fibonacci series begins with: 0, 1, 1, 2, 3, 5, 8, 13, 21... It can be defined recursively as follows:</p><ul><li><strong>Base cases</strong> are fibonacci(0) = 0 and fibonacci(1) = 1.</li><li><strong>The recursive step</strong> is fibonacci(n) = fibonacci(n-1) + fibonacci(n-2).</li></ul><p>This means each function call generates two new calls, creating an exponentially growing call tree.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التنفيذ العودي البسيط لفيبوناتشي غير فعال للغاية للأرقام الكبيرة لأنه يعيد حساب نفس القيم مراراً وتكراراً (Overlapping Subproblems).</p><p>على سبيل المثال، لحساب fib(5)، يتم حساب fib(3) مرتين.</p><p>في التطبيقات الحقيقية، يُفضل استخدام التكرار (Iteration) أو تقنيات البرمجة الديناميكية (Memoization) لتحسين الأداء.</p></template>
+    <template class="content-en"><p>The naive recursive implementation of Fibonacci is highly inefficient for large numbers because it recalculates the same values repeatedly (Overlapping Subproblems).</p><p>For example, to calculate fib(5), fib(3) is calculated twice.</p><p>In real applications, iteration or dynamic programming (Memoization) is preferred to optimize performance.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المعادلة العودية لسلسلة فيبوناتشي.</strong></template>
+      <template class="content-en"><strong>Recursive formula for the Fibonacci series.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F(n) = F(n-1) + F(n-2)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>import java.math.BigInteger;
+
+public static BigInteger fibonacci(BigInteger number) {
+    if (number.equals(BigInteger.ZERO) || number.equals(BigInteger.ONE)) // base cases
+        return number;
+    else // recursion step
+        return fibonacci(number.subtract(BigInteger.ONE)).add(fibonacci(number.subtract(TWO)));
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Draw a binary tree representing the recursive calls for fibonacci(3). Root node: fibonacci(3). Left child: fibonacci(2). Right child: fibonacci(1). From fibonacci(2), draw left child: fibonacci(1) and right child: fibonacci(0). Show return values bubbling up: fib(0)->0, fib(1)->1, fib(2)->1, fib(3)->2. Style: educational, dark background #0d1117, accent color #8b5cf6, viewBox 0 0 800 500, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead for Recursive Calls -->
+    <marker id="arrow-call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Arrowhead for Return Values -->
+    <marker id="arrow-return" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+    </marker>
+
+    <!-- Gradient for the Root Node -->
+    <linearGradient id="root-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--brand-600)" />
+      <stop offset="100%" stop-color="var(--brand-800)" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title Section -->
+  <g id="title">
+    <text x="400" y="40" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)">
+      Fibonacci(3) Recursive Call Tree
+    </text>
+    <text x="400" y="65" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)">
+      شجرة الاستدعاء العودي لدالة فيبوناتشي(3)
+    </text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(20, 20)">
+    <rect x="0" y="0" width="180" height="65" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" rx="6" />
+    
+    <line x1="15" y1="20" x2="45" y2="20" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-call)" />
+    <text x="55" y="24" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-primary)">Call / استدعاء</text>
+    
+    <line x1="15" y1="45" x2="45" y2="45" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-return)" />
+    <text x="55" y="49" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-primary)">Return / إرجاع</text>
+  </g>
+
+  <!-- Edges: Recursive Calls (Solid Lines) -->
+  <g id="edges-calls" stroke="var(--brand-500)" stroke-width="2" fill="none">
+    <!-- fib(3) to fib(2) -->
+    <path d="M 400 175 L 250 255" marker-end="url(#arrow-call)" />
+    <!-- fib(3) to fib(1) Right -->
+    <path d="M 400 175 L 550 255" marker-end="url(#arrow-call)" />
+    <!-- fib(2) to fib(1) Left -->
+    <path d="M 250 305 L 150 385" marker-end="url(#arrow-call)" />
+    <!-- fib(2) to fib(0) -->
+    <path d="M 250 305 L 350 385" marker-end="url(#arrow-call)" />
+  </g>
+
+  <!-- Edges: Return Values (Dashed Curved Lines) -->
+  <g id="edges-returns" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="5,5" fill="none">
+    <!-- Return from fib(2) to fib(3) -->
+    <path d="M 260 255 Q 350 220 390 175" marker-end="url(#arrow-return)" />
+    <!-- Return from fib(1) Right to fib(3) -->
+    <path d="M 540 255 Q 450 220 410 175" marker-end="url(#arrow-return)" />
+    <!-- Return from fib(1) Left to fib(2) -->
+    <path d="M 160 385 Q 230 350 240 305" marker-end="url(#arrow-return)" />
+    <!-- Return from fib(0) to fib(2) -->
+    <path d="M 340 385 Q 270 350 260 305" marker-end="url(#arrow-return)" />
+    <!-- Final Return from fib(3) -->
+    <path d="M 400 125 L 400 90" marker-end="url(#arrow-return)" />
+  </g>
+
+  <!-- Return Value Labels -->
+  <g id="return-labels" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">
+    <!-- Final Return -->
+    <text x="450" y="105">return 2</text>
+    <text x="450" y="120" font-size="12">إرجاع 2</text>
+    
+    <!-- Return from fib(2) -->
+    <text x="340" y="205">return 1</text>
+    <text x="340" y="220" font-size="12">إرجاع 1</text>
+    
+    <!-- Return from fib(1) Right -->
+    <text x="460" y="205">return 1</text>
+    <text x="460" y="220" font-size="12">إرجاع 1</text>
+    
+    <!-- Return from fib(1) Left -->
+    <text x="210" y="335">return 1</text>
+    <text x="210" y="350" font-size="12">إرجاع 1</text>
+    
+    <!-- Return from fib(0) -->
+    <text x="290" y="335">return 0</text>
+    <text x="290" y="350" font-size="12">إرجاع 0</text>
+  </g>
+
+  <!-- Nodes -->
+  <g id="nodes" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle" dominant-baseline="middle">
+    
+    <!-- Level 0: fib(3) (Root Node) -->
+    <rect x="320" y="125" width="160" height="50" fill="url(#root-grad)" stroke="var(--brand-500)" stroke-width="2" rx="8" />
+    <text x="400" y="150" font-weight="bold" fill="var(--bg-surface)">fibonacci(3)</text>
+
+    <!-- Level 1: fib(2) -->
+    <rect x="170" y="255" width="160" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+    <text x="250" y="280" font-weight="bold" fill="var(--text-primary)">fibonacci(2)</text>
+
+    <!-- Level 1: fib(1) Right -->
+    <rect x="470" y="255" width="160" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+    <text x="550" y="280" font-weight="bold" fill="var(--text-primary)">fibonacci(1)</text>
+    <text x="550" y="325" font-size="13" fill="var(--text-muted)">Base Case / حالة أساس</text>
+
+    <!-- Level 2: fib(1) Left -->
+    <rect x="70" y="385" width="160" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+    <text x="150" y="410" font-weight="bold" fill="var(--text-primary)">fibonacci(1)</text>
+    <text x="150" y="455" font-size="13" fill="var(--text-muted)">Base Case / حالة أساس</text>
+
+    <!-- Level 2: fib(0) -->
+    <rect x="270" y="385" width="160" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="8" />
+    <text x="350" y="410" font-weight="bold" fill="var(--text-primary)">fibonacci(0)</text>
+    <text x="350" y="455" font-size="13" fill="var(--text-muted)">Base Case / حالة أساس</text>
+
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تم استخدام الكلاس `BigInteger` في مثال فيبوناتشي بدلاً من `long`؟</template>
+      <template class="content-en">Why was the `BigInteger` class used in the Fibonacci example instead of `long`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن أرقام فيبوناتشي تنمو بشكل أسي وتصبح ضخمة جداً بسرعة، وتتجاوز حتى الحد الأقصى لنوع البيانات `long` (الذي يبلغ 64 بت). <span class="smart-term" data-term-en="BigInteger" data-ar="العدد الصحيح الكبير" data-en-def="A Java class used for mathematical operations involving very large integers that exceed the limits of primitive data types.">`BigInteger`<span class="smart-term-tooltip"></span></span> يسمح بتخزين أرقام بحجم غير محدود نظرياً.</p></template>
+      <template class="content-en"><p>Because Fibonacci numbers grow exponentially and become extremely large very quickly, exceeding even the maximum limit of the `long` data type (64-bit). <span class="smart-term" data-term-en="BigInteger" data-ar="العدد الصحيح الكبير" data-en-def="A Java class used for mathematical operations involving very large integers that exceed the limits of primitive data types.">`BigInteger`<span class="smart-term-tooltip"></span></span> allows storing numbers of theoretically unlimited size.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="recursion-vs-iteration" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> العودية مقابل التكرار</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Recursion vs. Iteration</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التكرار يستخدم حلقات (Loops) لتكرار العمليات، بينما العودية تستخدم استدعاء الدالة لنفسها. كلاهما يحقق نفس النتيجة ولكن بطرق واستهلاك موارد مختلف.</p></template>
+    <template class="content-en"><p>Iteration uses loops to repeat operations, while recursion uses self-referential method calls. Both achieve the same result but with different approaches and resource consumption.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يعتمد <strong>التكرار (Iteration)</strong> على هياكل التكرار (for, while, do...while) ويتحكم في التكرار باستخدام عداد (Counter) أو شرط استمرار. ينتهي التكرار عندما يفشل شرط الاستمرار.</p><p>من ناحية أخرى، تعتمد <strong>العودية (Recursion)</strong> على هياكل الاختيار (if, if...else, switch) وتتحكم في التكرار عن طريق تقسيم المشكلة إلى أجزاء أصغر. تنتهي العودية عندما يتم استيفاء حالة الأساس (Base Case).</p></template>
+    <template class="content-en"><p><strong>Iteration</strong> relies on repetition structures (for, while, do...while) and controls repetition using a counter or loop-continuation condition. It terminates when the condition fails.</p><p>On the other hand, <strong>Recursion</strong> relies on selection structures (if, if...else, switch) and controls repetition by dividing the problem into simpler ones. It terminates when the base case is satisfied.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>أي مشكلة يمكن حلها بالعودية يمكن أيضاً حلها بالتكرار.</p><p>العودية تتطلب موارد ذاكرة أكبر (Memory Intensive) ولها <span class="smart-term" data-term-en="Overhead" data-ar="العبء الإضافي" data-en-def="The extra processing time and memory required to perform a specific task, such as managing the call stack in recursion.">عبء إضافي (Overhead)<span class="smart-term-tooltip"></span></span> بسبب إنشاء إطارات جديدة في المكدس لكل استدعاء.</p><p>ومع ذلك، تُفضل العودية عندما تعكس طبيعة المشكلة بشكل طبيعي (مثل اجتياز الأشجار) ولأنها غالباً ما تتطلب أسطر برمجية أقل وتكون أسهل في القراءة.</p></template>
+    <template class="content-en"><p>Any problem that can be solved recursively can also be solved iteratively.</p><p>Recursion is more memory intensive and has more <span class="smart-term" data-term-en="Overhead" data-ar="العبء الإضافي" data-en-def="The extra processing time and memory required to perform a specific task, such as managing the call stack in recursion.">overhead<span class="smart-term-tooltip"></span></span> due to creating new stack frames for each call.</p><p>However, recursion is preferred when it naturally models the problem (like tree traversal) and often requires fewer lines of code, making it easier to read.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>// Iterative Factorial
+public long factorial(long number) {
+    long result = 1;
+    for (long i = number; i >= 1; i--) {
+        result *= i;
+    }
+    return result;
+}</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Recursion (العودية)</th>
+        <th>Iteration (التكرار)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">هيكل التحكم (Control Structure)</template>
+          <template class="content-en">Control Structure</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تستخدم هياكل الاختيار (if, if...else)</template>
+          <template class="content-en">Uses selection structures (if, if...else)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تستخدم هياكل التكرار (for, while, do...while)</template>
+          <template class="content-en">Uses repetition structures (for, while)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">شرط التوقف (Termination)</template>
+          <template class="content-en">Termination</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تتوقف عند تحقق حالة الأساس (Base Case)</template>
+          <template class="content-en">Terminates when base case is satisfied</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تتوقف عند فشل شرط الاستمرار (Loop condition fails)</template>
+          <template class="content-en">Terminates when loop-continuation condition fails</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استهلاك الذاكرة (Memory Usage)</template>
+          <template class="content-en">Memory Usage</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">تستهلك ذاكرة أكبر (Memory intensive) بسبب المكدس</template>
+          <template class="content-en">More memory intensive due to call stack</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تستهلك ذاكرة أقل</template>
+          <template class="content-en">Less memory intensive</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">العبء الإضافي (Overhead)</template>
+          <template class="content-en">Overhead</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">عبء إضافي كبير بسبب استدعاءات الدوال المتكررة</template>
+          <template class="content-en">More overhead than iteration</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عبء إضافي أقل</template>
+          <template class="content-en">Less overhead</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان التكرار أسرع ويستهلك ذاكرة أقل، فلماذا نستخدم العودية؟</template>
+      <template class="content-en">If iteration is faster and uses less memory, why do we use recursion?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نستخدم العودية لأنها تجعل الكود أنظف وأسهل للفهم في المشاكل المعقدة التي لها طبيعة هرمية أو متفرعة (مثل الأشجار والرسوم البيانية)، حيث يكون الحل التكراري معقداً جداً وطويلاً.</p></template>
+      <template class="content-en"><p>We use recursion because it makes the code cleaner and easier to understand for complex problems with a hierarchical or branching nature (like trees and graphs), where an iterative solution would be highly complex and lengthy.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="towers-of-hanoi" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> مشكلة أبراج هانوي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Towers of Hanoi</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>أبراج هانوي هي لغز رياضي كلاسيكي يُحل بشكل مثالي باستخدام العودية، حيث يتم نقل أقراص من عمود إلى آخر وفق قواعد محددة.</p></template>
+    <template class="content-en"><p>Towers of Hanoi is a classic mathematical puzzle perfectly solved using recursion, involving moving disks from one peg to another following specific rules.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الهدف من اللعبة هو نقل جميع الأقراص من البرج الأول إلى البرج الثالث.</p><p>القاعدة الأساسية والصارمة هي: <strong>لا يمكنك وضع قرص كبير فوق قرص أصغر منه</strong>.</p><p>لحل المشكلة لعدد n من الأقراص، نقوم عودياً بنقل n-1 قرص إلى البرج المساعد، ثم ننقل القرص الأكبر إلى البرج الهدف، وأخيراً ننقل الـ n-1 قرص من البرج المساعد إلى البرج الهدف.</p></template>
+    <template class="content-en"><p>The object of the game is to move all the disks over to Tower 3.</p><p>The strict rule is: <strong>You cannot place a larger disk onto a smaller disk</strong>.</p><p>To solve the problem for n disks, we recursively move n-1 disks to the auxiliary peg, move the largest disk to the target peg, and finally move the n-1 disks from the auxiliary peg to the target peg.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>عدد الحركات المطلوبة لحل لغز أبراج هانوي لعدد n من الأقراص هو (2^n) - 1.</p><p>هذا يوضح التعقيد الزمني الأسي O(2^n) للخوارزمية، مما يجعلها غير عملية للأعداد الكبيرة جداً من الأقراص، ولكنه مثال ممتاز لفهم قوة التفكير العودي.</p></template>
+    <template class="content-en"><p>The number of moves required to solve the Towers of Hanoi puzzle for n disks is (2^n) - 1.</p><p>This demonstrates the exponential time complexity O(2^n) of the algorithm, making it impractical for very large numbers of disks, but an excellent example for understanding the power of recursive thinking.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد الحركات المطلوبة لحل أبراج هانوي.</strong></template>
+      <template class="content-en"><strong>Number of moves required to solve Towers of Hanoi.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Moves = 2^n - 1$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Draw three vertical pegs (towers). On the first peg, draw 3 disks of decreasing size (largest at bottom, smallest at top) colored red, green, and white. Show an arrow pointing to the third peg indicating the goal. Add text: 'Rule: Cannot place a larger disk onto a smaller disk'. Style: educational, dark background #0d1117, accent color #10b981, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+  
+  <defs>
+    <marker id="arrow-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Tower of Hanoi / برج هانوي</text>
+
+  <!-- Goal Arrow -->
+  <path d="M 150 90 Q 400 10 650 90" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="8 4" marker-end="url(#arrow-head)"/>
+  <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Goal / الهدف</text>
+
+  <!-- Base -->
+  <rect x="50" y="280" width="700" height="15" rx="7.5" fill="var(--text-muted)"/>
+
+  <!-- Pegs -->
+  <!-- Peg 1 (Source) -->
+  <rect x="142.5" y="120" width="15" height="160" rx="7.5" fill="var(--text-muted)"/>
+  <!-- Peg 2 (Auxiliary) -->
+  <rect x="392.5" y="120" width="15" height="160" rx="7.5" fill="var(--text-muted)"/>
+  <!-- Peg 3 (Target) -->
+  <rect x="642.5" y="120" width="15" height="160" rx="7.5" fill="var(--text-muted)"/>
+
+  <!-- Disks on Peg 1 -->
+  <!-- Disk 3 (Bottom - Largest) -->
+  <rect x="70" y="250" width="160" height="30" rx="15" fill="var(--brand-600)" stroke="var(--bg-surface)" stroke-width="2"/>
+  <text x="150" y="271" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">3</text>
+
+  <!-- Disk 2 (Middle) -->
+  <rect x="95" y="220" width="110" height="30" rx="15" fill="var(--brand-400)" stroke="var(--bg-surface)" stroke-width="2"/>
+  <text x="150" y="241" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">2</text>
+
+  <!-- Disk 1 (Top - Smallest) -->
+  <rect x="120" y="190" width="60" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="150" y="211" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1</text>
+
+  <!-- Peg Labels -->
+  <!-- Source -->
+  <text x="150" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Source</text>
+  <text x="150" y="335" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">المصدر</text>
+
+  <!-- Auxiliary -->
+  <text x="400" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Auxiliary</text>
+  <text x="400" y="335" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">مساعد</text>
+
+  <!-- Target -->
+  <text x="650" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Target</text>
+  <text x="650" y="335" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">الهدف</text>
+
+  <!-- Rule Section -->
+  <rect x="100" y="355" width="600" height="45" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+  
+  <!-- Warning Icon -->
+  <path d="M 130 385 L 140 365 L 150 385 Z" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round"/>
+  <text x="140" y="382" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">!</text>
+
+  <text x="400" y="373" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Rule: Cannot place a larger disk onto a smaller disk</text>
+  <text x="400" y="392" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">القاعدة: لا يمكن وضع قرص أكبر فوق قرص أصغر</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كم عدد الحركات المطلوبة لنقل 5 أقراص في لعبة أبراج هانوي؟</template>
+      <template class="content-en">How many moves are required to move 5 disks in the Towers of Hanoi game?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>باستخدام المعادلة (2^n) - 1، عدد الحركات هو (2^5) - 1 = 32 - 1 = 31 حركة.</p></template>
+      <template class="content-en"><p>Using the formula (2^n) - 1, the number of moves is (2^5) - 1 = 32 - 1 = 31 moves.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبطال البرمجة في الأسبوع الخامس عشر. اليوم نغوص في واحد من أجمل وأقوى المفاهيم في علوم الحاسب: العودية (Recursion). تخيل أنك تقف أمام مرآة تعكس مرآة أخرى، هذا هو الاستدعاء الذاتي! في الامتحان، ركزوا جيداً على التمييز بين 'حالة الأساس' التي توقف النزيف، و'الخطوة العودية' التي تقسم المشكلة. لا تنسوا مقارنة العودية بالتكرار (Iteration)؛ فبينما التكرار يوفر الذاكرة، العودية توفر علينا كتابة كود معقد في مشاكل مثل 'أبراج هانوي' أو 'فيبوناتشي'. تذكروا دائماً: دالة بدون حالة أساس هي كسيارة بدون مكابح، ستصطدم حتماً بجدار الـ StackOverflow! راجعوا أمثلة المضروب وفيبوناتشي جيداً، وتأكدوا من فهمكم لكيفية تتبع الكود (Debugging) خطوة بخطوة. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, programming champions, to Week 15. Today we dive into one of the most beautiful and powerful concepts in computer science: Recursion. Imagine standing between two mirrors reflecting each other—that's self-calling! For the exam, focus heavily on distinguishing between the 'Base Case' that stops the bleeding, and the 'Recursive Step' that divides the problem. Don't forget to compare Recursion with Iteration; while iteration saves memory, recursion saves us from writing complex code in problems like 'Towers of Hanoi' or 'Fibonacci'. Always remember: a recursive method without a base case is like a car without brakes; it will inevitably crash into the StackOverflow wall! Review the Factorial and Fibonacci examples thoroughly, and make sure you understand how to trace (debug) the code step by step. Good luck with your studies!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التعريف الدقيق للعودية (Recursion)؟</template>
+          <template class="content-en">What is the exact definition of Recursion?</template>
+          <span class="content-target">ما هو التعريف الدقيق للعودية (Recursion)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي تقنية برمجية تقوم فيها الدالة باستدعاء نفسها، إما مباشرة أو بشكل غير مباشر، لحل مشكلة عن طريق تقسيمها إلى مشاكل فرعية أصغر.</template>
+          <template class="content-en">It is a programming technique where a method calls itself, either directly or indirectly, to solve a problem by breaking it down into smaller subproblems.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هما المكونان الأساسيان لأي دالة عودية؟</template>
+          <template class="content-en">What are the two essential components of any recursive method?</template>
+          <span class="content-target">ما هما المكونان الأساسيان لأي دالة عودية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">حالة الأساس (Base Case) لإيقاف الاستدعاء، والخطوة العودية (Recursive Step) لتقسيم المشكلة واستدعاء الدالة.</template>
+          <template class="content-en">The Base Case to stop the calling, and the Recursive Step to divide the problem and call the method.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين الاستدعاء المباشر وغير المباشر؟</template>
+          <template class="content-en">What is the difference between direct and indirect recursion?</template>
+          <span class="content-target">ما الفرق بين الاستدعاء المباشر وغير المباشر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المباشر: الدالة تستدعي نفسها داخل الكود الخاص بها. غير المباشر: الدالة تستدعي دالة أخرى، والتي بدورها تستدعي الدالة الأولى.</template>
+          <template class="content-en">Direct: The method calls itself within its own code. Indirect: The method calls another method, which in turn calls the original method.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعتبر العودية أكثر استهلاكاً للذاكرة من التكرار؟</template>
+          <template class="content-en">Why is recursion more memory intensive than iteration?</template>
+          <span class="content-target">لماذا تعتبر العودية أكثر استهلاكاً للذاكرة من التكرار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن كل استدعاء عودي ينشئ إطاراً جديداً (Frame) في مكدس الاستدعاءات (Call Stack) لتخزين المتغيرات المحلية وحالة التنفيذ.</template>
+          <template class="content-en">Because each recursive call creates a new frame in the Call Stack to store local variables and execution state.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى ينتهي التكرار (Iteration) ومتى تنتهي العودية (Recursion)؟</template>
+          <template class="content-en">When does Iteration terminate and when does Recursion terminate?</template>
+          <span class="content-target">متى ينتهي التكرار (Iteration) ومتى تنتهي العودية (Recursion)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التكرار ينتهي عندما يفشل شرط استمرار الحلقة (Loop condition). العودية تنتهي عندما يتم الوصول إلى حالة الأساس (Base Case).</template>
+          <template class="content-en">Iteration terminates when the loop-continuation condition fails. Recursion terminates when the Base Case is reached.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي حالة الأساس في دالة المضروب (Factorial)؟</template>
+          <template class="content-en">What is the base case in the Factorial method?</template>
+          <span class="content-target">ما هي حالة الأساس في دالة المضروب (Factorial)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عندما يكون الرقم المدخل أقل من أو يساوي 1، فإن الدالة ترجع القيمة 1.</template>
+          <template class="content-en">When the input number is less than or equal to 1, the method returns 1.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الخطوة العودية في سلسلة فيبوناتشي؟</template>
+          <template class="content-en">What is the recursive step in the Fibonacci series?</template>
+          <span class="content-target">ما هي الخطوة العودية في سلسلة فيبوناتشي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إرجاع مجموع استدعاء الدالة للرقمين السابقين: fib(n-1) + fib(n-2).</template>
+          <template class="content-en">Returning the sum of the method called for the two preceding numbers: fib(n-1) + fib(n-2).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن حل جميع المشاكل العودية باستخدام التكرار؟</template>
+          <template class="content-en">Can all recursive problems be solved using iteration?</template>
+          <span class="content-target">هل يمكن حل جميع المشاكل العودية باستخدام التكرار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، أي مشكلة تُحل بالعودية يمكن حلها بالتكرار، والعكس صحيح.</template>
+          <template class="content-en">Yes, any problem solved recursively can be solved iteratively, and vice versa.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي القاعدة الذهبية في لعبة أبراج هانوي؟</template>
+          <template class="content-en">What is the golden rule in the Towers of Hanoi game?</template>
+          <span class="content-target">ما هي القاعدة الذهبية في لعبة أبراج هانوي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا يُسمح أبداً بوضع قرص ذو حجم أكبر فوق قرص ذو حجم أصغر.</template>
+          <template class="content-en">It is never allowed to place a larger disk on top of a smaller disk.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهيكل البرمجي الذي تعتمد عليه العودية للتحكم في التكرار؟</template>
+          <template class="content-en">What programming structure does recursion rely on to control repetition?</template>
+          <span class="content-target">ما هو الهيكل البرمجي الذي تعتمد عليه العودية للتحكم في التكرار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعتمد على هياكل الاختيار (Selection structures) مثل if و if...else.</template>
+          <template class="content-en">It relies on selection structures like if and if...else.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي العودية (Recursion)؟",
+      "en": "What is Recursion?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة تقوم باستدعاء نفسها (مباشرة أو غير مباشرة) لحل مشكلة.",
+        "en": "A method that calls itself (directly or indirectly) to solve a problem."
+      },
+      "example": {
+        "ar": "دالة حساب المضروب التي تستدعي نفسها.",
+        "en": "A factorial method calling itself."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي حالة الأساس (Base Case)؟",
+      "en": "What is a Base Case?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الشرط الذي يوقف الاستدعاء العودي ويمنع الدالة من استدعاء نفسها إلى الأبد.",
+        "en": "The condition that stops the recursive calls and prevents infinite recursion."
+      },
+      "example": {
+        "ar": "في المضروب: إذا كان الرقم <= 1، أرجع 1.",
+        "en": "In factorial: if (number <= 1) return 1;"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي الخطوة العودية (Recursive Step)؟",
+      "en": "What is the Recursive Step?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الجزء من الدالة الذي يقسم المشكلة إلى مشكلة أبسط ويستدعي الدالة نفسها.",
+        "en": "The part of the method that divides the problem into a simpler one and calls itself."
+      },
+      "example": {
+        "ar": "return n * factorial(n - 1);",
+        "en": "return n * factorial(n - 1);"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو الاستدعاء العودي المباشر (Direct Recursion)؟",
+      "en": "What is Direct Recursion?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تقوم الدالة باستدعاء نفسها صراحةً داخل الكود الخاص بها.",
+        "en": "When a method explicitly calls itself within its own body."
+      },
+      "example": {
+        "ar": "الدالة A تستدعي الدالة A.",
+        "en": "Method A calls Method A."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو الاستدعاء العودي غير المباشر (Indirect Recursion)؟",
+      "en": "What is Indirect Recursion?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تستدعي دالة دالة أخرى، والتي بدورها تقوم باستدعاء الدالة الأولى.",
+        "en": "When a method calls another method, which in turn calls the original method."
+      },
+      "example": {
+        "ar": "الدالة A تستدعي الدالة B، والدالة B تستدعي الدالة A.",
+        "en": "Method A calls Method B, and Method B calls Method A."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي حالة الأساس لحساب المضروب (Factorial Base Case)؟",
+      "en": "What is the Factorial Base Case?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مضروب 1 أو 0 يساوي 1.",
+        "en": "1! = 1 and 0! = 1."
+      },
+      "example": {
+        "ar": "if (n <= 1) return 1;",
+        "en": "if (n <= 1) return 1;"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي حالات الأساس لسلسلة فيبوناتشي؟",
+      "en": "What are the Fibonacci Base Cases?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فيبوناتشي لـ 0 هو 0، وفيبوناتشي لـ 1 هو 1.",
+        "en": "fibonacci(0) = 0 and fibonacci(1) = 1."
+      },
+      "example": {
+        "ar": "if (n == 0 || n == 1) return n;",
+        "en": "if (n == 0 || n == 1) return n;"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي الخطوة العودية لسلسلة فيبوناتشي؟",
+      "en": "What is the Fibonacci Recursive Step?"
+    },
+    "back": {
+      "definition": {
+        "ar": "كل رقم هو مجموع الرقمين السابقين له.",
+        "en": "Each number is the sum of the two preceding ones."
+      },
+      "example": {
+        "ar": "return fib(n-1) + fib(n-2);",
+        "en": "return fib(n-1) + fib(n-2);"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "أي هيكل تحكم يستخدمه التكرار (Iteration)؟",
+      "en": "Which control structure does Iteration use?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يستخدم هياكل التكرار مثل for، while، أو do...while.",
+        "en": "Uses repetition structures like for, while, or do...while."
+      },
+      "example": {
+        "ar": "for (int i = 0; i < 10; i++)",
+        "en": "for (int i = 0; i < 10; i++)"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "أي هيكل تحكم تستخدمه العودية (Recursion)؟",
+      "en": "Which control structure does Recursion use?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تستخدم هياكل الاختيار مثل if، if...else، أو switch.",
+        "en": "Uses selection structures like if, if...else, or switch."
+      },
+      "example": {
+        "ar": "if (base_case) return; else recursive_call();",
+        "en": "if (base_case) return; else recursive_call();"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "متى ينتهي التكرار (Iteration)؟",
+      "en": "When does Iteration terminate?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ينتهي عندما يفشل شرط استمرار الحلقة.",
+        "en": "Terminates when the loop-continuation condition fails."
+      },
+      "example": {
+        "ar": "عندما تصبح i أكبر من أو تساوي 10 في حلقة for.",
+        "en": "When i >= 10 in a for loop."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "متى تنتهي العودية (Recursion)؟",
+      "en": "When does Recursion terminate?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنتهي عندما يتم استيفاء حالة الأساس (Base Case).",
+        "en": "Terminates when the base case is satisfied."
+      },
+      "example": {
+        "ar": "الوصول إلى n <= 1 في دالة المضروب.",
+        "en": "Reaching n <= 1 in factorial."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "أيهما يستهلك ذاكرة أكبر: العودية أم التكرار؟",
+      "en": "Which is more memory intensive: Recursion or Iteration?"
+    },
+    "back": {
+      "definition": {
+        "ar": "العودية تستهلك ذاكرة أكبر بسبب إنشاء إطارات جديدة في مكدس الاستدعاءات لكل دالة.",
+        "en": "Recursion is more memory intensive due to creating new frames in the call stack for each method call."
+      },
+      "example": {
+        "ar": "StackOverflowError يحدث غالباً مع العودية.",
+        "en": "StackOverflowError often occurs with recursion."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي القاعدة الأساسية في لعبة أبراج هانوي؟",
+      "en": "What is the main rule in Towers of Hanoi?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا يمكنك وضع قرص أكبر فوق قرص أصغر منه.",
+        "en": "You cannot place a larger disk onto a smaller disk."
+      },
+      "example": {
+        "ar": "يجب نقل الأقراص تدريجياً باستخدام برج مساعد.",
+        "en": "Disks must be moved gradually using an auxiliary peg."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "هل يمكن حل كل مشكلة عودية باستخدام التكرار؟",
+      "en": "Can every recursive problem be solved iteratively?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نعم، أي مشكلة يمكن حلها بالعودية يمكن أيضاً حلها بالتكرار (Iteration).",
+        "en": "Yes, any problem that can be solved recursively can also be solved iteratively."
+      },
+      "example": {
+        "ar": "يمكن كتابة دالة المضروب باستخدام حلقة for بدلاً من استدعاء الدالة لنفسها.",
+        "en": "Factorial can be written using a for loop instead of self-calling."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو المكون الذي يمنع الدالة العودية من استدعاء نفسها إلى ما لا نهاية؟",
+      "en": "What component prevents a recursive method from calling itself infinitely?"
+    },
+    "options": {
+      "ar": [
+        "الخطوة العودية (Recursive step)",
+        "حالة الأساس (Base case)",
+        "حلقة التكرار (For loop)",
+        "العبء الإضافي (Overhead)"
+      ],
+      "en": [
+        "Recursive step",
+        "Base case",
+        "For loop",
+        "Overhead"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "حالة الأساس هي الشرط البسيط الذي يوقف الاستدعاءات العودية المتكررة.",
+      "en": "The base case is the simple condition that stops the repeated recursive calls."
+    },
+    "hint": {
+      "ar": "فكر في نقطة التوقف.",
+      "en": "Think about the stopping point."
+    },
+    "difficulty": "easy",
+    "conceptId": "recursion-concepts"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من الهياكل التالية تستخدمها العودية للتحكم في مسار التنفيذ؟",
+      "en": "Which of the following structures does recursion use to control execution flow?"
+    },
+    "options": {
+      "ar": [
+        "هياكل التكرار (for, while)",
+        "هياكل الاختيار (if, if...else)",
+        "المصفوفات (Arrays)",
+        "الفئات (Classes)"
+      ],
+      "en": [
+        "Repetition structures (for, while)",
+        "Selection structures (if, if...else)",
+        "Arrays",
+        "Classes"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "العودية تستخدم جمل if/else للتحقق مما إذا تم الوصول إلى حالة الأساس أم يجب تنفيذ الخطوة العودية.",
+      "en": "Recursion uses if/else statements to check whether the base case is reached or the recursive step should be executed."
+    },
+    "hint": {
+      "ar": "كيف نتحقق من حالة الأساس؟",
+      "en": "How do we check for the base case?"
+    },
+    "difficulty": "medium",
+    "conceptId": "recursion-vs-iteration"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في دالة حساب المضروب العودية، ما هي الخطوة العودية الصحيحة لحساب n!؟",
+      "en": "In a recursive factorial method, what is the correct recursive step to calculate n!?"
+    },
+    "options": {
+      "ar": [
+        "return n + factorial(n - 1);",
+        "return n * factorial(n + 1);",
+        "return n * factorial(n - 1);",
+        "return factorial(n) * n;"
+      ],
+      "en": [
+        "return n + factorial(n - 1);",
+        "return n * factorial(n + 1);",
+        "return n * factorial(n - 1);",
+        "return factorial(n) * n;"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مضروب العدد n يساوي n مضروباً في مضروب العدد الذي يسبقه (n-1).",
+      "en": "The factorial of n is n multiplied by the factorial of the preceding number (n-1)."
+    },
+    "hint": {
+      "ar": "تذكر المعادلة الرياضية للمضروب.",
+      "en": "Remember the mathematical formula for factorial."
+    },
+    "difficulty": "medium",
+    "conceptId": "recursion-factorials"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي حالات الأساس لسلسلة فيبوناتشي؟",
+      "en": "What are the base cases for the Fibonacci series?"
+    },
+    "options": {
+      "ar": [
+        "fib(0) = 1 و fib(1) = 1",
+        "fib(0) = 0 و fib(1) = 1",
+        "fib(1) = 1 و fib(2) = 2",
+        "fib(0) = 0 و fib(1) = 0"
+      ],
+      "en": [
+        "fib(0) = 1 and fib(1) = 1",
+        "fib(0) = 0 and fib(1) = 1",
+        "fib(1) = 1 and fib(2) = 2",
+        "fib(0) = 0 and fib(1) = 0"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تبدأ سلسلة فيبوناتشي بالرقمين 0 و 1.",
+      "en": "The Fibonacci series starts with the numbers 0 and 1."
+    },
+    "hint": {
+      "ar": "ما هما أول رقمين في السلسلة؟",
+      "en": "What are the first two numbers in the sequence?"
+    },
+    "difficulty": "easy",
+    "conceptId": "recursion-fibonacci"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من العبارات التالية صحيحة عند مقارنة العودية بالتكرار؟",
+      "en": "Which of the following statements is true when comparing recursion to iteration?"
+    },
+    "options": {
+      "ar": [
+        "العودية تستهلك ذاكرة أقل من التكرار.",
+        "التكرار له عبء إضافي (overhead) أكبر من العودية.",
+        "العودية تستهلك ذاكرة أكبر ولها عبء إضافي أعلى من التكرار.",
+        "لا يمكن حل المشاكل العودية باستخدام التكرار."
+      ],
+      "en": [
+        "Recursion uses less memory than iteration.",
+        "Iteration has more overhead than recursion.",
+        "Recursion is more memory intensive and has more overhead than iteration.",
+        "Recursive problems cannot be solved iteratively."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "العودية تتطلب إنشاء إطارات جديدة في المكدس لكل استدعاء، مما يزيد من استهلاك الذاكرة والعبء الإضافي.",
+      "en": "Recursion requires creating new stack frames for each call, increasing memory usage and overhead."
+    },
+    "hint": {
+      "ar": "فكر في مكدس الاستدعاءات (Call Stack).",
+      "en": "Think about the Call Stack."
+    },
+    "difficulty": "medium",
+    "conceptId": "recursion-vs-iteration"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي القاعدة الأساسية في مشكلة أبراج هانوي؟",
+      "en": "What is the fundamental rule in the Towers of Hanoi problem?"
+    },
+    "options": {
+      "ar": [
+        "يمكن نقل قرصين في نفس الوقت.",
+        "لا يمكن وضع قرص أكبر فوق قرص أصغر.",
+        "يجب استخدام برج واحد فقط.",
+        "لا يمكن وضع قرص أصغر فوق قرص أكبر."
+      ],
+      "en": [
+        "Two disks can be moved at the same time.",
+        "You cannot place a larger disk onto a smaller disk.",
+        "Only one peg must be used.",
+        "You cannot place a smaller disk onto a larger disk."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "القاعدة الصارمة هي أنه لا يُسمح أبداً بوضع قرص ذو حجم أكبر فوق قرص ذو حجم أصغر.",
+      "en": "The strict rule is that a larger disk is never allowed to be placed on top of a smaller disk."
+    },
+    "hint": {
+      "ar": "تتعلق القاعدة بترتيب أحجام الأقراص.",
+      "en": "The rule is about the order of disk sizes."
+    },
+    "difficulty": "easy",
+    "conceptId": "towers-of-hanoi"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ماذا يسمى الاستدعاء عندما تقوم الدالة A باستدعاء الدالة B، والتي بدورها تستدعي الدالة A؟",
+      "en": "What is it called when Method A calls Method B, which in turn calls Method A?"
+    },
+    "options": {
+      "ar": [
+        "استدعاء عودي مباشر (Direct Recursion)",
+        "استدعاء عودي غير مباشر (Indirect Recursion)",
+        "تكرار لا نهائي (Infinite Iteration)",
+        "حالة الأساس (Base Case)"
+      ],
+      "en": [
+        "Direct Recursion",
+        "Indirect Recursion",
+        "Infinite Iteration",
+        "Base Case"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الاستدعاء العودي غير المباشر يحدث عندما تتداخل دالتان أو أكثر في استدعاء بعضهما البعض لتشكيل حلقة عودية.",
+      "en": "Indirect recursion occurs when two or more methods call each other in a cycle to form a recursive loop."
+    },
+    "hint": {
+      "ar": "الدالة لا تستدعي نفسها مباشرة.",
+      "en": "The method does not call itself directly."
+    },
+    "difficulty": "medium",
+    "conceptId": "recursion-concepts"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "كيف تتحكم العودية في عملية التكرار؟",
+      "en": "How does recursion control repetition?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام عداد (Counter)",
+        "عن طريق تقسيم المشكلة إلى مشكلة أبسط",
+        "باستخدام حلقة while",
+        "عن طريق زيادة المتغيرات"
+      ],
+      "en": [
+        "By using a counter",
+        "By dividing the problem into a simpler one",
+        "By using a while loop",
+        "By incrementing variables"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "العودية تحل المشكلة عن طريق تقسيمها إلى نسخ أصغر وأبسط من نفس المشكلة حتى تصل إلى حالة الأساس.",
+      "en": "Recursion solves a problem by breaking it down into smaller, simpler versions of the same problem until it reaches the base case."
+    },
+    "hint": {
+      "ar": "العودية لا تستخدم عدادات.",
+      "en": "Recursion does not use counters."
+    },
+    "difficulty": "medium",
+    "conceptId": "recursion-vs-iteration"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في كود جافا لسلسلة فيبوناتشي، لماذا تم استخدام الكلاس `BigInteger`؟",
+      "en": "In the Java code for the Fibonacci series, why was the `BigInteger` class used?"
+    },
+    "options": {
+      "ar": [
+        "لأن جافا لا تدعم العودية مع الأرقام العادية.",
+        "لتحسين سرعة التنفيذ.",
+        "لأن أرقام فيبوناتشي تنمو بسرعة وتتجاوز سعة المتغيرات العادية.",
+        "لتقليل استهلاك الذاكرة."
+      ],
+      "en": [
+        "Because Java doesn't support recursion with primitive numbers.",
+        "To improve execution speed.",
+        "Because Fibonacci numbers grow rapidly and exceed the capacity of primitive variables.",
+        "To reduce memory consumption."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "أرقام فيبوناتشي تصبح ضخمة جداً بسرعة، و`BigInteger` يمنع حدوث طفح البيانات (Overflow) الذي قد يحدث مع `int` أو `long`.",
+      "en": "Fibonacci numbers become extremely large very quickly, and `BigInteger` prevents data overflow that would occur with `int` or `long`."
+    },
+    "hint": {
+      "ar": "فكر في حجم الأرقام الناتجة.",
+      "en": "Think about the size of the resulting numbers."
+    },
+    "difficulty": "hard",
+    "conceptId": "recursion-fibonacci"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هي نتيجة استدعاء `factorial(3)` بناءً على الكود العودي؟",
+      "en": "What is the result of calling `factorial(3)` based on the recursive code?"
+    },
+    "options": {
+      "ar": [
+        "3",
+        "6",
+        "9",
+        "120"
+      ],
+      "en": [
+        "3",
+        "6",
+        "9",
+        "120"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "3! = 3 * 2 * 1 = 6.",
+      "en": "3! = 3 * 2 * 1 = 6."
+    },
+    "hint": {
+      "ar": "اضرب 3 في 2 في 1.",
+      "en": "Multiply 3 by 2 by 1."
+    },
+    "difficulty": "easy",
+    "conceptId": "recursion-factorials"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان كتابة 'حالة الأساس' (Base Case) هو الخطأ الأكثر شيوعاً في العودية، وسيؤدي حتماً إلى خطأ StackOverflowError وانهيار البرنامج.</template>
+      <template class="content-en">Forgetting to write the 'Base Case' is the most common mistake in recursion and will inevitably lead to a StackOverflowError and program crash.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">العودية تعتمد على تقسيم المشكلة المعقدة إلى نسخ أصغر من نفس المشكلة (Simpler Problem) حتى نصل إلى مشكلة صغيرة جداً نعرف حلها مسبقاً (Base Case).</template>
+      <template class="content-en">Recursion relies on dividing a complex problem into smaller versions of the same problem (Simpler Problem) until we reach a very small problem we already know the answer to (Base Case).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">أي خوارزمية يمكن كتابتها باستخدام العودية يمكن تحويلها إلى خوارزمية تكرارية (Iterative) باستخدام الحلقات (Loops) ومكدس (Stack) مخصص، والعكس صحيح.</template>
+      <template class="content-en">Any algorithm that can be written recursively can be converted to an iterative algorithm using loops and a custom Stack, and vice versa.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن العودية دائماً أسرع من التكرار هو فخ كبير. في الواقع، العودية غالباً ما تكون أبطأ وتستهلك ذاكرة أكبر بسبب العبء الإضافي (Overhead) لإنشاء إطارات الاستدعاء.</template>
+      <template class="content-en">Believing that recursion is always faster than iteration is a major trap. In reality, recursion is often slower and consumes more memory due to the overhead of creating call frames.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M12.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

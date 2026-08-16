@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS478" data-module="9">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الشبكات المضلعة (Polygon Meshes) · CS478 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS478" data-page-title-en="CS478">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M08.html" data-gh-next="M10.html" data-gh-card="../../hub/course.html?code=CS478"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#polygon-meshes" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات المضلعة (Polygon Meshes)</template>
+        <template class="content-en">Polygon Meshes</template>
+        <span class="content-target">الشبكات المضلعة (Polygon Meshes)</span>
+      </a>
+      <a href="#triangle-soup" class="toc-link" data-bilingual>
+        <template class="content-ar">حساء المثلثات (Triangle Soup)</template>
+        <template class="content-en">Triangle Soup Encoding</template>
+        <span class="content-target">حساء المثلثات (Triangle Soup)</span>
+      </a>
+      <a href="#vertex-face-list" class="toc-link" data-bilingual>
+        <template class="content-ar">قائمة الرؤوس والوجوه (Vertex List + Face List)</template>
+        <template class="content-en">Vertex List + Face List Encoding</template>
+        <span class="content-target">قائمة الرؤوس والوجوه (Vertex List + Face List)</span>
+      </a>
+      <a href="#topology-vs-geometry" class="toc-link" data-bilingual>
+        <template class="content-ar">الطوبولوجيا مقابل الهندسة (Topology vs Geometry)</template>
+        <template class="content-en">Topology vs Geometry</template>
+        <span class="content-target">الطوبولوجيا مقابل الهندسة (Topology vs Geometry)</span>
+      </a>
+      <a href="#half-edge-data-structure" class="toc-link" data-bilingual>
+        <template class="content-ar">هيكل بيانات نصف الحافة (The Half-Edge Data Structure)</template>
+        <template class="content-en">The Half-Edge Data Structure</template>
+        <span class="content-target">هيكل بيانات نصف الحافة (The Half-Edge Data Structure)</span>
+      </a>
+      <a href="#encoding-vertex-attributes" class="toc-link" data-bilingual>
+        <template class="content-ar">تشفير سمات الرؤوس (Encoding Vertex Attributes)</template>
+        <template class="content-en">Encoding Vertex Attributes</template>
+        <span class="content-target">تشفير سمات الرؤوس (Encoding Vertex Attributes)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 9</template>
+      <template class="content-en">Module 9</template>
+      <span class="content-target">الوحدة 9</span>
+    </span> · CS478
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الشبكات المضلعة (Polygon Meshes)</h1>
+      <p class="hero-description">تمثيل الشبكات المضلعة، طرق تشفيرها، وهيكل بيانات نصف الحافة (Half-edge) في رسومات الحاسب.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Polygon Meshes</h1>
+      <p class="hero-description">Representation of polygon meshes, encoding methods, and the half-edge data structure in computer graphics.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">رسومات الحاسب</span>
+      <span class="tag">الشبكات المضلعة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Computer Graphics</span>
+      <span class="tag">Polygon Meshes</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم تمثيل الشبكات المضلعة وأسباب انتشارها.</span></li>
+      <li><span class="obj-icon">✦</span><span>مقارنة طرق تشفير الشبكات المضلعة المختلفة (مثل حساء المثلثات وقائمة الرؤوس والوجوه).</span></li>
+      <li><span class="obj-icon">✦</span><span>استيعاب هيكل بيانات نصف الحافة (Half-edge) وكيفية استخدامه لاجتياز الشبكات.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the polygon mesh representation and its popularity.</span></li>
+      <li><span class="obj-icon">✦</span><span>Compare different methods for encoding polygon meshes (e.g., triangle soup vs. vertex and face lists).</span></li>
+      <li><span class="obj-icon">✦</span><span>Comprehend the half-edge data structure and how it is used to traverse meshes.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="polygon-meshes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الشبكات المضلعة (Polygon Meshes)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Polygon Meshes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تمثيل لسطح ثلاثي الأبعاد باستخدام قائمة من إحداثيات الرؤوس والروابط بينها، يشبه إلى حد كبير <span class="smart-term" data-term-en="Raster Image" data-ar="صورة نقطية" data-en-def="An image represented by a regular grid of pixel elements.">الصور النقطية (Raster)<span class="smart-term-tooltip"></span></span> في البعد الثنائي.</p></template>
+    <template class="content-en"><p>A 3D surface representation using a list of vertex coordinates and their connections, analogous to 2D <span class="smart-term" data-term-en="Raster Image" data-ar="صورة نقطية" data-en-def="An image represented by a regular grid of pixel elements.">raster images<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُعرّف الشبكات المضلعة الأسطح بشكل صريح من خلال قائمة من إحداثيات رؤوس المضلعات (تشبه سحابة النقاط) والروابط بين هذه الرؤوس لتشكيل المضلعات.</p><p>تعتبر شبكات المثلثات (Triangle meshes) الأكثر شيوعاً لأنها توفر هيكل بيانات بسيط يتكون من عنصر أساسي مرن، مما يجعل الخوارزميات أبسط وأسرع.</p><p>يُشبه هذا المفهوم <span class="smart-term" data-term-en="Raster Image" data-ar="صورة نقطية" data-en-def="An image represented by a regular grid of pixel elements.">الصور النقطية (Raster images)<span class="smart-term-tooltip"></span></span> في البعد الثنائي، حيث تمثل الصورة النقطية صورة عشوائية بشبكة منتظمة من البكسلات، بينما تمثل الشبكة المضلعة سطحاً عشوائياً بمجموعة من العناصر المضلعة.</p></template>
+    <template class="content-en"><p>Polygon meshes explicitly define a surface using a list of polygon vertex coordinates (much like a point cloud) and the connections between these vertices to form polygons.</p><p>Triangle meshes are the most common type. They provide a simple data structure composed of a flexible base element, which makes algorithms simpler and faster, and common operations easy.</p><p>This is analogous to <span class="smart-term" data-term-en="Raster Image" data-ar="صورة نقطية" data-en-def="An image represented by a regular grid of pixel elements.">raster images<span class="smart-term-tooltip"></span></span> in 2D: just as a raster image represents an arbitrary image with a regular grid of pixel elements, a polygon mesh represents an arbitrary surface with a set of polygon elements.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يبرز التشبيه بالصور النقطية التحول من الأسطح الرياضية المستمرة إلى التقريبات المنفصلة (Discrete approximations).</p><p>تُفضل المثلثات لأنها تضمن دائماً أن تكون الرؤوس الثلاثة على نفس المستوى (Planar)، وهو أمر لا يمكن ضمانه في المضلعات الرباعية أو الأعلى.</p><p>هذا التبسيط يسمح لأجهزة الرسومات (GPUs) بتحسين مسارات العرض (Rendering pipelines) خصيصاً لتنقيط المثلثات (Triangle rasterization).</p></template>
+    <template class="content-en"><p>The analogy to 2D raster images highlights the shift from continuous mathematical surfaces to discrete approximations.</p><p>Triangles are preferred because any three points are guaranteed to be coplanar, a mathematical certainty that quads or higher-order polygons lack, preventing rendering artifacts.</p><p>This discrete, standardized nature allows graphics hardware to heavily optimize rendering pipelines specifically for triangle rasterization.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: Show a 2D raster image of a fish made of square pixels next to a 3D Stanford Bunny made of triangle polygons. Use arrows to show the analogy between '2D pixels' and '3D polygons'. Style: educational, dark background #0d1117, accent colors for pixels and triangles, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <!-- Arrow markers for paths -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: 2D RASTER FISH                  -->
+    <!-- ========================================== -->
+    
+    <!-- Titles -->
+    <text x="150" y="45" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2D Raster Image</text>
+    <text x="150" y="70" font-size="16" fill="var(--text-secondary)" text-anchor="middle">صورة نقطية ثنائية الأبعاد</text>
+
+    <!-- Grid Lines -->
+    <g stroke="var(--border-color)" stroke-width="1" opacity="0.6">
+        <!-- Vertical Lines -->
+        <line x1="50" y1="100" x2="50" y2="300" />
+        <line x1="70" y1="100" x2="70" y2="300" />
+        <line x1="90" y1="100" x2="90" y2="300" />
+        <line x1="110" y1="100" x2="110" y2="300" />
+        <line x1="130" y1="100" x2="130" y2="300" />
+        <line x1="150" y1="100" x2="150" y2="300" />
+        <line x1="170" y1="100" x2="170" y2="300" />
+        <line x1="190" y1="100" x2="190" y2="300" />
+        <line x1="210" y1="100" x2="210" y2="300" />
+        <line x1="230" y1="100" x2="230" y2="300" />
+        <line x1="250" y1="100" x2="250" y2="300" />
+        <!-- Horizontal Lines -->
+        <line x1="50" y1="100" x2="250" y2="100" />
+        <line x1="50" y1="120" x2="250" y2="120" />
+        <line x1="50" y1="140" x2="250" y2="140" />
+        <line x1="50" y1="160" x2="250" y2="160" />
+        <line x1="50" y1="180" x2="250" y2="180" />
+        <line x1="50" y1="200" x2="250" y2="200" />
+        <line x1="50" y1="220" x2="250" y2="220" />
+        <line x1="50" y1="240" x2="250" y2="240" />
+        <line x1="50" y1="260" x2="250" y2="260" />
+        <line x1="50" y1="280" x2="250" y2="280" />
+        <line x1="50" y1="300" x2="250" y2="300" />
+    </g>
+
+    <!-- Fish Pixels (Standard) -->
+    <g fill="var(--brand-500)" opacity="0.25">
+        <!-- Row 2 -->
+        <rect x="130" y="140" width="20" height="20" />
+        <rect x="150" y="140" width="20" height="20" />
+        <rect x="170" y="140" width="20" height="20" />
+        <!-- Row 3 -->
+        <rect x="110" y="160" width="20" height="20" />
+        <rect x="130" y="160" width="20" height="20" />
+        <rect x="150" y="160" width="20" height="20" />
+        <rect x="170" y="160" width="20" height="20" />
+        <rect x="190" y="160" width="20" height="20" />
+        <rect x="230" y="160" width="20" height="20" />
+        <!-- Row 4 -->
+        <rect x="90" y="180" width="20" height="20" />
+        <rect x="110" y="180" width="20" height="20" />
+        <rect x="130" y="180" width="20" height="20" />
+        <rect x="150" y="180" width="20" height="20" />
+        <!-- Highlighted pixel is at 170, 180 (omitted here) -->
+        <rect x="190" y="180" width="20" height="20" />
+        <rect x="210" y="180" width="20" height="20" />
+        <rect x="230" y="180" width="20" height="20" />
+        <!-- Row 5 -->
+        <rect x="70" y="200" width="20" height="20" />
+        <rect x="90" y="200" width="20" height="20" />
+        <rect x="110" y="200" width="20" height="20" />
+        <rect x="130" y="200" width="20" height="20" />
+        <rect x="150" y="200" width="20" height="20" />
+        <rect x="170" y="200" width="20" height="20" />
+        <rect x="190" y="200" width="20" height="20" />
+        <rect x="210" y="200" width="20" height="20" />
+        <rect x="230" y="200" width="20" height="20" />
+        <!-- Row 6 -->
+        <rect x="90" y="220" width="20" height="20" />
+        <rect x="110" y="220" width="20" height="20" />
+        <rect x="130" y="220" width="20" height="20" />
+        <rect x="150" y="220" width="20" height="20" />
+        <rect x="170" y="220" width="20" height="20" />
+        <rect x="190" y="220" width="20" height="20" />
+        <rect x="210" y="220" width="20" height="20" />
+        <rect x="230" y="220" width="20" height="20" />
+        <!-- Row 7 -->
+        <rect x="110" y="240" width="20" height="20" />
+        <rect x="130" y="240" width="20" height="20" />
+        <rect x="150" y="240" width="20" height="20" />
+        <rect x="170" y="240" width="20" height="20" />
+        <rect x="190" y="240" width="20" height="20" />
+        <rect x="230" y="240" width="20" height="20" />
+        <!-- Row 8 -->
+        <rect x="130" y="260" width="20" height="20" />
+        <rect x="150" y="260" width="20" height="20" />
+        <rect x="170" y="260" width="20" height="20" />
+    </g>
+
+    <!-- Highlighted Pixel -->
+    <rect x="170" y="180" width="20" height="20" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="2" />
+
+    <!-- 2D Axes -->
+    <g stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)">
+        <line x1="50" y1="320" x2="100" y2="320" />
+        <line x1="50" y1="320" x2="50" y2="270" />
+    </g>
+    <text x="105" y="325" font-size="13" font-weight="bold" fill="var(--text-muted)">X</text>
+    <text x="45" y="260" font-size="13" font-weight="bold" fill="var(--text-muted)">Y</text>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: 3D POLYGON BUNNY               -->
+    <!-- ========================================== -->
+
+    <!-- Titles -->
+    <text x="650" y="45" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3D Polygon Model</text>
+    <text x="650" y="70" font-size="16" fill="var(--text-secondary)" text-anchor="middle">نموذج مضلع ثلاثي الأبعاد</text>
+
+    <!-- 3D Bunny Polygons -->
+    <g stroke="var(--brand-500)" stroke-width="1.5" stroke-linejoin="round">
+        <!-- Ear 1 -->
+        <polygon points="620,80 610,130 630,130" fill="var(--brand-500)" fill-opacity="0.2" />
+        <!-- Ear 2 -->
+        <polygon points="645,70 630,130 650,125" fill="var(--brand-500)" fill-opacity="0.1" />
+        <!-- Head -->
+        <polygon points="610,130 580,160 630,130" fill="var(--brand-500)" fill-opacity="0.3" />
+        <!-- Face -->
+        <polygon points="580,160 610,180 630,130" fill="var(--brand-500)" fill-opacity="0.4" />
+        <!-- Neck -->
+        <polygon points="610,180 590,220 630,130" fill="var(--brand-500)" fill-opacity="0.2" />
+        <!-- Upper Back -->
+        <polygon points="630,130 690,160 650,125" fill="var(--brand-500)" fill-opacity="0.1" />
+        <!-- Chest/Belly -->
+        <polygon points="590,220 650,270 690,160" fill="var(--brand-500)" fill-opacity="0.2" />
+        <!-- Front Leg -->
+        <polygon points="590,220 600,280 650,270" fill="var(--brand-500)" fill-opacity="0.3" />
+        <!-- Hind Body -->
+        <polygon points="690,160 650,270 690,220" fill="var(--brand-500)" fill-opacity="0.15" />
+        <!-- Tail -->
+        <polygon points="690,160 690,220 730,240" fill="var(--brand-500)" fill-opacity="0.25" />
+        <!-- Hind Leg -->
+        <polygon points="690,220 650,270 710,290" fill="var(--brand-500)" fill-opacity="0.35" />
+        <!-- Bottom -->
+        <polygon points="650,270 670,290 710,290" fill="var(--brand-500)" fill-opacity="0.4" />
+        
+        <!-- Highlighted Polygon (Mid Back) -->
+        <polygon points="630,130 590,220 690,160" fill="var(--brand-500)" fill-opacity="1" />
+    </g>
+
+    <!-- 3D Axes -->
+    <g stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)">
+        <line x1="720" y1="320" x2="770" y2="320" />
+        <line x1="720" y1="320" x2="720" y2="270" />
+        <line x1="720" y1="320" x2="690" y2="350" />
+    </g>
+    <text x="775" y="325" font-size="13" font-weight="bold" fill="var(--text-muted)">X</text>
+    <text x="715" y="260" font-size="13" font-weight="bold" fill="var(--text-muted)">Y</text>
+    <text x="680" y="355" font-size="13" font-weight="bold" fill="var(--text-muted)">Z</text>
+
+
+    <!-- ========================================== -->
+    <!-- CENTER: ANALOGY & CONNECTIONS              -->
+    <!-- ========================================== -->
+
+    <!-- Center Box -->
+    <rect x="280" y="120" width="240" height="150" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    
+    <text x="400" y="150" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Fundamental Units</text>
+    <text x="400" y="170" font-size="15" fill="var(--text-secondary)" text-anchor="middle">الوحدات الأساسية</text>
+
+    <!-- Center Shapes -->
+    <!-- Square (Pixel) -->
+    <rect x="320" y="195" width="30" height="30" rx="4" fill="var(--brand-500)" />
+    <!-- Triangle (Polygon) -->
+    <polygon points="465,195 450,225 480,225" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+
+    <!-- Analogy Arrow inside box -->
+    <line x1="365" y1="210" x2="435" y2="210" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow-muted)" />
+
+    <!-- Labels inside box -->
+    <text x="335" y="245" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Pixel</text>
+    <text x="335" y="260" font-size="13" fill="var(--text-muted)" text-anchor="middle">بكسل</text>
+    
+    <text x="465" y="245" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Polygon</text>
+    <text x="465" y="260" font-size="13" fill="var(--text-muted)" text-anchor="middle">مضلع</text>
+
+    <!-- Connection Paths -->
+    <!-- From Highlighted Pixel to Center Square -->
+    <path d="M 180 190 C 240 190, 260 210, 310 210" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)" />
+    
+    <!-- From Highlighted Polygon to Center Triangle -->
+    <path d="M 636 170 C 580 170, 540 210, 495 210" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)" />
+
+
+    <!-- ========================================== -->
+    <!-- BOTTOM FOOTER TEXT                         -->
+    <!-- ========================================== -->
+    <text x="400" y="365" font-size="15" fill="var(--text-secondary)" text-anchor="middle">Pixels and Polygons are the fundamental building blocks of digital graphics.</text>
+    <text x="400" y="385" font-size="14" fill="var(--text-muted)" text-anchor="middle">البكسلات والمضلعات هي وحدات البناء الأساسية للرسومات الرقمية.</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم المضلعات السداسية (Hexagons) كعنصر أساسي بدلاً من المثلثات في رسومات الحاسب؟</template>
+      <template class="content-en">Why don't we use hexagons as the base element instead of triangles in computer graphics?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>المثلثات تضمن دائماً أن تكون الرؤوس الثلاثة على نفس المستوى (Planar)، بينما المضلعات السداسية قد تنحني في الفضاء ثلاثي الأبعاد مما يعقد حسابات الإضاءة والعرض. كما أن أي مضلع يمكن تقسيمه بسهولة إلى مثلثات.</p></template>
+      <template class="content-en"><p>Triangles guarantee planarity (all three vertices lie on the same plane), whereas hexagons can be non-planar in 3D space, complicating lighting and rendering. Also, any polygon can be easily triangulated.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="triangle-soup" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> حساء المثلثات (Triangle Soup)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Triangle Soup Encoding</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>طريقة بسيطة لتشفير الشبكات حيث يتم تخزين ثلاثة رؤوس مستقلة لكل مثلث، مما يؤدي إلى تكرار الرؤوس المشتركة.</p></template>
+    <template class="content-en"><p>A simple mesh encoding method that stores three independent vertices for every triangle, leading to duplicated shared vertices.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتمد فكرة <b>حساء المثلثات</b> على تخزين ثلاثة رؤوس لكل مثلث بشكل صريح. على سبيل المثال: <code>[(x0,y0,z0), (x1,y1,z1), (x2,y2,z2), ...]</code>.</p><p>هذه الطريقة تشبه إلى حد كبير سحابة النقاط (Point cloud)، ولكن يُفهم ضمنياً أن كل ثلاثة رؤوس متتالية تشكل مثلثاً.</p><p>رغم سهولة تنفيذها، إلا أنها تعاني من عيبين رئيسيين:</p><ul><li><strong>الأول</strong> هو تخزين الرؤوس المشتركة عدة مرات (مما يستهلك الذاكرة)،</li><li>و<strong>الثاني</strong> هو صعوبة العثور على المثلثات التي تشترك في نفس الرؤوس.</li></ul></template>
+    <template class="content-en"><p>The <b>Triangle Soup</b> encoding idea is to store three vertices per triangle explicitly. For example: <code>[(x0,y0,z0), (x1,y1,z1), (x2,y2,z2), ...]</code>.</p><p>It is very similar to a point cloud, but a triangle is implied by each vertex triplet.</p><p>While it is simple to implement, it has major drawbacks:</p><ul><li>it stores shared vertices multiple times (wasting memory),</li><li>and it makes it hard to find triangles sharing vertices.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يُعد تكرار الرؤوس مشكلة كبيرة ليس فقط بسبب استهلاك الذاكرة، ولكن أيضاً لأنه يكسر الاتصال الطوبولوجي؛ إذا أردت تحريك رأس مشترك، يجب عليك البحث عن جميع النسخ المكررة وتحديثها.</p><p>تُستخدم هذه الطريقة غالباً في التنسيقات الوسيطة أو عند إرسال بيانات غير مفهرسة (Unindexed data) إلى وحدة المعالجة الرسومية (GPU) في سيناريوهات بسيطة جداً.</p></template>
+    <template class="content-en"><p>Duplicating vertices is problematic not just for memory consumption, but because it breaks topological connectivity; moving a single shared vertex requires finding and updating all its duplicates.</p><p>This method is mostly used in raw data dumps or unindexed rendering pipelines where simplicity is prioritized over memory bandwidth and topological queries.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: Show two adjacent triangles sharing an edge. In the 'Triangle Soup' representation, show the shared vertices being duplicated (e.g., two distinct dots slightly separated to illustrate duplication). Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+    </marker>
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Center Divider -->
+  <line x1="400" y1="80" x2="400" y2="380" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+
+  <!-- ========================================== -->
+  <!-- LEFT SIDE: Indexed Mesh (Shared Vertices)  -->
+  <!-- ========================================== -->
+
+  <!-- Titles -->
+  <text x="200" y="45" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Indexed Mesh</text>
+  <text x="200" y="70" font-size="16" fill="var(--text-secondary)" text-anchor="middle">شبكة مفهرسة (رؤوس مشتركة)</text>
+
+  <!-- Triangles -->
+  <polygon points="200,110 100,230 300,230" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+  <polygon points="100,230 300,230 200,350" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+
+  <!-- Shared Edge Highlight -->
+  <line x1="100" y1="230" x2="300" y2="230" stroke="var(--brand-500)" stroke-width="5" stroke-linecap="round" />
+
+  <!-- Shared Edge Labels -->
+  <text x="200" y="215" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Shared Edge</text>
+  <text x="200" y="250" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">حافة مشتركة</text>
+
+  <!-- Vertices -->
+  <circle cx="200" cy="110" r="6" fill="var(--brand-500)" />
+  <circle cx="100" cy="230" r="6" fill="var(--brand-500)" />
+  <circle cx="300" cy="230" r="6" fill="var(--brand-500)" />
+  <circle cx="200" cy="350" r="6" fill="var(--brand-500)" />
+
+  <!-- Vertex Labels -->
+  <text x="200" y="90" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V0</text>
+  <text x="75" y="235" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V1</text>
+  <text x="325" y="235" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V2</text>
+  <text x="200" y="375" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V3</text>
+
+  <!-- Summary Box -->
+  <rect x="100" y="395" width="200" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+  <text x="200" y="420" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">4 Vertices (4 رؤوس)</text>
+
+
+  <!-- ========================================== -->
+  <!-- RIGHT SIDE: Triangle Soup (Duplicated)     -->
+  <!-- ========================================== -->
+
+  <!-- Titles -->
+  <text x="600" y="45" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Triangle Soup</text>
+  <text x="600" y="70" font-size="16" fill="var(--text-secondary)" text-anchor="middle">حساء المثلثات (رؤوس مكررة)</text>
+
+  <!-- Triangles (Slightly Separated) -->
+  <polygon points="600,100 500,220 700,220" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+  <polygon points="500,240 700,240 600,360" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+
+  <!-- Duplication Highlights (Dashed Circles) -->
+  <circle cx="500" cy="230" r="24" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" />
+  <circle cx="700" cy="230" r="24" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" />
+
+  <!-- Duplication Labels & Arrows -->
+  <text x="600" y="225" font-size="13" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">Duplicated Vertices</text>
+  <text x="600" y="245" font-size="14" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">رؤوس مكررة</text>
+  
+  <line x1="535" y1="230" x2="525" y2="230" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="665" y1="230" x2="675" y2="230" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Vertices (6 distinct dots) -->
+  <circle cx="600" cy="100" r="6" fill="var(--brand-500)" />
+  <circle cx="500" cy="220" r="6" fill="var(--brand-500)" />
+  <circle cx="700" cy="220" r="6" fill="var(--brand-500)" />
+  
+  <circle cx="500" cy="240" r="6" fill="var(--brand-500)" />
+  <circle cx="700" cy="240" r="6" fill="var(--brand-500)" />
+  <circle cx="600" cy="360" r="6" fill="var(--brand-500)" />
+
+  <!-- Vertex Labels -->
+  <!-- Triangle 1 -->
+  <text x="600" y="80" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V0</text>
+  <text x="475" y="215" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V1</text>
+  <text x="725" y="215" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V2</text>
+  
+  <!-- Triangle 2 -->
+  <text x="475" y="255" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V3</text>
+  <text x="725" y="255" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V4</text>
+  <text x="600" y="385" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">V5</text>
+
+  <!-- Summary Box -->
+  <rect x="500" y="395" width="200" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+  <text x="600" y="420" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">6 Vertices (6 رؤوس)</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لدينا شبكة مكونة من 100 مثلث متصلة ببعضها، كم عدد الرؤوس التي سيتم تخزينها باستخدام طريقة حساء المثلثات؟</template>
+      <template class="content-en">If we have a mesh of 100 connected triangles, how many vertices will be stored using the triangle soup method?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيتم تخزين 300 رأس (100 مثلث × 3 رؤوس)، بغض النظر عن عدد الرؤوس المشتركة فعلياً.</p></template>
+      <template class="content-en"><p>300 vertices will be stored (100 triangles × 3 vertices), regardless of how many vertices are actually shared.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="vertex-face-list" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> قائمة الرؤوس والوجوه (Vertex List + Face List)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Vertex List + Face List Encoding</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>طريقة تشفير تفصل إحداثيات الرؤوس في مصفوفة، وتُعرّف الوجوه باستخدام مؤشرات (Indices) تشير إلى تلك الرؤوس.</p></template>
+    <template class="content-en"><p>An encoding method that separates vertex coordinates into an array and defines faces using indices pointing to those vertices.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُعد هذه الطريقة تشفيراً أفضل من حساء المثلثات. تعتمد على تعريف جميع إحداثيات الرؤوس في قائمة واحدة (مصفوفة تسمى Vertex list).</p><p>ثم تضيف مستوى من <span class="smart-term" data-term-en="Indirection" data-ar="توجيه غير مباشر" data-en-def="Referencing data using indices or pointers rather than storing the data directly.">التوجيه غير المباشر (Indirection)<span class="smart-term-tooltip"></span></span> باستخدام مؤشرات (Indices) تشير إلى قائمة الرؤوس لتعريف كل مثلث (يسمى Face list).</p><p>الميزة الرئيسية هي عدم وجود إحداثيات رؤوس مكررة. ومع ذلك، لا يزال من الصعب العثور على المثلثات التي تشترك في الرؤوس أو الحواف بسرعة.</p></template>
+    <template class="content-en"><p>This is a better encoding method than triangle soup. It defines all vertex coordinates in a single list (i.e., an array called the Vertex list).</p><p>Then, it adds a level of <span class="smart-term" data-term-en="Indirection" data-ar="توجيه غير مباشر" data-en-def="Referencing data using indices or pointers rather than storing the data directly.">indirection<span class="smart-term-tooltip"></span></span> using indices to the vertex list to define each triangle (the Face list).</p><p>The main advantage is that there are no duplicated vertex coordinates. However, it is still hard to efficiently find triangles sharing vertices and edges.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام التوجيه غير المباشر (Indirection) يقلل بشكل كبير من استهلاك الذاكرة ويضمن أن تعديل إحداثيات رأس واحد سينعكس تلقائياً على جميع الوجوه المتصلة به.</p><p>رغم كفاءتها في التخزين والعرض (Rendering)، إلا أن هذه البنية تفتقر إلى معلومات الجوار (Adjacency information). لمعرفة الوجوه المجاورة لوجه معين، يجب البحث في قائمة الوجوه بأكملها، وهو أمر مكلف حسابياً (O(N)).</p></template>
+    <template class="content-en"><p>Using indirection significantly reduces memory footprint and ensures that modifying a single vertex's position automatically updates all connected faces, preserving geometric integrity.</p><p>Despite its efficiency for storage and rendering (commonly used in formats like OBJ), this structure lacks adjacency information. Finding neighboring faces requires an O(N) search through the entire face list, making it unsuitable for complex geometry processing algorithms.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Show a diagram with two tables: 'Vertex List' (index 0 to 3 with x,y,z coordinates) and 'Face List' (index tuples like (0,1,2) and (0,3,1)). Draw arrows from the Face List indices pointing to the corresponding rows in the Vertex List. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <!-- Arrowhead for Face 0 -->
+    <marker id="arrow-f0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <!-- Arrowhead for Face 1 -->
+    <marker id="arrow-f1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+    </marker>
+    
+    <!-- Subtle drop shadow for tables -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Titles -->
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--text-primary)">Vertex &amp; Face Lists Representation</text>
+  <text x="400" y="65" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-secondary)">تمثيل قائمة الرؤوس والأوجه</text>
+
+  <!-- ========================================== -->
+  <!-- FACE LIST TABLE (LEFT)                     -->
+  <!-- ========================================== -->
+  <g transform="translate(0, 0)">
+    <text x="170" y="95" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">Face List / قائمة الأوجه</text>
+    
+    <!-- Table Background -->
+    <rect x="40" y="110" width="260" height="120" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    
+    <!-- Header Separator -->
+    <line x1="40" y1="150" x2="300" y2="150" stroke="var(--border-color)" stroke-width="2" />
+    <!-- Row Separator -->
+    <line x1="40" y1="190" x2="300" y2="190" stroke="var(--border-color)" stroke-width="1" />
+    
+    <!-- Column Separators -->
+    <line x1="105" y1="110" x2="105" y2="230" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="170" y1="110" x2="170" y2="230" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="235" y1="110" x2="235" y2="230" stroke="var(--border-color)" stroke-width="1" />
+
+    <!-- Headers -->
+    <text x="72.5" y="132" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">Face ID</text>
+    <text x="72.5" y="145" text-anchor="middle" font-size="11" fill="var(--text-muted)">معرف</text>
+    <text x="137.5" y="135" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">v1</text>
+    <text x="202.5" y="135" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">v2</text>
+    <text x="267.5" y="135" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">v3</text>
+
+    <!-- Data Row 0 -->
+    <text x="72.5" y="175" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--brand-500)">F0</text>
+    <text x="125" y="175" text-anchor="middle" font-size="15" fill="var(--text-primary)">0</text>
+    <text x="190" y="175" text-anchor="middle" font-size="15" fill="var(--text-primary)">1</text>
+    <text x="255" y="175" text-anchor="middle" font-size="15" fill="var(--text-primary)">2</text>
+
+    <!-- Data Row 1 -->
+    <text x="72.5" y="215" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--brand-400)">F1</text>
+    <text x="125" y="215" text-anchor="middle" font-size="15" fill="var(--text-primary)">0</text>
+    <text x="190" y="215" text-anchor="middle" font-size="15" fill="var(--text-primary)">3</text>
+    <text x="255" y="215" text-anchor="middle" font-size="15" fill="var(--text-primary)">1</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- VERTEX LIST TABLE (RIGHT)                  -->
+  <!-- ========================================== -->
+  <g transform="translate(0, 0)">
+    <text x="620" y="95" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">Vertex List / قائمة الرؤوس</text>
+    
+    <!-- Table Background -->
+    <rect x="480" y="110" width="280" height="200" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    
+    <!-- Header Separator -->
+    <line x1="480" y1="150" x2="760" y2="150" stroke="var(--border-color)" stroke-width="2" />
+    <!-- Row Separators -->
+    <line x1="480" y1="190" x2="760" y2="190" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="480" y1="230" x2="760" y2="230" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="480" y1="270" x2="760" y2="270" stroke="var(--border-color)" stroke-width="1" />
+    
+    <!-- Column Separators -->
+    <line x1="550" y1="110" x2="550" y2="310" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="620" y1="110" x2="620" y2="310" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="690" y1="110" x2="690" y2="310" stroke="var(--border-color)" stroke-width="1" />
+
+    <!-- Headers -->
+    <text x="515" y="132" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">Index</text>
+    <text x="515" y="145" text-anchor="middle" font-size="11" fill="var(--text-muted)">الفهرس</text>
+    <text x="585" y="135" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">X</text>
+    <text x="655" y="135" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">Y</text>
+    <text x="725" y="135" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-secondary)">Z</text>
+
+    <!-- Data Row 0 -->
+    <text x="515" y="175" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">0</text>
+    <text x="585" y="175" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+    <text x="655" y="175" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+    <text x="725" y="175" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+
+    <!-- Data Row 1 -->
+    <text x="515" y="215" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">1</text>
+    <text x="585" y="215" text-anchor="middle" font-size="15" fill="var(--text-primary)">1.0</text>
+    <text x="655" y="215" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+    <text x="725" y="215" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+
+    <!-- Data Row 2 -->
+    <text x="515" y="255" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">2</text>
+    <text x="585" y="255" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+    <text x="655" y="255" text-anchor="middle" font-size="15" fill="var(--text-primary)">1.0</text>
+    <text x="725" y="255" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+
+    <!-- Data Row 3 -->
+    <text x="515" y="295" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">3</text>
+    <text x="585" y="295" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+    <text x="655" y="295" text-anchor="middle" font-size="15" fill="var(--text-primary)">0.0</text>
+    <text x="725" y="295" text-anchor="middle" font-size="15" fill="var(--text-primary)">1.0</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- CONNECTION ARROWS                          -->
+  <!-- ========================================== -->
+  
+  <!-- F0 Arrows (Solid) -->
+  <g fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-f0)">
+    <!-- F0, v1 (0) -> Row 0 -->
+    <path d="M 145 170 C 230 170, 350 165, 473 165" />
+    <!-- F0, v2 (1) -> Row 1 -->
+    <path d="M 210 170 C 290 170, 350 205, 473 205" />
+    <!-- F0, v3 (2) -> Row 2 -->
+    <path d="M 275 170 C 330 170, 380 245, 473 245" />
+  </g>
+  
+  <!-- F0 Start Nodes -->
+  <circle cx="145" cy="170" r="3" fill="var(--brand-500)" />
+  <circle cx="210" cy="170" r="3" fill="var(--brand-500)" />
+  <circle cx="275" cy="170" r="3" fill="var(--brand-500)" />
+
+  <!-- F1 Arrows (Dashed) -->
+  <g fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-f1)">
+    <!-- F1, v1 (0) -> Row 0 -->
+    <path d="M 145 210 C 230 210, 350 175, 473 175" />
+    <!-- F1, v2 (3) -> Row 3 -->
+    <path d="M 210 210 C 290 210, 380 285, 473 285" />
+    <!-- F1, v3 (1) -> Row 1 -->
+    <path d="M 275 210 C 330 210, 380 215, 473 215" />
+  </g>
+
+  <!-- F1 Start Nodes -->
+  <circle cx="145" cy="210" r="3" fill="var(--brand-400)" />
+  <circle cx="210" cy="210" r="3" fill="var(--brand-400)" />
+  <circle cx="275" cy="210" r="3" fill="var(--brand-400)" />
+
+  <!-- ========================================== -->
+  <!-- 3D OBJECT VISUALIZATION                    -->
+  <!-- ========================================== -->
+  <g transform="translate(0, 10)">
+    <text x="210" y="415" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-secondary)">3D Object / الكائن ثلاثي الأبعاد</text>
+    
+    <!-- Legend -->
+    <text x="40" y="290" fill="var(--brand-500)" font-weight="bold" font-size="14" text-anchor="start">F0: (0, 1, 2)</text>
+    <text x="40" y="315" fill="var(--brand-400)" font-weight="bold" font-size="14" text-anchor="start">F1: (0, 3, 1)</text>
+
+    <!-- 3D Shape Faces -->
+    <!-- F0 (0,1,2) -->
+    <path d="M 210 330 L 290 310 L 210 250 Z" fill="var(--brand-500)" opacity="0.15" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+    <!-- F1 (0,3,1) -->
+    <path d="M 210 330 L 150 360 L 290 310 Z" fill="var(--brand-400)" opacity="0.15" stroke="var(--brand-400)" stroke-width="2" stroke-linejoin="round" />
+    
+    <!-- Hidden Edge (2-3) -->
+    <line x1="210" y1="250" x2="150" y2="360" stroke="var(--border-color)" stroke-width="1.5" stroke-dasharray="4,4" />
+    
+    <!-- Visible Edges -->
+    <line x1="210" y1="330" x2="290" y2="310" stroke="var(--text-primary)" stroke-width="2" /> <!-- 0-1 (Shared) -->
+    <line x1="290" y1="310" x2="210" y2="250" stroke="var(--brand-500)" stroke-width="1.5" /> <!-- 1-2 -->
+    <line x1="210" y1="250" x2="210" y2="330" stroke="var(--brand-500)" stroke-width="1.5" /> <!-- 2-0 -->
+    <line x1="210" y1="330" x2="150" y2="360" stroke="var(--brand-400)" stroke-width="1.5" /> <!-- 0-3 -->
+    <line x1="150" y1="360" x2="290" y2="310" stroke="var(--brand-400)" stroke-width="1.5" /> <!-- 3-1 -->
+
+    <!-- Vertices -->
+    <circle cx="210" cy="330" r="5" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2" />
+    <circle cx="290" cy="310" r="5" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2" />
+    <circle cx="210" cy="250" r="5" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2" />
+    <circle cx="150" cy="360" r="5" fill="var(--bg-elevated)" stroke="var(--text-primary)" stroke-width="2" />
+
+    <!-- Vertex Labels -->
+    <text x="210" y="348" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text-primary)">v0</text>
+    <text x="305" y="315" text-anchor="start" font-size="13" font-weight="bold" fill="var(--text-primary)">v1</text>
+    <text x="210" y="240" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text-primary)">v2</text>
+    <text x="135" y="365" text-anchor="end" font-size="13" font-weight="bold" fill="var(--text-primary)">v3</text>
+    
+    <!-- Face Labels -->
+    <text x="235" y="295" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--brand-500)">F0</text>
+    <text x="215" y="355" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--brand-400)">F1</text>
+  </g>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Triangle Soup</th><th>Vertex + Face List</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استهلاك الذاكرة</template>
+          <template class="content-en">Memory Consumption</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرتفع (تكرار الرؤوس المشتركة)</template>
+          <template class="content-en">High (duplicates shared vertices)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منخفض (استخدام المؤشرات)</template>
+          <template class="content-en">Low (uses indirection/indices)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">سهولة التنفيذ</template>
+          <template class="content-en">Ease of Implementation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">بسيط جداً</template>
+          <template class="content-en">Very simple</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متوسط (يتطلب إدارة المؤشرات)</template>
+          <template class="content-en">Moderate (requires index management)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تحديث الرؤوس المشتركة</template>
+          <template class="content-en">Updating Shared Vertices</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">صعب (يجب تحديث كل النسخ)</template>
+          <template class="content-en">Hard (must update all copies)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهل (تحديث نقطة واحدة فقط)</template>
+          <template class="content-en">Easy (update single point only)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يساهم التوجيه غير المباشر (Indirection) في تحسين أداء الرسوميات؟</template>
+      <template class="content-en">How does indirection improve graphics performance?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يقلل من حجم البيانات المرسلة إلى الذاكرة، ويسمح لبطاقة الرسوميات بتخزين الرؤوس المعالجة في الذاكرة المخبئية (Vertex Cache) وإعادة استخدامها بناءً على المؤشر.</p></template>
+      <template class="content-en"><p>It reduces the amount of data sent to memory and allows the GPU to cache processed vertices and reuse them based on their index (Vertex Cache).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="topology-vs-geometry" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الطوبولوجيا مقابل الهندسة (Topology vs Geometry)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Topology vs Geometry</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الطوبولوجيا تهتم بالهيكل العام والروابط، بينما الهندسة تهتم بالإحداثيات المكانية الفعلية.</p></template>
+    <template class="content-en"><p>Topology cares about the global connectivity structure, while geometry cares about the actual spatial coordinates.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><b>الطوبولوجيا (Topology):</b> تشير إلى الهيكل العام (Global structure) للشبكة، ولا تهتم بالإحداثيات الفعلية. إنها تحدد كيف تتصل الرؤوس والحواف والوجوه ببعضها البعض.</li><li><b>الهندسة (Geometry):</b> تهتم بالهيكل المحلي (Local structure) بالإضافة إلى الهيكل العام، وتحديداً الإحداثيات المكانية الفعلية للرؤوس في الفضاء.</li></ul><p>يمكن أن يكون لشبكتين نفس الطوبولوجيا ولكن برؤوس مختلفة (هندسة مختلفة)، أو طوبولوجيا مختلفة ولكن بنفس الرؤوس (نفس الهندسة).</p></template>
+    <template class="content-en"><ul><li><b>Topology:</b> Refers to the global structure of the mesh. It does not care about actual coordinates, only how vertices, edges, and faces are connected.</li><li><b>Geometry:</b> Cares about the local structure (in addition to global structure), specifically the actual 3D coordinates of the vertices in space.</li></ul><p>Two meshes can have the same topology but different vertices (different geometry), or different topology but the same vertices (same geometry).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفصل بين الطوبولوجيا والهندسة أمر بالغ الأهمية في خوارزميات معالجة الشبكات. على سبيل المثال، خوارزميات التنعيم (Smoothing) تقوم بتعديل الهندسة مع الحفاظ على الطوبولوجيا.</p><p>الفكرة الأساسية هي الاستفادة من الروابط الطوبولوجية لجعل عمليات الشبكة (Mesh operations) أسهل وأكثر كفاءة، وهو ما يقودنا إلى هياكل بيانات متقدمة مثل نصف الحافة (Half-edge).</p></template>
+    <template class="content-en"><p>Separating topology from geometry is crucial in mesh processing algorithms. For instance, smoothing algorithms modify geometry while preserving topology, whereas decimation algorithms modify both.</p><p>The core idea is to leverage topological connections to make mesh operations easier and more efficient, which motivates the need for advanced data structures like the half-edge structure.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Show two pairs of shapes. Pair 1: Two diamond shapes with the same internal diagonal line but different outer vertex positions (Same topology, different geometry). Pair 2: Two identical diamond outlines, but one has a vertical diagonal and the other has a horizontal diagonal (Different topology, same geometry). Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Background Panels -->
+    <rect x="20" y="20" width="370" height="360" rx="16" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+    <rect x="410" y="20" width="370" height="360" rx="16" fill="none" stroke="var(--border-color)" stroke-width="2"/>
+
+    <!-- Left Section: Same Topology, Different Geometry -->
+    <g id="left-section">
+        <!-- Titles -->
+        <text x="205" y="55" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Same Topology, Different Geometry</text>
+        <text x="205" y="80" font-size="16" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">نفس الطوبولوجيا، هندسة مختلفة</text>
+
+        <!-- Shape 1A (Standard Diamond) -->
+        <g id="shape-1a">
+            <polygon points="100,130 160,190 100,250 40,190" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round"/>
+            <line x1="100" y1="130" x2="100" y2="250" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,4"/>
+            
+            <!-- Nodes -->
+            <circle cx="100" cy="130" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="160" cy="190" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="100" cy="250" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="40" cy="190" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            
+            <!-- Node Labels -->
+            <text x="100" y="110" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">A</text>
+            <text x="175" y="190" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">B</text>
+            <text x="100" y="270" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">C</text>
+            <text x="25" y="190" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">D</text>
+        </g>
+
+        <!-- Shape 1B (Distorted Diamond) -->
+        <g id="shape-1b">
+            <polygon points="310,110 380,160 290,270 230,200" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round"/>
+            <line x1="310" y1="110" x2="290" y2="270" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,4"/>
+            
+            <!-- Nodes -->
+            <circle cx="310" cy="110" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="380" cy="160" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="290" cy="270" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="230" cy="200" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            
+            <!-- Node Labels -->
+            <text x="310" y="90" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">A</text>
+            <text x="395" y="160" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">B</text>
+            <text x="290" y="290" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">C</text>
+            <text x="215" y="200" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">D</text>
+        </g>
+
+        <!-- Connection Annotation -->
+        <text x="205" y="180" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="middle">Same Edge</text>
+        <text x="205" y="198" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="middle">نفس الحافة</text>
+        <path d="M 165 189 Q 130 189 108 189" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M 245 189 Q 270 189 292 189" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Bottom Description -->
+        <text x="205" y="330" font-size="15" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Identical connections (A-C), different coordinates</text>
+        <text x="205" y="355" font-size="14" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">اتصالات متطابقة (A-C)، إحداثيات مختلفة</text>
+    </g>
+
+    <!-- Right Section: Different Topology, Same Geometry -->
+    <g id="right-section">
+        <!-- Titles -->
+        <text x="595" y="55" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Different Topology, Same Geometry</text>
+        <text x="595" y="80" font-size="16" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">طوبولوجيا مختلفة، نفس الهندسة</text>
+
+        <!-- Shape 2A (Vertical Diagonal) -->
+        <g id="shape-2a">
+            <polygon points="490,130 550,190 490,250 430,190" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round"/>
+            <line x1="490" y1="130" x2="490" y2="250" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,4"/>
+            
+            <!-- Nodes -->
+            <circle cx="490" cy="130" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="550" cy="190" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="490" cy="250" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="430" cy="190" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            
+            <!-- Node Labels -->
+            <text x="490" y="110" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">A</text>
+            <text x="565" y="190" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">B</text>
+            <text x="490" y="270" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">C</text>
+            <text x="415" y="190" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">D</text>
+        </g>
+
+        <!-- Shape 2B (Horizontal Diagonal) -->
+        <g id="shape-2b">
+            <polygon points="700,130 760,190 700,250 640,190" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round"/>
+            <line x1="640" y1="190" x2="760" y2="190" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="6,4"/>
+            
+            <!-- Nodes -->
+            <circle cx="700" cy="130" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="760" cy="190" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="700" cy="250" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            <circle cx="640" cy="190" r="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2"/>
+            
+            <!-- Node Labels -->
+            <text x="700" y="110" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">A</text>
+            <text x="775" y="190" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">B</text>
+            <text x="700" y="270" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">C</text>
+            <text x="625" y="190" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">D</text>
+        </g>
+
+        <!-- Connection Annotation -->
+        <text x="595" y="135" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="middle">Different Edges</text>
+        <text x="595" y="153" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="middle">حواف مختلفة</text>
+        <path d="M 550 144 Q 515 144 498 144" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M 640 144 Q 675 144 690 182" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Bottom Description -->
+        <text x="595" y="330" font-size="15" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Identical coordinates, different connections (A-C vs B-D)</text>
+        <text x="595" y="355" font-size="14" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">إحداثيات متطابقة، اتصالات مختلفة (A-C مقابل B-D)</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Topology</th><th>Geometry</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التركيز الأساسي</template>
+          <template class="content-en">Primary Focus</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الهيكل العام والروابط</template>
+          <template class="content-en">Global structure and connections</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الهيكل المحلي والإحداثيات</template>
+          <template class="content-en">Local structure and coordinates</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاعتماد على الإحداثيات</template>
+          <template class="content-en">Coordinate Dependency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا تهتم بالإحداثيات الفعلية</template>
+          <template class="content-en">Does not care about actual coordinates</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تعتمد كلياً على الإحداثيات (x,y,z)</template>
+          <template class="content-en">Strictly depends on (x,y,z) coordinates</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">عندما تقوم بتغيير حجم (Scale) نموذج ثلاثي الأبعاد، هل تقوم بتغيير طوبولوجيته أم هندسته؟</template>
+      <template class="content-en">When you scale a 3D model, are you changing its topology or its geometry?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>أنت تغير هندسته فقط (الإحداثيات تتغير)، بينما تبقى الطوبولوجيا (الروابط بين الرؤوس) كما هي.</p></template>
+      <template class="content-en"><p>You are only changing its geometry (the coordinates change), while the topology (the connections between vertices) remains exactly the same.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="half-edge-data-structure" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> هيكل بيانات نصف الحافة (The Half-Edge Data Structure)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> The Half-Edge Data Structure</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هيكل بيانات يستخدم مؤشرات لتقسيم كل حافة إلى نصفي حافة موجهين، مما يسهل الاستعلام عن الروابط الطوبولوجية بسرعة.</p></template>
+    <template class="content-en"><p>A pointer-based data structure that splits each edge into two directed half-edges to efficiently query topological relationships.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُعرف أيضاً باسم <span class="smart-term" data-term-en="Doubly Connected Edge List" data-ar="قائمة الحواف المزدوجة الاتصال" data-en-def="Another name for the half-edge data structure, emphasizing the bidirectional pointers.">"قائمة الحواف المزدوجة الاتصال" (Doubly connected edge list)<span class="smart-term-tooltip"></span></span>. يستخدم هذا الهيكل زوجاً من "أنصاف الحواف" (Half-edges) على كل جانب من الحافة المشتركة لتخزين معلومات حول الوجوه والرؤوس والحواف المجاورة.</p><p>يحتوي كل نصف حافة على مؤشرات (Pointers) تشبه القائمة المرتبطة (Linked list):</p><ul><li><strong>مؤشر لنصف الحافة المقابل</strong> (<code>pair</code>)،</li><li>و<strong>مؤشر للتالي</strong> (<code>next</code>)،</li><li>و<strong>السابق</strong> (<code>prev</code>)،</li><li>و<strong>الوجه الأيسر</strong> (<code>left</code>)،</li><li>و<strong>رأس البداية</strong> (<code>origin</code>)،</li><li>و<strong>الحافة الأصلية</strong> (<code>edge</code>).</li></ul><p>تسهل هذه المؤشرات اجتياز الشبكة (Traversing) واستخراج العناصر بسرعة.</p></template>
+    <template class="content-en"><p>Also known as a <span class="smart-term" data-term-en="Doubly Connected Edge List" data-ar="قائمة الحواف المزدوجة الاتصال" data-en-def="Another name for the half-edge data structure, emphasizing the bidirectional pointers.">"doubly connected edge list"<span class="smart-term-tooltip"></span></span>, this structure uses a pair of directed "half-edges" on each side of a shared edge to store information about adjacent faces, vertices, and edges.</p><p>Each half-edge contains pointers (like a linked list):</p><ul><li><strong>a pointer to its opposite half-edge</strong> (<code>pair</code>),</li><li><strong>the <code>next</code> and <code>prev</code> half-edges</strong> in the face,</li><li><strong>the <code>left</code> face</strong>,</li><li><strong>the <code>origin</code> vertex</strong>,</li><li>and <strong>the parent <code>edge</code></strong>.</li></ul><p>These pointers make it incredibly easy to traverse the mesh and pull out elements using origin, edge, or left pointers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لاجتياز الحواف حول رأس معين، نبدأ بنصف حافة الرأس، ثم نستخدم الحلقة: <code>h = h.pair.next</code> حتى نعود لنقطة البداية.</p><p>لاجتياز الحواف حول مثلث (وجه)، نستخدم الحلقة: <code>h = h.next</code>.</p><p>المقايضة هنا هي استهلاك الذاكرة العالي بسبب العدد الكبير من المؤشرات، لكنه ضروري للخوارزميات المعقدة التي تتطلب استعلامات طوبولوجية سريعة (مثل O(1) لمعرفة الجيران).</p></template>
+    <template class="content-en"><p>To traverse edges around a vertex, you start at the vertex's half-edge and loop using <code>h = h.pair.next</code> until you return to the start.</p><p>To traverse edges around a triangle (face), you loop using <code>h = h.next</code>.</p><p>The trade-off is high memory consumption due to the sheer number of pointers required, but it provides O(1) time complexity for adjacency queries, which is essential for advanced geometry processing.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button></div>
+    <pre class="pseudo-block"><code>Halfedge* h = vertex.half;
+do {
+    // do something with h.edge
+    h = h.pair.next;
+} while (h != vertex.half)</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show two adjacent triangles. The shared edge between them is split into two arrows pointing in opposite directions (the half-edges). Label one arrow 'edge', its opposite 'pair', the next arrow in the triangle 'next', and the previous 'prev'. Label the face 'left' and the starting vertex 'origin'. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Gradients for faces -->
+        <linearGradient id="face-left-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.02"/>
+        </linearGradient>
+        
+        <!-- Arrow Markers -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 2 L 8 5 L 0 8 Z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-secondary" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 2 L 8 5 L 0 8 Z" fill="var(--text-secondary)" />
+        </marker>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 2 L 8 5 L 0 8 Z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title -->
+    <text x="400" y="45" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold">Half-Edge Data Structure</text>
+    <text x="400" y="75" text-anchor="middle" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18">بنية بيانات نصف الحافة</text>
+
+    <!-- Base Geometry (Triangles) -->
+    <g id="geometry">
+        <!-- Right Triangle -->
+        <path d="M 400 120 L 650 240 L 400 360 Z" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" stroke-linejoin="round"/>
+        <!-- Left Triangle (Active Face) -->
+        <path d="M 400 120 L 150 240 L 400 360 Z" fill="url(#face-left-grad)" stroke="var(--border-color)" stroke-width="2" stroke-linejoin="round"/>
+        <!-- Shared Center Edge -->
+        <line x1="400" y1="120" x2="400" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+    </g>
+
+    <!-- Half-Edges (Arrows) -->
+    <g id="half-edges" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Right Face Half-Edges (Muted context) -->
+        <path d="M 425 345 L 625 250" stroke="var(--text-muted)" stroke-width="3" marker-end="url(#arrow-muted)"/>
+        <path d="M 625 230 L 425 135" stroke="var(--text-muted)" stroke-width="3" marker-end="url(#arrow-muted)"/>
+        
+        <!-- 'pair' Half-Edge -->
+        <path d="M 415 140 L 415 340" stroke="var(--text-secondary)" stroke-width="4" marker-end="url(#arrow-secondary)"/>
+
+        <!-- Left Face Half-Edges (Active context) -->
+        <!-- 'prev' Half-Edge -->
+        <path d="M 175 250 L 375 345" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow-brand)"/>
+        <!-- 'next' Half-Edge -->
+        <path d="M 375 135 L 175 230" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow-brand)"/>
+        
+        <!-- 'edge' Half-Edge (Primary Focus with Glow) -->
+        <path d="M 385 340 L 385 140" stroke="var(--brand-500)" stroke-width="10" opacity="0.2"/>
+        <path d="M 385 340 L 385 140" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow-brand)"/>
+    </g>
+
+    <!-- Vertices -->
+    <g id="vertices">
+        <!-- Top Vertex -->
+        <circle cx="400" cy="120" r="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+        <!-- Left Vertex -->
+        <circle cx="150" cy="240" r="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+        <!-- Right Vertex -->
+        <circle cx="650" cy="240" r="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2"/>
+        
+        <!-- Origin Vertex (Highlighted) -->
+        <circle cx="400" cy="360" r="14" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4"/>
+        <circle cx="400" cy="360" r="7" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="2"/>
+    </g>
+
+    <!-- Labels -->
+    <g id="labels" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <!-- 'edge' Label -->
+        <text x="320" y="235" text-anchor="middle" fill="var(--brand-500)" font-size="18" font-weight="bold">edge</text>
+        <text x="320" y="255" text-anchor="middle" fill="var(--text-secondary)" font-size="15">الحافة</text>
+
+        <!-- 'pair' Label -->
+        <text x="480" y="235" text-anchor="middle" fill="var(--text-primary)" font-size="18" font-weight="bold">pair</text>
+        <text x="480" y="255" text-anchor="middle" fill="var(--text-secondary)" font-size="15">الزوج</text>
+
+        <!-- 'next' Label -->
+        <text x="230" y="160" text-anchor="middle" fill="var(--brand-500)" font-size="16" font-weight="bold">next</text>
+        <text x="230" y="180" text-anchor="middle" fill="var(--text-secondary)" font-size="14">التالي</text>
+
+        <!-- 'prev' Label -->
+        <text x="230" y="320" text-anchor="middle" fill="var(--brand-500)" font-size="16" font-weight="bold">prev</text>
+        <text x="230" y="340" text-anchor="middle" fill="var(--text-secondary)" font-size="14">السابق</text>
+
+        <!-- 'face' Label -->
+        <text x="290" y="235" text-anchor="middle" fill="var(--brand-500)" font-size="18" font-weight="bold">face (left)</text>
+        <text x="290" y="255" text-anchor="middle" fill="var(--text-secondary)" font-size="15">الوجه</text>
+
+        <!-- 'origin' Label -->
+        <text x="400" y="410" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-weight="bold">origin</text>
+        <text x="400" y="430" text-anchor="middle" fill="var(--text-secondary)" font-size="14">نقطة الأصل</text>
+        
+        <!-- Origin Pointer Line -->
+        <line x1="400" y1="390" x2="400" y2="378" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow-muted)"/>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نحتاج إلى مؤشر `pair` في هيكل نصف الحافة؟</template>
+      <template class="content-en">Why do we need the `pair` pointer in the half-edge structure?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>مؤشر `pair` هو الجسر الذي يربط بين وجهين متجاورين. بدونه، لن نتمكن من الانتقال من مثلث إلى المثلث المجاور له.</p></template>
+      <template class="content-en"><p>The `pair` pointer is the bridge connecting two adjacent faces. Without it, we couldn't navigate from one triangle to its neighbor.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="encoding-vertex-attributes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تشفير سمات الرؤوس (Encoding Vertex Attributes)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Encoding Vertex Attributes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تخزين معلومات إضافية مثل الألوان أو المتجهات العمودية (Normals) في الرؤوس باستخدام نفس فكرة التوجيه غير المباشر.</p></template>
+    <template class="content-en"><p>Storing additional information like colors or surface normals at vertices using the same indirection concept.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>إلى جانب الإحداثيات المكانية، غالباً ما نحتاج إلى تخزين سمات أخرى في الرؤوس مثل الألوان (Colors) أو المتجهات العمودية للسطح (Surface normals).</p><p>يمكننا استخدام نفس فكرة التوجيه غير المباشر (Indirection) المستخدمة في قائمة الوجوه. هذا مفيد جداً عند العرض في مسار التنقيط (Rasterization pipeline).</p><p>يمكن تخزين هذه السمات لكل رأس في نفس القائمة، أو يمكن تعريف الألوان المطلوبة فقط واستخدام مؤشرات مختلفة تشير إلى تلك الألوان.</p></template>
+    <template class="content-en"><p>Besides spatial coordinates, we often need to store other things like colors or surface normals at the vertices.</p><p>We can use the same indirection as face list indices. This is very good when rendering in a rasterization pipeline.</p><p>We can use the same idea as the "vertex list" and store attributes for each vertex in the list. Alternatively, we can define only the needed colors and have different indices pointing to those colors.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>فصل قوائم السمات (مثل قائمة للألوان وقائمة للإحداثيات) يسمح بإعادة استخدام البيانات بشكل أفضل. على سبيل المثال، إذا كان النموذج بأكمله يستخدم لونين فقط، يمكننا إنشاء قائمة ألوان من عنصرين فقط وتوجيه آلاف الرؤوس إليها.</p><p>هذا المفهوم هو الأساس لكيفية عمل التنسيقات القياسية مثل Wavefront OBJ، حيث يتم فهرسة:</p><ul><li><strong>الإحداثيات</strong>،</li><li>و<strong>الإحداثيات النسيجية</strong> (UVs)،</li><li>و<strong>المتجهات العمودية</strong> بشكل منفصل.</li></ul></template>
+    <template class="content-en"><p>Separating attribute lists (e.g., a list for positions and a list for colors) allows for better data reuse. For example, if a model only uses two colors, we can create a color list of size two and have thousands of vertices index into it.</p><p>This concept is the foundation of standard formats like Wavefront OBJ, where:</p><ul><li><strong>positions</strong>,</li><li><strong>texture coordinates</strong> (UVs),</li><li>and <strong>normals</strong> are indexed separately to maximize memory efficiency.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هي الميزة من استخدام مؤشرات منفصلة للألوان بدلاً من تخزين اللون مباشرة مع كل رأس؟</template>
+      <template class="content-en">What is the advantage of using separate indices for colors instead of storing the color directly with each vertex?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يوفر مساحة الذاكرة بشكل كبير إذا كانت الشبكة تستخدم عدداً محدوداً من الألوان المتكررة (Palette).</p></template>
+      <template class="content-en"><p>It significantly saves memory space if the mesh uses a limited palette of repeating colors.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقاء في هذا الملخص السريع ليلة الامتحان. في هذه الوحدة، تحدثنا عن كيفية تمثيل الأجسام ثلاثية الأبعاد داخل الحاسب. بدأنا بالتشبيه البسيط: كما أن الصورة ثنائية الأبعاد تتكون من بكسلات، فإن المجسم ثلاثي الأبعاد يتكون من مضلعات (غالباً مثلثات). لكن كيف نخزن هذه المثلثات؟ الطريقة الساذجة هي 'حساء المثلثات'، وهي سهلة لكنها تكرر الرؤوس المشتركة وتستهلك الذاكرة. لذلك، انتقلنا إلى 'قائمة الرؤوس والوجوه'، حيث نستخدم التوجيه غير المباشر (Indirection) لحل مشكلة التكرار. لكن مهلاً، ماذا لو أردنا تعديل المجسم وتنعيمه؟ هنا نحتاج لمعرفة الجيران بسرعة، وهذا يقودنا للفرق بين 'الهندسة' (الإحداثيات) و'الطوبولوجيا' (الروابط). وللسيطرة على الطوبولوجيا، قدمنا البطل الحقيقي: 'هيكل بيانات نصف الحافة' (Half-edge). ركزوا جيداً في الامتحان على كيفية اجتياز الحواف حول الرأس (`h.pair.next`) وحول الوجه (`h.next`). بالتوفيق!</template>
+    <template class="content-en">Welcome friends to this quick pre-exam summary. In this module, we discussed how to represent 3D objects in a computer. We started with a simple analogy: just as a 2D image is made of pixels, a 3D object is made of polygons (mostly triangles). But how do we store them? The naive way is 'triangle soup', which is easy but duplicates shared vertices and wastes memory. So, we moved to the 'vertex and face list', using indirection to solve duplication. But wait, what if we want to modify and smooth the mesh? We need to know neighbors quickly, leading us to the difference between 'geometry' (coordinates) and 'topology' (connections). To master topology, we introduced the real hero: the 'half-edge data structure'. For the exam, focus heavily on how to traverse edges around a vertex (`h.pair.next`) and around a face (`h.next`). Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نفضل المثلثات على المضلعات الأخرى في رسومات الحاسب؟</template>
+          <template class="content-en">Why do we prefer triangles over other polygons in computer graphics?</template>
+          <span class="content-target">لماذا نفضل المثلثات على المضلعات الأخرى في رسومات الحاسب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن أي ثلاثة نقاط تضمن دائماً تكوين مستوى مسطح (Planar)، مما يمنع التشوهات البصرية، ولأنها تبسط الخوارزميات وتسرع عملية التنقيط (Rasterization) في الأجهزة.</template>
+          <template class="content-en">Because any three points guarantee a flat plane (planar), preventing visual artifacts, and they simplify algorithms and speed up hardware rasterization.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو 'حساء المثلثات' ولماذا نعتبره سيئاً؟</template>
+          <template class="content-en">What is 'triangle soup' and why is it considered bad?</template>
+          <span class="content-target">ما هو 'حساء المثلثات' ولماذا نعتبره سيئاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو تخزين 3 رؤوس مستقلة لكل مثلث. هو سيء لأنه يكرر تخزين الرؤوس المشتركة، مما يستهلك الذاكرة ويجعل من الصعب العثور على المثلثات المتجاورة.</template>
+          <template class="content-en">It is storing 3 independent vertices for each triangle. It's bad because it duplicates shared vertices, wasting memory and making it hard to find adjacent triangles.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تحل 'قائمة الرؤوس والوجوه' مشكلة حساء المثلثات؟</template>
+          <template class="content-en">How does the 'vertex and face list' solve the triangle soup problem?</template>
+          <span class="content-target">كيف تحل 'قائمة الرؤوس والوجوه' مشكلة حساء المثلثات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عن طريق فصل الإحداثيات في قائمة واحدة (Vertex list)، واستخدام مؤشرات (Indices) في قائمة الوجوه (Face list) للإشارة إليها، مما يمنع التكرار.</template>
+          <template class="content-en">By separating coordinates into a single Vertex list, and using indices in the Face list to point to them, which prevents duplication.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين الطوبولوجيا والهندسة؟</template>
+          <template class="content-en">What is the fundamental difference between topology and geometry?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين الطوبولوجيا والهندسة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الطوبولوجيا هي الروابط (كيف تتصل العناصر ببعضها)، بينما الهندسة هي الإحداثيات (أين تقع العناصر في الفضاء 3D).</template>
+          <template class="content-en">Topology is the connections (how elements connect to each other), while geometry is the coordinates (where elements are in 3D space).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى هيكل بيانات معقد مثل 'نصف الحافة' (Half-edge)؟</template>
+          <template class="content-en">Why do we need a complex data structure like 'half-edge'?</template>
+          <span class="content-target">لماذا نحتاج إلى هيكل بيانات معقد مثل 'نصف الحافة' (Half-edge)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن قائمة الرؤوس والوجوه لا توفر طريقة سريعة لمعرفة الجيران. هيكل نصف الحافة يسمح بالاستعلام السريع (O(1)) عن الروابط الطوبولوجية.</template>
+          <template class="content-en">Because the vertex/face list doesn't provide a fast way to find neighbors. The half-edge structure allows fast (O(1)) queries of topological relationships.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يخزن نصف الحافة الواحد؟</template>
+          <template class="content-en">What does a single half-edge store?</template>
+          <span class="content-target">ماذا يخزن نصف الحافة الواحد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يخزن مؤشرات إلى: نصف الحافة المقابل (pair)، التالي (next)، السابق (prev)، الوجه الأيسر (left)، رأس البداية (origin)، والحافة (edge).</template>
+          <template class="content-en">It stores pointers to: the opposite half-edge (pair), next, prev, left face, origin vertex, and the edge.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تدور حول رأس باستخدام أنصاف الحواف؟</template>
+          <template class="content-en">How do you orbit a vertex using half-edges?</template>
+          <span class="content-target">كيف تدور حول رأس باستخدام أنصاف الحواف؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تبدأ بنصف حافة الرأس، ثم تستخدم الحلقة `h = h.pair.next` حتى تعود لنقطة البداية.</template>
+          <template class="content-en">Start with the vertex's half-edge, then loop using `h = h.pair.next` until you return to the start.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تدور حول وجه (مثلث) باستخدام أنصاف الحواف؟</template>
+          <template class="content-en">How do you orbit a face (triangle) using half-edges?</template>
+          <span class="content-target">كيف تدور حول وجه (مثلث) باستخدام أنصاف الحواف؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تبدأ بنصف حافة الوجه، ثم تستخدم الحلقة `h = h.next`.</template>
+          <template class="content-en">Start with the face's half-edge, then loop using `h = h.next`.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نخزن ألوان الرؤوس بكفاءة؟</template>
+          <template class="content-en">How do we store vertex colors efficiently?</template>
+          <span class="content-target">كيف نخزن ألوان الرؤوس بكفاءة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام التوجيه غير المباشر (Indirection)؛ نخزن الألوان في قائمة منفصلة ونستخدم مؤشرات للإشارة إليها، تماماً مثل قائمة الوجوه.</template>
+          <template class="content-en">Using indirection; we store colors in a separate list and use indices to point to them, just like the face list.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو تنسيق Wavefront OBJ؟</template>
+          <template class="content-en">What is the Wavefront OBJ format?</template>
+          <span class="content-target">ما هو تنسيق Wavefront OBJ؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو تنسيق ملف قياسي للشبكات المضلعة يعتمد على فكرة 'قائمة الرؤوس والوجوه' لتخزين الإحداثيات والسمات بكفاءة.</template>
+          <template class="content-en">It is a standard file format for polygon meshes that relies on the 'vertex and face list' idea to store coordinates and attributes efficiently.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي الشبكة المضلعة (Polygon Mesh)؟",
+      "en": "What is a Polygon Mesh?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل لسطح ثلاثي الأبعاد باستخدام قائمة من إحداثيات الرؤوس والروابط بينها لتشكيل مضلعات.",
+        "en": "A 3D surface representation using a list of vertex coordinates and the connections between them to form polygons."
+      },
+      "example": {
+        "ar": "مثل نموذج أرنب ستانفورد (Stanford Bunny).",
+        "en": "Like the Stanford Bunny model."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "لماذا تعتبر شبكات المثلثات (Triangle Meshes) الأكثر شيوعاً؟",
+      "en": "Why are Triangle Meshes the most common?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأنها توفر هيكل بيانات بسيط وعنصر أساسي مرن يجعل الخوارزميات أبسط وأسرع.",
+        "en": "Because they provide a simple data structure with a flexible base element, making algorithms simpler and faster."
+      },
+      "example": {
+        "ar": "تشبه استخدام البكسلات المربعة في الصور النقطية ثنائية الأبعاد.",
+        "en": "Similar to using square pixels in 2D raster images."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو التشبيه بين الشبكات المضلعة والصور النقطية (Raster Images)؟",
+      "en": "What is the analogy between polygon meshes and raster images?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الصورة النقطية تمثل صورة عشوائية بشبكة منتظمة من البكسلات، والشبكة المضلعة تمثل سطحاً عشوائياً بمجموعة من المضلعات.",
+        "en": "A raster image represents an arbitrary image with a regular grid of pixels, while a polygon mesh represents an arbitrary surface with a set of polygons."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي طريقة تشفير \"حساء المثلثات\" (Triangle Soup)؟",
+      "en": "What is the \"Triangle Soup\" encoding method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة تخزن ثلاثة رؤوس بشكل صريح لكل مثلث، مما يعني أن المثلث يُفهم ضمنياً من كل ثلاثة رؤوس متتالية.",
+        "en": "A method that explicitly stores three vertices per triangle, meaning a triangle is implied by each vertex triplet."
+      },
+      "example": {
+        "ar": "[(x0,y0,z0), (x1,y1,z1), (x2,y2,z2)]",
+        "en": "[(x0,y0,z0), (x1,y1,z1), (x2,y2,z2)]"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو العيب الرئيسي في طريقة \"حساء المثلثات\"؟",
+      "en": "What is the main disadvantage of \"Triangle Soup\"?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقوم بتخزين الرؤوس المشتركة عدة مرات، ويصعب من خلالها العثور على المثلثات التي تشترك في نفس الرؤوس.",
+        "en": "It stores shared vertices multiple times and makes it hard to find triangles sharing vertices."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "كيف تعمل طريقة \"قائمة الرؤوس والوجوه\" (Vertex List + Face List)؟",
+      "en": "How does the \"Vertex List + Face List\" encoding work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تُعرّف جميع إحداثيات الرؤوس في قائمة واحدة، ثم تستخدم مؤشرات (Indices) لتلك القائمة لتعريف كل وجه (مثلث).",
+        "en": "It defines all vertex coordinates in one list, then uses indices to that list to define each face (triangle)."
+      },
+      "example": {
+        "ar": "Face list: [(0,1,2), (0,3,1)]",
+        "en": "Face list: [(0,1,2), (0,3,1)]"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي الميزة الرئيسية لطريقة \"قائمة الرؤوس والوجوه\"؟",
+      "en": "What is the main advantage of the \"Vertex List + Face List\" method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمنع تكرار إحداثيات الرؤوس بفضل استخدام التوجيه غير المباشر (Indirection).",
+        "en": "It prevents duplicated vertex coordinates thanks to the use of indirection."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو العيب المتبقي في طريقة \"قائمة الرؤوس والوجوه\"؟",
+      "en": "What is the remaining disadvantage of the \"Vertex List + Face List\" method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا يزال من الصعب العثور بسرعة على المثلثات التي تشترك في الرؤوس والحواف.",
+        "en": "It is still hard to quickly find triangles sharing vertices and edges."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو تعريف الطوبولوجيا (Topology) في الشبكات المضلعة؟",
+      "en": "What is the definition of Topology in polygon meshes?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هي الهيكل العام للشبكة والروابط بين عناصرها، ولا تهتم بالإحداثيات الفعلية.",
+        "en": "It is the global structure and connections of the mesh, and does not care about actual coordinates."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو تعريف الهندسة (Geometry) في الشبكات المضلعة؟",
+      "en": "What is the definition of Geometry in polygon meshes?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هي الهيكل المحلي للشبكة، وتهتم بالإحداثيات المكانية الفعلية للرؤوس.",
+        "en": "It is the local structure of the mesh, caring about the actual spatial coordinates of the vertices."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو هيكل بيانات نصف الحافة (Half-Edge Data Structure)؟",
+      "en": "What is the Half-Edge Data Structure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هيكل يستخدم زوجاً من أنصاف الحواف الموجهة على كل جانب من الحافة المشتركة لتخزين معلومات الجوار.",
+        "en": "A structure that uses a pair of directed half-edges on each side of a shared edge to store adjacency information."
+      },
+      "example": {
+        "ar": "يُعرف أيضاً بقائمة الحواف المزدوجة الاتصال (Doubly connected edge list).",
+        "en": "Also known as a doubly connected edge list."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي المؤشرات (Pointers) التي يخزنها نصف الحافة (Half-edge)؟",
+      "en": "What pointers does a Half-edge store?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يخزن مؤشرات إلى: pair, next, prev, left (الوجه), origin (الرأس), و edge (الحافة).",
+        "en": "It stores pointers to: pair, next, prev, left (face), origin (vertex), and edge."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف تجتاز الحواف حول رأس (Vertex) باستخدام هيكل نصف الحافة؟",
+      "en": "How do you traverse edges around a vertex using the half-edge structure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الحلقة: h = h.pair.next",
+        "en": "By using the loop: h = h.pair.next"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "كيف تجتاز الحواف حول مثلث (Face) باستخدام هيكل نصف الحافة؟",
+      "en": "How do you traverse edges around a triangle (face) using the half-edge structure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام الحلقة: h = h.next",
+        "en": "By using the loop: h = h.next"
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "كيف يتم تشفير سمات الرؤوس (مثل الألوان) بكفاءة؟",
+      "en": "How are vertex attributes (like colors) encoded efficiently?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام نفس فكرة التوجيه غير المباشر (Indirection) عبر تخزين السمات في قائمة واستخدام مؤشرات للوصول إليها.",
+        "en": "By using the same indirection idea: storing attributes in a list and using indices to access them."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو النوع الأكثر شيوعاً للشبكات المضلعة في رسومات الحاسب؟",
+      "en": "What is the most common type of polygon mesh in computer graphics?"
+    },
+    "options": {
+      "ar": [
+        "الشبكات الرباعية (Quad meshes)",
+        "شبكات المثلثات (Triangle meshes)",
+        "الشبكات السداسية (Hexagon meshes)",
+        "سحابة النقاط (Point clouds)"
+      ],
+      "en": [
+        "Quad meshes",
+        "Triangle meshes",
+        "Hexagon meshes",
+        "Point clouds"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "شبكات المثلثات هي الأكثر شيوعاً لأنها توفر هيكل بيانات بسيط وعنصر أساسي مرن يسرع الخوارزميات.",
+      "en": "Triangle meshes are the most common because they provide a simple data structure and a flexible base element that makes algorithms faster."
+    },
+    "hint": {
+      "ar": "فكر في الشكل الهندسي الذي يضمن دائماً أن تكون رؤوسه على نفس المستوى.",
+      "en": "Think of the geometric shape that always guarantees its vertices are coplanar."
+    },
+    "difficulty": "easy",
+    "conceptId": "polygon-meshes"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو العيب الرئيسي لطريقة تشفير \"حساء المثلثات\" (Triangle Soup)؟",
+      "en": "What is the main disadvantage of the \"Triangle Soup\" encoding method?"
+    },
+    "options": {
+      "ar": [
+        "لا يمكنها تمثيل الأسطح المنحنية",
+        "تتطلب مؤشرات معقدة جداً",
+        "تقوم بتخزين الرؤوس المشتركة عدة مرات",
+        "لا تدعم الألوان"
+      ],
+      "en": [
+        "It cannot represent curved surfaces",
+        "It requires very complex pointers",
+        "It stores shared vertices multiple times",
+        "It does not support colors"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في حساء المثلثات، يتم تخزين 3 رؤوس لكل مثلث بشكل مستقل، مما يؤدي إلى تكرار الرؤوس المشتركة بين المثلثات المتجاورة.",
+      "en": "In triangle soup, 3 vertices are stored independently for each triangle, leading to duplication of vertices shared between adjacent triangles."
+    },
+    "hint": {
+      "ar": "ماذا يحدث للرأس الذي يربط بين مثلثين متجاورين في هذه الطريقة؟",
+      "en": "What happens to a vertex that connects two adjacent triangles in this method?"
+    },
+    "difficulty": "medium",
+    "conceptId": "triangle-soup"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "في طريقة \"قائمة الرؤوس والوجوه\"، ماذا تحتوي قائمة الوجوه (Face list)؟",
+      "en": "In the \"Vertex List + Face List\" method, what does the face list contain?"
+    },
+    "options": {
+      "ar": [
+        "الإحداثيات الفعلية (x,y,z) لكل مثلث",
+        "مؤشرات (Indices) تشير إلى قائمة الرؤوس",
+        "ألوان المثلثات فقط",
+        "مؤشرات نصف الحافة (Half-edge pointers)"
+      ],
+      "en": [
+        "The actual (x,y,z) coordinates for each triangle",
+        "Indices pointing to the vertex list",
+        "Only the colors of the triangles",
+        "Half-edge pointers"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تستخدم قائمة الوجوه التوجيه غير المباشر (Indirection) عبر تخزين مؤشرات تشير إلى مواقع الرؤوس في قائمة الرؤوس.",
+      "en": "The face list uses indirection by storing indices that point to the locations of the vertices in the vertex list."
+    },
+    "hint": {
+      "ar": "كيف تتجنب هذه الطريقة تكرار الإحداثيات؟",
+      "en": "How does this method avoid duplicating coordinates?"
+    },
+    "difficulty": "medium",
+    "conceptId": "vertex-face-list"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي مصطلح يصف الهيكل العام للشبكة والروابط بين عناصرها دون الاهتمام بالإحداثيات؟",
+      "en": "Which term describes the global structure and connections of a mesh without caring about coordinates?"
+    },
+    "options": {
+      "ar": [
+        "الهندسة (Geometry)",
+        "الطوبولوجيا (Topology)",
+        "التنقيط (Rasterization)",
+        "التوجيه غير المباشر (Indirection)"
+      ],
+      "en": [
+        "Geometry",
+        "Topology",
+        "Rasterization",
+        "Indirection"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الطوبولوجيا تهتم بكيفية اتصال الرؤوس والحواف والوجوه، بينما الهندسة تهتم بمواقعها الفعلية في الفضاء.",
+      "en": "Topology cares about how vertices, edges, and faces are connected, while geometry cares about their actual positions in space."
+    },
+    "hint": {
+      "ar": "تذكر الفرق بين الهيكل العام (الروابط) والهيكل المحلي (الإحداثيات).",
+      "en": "Remember the difference between global structure (connections) and local structure (coordinates)."
+    },
+    "difficulty": "easy",
+    "conceptId": "topology-vs-geometry"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الاسم الآخر لهيكل بيانات نصف الحافة (Half-edge)؟",
+      "en": "What is another name for the half-edge data structure?"
+    },
+    "options": {
+      "ar": [
+        "حساء المثلثات (Triangle soup)",
+        "قائمة الحواف المزدوجة الاتصال (Doubly connected edge list)",
+        "قائمة الرؤوس (Vertex list)",
+        "سحابة النقاط (Point cloud)"
+      ],
+      "en": [
+        "Triangle soup",
+        "Doubly connected edge list",
+        "Vertex list",
+        "Point cloud"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يُعرف هيكل نصف الحافة أيضاً بقائمة الحواف المزدوجة الاتصال لأنه يستخدم مؤشرات لربط الحواف في كلا الاتجاهين.",
+      "en": "The half-edge structure is also known as a doubly connected edge list because it uses pointers to connect edges in both directions."
+    },
+    "hint": {
+      "ar": "فكر في كيفية ارتباط أنصاف الحواف ببعضها البعض (مثل القائمة المرتبطة).",
+      "en": "Think about how half-edges are linked to each other (like a linked list)."
+    },
+    "difficulty": "easy",
+    "conceptId": "half-edge-data-structure"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في هيكل نصف الحافة، ما هو الكود الصحيح لاجتياز الحواف حول رأس (Vertex) معين؟",
+      "en": "In the half-edge structure, what is the correct code to traverse edges around a specific vertex?"
+    },
+    "options": {
+      "ar": [
+        "h = h.next",
+        "h = h.prev",
+        "h = h.pair.next",
+        "h = h.left.edge"
+      ],
+      "en": [
+        "h = h.next",
+        "h = h.prev",
+        "h = h.pair.next",
+        "h = h.left.edge"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لاجتياز الحواف حول رأس، يجب الانتقال إلى نصف الحافة المقابل (pair) ثم الانتقال إلى نصف الحافة التالي (next) في الوجه المجاور.",
+      "en": "To traverse edges around a vertex, you must go to the opposite half-edge (pair) and then to the next half-edge (next) in the adjacent face."
+    },
+    "hint": {
+      "ar": "تحتاج إلى القفز إلى الوجه المجاور أولاً ثم التحرك داخله.",
+      "en": "You need to jump to the adjacent face first, then move within it."
+    },
+    "difficulty": "hard",
+    "conceptId": "half-edge-data-structure"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في هيكل نصف الحافة، ما هو الكود الصحيح لاجتياز الحواف حول مثلث (Face)؟",
+      "en": "In the half-edge structure, what is the correct code to traverse edges around a triangle (face)?"
+    },
+    "options": {
+      "ar": [
+        "h = h.pair.next",
+        "h = h.next",
+        "h = h.origin",
+        "h = h.left"
+      ],
+      "en": [
+        "h = h.pair.next",
+        "h = h.next",
+        "h = h.origin",
+        "h = h.left"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لاجتياز الحواف داخل نفس الوجه، يكفي تتبع مؤشر 'next' الذي يشير إلى نصف الحافة التالي في نفس المثلث.",
+      "en": "To traverse edges within the same face, you simply follow the 'next' pointer which points to the next half-edge in the same triangle."
+    },
+    "hint": {
+      "ar": "أنت لا تحتاج إلى مغادرة الوجه الحالي.",
+      "en": "You do not need to leave the current face."
+    },
+    "difficulty": "medium",
+    "conceptId": "half-edge-data-structure"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "كيف يتم عادةً تخزين سمات الرؤوس مثل الألوان بكفاءة؟",
+      "en": "How are vertex attributes like colors typically stored efficiently?"
+    },
+    "options": {
+      "ar": [
+        "بتكرار اللون مع كل مثلث (حساء الألوان)",
+        "باستخدام التوجيه غير المباشر (مؤشرات تشير إلى قائمة ألوان)",
+        "بتخزينها في هيكل نصف الحافة فقط",
+        "لا يمكن تخزين الألوان في الشبكات المضلعة"
+      ],
+      "en": [
+        "By duplicating the color with each triangle (color soup)",
+        "By using indirection (indices pointing to a color list)",
+        "By storing them only in the half-edge structure",
+        "Colors cannot be stored in polygon meshes"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم نفس فكرة التوجيه غير المباشر (Indirection) المستخدمة في قائمة الوجوه لتخزين السمات بكفاءة وتجنب التكرار.",
+      "en": "The same indirection idea used in the face list is used to store attributes efficiently and avoid duplication."
+    },
+    "hint": {
+      "ar": "فكر في كيفية حل مشكلة تكرار الإحداثيات.",
+      "en": "Think about how the coordinate duplication problem was solved."
+    },
+    "difficulty": "medium",
+    "conceptId": "encoding-vertex-attributes"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الغرض من مؤشر `pair` في هيكل نصف الحافة؟",
+      "en": "What is the purpose of the `pair` pointer in the half-edge structure?"
+    },
+    "options": {
+      "ar": [
+        "يشير إلى الرأس التالي في المثلث",
+        "يشير إلى نصف الحافة المقابل على نفس الحافة المشتركة",
+        "يشير إلى الوجه الأيسر",
+        "يشير إلى لون الرأس"
+      ],
+      "en": [
+        "It points to the next vertex in the triangle",
+        "It points to the opposite half-edge on the same shared edge",
+        "It points to the left face",
+        "It points to the vertex color"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مؤشر `pair` يربط نصف الحافة بنصف الحافة المعاكس له، مما يسمح بالانتقال بين الوجوه المتجاورة.",
+      "en": "The `pair` pointer connects a half-edge to its opposite half-edge, allowing navigation between adjacent faces."
+    },
+    "hint": {
+      "ar": "كيف ننتقل من مثلث إلى المثلث المجاور له؟",
+      "en": "How do we move from one triangle to its neighbor?"
+    },
+    "difficulty": "medium",
+    "conceptId": "half-edge-data-structure"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "لماذا تُشبه الشبكات المضلعة بالصور النقطية (Raster images)؟",
+      "en": "Why are polygon meshes compared to raster images?"
+    },
+    "options": {
+      "ar": [
+        "لأن كلاهما ثنائي الأبعاد",
+        "لأن كلاهما يمثل بيانات عشوائية باستخدام شبكة من العناصر الأساسية المرنة",
+        "لأن كلاهما يستخدم حساء المثلثات",
+        "لأن كلاهما لا يدعم الألوان"
+      ],
+      "en": [
+        "Because both are 2D",
+        "Because both represent arbitrary data using a grid of flexible base elements",
+        "Because both use triangle soup",
+        "Because both do not support colors"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الصورة النقطية تستخدم البكسلات لتمثيل صورة عشوائية، والشبكة المضلعة تستخدم المضلعات لتمثيل سطح عشوائي.",
+      "en": "A raster image uses pixels to represent an arbitrary image, and a polygon mesh uses polygons to represent an arbitrary surface."
+    },
+    "hint": {
+      "ar": "ما هو القاسم المشترك بين البكسل والمثلث في هذا السياق؟",
+      "en": "What do a pixel and a triangle have in common in this context?"
+    },
+    "difficulty": "medium",
+    "conceptId": "polygon-meshes"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين الطوبولوجيا والهندسة. تذكر: الطوبولوجيا = الروابط (كيف تتصل الرؤوس)، الهندسة = الإحداثيات (أين تقع الرؤوس).</template>
+      <template class="content-en">Confusing topology with geometry. Remember: Topology = connections (how vertices connect), Geometry = coordinates (where vertices are).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن 'حساء المثلثات' يوفر الذاكرة لأنه بسيط. في الواقع، هو يستهلك ذاكرة أكبر بكثير لأنه يكرر الرؤوس المشتركة.</template>
+      <template class="content-en">Thinking 'triangle soup' saves memory because it's simple. In reality, it consumes much more memory because it duplicates shared vertices.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">التوجيه غير المباشر (Indirection) هو سر الكفاءة في رسومات الحاسب. استخدام المؤشرات (Indices) بدلاً من تكرار البيانات يوفر الذاكرة ويسرع التحديثات.</template>
+      <template class="content-en">Indirection is the secret to efficiency in computer graphics. Using indices instead of duplicating data saves memory and speeds up updates.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في هيكل نصف الحافة، المؤشر `pair` هو الجسر الوحيد للعبور من وجه إلى الوجه المجاور له. بدونه، كل مثلث سيكون معزولاً.</template>
+      <template class="content-en">In the half-edge structure, the `pair` pointer is the only bridge to cross from one face to its neighbor. Without it, every triangle would be isolated.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">لاجتياز الحواف حول رأس في هيكل نصف الحافة، تذكر هذه التعويذة: `h = h.pair.next`. إنها تقفز للوجه المجاور ثم تتحرك للضلع التالي.</template>
+      <template class="content-en">To traverse edges around a vertex in a half-edge structure, remember this mantra: `h = h.pair.next`. It jumps to the adjacent face then moves to the next edge.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M08.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M10.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

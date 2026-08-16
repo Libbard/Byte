@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS361" data-module="8">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نموذج كائن المستند (DOM): الكائنات والمجموعات · CS361 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS361" data-page-title-en="CS361">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M07.html" data-gh-next="M09.html" data-gh-card="../../hub/course.html?code=CS361"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#dom-and-node-tree" class="toc-link" data-bilingual>
+        <template class="content-ar">نموذج كائن المستند (DOM) وشجرة العقد</template>
+        <template class="content-en">DOM and the Node Tree</template>
+        <span class="content-target">نموذج كائن المستند (DOM) وشجرة العقد</span>
+      </a>
+      <a href="#accessing-dom-nodes" class="toc-link" data-bilingual>
+        <template class="content-ar">الوصول إلى عقد DOM</template>
+        <template class="content-en">Accessing DOM Nodes</template>
+        <span class="content-target">الوصول إلى عقد DOM</span>
+      </a>
+      <a href="#manipulating-nodes" class="toc-link" data-bilingual>
+        <template class="content-ar">معالجة وتعديل العقد</template>
+        <template class="content-en">Manipulating Nodes</template>
+        <span class="content-target">معالجة وتعديل العقد</span>
+      </a>
+      <a href="#traversing-and-modifying-tree" class="toc-link" data-bilingual>
+        <template class="content-ar">اجتياز وتعديل شجرة DOM</template>
+        <template class="content-en">Traversing and Modifying a DOM Tree</template>
+        <span class="content-target">اجتياز وتعديل شجرة DOM</span>
+      </a>
+      <a href="#javascript-events" class="toc-link" data-bilingual>
+        <template class="content-ar">أحداث جافا سكريبت (JavaScript Events)</template>
+        <template class="content-en">JavaScript Events</template>
+        <span class="content-target">أحداث جافا سكريبت (JavaScript Events)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 8</template>
+      <template class="content-en">Module 8</template>
+      <span class="content-target">الوحدة 8</span>
+    </span> · CS361
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">نموذج كائن المستند (DOM): الكائنات والمجموعات</h1>
+      <p class="hero-description">مقدمة شاملة لنموذج كائن المستند (DOM)، بما في ذلك شجرة العقد، وطرق الوصول للعناصر وتعديلها، ومعالجة الأحداث باستخدام JavaScript.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Document Object Model (DOM): objects and collections</h1>
+      <p class="hero-description">A comprehensive introduction to the Document Object Model (DOM), including the node tree, accessing and modifying elements, and handling events using JavaScript.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">تطوير الويب</span>
+      <span class="tag">جافا سكريبت</span>
+      <span class="tag">نموذج كائن المستند</span>
+      <span class="tag">أحداث الويب</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Web Development</span>
+      <span class="tag">JavaScript</span>
+      <span class="tag">DOM</span>
+      <span class="tag">Web Events</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>استخدام JavaScript ونموذج كائن المستند W3C لإنشاء صفحات ويب ديناميكية.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم مفهوم عقد DOM وأشجار DOM.</span></li>
+      <li><span class="obj-icon">✦</span><span>اجتياز وتحرير وتعديل العناصر في مستند HTML5.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Use JavaScript and the W3C Document Object Model to create dynamic web pages.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn the concept of DOM nodes and DOM trees.</span></li>
+      <li><span class="obj-icon">✦</span><span>Traverse, edit and modify elements in an HTML5 document.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="dom-and-node-tree" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> نموذج كائن المستند (DOM) وشجرة العقد</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> DOM and the Node Tree</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الـ DOM هو خريطة هيكلية تترجم كود HTML إلى كائنات يفهمها JavaScript، تماماً مثل شجرة العائلة التي توضح العلاقات بين الأفراد.</p>
+    </template>
+    <template class="content-en">
+      <p>The DOM is a structured map that translates HTML markup into objects JavaScript can understand, much like a family tree showing relationships.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يوفر نموذج كائن المستند (DOM) طريقة للوصول إلى محتويات المستند ومعالجتها.</p><p>يتم تمثيل كل جزء من صفحة HTML5 (عناصر، سمات، نصوص) كـ 'عقدة' (Node) في متصفح الويب.</p><p>تشكل هذه العقد 'شجرة المستند' (DOM tree) التي تصف العلاقات بين العناصر (أب، ابن، <span class="smart-term" data-term-en="Siblings" data-ar="الأشقاء" data-en-def="Nodes in the DOM tree that share the exact same parent node.">أشقاء<span class="smart-term-tooltip"></span></span>).</p><p>عقدة `html` هي العقدة الجذرية (Root Node) لأنه ليس لها أب.</p></template>
+    <template class="content-en"><p>The Document Object Model (DOM) gives us a way to access and manipulate the contents of a document.</p><p>Every piece of an HTML5 page (elements, attributes, text) is modeled in the web browser by a DOM node.</p><p>These nodes make up the page's DOM tree, describing child-parent and <span class="smart-term" data-term-en="Siblings" data-ar="الأشقاء" data-en-def="Nodes in the DOM tree that share the exact same parent node.">sibling<span class="smart-term-tooltip"></span></span> relationships.</p><p>The `html` node is called the root node because it has no parent.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تم تصميم الـ DOM كواجهة برمجة تطبيقات (API) مستقلة عن اللغة، مما يسمح للغات البرمجة المختلفة بالتفاعل مع هيكل المستند.</p><p>فهم العلاقات الهرمية (Parent-Child-Sibling) أمر بالغ الأهمية لاجتياز الشجرة بكفاءة دون الاعتماد فقط على المعرفات (IDs).</p></template>
+    <template class="content-en"><p>The DOM is designed as a language-independent API, allowing various programming languages to interact with the document structure.</p><p>Understanding the hierarchical relationships (Parent-Child-Sibling) is crucial for traversing the tree efficiently without relying solely on IDs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a hierarchical tree diagram representing the DOM. The root node is 'html' (gray background). It branches into two children: 'head' and 'body'. 'head' branches into 'title' and 'meta'. 'body' branches into 'div' and 'div'. The first 'div' branches into 'h2', 'p', and 'a'. The second 'div' branches into 'p'. Use a dark background #0d1117, accent color #00bcd4, viewBox 0 0 800 400. Add labels for 'root', 'child', and 'parent' relationships. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 550" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        <linearGradient id="rootGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Diagram Title -->
+    <text x="400" y="40" text-anchor="middle" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold">DOM Tree Structure / هيكل شجرة DOM</text>
+
+    <!-- Connection Paths -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)">
+        <!-- Level 0 to Level 1 -->
+        <path d="M 400 110 C 400 145, 200 145, 200 180" />
+        <path d="M 400 110 C 400 145, 600 145, 600 180" />
+        
+        <!-- Level 1 to Level 2 (Head) -->
+        <path d="M 200 220 C 200 255, 120 255, 120 290" />
+        <path d="M 200 220 C 200 255, 280 255, 280 290" />
+        
+        <!-- Level 1 to Level 2 (Body) -->
+        <path d="M 600 220 C 600 255, 500 255, 500 290" />
+        <path d="M 600 220 C 600 255, 700 255, 700 290" />
+        
+        <!-- Level 2 to Level 3 (Div 1) -->
+        <path d="M 500 330 C 500 365, 380 365, 380 400" />
+        <path d="M 500 330 C 500 365, 500 365, 500 400" />
+        <path d="M 500 330 C 500 365, 620 365, 620 400" />
+        
+        <!-- Level 2 to Level 3 (Div 2) -->
+        <path d="M 700 330 C 700 365, 740 365, 740 400" />
+    </g>
+
+    <!-- Nodes -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" text-anchor="middle" dominant-baseline="middle">
+        
+        <!-- Level 0: Root -->
+        <g transform="translate(340, 70)">
+            <rect width="120" height="40" rx="8" fill="url(#rootGrad)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="60" y="21" fill="var(--text-primary)">&lt;html&gt;</text>
+        </g>
+
+        <!-- Level 1 -->
+        <g transform="translate(150, 180)">
+            <rect width="100" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="50" y="21" fill="var(--text-primary)">&lt;head&gt;</text>
+        </g>
+        <g transform="translate(550, 180)">
+            <rect width="100" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="50" y="21" fill="var(--text-primary)">&lt;body&gt;</text>
+        </g>
+
+        <!-- Level 2 -->
+        <g transform="translate(70, 290)">
+            <rect width="100" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="50" y="21" fill="var(--text-primary)">&lt;title&gt;</text>
+        </g>
+        <g transform="translate(230, 290)">
+            <rect width="100" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="50" y="21" fill="var(--text-primary)">&lt;meta&gt;</text>
+        </g>
+        <g transform="translate(450, 290)">
+            <rect width="100" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="50" y="21" fill="var(--text-primary)">&lt;div&gt;</text>
+        </g>
+        <g transform="translate(650, 290)">
+            <rect width="100" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="50" y="21" fill="var(--text-primary)">&lt;div&gt;</text>
+        </g>
+
+        <!-- Level 3 -->
+        <g transform="translate(340, 400)">
+            <rect width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="40" y="21" fill="var(--text-primary)">&lt;h2&gt;</text>
+        </g>
+        <g transform="translate(460, 400)">
+            <rect width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="40" y="21" fill="var(--text-primary)">&lt;p&gt;</text>
+        </g>
+        <g transform="translate(580, 400)">
+            <rect width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="40" y="21" fill="var(--text-primary)">&lt;a&gt;</text>
+        </g>
+        <g transform="translate(700, 400)">
+            <rect width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+            <text x="40" y="21" fill="var(--text-primary)">&lt;p&gt;</text>
+        </g>
+    </g>
+
+    <!-- Annotations & Relationships -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">
+        
+        <!-- Root Annotation -->
+        <line x1="470" y1="90" x2="500" y2="90" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="510" y="95" text-anchor="start">Root / الجذر</text>
+
+        <!-- Parent Annotation -->
+        <line x1="660" y1="200" x2="690" y2="200" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="700" y="205" text-anchor="start">Parent / أب</text>
+
+        <!-- Child Annotation -->
+        <line x1="440" y1="310" x2="410" y2="310" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="400" y="315" text-anchor="end">Child / ابن</text>
+
+        <!-- Siblings Annotation -->
+        <path d="M 380 455 L 380 465 L 620 465 L 620 455" fill="none" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="500" y="485" text-anchor="middle">Siblings / إخوة</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر عقدة `html` هي العقدة الجذرية الوحيدة في مستند الويب؟</template>
+      <template class="content-en">Why is the `html` node considered the only root node in a web document?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنها العنصر الحاوي الأعلى مستوى الذي يغلف جميع العناصر الأخرى في صفحة الويب، ولا يوجد عنصر يسبقها أو يحتويها في التسلسل الهرمي لـ DOM.</p></template>
+      <template class="content-en"><p>Because it is the top-level container element that wraps all other elements in a web page, and no element precedes or contains it in the DOM hierarchy.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="accessing-dom-nodes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الوصول إلى عقد DOM</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Accessing DOM Nodes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>كائن `document` هو بوابتك للبحث عن أي عنصر في الصفحة باستخدام اسمه، أو فئته، أو معرفه الفريد.</p>
+    </template>
+    <template class="content-en">
+      <p>The `document` object is your gateway to finding any element on the page using its tag name, class, or unique ID.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يحدد كائن `document` الصفحة نفسها ويأتي مع طرق قياسية للوصول إلى العناصر. تشمل الطرق الشائعة:</p><ul><li><strong>`getElementsByTagName()`</strong> التي تعيد مجموعة (Collection/NodeList) من العناصر بناءً على اسم العلامة، و</li><li><strong>`getElementById()`</strong> التي تعيد عنصراً واحداً يطابق المعرف الفريد، و</li><li><strong>`getElementsByClassName()`</strong> التي تعيد مجموعة من العناصر التي تشترك في نفس الفئة.</li></ul></template>
+    <template class="content-en"><p>The `document` object identifies the page itself and comes with standard methods for accessing elements. Common methods include:</p><ul><li><strong>`getElementsByTagName()`</strong> which returns a collection (<span class="smart-term" data-term-en="NodeList" data-ar="قائمة العقد" data-en-def="A collection of nodes returned by methods like getElementsByTagName, which can be iterated over like an array.">NodeList<span class="smart-term-tooltip"></span></span>) of elements based on their tag name,</li><li><strong>`getElementById()`</strong> which returns a single element matching a unique ID, and</li><li><strong>`getElementsByClassName()`</strong> which returns a collection of elements sharing the same class.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من الأخطاء الشائعة الخلط بين الطرق التي تعيد عنصراً مفرداً وتلك التي تعيد مجموعة (NodeList).</p><p>المجموعات تشبه المصفوفات ولكنها ليست مصفوفات حقيقية؛ يجب الوصول إلى عناصرها عبر الفهارس (مثل `[0]`) قبل التعديل عليها.</p></template>
+    <template class="content-en"><p>A common pitfall is confusing methods that return a single element with those returning a NodeList.</p><p>Collections are array-like but not true arrays; their elements must be accessed via indices (e.g., `[0]`) before manipulation.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>var paragraphs = document.getElementsByTagName("p");
+var photo = document.getElementById("lead-photo");
+var x = document.getElementsByClassName("example");</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>getElementById()</th>
+        <th>getElementsByTagName()</th>
+        <th>getElementsByClassName()</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع القيمة المرجعة</template>
+          <template class="content-en">Return Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عنصر واحد (Single Element)</template>
+          <template class="content-en">Single Element</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مجموعة (Collection / NodeList)</template>
+          <template class="content-en">Collection / NodeList</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مجموعة (Collection / NodeList)</template>
+          <template class="content-en">Collection / NodeList</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">معيار البحث</template>
+          <template class="content-en">Search Criteria</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سمة المعرف (id)</template>
+          <template class="content-en">id attribute</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">اسم العلامة (مثل p, div)</template>
+          <template class="content-en">Tag name (e.g., p, div)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سمة الفئة (class)</template>
+          <template class="content-en">class attribute</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا استخدمت `getElementById` لمعرف غير موجود في الصفحة؟</template>
+      <template class="content-en">What happens if you use `getElementById` for an ID that does not exist on the page?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستعيد الدالة القيمة `null`.</p></template>
+      <template class="content-en"><p>The function will return `null`.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="manipulating-nodes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> معالجة وتعديل العقد</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Manipulating Nodes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>بمجرد العثور على العنصر، يمكنك تغيير خصائصه (setAttribute)، أو محتواه الداخلي (innerHTML)، أو مظهره (style).</p>
+    </template>
+    <template class="content-en">
+      <p>Once you find an element, you can change its attributes (setAttribute), its inner content (innerHTML), or its appearance (style).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يوفر DOM طرقاً لتعديل العناصر المحددة.</p><ul><li><strong>`setAttribute(name, value)`</strong> يغير قيمة سمة معينة (مثل تغيير مصدر الصورة `src`).</li><li><strong>خاصية `innerHTML`</strong> تسمح بقراءة أو تغيير النص والترميز داخل العنصر.</li><li><strong>خاصية `style`</strong> تسمح بإضافة أو تعديل أو إزالة أنماط CSS.</li></ul><p>ملاحظة هامة: في JavaScript، خصائص CSS التي تحتوي على واصلة (مثل `background-color`) تُكتب بصيغة <span class="smart-term" data-term-en="camelCase" data-ar="حالة الجمل" data-en-def="A naming convention where the first letter of each word is capitalized except for the first word, used in JS for CSS properties.">camelCase<span class="smart-term-tooltip"></span></span> (مثل `backgroundColor`).</p></template>
+    <template class="content-en"><p>The DOM provides methods to modify selected elements.</p><ul><li><strong>`setAttribute(name, value)`</strong> changes a specific attribute's value (e.g., changing an image's `src`).</li><li><strong>The `innerHTML` property</strong> allows reading or changing the text and markup inside an element.</li><li><strong>The `style` property</strong> allows adding, modifying, or removing CSS styles.</li></ul><p>Important note: in JavaScript, hyphenated CSS properties (like `background-color`) become <span class="smart-term" data-term-en="camelCase" data-ar="حالة الجمل" data-en-def="A naming convention where the first letter of each word is capitalized except for the first word, used in JS for CSS properties.">camelCase<span class="smart-term-tooltip"></span></span> (like `backgroundColor`).</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام `innerHTML` يمكن أن يعرض الموقع لثغرات XSS (Cross-Site Scripting) إذا تم استخدامه لإدراج بيانات غير موثوقة من المستخدم.</p><p>في التطبيقات الحساسة، يُفضل استخدام `textContent` أو إنشاء العقد يدوياً.</p></template>
+    <template class="content-en"><p>Using `innerHTML` can expose the site to XSS (Cross-Site Scripting) vulnerabilities if used to insert untrusted user data.</p><p>In sensitive applications, it's safer to use `textContent` or manually create nodes.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>var photo = document.getElementById("lead-photo");
+photo.setAttribute("src", "lespaul.jpg");
+
+var paragraphs = document.getElementById("p1");
+paragraphs.innerHTML = "Paragraph changed...";
+paragraphs.style.color = "red";</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف ستكتب خاصية CSS `margin-top` عند تعديلها باستخدام JavaScript؟</template>
+      <template class="content-en">How would you write the CSS property `margin-top` when modifying it using JavaScript?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>ستُكتب `marginTop`.</p></template>
+      <template class="content-en"><p>It would be written as `marginTop`.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="traversing-and-modifying-tree" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> اجتياز وتعديل شجرة DOM</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Traversing and Modifying a DOM Tree</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يمكنك بناء عناصر جديدة بالكامل وإضافتها للصفحة، أو إزالة عناصر موجودة، تماماً مثل بناء أو هدم أجزاء من منزل.</p>
+    </template>
+    <template class="content-en">
+      <p>You can build entirely new elements and add them to the page, or remove existing ones, just like building or demolishing parts of a house.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لتعديل هيكل الصفحة ديناميكياً، نستخدم دوال مثل:</p><ul><li><strong>`createElement()`</strong> لإنشاء عقدة عنصر جديدة، و</li><li><strong>`createTextNode()`</strong> لإنشاء عقدة نصية.</li></ul><p>هذه العقد لا تظهر في الصفحة حتى يتم إدراجها باستخدام `<span class="smart-term" data-term-en="appendChild()" data-ar="إضافة ابن" data-en-def="Inserts a child node after any existing children of the node on which it's called.">appendChild()<span class="smart-term-tooltip"></span></span>` (تضيف كابن أخير) أو `insertBefore()` (تضيف قبل عنصر محدد).&lt;/p&gt;&lt;p&gt;يمكن أيضاً استبدال العقد باستخدام `replaceChild()` أو إزالتها باستخدام `removeChild()`.&lt;/p&gt;&lt;p&gt;للوصول إلى الأب المباشر لعنصر، نستخدم خاصية `parentNode`.</p></template>
+    <template class="content-en"><p>To dynamically modify the page structure, we use functions like:</p><ul><li><strong>`createElement()`</strong> to create a new element node, and</li><li><strong>`createTextNode()`</strong> to create a text node.</li></ul><p>These nodes don't appear on the page until inserted using `<span class="smart-term" data-term-en="appendChild()" data-ar="إضافة ابن" data-en-def="Inserts a child node after any existing children of the node on which it's called.">appendChild()<span class="smart-term-tooltip"></span></span>` (adds as the last child) or `insertBefore()` (adds before a specific element).&lt;/p&gt;&lt;p&gt;Nodes can also be swapped using `replaceChild()` or deleted using `removeChild()`.&lt;/p&gt;&lt;p&gt;To access an element's direct parent, we use the `parentNode` property.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>عمليات تعديل DOM مكلفة من حيث الأداء (تسبب إعادة رسم الصفحة Reflow/Repaint).</p><p>لذلك، عند إضافة عناصر متعددة، يُفضل استخدام `DocumentFragment` لتجميع التعديلات في الذاكرة ثم إضافتها دفعة واحدة للشجرة.</p></template>
+    <template class="content-en"><p>DOM modification operations are performance-heavy (causing Reflow/Repaint).</p><p>Therefore, when adding multiple elements, it's best practice to use a `DocumentFragment` to batch changes in memory and append them to the tree all at once.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا استخدمت `createElement` لإنشاء زر، هل سيظهر فوراً للمستخدم؟</template>
+      <template class="content-en">If you use `createElement` to create a button, will it immediately appear to the user?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، يتم إنشاؤه في الذاكرة فقط. يجب إرفاقه بشجرة DOM باستخدام دوال مثل `appendChild` ليظهر.</p></template>
+      <template class="content-en"><p>No, it is only created in memory. It must be attached to the DOM tree using functions like `appendChild` to become visible.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="javascript-events" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> أحداث جافا سكريبت (JavaScript Events)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> JavaScript Events</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الأحداث هي نظام التنبيه في المتصفح؛ تخبر الكود الخاص بك عندما يقوم المستخدم بالنقر، أو التمرير، أو عندما تكتمل تحميل الصفحة.</p>
+    </template>
+    <template class="content-en">
+      <p>Events are the browser's alarm system; they tell your code when a user clicks, hovers, or when the page finishes loading.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>أحداث JS (أو أحداث HTML) هي أي شيء يحدث لمستند HTML بواسطة المتصفح أو المستخدم (مثل تحميل الصفحة، النقر على زر، تحريك الماوس).</p><p>تستخدم JavaScript للتفاعل مع هذه الأحداث. يمكن ربط الأحداث باستخدام سمات HTML (مثل `onclick`) أو باستخدام طريقة `addEventListener()`.</p><p>تشمل الأحداث الشائعة:</p><ul><li><strong>`onload`</strong> (اكتمال التحميل)،</li><li><strong>`onclick`</strong> (نقر)،</li><li><strong>`onmouseover`</strong> (مرور الماوس)،</li><li><strong>`onmouseout`</strong> (ابتعاد الماوس)،</li><li><strong>`onchange`</strong> (تغيير القيمة)، و</li><li><strong>`onkeydown`</strong> (الضغط على مفتاح).</li></ul></template>
+    <template class="content-en"><p>JS events (or HTML events) are anything that happens to the HTML document done by either a browser or a user (e.g., page loaded, button clicked, mouse moved).</p><p>JavaScript is used to react to these events. Events can be attached using HTML attributes (like `onclick`) or by using the `addEventListener()` method.</p><p>Common events include:</p><ul><li><strong>`onload`</strong> (loading complete),</li><li><strong>`onclick`</strong> (click),</li><li><strong>`onmouseover`</strong> (mouse hover),</li><li><strong>`onmouseout`</strong> (mouse leave),</li><li><strong>`onchange`</strong> (value changed), and</li><li><strong>`onkeydown`</strong> (key pressed).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام `addEventListener()` هو الممارسة الأفضل حديثاً لأنه يسمح بإضافة مستمعين متعددين لنفس الحدث على نفس العنصر، ويفصل كود JavaScript عن هيكل HTML (Separation of Concerns)، على عكس استخدام سمات HTML المضمنة.</p></template>
+    <template class="content-en"><p>Using `addEventListener()` is the modern best practice because it allows adding multiple listeners to the same event on the same element, and it separates JavaScript code from HTML structure (Separation of Concerns), unlike inline HTML attributes.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>javascript</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>document.getElementById("myBtn").addEventListener("click", myFunction);
+
+function myFunction() {
+  document.getElementById("demo").innerHTML = "Hello World";
+}</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>html</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>&lt;button onclick="alert('Hello')"&gt;Click&lt;/button&gt;
+&lt;body onload="myFunction()"&gt;</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما الفرق بين `onmouseover` و `onmouseout`؟</template>
+      <template class="content-en">What is the difference between `onmouseover` and `onmouseout`?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>`onmouseover` يُطلق عندما يدخل مؤشر الماوس حدود العنصر، بينما `onmouseout` يُطلق عندما يغادر المؤشر حدود العنصر.</p></template>
+      <template class="content-en"><p>`onmouseover` triggers when the mouse pointer enters the element's boundaries, while `onmouseout` triggers when the pointer leaves the element.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبنائي في هذه الوحدة المحورية. تخيلوا أن صفحة الويب هي منزل مبني مسبقاً، والـ DOM هو المخطط الهندسي السحري الذي يسمح لنا بإعادة ترتيب الغرف، أو تغيير ألوان الجدران، أو حتى بناء غرف جديدة بعد اكتمال البناء! في الامتحان، ركزوا جيداً على الفرق بين الدوال التي تعيد عنصراً واحداً (مثل getElementById) وتلك التي تعيد مجموعة (مثل getElementsByTagName). تذكروا دائماً قاعدة تحويل خصائص CSS إلى camelCase عند استخدامها في JS. ولا تنسوا أن إنشاء عنصر بـ createElement لا يكفي لظهوره، بل يجب إلحاقه بـ appendChild. أخيراً، فهمكم للأحداث (Events) وكيفية ربطها بـ addEventListener هو مفتاحكم لجعل صفحاتكم تنبض بالحياة. بالتوفيق!</template>
+    <template class="content-en">Welcome, students, to this pivotal module. Imagine a web page as a pre-built house, and the DOM is the magical blueprint that allows us to rearrange rooms, change wall colors, or even build new rooms after construction is complete! For the exam, focus heavily on the difference between methods that return a single element (like getElementById) and those returning a collection (like getElementsByTagName). Always remember the rule of converting CSS properties to camelCase when using them in JS. Don't forget that creating an element with createElement isn't enough for it to appear; it must be attached with appendChild. Finally, understanding Events and how to bind them with addEventListener is your key to making pages come alive. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الغرض الأساسي من نموذج كائن المستند (DOM)؟</template>
+          <template class="content-en">What is the primary purpose of the Document Object Model (DOM)?</template>
+          <span class="content-target">ما هو الغرض الأساسي من نموذج كائن المستند (DOM)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الغرض الأساسي هو توفير تمثيل هيكلي (شجرة) لمستند HTML، مما يسمح للغات البرمجة مثل JavaScript بالوصول إلى محتويات المستند وتعديلها ديناميكياً.</template>
+          <template class="content-en">The primary purpose is to provide a structured (tree) representation of an HTML document, allowing programming languages like JavaScript to access and dynamically modify the document's contents.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين `getElementById` و `getElementsByTagName`؟</template>
+          <template class="content-en">What is the difference between `getElementById` and `getElementsByTagName`?</template>
+          <span class="content-target">ما الفرق بين `getElementById` و `getElementsByTagName`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">`getElementById` تعيد عنصراً واحداً فقط يطابق المعرف الفريد، بينما `getElementsByTagName` تعيد مجموعة (NodeList) من جميع العناصر التي تحمل نفس اسم العلامة.</template>
+          <template class="content-en">`getElementById` returns only a single element matching the unique ID, whereas `getElementsByTagName` returns a collection (NodeList) of all elements with the same tag name.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكنك تغيير الصورة المعروضة في عنصر `&lt;img&gt;` باستخدام JavaScript؟</template>
+          <template class="content-en">How can you change the image displayed in an `&lt;img&gt;` element using JavaScript?</template>
+          <span class="content-target">كيف يمكنك تغيير الصورة المعروضة في عنصر `<img>` باستخدام JavaScript؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بالوصول إلى العنصر ثم استخدام دالة `setAttribute('src', 'new_image.jpg')` لتغيير مسار الصورة.</template>
+          <template class="content-en">By accessing the element and then using the `setAttribute('src', 'new_image.jpg')` method to change the image path.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم خاصية `innerHTML`؟</template>
+          <template class="content-en">Why do we use the `innerHTML` property?</template>
+          <span class="content-target">لماذا نستخدم خاصية `innerHTML`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدمها لقراءة أو تغيير النص وكود HTML الداخلي لعنصر معين بسهولة.</template>
+          <template class="content-en">We use it to easily read or change the text and internal HTML markup of a specific element.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم التعامل مع خصائص CSS التي تحتوي على شرطة (مثل `font-family`) في DOM؟</template>
+          <template class="content-en">How are hyphenated CSS properties (like `font-family`) handled in the DOM?</template>
+          <span class="content-target">كيف يتم التعامل مع خصائص CSS التي تحتوي على شرطة (مثل `font-family`) في DOM؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتم تحويلها إلى صيغة camelCase، فتصبح `fontFamily` عند الوصول إليها عبر خاصية `style` في JavaScript.</template>
+          <template class="content-en">They are converted to camelCase, becoming `fontFamily` when accessed via the `style` property in JavaScript.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الخطوات اللازمة لإضافة فقرة جديدة `&lt;p&gt;` إلى الصفحة؟</template>
+          <template class="content-en">What are the steps required to add a new paragraph `&lt;p&gt;` to the page?</template>
+          <span class="content-target">ما هي الخطوات اللازمة لإضافة فقرة جديدة `<p>` إلى الصفحة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أولاً: إنشاء العنصر بـ `createElement('p')`. ثانياً: إنشاء النص بـ `createTextNode()`. ثالثاً: إلحاق النص بالفقرة بـ `appendChild()`. رابعاً: إلحاق الفقرة بعنصر موجود في الصفحة بـ `appendChild()`.</template>
+          <template class="content-en">First: create the element with `createElement('p')`. Second: create text with `createTextNode()`. Third: append text to the paragraph with `appendChild()`. Fourth: append the paragraph to an existing element on the page with `appendChild()`.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين `appendChild` و `insertBefore`؟</template>
+          <template class="content-en">What is the difference between `appendChild` and `insertBefore`?</template>
+          <span class="content-target">ما الفرق بين `appendChild` و `insertBefore`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">`appendChild` تضيف العقدة كآخر ابن للعنصر الأب، بينما `insertBefore` تسمح لك بتحديد مكان الإضافة لتكون قبل عنصر ابن محدد.</template>
+          <template class="content-en">`appendChild` adds the node as the last child of the parent element, while `insertBefore` allows you to specify the insertion point to be before a specific child element.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكنك إزالة عنصر من الصفحة؟</template>
+          <template class="content-en">How can you remove an element from the page?</template>
+          <span class="content-target">كيف يمكنك إزالة عنصر من الصفحة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بالوصول إلى العنصر الأب واستدعاء دالة `removeChild()` مع تمرير العنصر المراد إزالته كمعامل.</template>
+          <template class="content-en">By accessing the parent element and calling the `removeChild()` method, passing the element to be removed as an argument.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الحدث (Event) في سياق الويب؟</template>
+          <template class="content-en">What is an Event in the context of the web?</template>
+          <span class="content-target">ما هو الحدث (Event) في سياق الويب؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الحدث هو أي إجراء يحدث في المتصفح، سواء من قبل المستخدم (مثل النقر أو تحريك الماوس) أو من المتصفح نفسه (مثل اكتمال تحميل الصفحة)، والذي يمكن لـ JavaScript التفاعل معه.</template>
+          <template class="content-en">An event is any action that occurs in the browser, either by the user (like clicking or moving the mouse) or by the browser itself (like page load completion), which JavaScript can react to.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يُفضل استخدام `addEventListener` بدلاً من سمات الأحداث المضمنة في HTML (مثل `onclick`)؟</template>
+          <template class="content-en">Why is it preferred to use `addEventListener` instead of inline HTML event attributes (like `onclick`)?</template>
+          <span class="content-target">لماذا يُفضل استخدام `addEventListener` بدلاً من سمات الأحداث المضمنة في HTML (مثل `onclick`)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يفصل كود JavaScript عن هيكل HTML، ويسمح بإضافة وظائف متعددة لنفس الحدث دون أن تلغي إحداها الأخرى.</template>
+          <template class="content-en">Because it separates JavaScript code from HTML structure, and allows adding multiple functions to the same event without overwriting each other.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الـ DOM؟",
+      "en": "What is the DOM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نموذج كائن المستند؛ خريطة هيكلية (شجرة) للمستند تترجم لغة الترميز إلى تنسيق يفهمه JavaScript.",
+        "en": "Document Object Model; a structured map (tree) of the document that translates markup into a format JavaScript understands."
+      },
+      "example": {
+        "ar": "تمثيل صفحة HTML كشجرة من العقد.",
+        "en": "Representing an HTML page as a tree of nodes."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي العقدة الجذرية (Root Node) في DOM؟",
+      "en": "What is the Root Node in the DOM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هي العقدة العليا في شجرة DOM والتي ليس لها أب.",
+        "en": "The top node in a DOM tree that has no parent."
+      },
+      "example": {
+        "ar": "عقدة `html`.",
+        "en": "The `html` node."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هم الأشقاء (Siblings) في DOM؟",
+      "en": "What are Siblings in the DOM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "العقد التي تشترك في نفس العقدة الأب.",
+        "en": "Nodes that share the exact same parent node."
+      },
+      "example": {
+        "ar": "عنصرا `head` و `body` هما أشقاء لأن أباهما هو `html`.",
+        "en": "`head` and `body` elements are siblings because their parent is `html`."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما وظيفة كائن `document`؟",
+      "en": "What is the function of the `document` object?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يحدد الصفحة نفسها ويوفر خصائص وطرق للوصول إلى العناصر في المستند.",
+        "en": "Identifies the page itself and provides properties and methods for accessing elements in the document."
+      },
+      "example": {
+        "ar": "`document.getElementById('id')`",
+        "en": "`document.getElementById('id')`"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ماذا تعيد دالة `getElementsByTagName()`؟",
+      "en": "What does `getElementsByTagName()` return?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعيد كل العناصر التي تطابق اسم العلامة المحدد، مغلفة في مجموعة (Collection/NodeList).",
+        "en": "Returns every element matching the tag name, wrapped in a collection or nodeList."
+      },
+      "example": {
+        "ar": "`document.getElementsByTagName('p')` تعيد جميع الفقرات.",
+        "en": "`document.getElementsByTagName('p')` returns all paragraphs."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ماذا تعيد دالة `getElementById()`؟",
+      "en": "What does `getElementById()` return?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعيد عنصراً واحداً يطابق قيمة سمة المعرف (id) المحددة.",
+        "en": "Returns a single element that matches the specified id attribute value."
+      },
+      "example": {
+        "ar": "`document.getElementById('lead-photo')`",
+        "en": "`document.getElementById('lead-photo')`"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما وظيفة `getElementsByClassName()`؟",
+      "en": "What is the function of `getElementsByClassName()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الوصول إلى مجموعة من العناصر بناءً على قيمة سمة الفئة (class).",
+        "en": "Accesses a collection of elements based on their class attribute value."
+      },
+      "example": {
+        "ar": "`document.getElementsByClassName('example')`",
+        "en": "`document.getElementsByClassName('example')`"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما وظيفة دالة `setAttribute()`؟",
+      "en": "What is the function of `setAttribute()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تسمح بتعديل أو تعيين قيمة لسمة معينة في عنصر DOM.",
+        "en": "Allows you to modify or set an attribute value for a DOM element."
+      },
+      "example": {
+        "ar": "`photo.setAttribute('src', 'new.jpg')`",
+        "en": "`photo.setAttribute('src', 'new.jpg')`"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي خاصية `innerHTML`؟",
+      "en": "What is the `innerHTML` property?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة بسيطة للوصول إلى النص والترميز داخل العنصر وتغييرهما.",
+        "en": "A simple method for accessing and changing the text and markup inside an element."
+      },
+      "example": {
+        "ar": "`element.innerHTML = 'Hello'`",
+        "en": "`element.innerHTML = 'Hello'`"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "كيف يتم كتابة خصائص CSS الموصولة بواصلة في JavaScript؟",
+      "en": "How are hyphenated CSS properties written in JavaScript?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تصبح بحالة الجمل (camelCase).",
+        "en": "They become camel case."
+      },
+      "example": {
+        "ar": "`background-color` تصبح `backgroundColor`.",
+        "en": "`background-color` becomes `backgroundColor`."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما وظيفة `createElement()`؟",
+      "en": "What is the function of `createElement()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنشئ عقدة DOM جديدة بناءً على اسم العلامة، لكنها لا تدرجها في الصفحة تلقائياً.",
+        "en": "Creates a new DOM node taking the tag name as an argument, but does not insert it on the page."
+      },
+      "example": {
+        "ar": "`document.createElement('div')`",
+        "en": "`document.createElement('div')`"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما وظيفة `createTextNode()`؟",
+      "en": "What is the function of `createTextNode()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنشئ عقدة DOM تحتوي على نص فقط.",
+        "en": "Creates a DOM node that contains only text."
+      },
+      "example": {
+        "ar": "`document.createTextNode('Some text')`",
+        "en": "`document.createTextNode('Some text')`"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما وظيفة `appendChild()`؟",
+      "en": "What is the function of `appendChild()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تدرج عقدة ابن بعد أي أبناء موجودين للعقدة التي تم استدعاؤها عليها.",
+        "en": "Inserts a child node after any existing children of the node on which it's called."
+      },
+      "example": {
+        "ar": "`parentElement.appendChild(newChild)`",
+        "en": "`parentElement.appendChild(newChild)`"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما وظيفة `insertBefore()`؟",
+      "en": "What is the function of `insertBefore()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تدرج عقدة جديدة كابن للأب مباشرة قبل عقدة حالية محددة.",
+        "en": "Inserts a newNode as a child of the parent directly before a currentNode."
+      },
+      "example": {
+        "ar": "`parent.insertBefore(newNode, existingNode)`",
+        "en": "`parent.insertBefore(newNode, existingNode)`"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما وظيفة `replaceChild()`؟",
+      "en": "What is the function of `replaceChild()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تستبدل عقدة بأخرى وتأخذ وسيطين.",
+        "en": "Replaces one node with another and takes two arguments."
+      },
+      "example": {
+        "ar": "`parent.replaceChild(newNode, oldNode)`",
+        "en": "`parent.replaceChild(newNode, oldNode)`"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما وظيفة `removeChild()`؟",
+      "en": "What is the function of `removeChild()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تزيل عقدة أو فرعاً كاملاً من شجرة المستند.",
+        "en": "Removes a node or an entire branch from the document tree."
+      },
+      "example": {
+        "ar": "`parent.removeChild(childNode)`",
+        "en": "`parent.removeChild(childNode)`"
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هي خاصية `parentNode`؟",
+      "en": "What is the `parentNode` property?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعيد العقدة الأب للعقدة المحددة.",
+        "en": "Returns the parent node of the specified node."
+      },
+      "example": {
+        "ar": "`element.parentNode`",
+        "en": "`element.parentNode`"
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما وظيفة `addEventListener()`؟",
+      "en": "What is the function of `addEventListener()`?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة تربط معالج حدث (Event Handler) بعنصر محدد.",
+        "en": "A method that attaches an event handler to the specified element."
+      },
+      "example": {
+        "ar": "`btn.addEventListener('click', func)`",
+        "en": "`btn.addEventListener('click', func)`"
+      }
+    }
+  },
+  {
+    "id": 19,
+    "front": {
+      "ar": "متى يحدث الحدث `onload`؟",
+      "en": "When does the `onload` event occur?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما يكمل المتصفح تحميل الصفحة.",
+        "en": "When a browser completes loading the page."
+      },
+      "example": {
+        "ar": "`&lt;body onload=\"init()\"&gt;`",
+        "en": "`&lt;body onload=\"init()\"&gt;`"
+      }
+    }
+  },
+  {
+    "id": 20,
+    "front": {
+      "ar": "متى يحدث الحدث `onchange`؟",
+      "en": "When does the `onchange` event occur?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما يتم تغيير عنصر HTML (مثل حقل إدخال).",
+        "en": "When an HTML element has been changed."
+      },
+      "example": {
+        "ar": "تغيير قيمة في قائمة منسدلة.",
+        "en": "Changing a value in a dropdown list."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من العقد التالية تعتبر العقدة الجذرية (Root Node) في شجرة DOM؟",
+      "en": "Which of the following nodes is considered the root node in a DOM tree?"
+    },
+    "options": {
+      "ar": [
+        "عقدة head",
+        "عقدة body",
+        "عقدة html",
+        "عقدة document"
+      ],
+      "en": [
+        "head node",
+        "body node",
+        "html node",
+        "document node"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "عقدة html هي العقدة الجذرية لأنه ليس لها أب في شجرة المستند.",
+      "en": "The html node is the root node because it has no parent in the document tree."
+    },
+    "hint": {
+      "ar": "فكر في العنصر الذي يغلف كل محتويات صفحة الويب.",
+      "en": "Think of the element that wraps all the contents of a web page."
+    },
+    "difficulty": "easy",
+    "conceptId": "dom-and-node-tree"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ماذا تعيد الدالة `getElementsByTagName()`؟",
+      "en": "What does the `getElementsByTagName()` method return?"
+    },
+    "options": {
+      "ar": [
+        "عنصر واحد فقط",
+        "مجموعة (Collection / nodeList) من العناصر",
+        "قيمة نصية",
+        "عقدة جذرية"
+      ],
+      "en": [
+        "A single element",
+        "A collection or nodeList of elements",
+        "A string value",
+        "A root node"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تعيد الدالة مجموعة من العناصر التي تتطابق مع اسم العلامة المحدد.",
+      "en": "The method returns a collection of elements that match the specified tag name."
+    },
+    "hint": {
+      "ar": "لاحظ حرف 's' في كلمة 'Elements'.",
+      "en": "Notice the 's' in 'Elements'."
+    },
+    "difficulty": "medium",
+    "conceptId": "accessing-dom-nodes"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "كيف يتم كتابة خاصية CSS `font-size` عند تعديلها عبر JavaScript DOM؟",
+      "en": "How is the CSS property `font-size` written when modified via JavaScript DOM?"
+    },
+    "options": {
+      "ar": [
+        "font-size",
+        "FontSize",
+        "fontSize",
+        "font_size"
+      ],
+      "en": [
+        "font-size",
+        "FontSize",
+        "fontSize",
+        "font_size"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في JavaScript، خصائص CSS الموصولة بواصلة تتحول إلى صيغة camelCase.",
+      "en": "In JavaScript, hyphenated CSS properties become camelCase."
+    },
+    "hint": {
+      "ar": "الحرف الأول من الكلمة الثانية يكون كبيراً (Capital).",
+      "en": "The first letter of the second word is capitalized."
+    },
+    "difficulty": "medium",
+    "conceptId": "manipulating-nodes"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي دالة تستخدم لإنشاء عقدة عنصر جديدة في الذاكرة؟",
+      "en": "Which method is used to create a new element node in memory?"
+    },
+    "options": {
+      "ar": [
+        "appendChild()",
+        "createElement()",
+        "insertBefore()",
+        "createTextNode()"
+      ],
+      "en": [
+        "appendChild()",
+        "createElement()",
+        "insertBefore()",
+        "createTextNode()"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دالة `createElement()` تنشئ عقدة DOM جديدة بناءً على اسم العلامة الممرر كمعامل.",
+      "en": "`createElement()` creates a new DOM node based on the tag name passed as an argument."
+    },
+    "hint": {
+      "ar": "الاسم يدل على 'إنشاء عنصر'.",
+      "en": "The name implies 'creating an element'."
+    },
+    "difficulty": "easy",
+    "conceptId": "traversing-and-modifying-tree"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي الخاصية المستخدمة للوصول إلى النص والترميز داخل عنصر وتغييرهما؟",
+      "en": "Which property is used to access and change the text and markup inside an element?"
+    },
+    "options": {
+      "ar": [
+        "innerText",
+        "textContent",
+        "innerHTML",
+        "outerHTML"
+      ],
+      "en": [
+        "innerText",
+        "textContent",
+        "innerHTML",
+        "outerHTML"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "خاصية `innerHTML` تسمح بقراءة وتعديل محتوى HTML الداخلي للعنصر.",
+      "en": "The `innerHTML` property allows reading and modifying the internal HTML content of an element."
+    },
+    "hint": {
+      "ar": "تحتوي على كلمة HTML.",
+      "en": "It contains the word HTML."
+    },
+    "difficulty": "easy",
+    "conceptId": "manipulating-nodes"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي حدث يقع عندما يكمل المتصفح تحميل الصفحة بالكامل؟",
+      "en": "Which event occurs when a browser completes loading the page?"
+    },
+    "options": {
+      "ar": [
+        "onclick",
+        "onchange",
+        "onload",
+        "onmouseover"
+      ],
+      "en": [
+        "onclick",
+        "onchange",
+        "onload",
+        "onmouseover"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الحدث `onload` يُطلق عند اكتمال تحميل الصفحة.",
+      "en": "The `onload` event is triggered when the page finishes loading."
+    },
+    "hint": {
+      "ar": "يرتبط بكلمة 'تحميل'.",
+      "en": "Related to the word 'load'."
+    },
+    "difficulty": "easy",
+    "conceptId": "javascript-events"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هي الدالة التي تدرج عقدة ابن بعد أي أبناء موجودين للعقدة الأب؟",
+      "en": "Which method inserts a child node after any existing children of the parent node?"
+    },
+    "options": {
+      "ar": [
+        "insertBefore()",
+        "appendChild()",
+        "replaceChild()",
+        "createElement()"
+      ],
+      "en": [
+        "insertBefore()",
+        "appendChild()",
+        "replaceChild()",
+        "createElement()"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دالة `appendChild()` تضيف العقدة كآخر ابن للعنصر الأب.",
+      "en": "`appendChild()` adds the node as the last child of the parent element."
+    },
+    "hint": {
+      "ar": "تعني 'إلحاق' في النهاية.",
+      "en": "Means to 'append' at the end."
+    },
+    "difficulty": "medium",
+    "conceptId": "traversing-and-modifying-tree"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي دالة تستخدم لتغيير قيمة سمة (مثل src لصورة)؟",
+      "en": "Which method is used to change the value of an attribute (like src for an image)?"
+    },
+    "options": {
+      "ar": [
+        "changeAttribute()",
+        "modifyAttribute()",
+        "setAttribute()",
+        "updateAttribute()"
+      ],
+      "en": [
+        "changeAttribute()",
+        "modifyAttribute()",
+        "setAttribute()",
+        "updateAttribute()"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "دالة `setAttribute()` تستخدم لتعيين أو تعديل قيمة سمة معينة.",
+      "en": "`setAttribute()` is used to set or modify the value of a specific attribute."
+    },
+    "hint": {
+      "ar": "تبدأ بكلمة 'set'.",
+      "en": "Starts with the word 'set'."
+    },
+    "difficulty": "medium",
+    "conceptId": "manipulating-nodes"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هي الطريقة الحديثة والمفضلة لربط معالج حدث بعنصر HTML؟",
+      "en": "What is the modern and preferred method to attach an event handler to an HTML element?"
+    },
+    "options": {
+      "ar": [
+        "استخدام سمات HTML المضمنة مثل onclick",
+        "استخدام دالة addEventListener()",
+        "استخدام دالة attachEvent()",
+        "تعديل خاصية innerHTML"
+      ],
+      "en": [
+        "Using inline HTML attributes like onclick",
+        "Using the addEventListener() method",
+        "Using the attachEvent() method",
+        "Modifying the innerHTML property"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دالة `addEventListener()` هي الطريقة القياسية والمفضلة لأنها تفصل الكود وتسمح بأحداث متعددة.",
+      "en": "`addEventListener()` is the standard and preferred method because it separates code and allows multiple events."
+    },
+    "hint": {
+      "ar": "تستمع للأحداث.",
+      "en": "It 'listens' for events."
+    },
+    "difficulty": "medium",
+    "conceptId": "javascript-events"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ماذا يطلق على العقد التي لها نفس العقدة الأب في شجرة DOM؟",
+      "en": "What are nodes that have the same parent node called in a DOM tree?"
+    },
+    "options": {
+      "ar": [
+        "الجذور (Roots)",
+        "الأبناء (Children)",
+        "الأشقاء (Siblings)",
+        "الفروع (Branches)"
+      ],
+      "en": [
+        "Roots",
+        "Children",
+        "Siblings",
+        "Branches"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "العقد التي تشترك في نفس الأب تسمى أشقاء (Siblings).",
+      "en": "Nodes sharing the same parent are called Siblings."
+    },
+    "hint": {
+      "ar": "مثل الإخوة في العائلة.",
+      "en": "Like brothers and sisters in a family."
+    },
+    "difficulty": "easy",
+    "conceptId": "dom-and-node-tree"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">احذر من الخلط بين `getElementById` (التي تعيد عنصراً واحداً) و `getElementsByTagName` أو `getElementsByClassName` (التي تعيد مجموعة/NodeList). لا يمكنك تعديل المجموعة مباشرة، بل يجب الوصول لعناصرها عبر الفهرس (مثال: `elements[0]`).</template>
+      <template class="content-en">Beware of confusing `getElementById` (returns a single element) with `getElementsByTagName` or `getElementsByClassName` (returns a collection/NodeList). You cannot modify a collection directly; you must access its elements via index (e.g., `elements[0]`).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند تعديل أنماط CSS عبر JavaScript، أي خاصية تحتوي على واصلة (مثل `background-color`) يجب كتابتها بصيغة camelCase (مثل `backgroundColor`).</template>
+      <template class="content-en">When modifying CSS styles via JavaScript, any hyphenated property (like `background-color`) must be written in camelCase (like `backgroundColor`).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الـ DOM ليس جزءاً من لغة JavaScript نفسها، بل هو واجهة برمجة تطبيقات (API) يوفرها المتصفح لتسمح لـ JS بالتفاعل مع هيكل صفحة HTML.</template>
+      <template class="content-en">The DOM is not part of the JavaScript language itself; it is a Web API provided by the browser that allows JS to interact with the HTML page structure.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام `createElement()` ينشئ العنصر في الذاكرة فقط. لن يظهر العنصر على الشاشة حتى تقوم بإرفاقه صراحةً بشجرة DOM باستخدام دوال مثل `appendChild()` أو `insertBefore()`.</template>
+      <template class="content-en">Using `createElement()` only creates the element in memory. The element will not appear on the screen until you explicitly attach it to the DOM tree using functions like `appendChild()` or `insertBefore()`.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استخدام `addEventListener()` هو الممارسة الأفضل للتعامل مع الأحداث لأنه يفصل بين هيكل HTML وسلوك JavaScript، ويسمح بإضافة مستمعين متعددين لنفس الحدث.</template>
+      <template class="content-en">Using `addEventListener()` is the best practice for event handling because it separates HTML structure from JavaScript behavior and allows adding multiple listeners to the same event.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M07.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M09.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

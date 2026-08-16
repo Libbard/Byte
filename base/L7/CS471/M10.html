@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS471" data-module="10">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أمن نظم التشغيل · CS471 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS471" data-page-title-en="CS471">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M09.html" data-gh-next="M11.html" data-gh-card="../../hub/course.html?code=CS471"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#system-security-planning" class="toc-link" data-bilingual>
+        <template class="content-ar">تخطيط أمن النظام</template>
+        <template class="content-en">System Security Planning</template>
+        <span class="content-target">تخطيط أمن النظام</span>
+      </a>
+      <a href="#os-hardening" class="toc-link" data-bilingual>
+        <template class="content-ar">تقوية نظام التشغيل (OS Hardening)</template>
+        <template class="content-en">Operating Systems Hardening</template>
+        <span class="content-target">تقوية نظام التشغيل (OS Hardening)</span>
+      </a>
+      <a href="#linux-windows-security" class="toc-link" data-bilingual>
+        <template class="content-ar">أمن لينكس وويندوز</template>
+        <template class="content-en">Linux and Windows Security</template>
+        <span class="content-target">أمن لينكس وويندوز</span>
+      </a>
+      <a href="#security-maintenance" class="toc-link" data-bilingual>
+        <template class="content-ar">صيانة الأمان</template>
+        <template class="content-en">Security Maintenance</template>
+        <span class="content-target">صيانة الأمان</span>
+      </a>
+      <a href="#virtualization-security" class="toc-link" data-bilingual>
+        <template class="content-ar">أمن المحاكاة الافتراضية</template>
+        <template class="content-en">Virtualization Security</template>
+        <span class="content-target">أمن المحاكاة الافتراضية</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 10</template>
+      <template class="content-en">Module 10</template>
+      <span class="content-target">الوحدة 10</span>
+    </span> · CS471
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">أمن نظم التشغيل</h1>
+      <p class="hero-description">تغطي هذه الوحدة تخطيط أمن النظام، تقوية نظم التشغيل (ويندوز ولينكس)، صيانة الأمان، وأمن البيئات الافتراضية والحاويات.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Operating Systems Security</h1>
+      <p class="hero-description">This module covers system security planning, OS hardening (Windows and Linux), security maintenance, and the security of virtualized environments and containers.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">أمن نظم التشغيل</span>
+      <span class="tag">تقوية النظام</span>
+      <span class="tag">المحاكاة الافتراضية</span>
+      <span class="tag">أمن ويندوز</span>
+      <span class="tag">أمن لينكس</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">OS Security</span>
+      <span class="tag">System Hardening</span>
+      <span class="tag">Virtualization</span>
+      <span class="tag">Windows Security</span>
+      <span class="tag">Linux Security</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح الحاجة إلى تخطيط أمن النظام والخطوات المستخدمة لتأمين نظام التشغيل الأساسي.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد إجراءات صيانة الأمان المستمرة بما في ذلك التسجيل والنسخ الاحتياطي.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق تقنيات تقوية الأمان الخاصة بأنظمة التشغيل لينكس وويندوز.</span></li>
+      <li><span class="obj-icon">✦</span><span>سرد الإجراءات للحفاظ على الأمان في الأنظمة الافتراضية وفهم الفروق بين أنواع المحاكاة الافتراضية.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain the need for system security planning and the steps used to secure the base operating system.</span></li>
+      <li><span class="obj-icon">✦</span><span>Identify continuous security maintenance procedures including logging and backups.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply specific security hardening techniques for Linux and Windows operating systems.</span></li>
+      <li><span class="obj-icon">✦</span><span>List the procedure to maintain security in virtual systems and understand differences between virtualization types.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="system-security-planning" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> تخطيط أمن النظام</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> System Security Planning</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>التخطيط هو الخطوة الأولى لنشر نظام جديد، ويهدف إلى تعظيم الأمان مع تقليل التكاليف.</p>
+    </template>
+    <template class="content-en">
+      <p>Planning is the first step in deploying a new system, aiming to maximize security while minimizing costs.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يبدأ أمن النظام قبل التثبيت الفعلي.</p><p>يجب أن تتضمن عملية التخطيط:</p><ul><li>تقييماً واسعاً لأمن المؤسسة،</li><li>وتحديد الموظفين المناسبين،</li><li>وتحديد متطلبات الأمان للنظام والتطبيقات والبيانات والمستخدمين.</li></ul><p>تتضمن العملية تحديد:</p><ul><li>الغرض من النظام،</li><li>فئات المستخدمين وصلاحياتهم،</li><li>كيفية المصادقة،</li><li>ومن سيدير النظام.</li></ul></template>
+    <template class="content-en"><p>System security starts before actual installation.</p><p>The planning process should include:</p><ul><li>a wide <span class="smart-term" data-term-en="Security Assessment" data-ar="التقييم الأمني" data-en-def="A comprehensive evaluation of the security posture of an organization or system.">security assessment<span class="smart-term-tooltip"></span></span> of the organization,</li><li>identifying appropriate personnel,</li><li>and determining security requirements for the system, applications, data, and users.</li></ul><p>The process involves defining:</p><ul><li>the system's purpose,</li><li>user categories and privileges,</li><li>authentication methods,</li><li>and administration roles.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>بدون تخطيط مسبق، قد يتعرض النظام للاختراق أثناء عملية التثبيت قبل تثبيت أحدث التصحيحات.</p><p>يجب بناء الأنظمة الجديدة في شبكة محمية.</p><p>التخطيط يحدد التوازن الدقيق بين سهولة الاستخدام (التي توفرها الإعدادات الافتراضية) والأمان الصارم المطلوب لبيئات الإنتاج.</p></template>
+    <template class="content-en"><p>Without prior planning, a system can be compromised during the installation process before the latest patches are applied.</p><p>New systems should ideally be constructed on a protected network.</p><p>Planning defines the delicate balance between ease of use (provided by default settings) and the strict security required for production environments.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Create a flowchart showing the 'System Security Planning Process'. Start with a box 'Purpose of the system, Type of info, Applications/services'. Arrow points to 'Categories of system users, privileges, info access'. Arrow points to 'How users are authenticated?'. Arrow points down to 'Who will administer the system'. Arrow points left to 'What access the system has to other hosts'. Arrow points left to 'Who will administer the system (local/remote)'. Arrow points down to 'Additional security (firewalls, AV, logging)'. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 1000 500, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="var(--brand-800)" flood-opacity="0.15"/>
+        </filter>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--text-muted)" stroke-width="0.5" opacity="0.15"/>
+        </pattern>
+    </defs>
+
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+    <rect width="100%" height="100%" fill="url(#grid)"/>
+
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <!-- Title Section -->
+        <text x="500" y="45" font-size="24" font-weight="800" fill="var(--text-primary)" text-anchor="middle">System Security Planning Process</text>
+        <line x1="350" y1="60" x2="650" y2="60" stroke="var(--brand-500)" stroke-width="2" opacity="0.5"/>
+        <text x="500" y="85" font-size="20" font-weight="700" fill="var(--text-secondary)" text-anchor="middle">عملية التخطيط لأمن النظام</text>
+
+        <!-- Connecting Arrows -->
+        <!-- 1 to 2 -->
+        <path d="M 320 160 L 340 160" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <!-- 2 to 3 -->
+        <path d="M 650 160 L 670 160" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <!-- 3 to 4 -->
+        <path d="M 830 205 L 830 265" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <!-- 4 to 5 -->
+        <path d="M 680 320 L 660 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <!-- 5 to 6 -->
+        <path d="M 350 320 L 330 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+        <!-- 6 to 7 -->
+        <path d="M 170 365 L 170 390 Q 170 405 185 405 L 485 405 Q 500 405 500 420 L 500 425" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <!-- Nodes -->
+        <!-- Node 1 -->
+        <g transform="translate(170, 160)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">1</text>
+            <text x="0" y="-5" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">الغرض، نوع المعلومات، الخدمات</text>
+            <text x="0" y="20" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">Purpose, Info Type, Apps/Services</text>
+        </g>
+
+        <!-- Node 2 -->
+        <g transform="translate(500, 160)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">2</text>
+            <text x="0" y="-12" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">فئات المستخدمين، الصلاحيات، والوصول</text>
+            <text x="0" y="12" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">User Categories, Privileges,</text>
+            <text x="0" y="30" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">and Info Access</text>
+        </g>
+
+        <!-- Node 3 -->
+        <g transform="translate(830, 160)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">3</text>
+            <text x="0" y="-5" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">كيف تتم مصادقة المستخدمين؟</text>
+            <text x="0" y="20" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">How are users authenticated?</text>
+        </g>
+
+        <!-- Node 4 -->
+        <g transform="translate(830, 320)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">4</text>
+            <text x="0" y="-5" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">من سيدير النظام؟</text>
+            <text x="0" y="20" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">Who will administer the system?</text>
+        </g>
+
+        <!-- Node 5 -->
+        <g transform="translate(500, 320)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">5</text>
+            <text x="0" y="-5" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">صلاحيات وصول النظام لأجهزة أخرى</text>
+            <text x="0" y="20" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">System access to other hosts</text>
+        </g>
+
+        <!-- Node 6 -->
+        <g transform="translate(170, 320)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">6</text>
+            <text x="0" y="-12" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">من سيدير النظام (محلي / عن بعد)؟</text>
+            <text x="0" y="12" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">Who will administer the system</text>
+            <text x="0" y="30" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">(Local / Remote)</text>
+        </g>
+
+        <!-- Node 7 -->
+        <g transform="translate(500, 480)">
+            <rect x="-150" y="-45" width="300" height="90" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <circle cx="0" cy="-45" r="14" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="3"/>
+            <text x="0" y="-40" font-size="13" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">7</text>
+            <text x="0" y="-12" font-size="18" font-weight="700" fill="var(--text-primary)" text-anchor="middle">أمان إضافي (جدار حماية، مكافح، سجلات)</text>
+            <text x="0" y="12" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">Additional security</text>
+            <text x="0" y="30" font-size="14" font-weight="500" fill="var(--text-secondary)" text-anchor="middle">(Firewalls, AV, Logging)</text>
+        </g>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُنصح ببناء الأنظمة الجديدة على شبكة محمية ومعزولة قبل نشرها؟</template>
+      <template class="content-en">Why is it recommended to construct new systems on a protected, isolated network before deployment?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن النظام أثناء التثبيت وقبل تطبيق التحديثات الأمنية (Patches) يكون في أضعف حالاته وعرضة للاختراق الفوري إذا كان متصلاً بشبكة عامة.</p></template>
+      <template class="content-en"><p>Because during installation and before security patches are applied, the system is highly vulnerable and can be immediately compromised if connected to a public network.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="os-hardening" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> تقوية نظام التشغيل (OS Hardening)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Operating Systems Hardening</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تقوية النظام تعني إزالة كل ما هو غير ضروري وتأمين ما تبقى لتقليل مساحة الهجوم.</p>
+    </template>
+    <template class="content-en">
+      <p>OS hardening means removing everything unnecessary and securing what remains to reduce the attack surface.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الخطوة الأساسية الأولى لتأمين النظام هي تقوية نظام التشغيل الأساسي.</p><p>تشمل الخطوات الأساسية:</p><ul><li>تثبيت النظام وتطبيق أحدث التصحيحات،</li><li>إزالة الخدمات والتطبيقات والبروتوكولات غير الضرورية،</li><li>تكوين المستخدمين والمجموعات والصلاحيات،</li><li>وتكوين التحكم في استخدام الموارد.</li></ul><p>بالإضافة إلى ذلك، يجب تثبيت أدوات أمان إضافية مثل برامج مكافحة الفيروسات وجدران الحماية المستندة إلى المضيف.</p></template>
+    <template class="content-en"><p>The first key step toward securing a system is to secure the base operating system.</p><p>Basic steps include:</p><ul><li>installing the OS and applying up-to-date patches,</li><li>removing unnecessary services, applications, and protocols,</li><li>configuring users, groups, and permissions,</li><li>and configuring resource usage controls.</li></ul><p>Additionally, extra security controls like anti-virus and host-based firewalls should be installed.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>توصي مديرية الإشارات الأسترالية (ASD) بأربع استراتيجيات رئيسية تمنع 85% من الاختراقات:</p><ul><li><strong><span class="smart-term" data-term-en="White-list" data-ar="القائمة البيضاء" data-en-def="A security practice where only explicitly approved applications are allowed to run.">القائمة البيضاء للتطبيقات<span class="smart-term-tooltip"></span></span></strong>،</li><li><strong>تصحيح تطبيقات الطرف الثالث ونقاط ضعف النظام</strong>،</li><li><strong>تقييد الامتيازات الإدارية</strong>،</li><li><strong>وإنشاء نظام <span class="smart-term" data-term-en="Defense-in-depth" data-ar="الدفاع في العمق" data-en-def="A strategy that uses multiple security measures to protect the integrity of information.">دفاع في العمق<span class="smart-term-tooltip"></span></span> (Defense-in-depth)</strong>.</li></ul><p>الإعدادات الافتراضية للأنظمة مصممة لسهولة الاستخدام وليس للأمان، لذا يجب تغييرها دائماً.</p></template>
+    <template class="content-en"><p>The Australian Signals Directorate (ASD) recommends four top strategies that prevent 85% of intrusions:</p><ul><li><strong><span class="smart-term" data-term-en="White-list" data-ar="القائمة البيضاء" data-en-def="A security practice where only explicitly approved applications are allowed to run.">Application whitelisting<span class="smart-term-tooltip"></span></span></strong>,</li><li><strong>patching third-party apps and OS vulnerabilities</strong>,</li><li><strong>restricting administrative privileges</strong>,</li><li><strong>and creating a <span class="smart-term" data-term-en="Defense-in-depth" data-ar="الدفاع في العمق" data-en-def="A strategy that uses multiple security measures to protect the integrity of information.">defense-in-depth<span class="smart-term-tooltip"></span></span> system</strong>.</li></ul><p>Default OS configurations are designed for ease of use, not security, and must always be changed.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a layered diagram showing 'Operating Systems Security Layers'. Bottom layer: 'Physical Hardware'. Middle layer: 'Operating System Kernel' with a small sub-box 'BIOS / SMM'. Top layer: 'User Applications and Utilities'. Add an arrow pointing upwards labeled 'Vulnerable to attack from below if lower layers are not secured'. Style: educational, dark background #0d1117, accent color #28a745, viewBox 0 0 600 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrow Marker -->
+    <marker id="arrow-up" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="var(--brand-500)" />
+    </marker>
+
+    <!-- Drop Shadow for Layers -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.1" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Diagram Title -->
+  <text x="400" y="45" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" text-anchor="middle">
+    Operating Systems Security Layers
+  </text>
+  <text x="400" y="75" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" text-anchor="middle">
+    طبقات أمان أنظمة التشغيل
+  </text>
+
+  <!-- ================= LAYERS ================= -->
+
+  <!-- Top Layer: User Applications -->
+  <g transform="translate(60, 110)">
+    <rect width="440" height="90" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <!-- Accent Line -->
+    <rect x="0" y="0" width="8" height="90" rx="4" fill="var(--brand-500)" />
+    
+    <text x="220" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">
+      User Applications and Utilities
+    </text>
+    <text x="220" y="68" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">
+      تطبيقات المستخدم والأدوات المساعدة
+    </text>
+  </g>
+
+  <!-- Middle Layer: OS Kernel & BIOS/SMM -->
+  <g transform="translate(60, 230)">
+    <rect width="440" height="120" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <!-- Accent Line -->
+    <rect x="0" y="0" width="8" height="120" rx="4" fill="var(--brand-500)" />
+    
+    <text x="220" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">
+      Operating System Kernel
+    </text>
+    <text x="220" y="68" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">
+      نواة نظام التشغيل
+    </text>
+
+    <!-- Sub-box: BIOS / SMM -->
+    <g transform="translate(130, 85)">
+      <rect width="180" height="35" rx="6" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" />
+      <text x="90" y="23" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" text-anchor="middle">
+        BIOS / SMM
+      </text>
+    </g>
+  </g>
+
+  <!-- Bottom Layer: Physical Hardware -->
+  <g transform="translate(60, 380)">
+    <rect width="440" height="90" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    <!-- Accent Line -->
+    <rect x="0" y="0" width="8" height="90" rx="4" fill="var(--brand-500)" />
+    
+    <text x="220" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">
+      Physical Hardware
+    </text>
+    <text x="220" y="68" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">
+      الأجهزة المادية (العتاد)
+    </text>
+  </g>
+
+  <!-- ================= ARROW & LABELS ================= -->
+
+  <!-- Upward Arrow -->
+  <path d="M 540 425 L 540 155" fill="none" stroke="var(--brand-500)" stroke-width="4" stroke-dasharray="8,6" marker-end="url(#arrow-up)" />
+
+  <!-- Warning Icon -->
+  <g transform="translate(670, 160)">
+    <path d="M 0 -15 L 15 12 L -15 12 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-linejoin="round" />
+    <text x="0" y="7" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">!</text>
+  </g>
+
+  <!-- Arrow Text (English) -->
+  <text x="670" y="210" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="600" text-anchor="middle">
+    <tspan x="670" dy="0">Vulnerable to attack</tspan>
+    <tspan x="670" dy="22">from below if lower</tspan>
+    <tspan x="670" dy="22">layers are not secured</tspan>
+  </text>
+
+  <!-- Arrow Text (Arabic) -->
+  <text x="670" y="300" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">
+    <tspan x="670" dy="0">عرضة للهجوم من الأسفل</tspan>
+    <tspan x="670" dy="24">إذا لم تُؤمّن الطبقات السفلية</tspan>
+  </text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر الإعدادات الافتراضية لنظام التشغيل خطراً أمنياً؟</template>
+      <template class="content-en">Why are default OS configurations considered a security risk?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنها تُضبط عادةً لتعظيم سهولة الاستخدام والوظائف (مثل تشغيل خدمات كثيرة افتراضياً) بدلاً من الأمان، مما يزيد من مساحة الهجوم.</p></template>
+      <template class="content-en"><p>Because they are typically set to maximize ease of use and functionality (e.g., running many services by default) rather than security, which increases the attack surface.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="linux-windows-security" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> أمن لينكس وويندوز</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Linux and Windows Security</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يعتمد لينكس على ملفات التكوين النصية وسجن chroot، بينما يعتمد ويندوز على السجل (Registry) والتحكم في حساب المستخدم (UAC).</p>
+    </template>
+    <template class="content-en">
+      <p>Linux relies on text config files and chroot jails, while Windows relies on the Registry and User Account Control (UAC).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li>في <b>لينكس/يونكس</b>: يتم التكوين عبر ملفات نصية في دليل `/etc` أو ملفات مخفية (dot files). يتم التحكم في الوصول عبر أذونات القراءة والكتابة والتنفيذ. يمكن استخدام `chroot jail` لتقييد رؤية الخادم لجزء محدد فقط من نظام الملفات.</li><li>في <b>ويندوز</b>: يتم إدارة التحديثات عبر Windows Update. تُحفظ التكوينات مركزياً في السجل (Registry). يوفر نظام <span class="smart-term" data-term-en="User Account Control (UAC)" data-ar="التحكم في حساب المستخدم" data-en-def="A Windows security feature that helps prevent unauthorized changes to the operating system by prompting for permission.">التحكم في حساب المستخدم (UAC)<span class="smart-term-tooltip"></span></span> ضمان عدم استخدام الصلاحيات الإدارية إلا عند الحاجة. كما يدعم ويندوز التشفير عبر EFS للملفات و BitLocker للقرص بالكامل.</li></ul></template>
+    <template class="content-en"><ul><li>In <b>Linux/Unix</b>: Configuration is done via text files in the `/etc` directory or hidden dot files. Access is controlled via read, write, and execute permissions. A `<span class="smart-term" data-term-en="chroot jail" data-ar="سجن chroot" data-en-def="A mechanism in Unix-like systems that restricts a process's view of the file system to a specific directory tree.">chroot jail<span class="smart-term-tooltip"></span></span>` can be used to restrict a server's view of the file system to a specific portion.</li><li>In <b>Windows</b>: Updates are managed via Windows Update. Configurations are centralized in the Registry. <span class="smart-term" data-term-en="User Account Control (UAC)" data-ar="التحكم في حساب المستخدم" data-en-def="A Windows security feature that helps prevent unauthorized changes to the operating system by prompting for permission.">User Account Control (UAC)<span class="smart-term-tooltip"></span></span> ensures administrative rights are only used when required. Windows also supports encryption via EFS for files and BitLocker for full-disk encryption.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يستخدم `chroot` نداء النظام لتقييد العملية عن طريق تعيين جذر نظام الملفات إلى دليل آخر، مما يمنع المهاجم من الوصول إلى ملفات النظام الحساسة إذا تم اختراق الخدمة.</p><p>في ويندوز، تطبق الأنظمة الحديثة ضوابط النزاهة الإلزامية (Mandatory Integrity Controls) حيث يتم تصنيف الكائنات بمستويات نزاهة (منخفضة، متوسطة، عالية) لتطبيق نموذج Biba للنزاهة، مما يمنع العمليات ذات النزاهة المنخفضة من تعديل كائنات ذات نزاهة أعلى.</p></template>
+    <template class="content-en"><p>The `chroot` uses a system call to confine a process by mapping the root of the filesystem to another directory, preventing an attacker from accessing sensitive system files if the service is compromised.</p><p>In Windows, modern systems implement Mandatory Integrity Controls where objects are labeled with integrity levels (low, medium, high) to implement a form of the Biba Integrity model, preventing low-integrity processes from modifying higher-integrity objects.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يطبق ويندوز نموذج Biba للنزاهة؟</template>
+      <template class="content-en">How does Windows implement the Biba Integrity model?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>من خلال ضوابط النزاهة الإلزامية (MIC)، حيث يُعطى كل كائن وعملية مستوى نزاهة، ويُمنع الموضوع ذو النزاهة المنخفضة من الكتابة أو التعديل في كائن ذي نزاهة أعلى.</p></template>
+      <template class="content-en"><p>Through Mandatory Integrity Controls (MIC), where objects and processes are assigned integrity levels, preventing a lower-integrity subject from writing to a higher-integrity object.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="security-maintenance" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> صيانة الأمان</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Security Maintenance</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الأمان ليس وجهة بل رحلة مستمرة تتطلب المراقبة، التسجيل، والنسخ الاحتياطي.</p>
+    </template>
+    <template class="content-en">
+      <p>Security is not a destination but a continuous journey requiring monitoring, logging, and backups.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عملية الحفاظ على الأمان هي عملية مستمرة. تشمل صيانة الأمان:</p><ul><li>مراقبة وتحليل معلومات السجل (Logging)،</li><li>إجراء <span class="smart-term" data-term-en="Backup" data-ar="النسخ الاحتياطي" data-en-def="Process of making copies of data at regular intervals to maintain data integrity.">نسخ احتياطي<span class="smart-term-tooltip"></span></span> منتظم (Backups)،</li><li>التعافي من الاختراقات الأمنية،</li><li>الاختبار المنتظم لأمن النظام،</li><li>وتطبيق التحديثات والتصحيحات.</li></ul><p>التسجيل هو المصدر الرئيسي للمعلومات لمعرفة ما حدث في حالة حدوث خرق. النسخ الاحتياطي هو أخذ نسخ دورية للبيانات، بينما <span class="smart-term" data-term-en="Archive" data-ar="الأرشيف" data-en-def="Process of retaining copies of data over extended periods to meet legal and operational requirements.">الأرشفة<span class="smart-term-tooltip"></span></span> هي الاحتفاظ بالبيانات لفترات طويلة لأغراض قانونية وتشغيلية.</p></template>
+    <template class="content-en"><p>The process of maintaining security is continuous. Security maintenance includes:</p><ul><li>monitoring and analyzing logging information,</li><li>performing regular <span class="smart-term" data-term-en="Backup" data-ar="النسخ الاحتياطي" data-en-def="Process of making copies of data at regular intervals to maintain data integrity.">backups<span class="smart-term-tooltip"></span></span>,</li><li>recovering from security compromises,</li><li>regularly testing system security,</li><li>and applying patches.</li></ul><p>Logging is the key source of information to identify what happened during a breach. Backups are regular copies of data, while <span class="smart-term" data-term-en="Archive" data-ar="الأرشيف" data-en-def="Process of retaining copies of data over extended periods to meet legal and operational requirements.">archives<span class="smart-term-tooltip"></span></span> retain data over extended periods for legal and operational requirements.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يجب تحديد سياسات النسخ الاحتياطي والأرشفة خلال مرحلة تخطيط النظام.</p><p>تتضمن المفاضلات (Trade-offs) في النسخ الاحتياطي سهولة التنفيذ والتكلفة مقابل الأمان الأكبر والمتانة ضد التهديدات المختلفة (مثل تخزين النسخ محلياً مقابل نقلها إلى موقع بعيد أو إبقائها متصلة بالإنترنت مقابل فصلها).</p></template>
+    <template class="content-en"><p>Backup and archive policies should be determined during the system planning stage.</p><p>Trade-offs in backups include ease of implementation and cost versus greater security and robustness against threats (e.g., storing locally vs. remote site, kept online vs. offline).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما الفرق الأساسي بين النسخ الاحتياطي (Backup) والأرشيف (Archive)؟</template>
+      <template class="content-en">What is the primary difference between a Backup and an Archive?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>النسخ الاحتياطي يُستخدم للتعافي السريع من فقدان البيانات ويتم بشكل دوري، بينما الأرشيف يُستخدم للاحتفاظ بالبيانات لفترات طويلة جداً للامتثال للمتطلبات القانونية والتشغيلية.</p></template>
+      <template class="content-en"><p>Backups are used for quick recovery from data loss and are done at regular intervals, whereas archives are used to retain data for very long periods to comply with legal and operational requirements.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="virtualization-security" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> أمن المحاكاة الافتراضية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Virtualization Security</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>المحاكاة الافتراضية تفصل الموارد المادية عن أنظمة التشغيل باستخدام الـ Hypervisor، مما يضيف طبقات جديدة تتطلب التأمين.</p>
+    </template>
+    <template class="content-en">
+      <p>Virtualization abstracts physical resources from OSs using a Hypervisor, adding new layers that require securing.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المحاكاة الافتراضية توفر بيئة محاكاة (VM) تديرها برمجية تسمى <b>Hypervisor</b> (مراقب الأجهزة الافتراضية). هناك نوعان رئيسيان:</p><ul><li><b>النوع الأول (Native)</b> يعمل مباشرة على الأجهزة وهو أكثر أماناً،</li><li>و<b>النوع الثاني (Hosted)</b> يعمل كتطبيق فوق نظام تشغيل مضيف.</li></ul><p>بديل آخر هو <b>الحاويات (Containers)</b> التي تشترك في نواة نظام التشغيل المضيف، مما يقلل العبء ولكنه يزيد من الثغرات الأمنية.</p><p>تشمل المخاوف الأمنية:</p><ul><li>عزل نظام الضيف،</li><li>حماية الـ <span class="smart-term" data-term-en="Hypervisor" data-ar="مراقب الأجهزة الافتراضية" data-en-def="Software that sits between the hardware and the VMs, acting as a resource broker.">Hypervisor<span class="smart-term-tooltip"></span></span>،</li><li>وإدارة صور ولقطات الأنظمة الافتراضية.</li></ul></template>
+    <template class="content-en"><p>Virtualization provides a simulated environment (VM) managed by software called a <b>Hypervisor</b>. There are two main types:</p><ul><li><b>Type 1 (Native)</b> runs directly on hardware and is more secure,</li><li>and <b>Type 2 (Hosted)</b> runs as an app on a host OS.</li></ul><p>Another alternative is <b>Containers</b>, which share the host OS kernel, reducing overhead but increasing security vulnerabilities.</p><p>Security concerns include:</p><ul><li>guest OS isolation,</li><li>hypervisor protection,</li><li>and VM image/snapshot management.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يجب تأمين الـ Hypervisor بنفس صرامة نظام التشغيل الأساسي، وتثبيته في بيئة معزولة.</p><p>الشبكات المعرفة بالبرمجيات (SDNs) تسمح بإنشاء شبكات تراكبية (Overlay Networks) مثل VXLAN، مما يتيح وضع جدران حماية افتراضية (Virtual Firewalls) بين الأنظمة الافتراضية دون الحاجة لتوجيه حركة المرور إلى شبكة مادية منفصلة.</p></template>
+    <template class="content-en"><p>The Hypervisor must be secured as strictly as a base OS and installed in an isolated environment.</p><p>Software Defined Networks (SDNs) allow the creation of overlay networks (like VXLAN), enabling Virtual Firewalls to inspect traffic flowing between VMs without routing it out to a physically separate network.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a comparison diagram showing three architectures side-by-side. 1) 'Type 1 hypervisor (native)': Hardware at bottom, Hypervisor above it, then multiple Guest OSs with Apps. 2) 'Type 2 hypervisor (hosted)': Hardware at bottom, Host OS above it, Hypervisor above Host OS, then Guest OSs with Apps. 3) 'Container': Hardware at bottom, Host OS above it, Container Engine above Host OS, then Apps (no Guest OS). Style: educational, dark background #0d1117, accent colors #ffc107, #17a2b8, #28a745, viewBox 0 0 900 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <linearGradient id="highlightGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--brand-600)" />
+            <stop offset="100%" stop-color="var(--brand-800)" />
+        </linearGradient>
+        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Main Title -->
+    <text x="480" y="40" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)">Virtualization vs. Containerization Architectures</text>
+    <text x="480" y="65" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)">مقارنة بين بنيات المحاكاة الافتراضية والحاويات</text>
+
+    <!-- ================= COLUMN 1: TYPE 1 HYPERVISOR ================= -->
+    <g transform="translate(50, 0)">
+        <!-- Column Title -->
+        <text x="130" y="110" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Type 1 Hypervisor</text>
+        <text x="130" y="135" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">هايبرفايزر أصلي (Native)</text>
+
+        <!-- Hardware -->
+        <rect x="0" y="450" width="260" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="130" y="468" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">Hardware</text>
+        <text x="130" y="486" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">الأجهزة</text>
+
+        <!-- Hypervisor -->
+        <rect x="0" y="395" width="260" height="45" rx="6" fill="url(#highlightGrad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="130" y="413" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--bg-surface)">Hypervisor (Type 1)</text>
+        <text x="130" y="431" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--bg-surface)">الهايبرفايزر</text>
+
+        <!-- VM 1 -->
+        <rect x="0" y="215" width="125" height="170" rx="8" fill="none" stroke="var(--text-muted)" stroke-dasharray="6 4" stroke-width="1.5" />
+        <text x="62.5" y="232" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">VM 1</text>
+        
+        <rect x="10" y="240" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="62.5" y="256" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">App 1</text>
+        <text x="62.5" y="272" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">تطبيق 1</text>
+
+        <rect x="10" y="290" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="62.5" y="306" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Bins/Libs</text>
+        <text x="62.5" y="322" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">مكتبات</text>
+
+        <rect x="10" y="340" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="62.5" y="356" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Guest OS</text>
+        <text x="62.5" y="372" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نظام ضيف</text>
+
+        <!-- VM 2 -->
+        <rect x="135" y="215" width="125" height="170" rx="8" fill="none" stroke="var(--text-muted)" stroke-dasharray="6 4" stroke-width="1.5" />
+        <text x="197.5" y="232" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">VM 2</text>
+        
+        <rect x="145" y="240" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="197.5" y="256" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">App 2</text>
+        <text x="197.5" y="272" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">تطبيق 2</text>
+
+        <rect x="145" y="290" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="197.5" y="306" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Bins/Libs</text>
+        <text x="197.5" y="322" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">مكتبات</text>
+
+        <rect x="145" y="340" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="197.5" y="356" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Guest OS</text>
+        <text x="197.5" y="372" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نظام ضيف</text>
+    </g>
+
+    <!-- ================= COLUMN 2: TYPE 2 HYPERVISOR ================= -->
+    <g transform="translate(350, 0)">
+        <!-- Column Title -->
+        <text x="130" y="110" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Type 2 Hypervisor</text>
+        <text x="130" y="135" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">هايبرفايزر مستضاف (Hosted)</text>
+
+        <!-- Hardware -->
+        <rect x="0" y="450" width="260" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="130" y="468" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">Hardware</text>
+        <text x="130" y="486" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">الأجهزة</text>
+
+        <!-- Host OS -->
+        <rect x="0" y="395" width="260" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="130" y="413" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">Host OS</text>
+        <text x="130" y="431" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نظام التشغيل المضيف</text>
+
+        <!-- Hypervisor -->
+        <rect x="0" y="340" width="260" height="45" rx="6" fill="url(#highlightGrad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="130" y="358" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--bg-surface)">Hypervisor (Type 2)</text>
+        <text x="130" y="376" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--bg-surface)">الهايبرفايزر</text>
+
+        <!-- VM 1 -->
+        <rect x="0" y="160" width="125" height="170" rx="8" fill="none" stroke="var(--text-muted)" stroke-dasharray="6 4" stroke-width="1.5" />
+        <text x="62.5" y="177" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">VM 1</text>
+        
+        <rect x="10" y="185" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="62.5" y="201" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">App 1</text>
+        <text x="62.5" y="217" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">تطبيق 1</text>
+
+        <rect x="10" y="235" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="62.5" y="251" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Bins/Libs</text>
+        <text x="62.5" y="267" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">مكتبات</text>
+
+        <rect x="10" y="285" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="62.5" y="301" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Guest OS</text>
+        <text x="62.5" y="317" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نظام ضيف</text>
+
+        <!-- VM 2 -->
+        <rect x="135" y="160" width="125" height="170" rx="8" fill="none" stroke="var(--text-muted)" stroke-dasharray="6 4" stroke-width="1.5" />
+        <text x="197.5" y="177" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">VM 2</text>
+        
+        <rect x="145" y="185" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="197.5" y="201" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">App 2</text>
+        <text x="197.5" y="217" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">تطبيق 2</text>
+
+        <rect x="145" y="235" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="197.5" y="251" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Bins/Libs</text>
+        <text x="197.5" y="267" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">مكتبات</text>
+
+        <rect x="145" y="285" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="197.5" y="301" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Guest OS</text>
+        <text x="197.5" y="317" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نظام ضيف</text>
+    </g>
+
+    <!-- ================= COLUMN 3: CONTAINERS ================= -->
+    <g transform="translate(650, 0)">
+        <!-- Column Title -->
+        <text x="130" y="110" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">Containers</text>
+        <text x="130" y="135" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">الحاويات</text>
+
+        <!-- Hardware -->
+        <rect x="0" y="450" width="260" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="130" y="468" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">Hardware</text>
+        <text x="130" y="486" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">الأجهزة</text>
+
+        <!-- Host OS -->
+        <rect x="0" y="395" width="260" height="45" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="130" y="413" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">Host OS</text>
+        <text x="130" y="431" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">نظام التشغيل المضيف</text>
+
+        <!-- Container Engine -->
+        <rect x="0" y="340" width="260" height="45" rx="6" fill="url(#highlightGrad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="130" y="358" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--bg-surface)">Container Engine</text>
+        <text x="130" y="376" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--bg-surface)">محرك الحاويات</text>
+
+        <!-- Container 1 -->
+        <rect x="0" y="215" width="125" height="120" rx="8" fill="none" stroke="var(--text-muted)" stroke-dasharray="6 4" stroke-width="1.5" />
+        <text x="62.5" y="232" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">Container 1</text>
+        
+        <rect x="10" y="240" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="62.5" y="256" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">App 1</text>
+        <text x="62.5" y="272" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">تطبيق 1</text>
+
+        <rect x="10" y="290" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="62.5" y="306" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Bins/Libs</text>
+        <text x="62.5" y="322" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">مكتبات</text>
+
+        <!-- Container 2 -->
+        <rect x="135" y="215" width="125" height="120" rx="8" fill="none" stroke="var(--text-muted)" stroke-dasharray="6 4" stroke-width="1.5" />
+        <text x="197.5" y="232" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-muted)">Container 2</text>
+        
+        <rect x="145" y="240" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+        <text x="197.5" y="256" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">App 2</text>
+        <text x="197.5" y="272" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">تطبيق 2</text>
+
+        <rect x="145" y="290" width="105" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="197.5" y="306" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)">Bins/Libs</text>
+        <text x="197.5" y="322" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)">مكتبات</text>
+    </g>
+
+    <!-- ================= EDUCATIONAL NOTES & ARROWS ================= -->
+    
+    <!-- Note 1: Type 1 -->
+    <text x="180" y="540" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)">Runs directly on hardware</text>
+    <text x="180" y="560" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">يعمل مباشرة على الأجهزة</text>
+    <path d="M 180 520 L 180 448" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Note 2: Type 2 -->
+    <text x="480" y="540" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)">Runs on Host OS</text>
+    <text x="480" y="560" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">يعمل كتطبيق على النظام المضيف</text>
+    <path d="M 480 520 L 480 393" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- Note 3: Containers -->
+    <text x="780" y="540" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)">Shares Host OS kernel</text>
+    <text x="780" y="560" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">يشارك نواة النظام المضيف</text>
+    <path d="M 780 520 L 780 448" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Native (Type 1)</th><th>Hosted (Type 2)</th><th>Containers</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">موقع التنفيذ</template>
+          <template class="content-en">Execution Location</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مباشرة على الأجهزة (Hardware)</template>
+          <template class="content-en">Directly on hardware</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">فوق نظام تشغيل مضيف</template>
+          <template class="content-en">On top of a Host OS</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">فوق محرك حاويات يشارك النواة</template>
+          <template class="content-en">On a container engine sharing the kernel</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مستوى الأمان والعزل</template>
+          <template class="content-en">Security & Isolation Level</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عالي جداً (طبقات أقل)</template>
+          <template class="content-en">Very High (fewer layers)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">متوسط (طبقات إضافية تزيد المخاطر)</template>
+          <template class="content-en">Medium (additional layers increase risk)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">منخفض (مشاركة النواة تزيد الثغرات)</template>
+          <template class="content-en">Low (shared kernel increases vulnerabilities)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">العبء على النظام (Overhead)</template>
+          <template class="content-en">System Overhead</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متوسط</template>
+          <template class="content-en">Medium</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">عالي</template>
+          <template class="content-en">bad</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منخفض جداً</template>
+          <template class="content-en">Very Low</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر الحاويات (Containers) أقل أماناً من الأجهزة الافتراضية (VMs) المعتمدة على Hypervisor؟</template>
+      <template class="content-en">Why are containers considered less secure than hypervisor-based VMs?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن جميع التطبيقات المعبأة في حاويات تشترك في نفس نواة نظام التشغيل (OS Kernel) المضيف. إذا تم استغلال ثغرة في النواة، يمكن اختراق جميع الحاويات، بينما توفر الأجهزة الافتراضية عزلاً كاملاً لنظام التشغيل.</p></template>
+      <template class="content-en"><p>Because all containerized applications share the same host OS kernel. If a kernel vulnerability is exploited, all containers can be compromised, whereas VMs provide full OS-level isolation.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبنائي في هذه الوحدة المحورية حول أمن نظم التشغيل. تخيلوا أن نظام التشغيل هو أساس المنزل؛ إذا كان الأساس ضعيفاً، فلا يهم مدى قوة الأبواب (التطبيقات). نبدأ دائماً بـ 'التخطيط'، فهو يوفر علينا الكثير من الكوارث. ثم ننتقل إلى 'تقوية النظام' (Hardening)، وهي ببساطة إزالة كل ما لا نحتاجه لتقليل مساحة الهجوم، وتغيير الإعدادات الافتراضية التي صُممت للراحة وليس للأمان. في الامتحان، ركزوا جيداً على الفروق بين بيئات لينكس (مثل chroot) وويندوز (مثل UAC و Registry). والأهم من ذلك، افهموا جيداً بنيات المحاكاة الافتراضية: لماذا يعتبر Type 1 أكثر أماناً من Type 2؟ ولماذا الحاويات (Containers) سريعة ولكنها تشارك النواة مما يزيد المخاطر؟ تذكروا، الأمان ليس محطة نصل إليها، بل هو عملية صيانة مستمرة من المراقبة والنسخ الاحتياطي.</template>
+    <template class="content-en">Welcome to this crucial module on Operating Systems Security. Imagine the OS as the foundation of a house; if the foundation is weak, the strength of the doors (applications) doesn't matter. We always start with 'Planning' to avoid disasters. Then we move to 'Hardening', which is simply removing everything we don't need to reduce the attack surface, and changing default settings designed for convenience, not security. For the exam, focus heavily on the differences between Linux (e.g., chroot) and Windows (e.g., UAC, Registry). Most importantly, understand virtualization architectures: Why is Type 1 more secure than Type 2? And why are Containers fast but riskier due to the shared kernel? Remember, security isn't a destination; it's a continuous maintenance process of logging and backups.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نعتبر التخطيط الخطوة الأهم قبل تثبيت نظام التشغيل؟</template>
+          <template class="content-en">Why do we consider planning the most important step before installing an OS?</template>
+          <span class="content-target">لماذا نعتبر التخطيط الخطوة الأهم قبل تثبيت نظام التشغيل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن النظام يكون في أضعف حالاته أثناء التثبيت وقبل تطبيق التحديثات. التخطيط يضمن بناء النظام في شبكة معزولة وتحديد الصلاحيات مسبقاً.</template>
+          <template class="content-en">Because the system is most vulnerable during installation before patches are applied. Planning ensures the system is built in an isolated network and privileges are defined in advance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو المبدأ الأساسي وراء 'تقوية نظام التشغيل' (OS Hardening)؟</template>
+          <template class="content-en">What is the core principle behind 'OS Hardening'?</template>
+          <span class="content-target">ما هو المبدأ الأساسي وراء 'تقوية نظام التشغيل' (OS Hardening)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقليل مساحة الهجوم (Attack Surface) عن طريق إزالة أي خدمات أو تطبيقات غير ضرورية، وتغيير الإعدادات الافتراضية غير الآمنة.</template>
+          <template class="content-en">Reducing the attack surface by removing any unnecessary services or applications, and changing insecure default settings.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحسن سجن chroot الأمان في أنظمة لينكس؟</template>
+          <template class="content-en">How does a chroot jail improve security in Linux systems?</template>
+          <span class="content-target">كيف يحسن سجن chroot الأمان في أنظمة لينكس؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يقوم بعزل العملية بحيث لا ترى سوى جزء محدد من نظام الملفات. إذا تم اختراق العملية، فلن يتمكن المهاجم من الوصول إلى ملفات النظام الحساسة.</template>
+          <template class="content-en">It isolates a process so it only sees a specific portion of the file system. If compromised, the attacker cannot access sensitive system files.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو دور التحكم في حساب المستخدم (UAC) في ويندوز؟</template>
+          <template class="content-en">What is the role of User Account Control (UAC) in Windows?</template>
+          <span class="content-target">ما هو دور التحكم في حساب المستخدم (UAC) في ويندوز؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يضمن أن المستخدمين الذين يمتلكون صلاحيات إدارية يعملون بصلاحيات عادية معظم الوقت، ولا تُستخدم الصلاحيات العالية إلا عند الموافقة الصريحة.</template>
+          <template class="content-en">It ensures users with administrative rights operate with standard privileges most of the time, elevating privileges only with explicit approval.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر المحاكي الافتراضي من النوع الأول (Type 1) أكثر أماناً من النوع الثاني (Type 2)؟</template>
+          <template class="content-en">Why is a Type 1 Hypervisor considered more secure than Type 2?</template>
+          <span class="content-target">لماذا يعتبر المحاكي الافتراضي من النوع الأول (Type 1) أكثر أماناً من النوع الثاني (Type 2)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يعمل مباشرة على الأجهزة (Hardware) بدون الحاجة لنظام تشغيل مضيف، مما يقلل من الطبقات البرمجية التي يمكن أن تحتوي على ثغرات.</template>
+          <template class="content-en">Because it runs directly on the hardware without needing a host OS, reducing the software layers that could contain vulnerabilities.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي نقطة الضعف الأمنية الرئيسية في الحاويات (Containers)؟</template>
+          <template class="content-en">What is the main security vulnerability of Containers?</template>
+          <span class="content-target">ما هي نقطة الضعف الأمنية الرئيسية في الحاويات (Containers)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">جميع الحاويات تشترك في نفس نواة نظام التشغيل (OS Kernel). اختراق النواة يعني اختراق جميع الحاويات الموجودة على المضيف.</template>
+          <template class="content-en">All containers share the same host OS kernel. A kernel compromise means all containers on the host are compromised.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تساهم الشبكات المعرفة بالبرمجيات (SDNs) في أمن البيئات الافتراضية؟</template>
+          <template class="content-en">How do Software Defined Networks (SDNs) contribute to virtual environment security?</template>
+          <span class="content-target">كيف تساهم الشبكات المعرفة بالبرمجيات (SDNs) في أمن البيئات الافتراضية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تسمح بإنشاء شبكات تراكبية (Overlay) وجدران حماية افتراضية تراقب حركة المرور بين الأجهزة الافتراضية دون الحاجة لتوجيهها لشبكة مادية خارجية.</template>
+          <template class="content-en">They allow the creation of overlay networks and virtual firewalls that inspect traffic between VMs without routing it to an external physical network.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين EFS و BitLocker في ويندوز؟</template>
+          <template class="content-en">What is the difference between EFS and BitLocker in Windows?</template>
+          <span class="content-target">ما الفرق بين EFS و BitLocker في ويندوز؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">EFS يُستخدم لتشفير ملفات ومجلدات محددة، بينما BitLocker يُستخدم لتشفير القرص الصلب بالكامل (Full-disk encryption).</template>
+          <template class="content-en">EFS is used to encrypt specific files and directories, while BitLocker is used for full-disk encryption.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نعتبر التسجيل (Logging) جزءاً حاسماً من صيانة الأمان؟</template>
+          <template class="content-en">Why is Logging considered a critical part of security maintenance?</template>
+          <span class="content-target">لماذا نعتبر التسجيل (Logging) جزءاً حاسماً من صيانة الأمان؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه المصدر الرئيسي للمعلومات الذي يسمح لمديري النظام بمعرفة ما حدث بالضبط وكيف تم الاختراق في حالة حدوث فشل أمني.</template>
+          <template class="content-en">Because it is the key source of information that allows system administrators to identify exactly what happened and how a breach occurred.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي استراتيجية 'الدفاع في العمق' (Defense-in-depth)؟</template>
+          <template class="content-en">What is the 'Defense-in-depth' strategy?</template>
+          <span class="content-target">ما هي استراتيجية 'الدفاع في العمق' (Defense-in-depth)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي استخدام طبقات متعددة من الحماية (مثل جدران الحماية، التشفير، الصلاحيات) بحيث إذا فشلت طبقة، تقوم الطبقات الأخرى بصد الهجوم.</template>
+          <template class="content-en">It is the use of multiple layers of protection (e.g., firewalls, encryption, permissions) so that if one layer fails, others block the attack.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي الخطوة الأولى في نشر نظام جديد؟",
+      "en": "What is the first step in deploying a new system?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تخطيط أمن النظام (System Security Planning).",
+        "en": "System Security Planning."
+      },
+      "example": {
+        "ar": "تحديد الغرض من النظام والمستخدمين قبل التثبيت.",
+        "en": "Defining the system's purpose and users before installation."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو الهدف الرئيسي من الإعدادات الافتراضية لنظام التشغيل؟",
+      "en": "What is the primary goal of default OS configurations?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعظيم سهولة الاستخدام والوظائف، وليس الأمان.",
+        "en": "To maximize ease of use and functionality, rather than security."
+      },
+      "example": {
+        "ar": "تشغيل خدمات غير ضرورية افتراضياً.",
+        "en": "Running unnecessary services by default."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي الاستراتيجية الأولى من استراتيجيات ASD الأربع لمنع الاختراقات؟",
+      "en": "What is the first of the top four ASD strategies for prevention?"
+    },
+    "back": {
+      "definition": {
+        "ar": "القائمة البيضاء للتطبيقات المعتمدة (White-list approved applications).",
+        "en": "White-list approved applications."
+      },
+      "example": {
+        "ar": "السماح فقط للبرامج الموثوقة بالعمل.",
+        "en": "Allowing only trusted software to run."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو سجن chroot (chroot jail) في لينكس؟",
+      "en": "What is a chroot jail in Linux?"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلية تقيد رؤية الخادم لنظام الملفات إلى جزء محدد فقط.",
+        "en": "A mechanism that restricts the server’s view of the file system to just a specified portion."
+      },
+      "example": {
+        "ar": "منع تطبيق ويب مخترق من الوصول إلى ملفات النظام الأساسية.",
+        "en": "Preventing a compromised web app from accessing core system files."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "أين يتم تخزين معظم معلومات التكوين في نظام ويندوز؟",
+      "en": "Where is much of the configuration information centralized in Windows?"
+    },
+    "back": {
+      "definition": {
+        "ar": "في السجل (Registry).",
+        "en": "In the Registry."
+      },
+      "example": {
+        "ar": "تعديل مفاتيح السجل لتغيير إعدادات الأمان.",
+        "en": "Modifying registry keys to change security settings."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي وظيفة التحكم في حساب المستخدم (UAC) في ويندوز؟",
+      "en": "What is the function of User Account Control (UAC) in Windows?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يضمن أن المستخدمين ذوي الحقوق الإدارية لا يستخدمونها إلا عند الحاجة.",
+        "en": "Assists with ensuring users with administrative rights only use them when required."
+      },
+      "example": {
+        "ar": "ظهور نافذة تطلب الموافقة قبل تثبيت برنامج.",
+        "en": "A prompt appearing for approval before installing software."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي الأداة المستخدمة لتشفير القرص بالكامل في ويندوز؟",
+      "en": "What tool is used for full-disk encryption in Windows?"
+    },
+    "back": {
+      "definition": {
+        "ar": "BitLocker (باستخدام خوارزمية AES).",
+        "en": "BitLocker (using AES)."
+      },
+      "example": {
+        "ar": "تشفير القرص الصلب لحمايته في حال سرقة الحاسوب المحمول.",
+        "en": "Encrypting the hard drive to protect it if the laptop is stolen."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو الفرق بين النسخ الاحتياطي (Backup) والأرشيف (Archive)؟",
+      "en": "What is the difference between Backup and Archive?"
+    },
+    "back": {
+      "definition": {
+        "ar": "النسخ الاحتياطي يتم بانتظام للتعافي، بينما الأرشيف للاحتفاظ بالبيانات لفترات طويلة لأسباب قانونية.",
+        "en": "Backup is regular copies for recovery; Archive is retaining copies for extended periods for legal reasons."
+      },
+      "example": {
+        "ar": "نسخ يومي لقاعدة البيانات (Backup) مقابل حفظ سجلات مالية لـ 7 سنوات (Archive).",
+        "en": "Daily DB copy (Backup) vs. keeping financial records for 7 years (Archive)."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو الـ Hypervisor؟",
+      "en": "What is a Hypervisor?"
+    },
+    "back": {
+      "definition": {
+        "ar": "برنامج يقع بين الأجهزة والأنظمة الافتراضية ويعمل كوسيط للموارد.",
+        "en": "Software that sits between the hardware and the VMs, acting as a resource broker."
+      },
+      "example": {
+        "ar": "VMware ESXi أو Microsoft Hyper-V.",
+        "en": "VMware ESXi or Microsoft Hyper-V."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو المحاكي الافتراضي من النوع الأول (Native Virtualization)؟",
+      "en": "What is Type 1 (Native) Virtualization?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعمل الـ Hypervisor مباشرة على الأجهزة الأساسية (Hardware).",
+        "en": "The hypervisor executes directly on the underlying hardware."
+      },
+      "example": {
+        "ar": "خوادم مراكز البيانات المخصصة للمحاكاة الافتراضية.",
+        "en": "Dedicated data center servers for virtualization."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو المحاكي الافتراضي من النوع الثاني (Hosted Virtualization)؟",
+      "en": "What is Type 2 (Hosted) Virtualization?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعمل الـ Hypervisor كتطبيق فوق نظام تشغيل مضيف.",
+        "en": "The hypervisor runs as an application on top of a host OS."
+      },
+      "example": {
+        "ar": "VirtualBox يعمل داخل نظام ويندوز.",
+        "en": "VirtualBox running inside Windows."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي الحاويات (Containers)؟",
+      "en": "What are Containers?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بيئات تنفيذ معزولة تشترك في نواة نظام التشغيل المضيف.",
+        "en": "Isolated execution environments that share the host OS kernel."
+      },
+      "example": {
+        "ar": "Docker containers.",
+        "en": "Docker containers."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "لماذا تعتبر الحاويات أكثر عرضة للثغرات الأمنية من الأجهزة الافتراضية؟",
+      "en": "Why are containers more vulnerable to security threats than VMs?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأنها تشترك في نواة نظام التشغيل (OS kernel) بدلاً من محاكاتها بالكامل.",
+        "en": "Because they share the common OS kernel rather than emulating it entirely."
+      },
+      "example": {
+        "ar": "ثغرة في النواة تؤثر على جميع الحاويات.",
+        "en": "A kernel vulnerability affects all containers."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي الشبكات المعرفة بالبرمجيات (SDNs)؟",
+      "en": "What are Software Defined Networks (SDNs)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقنية تسمح لقطاعات الشبكة بالامتداد منطقياً عبر خوادم متعددة باستخدام شبكات تراكبية.",
+        "en": "Technology enabling network segments to logically span multiple servers using overlay networks."
+      },
+      "example": {
+        "ar": "استخدام VXLAN لإنشاء شبكة افتراضية.",
+        "en": "Using VXLAN to create a virtual network."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو جدار الحماية الافتراضي (Virtual Firewall)؟",
+      "en": "What is a Virtual Firewall?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يوفر قدرات جدار الحماية لحركة المرور بين الأنظمة الافتراضية دون توجيهها لشبكة مادية منفصلة.",
+        "en": "Provides firewall capabilities for traffic between VMs without routing it to a physical network."
+      },
+      "example": {
+        "ar": "Hypervisor Firewall.",
+        "en": "Hypervisor Firewall."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هو المصدر الرئيسي للمعلومات لمعرفة ما حدث أثناء اختراق النظام؟",
+      "en": "What is the key source of information to identify what happened during a system breach?"
+    },
+    "back": {
+      "definition": {
+        "ar": "معلومات السجل (Logging).",
+        "en": "Logging information."
+      },
+      "example": {
+        "ar": "تحليل سجلات النظام لمعرفة عنوان IP المهاجم.",
+        "en": "Analyzing system logs to find the attacker's IP."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هي الخطوة الأولى والأساسية في نشر نظام جديد بأمان؟",
+      "en": "What is the first and most critical step in deploying a new system securely?"
+    },
+    "options": {
+      "ar": [
+        "تثبيت برامج مكافحة الفيروسات",
+        "تخطيط أمن النظام",
+        "تكوين جدار الحماية",
+        "إنشاء حسابات المستخدمين"
+      ],
+      "en": [
+        "Installing anti-virus software",
+        "System security planning",
+        "Configuring the firewall",
+        "Creating user accounts"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التخطيط هو الخطوة الأولى التي تحدد المتطلبات الأمنية وتمنع اختراق النظام أثناء التثبيت.",
+      "en": "Planning is the first step that determines security requirements and prevents compromise during installation."
+    },
+    "hint": {
+      "ar": "يحدث قبل لمس الأجهزة أو البرامج.",
+      "en": "It happens before touching hardware or software."
+    },
+    "difficulty": "easy",
+    "conceptId": "system-security-planning"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من الاستراتيجيات التالية تعتبر من ضمن 'أفضل 4 استراتيجيات' لمنع الاختراقات حسب ASD؟",
+      "en": "Which of the following is one of the 'Top 4 strategies' for prevention according to ASD?"
+    },
+    "options": {
+      "ar": [
+        "القائمة السوداء للتطبيقات",
+        "السماح بالوصول الإداري للجميع",
+        "القائمة البيضاء للتطبيقات المعتمدة",
+        "تعطيل جدران الحماية"
+      ],
+      "en": [
+        "Black-listing applications",
+        "Allowing administrative access to all",
+        "White-list approved applications",
+        "Disabling firewalls"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "القائمة البيضاء تضمن تشغيل التطبيقات الموثوقة فقط، وهي من أهم 4 استراتيجيات.",
+      "en": "Whitelisting ensures only trusted apps run, making it one of the top 4 strategies."
+    },
+    "hint": {
+      "ar": "عكس القائمة السوداء.",
+      "en": "The opposite of black-listing."
+    },
+    "difficulty": "medium",
+    "conceptId": "os-hardening"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي الميزة الرئيسية لاستخدام سجن chroot في أنظمة لينكس؟",
+      "en": "What is the main advantage of using a chroot jail in Linux systems?"
+    },
+    "options": {
+      "ar": [
+        "تشفير القرص بالكامل",
+        "تقييد رؤية الخادم لجزء محدد من نظام الملفات",
+        "تسريع أداء النظام",
+        "إدارة التحديثات تلقائياً"
+      ],
+      "en": [
+        "Full disk encryption",
+        "Restricting the server's view of the file system to a specific portion",
+        "Speeding up system performance",
+        "Managing updates automatically"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يقوم chroot بعزل العملية في دليل معين، مما يمنعها من الوصول إلى باقي النظام.",
+      "en": "chroot isolates a process to a specific directory, preventing it from accessing the rest of the system."
+    },
+    "hint": {
+      "ar": "يضع العملية في 'سجن' افتراضي.",
+      "en": "It puts the process in a virtual 'jail'."
+    },
+    "difficulty": "medium",
+    "conceptId": "linux-windows-security"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أين يتم تخزين معظم معلومات التكوين مركزياً في أنظمة ويندوز؟",
+      "en": "Where is much of the configuration information centralized in Windows systems?"
+    },
+    "options": {
+      "ar": [
+        "في الدليل /etc",
+        "في ملفات مخفية (dot files)",
+        "في السجل (Registry)",
+        "في الـ Hypervisor"
+      ],
+      "en": [
+        "In the /etc directory",
+        "In hidden dot files",
+        "In the Registry",
+        "In the Hypervisor"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "ويندوز يستخدم السجل (Registry) كقاعدة بيانات مركزية للمفاتيح والقيم.",
+      "en": "Windows uses the Registry as a centralized database of keys and values."
+    },
+    "hint": {
+      "ar": "قاعدة بيانات هرمية خاصة بويندوز.",
+      "en": "A hierarchical database specific to Windows."
+    },
+    "difficulty": "easy",
+    "conceptId": "linux-windows-security"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الغرض من ميزة التحكم في حساب المستخدم (UAC) في ويندوز؟",
+      "en": "What is the purpose of the User Account Control (UAC) feature in Windows?"
+    },
+    "options": {
+      "ar": [
+        "تشفير الملفات",
+        "ضمان استخدام الصلاحيات الإدارية فقط عند الحاجة",
+        "أخذ نسخ احتياطية تلقائية",
+        "مراقبة الشبكة"
+      ],
+      "en": [
+        "Encrypting files",
+        "Ensuring administrative rights are only used when required",
+        "Taking automatic backups",
+        "Monitoring the network"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "UAC يمنع البرامج الضارة من إجراء تغييرات على مستوى النظام دون موافقة صريحة.",
+      "en": "UAC prevents malicious software from making system-level changes without explicit approval."
+    },
+    "hint": {
+      "ar": "النافذة المنبثقة التي تطلب الإذن.",
+      "en": "The pop-up window asking for permission."
+    },
+    "difficulty": "medium",
+    "conceptId": "linux-windows-security"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الفرق الأساسي بين المحاكاة الافتراضية الأصلية (Type 1) والمستضافة (Type 2)؟",
+      "en": "What is the primary difference between Native (Type 1) and Hosted (Type 2) virtualization?"
+    },
+    "options": {
+      "ar": [
+        "النوع الأول يعمل فوق نظام تشغيل مضيف، والثاني يعمل مباشرة على الأجهزة",
+        "النوع الأول يعمل مباشرة على الأجهزة، والثاني يعمل فوق نظام تشغيل مضيف",
+        "النوع الأول يستخدم الحاويات، والثاني يستخدم الأجهزة الافتراضية",
+        "لا يوجد فرق بينهما"
+      ],
+      "en": [
+        "Type 1 runs on a host OS, Type 2 runs directly on hardware",
+        "Type 1 runs directly on hardware, Type 2 runs on a host OS",
+        "Type 1 uses containers, Type 2 uses VMs",
+        "There is no difference"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "النوع الأول (Native) يعمل مباشرة على الأجهزة مما يجعله أكثر أماناً، بينما النوع الثاني يتطلب نظام تشغيل مضيف.",
+      "en": "Type 1 (Native) runs directly on hardware making it more secure, while Type 2 requires a host OS."
+    },
+    "hint": {
+      "ar": "Native تعني أصلي أو مباشر.",
+      "en": "Native means direct to the metal."
+    },
+    "difficulty": "medium",
+    "conceptId": "virtualization-security"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "لماذا تعتبر الحاويات (Containers) ذات مخاطر أمنية أعلى مقارنة بالأجهزة الافتراضية (VMs)؟",
+      "en": "Why do Containers have higher security risks compared to Virtual Machines (VMs)?"
+    },
+    "options": {
+      "ar": [
+        "لأنها لا تدعم التشفير",
+        "لأنها تشترك في نواة نظام التشغيل المضيف",
+        "لأنها تعمل فقط على نظام ويندوز",
+        "لأنها تتطلب أجهزة مادية منفصلة"
+      ],
+      "en": [
+        "Because they do not support encryption",
+        "Because they share the host OS kernel",
+        "Because they only run on Windows",
+        "Because they require separate physical hardware"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مشاركة نواة نظام التشغيل تعني أن أي ثغرة في النواة يمكن أن تؤثر على جميع الحاويات.",
+      "en": "Sharing the OS kernel means any kernel vulnerability can compromise all containers."
+    },
+    "hint": {
+      "ar": "الافتقار إلى العزل الكامل لنظام التشغيل.",
+      "en": "Lack of full OS isolation."
+    },
+    "difficulty": "hard",
+    "conceptId": "virtualization-security"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي التقنية التي تسمح بإنشاء شبكات تراكبية (Overlay Networks) لتأمين البيئات الافتراضية؟",
+      "en": "Which technology allows the creation of overlay networks to secure virtualized environments?"
+    },
+    "options": {
+      "ar": [
+        "BitLocker",
+        "chroot",
+        "الشبكات المعرفة بالبرمجيات (SDNs)",
+        "UAC"
+      ],
+      "en": [
+        "BitLocker",
+        "chroot",
+        "Software Defined Networks (SDNs)",
+        "UAC"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "SDNs تسمح بإنشاء شبكات منطقية فوق الشبكات المادية، مما يسهل وضع جدران حماية افتراضية.",
+      "en": "SDNs allow logical networks over physical ones, facilitating virtual firewalls."
+    },
+    "hint": {
+      "ar": "تعتمد على البرمجيات لتعريف الشبكة.",
+      "en": "Relies on software to define the network."
+    },
+    "difficulty": "medium",
+    "conceptId": "virtualization-security"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الهدف من عملية الأرشفة (Archive) مقارنة بالنسخ الاحتياطي (Backup)؟",
+      "en": "What is the purpose of the Archive process compared to Backup?"
+    },
+    "options": {
+      "ar": [
+        "التعافي السريع من الأعطال اليومية",
+        "الاحتفاظ بنسخ لفترات طويلة لتلبية المتطلبات القانونية والتشغيلية",
+        "تشفير البيانات أثناء النقل",
+        "منع هجمات الحرمان من الخدمة"
+      ],
+      "en": [
+        "Quick recovery from daily crashes",
+        "Retaining copies for extended periods to meet legal and operational requirements",
+        "Encrypting data in transit",
+        "Preventing DoS attacks"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الأرشيف مخصص للتخزين طويل الأمد للامتثال للقوانين، بينما النسخ الاحتياطي مخصص للتعافي السريع.",
+      "en": "Archives are for long-term storage for compliance, while backups are for quick recovery."
+    },
+    "hint": {
+      "ar": "فكر في السجلات التاريخية.",
+      "en": "Think of historical records."
+    },
+    "difficulty": "easy",
+    "conceptId": "security-maintenance"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "وفقاً لمبادئ تقوية نظام التشغيل، ماذا يجب أن تفعل بالإعدادات الافتراضية للنظام؟",
+      "en": "According to OS hardening principles, what should be done with default system configurations?"
+    },
+    "options": {
+      "ar": [
+        "الاحتفاظ بها كما هي لضمان التوافق",
+        "تغييرها لأنها مصممة لسهولة الاستخدام وليس للأمان",
+        "تحديثها فقط عند حدوث اختراق",
+        "مشاركتها مع جميع المستخدمين"
+      ],
+      "en": [
+        "Keep them as is to ensure compatibility",
+        "Change them because they are designed for ease of use, not security",
+        "Update them only when a breach occurs",
+        "Share them with all users"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الإعدادات الافتراضية تفتح العديد من الخدمات لتسهيل الاستخدام، مما يزيد من مساحة الهجوم ويجب تغييرها.",
+      "en": "Default settings open many services for ease of use, increasing the attack surface and must be changed."
+    },
+    "hint": {
+      "ar": "السهولة غالباً ما تأتي على حساب الأمان.",
+      "en": "Ease of use often comes at the expense of security."
+    },
+    "difficulty": "easy",
+    "conceptId": "os-hardening"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تقوية النظام (OS Hardening) تبدأ دائماً بإزالة الخدمات والتطبيقات غير الضرورية لتقليل مساحة الهجوم (Attack Surface).</template>
+      <template class="content-en">OS Hardening always starts with removing unnecessary services and applications to reduce the attack surface.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الإعدادات الافتراضية لنظام التشغيل آمنة. في الواقع، هي مصممة لتعظيم سهولة الاستخدام والوظائف، وتعتبر خطراً أمنياً إذا لم يتم تعديلها.</template>
+      <template class="content-en">Believing that default OS configurations are secure. In reality, they are designed to maximize ease of use and functionality, and are a security risk if not modified.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الحاويات (Containers) توفر أداءً أعلى من الأجهزة الافتراضية (VMs) لأنها لا تحاكي الأجهزة، لكنها تشترك في نواة نظام التشغيل المضيف، مما يجعلها نقطة ضعف حرجة إذا تم استغلال النواة.</template>
+      <template class="content-en">Containers offer higher performance than VMs because they don't emulate hardware, but they share the host OS kernel, making it a critical single point of failure if the kernel is exploited.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين النسخ الاحتياطي (Backup) والأرشيف (Archive). النسخ الاحتياطي للتعافي السريع من الكوارث، بينما الأرشيف للاحتفاظ بالبيانات لسنوات لأغراض قانونية.</template>
+      <template class="content-en">Confusing Backup with Archive. Backup is for quick disaster recovery, while Archive is for retaining data for years for legal purposes.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المحاكاة الافتراضية الأصلية (Type 1 Hypervisor) أكثر أماناً من المستضافة (Type 2) لأنها تعمل مباشرة على الأجهزة، مما يقلل من الطبقات البرمجية التي يمكن اختراقها.</template>
+      <template class="content-en">Native Virtualization (Type 1 Hypervisor) is more secure than Hosted (Type 2) because it runs directly on hardware, reducing the software layers that can be compromised.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M09.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M11.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

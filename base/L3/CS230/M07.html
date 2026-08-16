@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS230" data-module="7">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>البرمجة كائنية التوجه: الدوال (الجزء الثاني) · CS230 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS230" data-page-title-en="CS230">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M06.html" data-gh-next="M08.html" data-gh-card="../../hub/course.html?code=CS230"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#java-api-packages" class="toc-link" data-bilingual>
+        <template class="content-ar">حزم واجهة برمجة تطبيقات جافا (Java API Packages)</template>
+        <template class="content-en">Java API Packages</template>
+        <span class="content-target">حزم واجهة برمجة تطبيقات جافا (Java API Packages)</span>
+      </a>
+      <a href="#scope-of-declaration" class="toc-link" data-bilingual>
+        <template class="content-ar">نطاق الإعلان (Scope of Declaration)</template>
+        <template class="content-en">Scope of Declaration</template>
+        <span class="content-target">نطاق الإعلان (Scope of Declaration)</span>
+      </a>
+      <a href="#method-overloading" class="toc-link" data-bilingual>
+        <template class="content-ar">التحميل الزائد للدوال (Method Overloading)</template>
+        <template class="content-en">Method Overloading</template>
+        <span class="content-target">التحميل الزائد للدوال (Method Overloading)</span>
+      </a>
+      <a href="#method-overloading-type-promotion" class="toc-link" data-bilingual>
+        <template class="content-ar">التحميل الزائد مع ترقية الأنواع (Type Promotion)</template>
+        <template class="content-en">Method Overloading with Type Promotion</template>
+        <span class="content-target">التحميل الزائد مع ترقية الأنواع (Type Promotion)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 7</template>
+      <template class="content-en">Module 7</template>
+      <span class="content-target">الوحدة 7</span>
+    </span> · CS230
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">البرمجة كائنية التوجه: الدوال (الجزء الثاني)</h1>
+      <p class="hero-description">تغطي هذه الوحدة حزم واجهة برمجة تطبيقات جافا (Java API Packages)، ونطاق الإعلان عن المتغيرات (Scope of Declaration)، والتحميل الزائد للدوال (Method Overloading) مع أمثلة على ترقية الأنواع (Type Promotion).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Object Oriented Programming: Methods (Part 2)</h1>
+      <p class="hero-description">This module covers Java API Packages, Scope of Declaration, and Method Overloading with examples of Type Promotion.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">جافا</span>
+      <span class="tag">الدوال</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Java</span>
+      <span class="tag">Methods</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تلخيص ميزات الدوال وحزم واجهة برمجة تطبيقات جافا (Java API).</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد نطاق الإعلان للمتغيرات المحلية، والمعاملات، وحقول الفئة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق التحميل الزائد للدوال (Method Overloading) باستخدام أنواع وأعداد مختلفة من المعاملات.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم كيفية عمل ترقية الأنواع (Type Promotion) عند استدعاء الدوال المحملة بشكل زائد.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Summarize methods and Java API packages features.</span></li>
+      <li><span class="obj-icon">✦</span><span>Determine the scope of declaration for local variables, parameters, and class fields.</span></li>
+      <li><span class="obj-icon">✦</span><span>Implement Method Overloading using different types and numbers of parameters.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand how Type Promotion works when calling overloaded methods.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="java-api-packages" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> حزم واجهة برمجة تطبيقات جافا (Java API Packages)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Java API Packages</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p><span class="smart-term" data-term-en="Package" data-ar="حزمة" data-en-def="A grouping of related types (classes, interfaces, enumerations, and annotations) providing access protection and namespace management.">الحزم</span> هي مجلدات تنظيمية تجمع الفئات ذات الصلة لتعزيز إعادة الاستخدام، تماماً مثل تصنيف الكتب في المكتبة.</p>
+    </template>
+    <template class="content-en">
+      <p><span class="smart-term" data-term-en="Package" data-ar="حزمة" data-en-def="A grouping of related types (classes, interfaces, enumerations, and annotations) providing access protection and namespace management.">Packages</span> are organizational folders that group related classes to promote reuse, just like categorizing books in a library.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>حزم جافا (Packages) عبارة عن فئات مجمعة في فئات من الفئات ذات الصلة. هذا التنظيم يعزز إعادة استخدام البرمجيات (Software Reuse).</p><p>لاستخدام هذه الفئات في برامج جافا، نستخدم <span class="smart-term" data-term-en="import statement" data-ar="عبارة الاستيراد" data-en-def="A statement used to bring specific classes or entire packages into visibility for a Java program.">عبارات الاستيراد (import statements)</span> لتحديد الفئات المطلوبة، مثل <code>import javax.swing.JApplet;</code>. تتضمن الحزم الشائعة</p><ul><li><strong><code>java.lang</code></strong> (تُستورد تلقائياً)،</li><li>و <strong><code>java.util</code></strong> (لأدوات مثل المجموعات)،</li><li>و <strong><code>java.io</code></strong> (للإدخال والإخراج).</li></ul></template>
+    <template class="content-en"><p>Java Packages are classes grouped into categories of related classes. This organization promotes software reuse.</p><p>To use these classes in Java programs, <span class="smart-term" data-term-en="import statement" data-ar="عبارة الاستيراد" data-en-def="A statement used to bring specific classes or entire packages into visibility for a Java program.">import statements</span> specify the classes used, e.g., <code>import javax.swing.JApplet;</code>. Common packages include</p><ul><li><strong><code>java.lang</code></strong> (imported automatically),</li><li><strong><code>java.util</code></strong> (for utilities like collections),</li><li>and <strong><code>java.io</code></strong> (for input/output).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يمنع استخدام الحزم تعارض الأسماء (Name Clashes) بين الفئات التي تحمل نفس الاسم ولكنها تؤدي وظائف مختلفة.</p><p>على سبيل المثال، يمكن أن يكون هناك فئة <code>Date</code> في <code>java.util</code> وأخرى في <code>java.sql</code>. باستخدام الحزم، يمكن للمترجم التمييز بينهما بوضوح.</p></template>
+    <template class="content-en"><p>Using packages prevents name clashes between classes that have the same name but perform different functions.</p><p>For example, there can be a <code>Date</code> class in <code>java.util</code> and another in <code>java.sql</code>. By using packages, the compiler can clearly distinguish between them.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>import javax.swing.JApplet;
+import java.util.Scanner;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A hierarchical tree diagram showing 'Java API' at the root, branching into 'java.lang', 'java.util', 'java.io', and 'javax.swing'. Under 'java.util', show a box for 'Scanner'. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Background Grid Pattern -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="0.5" opacity="0.3"/>
+        </pattern>
+
+        <!-- Drop Shadow for Nodes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+    <rect width="100%" height="100%" fill="url(#grid)"/>
+
+    <!-- Connections (Lines) -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)">
+        <!-- Root to Level 1 -->
+        <path d="M 400 100 C 400 128, 100 128, 100 155"/>
+        <path d="M 400 100 C 400 128, 300 128, 300 155"/>
+        <path d="M 400 100 C 400 128, 500 128, 500 155"/>
+        <path d="M 400 100 C 400 128, 700 128, 700 155"/>
+        
+        <!-- java.util to Scanner -->
+        <path d="M 300 230 L 300 295"/>
+    </g>
+
+    <!-- Connection Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">
+        <rect x="265" y="252" width="70" height="22" rx="11" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1"/>
+        <text x="300" y="268" fill="var(--text-muted)">contains</text>
+    </g>
+
+    <!-- Nodes -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        
+        <!-- Root Node: Java API -->
+        <g transform="translate(0, 0)">
+            <rect x="280" y="30" width="240" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)"/>
+            <text x="400" y="60" font-size="22" font-weight="bold" fill="var(--text-primary)">Java API</text>
+            <text x="400" y="85" font-size="16" fill="var(--text-secondary)">واجهة برمجة تطبيقات جافا</text>
+        </g>
+
+        <!-- Level 1: java.lang -->
+        <g transform="translate(0, 0)">
+            <rect x="20" y="160" width="160" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <text x="100" y="190" font-size="18" font-weight="bold" fill="var(--text-primary)">java.lang</text>
+            <text x="100" y="215" font-size="15" fill="var(--text-secondary)">حزمة أساسية</text>
+        </g>
+
+        <!-- Level 1: java.util (Highlighted as parent of Scanner) -->
+        <g transform="translate(0, 0)">
+            <rect x="220" y="160" width="160" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+            <text x="300" y="190" font-size="18" font-weight="bold" fill="var(--text-primary)">java.util</text>
+            <text x="300" y="215" font-size="15" fill="var(--text-secondary)">حزمة الأدوات</text>
+        </g>
+
+        <!-- Level 1: java.io -->
+        <g transform="translate(0, 0)">
+            <rect x="420" y="160" width="160" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <text x="500" y="190" font-size="18" font-weight="bold" fill="var(--text-primary)">java.io</text>
+            <text x="500" y="215" font-size="15" fill="var(--text-secondary)">حزمة الإدخال/الإخراج</text>
+        </g>
+
+        <!-- Level 1: javax.swing -->
+        <g transform="translate(0, 0)">
+            <rect x="620" y="160" width="160" height="70" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)"/>
+            <text x="700" y="190" font-size="18" font-weight="bold" fill="var(--text-primary)">javax.swing</text>
+            <text x="700" y="215" font-size="15" fill="var(--text-secondary)">حزمة الواجهات</text>
+        </g>
+
+        <!-- Level 2: Scanner -->
+        <g transform="translate(0, 0)">
+            <rect x="220" y="300" width="160" height="60" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="5,5" filter="url(#shadow)"/>
+            <text x="300" y="328" font-size="18" font-weight="bold" fill="var(--text-primary)">Scanner</text>
+            <text x="300" y="348" font-size="14" fill="var(--text-secondary)">فئة (Class)</text>
+        </g>
+
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نحتاج إلى كتابة عبارة استيراد للفئة String أو System؟</template>
+      <template class="content-en">Why do we not need to write an import statement for the String or System class?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن هذه الفئات تنتمي إلى حزمة java.lang، والتي يقوم مترجم جافا باستيرادها تلقائياً في كل برنامج.</p></template>
+      <template class="content-en"><p>Because these classes belong to the java.lang package, which the Java compiler imports automatically into every program.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="scope-of-declaration" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> نطاق الإعلان (Scope of Declaration)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Scope of Declaration</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p><span class="smart-term" data-term-en="Scope" data-ar="النطاق" data-en-def="The region of a computer program where the binding of a variable name to an entity is valid.">النطاق</span> هو عمر ومساحة رؤية المتغير؛ أين يمكن للبرنامج التعرف عليه واستخدامه.</p>
+    </template>
+    <template class="content-en">
+      <p><span class="smart-term" data-term-en="Scope" data-ar="النطاق" data-en-def="The region of a computer program where the binding of a variable name to an entity is valid.">Scope</span> is the lifetime and visibility of a variable; where the program can recognize and use it.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>نطاق الإعلان هو الجزء من البرنامج الذي يمكنه الإشارة إلى الكيان المُعلن باسمه. تشمل قواعد النطاق الأساسية:</p><ul><li><strong>نطاق إعلان المعامل</strong> (Parameter)،</li><li><strong>نطاق إعلان المتغير المحلي</strong> (Local-variable)،</li><li><strong>نطاق التسمية</strong> (Label) في عبارات break أو continue،</li><li><strong>نطاق المتغير المحلي</strong> في قسم التهيئة لرأس عبارة for،</li><li>و<strong>نطاق الدالة أو الحقل</strong> الخاص بالفئة.</li></ul><p>إذا تم الإعلان عن متغير محلي بنفس اسم حقل الفئة، فإن المتغير المحلي <span class="smart-term" data-term-en="Shadowing" data-ar="التظليل / الحجب" data-en-def="Occurs when a variable declared within a certain scope has the same name as a variable declared in an outer scope.">يحجب (Shadows)</span> حقل الفئة داخل نطاقه.</p></template>
+    <template class="content-en"><p>The scope of a declaration is the portion of the program that can refer to the declared entity by its name. Basic scope rules include:</p><ul><li><strong>scope of a parameter declaration</strong>,</li><li><strong>scope of a local-variable declaration</strong>,</li><li><strong>scope of a label</strong> in a labeled break or continue statement,</li><li><strong>scope of a local-variable declaration</strong> in the initialization section of a for statement's header,</li><li>and <strong>scope of a method or field</strong> of a class.</li></ul><p>If a local variable has the same name as a class field, the local variable <span class="smart-term" data-term-en="Shadowing" data-ar="التظليل / الحجب" data-en-def="Occurs when a variable declared within a certain scope has the same name as a variable declared in an outer scope.">shadows</span> the field within its scope.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تظليل المتغيرات (Shadowing) يمكن أن يؤدي إلى أخطاء منطقية يصعب تتبعها. للوصول إلى حقل الفئة المخفي بواسطة متغير محلي، يمكن استخدام الكلمة المفتاحية <code>this</code> (مثل <code>this.x</code>).</p><p>النطاق يضمن التغليف (Encapsulation) ويمنع التعديلات غير المقصودة على المتغيرات من أجزاء أخرى من البرنامج.</p></template>
+    <template class="content-en"><p>Variable shadowing can lead to logical bugs that are hard to track. To access a class field hidden by a local variable, the <code>this</code> keyword can be used (e.g., <code>this.x</code>).</p><p>Scope ensures encapsulation and prevents unintended modifications to variables from other parts of the program.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public class Scope {
+    private static int x = 1; // Class field
+
+    public static void main(String[] args) {
+        int x = 5; // Local variable shadows field x
+        System.out.println("local x in main is " + x);
+        useField();
+    }
+
+    public static void useField() {
+        System.out.println("field x is " + x); // Accesses class field
+    }
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A visual representation of variable scope blocks. A large outer box labeled 'Class Scope (x=1)'. Inside it, two smaller boxes: one labeled 'main Method Scope (local x=5)' and another labeled 'useField Method Scope (sees Class x=1)'. Show an eye icon in 'main' looking at local x, and an eye icon in 'useField' looking at Class x. Style: educational, dark background #0d1117, accent colors for different scopes, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrowhead for solid lines -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <!-- Arrowhead for dashed lines -->
+    <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Outer Box: Class Scope -->
+  <rect x="40" y="40" width="720" height="420" rx="16" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8 4" />
+  <text x="60" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="start">Scope Boundary</text>
+  
+  <text x="400" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Class Scope | نطاق الفئة</text>
+
+  <!-- Class Variable -->
+  <rect x="300" y="100" width="200" height="46" rx="8" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="400" y="129" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Class Variable: x = 1</text>
+
+  <!-- Inner Box 1: main Method Scope -->
+  <rect x="70" y="170" width="310" height="260" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+  <text x="225" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">main Method Scope</text>
+  <text x="225" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">نطاق الدالة main</text>
+
+  <!-- Local Variable in main -->
+  <rect x="125" y="255" width="200" height="46" rx="8" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="225" y="284" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">local x = 5</text>
+
+  <!-- Inner Box 2: useField Method Scope -->
+  <rect x="420" y="170" width="310" height="260" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+  <text x="575" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">useField Method Scope</text>
+  <text x="575" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">نطاق الدالة useField</text>
+
+  <!-- Eye Icon 1 (main Method) -->
+  <g transform="translate(209, 374) scale(1.33)">
+    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" fill="var(--text-secondary)"/>
+  </g>
+
+  <!-- Eye Icon 2 (useField Method) -->
+  <g transform="translate(559, 374) scale(1.33)">
+    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" fill="var(--text-secondary)"/>
+  </g>
+
+  <!-- Arrow 1: main looking at local x -->
+  <path d="M 225 365 L 225 315" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <text x="295" y="340" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">Sees local x</text>
+  <text x="295" y="360" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">يرى المتغير المحلي</text>
+
+  <!-- Arrow 2: useField looking at Class x -->
+  <path d="M 575 365 L 575 123 L 515 123" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#arrow-dashed)" />
+  <text x="650" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">Sees Class x</text>
+  <text x="650" y="260" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-muted)" text-anchor="middle">يرى متغير الفئة</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا حاولنا استخدام متغير تم الإعلان عنه داخل حلقة for خارج تلك الحلقة؟</template>
+      <template class="content-en">What happens if we try to use a variable declared inside a for loop outside of that loop?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيحدث خطأ في الترجمة (Compilation Error) لأن نطاق المتغير يقتصر على حلقة for فقط.</p></template>
+      <template class="content-en"><p>A compilation error will occur because the variable's scope is limited strictly to the for loop.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="method-overloading" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> التحميل الزائد للدوال (Method Overloading)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Method Overloading</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p><span class="smart-term" data-term-en="Method Overloading" data-ar="التحميل الزائد للدوال" data-en-def="A feature that allows a class to have more than one method having the same name, if their argument lists are different.">التحميل الزائد</span> هو إنشاء عدة دوال بنفس الاسم ولكن بمدخلات (معاملات) مختلفة، مثل أداة متعددة الاستخدامات تتكيف مع ما تدخله فيها.</p>
+    </template>
+    <template class="content-en">
+      <p><span class="smart-term" data-term-en="Method Overloading" data-ar="التحميل الزائد للدوال" data-en-def="A feature that allows a class to have more than one method having the same name, if their argument lists are different.">Overloading</span> is creating multiple methods with the same name but different inputs (parameters), like a multi-tool adapting to what you feed it.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التحميل الزائد للدوال (Method Overloading) يعني وجود عدة دوال تحمل نفس الاسم داخل نفس الفئة، ولكن يجب أن تمتلك مجموعة معاملات (Parameter set) مختلفة لكل دالة. يمكن أن يكون الاختلاف في:</p><ol><li>1) <strong>عدد المعاملات</strong>،</li><li>أو 2) <strong>أنواع المعاملات</strong>.</li></ol><p>يسمح هذا للمبرمجين باستخدام نفس اسم الدالة لعمليات متشابهة منطقياً تعمل على أنواع بيانات أو أعداد مختلفة من المدخلات.</p></template>
+    <template class="content-en"><p>Method Overloading means having several methods of the same name within the same class, but they must have a different parameter set for each method. The difference can be in:</p><ol><li>1) <strong>Number of parameters</strong>,</li><li>or 2) <strong>Parameter types</strong>.</li></ol><p>This allows programmers to use the same method name for logically similar operations that work on different data types or numbers of inputs.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>نوع الإرجاع (Return type) وحده لا يكفي للتمييز بين الدوال المحملة بشكل زائد. إذا كان لدالتين نفس الاسم ونفس المعاملات ولكن نوع إرجاع مختلف، سيصدر المترجم خطأ.</p><p>يعتمد المترجم على <span class="smart-term" data-term-en="Method Signature" data-ar="توقيع الدالة" data-en-def="Comprises the method name and the parameter types in order. It does not include the return type.">توقيع الدالة (Method Signature)</span> الذي يتكون من اسم الدالة وقائمة معاملاتها فقط لتحديد الدالة الصحيحة التي يجب استدعاؤها وقت الترجمة (Compile-time Polymorphism).</p></template>
+    <template class="content-en"><p>The return type alone is not sufficient to distinguish between overloaded methods. If two methods have the same name and parameters but different return types, the compiler will throw an error.</p><p>The compiler relies on the <span class="smart-term" data-term-en="Method Signature" data-ar="توقيع الدالة" data-en-def="Comprises the method name and the parameter types in order. It does not include the return type.">Method Signature</span> (name + parameter list) to determine the correct method to invoke at compile-time (Compile-time Polymorphism).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>class Adder {
+    // Overloading by parameter types
+    static int add(int a, int b) {
+        return a + b;
+    }
+    static double add(double a, double b) {
+        return a + b;
+    }
+    // Overloading by number of parameters
+    static int add(int a, int b, int c) {
+        return a + b + c;
+    }
+}</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>By Number of Parameters</th>
+        <th>By Parameter Types</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">مثال</template>
+          <template class="content-en">Example</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">add(int a, int b) مقابل add(int a, int b, int c)</template>
+          <template class="content-en">add(int a, int b) vs add(int a, int b, int c)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">add(int a, int b) مقابل add(double a, double b)</template>
+          <template class="content-en">add(int a, int b) vs add(double a, double b)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التمييز بواسطة المترجم</template>
+          <template class="content-en">Compiler Distinction</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يحسب عدد المعاملات الممررة</template>
+          <template class="content-en">Counts the number of passed arguments</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يتحقق من أنواع البيانات للمعاملات الممررة</template>
+          <template class="content-en">Checks the data types of passed arguments</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكن تحميل دالة بشكل زائد عن طريق تغيير نوع الإرجاع فقط؟</template>
+      <template class="content-en">Can a method be overloaded by changing only its return type?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، يجب أن تختلف قائمة المعاملات. تغيير نوع الإرجاع فقط سيؤدي إلى خطأ في الترجمة.</p></template>
+      <template class="content-en"><p>No, the parameter list must differ. Changing only the return type will result in a compilation error.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="method-overloading-type-promotion" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> التحميل الزائد مع ترقية الأنواع (Type Promotion)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Method Overloading with Type Promotion</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>إذا لم تجد جافا دالة تطابق نوع البيانات المدخل تماماً، فإنها ترقي النوع إلى نوع أكبر (مثل من int إلى long) للبحث عن تطابق.</p>
+    </template>
+    <template class="content-en">
+      <p>If Java doesn't find an exact match for the input data type, it promotes the type to a larger one (e.g., int to long) to find a match.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند استدعاء دالة محملة بشكل زائد، يبحث المترجم عن تطابق تام للمعاملات. إذا لم يتم العثور على تطابق تام، تقوم جافا تلقائياً بترقية (Promote) الأنواع الأولية الأصغر إلى أنواع أكبر (<span class="smart-term" data-term-en="Type Promotion" data-ar="ترقية النوع" data-en-def="The automatic conversion of a smaller primitive data type to a larger one when no exact method match is found.">Type Promotion</span>) للبحث عن دالة مطابقة.</p><p>على سبيل المثال، إذا كان لدينا دالة <code>sum(int a, long b)</code> وقمنا باستدعائها باستخدام <code>sum(20, 20)</code> (حيث كلاهما من نوع int)، فسيتم ترقية المعامل الثاني من int إلى long لتطابق الدالة الموجودة.</p></template>
+    <template class="content-en"><p>When an overloaded method is called, the compiler looks for an exact parameter match. If no exact match is found, Java automatically promotes smaller primitive types to larger ones (<span class="smart-term" data-term-en="Type Promotion" data-ar="ترقية النوع" data-en-def="The automatic conversion of a smaller primitive data type to a larger one when no exact method match is found.">Type Promotion</span>) to find a matching method.</p><p>For example, if we have a method <code>sum(int a, long b)</code> and we call it with <code>sum(20, 20)</code> (both ints), the second argument is promoted from int to long to match the available method.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>ترقية الأنواع تتبع تسلسلاً هرمياً صارماً: byte -> short -> int -> long -> float -> double.</p><p>لا يمكن الترقية العكسية (Demotion) تلقائياً لأنها قد تؤدي إلى فقدان البيانات. إذا كان هناك التباس (Ambiguity) حيث يمكن تطبيق أكثر من ترقية واحدة بشكل متساوٍ، سيصدر المترجم خطأ (Ambiguous method call).</p></template>
+    <template class="content-en"><p>Type promotion follows a strict hierarchy: byte -> short -> int -> long -> float -> double.</p><p>Automatic demotion is not allowed as it may cause data loss. If there is ambiguity where more than one promotion could equally apply, the compiler will throw an error (Ambiguous method call).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>class OverloadingCalculation1 {
+    static void sum(int a, long b) {
+        System.out.println("int, long method invoked");
+    }
+    static void sum(int a, int b, int c) {
+        System.out.println("int, int, int method invoked");
+    }
+    public static void main(String args[]) {
+        sum(20, 20); // second int literal promoted to long
+        sum(20, 20, 20);
+    }
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A flowchart showing Type Promotion in Java. Arrows pointing from byte -> short -> int -> long -> float -> double. Highlight the 'int -> long' path with a bright accent color to match the example. Style: educational, dark background #0d1117, accent color #28a745, viewBox 0 0 800 200, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 280" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Standard Arrowhead -->
+    <marker id="arrow-normal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+    </marker>
+    <!-- Highlighted Arrowhead -->
+    <marker id="arrow-highlight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Diagram Titles -->
+  <text x="400" y="40" text-anchor="middle" fill="var(--text-primary)" font-size="22" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">Java Type Promotion (Widening)</text>
+  <text x="400" y="65" text-anchor="middle" fill="var(--text-secondary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif">الترقية التلقائية للأنواع في جافا (توسيع النطاق)</text>
+
+  <!-- Nodes -->
+  <!-- byte -->
+  <g transform="translate(20, 110)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">byte</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1 byte</text>
+  </g>
+
+  <!-- short -->
+  <g transform="translate(140, 110)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">short</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">2 bytes</text>
+  </g>
+
+  <!-- int (Highlighted) -->
+  <g transform="translate(260, 110)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">int</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">4 bytes</text>
+  </g>
+
+  <!-- long (Highlighted) -->
+  <g transform="translate(440, 110)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">long</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">8 bytes</text>
+  </g>
+
+  <!-- float -->
+  <g transform="translate(560, 110)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">float</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">4 bytes</text>
+  </g>
+
+  <!-- double -->
+  <g transform="translate(680, 110)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">double</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">8 bytes</text>
+  </g>
+
+  <!-- char -->
+  <g transform="translate(260, 200)">
+    <rect width="86" height="56" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="43" y="26" text-anchor="middle" fill="var(--text-primary)" font-size="16" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">char</text>
+    <text x="43" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">2 bytes</text>
+  </g>
+
+  <!-- Standard Arrows -->
+  <line x1="106" y1="138" x2="135" y2="138" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-normal)" />
+  <line x1="226" y1="138" x2="255" y2="138" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-normal)" />
+  <line x1="526" y1="138" x2="555" y2="138" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-normal)" />
+  <line x1="646" y1="138" x2="675" y2="138" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-normal)" />
+  
+  <!-- char to int Arrow -->
+  <line x1="303" y1="200" x2="303" y2="172" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-normal)" />
+
+  <!-- Highlighted Arrow (int -> long) -->
+  <line x1="346" y1="138" x2="435" y2="138" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-highlight)" />
+  <text x="393" y="115" text-anchor="middle" fill="var(--brand-500)" font-size="15" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">Implicit Cast</text>
+  <text x="393" y="165" text-anchor="middle" fill="var(--brand-500)" font-size="15" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-weight="bold">تحويل ضمني</text>
+
+  <!-- Educational Note for long -> float -->
+  <line x1="540" y1="155" x2="540" y2="143" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="540" y="172" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Wider range</text>
+  <text x="540" y="190" text-anchor="middle" fill="var(--text-muted)" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif">نطاق أوسع</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا كان لدينا دالتان: sum(int, long) و sum(long, int) واستدعينا sum(20, 20)؟</template>
+      <template class="content-en">What happens if we have two methods: sum(int, long) and sum(long, int) and we call sum(20, 20)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيحدث خطأ في الترجمة بسبب الغموض (Ambiguity)، حيث لا يستطيع المترجم تحديد أي دالة يجب ترقية معاملاتها.</p></template>
+      <template class="content-en"><p>A compilation error will occur due to ambiguity, as the compiler cannot decide which method's parameters to promote.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة المهمة. اليوم نربط بين ثلاثة مفاهيم أساسية تجعل كود جافا الخاص بنا منظماً وقوياً. أولاً، تحدثنا عن 'الحزم' (Packages)، تخيلوها كأدراج مكتبك؛ درج للأدوات (java.util)، ودرج للملفات (java.io). هذا التنظيم يمنع الفوضى. ثانياً، انتقلنا إلى 'نطاق المتغيرات' (Scope)؛ وهو ببساطة 'أين يعيش المتغير؟'. احذروا من فخ التظليل (Shadowing) في الامتحان، حيث يخدعكم متغير محلي يحمل نفس اسم حقل الفئة! أخيراً، 'التحميل الزائد' (Overloading)؛ وهو فن إعطاء نفس الاسم لعدة دوال تقوم بنفس المهمة ولكن بمدخلات مختلفة. تذكروا دائماً: المترجم يفرق بينها بعدد وأنواع المعاملات فقط، وليس بنوع الإرجاع. وإذا لم يجد تطابقاً تاماً، سيبحث عن الترقية التلقائية (Type Promotion). ركزوا على هذه القواعد، فهي مفتاح لأسئلة الخيارات المتعددة وتتبع الأخطاء في الاختبار.</template>
+    <template class="content-en">Welcome my friends to this crucial module. Today we connect three core concepts that make our Java code organized and robust. First, 'Packages'—think of them as your desk drawers; a drawer for utilities (java.util), a drawer for files (java.io). This prevents chaos. Second, 'Scope'; simply 'where does the variable live?'. Beware of the Shadowing trap in the exam, where a local variable with the same name as a class field tricks you! Finally, 'Overloading'; the art of giving the same name to multiple methods doing the same task but with different inputs. Always remember: the compiler differentiates them ONLY by the number and types of parameters, NOT the return type. And if it doesn't find an exact match, it looks for Type Promotion. Focus on these rules; they are the key to MCQ and debugging questions in your exam.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الفائدة الأساسية من استخدام حزم جافا (Java Packages)؟</template>
+          <template class="content-en">What is the primary benefit of using Java Packages?</template>
+          <span class="content-target">ما هي الفائدة الأساسية من استخدام حزم جافا (Java Packages)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الفائدة الأساسية هي تنظيم الفئات ذات الصلة معاً، مما يعزز إعادة استخدام البرمجيات (Software Reuse) ويمنع تعارض الأسماء (Name Clashes).</template>
+          <template class="content-en">The primary benefit is organizing related classes together, which promotes software reuse and prevents name clashes.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نستخدم فئة موجودة في حزمة أخرى داخل برنامجنا؟</template>
+          <template class="content-en">How do we use a class located in another package inside our program?</template>
+          <span class="content-target">كيف نستخدم فئة موجودة في حزمة أخرى داخل برنامجنا؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدم عبارة الاستيراد (import statement) في بداية الملف، مثل: import java.util.Scanner;</template>
+          <template class="content-en">We use the import statement at the beginning of the file, for example: import java.util.Scanner;</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما المقصود بنطاق الإعلان (Scope of Declaration)؟</template>
+          <template class="content-en">What is meant by Scope of Declaration?</template>
+          <span class="content-target">ما المقصود بنطاق الإعلان (Scope of Declaration)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو الجزء من البرنامج الذي يمكنه التعرف على المتغير أو الكيان المُعلن باسمه واستخدامه.</template>
+          <template class="content-en">It is the portion of the program that can recognize and refer to the declared entity by its name.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">اشرح مفهوم تظليل المتغيرات (Variable Shadowing).</template>
+          <template class="content-en">Explain the concept of Variable Shadowing.</template>
+          <span class="content-target">اشرح مفهوم تظليل المتغيرات (Variable Shadowing).</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يحدث التظليل عندما يتم الإعلان عن متغير محلي داخل دالة بنفس اسم حقل موجود في الفئة. في هذه الحالة، المتغير المحلي يحجب حقل الفئة داخل تلك الدالة.</template>
+          <template class="content-en">Shadowing occurs when a local variable inside a method is declared with the same name as a class field. In this case, the local variable hides the class field within that method.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التحميل الزائد للدوال (Method Overloading)؟</template>
+          <template class="content-en">What is Method Overloading?</template>
+          <span class="content-target">ما هو التحميل الزائد للدوال (Method Overloading)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو إنشاء عدة دوال داخل نفس الفئة تحمل نفس الاسم، ولكن تختلف في قائمة المعاملات (إما في العدد أو في الأنواع).</template>
+          <template class="content-en">It is creating multiple methods within the same class that share the same name but differ in their parameter list (either in number or types).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن التمييز بين الدوال المحملة بشكل زائد بناءً على نوع الإرجاع (Return Type) فقط؟</template>
+          <template class="content-en">Can overloaded methods be distinguished based solely on their Return Type?</template>
+          <span class="content-target">هل يمكن التمييز بين الدوال المحملة بشكل زائد بناءً على نوع الإرجاع (Return Type) فقط؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، المترجم يعتمد فقط على توقيع الدالة (اسم الدالة وقائمة المعاملات). اختلاف نوع الإرجاع وحده سيؤدي إلى خطأ في الترجمة.</template>
+          <template class="content-en">No, the compiler relies only on the method signature (method name and parameter list). A difference in return type alone will cause a compilation error.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">أعط مثالاً على التحميل الزائد بتغيير أنواع المعاملات.</template>
+          <template class="content-en">Give an example of overloading by changing parameter types.</template>
+          <span class="content-target">أعط مثالاً على التحميل الزائد بتغيير أنواع المعاملات.</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">وجود دالتين: الأولى add(int a, int b) والثانية add(double a, double b).</template>
+          <template class="content-en">Having two methods: the first is add(int a, int b) and the second is add(double a, double b).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">أعط مثالاً على التحميل الزائد بتغيير عدد المعاملات.</template>
+          <template class="content-en">Give an example of overloading by changing the number of parameters.</template>
+          <span class="content-target">أعط مثالاً على التحميل الزائد بتغيير عدد المعاملات.</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">وجود دالتين: الأولى add(int a, int b) والثانية add(int a, int b, int c).</template>
+          <template class="content-en">Having two methods: the first is add(int a, int b) and the second is add(int a, int b, int c).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث في جافا إذا استدعينا دالة بمعاملات لا تطابق تماماً أي دالة محملة بشكل زائد؟</template>
+          <template class="content-en">What happens in Java if we call a method with arguments that don't exactly match any overloaded method?</template>
+          <span class="content-target">ماذا يحدث في جافا إذا استدعينا دالة بمعاملات لا تطابق تماماً أي دالة محملة بشكل زائد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم جافا بمحاولة 'ترقية النوع' (Type Promotion)، حيث تحول الأنواع الأصغر (مثل int) إلى أنواع أكبر (مثل long أو double) للبحث عن دالة مطابقة.</template>
+          <template class="content-en">Java attempts 'Type Promotion', where it converts smaller types (like int) to larger types (like long or double) to find a matching method.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو نطاق المتغير المُعلن داخل أقواس حلقة for؟</template>
+          <template class="content-en">What is the scope of a variable declared inside the parentheses of a for loop?</template>
+          <span class="content-target">ما هو نطاق المتغير المُعلن داخل أقواس حلقة for؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نطاقه يقتصر فقط على جسم حلقة for. بمجرد انتهاء الحلقة، يتم تدمير المتغير ولا يمكن الوصول إليه.</template>
+          <template class="content-en">Its scope is strictly limited to the body of the for loop. Once the loop finishes, the variable is destroyed and cannot be accessed.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الغرض الرئيسي من حزم جافا (Java Packages)؟",
+      "en": "What is the main purpose of Java Packages?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تجميع الفئات ذات الصلة لتعزيز إعادة استخدام البرمجيات.",
+        "en": "Grouping related classes to promote software reuse."
+      },
+      "example": {
+        "ar": "حزمة java.util تحتوي على فئات مساعدة.",
+        "en": "java.util package contains utility classes."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي العبارة المستخدمة لتحديد الفئات المستخدمة من حزم أخرى؟",
+      "en": "Which statement is used to specify classes used from other packages?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عبارة الاستيراد (import statement).",
+        "en": "The import statement."
+      },
+      "example": {
+        "ar": "import javax.swing.JApplet;",
+        "en": "import javax.swing.JApplet;"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "أي حزمة في جافا يتم استيرادها تلقائياً بواسطة المترجم؟",
+      "en": "Which Java package is imported automatically by the compiler?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حزمة java.lang",
+        "en": "The java.lang package"
+      },
+      "example": {
+        "ar": "الفئة String والفئة System موجودتان في هذه الحزمة.",
+        "en": "String and System classes are in this package."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ماذا تحتوي حزمة java.io؟",
+      "en": "What does the java.io package contain?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئات وواجهات تمكن البرامج من إدخال وإخراج البيانات.",
+        "en": "Classes and interfaces that enable programs to input and output data."
+      },
+      "example": {
+        "ar": "التعامل مع الملفات والتدفقات (Streams).",
+        "en": "Handling files and streams."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ماذا تحتوي حزمة java.util؟",
+      "en": "What does the java.util package contain?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئات مساعدة (Utility classes) تمكن من تخزين ومعالجة كميات كبيرة من البيانات.",
+        "en": "Utility classes that enable storing and processing of large amounts of data."
+      },
+      "example": {
+        "ar": "المجموعات (Collections) مثل ArrayList.",
+        "en": "Collections like ArrayList."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "عرّف نطاق الإعلان (Scope of Declaration).",
+      "en": "Define Scope of Declaration."
+    },
+    "back": {
+      "definition": {
+        "ar": "الجزء من البرنامج الذي يمكنه الإشارة إلى الكيان المُعلن باسمه.",
+        "en": "The portion of the program that can refer to the declared entity by its name."
+      },
+      "example": {
+        "ar": "متغير محلي داخل دالة لا يمكن رؤيته خارجها.",
+        "en": "A local variable inside a method cannot be seen outside it."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو نطاق المتغير المحلي المُعلن في قسم التهيئة لحلقة for؟",
+      "en": "What is the scope of a local variable declared in the initialization section of a for loop?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقتصر نطاقه على حلقة for نفسها فقط.",
+        "en": "Its scope is limited strictly to the for loop itself."
+      },
+      "example": {
+        "ar": "for(int i=0; i<10; i++) { } // i غير معروف خارج الحلقة",
+        "en": "for(int i=0; i<10; i++) { } // i is unknown outside"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو تظليل المتغيرات (Variable Shadowing)؟",
+      "en": "What is Variable Shadowing?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يحدث عندما يكون لمتغير محلي نفس اسم حقل الفئة، مما يخفي حقل الفئة داخل نطاق المتغير المحلي.",
+        "en": "Occurs when a local variable has the same name as a class field, hiding the class field within the local variable's scope."
+      },
+      "example": {
+        "ar": "int x = 5; داخل دالة تحجب حقل الفئة x.",
+        "en": "int x = 5; inside a method shadows class field x."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو التحميل الزائد للدوال (Method Overloading)؟",
+      "en": "What is Method Overloading?"
+    },
+    "back": {
+      "definition": {
+        "ar": "وجود عدة دوال بنفس الاسم ولكن بمجموعات معاملات مختلفة.",
+        "en": "Having several methods of the same name but with different parameter sets."
+      },
+      "example": {
+        "ar": "add(int a, int b) و add(double a, double b)",
+        "en": "add(int a, int b) and add(double a, double b)"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هما الطريقتان الأساسيتان لتحقيق التحميل الزائد للدوال؟",
+      "en": "What are the two primary ways to achieve method overloading?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تغيير عدد المعاملات، أو تغيير أنواع المعاملات.",
+        "en": "Changing the number of parameters, or changing the parameter types."
+      },
+      "example": {
+        "ar": "add(int, int) مقابل add(int, int, int) أو add(double, double)",
+        "en": "add(int, int) vs add(int, int, int) or add(double, double)"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "هل يمكن تحميل دالة بشكل زائد عن طريق تغيير نوع الإرجاع (Return Type) فقط؟",
+      "en": "Can a method be overloaded by changing only its return type?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا، يجب أن تختلف قائمة المعاملات.",
+        "en": "No, the parameter list must be different."
+      },
+      "example": {
+        "ar": "int add(int a) و double add(int a) سيسببان خطأ.",
+        "en": "int add(int a) and double add(int a) will cause an error."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي ترقية النوع (Type Promotion) في التحميل الزائد؟",
+      "en": "What is Type Promotion in overloading?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل تلقائي لنوع بيانات أصغر إلى نوع أكبر إذا لم يتم العثور على تطابق تام للمعاملات.",
+        "en": "Automatic conversion of a smaller data type to a larger one if no exact parameter match is found."
+      },
+      "example": {
+        "ar": "تمرير int إلى دالة تتوقع long.",
+        "en": "Passing an int to a method expecting a long."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "في ترقية الأنواع، إلى ماذا يتم ترقية الـ int إذا لم يوجد تطابق تام؟",
+      "en": "In type promotion, what is an int promoted to if no exact match exists?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتم ترقيته إلى long، ثم float، ثم double.",
+        "en": "It is promoted to long, then float, then double."
+      },
+      "example": {
+        "ar": "sum(int, long) ستقبل sum(20, 20).",
+        "en": "sum(int, long) will accept sum(20, 20)."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ماذا تحتوي حزمة java.awt.event؟",
+      "en": "What does the java.awt.event package contain?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئات وواجهات تمكن من معالجة الأحداث لمكونات واجهة المستخدم الرسومية (GUI).",
+        "en": "Classes and interfaces that enable event handling for GUI components."
+      },
+      "example": {
+        "ar": "الاستجابة لنقرات الأزرار.",
+        "en": "Responding to button clicks."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو نطاق المعامل (Parameter) في الدالة؟",
+      "en": "What is the scope of a parameter in a method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يقتصر نطاقه على جسم الدالة التي تم تمريره إليها.",
+        "en": "Its scope is limited to the body of the method it is passed to."
+      },
+      "example": {
+        "ar": "void myMethod(int x) { // x معروف هنا فقط }",
+        "en": "void myMethod(int x) { // x is known only here }"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي حزمة javafx؟",
+      "en": "What is the javafx package?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقنية واجهة المستخدم الرسومية (GUI) المفضلة للمستقبل في جافا.",
+        "en": "The preferred GUI technology for the future in Java."
+      },
+      "example": {
+        "ar": "تستخدم لبناء تطبيقات سطح مكتب حديثة.",
+        "en": "Used to build modern desktop applications."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من الحزم التالية يتم استيرادها تلقائياً في جميع برامج جافا؟",
+      "en": "Which of the following packages is imported automatically in all Java programs?"
+    },
+    "options": {
+      "ar": [
+        "java.util",
+        "java.io",
+        "java.lang",
+        "java.net"
+      ],
+      "en": [
+        "java.util",
+        "java.io",
+        "java.lang",
+        "java.net"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "حزمة java.lang تحتوي على الفئات الأساسية مثل String و System، ويتم استيرادها تلقائياً.",
+      "en": "The java.lang package contains fundamental classes like String and System, and is imported automatically."
+    },
+    "hint": {
+      "ar": "تذكر الحزمة التي تحتوي على الفئة String.",
+      "en": "Remember the package that contains the String class."
+    },
+    "difficulty": "easy",
+    "conceptId": "java-api-packages"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو الغرض الأساسي من استخدام الحزم (Packages) في جافا؟",
+      "en": "What is the primary purpose of using packages in Java?"
+    },
+    "options": {
+      "ar": [
+        "زيادة سرعة تنفيذ البرنامج",
+        "تعزيز إعادة استخدام البرمجيات وتجميع الفئات ذات الصلة",
+        "تقليل حجم الذاكرة المستخدمة",
+        "السماح بالوراثة المتعددة"
+      ],
+      "en": [
+        "Increase program execution speed",
+        "Promote software reuse and group related classes",
+        "Reduce memory usage",
+        "Allow multiple inheritance"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الحزم تجمع الفئات ذات الصلة معاً، مما يسهل إدارتها وإعادة استخدامها في مشاريع مختلفة.",
+      "en": "Packages group related classes together, making them easier to manage and reuse across different projects."
+    },
+    "hint": {
+      "ar": "فكر في كيفية تنظيم الملفات في مجلدات.",
+      "en": "Think about how files are organized in folders."
+    },
+    "difficulty": "easy",
+    "conceptId": "java-api-packages"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ماذا يحدث عندما يتم الإعلان عن متغير محلي بنفس اسم حقل الفئة (Class field)؟",
+      "en": "What happens when a local variable is declared with the same name as a class field?"
+    },
+    "options": {
+      "ar": [
+        "خطأ في الترجمة (Compilation error)",
+        "المتغير المحلي يحجب (Shadows) حقل الفئة",
+        "حقل الفئة يحجب المتغير المحلي",
+        "يتم دمج قيمتي المتغيرين"
+      ],
+      "en": [
+        "Compilation error",
+        "The local variable shadows the class field",
+        "The class field shadows the local variable",
+        "The values of both variables are merged"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "هذا يسمى التظليل (Shadowing)، حيث يأخذ المتغير المحلي الأولوية داخل نطاقه.",
+      "en": "This is called Shadowing, where the local variable takes precedence within its scope."
+    },
+    "hint": {
+      "ar": "المتغير الأقرب (المحلي) يغطي على المتغير الأبعد (الحقل).",
+      "en": "The closer (local) variable covers the further (field) variable."
+    },
+    "difficulty": "medium",
+    "conceptId": "scope-of-declaration"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي مما يلي يمثل تحميلاً زائداً (Overloading) صحيحاً للدالة `void display(int a)`؟",
+      "en": "Which of the following is a valid overloading of the method `void display(int a)`?"
+    },
+    "options": {
+      "ar": [
+        "int display(int a)",
+        "void display(int b)",
+        "void display(double a)",
+        "جميع ما سبق"
+      ],
+      "en": [
+        "int display(int a)",
+        "void display(int b)",
+        "void display(double a)",
+        "All of the above"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "التحميل الزائد يتطلب تغيير نوع المعاملات أو عددها. تغيير نوع الإرجاع فقط أو اسم المعامل لا يعتبر تحميلاً زائداً.",
+      "en": "Overloading requires changing the parameter types or number. Changing only the return type or parameter name is not overloading."
+    },
+    "hint": {
+      "ar": "ركز على أنواع وعدد المعاملات.",
+      "en": "Focus on the types and number of parameters."
+    },
+    "difficulty": "medium",
+    "conceptId": "method-overloading"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "إذا كان لديك الدالة `static void sum(int a, long b)` وتم استدعاؤها كالتالي: `sum(20, 20)`، ماذا سيحدث؟",
+      "en": "If you have the method `static void sum(int a, long b)` and it is called as `sum(20, 20)`, what will happen?"
+    },
+    "options": {
+      "ar": [
+        "خطأ في الترجمة لأن المعامل الثاني int وليس long",
+        "سيتم ترقية المعامل الثاني (int) تلقائياً إلى long",
+        "سيتم تجاهل المعامل الثاني",
+        "استثناء وقت التشغيل (Runtime Exception)"
+      ],
+      "en": [
+        "Compilation error because the second argument is int, not long",
+        "The second argument (int) will be automatically promoted to long",
+        "The second argument will be ignored",
+        "Runtime Exception"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بسبب ترقية الأنواع (Type Promotion)، يتم تحويل النوع الأصغر (int) تلقائياً إلى النوع الأكبر (long) لتطابق الدالة.",
+      "en": "Due to Type Promotion, the smaller type (int) is automatically converted to the larger type (long) to match the method."
+    },
+    "hint": {
+      "ar": "تذكر مفهوم الترقية التلقائية للأنواع في جافا.",
+      "en": "Remember the concept of automatic type promotion in Java."
+    },
+    "difficulty": "medium",
+    "conceptId": "method-overloading-type-promotion"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو نطاق المتغير المُعلن داخل قسم التهيئة لحلقة `for`؟",
+      "en": "What is the scope of a variable declared inside the initialization section of a `for` loop?"
+    },
+    "options": {
+      "ar": [
+        "مرئي في جميع أنحاء الفئة",
+        "مرئي في جميع أنحاء الدالة التي تحتوي على الحلقة",
+        "مرئي فقط داخل حلقة for",
+        "مرئي في الحزمة بأكملها"
+      ],
+      "en": [
+        "Visible throughout the class",
+        "Visible throughout the method containing the loop",
+        "Visible only inside the for loop",
+        "Visible in the entire package"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المتغيرات المُعلنة في رأس حلقة for تكون محلية لتلك الحلقة ولا يمكن الوصول إليها خارجها.",
+      "en": "Variables declared in a for loop header are local to that loop and cannot be accessed outside of it."
+    },
+    "hint": {
+      "ar": "أين يبدأ وأين ينتهي قوس حلقة for؟",
+      "en": "Where does the for loop bracket start and end?"
+    },
+    "difficulty": "easy",
+    "conceptId": "scope-of-declaration"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي من الحزم التالية تُستخدم للتعامل مع الإدخال والإخراج (Input/Output)؟",
+      "en": "Which of the following packages is used for Input/Output handling?"
+    },
+    "options": {
+      "ar": [
+        "java.util",
+        "java.net",
+        "java.io",
+        "java.awt"
+      ],
+      "en": [
+        "java.util",
+        "java.net",
+        "java.io",
+        "java.awt"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "حزمة java.io تحتوي على الفئات اللازمة لعمليات الإدخال والإخراج.",
+      "en": "The java.io package contains the necessary classes for input and output operations."
+    },
+    "hint": {
+      "ar": "io اختصار لـ Input/Output.",
+      "en": "io stands for Input/Output."
+    },
+    "difficulty": "easy",
+    "conceptId": "java-api-packages"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "هل يمكن لدالتين محملتين بشكل زائد (Overloaded) أن تمتلكا نفس عدد وأنواع المعاملات ولكن بأنواع إرجاع مختلفة؟",
+      "en": "Can two overloaded methods have the same number and types of parameters but different return types?"
+    },
+    "options": {
+      "ar": [
+        "نعم، هذا مسموح",
+        "لا، سيؤدي ذلك إلى خطأ في الترجمة",
+        "نعم، ولكن فقط إذا كانت الدوال ثابتة (static)",
+        "نعم، ولكن فقط في فئات مختلفة"
+      ],
+      "en": [
+        "Yes, this is allowed",
+        "No, this will result in a compilation error",
+        "Yes, but only if the methods are static",
+        "Yes, but only in different classes"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المترجم يفرق بين الدوال المحملة بشكل زائد بناءً على قائمة المعاملات فقط، وليس نوع الإرجاع.",
+      "en": "The compiler differentiates overloaded methods based solely on the parameter list, not the return type."
+    },
+    "hint": {
+      "ar": "توقيع الدالة (Method Signature) لا يشمل نوع الإرجاع.",
+      "en": "The Method Signature does not include the return type."
+    },
+    "difficulty": "hard",
+    "conceptId": "method-overloading"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في سياق ترقية الأنواع (Type Promotion)، أي من التحويلات التالية صحيح وتلقائي؟",
+      "en": "In the context of Type Promotion, which of the following conversions is valid and automatic?"
+    },
+    "options": {
+      "ar": [
+        "من double إلى int",
+        "من long إلى short",
+        "من int إلى long",
+        "من float إلى byte"
+      ],
+      "en": [
+        "double to int",
+        "long to short",
+        "int to long",
+        "float to byte"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الترقية التلقائية تتم دائماً من النوع الأصغر إلى النوع الأكبر (مثل من int إلى long) لمنع فقدان البيانات.",
+      "en": "Automatic promotion always happens from a smaller type to a larger type (like int to long) to prevent data loss."
+    },
+    "hint": {
+      "ar": "الترقية تعني الانتقال إلى سعة تخزين أكبر.",
+      "en": "Promotion means moving to a larger storage capacity."
+    },
+    "difficulty": "medium",
+    "conceptId": "method-overloading-type-promotion"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هي الكلمة المفتاحية المستخدمة لجلب حزمة أو فئة معينة إلى برنامج جافا؟",
+      "en": "What is the keyword used to bring a specific package or class into a Java program?"
+    },
+    "options": {
+      "ar": [
+        "include",
+        "import",
+        "require",
+        "using"
+      ],
+      "en": [
+        "include",
+        "import",
+        "require",
+        "using"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في جافا، نستخدم الكلمة المفتاحية import لاستيراد الحزم والفئات.",
+      "en": "In Java, we use the import keyword to import packages and classes."
+    },
+    "hint": {
+      "ar": "نفس الكلمة المستخدمة في استيراد البضائع.",
+      "en": "The same word used for bringing goods into a country."
+    },
+    "difficulty": "easy",
+    "conceptId": "java-api-packages"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن تغيير نوع الإرجاع (Return Type) يكفي لتحميل الدالة بشكل زائد. الحقيقة: المترجم ينظر فقط إلى اسم الدالة وقائمة المعاملات (العدد والأنواع).</template>
+      <template class="content-en">Believing that changing the return type is enough to overload a method. Fact: The compiler only looks at the method name and parameter list (number and types).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تظليل المتغيرات (Shadowing): عندما تعلن عن متغير محلي بنفس اسم حقل الفئة، فإن المتغير المحلي 'يغطي' على حقل الفئة داخل تلك الدالة.</template>
+      <template class="content-en">Variable Shadowing: When you declare a local variable with the same name as a class field, the local variable 'hides' the class field within that method.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">حزمة java.lang مميزة جداً؛ فهي الحزمة الوحيدة التي لا تحتاج إلى كتابة عبارة import لها، حيث يقوم المترجم بإضافتها بصمت لكل برنامج.</template>
+      <template class="content-en">The java.lang package is very special; it's the only package you don't need to write an import statement for, as the compiler silently adds it to every program.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان أن ترقية الأنواع (Type Promotion) تعمل فقط في اتجاه واحد (من الأصغر للأكبر). لا يمكن تمرير double لدالة تتوقع int بدون تحويل صريح (Casting).</template>
+      <template class="content-en">Forgetting that Type Promotion only works in one direction (smaller to larger). You cannot pass a double to a method expecting an int without explicit casting.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M06.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M08.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

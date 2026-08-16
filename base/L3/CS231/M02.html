@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS231" data-module="2">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الجبر البولياني والبوابات المنطقية · CS231 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS231" data-page-title-en="CS231">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M01.html" data-gh-next="M03.html" data-gh-card="../../hub/course.html?code=CS231"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#binary-codes-and-bits" class="toc-link" data-bilingual>
+        <template class="content-ar">الشفرات الثنائية وحساب عدد البتات</template>
+        <template class="content-en">Binary Codes and Number of Bits Required</template>
+        <span class="content-target">الشفرات الثنائية وحساب عدد البتات</span>
+      </a>
+      <a href="#binary-coded-decimal-bcd" class="toc-link" data-bilingual>
+        <template class="content-ar">النظام العشري المشفر ثنائياً (BCD)</template>
+        <template class="content-en">Binary Coded Decimal (BCD)</template>
+        <span class="content-target">النظام العشري المشفر ثنائياً (BCD)</span>
+      </a>
+      <a href="#gray-code" class="toc-link" data-bilingual>
+        <template class="content-ar">شفرة غراي</template>
+        <template class="content-en">Gray Code</template>
+        <span class="content-target">شفرة غراي</span>
+      </a>
+      <a href="#ascii-code" class="toc-link" data-bilingual>
+        <template class="content-ar">شفرة آسكي (ASCII)</template>
+        <template class="content-en">ASCII Code</template>
+        <span class="content-target">شفرة آسكي (ASCII)</span>
+      </a>
+      <a href="#registers-and-binary-storage" class="toc-link" data-bilingual>
+        <template class="content-ar">المسجلات والتخزين الثنائي</template>
+        <template class="content-en">Registers and Binary Storage</template>
+        <span class="content-target">المسجلات والتخزين الثنائي</span>
+      </a>
+      <a href="#binary-logic-and-gates" class="toc-link" data-bilingual>
+        <template class="content-ar">المنطق الثنائي والبوابات المنطقية</template>
+        <template class="content-en">Binary Logic and Logic Gates</template>
+        <span class="content-target">المنطق الثنائي والبوابات المنطقية</span>
+      </a>
+      <a href="#boolean-algebra-huntington" class="toc-link" data-bilingual>
+        <template class="content-ar">الجبر البولياني ومسلمات هنتنغتون</template>
+        <template class="content-en">Boolean Algebra and Huntington Postulates</template>
+        <span class="content-target">الجبر البولياني ومسلمات هنتنغتون</span>
+      </a>
+      <a href="#two-valued-boolean-algebra" class="toc-link" data-bilingual>
+        <template class="content-ar">الجبر البولياني ثنائي القيم</template>
+        <template class="content-en">Two-Valued Boolean Algebra</template>
+        <span class="content-target">الجبر البولياني ثنائي القيم</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 2</template>
+      <template class="content-en">Module 2</template>
+      <span class="content-target">الوحدة 2</span>
+    </span> · CS231
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الجبر البولياني والبوابات المنطقية</h1>
+      <p class="hero-description">مقدمة في الشفرات الثنائية، المسجلات، المنطق الثنائي، والتعريف البديهي للجبر البولياني باستخدام مسلمات هنتنغتون.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Boolean Algebra and Logic Gates</h1>
+      <p class="hero-description">Introduction to binary codes, registers, binary logic, and the axiomatic definition of Boolean algebra using Huntington postulates.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الشفرات الثنائية</span>
+      <span class="tag">البوابات المنطقية</span>
+      <span class="tag">الجبر البولياني</span>
+      <span class="tag">مسلمات هنتنغتون</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Binary Codes</span>
+      <span class="tag">Logic Gates</span>
+      <span class="tag">Boolean Algebra</span>
+      <span class="tag">Huntington Postulates</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>اكتساب فهم أساسي للمسلمات المستخدمة لتكوين الهياكل الجبرية.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم النظريات والمسلمات الأساسية للجبر البولياني.</span></li>
+      <li><span class="obj-icon">✦</span><span>معرفة كيفية تطبيق نظريات دي مورغان.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Gain a basic understanding of postulates used to form algebraic structures.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the basic theorems and postulates of Boolean algebra.</span></li>
+      <li><span class="obj-icon">✦</span><span>Know how to apply DeMorgan’s theorems.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="binary-codes-and-bits" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الشفرات الثنائية وحساب عدد البتات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Binary Codes and Number of Bits Required</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الشفرة الثنائية المكونة من n بت يمكنها تمثيل 2^n قيمة مختلفة، ونحتاج إلى دالة السقف لحساب الحد الأدنى من البتات.</p></template>
+    <template class="content-en"><p>An n-bit binary code can represent 2^n distinct values, and we use the ceiling function to find the minimum bits needed.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>إشارات الأنظمة الرقمية لها قيمتان متمايزتان فقط. لتمثيل معلومات العالم الحقيقي بدقة أكبر، نحتاج إلى أكثر من قيمتين.</p><p><strong>الشفرة الثنائية (Binary Code)</strong> المكونة من n بت هي مجموعة من n بتات يمكن أن تحتوي على 2^n قيمة متمايزة.</p><p>لتمثيل M من العناصر، فإن الحد الأدنى لعدد البتات n المطلوبة يحقق العلاقة: 2^n ≥ M > 2^(n-1). يمكن حسابها باستخدام المعادلة: n = ⌈log2 M⌉ حيث ⌈x⌉ هي <span class="smart-term" data-term-en="Ceiling function" data-ar="دالة السقف" data-en-def="The integer greater than or equal to x.">دالة السقف<span class="smart-term-tooltip"></span></span> (أصغر عدد صحيح أكبر من أو يساوي x).</p></template>
+    <template class="content-en"><p>Digital system signals have two distinct values only. To represent real-world information more accurately, we need more than two values.</p><p>An <strong>n-bit binary code</strong> is a group of n bits that can have 2^n distinct values.</p><p>Given M elements to be represented, the minimum number of bits, n, needed satisfies: 2^n ≥ M > 2^(n-1). This is calculated as n = ⌈log2 M⌉, where ⌈x⌉ is the <span class="smart-term" data-term-en="Ceiling function" data-ar="دالة السقف" data-en-def="The integer greater than or equal to x.">ceiling function<span class="smart-term-tooltip"></span></span> (the integer greater than or equal to x).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نستخدم دالة السقف؟ لأن عدد البتات يجب أن يكون عدداً صحيحاً.</p><p>إذا كان لدينا 10 عناصر (مثل الأرقام العشرية)، فإن log2(10) ≈ 3.32. لا يمكننا استخدام 3.32 بت، ولا يمكننا استخدام 3 بتات لأنها تمثل 8 عناصر فقط (وهو أقل من 10).</p><p>لذلك نأخذ السقف وهو 4 بتات، مما يعطينا 16 احتمالاً، نستخدم 10 منها ونهمل 6.</p></template>
+    <template class="content-en"><p>Why use the ceiling function? Because the number of bits must be an integer.</p><p>If we have 10 elements (like decimal digits), log2(10) ≈ 3.32. We can't use 3.32 bits, and 3 bits only give 8 combinations (too few).</p><p>So we take the ceiling, which is 4 bits, giving 16 combinations, using 10 and leaving 6 unused.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حساب الحد الأدنى لعدد البتات (n) لتمثيل عدد (M) من العناصر.</strong></template>
+      <template class="content-en"><strong>Calculating the minimum number of bits (n) to represent (M) elements.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$n = \lceil \log_2 M \rceil$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لدينا آلة تحتوي على 50 حالة مختلفة، فما هو الحد الأدنى لعدد البتات المطلوبة لتمثيل هذه الحالات؟</template>
+      <template class="content-en">If a machine has 50 distinct states, what is the minimum number of bits required to represent these states?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نحتاج إلى 6 بتات، لأن 2^5 = 32 (غير كافٍ) و 2^6 = 64 (كافٍ لتمثيل 50 حالة).</p></template>
+      <template class="content-en"><p>We need 6 bits, because 2^5 = 32 (not enough) and 2^6 = 64 (enough to represent 50 states).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="binary-coded-decimal-bcd" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> النظام العشري المشفر ثنائياً (BCD)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Binary Coded Decimal (BCD)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نظام يمثل كل رقم عشري (0-9) باستخدام 4 بتات، ويسهل التحويل بين العشري والثنائي للإنسان.</p></template>
+    <template class="content-en"><p>A system that represents each decimal digit (0-9) using 4 bits, making decimal-to-binary conversion easier for humans.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في <strong><span class="smart-term" data-term-en="BCD (Binary Coded Decimal)" data-ar="النظام العشري المشفر ثنائياً" data-en-def="A class of binary encodings of decimal numbers where each decimal digit is represented by a fixed number of bits, usually four.">النظام العشري المشفر ثنائياً (BCD)<span class="smart-term-tooltip"></span></span></strong>، يتم تمثيل كل رقم عشري (من 0 إلى 9) بواسطة 4 بتات. المجموعات من (0000 إلى 1001) تعتبر تركيبات صالحة، بينما المجموعات من (1010 إلى 1111) أي من 10 إلى 15 تعتبر تركيبات غير صالحة.</p><ul><li><strong>الميزة:</strong> يسهل على الأشخاص الذين يستخدمون النظام العشري التعامل مع بيانات الإدخال/الإخراج للكمبيوتر، حيث يسهل التحويل ذهاباً وإياباً إلى BCD.</li><li><strong>العيب:</strong> يحتاج رقم BCD إلى بتات أكثر من قيمته الثنائية المكافئة.</li></ul><p>يجب عدم الخلط بين <em>تحويل</em> الرقم العشري إلى ثنائي، وبين <em>تشفير</em> الرقم العشري بشفرة BCD.</p></template>
+    <template class="content-en"><p>In <strong><span class="smart-term" data-term-en="BCD (Binary Coded Decimal)" data-ar="النظام العشري المشفر ثنائياً" data-en-def="A class of binary encodings of decimal numbers where each decimal digit is represented by a fixed number of bits, usually four.">Binary Coded Decimal (BCD)<span class="smart-term-tooltip"></span></span></strong>, each decimal digit is represented by 4 bits. Combinations for (0 - 9) are valid, while combinations for (10 - 15) are invalid.</p><ul><li><strong>Advantage:</strong> Computer input/output data are handled by people who use the decimal system, making it easier to convert back and forth to BCD.</li><li><strong>Disadvantage:</strong> A BCD number needs more bits than its equivalent binary value.</li></ul><p>Do NOT mix up <em>conversion</em> of a decimal number to a binary number with <em>coding</em> a decimal number with a BINARY CODE.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفرق بين التحويل والتشفير جوهري.</p><p>التحويل (Conversion) للرقم 13 يعطينا (1101) بالنظام الثنائي. أما التشفير (Coding) بـ BCD للرقم 13 فيعني تشفير الرقم 3 (0011) والرقم 1 (0001) بشكل منفصل، ليصبح (0001 0011).</p><p>هذا يستهلك 8 بتات بدلاً من 4 بتات في التحويل المباشر، مما يفسر عيب استهلاك مساحة أكبر.</p></template>
+    <template class="content-en"><p>The difference between conversion and coding is fundamental.</p><p>Conversion of 13 to binary is (1101)2. Coding 13 in BCD means coding 3 (0011) and 1 (0001) separately, resulting in (0001 0011)BCD.</p><p>This consumes 8 bits instead of 4, illustrating the disadvantage of needing more bits.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>BCD (Binary Coded Decimal)</th><th>Direct Binary Conversion</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">سهولة التحويل للإنسان</template>
+          <template class="content-en">Ease of conversion for humans</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهل جداً (كل رقم عشري يُترجم لـ 4 بتات)</template>
+          <template class="content-en">Very easy (each digit maps to 4 bits)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">صعب للأرقام الكبيرة (يتطلب عمليات قسمة متكررة)</template>
+          <template class="content-en">Harder for large numbers (requires repeated division)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">كفاءة استهلاك البتات</template>
+          <template class="content-en">Bit efficiency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يستهلك بتات أكثر (مثال: 13 تحتاج 8 بتات)</template>
+          <template class="content-en">Consumes more bits (e.g., 13 needs 8 bits)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كفاءة عالية (مثال: 13 تحتاج 4 بتات فقط)</template>
+          <template class="content-en">Highly efficient (e.g., 13 needs only 4 bits)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر التركيبات من 1010 إلى 1111 غير صالحة في نظام BCD؟</template>
+      <template class="content-en">Why are the combinations from 1010 to 1111 considered invalid in BCD?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن نظام BCD يمثل الأرقام العشرية الفردية فقط (من 0 إلى 9). الأرقام من 10 إلى 15 تتطلب خانتين عشريتين، وبالتالي يتم تمثيلها بمجموعتين من 4 بتات في BCD.</p></template>
+      <template class="content-en"><p>Because BCD only represents single decimal digits (0 to 9). Numbers 10 to 15 require two decimal digits, and thus would be represented by two 4-bit groups in BCD.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="gray-code" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> شفرة غراي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Gray Code</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>شفرة ثنائية يتغير فيها بت واحد فقط عند الانتقال من رقم إلى الرقم الذي يليه، مما يقلل من استهلاك الطاقة.</p></template>
+    <template class="content-en"><p>A binary code where only one bit changes from one code to the next, reducing power consumption.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Gray Code" data-ar="شفرة غراي" data-en-def="A binary numeral system where two successive values differ in only one bit.">شفرة غراي (Gray Code)<span class="smart-term-tooltip"></span></span></strong> هي ترتيب للأنظمة الرقمية الثنائية بحيث تختلف قيمتان متتاليتان في بت واحد (خانة ثنائية واحدة) فقط. تختلف هذه الشفرة عن العد الثنائي التقليدي.</p><p>من أهم مميزاتها أنها تستهلك طاقة أقل لأن عدد الترانزستورات التي تعمل وتتوقف (on and off) يكون أقل عند الانتقال بين الحالات المتتالية.</p></template>
+    <template class="content-en"><p><strong><span class="smart-term" data-term-en="Gray Code" data-ar="شفرة غراي" data-en-def="A binary numeral system where two successive values differ in only one bit.">Gray Code<span class="smart-term-tooltip"></span></span></strong> is an ordering of the binary numeral system such that two successive values differ in only one bit. It is different from standard Binary counting.</p><p>A major advantage is that less power is consumed since fewer transistors go on and off when transitioning between consecutive states.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في العد الثنائي العادي، الانتقال من 3 (0011) إلى 4 (0100) يتطلب تغيير 3 بتات في نفس الوقت. في الأنظمة الفيزيائية، لا تتغير البتات في نفس اللحظة تماماً، مما قد يسبب حالات عابرة خاطئة (Glitches).</p><p>شفرة غراي تحل هذه المشكلة بتغيير بت واحد فقط، مما يجعلها مثالية للمستشعرات الميكانيكية والأنظمة التي تتطلب موثوقية عالية في قراءة التغيرات المتتالية.</p></template>
+    <template class="content-en"><p>In standard binary, moving from 3 (0011) to 4 (0100) requires 3 bits to change simultaneously. In physical systems, bits don't change at the exact same microsecond, which can cause transient erroneous states (glitches).</p><p>Gray code solves this by changing only one bit at a time, making it ideal for mechanical encoders and systems requiring high reliability in reading sequential changes.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هي شفرة غراي للرقم العشري 2 بناءً على الجدول المرفق؟</template>
+      <template class="content-en">What is the Gray code for the decimal number 2 based on the provided table?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>شفرة غراي للرقم 2 هي 0011 (بينما الثنائي العادي هو 0010).</p></template>
+      <template class="content-en"><p>The Gray code for 2 is 0011 (whereas standard binary is 0010).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="ascii-code" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> شفرة آسكي (ASCII)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> ASCII Code</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>شفرة قياسية أمريكية تستخدم 7 بتات لتمثيل 128 حرفاً ورمزاً مختلفاً.</p></template>
+    <template class="content-en"><p>American Standard Code for Information Interchange using 7 bits to represent 128 different characters and symbols.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="ASCII" data-ar="آسكي" data-en-def="American Standard Code for Information Interchange, a character encoding standard for electronic communication.">شفرة آسكي (ASCII)<span class="smart-term-tooltip"></span></span></strong> تقف لـ American Standard Code for Information Interchange. هي شفرة مكونة من 7 بتات، مما يعني أنها تستطيع تمثيل 128 عنصراً مختلفاً (من 0 إلى 127).</p><p>يتم تعيين رقم لكل حرف أو رمز. على سبيل المثال، شفرة ASCII للحرف الكبير 'A' هي '1000001' والتي تعادل الرقم العشري 65.</p></template>
+    <template class="content-en"><p><strong><span class="smart-term" data-term-en="ASCII" data-ar="آسكي" data-en-def="American Standard Code for Information Interchange, a character encoding standard for electronic communication.">ASCII Code<span class="smart-term-tooltip"></span></span></strong> stands for American Standard Code for Information Interchange. It is a 7-bit code, meaning each letter or symbol is assigned a number from 0 to 127.</p><p>For example, the ASCII code for uppercase 'A' is '1000001', which is 65 in decimal.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام 7 بتات كان كافياً لتمثيل الأبجدية الإنجليزية (كبيرة وصغيرة)، الأرقام، وعلامات الترقيم، بالإضافة إلى رموز التحكم (مثل SOH, ETX, ACK).</p><p>لاحقاً تم توسيعها إلى 8 بتات (Extended ASCII) لدعم لغات ورموز إضافية، مما مهد الطريق لظهور Unicode.</p></template>
+    <template class="content-en"><p>Using 7 bits was sufficient to represent the English alphabet (upper and lower case), digits, punctuation, and control characters (like SOH, ETX, ACK).</p><p>It was later extended to 8 bits (Extended ASCII) to support additional languages and symbols, paving the way for Unicode.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان الحرف 'A' يمثله الرقم 65، فما هو الرقم العشري الذي يمثل الحرف 'B'؟</template>
+      <template class="content-en">If the letter 'A' is represented by 65, what decimal number represents the letter 'B'?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الرقم 66، لأن الحروف مرتبة تسلسلياً في شفرة ASCII.</p></template>
+      <template class="content-en"><p>The number 66, because letters are arranged sequentially in ASCII.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="registers-and-binary-storage" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> المسجلات والتخزين الثنائي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Registers and Binary Storage</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المسجل هو مجموعة من الخلايا الثنائية؛ مسجل بحجم n خلية يمكنه تخزين n بت وتمثيل 2^n حالة مختلفة.</p></template>
+    <template class="content-en"><p>A register is a group of binary cells; an n-cell register can store n bits and represent 2^n possible states.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Register" data-ar="المسجل" data-en-def="A group of binary cells used to store n bits of information.">المسجل (Register)<span class="smart-term-tooltip"></span></span></strong> هو مجموعة من الخلايا الثنائية. المسجل الذي يحتوي على n من الخلايا يمكنه تخزين أي كمية منفصلة من المعلومات التي تحتوي على n بت.</p><p>حالة المسجل هي مجموعة (n-tuple) من الآحاد والأصفار (1's and 0's)، حيث يحدد كل بت حالة خلية واحدة في المسجل.</p><p>على سبيل المثال، مسجل بحجم 16 بت يمكن أن يكون في واحدة من 2^16 حالة ممكنة، ويمكنه تخزين أي رقم ثنائي من 0 إلى (2^16 - 1). تنتقل المعلومات بين المسجلات في وحدات الذاكرة، ووحدات المعالجة، ووحدات الإدخال.</p></template>
+    <template class="content-en"><p>A <strong><span class="smart-term" data-term-en="Register" data-ar="المسجل" data-en-def="A group of binary cells used to store n bits of information.">register<span class="smart-term-tooltip"></span></span></strong> is a group of binary cells. A register with n cells can store any discrete quantity of information that contains n bits.</p><p>The state of a register is an n-tuple of 1’s and 0’s, with each bit designating the state of one cell in the register.</p><p>For example, a 16-bit register can be in one of 2^16 possible states and can store any binary number from 0 to 2^16 – 1. Information is transferred among registers in memory units, processor units, and input units.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المسجلات هي أسرع أنواع الذاكرة في الكمبيوتر لأنها مدمجة مباشرة داخل وحدة المعالجة المركزية (CPU).</p><p>عمليات نقل البيانات بين المسجلات (Register Transfer) وعمليات التحويل الثنائي (مثل الجمع الموضح في الشرائح) تشكل الأساس لعمليات المعالج الدقيقة (Microoperations).</p></template>
+    <template class="content-en"><p>Registers are the fastest type of memory in a computer because they are built directly into the CPU.</p><p>Data transfers between registers (Register Transfer) and binary transformations (like the addition shown in the slides) form the basis of CPU microoperations.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Block diagram showing transfer of information among registers. Top block 'MEMORY UNIT' with a Memory Register. Middle block 'PROCESSOR UNIT' with four 8-cell Processor Registers. Bottom block 'INPUT UNIT' with a Keyboard, CONTROL, and an 8-cell Input Register. Arrows show data flow from Input Register to Processor Register, and from Processor Register to Memory Register. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 600, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- Standard Arrowhead -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,1 L8,5 L0,9 z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Dashed Arrowhead -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,1 L8,5 L0,9 z" fill="var(--brand-400)"/>
+        </marker>
+
+        <!-- 8-Cell Register (Tall for Memory/Input) -->
+        <g id="reg-8-tall">
+            <rect x="0" y="0" width="320" height="35" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+            <path d="M40,0 v35 M80,0 v35 M120,0 v35 M160,0 v35 M200,0 v35 M240,0 v35 M280,0 v35" stroke="var(--border-color)" stroke-width="1.5"/>
+            <text x="20" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">7</text>
+            <text x="60" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">6</text>
+            <text x="100" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">5</text>
+            <text x="140" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">4</text>
+            <text x="180" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">3</text>
+            <text x="220" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">2</text>
+            <text x="260" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">1</text>
+            <text x="300" y="22" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">0</text>
+        </g>
+
+        <!-- 8-Cell Register (Short for Processor) -->
+        <g id="reg-8-short">
+            <rect x="0" y="0" width="320" height="25" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+            <path d="M40,0 v25 M80,0 v25 M120,0 v25 M160,0 v25 M200,0 v25 M240,0 v25 M280,0 v25" stroke="var(--border-color)" stroke-width="1.5"/>
+            <text x="20" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">7</text>
+            <text x="60" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">6</text>
+            <text x="100" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">5</text>
+            <text x="140" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">4</text>
+            <text x="180" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">3</text>
+            <text x="220" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">2</text>
+            <text x="260" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">1</text>
+            <text x="300" y="17" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">0</text>
+        </g>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Main Title -->
+    <text x="400" y="35" font-size="22" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="middle">Transfer of Information Among Registers</text>
+    <text x="400" y="58" font-size="18" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-secondary)" text-anchor="middle">نقل المعلومات بين المسجلات</text>
+
+    <!-- ================= MEMORY UNIT ================= -->
+    <rect x="80" y="80" width="640" height="110" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" rx="8"/>
+    <text x="400" y="105" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="middle">MEMORY UNIT / وحدة الذاكرة</text>
+    
+    <text x="500" y="125" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-secondary)" text-anchor="middle">Memory Register / مسجل الذاكرة</text>
+    <use href="#reg-8-tall" x="340" y="135"/>
+    <!-- Data Path Highlight -->
+    <rect x="460" y="135" width="40" height="35" fill="var(--brand-500)" opacity="0.2"/>
+
+    <!-- ================= PROCESSOR UNIT ================= -->
+    <rect x="80" y="220" width="640" height="210" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" rx="8"/>
+    <text x="400" y="245" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="middle">PROCESSOR UNIT / وحدة المعالجة</text>
+
+    <!-- Processor Registers -->
+    <text x="325" y="287" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="end">R1</text>
+    <use href="#reg-8-short" x="340" y="270"/>
+    <rect x="460" y="270" width="40" height="25" fill="var(--brand-500)" opacity="0.2"/>
+
+    <text x="325" y="322" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="end">R2</text>
+    <use href="#reg-8-short" x="340" y="305"/>
+
+    <text x="325" y="357" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="end">R3</text>
+    <use href="#reg-8-short" x="340" y="340"/>
+
+    <text x="325" y="392" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="end">R4</text>
+    <use href="#reg-8-short" x="340" y="375"/>
+    <rect x="460" y="375" width="40" height="25" fill="var(--brand-500)" opacity="0.2"/>
+
+    <text x="500" y="418" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-secondary)" text-anchor="middle">Processor Registers / مسجلات المعالج</text>
+
+    <!-- ================= INPUT UNIT ================= -->
+    <rect x="80" y="460" width="640" height="130" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" rx="8"/>
+    <text x="400" y="485" font-size="16" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="middle">INPUT UNIT / وحدة الإدخال</text>
+
+    <!-- Keyboard -->
+    <rect x="100" y="520" width="100" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="6"/>
+    <text x="150" y="540" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="middle">Keyboard</text>
+    <text x="150" y="558" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-secondary)" text-anchor="middle">لوحة المفاتيح</text>
+
+    <!-- Control -->
+    <rect x="230" y="520" width="90" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="6"/>
+    <text x="275" y="540" font-size="14" font-weight="bold" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-primary)" text-anchor="middle">CONTROL</text>
+    <text x="275" y="558" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-secondary)" text-anchor="middle">وحدة التحكم</text>
+
+    <!-- Input Register -->
+    <text x="500" y="517" font-size="14" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-secondary)" text-anchor="middle">Input Register / مسجل الإدخال</text>
+    <use href="#reg-8-tall" x="340" y="527"/>
+    <rect x="460" y="527" width="40" height="35" fill="var(--brand-500)" opacity="0.2"/>
+
+    <!-- ================= DATA FLOW ARROWS ================= -->
+    
+    <!-- Keyboard to Control -->
+    <line x1="200" y1="545" x2="222" y2="545" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="215" y="538" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">Data</text>
+
+    <!-- Control to Input Register -->
+    <line x1="320" y1="545" x2="332" y2="545" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="326" y="538" font-size="11" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--text-muted)" text-anchor="middle">Load</text>
+
+    <!-- Input Register to Processor Register (R4) -->
+    <line x1="480" y1="527" x2="480" y2="408" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+    <circle cx="480" cy="527" r="4" fill="var(--brand-500)"/>
+    
+    <rect x="495" y="440" width="110" height="40" fill="var(--bg-surface)" opacity="0.9" rx="4"/>
+    <text x="550" y="455" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--brand-500)" text-anchor="middle">Data Transfer</text>
+    <text x="550" y="473" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--brand-500)" text-anchor="middle">نقل البيانات</text>
+
+    <!-- Internal Processor Bus (R4 to R1) -->
+    <line x1="480" y1="375" x2="480" y2="303" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed)"/>
+    <circle cx="480" cy="375" r="3" fill="var(--brand-400)"/>
+    
+    <rect x="495" y="315" width="110" height="40" fill="var(--bg-surface)" opacity="0.9" rx="4"/>
+    <text x="550" y="330" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--brand-400)" text-anchor="middle">Internal Bus</text>
+    <text x="550" y="348" font-size="12" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--brand-400)" text-anchor="middle">ناقل داخلي</text>
+
+    <!-- Processor Register (R1) to Memory Register -->
+    <line x1="480" y1="270" x2="480" y2="178" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)"/>
+    <circle cx="480" cy="270" r="4" fill="var(--brand-500)"/>
+    
+    <rect x="495" y="200" width="110" height="40" fill="var(--bg-surface)" opacity="0.9" rx="4"/>
+    <text x="550" y="215" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--brand-500)" text-anchor="middle">Data Transfer</text>
+    <text x="550" y="233" font-size="13" font-family="system-ui, 'Cairo', 'Inter', sans-serif" fill="var(--brand-500)" text-anchor="middle">نقل البيانات</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو أكبر رقم عشري يمكن تخزينه في مسجل بحجم 8 بت؟</template>
+      <template class="content-en">What is the largest decimal number that can be stored in an 8-bit register?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>أكبر رقم هو 255، والذي يُحسب بالمعادلة (2^8 - 1).</p></template>
+      <template class="content-en"><p>The largest number is 255, calculated as (2^8 - 1).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="binary-logic-and-gates" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> المنطق الثنائي والبوابات المنطقية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Binary Logic and Logic Gates</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يتعامل المنطق الثنائي مع متغيرات تأخذ قيمتين (0 و 1) وثلاث عمليات أساسية: AND و OR و NOT.</p></template>
+    <template class="content-en"><p>Binary logic deals with variables taking two values (0 and 1) and three basic operations: AND, OR, and NOT.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتعامل <strong>المنطق الثنائي</strong> مع متغيرات تأخذ قيمتين منفصلتين (صواب/خطأ، نعم/لا، 1/0) وعمليات تحمل معنى منطقياً. هناك ثلاث عمليات منطقية أساسية:</p><ol><li><strong>AND (الضرب المنطقي):</strong> يُمثل بنقطة (.) أو بدون مشغل. z = x . y يعني أن z = 1 فقط إذا كان x = 1 و y = 1.</li><li><strong>OR (الجمع المنطقي):</strong> يُمثل بعلامة (+). z = x + y يعني أن z = 1 إذا كان x = 1 أو y = 1 أو كلاهما.</li><li><strong>NOT (المتمم):</strong> يُمثل بشرطة (') أو خط علوي. z = x' يعني عكس قيمة x (إذا كان x=1 فإن z=0 والعكس).</li></ol><p><strong>البوابات المنطقية (Logic Gates)</strong> هي دوائر إلكترونية تعمل على إشارة إدخال واحدة أو أكثر لإنتاج إشارة إخراج بناءً على هذه العمليات.</p></template>
+    <template class="content-en"><p><strong>Binary logic</strong> deals with variables that take on two discrete values (true/false, yes/no, 1/0) and operations that assume logical meaning. There are three basic logical operations:</p><ol><li><strong>AND:</strong> Represented by a dot (.) or absence of an operator. z = x . y means z = 1 if and only if x = 1 and y = 1.</li><li><strong>OR:</strong> Represented by a plus sign (+). z = x + y means z = 1 if x = 1 or y = 1 or both.</li><li><strong>NOT:</strong> Represented by a prime (') or overbar. z = x' means the complement of x (if x=1, z=0 and vice versa).</li></ol><p><strong>Logic gates</strong> are electronic circuits that operate on one or more input signals to produce an output signal based on these operations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هذه العمليات الثلاث تشكل مجموعة كاملة وظيفياً (Functionally Complete Set)، مما يعني أنه يمكن بناء أي دائرة رقمية معقدة (مثل المعالجات والذواكر) باستخدام هذه البوابات الثلاث فقط.</p><p>يتم تمثيل سلوك هذه البوابات باستخدام <span class="smart-term" data-term-en="Truth Table" data-ar="جدول الحقيقة" data-en-def="A mathematical table used in logic to compute the functional values of logical expressions on each of their functional arguments.">جداول الحقيقة (Truth Tables)<span class="smart-term-tooltip"></span></span> التي تسرد جميع الاحتمالات الممكنة للمدخلات والمخرجات المقابلة.</p></template>
+    <template class="content-en"><p>These three operations form a functionally complete set, meaning any complex digital circuit (like CPUs and memory) can be built using only these three gates.</p><p>The behavior of these gates is represented using <span class="smart-term" data-term-en="Truth Table" data-ar="جدول الحقيقة" data-en-def="A mathematical table used in logic to compute the functional values of logical expressions on each of their functional arguments.">Truth Tables<span class="smart-term-tooltip"></span></span>, which list all possible input combinations and their corresponding outputs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Three logic gates side by side. Left: Two-input AND gate (D-shape) with inputs x, y and output z = x.y. Middle: Two-input OR gate (shield-shape) with inputs x, y and output z = x+y. Right: NOT gate (triangle with a small circle at the tip) with input x and output x'. Include Truth Tables for each below the gates. Style: educational, dark background #0d1117, accent color #007bff, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrow Marker for Output Wires -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Column Dividers -->
+  <line x1="266" y1="20" x2="266" y2="480" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" opacity="0.5" />
+  <line x1="533" y1="20" x2="533" y2="480" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" opacity="0.5" />
+
+  <!-- ========================================== -->
+  <!-- COLUMN 1: AND GATE                         -->
+  <!-- ========================================== -->
+
+  <!-- Titles -->
+  <text x="133" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">AND Gate</text>
+  <text x="133" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">بوابة و</text>
+
+  <!-- Gate Drawing -->
+  <g transform="translate(-17, 0)">
+    <!-- Input Wires -->
+    <line x1="90" y1="125" x2="120" y2="125" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round" />
+    <line x1="90" y1="155" x2="120" y2="155" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round" />
+    
+    <!-- Output Wire -->
+    <line x1="170" y1="140" x2="200" y2="140" stroke="var(--brand-500)" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" />
+    
+    <!-- AND Gate Shape (D-shape) -->
+    <path d="M 120 110 L 140 110 A 30 30 0 0 1 140 170 L 120 170 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+    
+    <!-- Labels -->
+    <text x="75" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">x</text>
+    <text x="75" y="160" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">y</text>
+    <text x="235" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">z = x · y</text>
+  </g>
+
+  <!-- Truth Table -->
+  <text x="133" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Truth Table</text>
+  <text x="133" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">جدول الحقيقة</text>
+
+  <g transform="translate(73, 270)">
+    <rect x="0" y="0" width="120" height="150" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="6" />
+    <!-- Horizontal Lines -->
+    <line x1="0" y1="30" x2="120" y2="30" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="0" y1="60" x2="120" y2="60" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="0" y1="90" x2="120" y2="90" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="0" y1="120" x2="120" y2="120" stroke="var(--border-color)" stroke-width="1" />
+    <!-- Vertical Lines -->
+    <line x1="40" y1="0" x2="40" y2="150" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="80" y1="0" x2="80" y2="150" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Text Content -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle" fill="var(--text-primary)">
+      <!-- Headers -->
+      <text x="20" y="21" font-weight="bold" fill="var(--text-secondary)">x</text>
+      <text x="60" y="21" font-weight="bold" fill="var(--text-secondary)">y</text>
+      <text x="100" y="21" font-weight="bold" fill="var(--brand-500)">z</text>
+      <!-- Row 1 -->
+      <text x="20" y="51">0</text><text x="60" y="51">0</text><text x="100" y="51" fill="var(--brand-500)">0</text>
+      <!-- Row 2 -->
+      <text x="20" y="81">0</text><text x="60" y="81">1</text><text x="100" y="81" fill="var(--brand-500)">0</text>
+      <!-- Row 3 -->
+      <text x="20" y="111">1</text><text x="60" y="111">0</text><text x="100" y="111" fill="var(--brand-500)">0</text>
+      <!-- Row 4 -->
+      <text x="20" y="141">1</text><text x="60" y="141">1</text><text x="100" y="141" fill="var(--brand-500)">1</text>
+    </g>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- COLUMN 2: OR GATE                          -->
+  <!-- ========================================== -->
+
+  <!-- Titles -->
+  <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">OR Gate</text>
+  <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">بوابة أو</text>
+
+  <!-- Gate Drawing -->
+  <g transform="translate(0, 0)">
+    <!-- Input Wires -->
+    <line x1="340" y1="125" x2="376" y2="125" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round" />
+    <line x1="340" y1="155" x2="376" y2="155" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round" />
+    
+    <!-- Output Wire -->
+    <line x1="430" y1="140" x2="460" y2="140" stroke="var(--brand-500)" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" />
+    
+    <!-- OR Gate Shape (Shield-shape) -->
+    <path d="M 370 110 Q 400 110 430 140 Q 400 170 370 170 Q 385 140 370 110 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+    
+    <!-- Labels -->
+    <text x="325" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">x</text>
+    <text x="325" y="160" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">y</text>
+    <text x="495" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">z = x + y</text>
+  </g>
+
+  <!-- Truth Table -->
+  <text x="400" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Truth Table</text>
+  <text x="400" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">جدول الحقيقة</text>
+
+  <g transform="translate(340, 270)">
+    <rect x="0" y="0" width="120" height="150" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="6" />
+    <!-- Horizontal Lines -->
+    <line x1="0" y1="30" x2="120" y2="30" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="0" y1="60" x2="120" y2="60" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="0" y1="90" x2="120" y2="90" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="0" y1="120" x2="120" y2="120" stroke="var(--border-color)" stroke-width="1" />
+    <!-- Vertical Lines -->
+    <line x1="40" y1="0" x2="40" y2="150" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="80" y1="0" x2="80" y2="150" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Text Content -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle" fill="var(--text-primary)">
+      <!-- Headers -->
+      <text x="20" y="21" font-weight="bold" fill="var(--text-secondary)">x</text>
+      <text x="60" y="21" font-weight="bold" fill="var(--text-secondary)">y</text>
+      <text x="100" y="21" font-weight="bold" fill="var(--brand-500)">z</text>
+      <!-- Row 1 -->
+      <text x="20" y="51">0</text><text x="60" y="51">0</text><text x="100" y="51" fill="var(--brand-500)">0</text>
+      <!-- Row 2 -->
+      <text x="20" y="81">0</text><text x="60" y="81">1</text><text x="100" y="81" fill="var(--brand-500)">1</text>
+      <!-- Row 3 -->
+      <text x="20" y="111">1</text><text x="60" y="111">0</text><text x="100" y="111" fill="var(--brand-500)">1</text>
+      <!-- Row 4 -->
+      <text x="20" y="141">1</text><text x="60" y="141">1</text><text x="100" y="141" fill="var(--brand-500)">1</text>
+    </g>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- COLUMN 3: NOT GATE                         -->
+  <!-- ========================================== -->
+
+  <!-- Titles -->
+  <text x="666" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">NOT Gate</text>
+  <text x="666" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">بوابة النفي</text>
+
+  <!-- Gate Drawing -->
+  <g transform="translate(17, 0)">
+    <!-- Input Wire -->
+    <line x1="590" y1="140" x2="620" y2="140" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round" />
+    
+    <!-- Output Wire -->
+    <line x1="672" y1="140" x2="702" y2="140" stroke="var(--brand-500)" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" />
+    
+    <!-- NOT Gate Shape (Triangle + Circle) -->
+    <polygon points="620,115 620,165 660,140" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+    <circle cx="666" cy="140" r="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    
+    <!-- Labels -->
+    <text x="575" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">x</text>
+    <text x="725" y="145" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--brand-500)">x'</text>
+  </g>
+
+  <!-- Truth Table -->
+  <text x="666" y="230" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">Truth Table</text>
+  <text x="666" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-secondary)">جدول الحقيقة</text>
+
+  <g transform="translate(616, 270)">
+    <rect x="0" y="0" width="100" height="90" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="6" />
+    <!-- Horizontal Lines -->
+    <line x1="0" y1="30" x2="100" y2="30" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="0" y1="60" x2="100" y2="60" stroke="var(--border-color)" stroke-width="1" />
+    <!-- Vertical Lines -->
+    <line x1="50" y1="0" x2="50" y2="90" stroke="var(--border-color)" stroke-width="2" />
+    
+    <!-- Text Content -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle" fill="var(--text-primary)">
+      <!-- Headers -->
+      <text x="25" y="21" font-weight="bold" fill="var(--text-secondary)">x</text>
+      <text x="75" y="21" font-weight="bold" fill="var(--brand-500)">x'</text>
+      <!-- Row 1 -->
+      <text x="25" y="51">0</text><text x="75" y="51" fill="var(--brand-500)">1</text>
+      <!-- Row 2 -->
+      <text x="25" y="81">1</text><text x="75" y="81" fill="var(--brand-500)">0</text>
+    </g>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لدينا بوابة AND بـ 3 مداخل، متى يكون المخرج 1؟</template>
+      <template class="content-en">If we have a 3-input AND gate, when is the output 1?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يكون المخرج 1 فقط عندما تكون جميع المداخل الثلاثة تساوي 1.</p></template>
+      <template class="content-en"><p>The output is 1 only when all three inputs are equal to 1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="boolean-algebra-huntington" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> الجبر البولياني ومسلمات هنتنغتون</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Boolean Algebra and Huntington Postulates</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نظام جبري طوره جورج بول وتم تعريفه رسمياً بمسلمات هنتنغتون الستة التي تحكم العمليات المنطقية.</p></template>
+    <template class="content-en"><p>An algebraic system developed by George Boole, formally defined by the six Huntington postulates governing logical operations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong>الجبر البولياني</strong> هو نظام رياضي استنتاجي يُعرّف بمجموعة من العناصر، ومجموعة من المشغلات، وعدد من ال<span class="smart-term" data-term-en="Postulate" data-ar="مُسَلَّمَة" data-en-def="A statement that is accepted as true without proof as the basis for reasoning.">مسلمات (Postulates)<span class="smart-term-tooltip"></span></span>. في عام 1904، صاغ E. V. Huntington المسلمات التالية لتعريف الجبر البولياني على مجموعة B مع المشغلين (+) و (.) :</p><ol><li><strong>الانغلاق (Closure):</strong> النظام مغلق بالنسبة لـ (+) و (.).</li><li><strong>عنصر محايد (Identity):</strong> 0 هو المحايد لـ (+) حيث x+0=x. و 1 هو المحايد لـ (.) حيث x.1=x.</li><li><strong>التبديل (Commutative):</strong> x+y = y+x و x.y = y.x.</li><li><strong>التوزيع (Distributive):</strong> (.) يتوزع على (+) والعكس: x.(y+z) = (x.y)+(x.z) و x+(y.z) = (x+y).(x+z).</li><li><strong>المتمم (Complement):</strong> لكل x يوجد x' بحيث x+x'=1 و x.x'=0.</li><li>يوجد على الأقل عنصران مختلفان x ≠ y.</li></ol></template>
+    <template class="content-en"><p><strong>Boolean algebra</strong> is a deductive mathematical system defined with a set of elements, operators, and <span class="smart-term" data-term-en="Postulate" data-ar="مُسَلَّمَة" data-en-def="A statement that is accepted as true without proof as the basis for reasoning.">postulates<span class="smart-term-tooltip"></span></span>. In 1904, E. V. Huntington formulated postulates for Boolean algebra on a set B with operators (+) and (.):</p><ol><li><strong>Closure:</strong> Closed with respect to (+) and (.).</li><li><strong>Identity element:</strong> 0 for (+) such that x+0=x; 1 for (.) such that x.1=x.</li><li><strong>Commutative:</strong> x+y = y+x and x.y = y.x.</li><li><strong>Distributive:</strong> (.) is distributive over (+), and (+) is distributive over (.): x.(y+z) = (x.y)+(x.z) and x+(y.z) = (x+y).(x+z).</li><li><strong>Complement:</strong> For every x, there exists x' such that x+x'=1 and x.x'=0.</li><li>There exist at least two elements x ≠ y.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من المثير للاهتمام أن قانون التجميع (Associative Law) ليس جزءاً من مسلمات هنتنغتون الأساسية، ولكنه ينطبق على الجبر البولياني ويمكن اشتقاقه من المسلمات الأخرى.</p><p>كما أن قانون التوزيع لـ (+) على (.) غير موجود في الجبر العادي (حيث لا يمكنك قول 2+(3*4) = (2+3)*(2+4))، لكنه صحيح وأساسي في الجبر البولياني.</p></template>
+    <template class="content-en"><p>Interestingly, the Associative law is not included in Huntington's postulates, but it holds for Boolean algebra and can be derived from the others.</p><p>Also, the distributive law of (+) over (.) is valid in Boolean algebra (x+(y.z) = (x+y).(x+z)), which is NOT true in ordinary algebra.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>قانون التوزيع للجمع على الضرب (خاص بالجبر البولياني ولا ينطبق في الجبر العادي).</strong></template>
+      <template class="content-en"><strong>Distributive law of + over . (unique to Boolean algebra, not valid in ordinary algebra).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$x + (y \cdot z) = (x + y) \cdot (x + z)$$</div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Boolean Algebra</th><th>Ordinary Algebra</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">قانون التوزيع لـ (+) على (.)</template>
+          <template class="content-en">Distributive law of + over .</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">صالح: x+(y.z) = (x+y).(x+z)</template>
+          <template class="content-en">Valid: x+(y.z) = (x+y).(x+z)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير صالح</template>
+          <template class="content-en">Invalid</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المعكوسات (الطرح والقسمة)</template>
+          <template class="content-en">Inverses (Subtraction & Division)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا يوجد معكوسات جمعية أو ضربية</template>
+          <template class="content-en">No additive or multiplicative inverses</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">موجودة وتسمح بالطرح والقسمة</template>
+          <template class="content-en">Exist, allowing subtraction and division</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">عملية المتمم (Complement)</template>
+          <template class="content-en">Complement operation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">موجودة (x')</template>
+          <template class="content-en">Exists (x')</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير موجودة</template>
+          <template class="content-en">Does not exist</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يحتوي الجبر البولياني على عمليات الطرح أو القسمة؟</template>
+      <template class="content-en">Why does Boolean algebra not have subtraction or division operations?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الجبر البولياني لا يمتلك معكوسات جمعية (Additive inverses) أو معكوسات ضربية (Multiplicative inverses) كما في الجبر العادي.</p></template>
+      <template class="content-en"><p>Because Boolean algebra does not have additive or multiplicative inverses like ordinary algebra does.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="two-valued-boolean-algebra" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">8</span> الجبر البولياني ثنائي القيم</h2></template>
+    <template class="content-en"><h2><span class="concept-number">8</span> Two-Valued Boolean Algebra</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تطبيق للجبر البولياني يقتصر على عنصرين فقط B = {0, 1}، وهو الأساس لجميع الدوائر الرقمية الحديثة.</p></template>
+    <template class="content-en"><p>An application of Boolean algebra restricted to only two elements B = {0, 1}, forming the basis of all modern digital circuits.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Two-Valued Boolean Algebra" data-ar="الجبر البولياني ثنائي القيم" data-en-def="A Boolean algebra defined on a set of exactly two elements, typically 0 and 1.">الجبر البولياني ثنائي القيم (Two-Valued Boolean Algebra)<span class="smart-term-tooltip"></span></span></strong> يُعرّف على مجموعة تتكون من عنصرين فقط، B = {0, 1}، مع قواعد للمشغلين الثنائيين (+) و (.). هذه القواعد هي بالضبط نفس عمليات AND و OR و NOT المنطقية.</p><p>يمكن إثبات صحة جميع مسلمات هنتنغتون لهذه المجموعة باستخدام جداول الحقيقة. على سبيل المثال، إثبات قانون التوزيع يتم عن طريق إنشاء جدول حقيقة لجميع الاحتمالات الممكنة للمتغيرات x, y, z ومقارنة النواتج.</p></template>
+    <template class="content-en"><p><strong><span class="smart-term" data-term-en="Two-Valued Boolean Algebra" data-ar="الجبر البولياني ثنائي القيم" data-en-def="A Boolean algebra defined on a set of exactly two elements, typically 0 and 1.">Two-Valued Boolean Algebra<span class="smart-term-tooltip"></span></span></strong> is defined on a set of two elements, B = { 0, 1 }, with rules for the two binary operators + and . . These rules are exactly the same as the AND, OR, and NOT operations.</p><p>We can show that the Huntington postulates are valid for this set using truth tables. For example, the distributive law is proven by forming a truth table of all possible values of x, y, and z and showing both sides of the equation yield the same result.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التحقق من المسلمات باستخدام جداول الحقيقة يُعرف بـ 'الإثبات بالاستنفاد' (Proof by Exhaustion).</p><p>بما أن عدد الاحتمالات محدود جداً (مثلاً 8 احتمالات لـ 3 متغيرات 2^3)، يمكننا بسهولة حساب كل حالة للتأكد من تطابق الطرفين الأيمن والأيسر للمعادلة، وهو ما يثبت صحة المسلمة في هذا النظام الثنائي.</p></template>
+    <template class="content-en"><p>Verifying postulates using truth tables is known as 'Proof by Exhaustion'.</p><p>Since the number of combinations is strictly limited (e.g., 8 combinations for 3 variables, 2^3), we can easily compute every single case to ensure the left and right sides of an equation match, thus proving the postulate holds in this two-valued system.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف نثبت أن x + x' = 1 في الجبر البولياني ثنائي القيم؟</template>
+      <template class="content-en">How do we prove that x + x' = 1 in Two-Valued Boolean Algebra?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>بما أن x يمكن أن يكون 0 أو 1 فقط: إذا كان x=0 فإن 0 + 0' = 0 + 1 = 1. وإذا كان x=1 فإن 1 + 1' = 1 + 0 = 1. في كلتا الحالتين النتيجة 1.</p></template>
+      <template class="content-en"><p>Since x can only be 0 or 1: if x=0, 0 + 0' = 0 + 1 = 1. If x=1, 1 + 1' = 1 + 0 = 1. In both cases, the result is 1.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في هذه الوحدة الحاسمة. تخيلوا أننا نبني لغة جديدة تماماً للكمبيوتر. بدأنا بالشفرات الثنائية وكيف نترجم عالمنا (أرقام، حروف) إلى أصفار وآحاد باستخدام BCD و ASCII. ثم انتقلنا إلى شفرة غراي الذكية التي توفر الطاقة. لكن الأهم هو 'الجبر البولياني'. انسوا قليلاً ما تعلمتوه في الرياضيات العادية؛ هنا لا يوجد طرح ولا قسمة! لدينا فقط AND و OR و NOT. ركزوا بشدة على مسلمات هنتنغتون، خاصة قانون التوزيع العكسي (الجمع على الضرب) ومسلمة المتمم، لأنها ستكون أدواتكم السحرية لتبسيط أي دائرة معقدة في الامتحانات القادمة. جداول الحقيقة هي صديقكم الوفي لإثبات أي شيء هنا. بالتوفيق!</template>
+    <template class="content-en">Welcome, future engineers, to this crucial module. Imagine we are building a completely new language for computers. We started with binary codes, translating our world into 0s and 1s using BCD and ASCII, and explored the clever, power-saving Gray code. But the crown jewel here is 'Boolean Algebra'. Forget ordinary math for a moment; there is no subtraction or division here! We only have AND, OR, and NOT. Focus heavily on Huntington's postulates, especially the distributive law of OR over AND, and the complement postulate. These will be your magic tools to simplify complex circuits in the exam. Truth tables are your best friends for proving anything in this two-valued world. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم BCD إذا كان يستهلك بتات أكثر من التحويل الثنائي العادي؟</template>
+          <template class="content-en">Why do we use BCD if it consumes more bits than standard binary conversion?</template>
+          <span class="content-target">لماذا نستخدم BCD إذا كان يستهلك بتات أكثر من التحويل الثنائي العادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه يسهل جداً على البشر قراءته والتعامل معه. كل 4 بتات تترجم مباشرة إلى رقم عشري واحد، مما يجعله مثالياً لشاشات العرض الرقمية وأنظمة الإدخال/الإخراج.</template>
+          <template class="content-en">Because it is extremely easy for humans to read and interact with. Every 4 bits translate directly to a single decimal digit, making it ideal for digital displays and I/O systems.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الأساسي بين الجبر البولياني والجبر العادي؟</template>
+          <template class="content-en">What is the fundamental difference between Boolean algebra and ordinary algebra?</template>
+          <span class="content-target">ما هو الفرق الأساسي بين الجبر البولياني والجبر العادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الجبر البولياني لا يحتوي على معكوسات (لا طرح ولا قسمة)، ويحتوي على عملية المتمم (NOT)، وقانون توزيع الجمع على الضرب فيه صحيح، وهو ما لا ينطبق على الجبر العادي.</template>
+          <template class="content-en">Boolean algebra lacks inverses (no subtraction/division), features a complement operation (NOT), and allows the distribution of addition over multiplication, which is invalid in ordinary algebra.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نثبت صحة نظرية في الجبر البولياني ثنائي القيم؟</template>
+          <template class="content-en">How do we prove a theorem in Two-Valued Boolean Algebra?</template>
+          <span class="content-target">كيف نثبت صحة نظرية في الجبر البولياني ثنائي القيم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام جداول الحقيقة (Truth Tables). نقوم بسرد جميع الاحتمالات الممكنة للمتغيرات (0 و 1) ونحسب النتيجة للطرفين الأيمن والأيسر. إذا تطابقا في كل الحالات، فالنظرية صحيحة.</template>
+          <template class="content-en">By using Truth Tables. We list all possible combinations of the variables (0 and 1) and evaluate both the left and right sides. If they match in every case, the theorem is proven.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي دالة السقف (Ceiling function) ولماذا نستخدمها في حساب البتات؟</template>
+          <template class="content-en">What is the ceiling function and why do we use it in calculating bits?</template>
+          <span class="content-target">ما هي دالة السقف (Ceiling function) ولماذا نستخدمها في حساب البتات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي دالة تقرب الرقم إلى أقرب عدد صحيح أكبر منه. نستخدمها لأن عدد البتات يجب أن يكون عدداً صحيحاً (لا يمكن أن يكون لدينا نصف بت).</template>
+          <template class="content-en">It rounds a number up to the nearest integer. We use it because the number of bits must be a whole number (we can't have a fraction of a bit).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني 'التركيبات غير الصالحة' في BCD؟</template>
+          <template class="content-en">What does 'invalid combinations' mean in BCD?</template>
+          <span class="content-target">ماذا تعني 'التركيبات غير الصالحة' في BCD؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بما أن 4 بتات تعطي 16 احتمالاً، ونحن نحتاج فقط 10 احتمالات للأرقام من 0 إلى 9، فإن الاحتمالات الستة المتبقية (من 1010 إلى 1111) لا تُستخدم وتعتبر غير صالحة.</template>
+          <template class="content-en">Since 4 bits give 16 combinations, and we only need 10 for digits 0-9, the remaining 6 combinations (1010 to 1111) are unused and considered invalid.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تقلل شفرة غراي من استهلاك الطاقة؟</template>
+          <template class="content-en">How does Gray code reduce power consumption?</template>
+          <span class="content-target">كيف تقلل شفرة غراي من استهلاك الطاقة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الانتقال من أي رقم للرقم الذي يليه يتطلب تغيير حالة بت واحد فقط، مما يعني أن ترانزستوراً واحداً فقط يغير حالته، وهذا يستهلك طاقة أقل بكثير من تغيير عدة بتات معاً.</template>
+          <template class="content-en">Because transitioning from one number to the next requires changing only one bit. This means only one transistor switches state, consuming much less power than switching multiple bits.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو المسجل (Register) وما علاقته بالبتات؟</template>
+          <template class="content-en">What is a register and how does it relate to bits?</template>
+          <span class="content-target">ما هو المسجل (Register) وما علاقته بالبتات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المسجل هو مجموعة من الخلايا الإلكترونية داخل المعالج. كل خلية تخزن بت واحد (0 أو 1). مسجل بحجم n خلية يمكنه تخزين n بت.</template>
+          <template class="content-en">A register is a group of electronic cells inside a processor. Each cell stores one bit (0 or 1). An n-cell register can store n bits.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مسلمة الانغلاق (Closure)؟</template>
+          <template class="content-en">What is the Closure postulate?</template>
+          <span class="content-target">ما هي مسلمة الانغلاق (Closure)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعني أنه إذا أخذت أي عنصرين من المجموعة B وأجريت عليهما عملية (مثل AND أو OR)، فإن النتيجة ستكون حتماً عنصراً موجوداً داخل نفس المجموعة B.</template>
+          <template class="content-en">It means if you take any two elements from set B and apply an operation (like AND or OR), the result will definitely be an element that also belongs to set B.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل قانون التجميع (Associative law) جزء من مسلمات هنتنغتون؟</template>
+          <template class="content-en">Is the Associative law part of Huntington's postulates?</template>
+          <span class="content-target">هل قانون التجميع (Associative law) جزء من مسلمات هنتنغتون؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، ليس جزءاً من المسلمات الستة الأساسية، ولكنه قانون صحيح في الجبر البولياني ويمكن اشتقاقه وإثباته من المسلمات الأخرى.</template>
+          <template class="content-en">No, it is not one of the six fundamental postulates, but it is a valid law in Boolean algebra and can be derived and proven from the other postulates.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث إذا جمعنا متغيراً مع متممه (x + x')؟</template>
+          <template class="content-en">What happens if we OR a variable with its complement (x + x')?</template>
+          <span class="content-target">ماذا يحدث إذا جمعنا متغيراً مع متممه (x + x')؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">النتيجة دائماً 1. لأن أحدهما سيكون 1 والآخر 0، وبوابة OR تعطي 1 إذا كان أي من مدخلاتها 1.</template>
+          <template class="content-en">The result is always 1. Because one will be 1 and the other 0, and an OR gate outputs 1 if any of its inputs is 1.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي المعادلة لحساب الحد الأدنى من البتات (n) لتمثيل (M) من العناصر؟",
+      "en": "What is the formula to calculate the minimum number of bits (n) to represent (M) elements?"
+    },
+    "back": {
+      "definition": {
+        "ar": "n = ⌈log2 M⌉ (دالة السقف للوغاريتم M للأساس 2)",
+        "en": "n = ⌈log2 M⌉ (ceiling function of log base 2 of M)"
+      },
+      "example": {
+        "ar": "لتمثيل 10 عناصر، n = ⌈3.32⌉ = 4 بتات.",
+        "en": "To represent 10 elements, n = ⌈3.32⌉ = 4 bits."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي التركيبات غير الصالحة في نظام BCD؟",
+      "en": "What are the invalid combinations in BCD?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التركيبات من 10 إلى 15 (1010 إلى 1111).",
+        "en": "Combinations from 10 to 15 (1010 to 1111)."
+      },
+      "example": {
+        "ar": "1010 غير صالح في BCD لأنه يمثل الرقم 10.",
+        "en": "1010 is invalid in BCD because it represents 10."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي الميزة الرئيسية لشفرة غراي (Gray Code)؟",
+      "en": "What is the main advantage of Gray Code?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يتغير بت واحد فقط عند الانتقال من شفرة إلى التي تليها، مما يقلل من استهلاك الطاقة.",
+        "en": "Only one bit changes from one code to the next, which reduces power consumption."
+      },
+      "example": {
+        "ar": "الانتقال من 1 (0001) إلى 2 (0011) يغير بتاً واحداً فقط.",
+        "en": "Moving from 1 (0001) to 2 (0011) changes only one bit."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "كم عدد البتات المستخدمة في شفرة ASCII القياسية؟",
+      "en": "How many bits are used in standard ASCII code?"
+    },
+    "back": {
+      "definition": {
+        "ar": "7 بتات، مما يسمح بتمثيل 128 عنصراً (من 0 إلى 127).",
+        "en": "7 bits, allowing representation of 128 elements (0 to 127)."
+      },
+      "example": {
+        "ar": "الحرف 'A' يمثله الرقم 65 (1000001).",
+        "en": "The letter 'A' is represented by 65 (1000001)."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو المسجل (Register)؟",
+      "en": "What is a Register?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من الخلايا الثنائية يمكنها تخزين كمية منفصلة من المعلومات تحتوي على n بت.",
+        "en": "A group of binary cells that can store a discrete quantity of information containing n bits."
+      },
+      "example": {
+        "ar": "مسجل بحجم 16 بت يمكنه تخزين أي رقم من 0 إلى 2^16 - 1.",
+        "en": "A 16-bit register can store any number from 0 to 2^16 - 1."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "متى يكون ناتج بوابة AND يساوي 1؟",
+      "en": "When is the output of an AND gate equal to 1?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فقط إذا كانت جميع المدخلات تساوي 1.",
+        "en": "Only if all inputs are equal to 1."
+      },
+      "example": {
+        "ar": "إذا كان x=1 و y=1، فإن x.y = 1.",
+        "en": "If x=1 and y=1, then x.y = 1."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "متى يكون ناتج بوابة OR يساوي 0؟",
+      "en": "When is the output of an OR gate equal to 0?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فقط إذا كانت جميع المدخلات تساوي 0.",
+        "en": "Only if all inputs are equal to 0."
+      },
+      "example": {
+        "ar": "إذا كان x=0 و y=0، فإن x+y = 0.",
+        "en": "If x=0 and y=0, then x+y = 0."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو العنصر المحايد (Identity element) لعملية الجمع المنطقي (OR)؟",
+      "en": "What is the identity element for the logical OR (+) operation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الرقم 0، لأن x + 0 = x.",
+        "en": "The number 0, because x + 0 = x."
+      },
+      "example": {
+        "ar": "1 + 0 = 1 و 0 + 0 = 0.",
+        "en": "1 + 0 = 1 and 0 + 0 = 0."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو العنصر المحايد (Identity element) لعملية الضرب المنطقي (AND)؟",
+      "en": "What is the identity element for the logical AND (.) operation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الرقم 1، لأن x . 1 = x.",
+        "en": "The number 1, because x . 1 = x."
+      },
+      "example": {
+        "ar": "1 . 1 = 1 و 0 . 1 = 0.",
+        "en": "1 . 1 = 1 and 0 . 1 = 0."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو قانون التوزيع لـ (+) على (.) في الجبر البولياني؟",
+      "en": "What is the distributive law of (+) over (.) in Boolean algebra?"
+    },
+    "back": {
+      "definition": {
+        "ar": "x + (y . z) = (x + y) . (x + z)",
+        "en": "x + (y . z) = (x + y) . (x + z)"
+      },
+      "example": {
+        "ar": "هذا القانون صالح في الجبر البولياني ولكنه غير صالح في الجبر العادي.",
+        "en": "This law is valid in Boolean algebra but invalid in ordinary algebra."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي مسلمة المتمم (Complement postulate) في الجبر البولياني؟",
+      "en": "What is the complement postulate in Boolean algebra?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لكل عنصر x يوجد متمم x' بحيث: x + x' = 1 و x . x' = 0.",
+        "en": "For every element x there exists x' such that: x + x' = 1 and x . x' = 0."
+      },
+      "example": {
+        "ar": "إذا كان x=1 فإن x'=0، و 1+0=1 و 1.0=0.",
+        "en": "If x=1 then x'=0, and 1+0=1 and 1.0=0."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "هل يحتوي الجبر البولياني على عمليات طرح أو قسمة؟",
+      "en": "Does Boolean algebra have subtraction or division operations?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لا، لأنه لا يمتلك معكوسات جمعية أو ضربية.",
+        "en": "No, because it does not have additive or multiplicative inverses."
+      },
+      "example": {
+        "ar": "لا يمكننا قسمة x على y في الجبر البولياني.",
+        "en": "We cannot divide x by y in Boolean algebra."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي عناصر الجبر البولياني ثنائي القيم (Two-Valued Boolean Algebra)؟",
+      "en": "What are the elements of Two-Valued Boolean Algebra?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة B تحتوي على عنصرين فقط: {0, 1}.",
+        "en": "The set B contains exactly two elements: {0, 1}."
+      },
+      "example": {
+        "ar": "جميع المتغيرات x, y, z يمكن أن تأخذ قيمة 0 أو 1 فقط.",
+        "en": "All variables x, y, z can only take the value 0 or 1."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو قانون التبديل (Commutative law) في الجبر البولياني؟",
+      "en": "What is the commutative law in Boolean algebra?"
+    },
+    "back": {
+      "definition": {
+        "ar": "x + y = y + x و x . y = y . x",
+        "en": "x + y = y + x and x . y = y . x"
+      },
+      "example": {
+        "ar": "ترتيب المتغيرات لا يغير النتيجة في بوابات AND و OR.",
+        "en": "The order of variables does not change the result in AND and OR gates."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو قانون الانغلاق (Closure) في الجبر البولياني؟",
+      "en": "What is the Closure postulate in Boolean algebra?"
+    },
+    "back": {
+      "definition": {
+        "ar": "النظام مغلق بالنسبة للمشغلات، أي أن نتيجة أي عملية ستكون دائماً عنصراً من نفس المجموعة B.",
+        "en": "The system is closed with respect to operators, meaning the result of any operation is always an element of set B."
+      },
+      "example": {
+        "ar": "في النظام الثنائي، 1+1=1 (وهو موجود في المجموعة {0,1}).",
+        "en": "In the two-valued system, 1+1=1 (which is in the set {0,1})."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "كم عدد البتات المطلوبة لتمثيل آلة تحتوي على 5 حالات مختلفة؟",
+      "en": "How many bits are required to represent a machine with 5 distinct states?"
+    },
+    "options": {
+      "ar": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "en": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "باستخدام المعادلة n = ⌈log2(5)⌉، نجد أن 2^2 = 4 (غير كافٍ) و 2^3 = 8 (كافٍ). إذن نحتاج 3 بتات.",
+      "en": "Using n = ⌈log2(5)⌉, 2^2 = 4 (not enough) and 2^3 = 8 (enough). So we need 3 bits."
+    },
+    "hint": {
+      "ar": "ابحث عن أصغر قوة للرقم 2 تكون أكبر من أو تساوي 5.",
+      "en": "Find the smallest power of 2 that is greater than or equal to 5."
+    },
+    "difficulty": "medium",
+    "conceptId": "binary-codes-and-bits"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من التركيبات التالية يعتبر غير صالح في نظام BCD؟",
+      "en": "Which of the following combinations is invalid in BCD?"
+    },
+    "options": {
+      "ar": [
+        "0101",
+        "1001",
+        "1010",
+        "0000"
+      ],
+      "en": [
+        "0101",
+        "1001",
+        "1010",
+        "0000"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "نظام BCD يمثل الأرقام من 0 إلى 9 فقط. التركيبة 1010 تمثل الرقم 10، لذا فهي غير صالحة.",
+      "en": "BCD only represents digits 0 to 9. The combination 1010 represents 10, so it is invalid."
+    },
+    "hint": {
+      "ar": "تذكر أن BCD يمثل خانة عشرية واحدة فقط.",
+      "en": "Remember that BCD represents a single decimal digit."
+    },
+    "difficulty": "easy",
+    "conceptId": "binary-coded-decimal-bcd"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي الميزة الرئيسية لشفرة غراي (Gray Code) مقارنة بالثنائي العادي؟",
+      "en": "What is the main advantage of Gray Code compared to standard binary?"
+    },
+    "options": {
+      "ar": [
+        "تستخدم بتات أقل لتمثيل الأرقام",
+        "تستهلك طاقة أقل لأن بت واحد فقط يتغير",
+        "أسهل في التحويل إلى النظام العشري",
+        "تستخدم لتمثيل الحروف الأبجدية"
+      ],
+      "en": [
+        "It uses fewer bits to represent numbers",
+        "It consumes less power because only one bit changes",
+        "It is easier to convert to decimal",
+        "It is used to represent alphabet characters"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في شفرة غراي، يتغير بت واحد فقط بين أي قيمتين متتاليتين، مما يقلل من تبديل الترانزستورات واستهلاك الطاقة.",
+      "en": "In Gray code, only one bit changes between successive values, reducing transistor switching and power consumption."
+    },
+    "hint": {
+      "ar": "فكر في عدد الترانزستورات التي تغير حالتها.",
+      "en": "Think about the number of transistors changing state."
+    },
+    "difficulty": "medium",
+    "conceptId": "gray-code"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كم عدد العناصر المختلفة التي يمكن تمثيلها باستخدام شفرة ASCII القياسية؟",
+      "en": "How many distinct elements can be represented using standard ASCII code?"
+    },
+    "options": {
+      "ar": [
+        "64",
+        "128",
+        "256",
+        "512"
+      ],
+      "en": [
+        "64",
+        "128",
+        "256",
+        "512"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "شفرة ASCII القياسية تستخدم 7 بتات، وبالتالي يمكنها تمثيل 2^7 = 128 عنصراً.",
+      "en": "Standard ASCII uses 7 bits, so it can represent 2^7 = 128 elements."
+    },
+    "hint": {
+      "ar": "احسب 2 أس 7.",
+      "en": "Calculate 2 to the power of 7."
+    },
+    "difficulty": "easy",
+    "conceptId": "ascii-code"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في الجبر البولياني، ما هي نتيجة العملية x + x' ؟",
+      "en": "In Boolean algebra, what is the result of the operation x + x' ?"
+    },
+    "options": {
+      "ar": [
+        "0",
+        "1",
+        "x",
+        "x'"
+      ],
+      "en": [
+        "0",
+        "1",
+        "x",
+        "x'"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "حسب مسلمة المتمم (Complement postulate)، فإن جمع المتغير مع متممه يعطي دائماً 1.",
+      "en": "According to the complement postulate, ORing a variable with its complement always yields 1."
+    },
+    "hint": {
+      "ar": "إذا كان أحدهما 0 فالآخر حتماً 1. ماذا ينتج عن بوابة OR في هذه الحالة؟",
+      "en": "If one is 0, the other is 1. What does an OR gate output in this case?"
+    },
+    "difficulty": "medium",
+    "conceptId": "boolean-algebra-huntington"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي من القوانين التالية صالح في الجبر البولياني ولكنه غير صالح في الجبر العادي؟",
+      "en": "Which of the following laws is valid in Boolean algebra but invalid in ordinary algebra?"
+    },
+    "options": {
+      "ar": [
+        "x + y = y + x",
+        "x . (y + z) = (x . y) + (x . z)",
+        "x + (y . z) = (x + y) . (x + z)",
+        "x . y = y . x"
+      ],
+      "en": [
+        "x + y = y + x",
+        "x . (y + z) = (x . y) + (x . z)",
+        "x + (y . z) = (x + y) . (x + z)",
+        "x . y = y . x"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "قانون توزيع الجمع على الضرب x + (y . z) = (x + y) . (x + z) هو خاصية فريدة للجبر البولياني.",
+      "en": "The distributive law of + over . is a unique property of Boolean algebra."
+    },
+    "hint": {
+      "ar": "ابحث عن القانون الذي يوزع علامة الزائد (+) داخل الأقواس المضروبة.",
+      "en": "Look for the law that distributes the plus (+) sign inside multiplied parentheses."
+    },
+    "difficulty": "hard",
+    "conceptId": "boolean-algebra-huntington"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هو العنصر المحايد لعملية الضرب المنطقي (AND)؟",
+      "en": "What is the identity element for the logical AND operation?"
+    },
+    "options": {
+      "ar": [
+        "0",
+        "1",
+        "x",
+        "-1"
+      ],
+      "en": [
+        "0",
+        "1",
+        "x",
+        "-1"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الرقم 1 هو المحايد الضربي لأن x . 1 = x.",
+      "en": "The number 1 is the multiplicative identity because x . 1 = x."
+    },
+    "hint": {
+      "ar": "ما هو الرقم الذي إذا ضربته في x يعطيك x؟",
+      "en": "What number multiplied by x gives x?"
+    },
+    "difficulty": "easy",
+    "conceptId": "boolean-algebra-huntington"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "إذا كان لدينا مسجل (Register) بحجم 16 بت، فكم عدد الحالات الممكنة التي يمكن أن يكون عليها؟",
+      "en": "If we have a 16-bit register, how many possible states can it be in?"
+    },
+    "options": {
+      "ar": [
+        "16",
+        "32",
+        "2^16",
+        "2^16 - 1"
+      ],
+      "en": [
+        "16",
+        "32",
+        "2^16",
+        "2^16 - 1"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مسجل بحجم n بت يمكن أن يكون في 2^n حالة ممكنة. إذن 2^16 حالة.",
+      "en": "An n-bit register can be in 2^n possible states. Thus, 2^16 states."
+    },
+    "hint": {
+      "ar": "عدد الحالات هو 2 مرفوعاً لعدد البتات.",
+      "en": "The number of states is 2 raised to the power of the number of bits."
+    },
+    "difficulty": "medium",
+    "conceptId": "registers-and-binary-storage"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "لماذا لا توجد عملية طرح في الجبر البولياني؟",
+      "en": "Why is there no subtraction operation in Boolean algebra?"
+    },
+    "options": {
+      "ar": [
+        "لأن الأرقام السالبة غير مدعومة في الكمبيوتر",
+        "لأنه لا يوجد معكوس جمعي (Additive inverse)",
+        "لأن بوابة NOT تقوم مقام الطرح",
+        "لأن قانون التوزيع يمنع ذلك"
+      ],
+      "en": [
+        "Because negative numbers are not supported in computers",
+        "Because there is no additive inverse",
+        "Because the NOT gate acts as subtraction",
+        "Because the distributive law prevents it"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الجبر البولياني يفتقر إلى المعكوسات الجمعية والضربية، مما يعني عدم إمكانية تعريف الطرح أو القسمة.",
+      "en": "Boolean algebra lacks additive and multiplicative inverses, meaning subtraction and division cannot be defined."
+    },
+    "hint": {
+      "ar": "الطرح يتطلب وجود رقم يعاكس الرقم الأصلي ليعطي صفراً.",
+      "en": "Subtraction requires a number that inverses the original to give zero."
+    },
+    "difficulty": "hard",
+    "conceptId": "boolean-algebra-huntington"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في الجبر البولياني ثنائي القيم، كيف نثبت صحة المسلمات؟",
+      "en": "In Two-Valued Boolean Algebra, how do we prove the validity of postulates?"
+    },
+    "options": {
+      "ar": [
+        "باستخدام التفاضل والتكامل",
+        "باستخدام جداول الحقيقة (Truth Tables)",
+        "باستخدام الرسوم البيانية",
+        "باستخدام الجبر الخطي"
+      ],
+      "en": [
+        "Using calculus",
+        "Using Truth Tables",
+        "Using graphs",
+        "Using linear algebra"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نظراً لأن المتغيرات تأخذ قيمتين فقط (0 و 1)، يمكننا استخدام جداول الحقيقة لاختبار جميع الاحتمالات الممكنة وإثبات المسلمات.",
+      "en": "Since variables only take two values (0 and 1), we can use truth tables to test all possible combinations and prove the postulates."
+    },
+    "hint": {
+      "ar": "طريقة تسرد جميع الاحتمالات الممكنة للمدخلات والمخرجات.",
+      "en": "A method that lists all possible input and output combinations."
+    },
+    "difficulty": "medium",
+    "conceptId": "two-valued-boolean-algebra"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين التحويل الثنائي (Conversion) والتشفير الثنائي (Coding). تحويل الرقم 13 إلى ثنائي يعطي 1101، بينما تشفيره بـ BCD يعطي 0001 0011. لا تقع في هذا الفخ في الامتحان!</template>
+      <template class="content-en">Mixing up binary conversion with binary coding. Converting 13 to binary gives 1101, while coding it in BCD gives 0001 0011. Don't fall for this trap in the exam!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">السر وراء استخدام شفرة غراي (Gray Code) ليس لتمثيل الأرقام بشكل أفضل، بل لتقليل استهلاك الطاقة ومنع الأخطاء العابرة (Glitches) في الأجهزة الفيزيائية لأن بت واحد فقط يتغير في كل مرة.</template>
+      <template class="content-en">The secret behind Gray Code isn't better number representation, but reducing power consumption and preventing hardware glitches, because only one bit changes at a time.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">قانون التوزيع للجمع على الضرب: x + (y . z) = (x + y) . (x + z). هذا القانون غريب جداً بالنسبة لمن اعتاد على الجبر العادي، ولكنه أساسي جداً في تبسيط الدوائر المنطقية.</template>
+      <template class="content-en">Distributive law of + over .: x + (y . z) = (x + y) . (x + z). This looks very weird if you're used to ordinary algebra, but it's absolutely critical for simplifying logic circuits.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الجبر البولياني يحتوي على طرح أو قسمة. تذكر دائماً: لا يوجد معكوس جمعي أو ضربي في الجبر البولياني، لذا لا توجد عمليات طرح أو قسمة إطلاقاً.</template>
+      <template class="content-en">Believing Boolean algebra has subtraction or division. Always remember: there are no additive or multiplicative inverses in Boolean algebra, hence no subtraction or division whatsoever.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M01.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M03.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

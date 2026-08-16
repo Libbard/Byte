@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS479" data-module="11">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تصميم الأنظمة: المتطلبات المادية · CS479 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS479" data-page-title-en="CS479">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M10.html" data-gh-next="M12.html" data-gh-card="../../hub/course.html?code=CS479"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#physical-data-design" class="toc-link" data-bilingual>
+        <template class="content-ar">التصميم المادي للبيانات</template>
+        <template class="content-en">Physical Data Design</template>
+        <span class="content-target">التصميم المادي للبيانات</span>
+      </a>
+      <a href="#systems-development-methodology" class="toc-link" data-bilingual>
+        <template class="content-ar">منهجية تطوير الأنظمة</template>
+        <template class="content-en">Systems Development Methodology</template>
+        <span class="content-target">منهجية تطوير الأنظمة</span>
+      </a>
+      <a href="#hosting-and-security-decisions" class="toc-link" data-bilingual>
+        <template class="content-ar">قرارات الاستضافة والأمان</template>
+        <template class="content-en">Hosting and Security Decisions</template>
+        <span class="content-target">قرارات الاستضافة والأمان</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 11</template>
+      <template class="content-en">Module 11</template>
+      <span class="content-target">الوحدة 11</span>
+    </span> · CS479
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تصميم الأنظمة: المتطلبات المادية</h1>
+      <p class="hero-description">نظرة عامة على قرارات التصميم المادي للبيانات، ومراحل منهجية تطوير الأنظمة، واعتبارات الاستضافة وحماية البيانات.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Systems Design: Physical Requirements</h1>
+      <p class="hero-description">Overview of physical data design decisions, systems development methodology phases, and hosting/data protection considerations.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">التصميم المادي</span>
+      <span class="tag">دورة حياة تطوير الأنظمة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 15 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Physical Design</span>
+      <span class="tag">SDLC</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 15 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تحديد القرارات الرئيسية المطلوبة لتحويل نموذج البيانات المنطقي إلى تصميم مادي.</span></li>
+      <li><span class="obj-icon">✦</span><span>تذكر المراحل الخمس لمنهجية تطوير الأنظمة وأنواع دراسات الجدوى المرتبطة بها.</span></li>
+      <li><span class="obj-icon">✦</span><span>تقييم خيارات البنية التحتية مثل الاستضافة الداخلية مقابل السحابية ومتطلبات حماية البيانات.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Identify the key decisions required to translate a logical data model into a physical design.</span></li>
+      <li><span class="obj-icon">✦</span><span>Recall the five phases of the systems development methodology and their associated feasibility studies.</span></li>
+      <li><span class="obj-icon">✦</span><span>Evaluate infrastructure options such as in-house vs. cloud hosting and data protection requirements.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="physical-data-design" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> التصميم المادي للبيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Physical Data Design</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>عملية تحويل النماذج المنطقية إلى هياكل تخزين فعلية لضمان الوصول السريع والفعال للبيانات.</p>
+    </template>
+    <template class="content-en">
+      <p>The process of translating logical models into actual storage structures to ensure rapid and efficient data access.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتطلب التصميم المادي اتخاذ قرارات رئيسية بناءً على نتائج تصميم البيانات المنطقي. تشمل هذه القرارات:</p><ul><li><strong>اختيار تنسيق التخزين</strong> لكل سمة،</li><li><strong>وتجميع السمات</strong> في <span class="smart-term" data-term-en="Physical Record" data-ar="السجل المادي" data-en-def="A group of attributes from the logical database model stored together physically.">سجلات مادية<span class="smart-term-tooltip"></span></span>،</li><li><strong>وترتيب السجلات المرتبطة</strong> في <span class="smart-term" data-term-en="Secondary Memory" data-ar="الذاكرة الثانوية" data-en-def="Storage devices like hard disks and magnetic tapes used for arranging related records for rapid access.">الذاكرة الثانوية<span class="smart-term-tooltip"></span></span> (مثل الأقراص الصلبة والأشرطة المغناطيسية) بحيث يمكن تخزينها واسترجاعها وتحديثها بسرعة،</li><li>بالإضافة إلى <strong>اختيار الوسائط والهياكل المناسبة</strong> لجعل الوصول إلى البيانات أكثر كفاءة.</li></ul></template>
+    <template class="content-en"><p>Physical design requires making key decisions based on the results of logical data design. These decisions include:</p><ul><li><strong>choosing the storage format</strong> for each attribute,</li><li><strong>grouping attributes</strong> into <span class="smart-term" data-term-en="Physical Record" data-ar="السجل المادي" data-en-def="A group of attributes from the logical database model stored together physically.">physical records<span class="smart-term-tooltip"></span></span>,</li><li><strong>arranging related records</strong> in <span class="smart-term" data-term-en="Secondary Memory" data-ar="الذاكرة الثانوية" data-en-def="Storage devices like hard disks and magnetic tapes used for arranging related records for rapid access.">secondary memory<span class="smart-term-tooltip"></span></span> (such as hard disks and magnetic tapes) so that records can be stored, retrieved, and updated rapidly,</li><li>and <strong>selecting media and structures</strong> for storing data to make access more efficient.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>[DEEP_EXPANSION_NEEDED]</p></template>
+    <template class="content-en"><p>[DEEP_EXPANSION_NEEDED]</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر اختيار وسائط التخزين (مثل الأقراص الصلبة مقابل الأشرطة المغناطيسية) قراراً حاسماً في التصميم المادي؟</template>
+      <template class="content-en">Why is the selection of storage media (like hard disks vs. magnetic tapes) a critical decision in physical design?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن وسائط التخزين المختلفة توفر سرعات وصول وتكاليف متباينة، مما يؤثر بشكل مباشر على سرعة استرجاع السجلات وتحديثها وكفاءة النظام ككل.</p></template>
+      <template class="content-en"><p>Because different storage media offer varying access speeds and costs, directly impacting how rapidly records can be retrieved and updated, thus affecting overall system efficiency.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="systems-development-methodology" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> منهجية تطوير الأنظمة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Systems Development Methodology</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تسلسل منظم من خمس مراحل يوجه بناء أنظمة المعلومات الناجحة، من التخطيط إلى الصيانة.</p>
+    </template>
+    <template class="content-en">
+      <p>A structured five-phase sequence that guides the building of successful information systems, from planning to maintenance.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتكون المنهجية من خمس مراحل أساسية:</p><ol><li><strong>المرحلة الأولى</strong> (التخطيط)،</li><li><strong>المرحلة الثانية</strong> (جمع المتطلبات وتحليلها)،</li><li><strong>المرحلة الثالثة</strong> (التصميم)،</li><li><strong>المرحلة الرابعة</strong> (التنفيذ)،</li><li><strong>والمرحلة الخامسة</strong> (الصيانة).</li></ol><p>خلال المراحل الأولى، يتم إجراء تحليل أولي و<span class="smart-term" data-term-en="Feasibility Study" data-ar="دراسة الجدوى" data-en-def="An assessment of the practicality of a proposed system, covering economic, technical, operational, schedule, and legal aspects.">دراسات جدوى<span class="smart-term-tooltip"></span></span> تشمل الجوانب (الاقتصادية، الفنية، التشغيلية، الجدول الزمني، والقانونية) لاتخاذ قرارات حاسمة بـ <span class="smart-term" data-term-en="Go/No Go Decision" data-ar="قرار المضي قدماً أو التوقف" data-en-def="A critical checkpoint decision made after feasibility studies to determine if the project should continue.">'المضي قدماً' أو 'التوقف'<span class="smart-term-tooltip"></span></span> (Go/No Go).</p></template>
+    <template class="content-en"><p>The methodology consists of five main phases:</p><ol><li><strong>Phase I</strong> (Planning),</li><li><strong>Phase II</strong> (Requirements Gathering and Analysis),</li><li><strong>Phase III</strong> (Design),</li><li><strong>Phase IV</strong> (Implementation),</li><li><strong>and Phase V</strong> (Maintenance).</li></ol><p>During the early phases, preliminary analysis and <span class="smart-term" data-term-en="Feasibility Study" data-ar="دراسة الجدوى" data-en-def="An assessment of the practicality of a proposed system, covering economic, technical, operational, schedule, and legal aspects.">feasibility studies<span class="smart-term-tooltip"></span></span> (Economic, Technical, Operational, Schedule, Legal) are conducted to make <span class="smart-term" data-term-en="Go/No Go Decision" data-ar="قرار المضي قدماً أو التوقف" data-en-def="A critical checkpoint decision made after feasibility studies to determine if the project should continue.">'Go' or 'No Go' decisions<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>[DEEP_EXPANSION_NEEDED]</p></template>
+    <template class="content-en"><p>[DEEP_EXPANSION_NEEDED]</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Create a flowchart showing the Systems Development Methodology. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 800 500. Top box: 'Phase I - Planning'. Arrow down to 'Phase II - Requirements Gathering and Analysis'. Arrow down to 'Phase III - Design'. Arrow down to 'Phase IV - Implementation'. Arrow down to 'Phase V - Maintenance'. From Phase I and II, branch arrows to a side box labeled 'Conduct feasibility studies: -Economic -Technical -Operational -Schedule -Legal'. From the feasibility box, an arrow points to a decision box labeled 'Make Go and No Go decisions'. Include Arabic translations for all labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 680" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Dashed Arrowhead Marker -->
+    <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+    </marker>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="425" y="35" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Systems Development Methodology</text>
+  <text x="425" y="60" font-size="18" fill="var(--text-secondary)" text-anchor="middle">منهجية تطوير النظم</text>
+
+  <!-- ========================================== -->
+  <!-- MAIN PHASES (LEFT COLUMN)                  -->
+  <!-- ========================================== -->
+
+  <!-- Phase I -->
+  <rect x="70" y="100" width="300" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="220" y="129" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Phase I - Planning</text>
+  <text x="220" y="151" font-size="15" fill="var(--text-secondary)" text-anchor="middle">المرحلة الأولى - التخطيط</text>
+
+  <!-- Phase II -->
+  <rect x="70" y="220" width="300" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="220" y="249" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Phase II - Requirements &amp; Analysis</text>
+  <text x="220" y="271" font-size="15" fill="var(--text-secondary)" text-anchor="middle">المرحلة الثانية - جمع المتطلبات والتحليل</text>
+
+  <!-- Phase III -->
+  <rect x="70" y="340" width="300" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="220" y="369" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Phase III - Design</text>
+  <text x="220" y="391" font-size="15" fill="var(--text-secondary)" text-anchor="middle">المرحلة الثالثة - التصميم</text>
+
+  <!-- Phase IV -->
+  <rect x="70" y="460" width="300" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="220" y="489" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Phase IV - Implementation</text>
+  <text x="220" y="511" font-size="15" fill="var(--text-secondary)" text-anchor="middle">المرحلة الرابعة - التنفيذ</text>
+
+  <!-- Phase V -->
+  <rect x="70" y="580" width="300" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="220" y="609" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Phase V - Maintenance</text>
+  <text x="220" y="631" font-size="15" fill="var(--text-secondary)" text-anchor="middle">المرحلة الخامسة - الصيانة</text>
+
+  <!-- ========================================== -->
+  <!-- SIDE BOXES (RIGHT COLUMN)                  -->
+  <!-- ========================================== -->
+
+  <!-- Feasibility Box -->
+  <rect x="500" y="100" width="280" height="180" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6 6" filter="url(#shadow)" />
+  <text x="640" y="125" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Conduct Feasibility Studies</text>
+  <text x="640" y="145" font-size="15" fill="var(--text-secondary)" text-anchor="middle">إجراء دراسات الجدوى</text>
+  
+  <line x1="520" y1="155" x2="760" y2="155" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4 4" />
+  
+  <text x="640" y="175" font-size="14" fill="var(--text-primary)" text-anchor="middle">• Economic | اقتصادية •</text>
+  <text x="640" y="195" font-size="14" fill="var(--text-primary)" text-anchor="middle">• Technical | فنية •</text>
+  <text x="640" y="215" font-size="14" fill="var(--text-primary)" text-anchor="middle">• Operational | تشغيلية •</text>
+  <text x="640" y="235" font-size="14" fill="var(--text-primary)" text-anchor="middle">• Schedule | جدول زمني •</text>
+  <text x="640" y="255" font-size="14" fill="var(--text-primary)" text-anchor="middle">• Legal | قانونية •</text>
+
+  <!-- Decision Box (Diamond) -->
+  <polygon points="640,310 780,375 640,440 500,375" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)" />
+  <text x="640" y="360" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Make Go / No Go</text>
+  <text x="640" y="380" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Decisions</text>
+  <text x="640" y="405" font-size="14" fill="var(--text-secondary)" text-anchor="middle">اتخاذ قرارات المضي أو التوقف</text>
+
+  <!-- ========================================== -->
+  <!-- CONNECTING ARROWS                          -->
+  <!-- ========================================== -->
+
+  <!-- Main Flow Arrows -->
+  <path d="M 220 170 L 220 210" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <path d="M 220 290 L 220 330" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <path d="M 220 410 L 220 450" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <path d="M 220 530 L 220 570" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+  <!-- Branching to Feasibility -->
+  <circle cx="370" cy="135" r="4" fill="var(--brand-500)" />
+  <path d="M 370 135 L 485 135" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <circle cx="370" cy="255" r="4" fill="var(--brand-500)" />
+  <path d="M 370 255 L 485 255" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+  <!-- Feasibility to Decision -->
+  <path d="M 640 280 L 640 300" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+  <!-- Decision to Phase III (Go) -->
+  <path d="M 500 375 L 385 375" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#arrow-dashed)" />
+  
+  <!-- Go Label -->
+  <rect x="405" y="355" width="80" height="40" fill="var(--bg-surface)" rx="4" />
+  <text x="445" y="370" font-size="13" fill="var(--brand-500)" text-anchor="middle" font-weight="bold">Go</text>
+  <text x="445" y="388" font-size="13" fill="var(--brand-500)" text-anchor="middle" font-weight="bold">استمرار</text>
+
+  <!-- Decision to No Go (Exit) -->
+  <path d="M 780 375 L 825 375" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#arrow-dashed)" />
+  
+  <!-- No Go Label -->
+  <text x="810" y="355" font-size="13" fill="var(--text-muted)" text-anchor="middle" font-weight="bold">No Go</text>
+  <text x="810" y="395" font-size="13" fill="var(--text-muted)" text-anchor="middle" font-weight="bold">توقف</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يتم إجراء دراسات الجدوى قبل الوصول إلى مرحلة التصميم (المرحلة الثالثة)؟</template>
+      <template class="content-en">Why are feasibility studies conducted before reaching the Design phase (Phase III)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لتجنب إهدار الموارد والوقت في تصميم وبناء نظام قد يكون غير مجدٍ اقتصادياً أو فنياً أو قانونياً.</p></template>
+      <template class="content-en"><p>To avoid wasting resources and time designing and building a system that might be economically, technically, or legally unviable.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="hosting-and-security-decisions" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> قرارات الاستضافة والأمان</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Hosting and Security Decisions</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تحديد مكان تخزين البيانات فعلياً وكيفية حمايتها من التهديدات.</p>
+    </template>
+    <template class="content-en">
+      <p>Determining where data is physically stored and how it is protected from threats.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>كجزء من المتطلبات المادية، يجب اتخاذ قرارات بنية تحتية هامة. يتضمن ذلك الاختيار بين <span class="smart-term" data-term-en="In-house Storage" data-ar="التخزين الداخلي" data-en-def="Storing data on physical servers located within the organization's own facilities.">تخزين البيانات داخلياً<span class="smart-term-tooltip"></span></span> (في مقر العمل) أو استخدام خدمة <span class="smart-term" data-term-en="Cloud Host Service" data-ar="خدمة الاستضافة السحابية" data-en-def="An off-site service that provides storage and computing resources over the internet.">استضافة سحابية<span class="smart-term-tooltip"></span></span>.</p><p>إذا تم اختيار التخزين الداخلي، يجب تحديد ما إذا كان هناك خادم متاح في الموقع. بغض النظر عن موقع التخزين، يجب وضع استراتيجيات واضحة حول كيفية حماية البيانات.</p></template>
+    <template class="content-en"><p>As part of physical requirements, important infrastructure decisions must be made. This includes choosing whether to <span class="smart-term" data-term-en="In-house Storage" data-ar="التخزين الداخلي" data-en-def="Storing data on physical servers located within the organization's own facilities.">store data in-house<span class="smart-term-tooltip"></span></span> or use a <span class="smart-term" data-term-en="Cloud Host Service" data-ar="خدمة الاستضافة السحابية" data-en-def="An off-site service that provides storage and computing resources over the internet.">cloud host service<span class="smart-term-tooltip"></span></span>.</p><p>If storing in-house, it must be determined if there is a server on-site. Regardless of the storage location, clear strategies must be established on how to protect the data.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>[DEEP_EXPANSION_NEEDED]</p></template>
+    <template class="content-en"><p>[DEEP_EXPANSION_NEEDED]</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>In-house Storage</th><th>Cloud Host Service</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">موقع الخادم</template>
+          <template class="content-en">Server Location</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">في الموقع (On-site)</template>
+          <template class="content-en">On-site</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">خارج الموقع (Off-site)</template>
+          <template class="content-en">Off-site</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يؤثر قرار استخدام الاستضافة السحابية على متطلبات الأمان مقارنة بالخوادم الداخلية؟</template>
+      <template class="content-en">How does the decision to use cloud hosting affect security requirements compared to on-site servers?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>[EXAMPLE_NEEDED]</p></template>
+      <template class="content-en"><p>[EXAMPLE_NEEDED]</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم جميعاً في الوحدة الحادية عشرة من مشروع التخرج. بينما نتعمق في تصميم الأنظمة، وتحديداً المتطلبات المادية، أريدكم أن تركزوا بشدة على كيفية انتقالنا من الأفكار والنماذج المنطقية المجردة إلى الحقائق الملموسة والتطبيق العملي. في الامتحان القادم، لن تُسألوا فقط عن ماهية التصميم المادي بشكل سطحي؛ بل ستحتاجون إلى معرفة القرارات المحددة والدقيقة التي يتضمنها هذا التصميم. على سبيل المثال، يجب أن تفهموا مبررات اختيار تنسيقات التخزين لكل سمة، وكيفية تجميع السمات في سجلات مادية، وأهمية اختيار الذاكرة الثانوية المناسبة مثل الأقراص الصلبة أو الأشرطة المغناطيسية لضمان الوصول السريع وتحديث البيانات بكفاءة. تذكروا دائماً المراحل الخمس الأساسية لمنهجية تطوير الأنظمة: التخطيط، جمع المتطلبات وتحليلها، التصميم، التنفيذ، والصيانة. أولوا اهتماماً خاصاً لدراسات الجدوى بأنواعها — الاقتصادية، والفنية، والتشغيلية، والجدول الزمني، والقانونية — لأنها تمثل نقاط التفتيش الحاسمة لاتخاذ قرارات 'المضي قدماً أو التوقف'. أخيراً، لا تتجاهلوا خيارات البنية التحتية الحديثة التي نواجهها اليوم. يجب أن تكونوا قادرين على الموازنة بين التخزين الداخلي في مقر العمل مقابل الاستضافة السحابية، وفهم الأهمية القصوى لحماية البيانات وتأمينها. حافظوا على وضوح هذه المفاهيم الأساسية في أذهانكم، وستحققون نتائج ممتازة. ركزوا دائماً على 'السبب' وراء كل خيار من خيارات التصميم المادي!</template>
+    <template class="content-en">Welcome to Module 11, everyone. As we dive into Systems Design, specifically Physical Requirements, I want you to focus on how we transition from abstract ideas to concrete realities. In the exam, you won't just be asked what physical design is; you'll need to know the specific decisions involved, such as choosing storage formats, grouping attributes into physical records, and selecting secondary memory like hard disks or magnetic tapes for rapid access. Remember the five phases of our methodology: Planning, Requirements, Design, Implementation, and Maintenance. Pay special attention to the feasibility studies—Economic, Technical, Operational, Schedule, and Legal—as these are crucial for the 'Go/No Go' decisions. Finally, don't overlook the modern infrastructure choices. You must be able to weigh in-house storage against cloud hosting and understand the critical importance of data protection. Keep these core concepts clear, and you'll do great. Focus on the 'why' behind each physical design choice!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التحول الرئيسي الذي يحدث في مرحلة التصميم المادي؟</template>
+          <template class="content-en">What is the main transition happening in the physical design phase?</template>
+          <span class="content-target">ما هو التحول الرئيسي الذي يحدث في مرحلة التصميم المادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الانتقال من نموذج قاعدة البيانات المنطقي إلى تنسيقات التخزين والسجلات المادية الفعلية.</template>
+          <template class="content-en">Moving from a logical database model to actual physical storage formats and records.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نقوم بتجميع السمات في التصميم المادي؟</template>
+          <template class="content-en">Why do we group attributes in physical design?</template>
+          <span class="content-target">لماذا نقوم بتجميع السمات في التصميم المادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لتكوين سجلات مادية يمكن تخزينها والوصول إليها بكفاءة.</template>
+          <template class="content-en">To form physical records that can be efficiently stored and accessed.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو دور الذاكرة الثانوية في تصميم الأنظمة؟</template>
+          <template class="content-en">What role does secondary memory play in systems design?</template>
+          <span class="content-target">ما هو دور الذاكرة الثانوية في تصميم الأنظمة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">توفر الوسط المادي (مثل الأقراص الصلبة) لتخزين واسترجاع وتحديث السجلات المرتبطة بسرعة.</template>
+          <template class="content-en">It provides the physical medium (like hard disks) to store, retrieve, and update related records rapidly.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المراحل الخمس لمنهجية تطوير الأنظمة المذكورة؟</template>
+          <template class="content-en">What are the five phases of the SDLC mentioned?</template>
+          <span class="content-target">ما هي المراحل الخمس لمنهجية تطوير الأنظمة المذكورة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التخطيط، جمع المتطلبات وتحليلها، التصميم، التنفيذ، والصيانة.</template>
+          <template class="content-en">Planning, Requirements Gathering and Analysis, Design, Implementation, and Maintenance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي أنواع دراسات الجدوى التي يتم إجراؤها؟</template>
+          <template class="content-en">What types of feasibility studies are conducted?</template>
+          <span class="content-target">ما هي أنواع دراسات الجدوى التي يتم إجراؤها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الاقتصادية، الفنية، التشغيلية، الجدول الزمني، والقانونية.</template>
+          <template class="content-en">Economic, Technical, Operational, Schedule, and Legal.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الغرض الأساسي من دراسة الجدوى؟</template>
+          <template class="content-en">What is the primary purpose of a feasibility study?</template>
+          <span class="content-target">ما هو الغرض الأساسي من دراسة الجدوى؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">اتخاذ قرارات مدروسة بـ 'المضي قدماً' أو 'التوقف' للمشروع.</template>
+          <template class="content-en">To make informed 'Go' or 'No Go' decisions for the project.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هما الخياران الرئيسيان لاستضافة البيانات اللذان تمت مناقشتهما؟</template>
+          <template class="content-en">What are the two main data hosting options discussed?</template>
+          <span class="content-target">ما هما الخياران الرئيسيان لاستضافة البيانات اللذان تمت مناقشتهما؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تخزين البيانات داخلياً (في مقر العمل) مقابل استخدام خدمة استضافة سحابية.</template>
+          <template class="content-en">Storing data in-house versus using a cloud host service.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو سؤال البنية التحتية الذي يجب الإجابة عليه إذا لم تستخدم السحابة؟</template>
+          <template class="content-en">What infrastructure question must be answered if not using the cloud?</template>
+          <span class="content-target">ما هو سؤال البنية التحتية الذي يجب الإجابة عليه إذا لم تستخدم السحابة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">ما إذا كان لديك خادم متاح في الموقع.</template>
+          <template class="content-en">Whether you have a server on-site.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المرحلة النهائية في المنهجية؟</template>
+          <template class="content-en">What is the final phase of the methodology?</template>
+          <span class="content-target">ما هي المرحلة النهائية في المنهجية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المرحلة الخامسة - الصيانة.</template>
+          <template class="content-en">Phase V - Maintenance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الذي يجب مراعاته دائماً بعد تحديد مكان تخزين البيانات؟</template>
+          <template class="content-en">What must always be considered after deciding where to store data?</template>
+          <span class="content-target">ما الذي يجب مراعاته دائماً بعد تحديد مكان تخزين البيانات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">كيفية حماية وتأمين هذه البيانات.</template>
+          <template class="content-en">How you will protect and secure that data.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الهدف الرئيسي من ترتيب السجلات في الذاكرة الثانوية؟",
+      "en": "What is the main goal of arranging records in secondary memory?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تخزين السجلات واسترجاعها وتحديثها بسرعة.",
+        "en": "So that records can be stored, retrieved, and updated rapidly."
+      },
+      "example": {
+        "ar": "استخدام الأقراص الصلبة للوصول السريع.",
+        "en": "Using hard disks for rapid access."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "اذكر مثالين على الذاكرة الثانوية المذكورة في التصميم المادي.",
+      "en": "Name two examples of secondary memory mentioned in physical design."
+    },
+    "back": {
+      "definition": {
+        "ar": "الأقراص الصلبة والأشرطة المغناطيسية.",
+        "en": "Hard disks and magnetic tapes."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ماذا يتطلب التصميم المادي فيما يتعلق بسمات قاعدة البيانات؟",
+      "en": "What does physical design require regarding database attributes?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اختيار تنسيق التخزين لكل سمة وتجميعها في سجلات مادية.",
+        "en": "Choosing the storage format for each attribute and grouping them into physical records."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي المرحلة الأولى (Phase I) في منهجية تطوير الأنظمة؟",
+      "en": "What is Phase I in the systems development methodology?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التخطيط (Planning).",
+        "en": "Planning."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي المرحلة الثانية (Phase II) في منهجية تطوير الأنظمة؟",
+      "en": "What is Phase II in the systems development methodology?"
+    },
+    "back": {
+      "definition": {
+        "ar": "جمع المتطلبات وتحليلها.",
+        "en": "Requirements Gathering and Analysis."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي المرحلة الثالثة (Phase III) في منهجية تطوير الأنظمة؟",
+      "en": "What is Phase III in the systems development methodology?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التصميم (Design).",
+        "en": "Design."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي المرحلة الرابعة (Phase IV) في منهجية تطوير الأنظمة؟",
+      "en": "What is Phase IV in the systems development methodology?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التنفيذ (Implementation).",
+        "en": "Implementation."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي المرحلة الخامسة (Phase V) في منهجية تطوير الأنظمة؟",
+      "en": "What is Phase V in the systems development methodology?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الصيانة (Maintenance).",
+        "en": "Maintenance."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي أنواع دراسات الجدوى الخمسة المذكورة؟",
+      "en": "What are the five types of feasibility studies mentioned?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الاقتصادية، الفنية، التشغيلية، الجدول الزمني، والقانونية.",
+        "en": "Economic, Technical, Operational, Schedule, and Legal."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو القرار الذي يتم اتخاذه بناءً على دراسات الجدوى؟",
+      "en": "What decision is made based on feasibility studies?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قرارات المضي قدماً أو التوقف (Go / No Go).",
+        "en": "Make 'Go' and 'No Go' decisions."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هما الخياران الرئيسيان لاستضافة البيانات؟",
+      "en": "What are the two main options for hosting data?"
+    },
+    "back": {
+      "definition": {
+        "ar": "التخزين الداخلي (في مقر العمل) أو استخدام خدمة استضافة سحابية.",
+        "en": "Storing data in-house or using a cloud host service."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو السؤال المتعلق بالبنية التحتية إذا اخترت التخزين الداخلي؟",
+      "en": "What infrastructure question arises if you choose in-house storage?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هل لديك خادم في الموقع (on-site)؟",
+        "en": "Do you have a server on-site?"
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو الاعتبار الأمني الحاسم المذكور في المتطلبات المادية؟",
+      "en": "What is the critical security consideration mentioned in physical requirements?"
+    },
+    "back": {
+      "definition": {
+        "ar": "كيف ستقوم بحماية بياناتك.",
+        "en": "How will you protect your data."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "لماذا يتم اختيار وسائط وهياكل معينة لتخزين البيانات؟",
+      "en": "Why are specific media and structures selected for storing data?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لجعل الوصول إلى البيانات أكثر كفاءة.",
+        "en": "To make access more efficient."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "من أين تأتي السمات التي يتم تجميعها في سجلات مادية؟",
+      "en": "Where do the attributes grouped into physical records come from?"
+    },
+    "back": {
+      "definition": {
+        "ar": "من نموذج قاعدة البيانات المنطقي.",
+        "en": "From the logical database model."
+      },
+      "example": {
+        "ar": null,
+        "en": null
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي مما يلي يعد من القرارات الرئيسية في التصميم المادي؟",
+      "en": "Which of the following is a key decision in physical design?"
+    },
+    "options": {
+      "ar": [
+        "اختيار تنسيق التخزين لكل سمة",
+        "تحديد متطلبات المستخدم",
+        "كتابة الكود المصدري",
+        "تصميم واجهة المستخدم"
+      ],
+      "en": [
+        "Choosing storage format for each attribute",
+        "Defining user requirements",
+        "Writing source code",
+        "Designing the user interface"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "التصميم المادي يتضمن تحويل النموذج المنطقي إلى هياكل تخزين فعلية، مثل اختيار تنسيقات التخزين.",
+      "en": "Physical design involves translating the logical model into actual storage structures, such as choosing storage formats."
+    },
+    "hint": {
+      "ar": "فكر في كيفية تخزين البيانات فعلياً.",
+      "en": "Think about how data is actually stored."
+    },
+    "difficulty": "easy",
+    "conceptId": "physical-data-design"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أين يتم ترتيب السجلات المرتبطة لضمان التخزين والاسترجاع السريع؟",
+      "en": "Where are related records arranged to ensure rapid storage and retrieval?"
+    },
+    "options": {
+      "ar": [
+        "في الذاكرة الرئيسية (RAM)",
+        "في الذاكرة الثانوية (مثل الأقراص الصلبة)",
+        "في وحدة المعالجة المركزية",
+        "في النموذج المنطقي"
+      ],
+      "en": [
+        "In main memory (RAM)",
+        "In secondary memory (like hard disks)",
+        "In the CPU",
+        "In the logical model"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم ترتيب السجلات في الذاكرة الثانوية مثل الأقراص الصلبة والأشرطة المغناطيسية للوصول السريع.",
+      "en": "Records are arranged in secondary memory like hard disks and magnetic tapes for rapid access."
+    },
+    "hint": {
+      "ar": "يشمل ذلك الأقراص الصلبة والأشرطة المغناطيسية.",
+      "en": "This includes hard disks and magnetic tapes."
+    },
+    "difficulty": "medium",
+    "conceptId": "physical-data-design"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي المرحلة الثالثة (Phase III) في منهجية تطوير الأنظمة؟",
+      "en": "What is Phase III in the systems development methodology?"
+    },
+    "options": {
+      "ar": [
+        "التخطيط",
+        "التنفيذ",
+        "التصميم",
+        "الصيانة"
+      ],
+      "en": [
+        "Planning",
+        "Implementation",
+        "Design",
+        "Maintenance"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المرحلة الثالثة هي التصميم، وتأتي بعد التخطيط وجمع المتطلبات.",
+      "en": "Phase III is Design, following Planning and Requirements Gathering."
+    },
+    "hint": {
+      "ar": "تأتي بعد جمع المتطلبات وقبل التنفيذ.",
+      "en": "It comes after requirements gathering and before implementation."
+    },
+    "difficulty": "easy",
+    "conceptId": "systems-development-methodology"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من دراسات الجدوى التالية لم تُذكر في المنهجية؟",
+      "en": "Which of the following feasibility studies was NOT mentioned in the methodology?"
+    },
+    "options": {
+      "ar": [
+        "الاقتصادية",
+        "السياسية",
+        "القانونية",
+        "الفنية"
+      ],
+      "en": [
+        "Economic",
+        "Political",
+        "Legal",
+        "Technical"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "دراسات الجدوى المذكورة هي: الاقتصادية، الفنية، التشغيلية، الجدول الزمني، والقانونية.",
+      "en": "The mentioned feasibility studies are: Economic, Technical, Operational, Schedule, and Legal."
+    },
+    "hint": {
+      "ar": "تتعلق بالسياسة.",
+      "en": "It relates to politics."
+    },
+    "difficulty": "medium",
+    "conceptId": "systems-development-methodology"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الغرض من إجراء دراسات الجدوى؟",
+      "en": "What is the purpose of conducting feasibility studies?"
+    },
+    "options": {
+      "ar": [
+        "كتابة الكود النهائي",
+        "اتخاذ قرارات 'المضي قدماً' أو 'التوقف'",
+        "تصميم قاعدة البيانات المادية",
+        "صيانة النظام"
+      ],
+      "en": [
+        "Writing the final code",
+        "Making 'Go' and 'No Go' decisions",
+        "Designing the physical database",
+        "Maintaining the system"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُستخدم دراسات الجدوى لتقييم ما إذا كان يجب المضي قدماً في المشروع أم إيقافه.",
+      "en": "Feasibility studies are used to evaluate whether to proceed with the project or stop it."
+    },
+    "hint": {
+      "ar": "قرار حاسم قبل بدء العمل الفعلي.",
+      "en": "A critical decision before actual work begins."
+    },
+    "difficulty": "easy",
+    "conceptId": "systems-development-methodology"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو أحد القرارات الهامة المتعلقة بالاستضافة المذكورة في المتطلبات المادية؟",
+      "en": "What is one of the important hosting decisions mentioned in physical requirements?"
+    },
+    "options": {
+      "ar": [
+        "اختيار لغة البرمجة",
+        "التخزين الداخلي مقابل الاستضافة السحابية",
+        "تحديد ألوان واجهة المستخدم",
+        "اختيار خوارزمية التشفير"
+      ],
+      "en": [
+        "Choosing a programming language",
+        "In-house storage vs. cloud host service",
+        "Selecting UI colors",
+        "Choosing an encryption algorithm"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "من أهم قرارات البنية التحتية تحديد ما إذا كانت البيانات ستُخزن داخلياً أو على السحابة.",
+      "en": "One of the most important infrastructure decisions is determining whether data will be stored in-house or on the cloud."
+    },
+    "hint": {
+      "ar": "يتعلق بمكان تواجد الخوادم.",
+      "en": "It relates to where the servers are located."
+    },
+    "difficulty": "easy",
+    "conceptId": "hosting-and-security-decisions"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هي المرحلة الأخيرة (Phase V) في دورة حياة تطوير الأنظمة؟",
+      "en": "What is the final phase (Phase V) in the systems development life cycle?"
+    },
+    "options": {
+      "ar": [
+        "التنفيذ",
+        "التصميم",
+        "الصيانة",
+        "التخطيط"
+      ],
+      "en": [
+        "Implementation",
+        "Design",
+        "Maintenance",
+        "Planning"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المرحلة الخامسة والأخيرة هي الصيانة.",
+      "en": "The fifth and final phase is Maintenance."
+    },
+    "hint": {
+      "ar": "تحدث بعد تشغيل النظام.",
+      "en": "Occurs after the system is deployed."
+    },
+    "difficulty": "easy",
+    "conceptId": "systems-development-methodology"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "لماذا يتم اختيار وسائط وهياكل معينة لتخزين البيانات في التصميم المادي؟",
+      "en": "Why are specific media and structures selected for storing data in physical design?"
+    },
+    "options": {
+      "ar": [
+        "لجعل الوصول أكثر كفاءة",
+        "لزيادة تعقيد النظام",
+        "لتقليل حجم الكود المصدري",
+        "لإرضاء المستخدمين النهائيين فقط"
+      ],
+      "en": [
+        "To make access more efficient",
+        "To increase system complexity",
+        "To reduce source code size",
+        "To satisfy end-users only"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الهدف الأساسي من اختيار وسائط التخزين المناسبة هو تحسين كفاءة وسرعة الوصول للبيانات.",
+      "en": "The primary goal of selecting appropriate storage media is to improve the efficiency and speed of data access."
+    },
+    "hint": {
+      "ar": "يتعلق بالسرعة والأداء.",
+      "en": "It relates to speed and performance."
+    },
+    "difficulty": "medium",
+    "conceptId": "physical-data-design"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "إذا قررت عدم استخدام الاستضافة السحابية، فما هو السؤال الذي يجب أن تطرحه؟",
+      "en": "If you decide not to use cloud hosting, what question must you ask?"
+    },
+    "options": {
+      "ar": [
+        "هل لدينا خادم في الموقع؟",
+        "ما هي لغة البرمجة الأفضل؟",
+        "كيف نصمم الشعار؟",
+        "من هو مدير المشروع؟"
+      ],
+      "en": [
+        "Do we have a server on-site?",
+        "What is the best programming language?",
+        "How do we design the logo?",
+        "Who is the project manager?"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "التخزين الداخلي يتطلب وجود بنية تحتية مادية مثل الخوادم في موقع العمل.",
+      "en": "In-house storage requires physical infrastructure like servers on-site."
+    },
+    "hint": {
+      "ar": "يتعلق بالأجهزة المادية.",
+      "en": "It relates to physical hardware."
+    },
+    "difficulty": "easy",
+    "conceptId": "hosting-and-security-decisions"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هو الاعتبار الذي يجب التفكير فيه دائماً بغض النظر عن مكان تخزين البيانات؟",
+      "en": "What consideration must always be thought of regardless of where data is stored?"
+    },
+    "options": {
+      "ar": [
+        "حماية البيانات",
+        "لون واجهة المستخدم",
+        "اسم النطاق",
+        "عدد المبرمجين"
+      ],
+      "en": [
+        "Data protection",
+        "User interface color",
+        "Domain name",
+        "Number of programmers"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "حماية البيانات هي متطلب أساسي سواء كانت البيانات مخزنة داخلياً أو سحابياً.",
+      "en": "Data protection is a fundamental requirement whether data is stored in-house or on the cloud."
+    },
+    "hint": {
+      "ar": "يتعلق بالأمان.",
+      "en": "It relates to security."
+    },
+    "difficulty": "medium",
+    "conceptId": "hosting-and-security-decisions"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين التصميم المنطقي والتصميم المادي. تذكر أن التصميم المادي يتعامل مع وسائط التخزين الفعلية (مثل الأقراص الصلبة) وتنسيقات التخزين، بينما التصميم المنطقي يتعامل مع العلاقات والسمات بشكل مجرد.</template>
+      <template class="content-en">Confusing logical design with physical design. Remember that physical design deals with actual storage media (like hard disks) and storage formats, while logical design deals with relationships and attributes abstractly.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الهدف النهائي من ترتيب السجلات واختيار الوسائط في التصميم المادي هو ضمان الاسترجاع السريع والوصول الفعال للبيانات.</template>
+      <template class="content-en">The ultimate goal of arranging records and selecting media in physical design is to ensure rapid retrieval and efficient data access.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">دراسات الجدوى (الاقتصادية، الفنية، التشغيلية، الجدول الزمني، القانونية) ليست مجرد إجراء شكلي، بل هي نقاط تفتيش حاسمة تؤدي إلى قرارات 'المضي قدماً أو التوقف' قبل استثمار موارد ضخمة في التصميم والتنفيذ.</template>
+      <template class="content-en">Feasibility studies (Economic, Technical, Operational, Schedule, Legal) are not just formalities; they are critical checkpoints leading to 'Go/No Go' decisions before investing heavy resources in design and implementation.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">حماية البيانات هي متطلب مادي أساسي يجب التخطيط له جنباً إلى جنب مع قرارات الاستضافة (داخلياً مقابل السحابة).</template>
+      <template class="content-en">Data protection is a fundamental physical requirement that must be planned alongside hosting decisions (in-house vs. cloud).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M10.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M12.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

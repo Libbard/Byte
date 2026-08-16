@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS243" data-module="13">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نمذجة الحوسبة 2: التعرف على اللغات وآلات تورنغ · CS243 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS243" data-page-title-en="CS243">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M12.html" data-gh-next="index.html" data-gh-card="../../hub/course.html?code=CS243"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#language-recognition-regular-sets" class="toc-link" data-bilingual>
+        <template class="content-ar">التعرف على اللغات والمجموعات المنتظمة</template>
+        <template class="content-en">Language Recognition and Regular Sets</template>
+        <span class="content-target">التعرف على اللغات والمجموعات المنتظمة</span>
+      </a>
+      <a href="#kleenes-theorem" class="toc-link" data-bilingual>
+        <template class="content-ar">مبرهنة كلين</template>
+        <template class="content-en">Kleene's Theorem</template>
+        <span class="content-target">مبرهنة كلين</span>
+      </a>
+      <a href="#turing-machines-intro" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة في آلات تورنغ</template>
+        <template class="content-en">Turing Machines - Introduction</template>
+        <span class="content-target">مقدمة في آلات تورنغ</span>
+      </a>
+      <a href="#turing-machine-definition" class="toc-link" data-bilingual>
+        <template class="content-ar">التعريف الرسمي لآلة تورنغ</template>
+        <template class="content-en">Definition of Turing Machines</template>
+        <span class="content-target">التعريف الرسمي لآلة تورنغ</span>
+      </a>
+      <a href="#recognizing-sets-turing-machines" class="toc-link" data-bilingual>
+        <template class="content-ar">استخدام آلات تورنغ للتعرف على المجموعات</template>
+        <template class="content-en">Using Turing Machines to Recognize Sets</template>
+        <span class="content-target">استخدام آلات تورنغ للتعرف على المجموعات</span>
+      </a>
+      <a href="#decidability-halting-problem" class="toc-link" data-bilingual>
+        <template class="content-ar">القابلية للحسم ومشكلة التوقف</template>
+        <template class="content-en">Decidability and The Halting Problem</template>
+        <span class="content-target">القابلية للحسم ومشكلة التوقف</span>
+      </a>
+      <a href="#computational-complexity-p-np" class="toc-link" data-bilingual>
+        <template class="content-ar">التعقيد الحسابي: فئات P و NP</template>
+        <template class="content-en">Computational Complexity: P and NP</template>
+        <span class="content-target">التعقيد الحسابي: فئات P و NP</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 13</template>
+      <template class="content-en">Module 13</template>
+      <span class="content-target">الوحدة 13</span>
+    </span> · CS243
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">نمذجة الحوسبة 2: التعرف على اللغات وآلات تورنغ</h1>
+      <p class="hero-description">يغطي هذا الفصل التعبيرات المنتظمة، مبرهنة كلين، ومقدمة شاملة لآلات تورنغ بما في ذلك مشكلة التوقف وفئات التعقيد P و NP.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Modeling Computation II: Language Recognition & Turing Machines</h1>
+      <p class="hero-description">This chapter covers regular expressions, Kleene's Theorem, and a comprehensive introduction to Turing Machines including the Halting Problem and P vs NP complexity classes.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">الرياضيات المتقطعة</span>
+      <span class="tag">آلات تورنغ</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Discrete Mathematics</span>
+      <span class="tag">Turing Machines</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تطبيق نماذج التعرف على اللغات باستخدام الرياضيات المتقطعة.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم واستيعاب علاقة آلة تورنغ بعلوم الحاسب.</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين المشاكل القابلة للحسم والمشاكل غير القابلة للحسم (مثل مشكلة التوقف).</span></li>
+      <li><span class="obj-icon">✦</span><span>تصنيف المشاكل الحسابية إلى فئات P و NP.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Apply the models of language recognition using discrete mathematics.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn and understand relation of Turing Machine with Computer Science.</span></li>
+      <li><span class="obj-icon">✦</span><span>Distinguish between decidable and undecidable problems (e.g., the Halting Problem).</span></li>
+      <li><span class="obj-icon">✦</span><span>Classify computational problems into P and NP classes.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="language-recognition-regular-sets" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> التعرف على اللغات والمجموعات المنتظمة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Language Recognition and Regular Sets</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المجموعات المنتظمة هي اللغات التي يمكن التعرف عليها بواسطة آلات الحالة المنتهية، وتُبنى باستخدام الاتحاد، التسلسل، و<span class="smart-term" data-term-en="Kleene Closure" data-ar="إغلاق كلين" data-en-def="An operation denoted by * that represents zero or more concatenations of a set.">إغلاق كلين<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>Regular sets are languages recognized by finite-state automata, built using union, concatenation, and <span class="smart-term" data-term-en="Kleene Closure" data-ar="إغلاق كلين" data-en-def="An operation denoted by * that represents zero or more concatenations of a set.">Kleene closure<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن استخدام آلات الحالة المنتهية (FSA) للتعرف على اللغات. المجموعة التي يمكن التعرف عليها بواسطة FSA تسمى <b>مجموعة منتظمة (Regular Set)</b>. يتم بناء هذه المجموعات من المجموعة الخالية، السلسلة الفارغة، والسلاسل الأحادية باستخدام عمليات:</p><ul><li><strong>التسلسل (Concatenation)</strong>،</li><li><strong>الاتحاد (Union)</strong>، و</li><li><strong>إغلاق كلين (Kleene closure)</strong> بأي ترتيب.</li></ul><p>يتم تمثيل هذه المجموعات باستخدام <b>التعبيرات المنتظمة (Regular Expressions)</b>.</p></template>
+    <template class="content-en"><p>Finite-state automata (FSA) can be used as language recognizers. A set recognized by an FSA is called a <b>regular set</b>.</p><p>These sets are built up from the null set, the empty string, and singleton strings by taking concatenations, unions, and <span class="smart-term" data-term-en="Kleene Closure" data-ar="إغلاق كلين" data-en-def="An operation denoted by * that represents zero or more concatenations of a set.">Kleene closures<span class="smart-term-tooltip"></span></span> in arbitrary order. They are represented using <b>regular expressions</b>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التعبيرات المنتظمة توفر طريقة جبرية لوصف اللغات. على سبيل المثال، التعبير (0 U 1)* يمثل جميع السلاسل الثنائية الممكنة.</p><p>القيود على المجموعات المنتظمة تكمن في عدم قدرتها على تذكر عدد غير محدود من الحالات (مثل لغة a^n b^n)، مما يستدعي الحاجة لنماذج حوسبة أقوى مثل آلات تورنغ.</p></template>
+    <template class="content-en"><p>Regular expressions provide an algebraic way to describe languages. For example, (0 U 1)* represents all possible bit strings.</p><p>The limitation of regular sets is their inability to 'count' or remember an unbounded number of states (e.g., the language a^n b^n), which necessitates more powerful computational models like Turing Machines.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكنك كتابة تعبير منتظم لسلسلة ثنائية تحتوي على عدد زوجي من الأصفار؟</template>
+      <template class="content-en">How would you write a regular expression for a bit string containing an even number of 0s?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يمكن التعبير عنها بـ (1* 0 1* 0 1*)* أو ما يعادلها، حيث يتم تجميع الأصفار في أزواج.</p></template>
+      <template class="content-en"><p>It can be expressed as (1* 0 1* 0 1*)* or equivalent, grouping the 0s in pairs.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="kleenes-theorem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> مبرهنة كلين</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Kleene's Theorem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تنص مبرهنة كلين على أن المجموعة تكون منتظمة إذا وفقط إذا كان يمكن التعرف عليها بواسطة <span class="smart-term" data-term-en="Finite-State Automaton" data-ar="آلة الحالة المنتهية" data-en-def="A mathematical model of computation with a finite number of states.">آلة حالة منتهية<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>Kleene's Theorem states that a set is regular if and only if it is recognized by a <span class="smart-term" data-term-en="Finite-State Automaton" data-ar="آلة الحالة المنتهية" data-en-def="A mathematical model of computation with a finite number of states.">finite-state automaton<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتبر <b>مبرهنة كلين</b> من أهم النتائج المركزية في نظرية الآلات (Automata Theory). تنص على وجود تكافؤ تام بين التعبيرات المنتظمة و<span class="smart-term" data-term-en="Finite-State Automaton" data-ar="آلة الحالة المنتهية" data-en-def="A mathematical model of computation with a finite number of states.">آلات الحالة المنتهية<span class="smart-term-tooltip"></span></span> (FSA).</p><p>أي لغة يمكن وصفها بتعبير منتظم يمكن بناء آلة حالة منتهية للتعرف عليها، والعكس صحيح. يتم بناء الآلة تدريجياً باستخدام آلات فرعية للعمليات الأساسية (الاتحاد، التسلسل، نجمة كلين).</p></template>
+    <template class="content-en"><p><b>Kleene's Theorem</b> is a central result in automata theory. It states a perfect equivalence: A set is regular if and only if it is recognized by a <span class="smart-term" data-term-en="Finite-State Automaton" data-ar="آلة الحالة المنتهية" data-en-def="A mathematical model of computation with a finite number of states.">finite-state automaton<span class="smart-term-tooltip"></span></span>.</p><p>Any language described by a regular expression can be parsed by an FSA, and vice versa. The proof involves constructing complex FSAs from simpler ones using operations like union, concatenation, and Kleene star.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>أهمية هذه المبرهنة تكمن في تصميم المترجمات (Compilers)، حيث يتم استخدام التعبيرات المنتظمة لوصف الرموز (Tokens)، ويقوم المترجم بتحويلها تلقائياً إلى آلات حالة منتهية حتمية (DFA) للتعرف على هذه الرموز بكفاءة عالية.</p></template>
+    <template class="content-en"><p>The significance of this theorem lies in compiler design (lexical analysis). Regular expressions are used to define tokens, which are then automatically compiled into Deterministic Finite Automata (DFAs) to scan and recognize text efficiently.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a state machine diagram showing the construction of an NFA for the regular expression 1* U 01. Show initial states, transitions with labels '0', '1', and lambda/epsilon transitions connecting sub-machines. Style: educational, dark background #0d1117, accent color #00ffcc, viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg id="dgm-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 550" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Utility class for readable text over lines -->
+    <style>
+      #dgm-1 .label-text {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+        font-size: 18px;
+        font-weight: bold;
+        fill: var(--brand-500);
+        text-anchor: middle;
+        dominant-baseline: central;
+        paint-order: stroke fill;
+        stroke: var(--bg-surface);
+        stroke-width: 6px;
+        stroke-linejoin: round;
+      }
+      #dgm-1 .node-text {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+        font-size: 16px;
+        font-weight: bold;
+        fill: var(--text-primary);
+        text-anchor: middle;
+        dominant-baseline: central;
+      }
+      #dgm-1 .title-text {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+        font-size: 24px;
+        font-weight: bold;
+        fill: var(--text-primary);
+        text-anchor: middle;
+      }
+      #dgm-1 .subtitle-text {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+        font-size: 16px;
+        fill: var(--text-secondary);
+        text-anchor: middle;
+      }
+      #dgm-1 .annotation-text {
+        font-family: system-ui, 'Cairo', 'Inter', sans-serif;
+        font-size: 14px;
+        fill: var(--text-muted);
+        text-anchor: middle;
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Titles -->
+  <text x="400" y="35" class="title-text">NFA for Regular Expression: 1* ∪ 01</text>
+  <text x="400" y="65" class="subtitle-text">Thompson's Construction / بناء طومسون</text>
+
+  <!-- Sub-machine Bounding Boxes -->
+  <!-- 1* Sub-machine -->
+  <rect x="180" y="80" width="440" height="180" rx="12" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,6" opacity="0.5" />
+  <text x="400" y="245" class="annotation-text">Sub-machine for 1* / آلة فرعية لـ 1*</text>
+
+  <!-- 01 Sub-machine -->
+  <rect x="220" y="330" width="360" height="110" rx="12" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,6" opacity="0.5" />
+  <text x="400" y="425" class="annotation-text">Sub-machine for 01 / آلة فرعية لـ 01</text>
+
+  <!-- Transitions (Edges) -->
+  <g stroke="var(--brand-500)" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+    <!-- Start Arrow -->
+    <path d="M 30 280 L 74 280" />
+    
+    <!-- Global Start to Sub-machines -->
+    <path d="M 115.5 264.5 L 204.5 175.5" /> <!-- q0 to q1 -->
+    <path d="M 117.6 293.2 L 242.4 386.8" /> <!-- q0 to q5 -->
+
+    <!-- 1* Sub-machine Internal Transitions -->
+    <path d="M 242 160 L 318 160" /> <!-- q1 to q2 -->
+    <path d="M 362 160 L 438 160" /> <!-- q2 to q3 -->
+    <path d="M 482 160 L 558 160" /> <!-- q3 to q4 -->
+    
+    <!-- 1* Bypass (Epsilon) -->
+    <path d="M 220 138 C 280 50, 520 50, 580 138" /> <!-- q1 to q4 -->
+    
+    <!-- 1* Loop (Epsilon) -->
+    <path d="M 460 182 C 440 240, 360 240, 340 182" /> <!-- q3 to q2 -->
+
+    <!-- 01 Sub-machine Internal Transitions -->
+    <path d="M 282 400 L 378 400" /> <!-- q5 to q6 -->
+    <path d="M 422 400 L 518 400" /> <!-- q6 to q7 -->
+
+    <!-- Sub-machines to Global Accept -->
+    <path d="M 595.5 175.5 L 684.5 264.5" /> <!-- q4 to q8 -->
+    <path d="M 557.6 386.8 L 682.4 293.2" /> <!-- q7 to q8 -->
+  </g>
+
+  <!-- Transition Labels -->
+  <g class="label-text">
+    <!-- Global Epsilon Transitions -->
+    <text x="145" y="210">ε</text>
+    <text x="165" y="350">ε</text>
+    <text x="655" y="210">ε</text>
+    <text x="635" y="350">ε</text>
+
+    <!-- 1* Transitions -->
+    <text x="280" y="160">ε</text>
+    <text x="400" y="160">1</text>
+    <text x="520" y="160">ε</text>
+    <text x="400" y="85">ε</text>
+    <text x="400" y="225">ε</text>
+
+    <!-- 01 Transitions -->
+    <text x="330" y="400">0</text>
+    <text x="470" y="400">1</text>
+  </g>
+
+  <!-- Nodes (States) -->
+  <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2.5">
+    <!-- Global Start -->
+    <circle cx="100" cy="280" r="22" stroke-width="3" />
+    
+    <!-- 1* States -->
+    <circle cx="220" cy="160" r="22" />
+    <circle cx="340" cy="160" r="22" />
+    <circle cx="460" cy="160" r="22" />
+    <circle cx="580" cy="160" r="22" />
+
+    <!-- 01 States -->
+    <circle cx="260" cy="400" r="22" />
+    <circle cx="400" cy="400" r="22" />
+    <circle cx="540" cy="400" r="22" />
+
+    <!-- Global Accept -->
+    <circle cx="700" cy="280" r="22" stroke-width="3" />
+    <circle cx="700" cy="280" r="16" stroke-width="2.5" fill="none" />
+  </g>
+
+  <!-- Node Labels -->
+  <g class="node-text">
+    <text x="100" y="280">q0</text>
+    
+    <text x="220" y="160">q1</text>
+    <text x="340" y="160">q2</text>
+    <text x="460" y="160">q3</text>
+    <text x="580" y="160">q4</text>
+
+    <text x="260" y="400">q5</text>
+    <text x="400" y="400">q6</text>
+    <text x="540" y="400">q7</text>
+
+    <text x="700" y="280">q8</text>
+  </g>
+
+  <!-- Start / Accept Annotations -->
+  <text x="55" y="250" class="annotation-text" font-weight="bold" fill="var(--brand-500)">Start / بداية</text>
+  <text x="700" y="325" class="annotation-text" font-weight="bold" fill="var(--brand-500)">Accept / قبول</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم آلات الحالة المنتهية غير الحتمية (NFA) عند إثبات مبرهنة كلين بدلاً من الحتمية (DFA)؟</template>
+      <template class="content-en">Why do we use Nondeterministic Finite Automata (NFA) when proving Kleene's Theorem instead of DFA?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن بناء NFA من التعبيرات المنتظمة أسهل بكثير باستخدام انتقالات إبسيلون (السلسلة الفارغة) لربط الآلات الفرعية، ويمكن لاحقاً تحويل أي NFA إلى DFA مكافئ.</p></template>
+      <template class="content-en"><p>Because constructing an NFA from regular expressions is much easier using epsilon (empty string) transitions to connect sub-machines, and any NFA can later be converted to an equivalent DFA.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="turing-machines-intro" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> مقدمة في آلات تورنغ</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Turing Machines - Introduction</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>آلة تورنغ هي نموذج حاسوبي عام يتكون من <span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The part of a Turing machine that holds the current state and transition rules.">وحدة تحكم<span class="smart-term-tooltip"></span></span> و<span class="smart-term" data-term-en="Tape" data-ar="الشريط" data-en-def="The infinite memory structure of a Turing machine, divided into cells.">شريط<span class="smart-term-tooltip"></span></span> ذاكرة لانهائي، قادرة على حساب أي دالة قابلة للحساب.</p></template>
+    <template class="content-en"><p>A Turing machine is a general computational model consisting of a <span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The part of a Turing machine that holds the current state and transition rules.">Control Unit<span class="smart-term-tooltip"></span></span> and an infinite memory <span class="smart-term" data-term-en="Tape" data-ar="الشريط" data-en-def="The infinite memory structure of a Turing machine, divided into cells.">Tape<span class="smart-term-tooltip"></span></span>, capable of computing any computable function.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>آلات الحالة المنتهية محدودة القدرة (لا يمكنها التعرف على مجموعات تتطلب ذاكرة مثل {0^n 1^n}). للتغلب على هذا، قدم آلان تورنغ <b>آلة تورنغ</b> في الثلاثينيات. تتكون من</p><ul><li><b>وحدة تحكم (Control Unit)</b> تحتوي على حالات منتهية، و</li><li><b>شريط (Tape)</b> مقسم إلى خلايا، وهو لانهائي في كلا الاتجاهين.</li></ul><p>تمتلك الآلة قدرات <b>قراءة وكتابة (Read/Write)</b> حيث يتحرك رأس القراءة/الكتابة يميناً ويساراً، ويغير الحالات بناءً على الرمز المقروء.</p></template>
+    <template class="content-en"><p>Finite-state automata are limited (e.g., they cannot recognize sets requiring memory like {0^n 1^n}). To overcome this, Alan Turing introduced the <b>Turing Machine</b> in the 1930s. It consists of</p><ul><li>a <b>Control Unit</b> with finitely many states, and</li><li>a <b>Tape</b> divided into cells, infinite in both directions.</li></ul><p>It has <b>read and write</b> capabilities; the head moves back and forth, changing states depending on the symbol read.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>آلة تورنغ تعتبر الأساس النظري للحواسيب الحديثة. أي خوارزمية يمكن تنفيذها على حاسوب حديث يمكن محاكاتها بواسطة آلة تورنغ (أطروحة تشيرش-تورنغ).</p><p>الذاكرة اللانهائية هي ما يميزها عن الآلات ذات الحالة المنتهية.</p></template>
+    <template class="content-en"><p>The Turing Machine is the theoretical foundation of modern computers. According to the Church-Turing thesis, any algorithm that can be computed by a modern computer can be simulated by a Turing Machine.</p><p>The unbounded memory (infinite tape) is the key differentiator from FSAs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Draw a conceptual diagram of a Turing Machine. Show a continuous tape divided into square cells containing symbols (0, 1, B for blank). Above the tape, draw a 'Control Unit' box with a read/write head pointing to one specific cell. Include arrows indicating the head can move Left or Right. Style: educational, dark background #0d1117, accent color #ff00ff, viewBox 0 0 800 300. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 350" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrowhead for movement indicators -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Muted arrowhead for labels -->
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+    </marker>
+
+    <!-- Drop shadow for Control Unit -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+
+    <!-- Fading gradients for infinite tape effect -->
+    <linearGradient id="fadeLeft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--bg-surface)" stop-opacity="1"/>
+      <stop offset="100%" stop-color="var(--bg-surface)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fadeRight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--bg-surface)" stop-opacity="0"/>
+      <stop offset="100%" stop-color="var(--bg-surface)" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Diagram Title -->
+  <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    Turing Machine / آلة تورنغ
+  </text>
+
+  <!-- ================= TAPE SECTION ================= -->
+  <g id="tape">
+    <!-- Tape Background -->
+    <rect x="0" y="200" width="800" height="60" fill="var(--bg-elevated)" />
+    
+    <!-- Top and Bottom Tape Borders -->
+    <line x1="0" y1="200" x2="800" y2="200" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="0" y1="260" x2="800" y2="260" stroke="var(--border-color)" stroke-width="2" />
+
+    <!-- Vertical Cell Dividers (60px width per cell) -->
+    <line x1="10" y1="200" x2="10" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="70" y1="200" x2="70" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="130" y1="200" x2="130" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="190" y1="200" x2="190" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="250" y1="200" x2="250" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="310" y1="200" x2="310" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="370" y1="200" x2="370" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="430" y1="200" x2="430" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="490" y1="200" x2="490" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="550" y1="200" x2="550" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="610" y1="200" x2="610" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="670" y1="200" x2="670" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="730" y1="200" x2="730" y2="260" stroke="var(--border-color)" stroke-width="2" />
+    <line x1="790" y1="200" x2="790" y2="260" stroke="var(--border-color)" stroke-width="2" />
+
+    <!-- Active Cell Highlight -->
+    <rect x="370" y="200" width="60" height="60" fill="var(--brand-500)" opacity="0.15" />
+    <rect x="370" y="200" width="60" height="60" fill="none" stroke="var(--brand-500)" stroke-width="3" />
+
+    <!-- Tape Symbols -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central">
+      <text x="40" y="230">B</text>
+      <text x="100" y="230">B</text>
+      <text x="160" y="230">0</text>
+      <text x="220" y="230">1</text>
+      <text x="280" y="230">1</text>
+      <text x="340" y="230">0</text>
+      <text x="400" y="230" fill="var(--brand-500)">1</text> <!-- Active Symbol -->
+      <text x="460" y="230">0</text>
+      <text x="520" y="230">0</text>
+      <text x="580" y="230">1</text>
+      <text x="640" y="230">B</text>
+      <text x="700" y="230">B</text>
+      <text x="760" y="230">B</text>
+    </g>
+
+    <!-- Fading Edges for Infinite Tape Illusion -->
+    <rect x="0" y="195" width="120" height="70" fill="url(#fadeLeft)" />
+    <rect x="680" y="195" width="120" height="70" fill="url(#fadeRight)" />
+  </g>
+
+  <!-- ================= CONTROL UNIT ================= -->
+  <g id="control-unit">
+    <!-- Main Box -->
+    <rect x="300" y="60" width="200" height="90" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" filter="url(#shadow)" />
+    
+    <!-- Titles -->
+    <text x="400" y="85" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+      Control Unit
+    </text>
+    <text x="400" y="108" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+      وحدة التحكم
+    </text>
+
+    <!-- State Indicator -->
+    <rect x="340" y="120" width="120" height="22" rx="11" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="400" y="136" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+      State: q1
+    </text>
+  </g>
+
+  <!-- ================= READ/WRITE HEAD ================= -->
+  <g id="rw-head">
+    <!-- Head Polygon -->
+    <polygon points="385,150 415,150 400,195" fill="var(--brand-500)" />
+    <circle cx="400" cy="195" r="3" fill="var(--brand-500)" />
+
+    <!-- Head Labels -->
+    <text x="425" y="168" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="start">
+      Read/Write Head
+    </text>
+    <text x="425" y="188" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="start">
+      رأس القراءة والكتابة
+    </text>
+  </g>
+
+  <!-- ================= MOVEMENT ARROWS ================= -->
+  <g id="movement-arrows">
+    <!-- Left Arrow -->
+    <path d="M 375 175 Q 330 175 330 195" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="315" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+      L / يسار
+    </text>
+
+    <!-- Right Arrow -->
+    <path d="M 425 175 Q 470 175 470 195" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="485" y="170" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+      R / يمين
+    </text>
+  </g>
+
+  <!-- ================= BOTTOM LABELS ================= -->
+  <g id="bottom-labels">
+    <!-- Infinite Tape Label -->
+    <text x="400" y="320" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+      Infinite Tape / شريط لا نهائي
+    </text>
+
+    <!-- Cell Label -->
+    <path d="M 220 285 L 220 265" fill="none" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" />
+    <text x="220" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">
+      Cell / خلية
+    </text>
+
+    <!-- Blank Symbol Label -->
+    <path d="M 640 285 L 640 265" fill="none" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" />
+    <text x="640" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">
+      Blank / فارغ
+    </text>
+  </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Finite-State Automaton (FSA)</th><th>Turing Machine (TM)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الذاكرة</template>
+          <template class="content-en">Memory</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا توجد ذاكرة إضافية (فقط الحالات)</template>
+          <template class="content-en">No auxiliary memory (states only)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">شريط لانهائي (ذاكرة غير محدودة)</template>
+          <template class="content-en">Infinite tape (unbounded memory)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">حركة القراءة</template>
+          <template class="content-en">Read Movement</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">اتجاه واحد فقط (لليمين)</template>
+          <template class="content-en">One direction only (Right)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كلا الاتجاهين (يمين ويسار)</template>
+          <template class="content-en">Both directions (Right and Left)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">القدرة على الكتابة</template>
+          <template class="content-en">Write Capability</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">قراءة فقط</template>
+          <template class="content-en">Read only</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">قراءة وكتابة</template>
+          <template class="content-en">Read and Write</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">اللغات المعترف بها</template>
+          <template class="content-en">Recognized Languages</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">اللغات المنتظمة فقط</template>
+          <template class="content-en">Regular languages only</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">جميع اللغات القابلة للحساب</template>
+          <template class="content-en">All computable languages</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُفترض أن شريط آلة تورنغ لانهائي؟</template>
+      <template class="content-en">Why is the tape of a Turing machine assumed to be infinite?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لضمان عدم وجود قيود مصطنعة على حجم الذاكرة المتاحة للحساب، مما يسمح بنمذجة الخوارزميات التي تتطلب مساحات تخزين متزايدة تعسفياً.</p></template>
+      <template class="content-en"><p>To ensure there are no artificial limits on the memory available for computation, allowing the modeling of algorithms that require arbitrarily large storage.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="turing-machine-definition" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> التعريف الرسمي لآلة تورنغ</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Definition of Turing Machines</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُعرّف آلة تورنغ رياضياً باستخدام مجموعة من القواعد الـ<span class="smart-term" data-term-en="5-tuple" data-ar="خماسية" data-en-def="A sequence of five elements defining a Turing machine transition: (state, read, new_state, write, direction).">خماسيات<span class="smart-term-tooltip"></span></span>: (الحالة الحالية، الرمز المقروء، الحالة الجديدة، الرمز المكتوب، الاتجاه).</p></template>
+    <template class="content-en"><p>A Turing machine is mathematically defined by <span class="smart-term" data-term-en="5-tuple" data-ar="خماسية" data-en-def="A sequence of five elements defining a Turing machine transition: (state, read, new_state, write, direction).">5-tuples<span class="smart-term-tooltip"></span></span>: (current state, read symbol, new state, written symbol, direction).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُعرّف آلة تورنغ T = (S, I, f, s0) بـ:</p><ul><li>مجموعة منتهية من الحالات S،</li><li>أبجدية I تحتوي على الرمز الفارغ B،</li><li>دالة جزئية f، و</li><li>حالة ابتدائية s0.</li></ul><p>الدالة f تأخذ (حالة، رمز) وتُرجع (حالة جديدة، رمز مكتوب، اتجاه R أو L). تسمى هذه <b>قواعد الانتقال (Transition Rules)</b> وتُكتب ك<span class="smart-term" data-term-en="5-tuple" data-ar="خماسية" data-en-def="A sequence of five elements defining a Turing machine transition: (state, read, new_state, write, direction).">خماسيات<span class="smart-term-tooltip"></span></span> (5-tuples).</p><p>تبدأ الآلة في الحالة s0 فوق أول رمز غير فارغ من اليسار. تتوقف الآلة (Halts) إذا لم تكن هناك قاعدة انتقال معرفة للزوج (الحالة الحالية، الرمز الحالي).</p></template>
+    <template class="content-en"><p>A Turing machine T = (S, I, f, s0) consists of</p><ul><li>a finite set S of states,</li><li>an alphabet I containing the blank symbol B,</li><li>a <span class="smart-term" data-term-en="Partial Function" data-ar="دالة جزئية" data-en-def="A function that is not defined for all possible input values in its domain.">partial function<span class="smart-term-tooltip"></span></span> f, and</li><li>a starting state s0.</li></ul><p>The function f maps (state, symbol) to (new state, written symbol, direction R/L). These are called <b>transition rules</b> and are written as <span class="smart-term" data-term-en="5-tuple" data-ar="خماسية" data-en-def="A sequence of five elements defining a Turing machine transition: (state, read, new_state, write, direction).">5-tuples<span class="smart-term-tooltip"></span></span>.</p><p>The machine starts in s0 over the leftmost nonblank symbol. It <b>halts</b> when no transition rule exists for the current (state, symbol) pair.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>استخدام '<span class="smart-term" data-term-en="Partial Function" data-ar="دالة جزئية" data-en-def="A function that is not defined for all possible input values in its domain.">دالة جزئية<span class="smart-term-tooltip"></span></span>' (Partial Function) أمر بالغ الأهمية؛ فهو يعني أن الآلة ليست مجبرة على امتلاك انتقال لكل حالة ممكنة.</p><p>غياب الانتقال هو الآلية التي تتوقف بها الآلة عن العمل (Halting)، وهو ما يحدد نهاية الحساب أو قبول/رفض السلسلة.</p></template>
+    <template class="content-en"><p>The use of a '<span class="smart-term" data-term-en="Partial Function" data-ar="دالة جزئية" data-en-def="A function that is not defined for all possible input values in its domain.">partial function<span class="smart-term-tooltip"></span></span>' is crucial; it means the machine doesn't need a transition for every possible state-symbol pair.</p><p>The absence of a transition is the mechanism by which the machine halts, signifying the end of computation or the acceptance/rejection of a string.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>دالة الانتقال لآلة تورنغ</strong></template>
+      <template class="content-en"><strong>Transition function of a Turing Machine</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$f: S \times I \to S \times I \times \{R, L\}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا واجهت آلة تورنغ زوجاً (حالة، رمز) غير موجود في قواعد الانتقال الخاصة بها؟</template>
+      <template class="content-en">What happens if a Turing machine encounters a (state, symbol) pair that is not in its transition rules?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تتوقف الآلة عن العمل (Halts).</p></template>
+      <template class="content-en"><p>The machine halts.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="recognizing-sets-turing-machines" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> استخدام آلات تورنغ للتعرف على المجموعات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Using Turing Machines to Recognize Sets</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تتعرف آلة تورنغ على سلسلة إذا توقفت في '<span class="smart-term" data-term-en="Final State" data-ar="الحالة النهائية" data-en-def="A state in a Turing machine from which there are no defined transitions.">الحالة النهائية<span class="smart-term-tooltip"></span></span>' بعد معالجة السلسلة.</p></template>
+    <template class="content-en"><p>A Turing machine recognizes a string if it halts in a '<span class="smart-term" data-term-en="Final State" data-ar="الحالة النهائية" data-en-def="A state in a Turing machine from which there are no defined transitions.">final state<span class="smart-term-tooltip"></span></span>' after processing the string.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>للتعرف على المجموعات، نُعرّف <b>الحالة النهائية (Final State)</b> بأنها حالة لا تظهر كحالة ابتدائية في أي قاعدة انتقال (أي لا يوجد سهم يخرج منها).</p><p>تتعرف الآلة T على سلسلة x إذا بدأت في الموضع الابتدائي وتوقفت في حالة نهائية. إذا لم تتوقف الآلة أبداً، أو توقفت في حالة غير نهائية، فإن السلسلة غير مقبولة (Not Recognized).</p><p>يمكن لآلات تورنغ التعرف على المجموعات المنتظمة (بالتحرك يميناً فقط) والمجموعات غير المنتظمة (بالتحرك يميناً ويساراً واستخدام <span class="smart-term" data-term-en="Marker" data-ar="علامة مساعدة" data-en-def="An auxiliary symbol written on the tape to keep track of processed information.">رموز مساعدة<span class="smart-term-tooltip"></span></span> Markers).</p></template>
+    <template class="content-en"><p>To recognize sets, we define a <b>final state</b> as a state that is not the first state in any 5-tuple (no outgoing transitions).</p><p>A Turing machine T recognizes a string x if, starting in the initial position, it halts in a <span class="smart-term" data-term-en="Final State" data-ar="الحالة النهائية" data-en-def="A state in a Turing machine from which there are no defined transitions.">final state<span class="smart-term-tooltip"></span></span>. If T does not halt, or halts in a non-final state, x is not recognized.</p><p>Turing machines can recognize regular sets (by always moving right) and nonregular sets (by moving back and forth and using auxiliary <span class="smart-term" data-term-en="Marker" data-ar="علامة مساعدة" data-en-def="An auxiliary symbol written on the tape to keep track of processed information.">markers<span class="smart-term-tooltip"></span></span>).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>القدرة على الكتابة على الشريط والتحرك في كلا الاتجاهين تسمح لآلة تورنغ بمطابقة الأنماط المعقدة.</p><p>على سبيل المثال، للتعرف على {0^n 1^n}، تقوم الآلة باستبدال 0 بـ M، ثم تتحرك يميناً لتستبدل 1 بـ M، وتكرر العملية ذهاباً وإياباً حتى يتم استبدال كل الرموز، مما يثبت التساوي في العدد.</p></template>
+    <template class="content-en"><p>The ability to write on the tape and move in both directions allows TMs to match complex patterns.</p><p>For example, to recognize {0^n 1^n}, the machine replaces a 0 with a marker M, moves right to replace a 1 with M, and sweeps back and forth until all symbols are matched, proving equal counts.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف ترفض آلة تورنغ سلسلة مدخلة؟</template>
+      <template class="content-en">How does a Turing machine reject an input string?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>إما بالدخول في حلقة لانهائية (عدم التوقف أبداً) أو بالتوقف في حالة غير نهائية.</p></template>
+      <template class="content-en"><p>By either entering an infinite loop (never halting) or by halting in a non-final state.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="decidability-halting-problem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> القابلية للحسم ومشكلة التوقف</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Decidability and The Halting Problem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Halting Problem" data-ar="مشكلة التوقف" data-en-def="The unsolvable problem of determining whether a Turing machine will eventually halt on a given input.">مشكلة التوقف<span class="smart-term-tooltip"></span></span> هي إثبات أنه لا توجد خوارزمية يمكنها تحديد ما إذا كانت آلة تورنغ ستتوقف أم ستستمر إلى الأبد لأي مدخل.</p></template>
+    <template class="content-en"><p>The <span class="smart-term" data-term-en="Halting Problem" data-ar="مشكلة التوقف" data-en-def="The unsolvable problem of determining whether a Turing machine will eventually halt on a given input.">Halting Problem<span class="smart-term-tooltip"></span></span> proves there is no algorithm that can determine whether a given Turing machine will halt or run forever on a given input.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><b>مشكلة القرار (Decision Problem)</b> هي مشكلة إجابتها نعم أو لا. إذا كانت هناك خوارزمية فعالة تحل المشكلة، تسمى <b>قابلة للحل أو <span class="smart-term" data-term-en="Decidability" data-ar="القابلية للحسم" data-en-def="The property of a problem having an effective algorithm that can solve it.">قابلة للحسم<span class="smart-term-tooltip"></span></span> (Solvable / Decidable)</b> (مثل التحقق مما إذا كان الرقم أولياً).</p><p><b>مشكلة التوقف (Halting Problem)</b> تسأل: هل ستتوقف آلة تورنغ T عند إعطائها المدخل x؟ تنص المبرهنة على أن <span class="smart-term" data-term-en="Halting Problem" data-ar="مشكلة التوقف" data-en-def="The unsolvable problem of determining whether a Turing machine will eventually halt on a given input.">مشكلة التوقف<span class="smart-term-tooltip"></span></span> هي <b>مشكلة غير قابلة للحل (Unsolvable decision problem)</b>.</p><p>لا توجد آلة تورنغ يمكنها التنبؤ بشكل عام بما إذا كانت آلة أخرى ستتوقف.</p></template>
+    <template class="content-en"><p>A <b>decision problem</b> asks a Yes-or-No question. If an effective algorithm exists to solve it, it is <b>solvable or <span class="smart-term" data-term-en="Decidability" data-ar="القابلية للحسم" data-en-def="The property of a problem having an effective algorithm that can solve it.">decidable<span class="smart-term-tooltip"></span></span></b> (e.g., checking if a number is prime).</p><p>The <b>Halting Problem</b> asks: will a Turing machine T eventually halt on input string x? Theorem 1 states that the <span class="smart-term" data-term-en="Halting Problem" data-ar="مشكلة التوقف" data-en-def="The unsolvable problem of determining whether a Turing machine will eventually halt on a given input.">Halting Problem<span class="smart-term-tooltip"></span></span> is an <b>unsolvable <span class="smart-term" data-term-en="Decision Problem" data-ar="مشكلة قرار" data-en-def="A problem that asks whether statements from a particular class are true (Yes-or-No problem).">decision problem<span class="smart-term-tooltip"></span></span></b>.</p><p>No Turing machine exists that can generally determine if another TM will halt.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>إثبات عدم قابلية حل مشكلة التوقف يعتمد على التناقض (البرهان بالتناقض).</p><p>إذا افترضنا وجود آلة H يمكنها تحديد التوقف، يمكننا بناء آلة خبيثة D تستخدم H لتعكس النتيجة (تتوقف إذا قالت H أنها لن تتوقف، وتستمر للأبد إذا قالت H أنها ستتوقف).</p><p>عند تمرير D لنفسها، نصل إلى تناقض منطقي، مما يثبت استحالة وجود H.</p></template>
+    <template class="content-en"><p>The proof of the Halting Problem's unsolvability uses a diagonalization argument (proof by contradiction).</p><p>If a decider H existed, we could build a malicious machine D that uses H to do the opposite (halts if H says it loops, loops if H says it halts).</p><p>Feeding D to itself creates a paradox, proving H cannot exist.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر مشكلة التوقف مهمة في هندسة البرمجيات؟</template>
+      <template class="content-en">Why is the Halting Problem important in software engineering?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنها تثبت أنه من المستحيل كتابة برنامج (مثل مترجم أو أداة تحليل) يمكنه اكتشاف جميع الحلقات اللانهائية (Infinite Loops) في أي كود برمجي بشكل عام ومؤكد.</p></template>
+      <template class="content-en"><p>Because it proves that it is impossible to write a general-purpose program (like a compiler or analyzer) that can perfectly detect all infinite loops in any given source code.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="computational-complexity-p-np" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> التعقيد الحسابي: فئات P و NP</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Computational Complexity: P and NP</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p><span class="smart-term" data-term-en="Class P" data-ar="الفئة P" data-en-def="The class of decision problems solvable by a deterministic Turing machine in polynomial time.">الفئة P<span class="smart-term-tooltip"></span></span> هي المشاكل التي يمكن حلها بسرعة (وقت متعدد الحدود)، بينما <span class="smart-term" data-term-en="Class NP" data-ar="الفئة NP" data-en-def="The class of decision problems solvable by a nondeterministic Turing machine in polynomial time.">الفئة NP<span class="smart-term-tooltip"></span></span> هي المشاكل التي يمكن التحقق من حلها بسرعة.</p></template>
+    <template class="content-en"><p><span class="smart-term" data-term-en="Class P" data-ar="الفئة P" data-en-def="The class of decision problems solvable by a deterministic Turing machine in polynomial time.">Class P<span class="smart-term-tooltip"></span></span> contains problems solvable quickly (polynomial time), while <span class="smart-term" data-term-en="Class NP" data-ar="الفئة NP" data-en-def="The class of decision problems solvable by a nondeterministic Turing machine in polynomial time.">Class NP<span class="smart-term-tooltip"></span></span> contains problems whose solutions can be verified quickly.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُصنف مشاكل القرار بناءً على تعقيدها:</p><ul><li><b>الفئة P (Polynomial-time)</b> تحتوي على المشاكل التي يمكن حلها بواسطة آلة تورنغ حتمية في وقت متعدد الحدود p(n) بالنسبة لحجم المدخل n. هذه المشاكل تسمى <b>قابلة للحل عملياً (Tractable)</b>.</li><li><b>الفئة NP (Nondeterministic Polynomial-time)</b> تحتوي على المشاكل التي يمكن حلها بواسطة آلة تورنغ غير حتمية في وقت متعدد الحدود.</li></ul><p>المشاكل التي ليست في P تسمى <b>مستعصية (Intractable)</b>.</p></template>
+    <template class="content-en"><p>Decision problems are classified by complexity:</p><ul><li><b>Class P (Polynomial-time)</b> includes problems solvable by a deterministic Turing machine in polynomial time p(n) relative to input size n. These are called <b>tractable</b>.</li><li><b>Class NP (Nondeterministic Polynomial-time)</b> includes problems solvable by a nondeterministic Turing machine in polynomial time.</li></ul><p>Problems not in P are called <b>in<span class="smart-term" data-term-en="Tractable" data-ar="قابل للحل عملياً" data-en-def="A problem that belongs to class P, meaning it can be solved efficiently.">tractable<span class="smart-term-tooltip"></span></span></b>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفرق الجوهري هو أن P تعني 'سهلة الحل'، بينما NP تعني 'سهلة التحقق من الحل'. سؤال P مقابل NP هو أحد أهم الأسئلة المفتوحة في علوم الحاسب.</p><p>إذا كان P = NP، فهذا يعني أن كل مشكلة يسهل التحقق منها يسهل أيضاً حلها، مما سيكون له تداعيات هائلة على التشفير والأمن السيبراني.</p></template>
+    <template class="content-en"><p>The core difference is P means 'easy to solve', while NP means 'easy to verify'. The P vs NP question is one of the most famous open problems in computer science.</p><p>If P = NP, it would mean every problem whose solution is easy to verify is also easy to solve, breaking modern cryptography.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Class P</th><th>Class NP</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع الآلة</template>
+          <template class="content-en">Machine Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">آلة تورنغ حتمية</template>
+          <template class="content-en">Deterministic Turing Machine</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">آلة تورنغ غير حتمية</template>
+          <template class="content-en">Nondeterministic Turing Machine</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">وقت التنفيذ</template>
+          <template class="content-en">Execution Time</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متعدد الحدود (Polynomial)</template>
+          <template class="content-en">Polynomial</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متعدد الحدود (Polynomial)</template>
+          <template class="content-en">Polynomial</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التصنيف العملي</template>
+          <template class="content-en">Practical Classification</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهلة الحل (Tractable)</template>
+          <template class="content-en">Tractable (Easy to solve)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">سهلة التحقق (وقد تكون مستعصية الحل)</template>
+          <template class="content-en">Easy to verify (may be intractable to solve)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل كل مشكلة في P هي أيضاً في NP؟</template>
+      <template class="content-en">Is every problem in P also in NP?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، لأن أي آلة تورنغ حتمية هي حالة خاصة من آلة تورنغ غير الحتمية. إذا كان بإمكانك حلها بسرعة، فبالتأكيد يمكنك التحقق منها بسرعة.</p></template>
+      <template class="content-en"><p>Yes, because a deterministic Turing machine is a special case of a nondeterministic one. If you can solve it quickly, you can certainly verify it quickly.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في نهاية رحلتنا مع نماذج الحوسبة. في هذا الفصل، ننتقل من الآلات البسيطة إلى الآلات التي تشكل أساس حواسيبنا الحديثة. بدأنا بالتعبيرات المنتظمة ومبرهنة كلين، والتي أثبتت لنا أن التعبيرات المنتظمة وآلات الحالة المنتهية هما وجهان لعملة واحدة. لكن سرعان ما أدركنا أن هذه الآلات تفتقر إلى الذاكرة. هنا يتدخل العبقري آلان تورنغ بآلته التي تمتلك شريطاً لانهائياً، مما يمنحها قدرة غير محدودة على التذكر والحساب. ركزوا جيداً على كيفية قراءة الخماسيات (5-tuples) في آلة تورنغ، فهي لغة البرمجة الأساسية لهذه الآلة. وأخيراً، ناقشنا حدود الحوسبة: مشكلة التوقف التي تخبرنا أن الحواسيب لا تستطيع حل كل شيء، وفئات التعقيد P و NP التي تصنف المشاكل حسب صعوبتها. للامتحان، تأكدوا من فهمكم لكيفية تتبع آلة تورنغ خطوة بخطوة، والفرق الجوهري بين P و NP.</template>
+    <template class="content-en">Welcome to the culmination of our journey into computational models. In this chapter, we transition from simple automata to the theoretical foundation of modern computers. We started with regular expressions and Kleene's Theorem, proving that regular expressions and FSAs are two sides of the same coin. However, FSAs lack memory. Enter Alan Turing and his Turing Machine, equipped with an infinite tape that provides unbounded memory. For the exam, pay close attention to reading the 5-tuples—they are the 'code' of the Turing Machine. Finally, we explored the absolute limits of computation with the Halting Problem, proving computers can't solve everything, and classified problems into P (tractable) and NP. Make sure you can trace a Turing Machine's execution step-by-step and clearly distinguish between P and NP.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المجموعة المنتظمة باختصار؟</template>
+          <template class="content-en">What is a regular set in short?</template>
+          <span class="content-target">ما هي المجموعة المنتظمة باختصار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي أي لغة يمكن بناؤها باستخدام الاتحاد، التسلسل، وإغلاق كلين، ويمكن التعرف عليها بواسطة آلة حالة منتهية.</template>
+          <template class="content-en">It is any language built using union, concatenation, and Kleene closure, which can be recognized by a finite-state automaton.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما أهمية مبرهنة كلين؟</template>
+          <template class="content-en">What is the significance of Kleene's Theorem?</template>
+          <span class="content-target">ما أهمية مبرهنة كلين؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تثبت التكافؤ التام بين التعبيرات المنتظمة (الوصف الجبري) وآلات الحالة المنتهية (النموذج الحسابي).</template>
+          <template class="content-en">It proves the perfect equivalence between regular expressions (algebraic description) and finite-state automata (computational model).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى آلات تورنغ إذا كان لدينا آلات حالة منتهية؟</template>
+          <template class="content-en">Why do we need Turing Machines if we have FSAs?</template>
+          <span class="content-target">لماذا نحتاج إلى آلات تورنغ إذا كان لدينا آلات حالة منتهية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن آلات الحالة المنتهية لا تملك ذاكرة ولا يمكنها التعرف على أنماط تتطلب العد (مثل تطابق الأقواس). آلة تورنغ تمتلك شريط ذاكرة لانهائي.</template>
+          <template class="content-en">Because FSAs lack memory and cannot recognize patterns that require counting (like matching parentheses). Turing Machines have an infinite memory tape.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تقرأ القاعدة (s0, 0, s1, 1, R)؟</template>
+          <template class="content-en">How do you read the rule (s0, 0, s1, 1, R)?</template>
+          <span class="content-target">كيف تقرأ القاعدة (s0, 0, s1, 1, R)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا كانت الآلة في الحالة s0 وقرأت الرمز 0، فإنها تنتقل للحالة s1، وتكتب الرمز 1، ويتحرك الرأس خطوة لليمين.</template>
+          <template class="content-en">If the machine is in state s0 and reads a 0, it transitions to state s1, writes a 1, and moves the head one step to the Right.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الذي يسبب توقف آلة تورنغ؟</template>
+          <template class="content-en">What causes a Turing Machine to halt?</template>
+          <span class="content-target">ما الذي يسبب توقف آلة تورنغ؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تتوقف عندما تواجه زوجاً من (الحالة الحالية، الرمز المقروء) لا توجد له قاعدة انتقال معرفة.</template>
+          <template class="content-en">It halts when it encounters a (current state, read symbol) pair for which no transition rule is defined.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تقبل آلة تورنغ سلسلة مدخلة؟</template>
+          <template class="content-en">How does a Turing Machine accept an input string?</template>
+          <span class="content-target">كيف تقبل آلة تورنغ سلسلة مدخلة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقبل السلسلة إذا توقفت الآلة في 'حالة نهائية' (حالة لا تخرج منها أي انتقالات).</template>
+          <template class="content-en">It accepts the string if the machine halts in a 'final state' (a state with no outgoing transitions).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مشكلة القرار؟</template>
+          <template class="content-en">What is a decision problem?</template>
+          <span class="content-target">ما هي مشكلة القرار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي مشكلة رياضية أو حسابية تكون إجابتها دائماً إما 'نعم' أو 'لا'.</template>
+          <template class="content-en">It is a mathematical or computational problem whose answer is always either 'Yes' or 'No'.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي مشكلة التوقف ولماذا هي مهمة؟</template>
+          <template class="content-en">What is the Halting Problem and why is it important?</template>
+          <span class="content-target">ما هي مشكلة التوقف ولماذا هي مهمة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي مشكلة تحديد ما إذا كان برنامج ما سيتوقف أم لا. أهميتها تكمن في أنه تم إثبات عدم قابليتها للحل، مما يضع حداً لما يمكن للحواسيب فعله.</template>
+          <template class="content-en">It is the problem of determining if a program will halt. Its importance lies in the proof that it is unsolvable, establishing a fundamental limit on what computers can do.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين P و NP؟</template>
+          <template class="content-en">What is the difference between P and NP?</template>
+          <span class="content-target">ما الفرق بين P و NP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">P هي المشاكل التي يمكن 'حلها' بسرعة (وقت متعدد الحدود). NP هي المشاكل التي يمكن 'التحقق من صحة حلها' بسرعة.</template>
+          <template class="content-en">P are problems that can be 'solved' quickly (polynomial time). NP are problems whose solutions can be 'verified' quickly.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يعني مصطلح Tractable؟</template>
+          <template class="content-en">What does the term Tractable mean?</template>
+          <span class="content-target">ماذا يعني مصطلح Tractable؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يعني أن المشكلة قابلة للحل عملياً، أي يوجد خوارزمية يمكنها حل المشكلة في وقت متعدد الحدود (تنتمي للفئة P).</template>
+          <template class="content-en">It means the problem is practically solvable; an algorithm exists that can solve it in polynomial time (belongs to Class P).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي المجموعة المنتظمة (Regular Set)؟",
+      "en": "What is a Regular Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة يمكن بناؤها من المجموعة الخالية والسلاسل الفارغة والأحادية باستخدام الاتحاد، التسلسل، وإغلاق كلين.",
+        "en": "A set built from the null set, empty string, and singleton strings using unions, concatenations, and Kleene closures."
+      },
+      "example": {
+        "ar": "مجموعة السلاسل الثنائية التي تنتهي بـ 0.",
+        "en": "The set of bit strings ending with 0."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ماذا يمثل الرمز ∅ في التعبيرات المنتظمة؟",
+      "en": "What does the symbol ∅ represent in regular expressions?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة الخالية (لا تحتوي على أي سلاسل).",
+        "en": "The empty set (the set with no strings)."
+      },
+      "example": {
+        "ar": "∅",
+        "en": "∅"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ماذا يمثل الرمز λ في التعبيرات المنتظمة؟",
+      "en": "What does the symbol λ represent in regular expressions?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة التي تحتوي على السلسلة الفارغة فقط {λ}.",
+        "en": "The set containing only the empty string {λ}."
+      },
+      "example": {
+        "ar": "λ",
+        "en": "λ"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ماذا تعني عملية التسلسل (AB)؟",
+      "en": "What does concatenation (AB) mean?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دمج المجموعات الممثلة بـ A و B بحيث تتبع سلسلة من A سلسلة من B.",
+        "en": "The concatenation of the sets represented by A and B."
+      },
+      "example": {
+        "ar": "إذا كان A={0} و B={1} فإن AB={01}.",
+        "en": "If A={0} and B={1}, then AB={01}."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ماذا تعني عملية الاتحاد (A ∪ B)؟",
+      "en": "What does union (A ∪ B) mean?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة التي تحتوي على السلاسل الموجودة في A أو في B.",
+        "en": "The union of the sets represented by A and by B."
+      },
+      "example": {
+        "ar": "0 ∪ 1 يمثل المجموعة {0, 1}.",
+        "en": "0 ∪ 1 represents the set {0, 1}."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو إغلاق كلين (A*)؟",
+      "en": "What is Kleene closure (A*)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تكرار المجموعة A صفر أو أكثر من المرات.",
+        "en": "The Kleene closure of the set represented by A (zero or more concatenations)."
+      },
+      "example": {
+        "ar": "1* يمثل السلاسل: فارغة، 1، 11، 111، إلخ.",
+        "en": "1* represents empty, 1, 11, 111, etc."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي مبرهنة كلين (Kleene's Theorem)؟",
+      "en": "What is Kleene's Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة تكون منتظمة إذا وفقط إذا كان يمكن التعرف عليها بواسطة آلة حالة منتهية.",
+        "en": "A set is regular if and only if it is recognized by a finite-state automaton."
+      },
+      "example": {
+        "ar": "يمكن تحويل التعبير 1* U 01 إلى آلة حالة منتهية.",
+        "en": "The expression 1* U 01 can be converted to an FSA."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "لماذا تعتبر آلات تورنغ أقوى من آلات الحالة المنتهية؟",
+      "en": "Why are Turing machines more powerful than finite-state machines?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأنها تتضمن قدرات ذاكرة (شريط لانهائي) تفتقر إليها آلات الحالة المنتهية.",
+        "en": "Because they include memory capabilities (infinite tape) that finite-state machines lack."
+      },
+      "example": {
+        "ar": "يمكن لآلة تورنغ التعرف على {0^n 1^n} بينما لا تستطيع FSA ذلك.",
+        "en": "A TM can recognize {0^n 1^n} while an FSA cannot."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي المكونات الأساسية لآلة تورنغ؟",
+      "en": "What are the basic components of a Turing machine?"
+    },
+    "back": {
+      "definition": {
+        "ar": "وحدة تحكم (Control Unit) وشريط مقسم إلى خلايا (Tape).",
+        "en": "A Control Unit and a Tape divided into Cells."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ماذا تمثل الخماسية (s, i, s', i', d) في آلة تورنغ؟",
+      "en": "What does the 5-tuple (s, i, s', i', d) represent in a Turing machine?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة انتقال: (الحالة الحالية، الرمز المقروء، الحالة الجديدة، الرمز المكتوب، الاتجاه).",
+        "en": "A transition rule: (current state, read symbol, new state, written symbol, direction)."
+      },
+      "example": {
+        "ar": "(s0, 0, s1, 1, R) تعني: اقرأ 0، اكتب 1، تحرك يميناً، وانتقل للحالة s1.",
+        "en": "(s0, 0, s1, 1, R) means: read 0, write 1, move Right, go to state s1."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "متى تتوقف (Halt) آلة تورنغ؟",
+      "en": "When does a Turing machine halt?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما لا توجد قاعدة انتقال (خماسية) تبدأ بالزوج (الحالة الحالية، الرمز المقروء).",
+        "en": "When there is no 5-tuple beginning with the current (state, symbol) pair."
+      },
+      "example": {
+        "ar": "إذا كانت الآلة في s1 وتقرأ B ولا توجد قاعدة لـ (s1, B).",
+        "en": "If the machine is in s1 reading B and no rule exists for (s1, B)."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي الحالة النهائية (Final State) في آلة تورنغ؟",
+      "en": "What is a final state in a Turing machine?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حالة لا تظهر كحالة أولى في أي قاعدة انتقال (خماسية).",
+        "en": "A state that is not the first state in any five-tuple in the description of T."
+      },
+      "example": {
+        "ar": "الحالة s3 إذا لم تكن هناك قاعدة تبدأ بـ s3.",
+        "en": "State s3 if no rule starts with s3."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "متى تتعرف آلة تورنغ على سلسلة؟",
+      "en": "When does a Turing machine recognize a string?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا بدأت في الموضع الابتدائي وتوقفت في حالة نهائية.",
+        "en": "If, starting in the initial position, it halts in a final state."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي مشكلة القرار (Decision Problem)؟",
+      "en": "What is a decision problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مشكلة تسأل عما إذا كانت عبارة معينة صحيحة أم لا (مشكلة نعم أو لا).",
+        "en": "A problem that asks whether statements are true (Yes-or-No Problems)."
+      },
+      "example": {
+        "ar": "هل الرقم المعطى أولي؟",
+        "en": "Is the given integer prime?"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي مشكلة التوقف (Halting Problem)؟",
+      "en": "What is the Halting Problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مشكلة قرار تسأل عما إذا كانت آلة تورنغ ستتوقف في النهاية عند إعطائها سلسلة مدخلات معينة.",
+        "en": "The decision problem that asks whether a Turing machine T eventually halts when given an input string x."
+      },
+      "example": {
+        "ar": "وهي مشكلة غير قابلة للحل (Unsolvable).",
+        "en": "It is an unsolvable decision problem."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي الفئة P (Class P)؟",
+      "en": "What is Class P?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة المشاكل التي يمكن حلها بواسطة آلة تورنغ حتمية في وقت متعدد الحدود.",
+        "en": "The class of polynomial-time problems solvable by a deterministic Turing machine."
+      },
+      "example": {
+        "ar": "تسمى هذه المشاكل قابلة للحل (Tractable).",
+        "en": "These problems are called tractable."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هي الفئة NP (Class NP)؟",
+      "en": "What is Class NP?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة المشاكل التي يمكن حلها بواسطة آلة تورنغ غير حتمية في وقت متعدد الحدود.",
+        "en": "The class of nondeterministic polynomial-time problems."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما الفرق بين Tractable و Intractable؟",
+      "en": "What is the difference between Tractable and Intractable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المشاكل في P هي Tractable (سهلة الحل)، بينما المشاكل التي ليست في P هي Intractable (مستعصية).",
+        "en": "Problems in P are tractable, whereas problems not in P are intractable."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من العمليات التالية لا تُستخدم لبناء المجموعات المنتظمة؟",
+      "en": "Which of the following operations is NOT used to build regular sets?"
+    },
+    "options": {
+      "ar": [
+        "الاتحاد (Union)",
+        "التسلسل (Concatenation)",
+        "التقاطع (Intersection)",
+        "إغلاق كلين (Kleene closure)"
+      ],
+      "en": [
+        "Union",
+        "Concatenation",
+        "Intersection",
+        "Kleene closure"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المجموعات المنتظمة تُبنى باستخدام الاتحاد، التسلسل، وإغلاق كلين فقط.",
+      "en": "Regular sets are built using only unions, concatenations, and Kleene closures."
+    },
+    "hint": {
+      "ar": "تذكر العمليات الثلاث الأساسية في التعبيرات المنتظمة.",
+      "en": "Remember the three basic operations in regular expressions."
+    },
+    "difficulty": "easy",
+    "conceptId": "language-recognition-regular-sets"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ماذا تنص مبرهنة كلين؟",
+      "en": "What does Kleene's Theorem state?"
+    },
+    "options": {
+      "ar": [
+        "كل آلة تورنغ يمكنها محاكاة آلة حالة منتهية.",
+        "المجموعة تكون منتظمة إذا وفقط إذا تم التعرف عليها بواسطة آلة حالة منتهية.",
+        "مشكلة التوقف غير قابلة للحل.",
+        "P = NP"
+      ],
+      "en": [
+        "Every Turing machine can simulate a finite-state automaton.",
+        "A set is regular if and only if it is recognized by a finite-state automaton.",
+        "The Halting Problem is unsolvable.",
+        "P = NP"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مبرهنة كلين تربط بين المجموعات المنتظمة وآلات الحالة المنتهية.",
+      "en": "Kleene's Theorem establishes the equivalence between regular sets and finite-state automata."
+    },
+    "hint": {
+      "ar": "تربط المبرهنة بين التعبيرات المنتظمة ونموذج حوسبة بسيط.",
+      "en": "The theorem connects regular expressions with a simple computational model."
+    },
+    "difficulty": "medium",
+    "conceptId": "kleenes-theorem"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "لماذا تعتبر آلة تورنغ أقوى من آلة الحالة المنتهية؟",
+      "en": "Why is a Turing machine more powerful than a finite-state machine?"
+    },
+    "options": {
+      "ar": [
+        "لأنها أسرع في التنفيذ.",
+        "لأنها تحتوي على قدرات ذاكرة (شريط لانهائي).",
+        "لأنها لا تحتوي على حالات نهائية.",
+        "لأنها تستخدم التعبيرات المنتظمة."
+      ],
+      "en": [
+        "Because it executes faster.",
+        "Because it includes memory capabilities (infinite tape).",
+        "Because it has no final states.",
+        "Because it uses regular expressions."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الشريط اللانهائي يوفر ذاكرة غير محدودة، مما يسمح لآلة تورنغ بحل مشاكل لا تستطيع آلة الحالة المنتهية حلها.",
+      "en": "The infinite tape provides unbounded memory, allowing TMs to solve problems FSAs cannot."
+    },
+    "hint": {
+      "ar": "فكر في الفرق الهيكلي الرئيسي بين النموذجين.",
+      "en": "Think about the main structural difference between the two models."
+    },
+    "difficulty": "easy",
+    "conceptId": "turing-machines-intro"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "في آلة تورنغ، ماذا تعني الخماسية (s0, 1, s1, 0, L)؟",
+      "en": "In a Turing machine, what does the 5-tuple (s0, 1, s1, 0, L) mean?"
+    },
+    "options": {
+      "ar": [
+        "إذا كنت في s0 وقرأت 1، انتقل إلى s1، واكتب 0، وتحرك لليسار.",
+        "إذا كنت في s0 وقرأت 0، انتقل إلى s1، واكتب 1، وتحرك لليسار.",
+        "إذا كنت في s1 وقرأت 1، انتقل إلى s0، واكتب 0، وتحرك لليمين.",
+        "إذا كنت في s0 وقرأت 1، انتقل إلى s1، واكتب 0، وتحرك لليمين."
+      ],
+      "en": [
+        "If in s0 and read 1, go to s1, write 0, and move Left.",
+        "If in s0 and read 0, go to s1, write 1, and move Left.",
+        "If in s1 and read 1, go to s0, write 0, and move Right.",
+        "If in s0 and read 1, go to s1, write 0, and move Right."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الترتيب هو: (الحالة الحالية، الرمز المقروء، الحالة الجديدة، الرمز المكتوب، الاتجاه).",
+      "en": "The order is: (current state, read symbol, new state, write symbol, direction)."
+    },
+    "hint": {
+      "ar": "تذكر الترتيب: (state, read, new_state, write, direction).",
+      "en": "Remember the order: (state, read, new_state, write, direction)."
+    },
+    "difficulty": "medium",
+    "conceptId": "turing-machine-definition"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "متى تتوقف (Halt) آلة تورنغ؟",
+      "en": "When does a Turing machine halt?"
+    },
+    "options": {
+      "ar": [
+        "عندما تصل إلى نهاية الشريط.",
+        "عندما تقرأ الرمز الفارغ B.",
+        "عندما لا توجد قاعدة انتقال للزوج (الحالة الحالية، الرمز المقروء).",
+        "بعد 100 خطوة."
+      ],
+      "en": [
+        "When it reaches the end of the tape.",
+        "When it reads the blank symbol B.",
+        "When there is no transition rule for the current (state, symbol) pair.",
+        "After 100 steps."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "دالة الانتقال هي دالة جزئية؛ غياب القاعدة هو ما يسبب توقف الآلة.",
+      "en": "The transition function is partial; the absence of a rule causes the machine to halt."
+    },
+    "hint": {
+      "ar": "دالة الانتقال هي 'دالة جزئية'.",
+      "en": "The transition function is a 'partial function'."
+    },
+    "difficulty": "medium",
+    "conceptId": "turing-machine-definition"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "كيف تتعرف آلة تورنغ على سلسلة معينة؟",
+      "en": "How does a Turing machine recognize a given string?"
+    },
+    "options": {
+      "ar": [
+        "إذا توقفت في حالة نهائية.",
+        "إذا مسحت جميع الرموز من الشريط.",
+        "إذا لم تتوقف أبداً.",
+        "إذا عادت إلى الحالة الابتدائية."
+      ],
+      "en": [
+        "If it halts in a final state.",
+        "If it erases all symbols from the tape.",
+        "If it never halts.",
+        "If it returns to the initial state."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "التعرف يحدث عندما تبدأ الآلة في الموضع الابتدائي وتتوقف في حالة نهائية.",
+      "en": "Recognition occurs when the machine starts in the initial position and halts in a final state."
+    },
+    "hint": {
+      "ar": "ما هو شرط القبول في آلات تورنغ؟",
+      "en": "What is the acceptance condition for Turing machines?"
+    },
+    "difficulty": "easy",
+    "conceptId": "recognizing-sets-turing-machines"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ما هي مشكلة التوقف (Halting Problem)؟",
+      "en": "What is the Halting Problem?"
+    },
+    "options": {
+      "ar": [
+        "مشكلة تحديد ما إذا كان الرقم أولياً.",
+        "مشكلة تحديد ما إذا كانت آلة تورنغ ستتوقف عند إعطائها مدخل معين.",
+        "مشكلة إيجاد أقصر مسار في رسم بياني.",
+        "مشكلة تحويل NFA إلى DFA."
+      ],
+      "en": [
+        "The problem of determining if a number is prime.",
+        "The problem of determining whether a Turing machine eventually halts on a given input.",
+        "The problem of finding the shortest path in a graph.",
+        "The problem of converting an NFA to a DFA."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مشكلة التوقف تسأل عما إذا كان البرنامج سينتهي أم سيستمر في حلقة لانهائية.",
+      "en": "The Halting Problem asks if a program will terminate or run in an infinite loop."
+    },
+    "hint": {
+      "ar": "الاسم 'توقف' يشير إلى انتهاء التنفيذ.",
+      "en": "The name 'halting' refers to termination of execution."
+    },
+    "difficulty": "easy",
+    "conceptId": "decidability-halting-problem"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "هل مشكلة التوقف قابلة للحل (Solvable)؟",
+      "en": "Is the Halting Problem solvable?"
+    },
+    "options": {
+      "ar": [
+        "نعم، بواسطة آلة تورنغ غير حتمية.",
+        "نعم، في وقت متعدد الحدود.",
+        "لا، إنها مشكلة قرار غير قابلة للحل.",
+        "نعم، ولكن فقط للمجموعات المنتظمة."
+      ],
+      "en": [
+        "Yes, by a nondeterministic Turing machine.",
+        "Yes, in polynomial time.",
+        "No, it is an unsolvable decision problem.",
+        "Yes, but only for regular sets."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "أثبت آلان تورنغ أنه لا توجد خوارزمية عامة يمكنها حل مشكلة التوقف لجميع المدخلات.",
+      "en": "Alan Turing proved that no general algorithm can solve the Halting Problem for all inputs."
+    },
+    "hint": {
+      "ar": "تذكر المبرهنة 1 في قسم التعقيد الحسابي.",
+      "en": "Recall Theorem 1 in the computational complexity section."
+    },
+    "difficulty": "medium",
+    "conceptId": "decidability-halting-problem"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما الذي يميز الفئة P عن الفئة NP؟",
+      "en": "What distinguishes Class P from Class NP?"
+    },
+    "options": {
+      "ar": [
+        "P تُحل بواسطة آلة حتمية، بينما NP تُحل بواسطة آلة غير حتمية.",
+        "P تتطلب وقت أسي، بينما NP تتطلب وقت متعدد الحدود.",
+        "P هي مشاكل غير قابلة للحل، بينما NP قابلة للحل.",
+        "لا يوجد فرق، P = NP."
+      ],
+      "en": [
+        "P is solved by a deterministic machine, while NP is solved by a nondeterministic machine.",
+        "P requires exponential time, while NP requires polynomial time.",
+        "P are unsolvable problems, while NP are solvable.",
+        "There is no difference, P = NP."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الفئة P تستخدم آلات تورنغ حتمية (Deterministic)، بينما NP تستخدم آلات غير حتمية (Nondeterministic).",
+      "en": "Class P uses deterministic Turing machines, while NP uses nondeterministic ones."
+    },
+    "hint": {
+      "ar": "انتبه للحرف 'N' في NP.",
+      "en": "Pay attention to the 'N' in NP."
+    },
+    "difficulty": "medium",
+    "conceptId": "computational-complexity-p-np"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ماذا نطلق على المشاكل التي تنتمي إلى الفئة P؟",
+      "en": "What do we call problems that belong to Class P?"
+    },
+    "options": {
+      "ar": [
+        "مستعصية (Intractable)",
+        "غير قابلة للحسم (Undecidable)",
+        "قابلة للحل عملياً (Tractable)",
+        "غير منتظمة (Nonregular)"
+      ],
+      "en": [
+        "Intractable",
+        "Undecidable",
+        "Tractable",
+        "Nonregular"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المشاكل في P تسمى Tractable لأنها يمكن حلها بكفاءة في وقت متعدد الحدود.",
+      "en": "Problems in P are called Tractable because they can be solved efficiently in polynomial time."
+    },
+    "hint": {
+      "ar": "عكس كلمة مستعصية.",
+      "en": "The opposite of intractable."
+    },
+    "difficulty": "easy",
+    "conceptId": "computational-complexity-p-np"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن آلات الحالة المنتهية (FSA) يمكنها التعرف على أي نمط. الحقيقة: FSA لا تملك ذاكرة، لذا لا يمكنها التعرف على لغات تتطلب العد مثل {0^n 1^n}. تحتاج إلى آلة تورنغ لذلك.</template>
+      <template class="content-en">Believing that Finite-State Automata (FSA) can recognize any pattern. Fact: FSAs have no memory, so they cannot recognize languages that require counting like {0^n 1^n}. You need a Turing Machine for that.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">مبرهنة كلين هي الجسر بين التعبيرات المنتظمة (الجبر) وآلات الحالة المنتهية (الآلات). أي شيء تكتبه كتعبير منتظم يمكن تحويله إلى آلة.</template>
+      <template class="content-en">Kleene's Theorem is the bridge between regular expressions (algebra) and finite-state automata (machines). Anything you write as a regular expression can be compiled into a machine.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في آلة تورنغ، التوقف (Halting) ليس أمراً سلبياً دائماً. في الواقع، التوقف في حالة نهائية هو الطريقة التي تعلن بها الآلة 'قبول' السلسلة المدخلة.</template>
+      <template class="content-en">In a Turing Machine, halting is not always a bad thing. In fact, halting in a final state is exactly how the machine declares 'acceptance' of the input string.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين P و NP. حرف N في NP لا يعني 'Not Polynomial' (ليس متعدد الحدود)، بل يعني 'Nondeterministic' (غير حتمي). مشاكل NP يمكن حلها في وقت متعدد الحدود ولكن بواسطة آلة غير حتمية.</template>
+      <template class="content-en">Confusing P and NP. The 'N' in NP does NOT stand for 'Not Polynomial'. It stands for 'Nondeterministic'. NP problems can be solved in polynomial time, but by a nondeterministic machine.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">مشكلة التوقف تثبت وجود حدود للحوسبة. بغض النظر عن مدى تطور الحواسيب، هناك مشاكل (مثل التنبؤ بما إذا كان برنامج ما سيتوقف) لا يمكن حلها خوارزمياً أبداً.</template>
+      <template class="content-en">The Halting Problem proves there are fundamental limits to computation. No matter how advanced computers get, some problems (like predicting if a program will halt) can never be solved algorithmically.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M12.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

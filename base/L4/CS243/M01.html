@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS243" data-module="1">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الهياكل الأساسية: المجموعات، الدوال، المتتاليات، والمصفوفات · CS243 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS243" data-page-title-en="CS243">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="index.html" data-gh-next="M02.html" data-gh-card="../../hub/course.html?code=CS243"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#sets-and-notation" class="toc-link" data-bilingual>
+        <template class="content-ar">المجموعات وطرق تمثيلها</template>
+        <template class="content-en">Sets and Notation</template>
+        <span class="content-target">المجموعات وطرق تمثيلها</span>
+      </a>
+      <a href="#subsets-and-universal-sets" class="toc-link" data-bilingual>
+        <template class="content-ar">المجموعات الجزئية والمجموعة الشاملة</template>
+        <template class="content-en">Subsets and Universal Sets</template>
+        <span class="content-target">المجموعات الجزئية والمجموعة الشاملة</span>
+      </a>
+      <a href="#cardinality-and-countability" class="toc-link" data-bilingual>
+        <template class="content-ar">حجم المجموعات والقابلية للعد</template>
+        <template class="content-en">Cardinality and Countability</template>
+        <span class="content-target">حجم المجموعات والقابلية للعد</span>
+      </a>
+      <a href="#matrices-introduction" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة في المصفوفات</template>
+        <template class="content-en">Introduction to Matrices</template>
+        <span class="content-target">مقدمة في المصفوفات</span>
+      </a>
+      <a href="#matrix-multiplication" class="toc-link" data-bilingual>
+        <template class="content-ar">ضرب المصفوفات</template>
+        <template class="content-en">Matrix Multiplication</template>
+        <span class="content-target">ضرب المصفوفات</span>
+      </a>
+      <a href="#special-matrices-and-transpose" class="toc-link" data-bilingual>
+        <template class="content-ar">المصفوفات الخاصة والمنقولة</template>
+        <template class="content-en">Special Matrices and Transposes</template>
+        <span class="content-target">المصفوفات الخاصة والمنقولة</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 2</template>
+      <template class="content-en">Module 2</template>
+      <span class="content-target">الوحدة 2</span>
+    </span> · CS243
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الهياكل الأساسية: المجموعات، الدوال، المتتاليات، والمصفوفات</h1>
+      <p class="hero-description">تغطي هذه الوحدة المفاهيم الأساسية للمجموعات، طرق كتابتها، المجموعات الجزئية، حجم المجموعات (القابلية للعد)، ومقدمة شاملة عن المصفوفات والعمليات عليها.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Basic Structures: Sets, Functions, Sequences, Sums, and Matrices</h1>
+      <p class="hero-description">This module covers the fundamental concepts of sets, notation methods, subsets, set cardinality (countability), and a comprehensive introduction to matrices and their operations.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المجموعات</span>
+      <span class="tag">القابلية للعد</span>
+      <span class="tag">المصفوفات</span>
+      <span class="tag">الرياضيات المتقطعة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Sets</span>
+      <span class="tag">Cardinality</span>
+      <span class="tag">Matrices</span>
+      <span class="tag">Discrete Mathematics</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>تعريف المجموعة كبنية متقطعة أساسية.</span></li>
+      <li><span class="obj-icon">✦</span><span>بناء ودمج مجموعتين أو أكثر بطرق مختلفة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحديد ما إذا كانت المجموعات منتهية، غير منتهية قابلة للعد، أو غير قابلة للعد.</span></li>
+      <li><span class="obj-icon">✦</span><span>توضيح مصطلحات المصفوفات وتطبيقاتها.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Define the set as fundamental discrete structure.</span></li>
+      <li><span class="obj-icon">✦</span><span>Construct and combine two or more sets in different ways.</span></li>
+      <li><span class="obj-icon">✦</span><span>Determine whether the sets are finite, countably infinite, or uncountable.</span></li>
+      <li><span class="obj-icon">✦</span><span>Illustrate the terms of matrices and their applications.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="sets-and-notation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> المجموعات وطرق تمثيلها</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Sets and Notation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المجموعة هي تجميع غير مرتب من الأشياء المتميزة، مثل حقيبة تحتوي على عناصر فريدة لا يهم ترتيبها.</p></template>
+    <template class="content-en"><p>A set is an unordered collection of distinct objects, like a bag of unique items where order doesn't matter.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المجموعة (Set) هي تجميع غير مرتب من الأشياء التي تسمى عناصر (elements) أو أعضاء (members). نكتب $a \in A$ لندل على أن $a$ عنصر في $A$. يمكن وصف المجموعات بطريقتين رئيسيتين:</p><ul><li><strong><span class="smart-term" data-term-en="Roster Method" data-ar="طريقة القائمة" data-en-def="Describing a set by listing all its elements inside braces.">طريقة القائمة (Roster Method)<span class="smart-term-tooltip"></span></span></strong> حيث نكتب العناصر صراحة مثل $S = \{a,b,c,d\}$،</li><li>و<strong><span class="smart-term" data-term-en="Set-Builder Notation" data-ar="طريقة بناء المجموعة" data-en-def="Describing a set by specifying the properties its elements must satisfy.">طريقة بناء المجموعة (Set-Builder Notation)<span class="smart-term-tooltip"></span></span></strong> التي تصف الخصائص التي يجب أن يمتلكها العنصر، مثل $O = \{x \mid x \text{ is an odd positive integer} \}$.</li></ul><p>الترتيب والتكرار لا يغيران المجموعة.</p></template>
+    <template class="content-en"><p>A set is an unordered collection of objects called elements or members. We write $a \in A$ to denote that $a$ is an element of $A$. Sets can be described in two main ways:</p><ul><li>the <strong><span class="smart-term" data-term-en="Roster Method" data-ar="طريقة القائمة" data-en-def="Describing a set by listing all its elements inside braces.">Roster Method<span class="smart-term-tooltip"></span></span></strong>, listing elements explicitly like $S = \{a,b,c,d\}$,</li><li>and the <strong><span class="smart-term" data-term-en="Set-Builder Notation" data-ar="طريقة بناء المجموعة" data-en-def="Describing a set by specifying the properties its elements must satisfy.">Set-Builder Notation<span class="smart-term-tooltip"></span></span></strong>, stating properties elements must have, like $O = \{x \mid x \text{ is an odd positive integer} \}$.</li></ul><p>Order and repetition do not change the set.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا لا يهم التكرار؟ لأن الانتماء للمجموعة هو حالة ثنائية (إما أن يكون العنصر موجوداً أو لا). المجموعات الهامة تشمل:</p><ul><li>$\mathbb{N}$ (الأعداد الطبيعية)،</li><li>$\mathbb{Z}$ (الأعداد الصحيحة)،</li><li>$\mathbb{Q}$ (الأعداد النسبية)،</li><li>و $\mathbb{R}$ (الأعداد الحقيقية).</li></ul><p>المجموعة الخالية $\emptyset$ لا تحتوي على عناصر، بينما المجموعة الأحادية (Singleton) تحتوي على عنصر واحد فقط، مثل $\{\emptyset\}$.</p></template>
+    <template class="content-en"><p>Why doesn't repetition matter? Because set membership is binary (an object is either in the set or not). Important sets include:</p><ul><li>$\mathbb{N}$ (natural numbers),</li><li>$\mathbb{Z}$ (integers),</li><li>$\mathbb{Q}$ (rational numbers),</li><li>and $\mathbb{R}$ (real numbers).</li></ul><p>The empty set $\emptyset$ has no elements, while a singleton set contains exactly one element, such as $\{\emptyset\}$.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الترتيب والتكرار لا يؤثران على المجموعة.</strong></template>
+      <template class="content-en"><strong>Order and repetition do not affect the set.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$S = \{a,b,c,d\} = \{b,c,a,d\} = \{a,b,c,b,c,d\}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل المجموعة {1, 2, 3} تختلف عن المجموعة {3, 2, 1, 1}؟ ولماذا؟</template>
+      <template class="content-en">Is the set {1, 2, 3} different from the set {3, 2, 1, 1}? Why?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، هما نفس المجموعة. الترتيب غير مهم في المجموعات، وتكرار العنصر (مثل الرقم 1) لا يغير من محتوى المجموعة.</p></template>
+      <template class="content-en"><p>No, they are the same set. Order is not important in sets, and repeating an element (like the number 1) does not change the set.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="subsets-and-universal-sets" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> المجموعات الجزئية والمجموعة الشاملة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Subsets and Universal Sets</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المجموعة الجزئية هي مجموعة كل عناصرها موجودة في مجموعة أخرى أكبر، والمجموعة الشاملة هي الحاوية الكبرى لكل شيء قيد الدراسة.</p></template>
+    <template class="content-en"><p>A subset is a set whose elements are all contained within another set, and the universal set is the grand container of everything under consideration.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong>المجموعة الشاملة (Universal Set) $U$</strong> تحتوي على كل شيء قيد الدراسة حالياً.</p><p><strong>المجموعة الجزئية (Subset)</strong>: تكون $A$ مجموعة جزئية من $B$ (تُكتب $A \subseteq B$) إذا وفقط إذا كان كل عنصر في $A$ هو أيضاً عنصر في $B$.</p><p><strong><span class="smart-term" data-term-en="Proper Subset" data-ar="المجموعة الجزئية الفعلية" data-en-def="A subset that is not strictly equal to the set it is derived from.">المجموعة الجزئية الفعلية (Proper Subset)<span class="smart-term-tooltip"></span></span></strong>: إذا كانت $A \subseteq B$ ولكن $A \neq B$، نقول أن $A$ مجموعة جزئية فعلية من $B$ (تُكتب $A \subset B$).</p></template>
+    <template class="content-en"><p>The <strong>Universal Set $U$</strong> contains everything currently under consideration.</p><p><strong>Subset</strong>: Set $A$ is a subset of $B$ (denoted $A \subseteq B$) if and only if every element of $A$ is also an element of $B$.</p><p><strong><span class="smart-term" data-term-en="Proper Subset" data-ar="المجموعة الجزئية الفعلية" data-en-def="A subset that is not strictly equal to the set it is derived from.">Proper Subset<span class="smart-term-tooltip"></span></span></strong>: If $A \subseteq B$, but $A \neq B$, we say $A$ is a proper subset of $B$ (denoted $A \subset B$).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من الخصائص الهامة للمجموعات الجزئية أن المجموعة الخالية هي مجموعة جزئية من أي مجموعة ($\emptyset \subseteq S$)، وكل مجموعة هي مجموعة جزئية من نفسها ($S \subseteq S$).</p><p>رياضياً، $A \subseteq B$ تعني $\forall x (x \in A \rightarrow x \in B)$.</p></template>
+    <template class="content-en"><p>Important properties of subsets include that the empty set is a subset of every set ($\emptyset \subseteq S$), and every set is a subset of itself ($S \subseteq S$).</p><p>Mathematically, $A \subseteq B$ holds if and only if $\forall x (x \in A \rightarrow x \in B)$ is true.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعريف المنطقي للمجموعة الجزئية الفعلية (A ⊂ B).</strong></template>
+      <template class="content-en"><strong>Logical definition of a proper subset (A ⊂ B).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\forall x(x \in A \rightarrow x \in B) \land \exists x(x \in B \land x \notin A)$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A Venn diagram showing a large rectangle labeled 'U' (Universal Set) in the top right corner. Inside, a circle labeled 'V' representing vowels. Inside the circle, blue dots labeled 'a', 'e', 'i', 'o', 'u'. Style: educational, dark background #0d1117, accent color #00ffff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- Gradient for the Vowels Set (V) -->
+        <radialGradient id="vowelBg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="var(--brand-500)" stop-opacity="0.05" />
+            <stop offset="100%" stop-color="var(--brand-500)" stop-opacity="0.2" />
+        </radialGradient>
+        
+        <!-- Subtle drop shadow for elevated elements -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Universal Set (U) Boundary -->
+    <rect x="50" y="40" width="700" height="320" rx="12" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8 6" />
+    
+    <!-- Universal Set (U) Labels (Top Right) -->
+    <text x="730" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="end">U</text>
+    <text x="730" y="98" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="end">Universal Set / المجموعة الشاملة</text>
+
+    <!-- Vowels Set (V) Circle -->
+    <circle cx="400" cy="200" r="130" fill="url(#vowelBg)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)" />
+    
+    <!-- Vowels Set (V) Labels -->
+    <text x="400" y="110" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">V</text>
+    <text x="400" y="132" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Vowels / حروف العلة</text>
+
+    <!-- Elements INSIDE V (Vowels) -->
+    <g transform="translate(340, 170)">
+        <circle cx="0" cy="0" r="6" fill="var(--brand-500)" />
+        <text x="14" y="6" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)">a</text>
+    </g>
+    <g transform="translate(460, 170)">
+        <circle cx="0" cy="0" r="6" fill="var(--brand-500)" />
+        <text x="14" y="6" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)">e</text>
+    </g>
+    <g transform="translate(400, 215)">
+        <circle cx="0" cy="0" r="6" fill="var(--brand-500)" />
+        <text x="14" y="6" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)">i</text>
+    </g>
+    <g transform="translate(350, 260)">
+        <circle cx="0" cy="0" r="6" fill="var(--brand-500)" />
+        <text x="14" y="6" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)">o</text>
+    </g>
+    <g transform="translate(450, 260)">
+        <circle cx="0" cy="0" r="6" fill="var(--brand-500)" />
+        <text x="14" y="6" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)">u</text>
+    </g>
+
+    <!-- Elements OUTSIDE V (Consonants in Universal Set) -->
+    <g transform="translate(140, 100)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">b</text>
+    </g>
+    <g transform="translate(220, 150)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">c</text>
+    </g>
+    <g transform="translate(120, 220)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">d</text>
+    </g>
+    <g transform="translate(180, 300)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">f</text>
+    </g>
+    <g transform="translate(620, 140)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">x</text>
+    </g>
+    <g transform="translate(660, 230)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">y</text>
+    </g>
+    <g transform="translate(580, 290)">
+        <circle cx="0" cy="0" r="4" fill="var(--text-muted)" />
+        <text x="12" y="5" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-muted)">z</text>
+    </g>
+
+    <!-- Educational Annotation Box -->
+    <g transform="translate(70, 290)">
+        <rect x="0" y="0" width="220" height="54" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+        <text x="110" y="24" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">V ⊂ U</text>
+        <text x="110" y="44" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">Proper Subset / مجموعة جزئية</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Subset (⊆)</th>
+        <th>Proper Subset (⊂)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعريف</template>
+          <template class="content-en">Definition</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كل عنصر في A موجود في B</template>
+          <template class="content-en">Every element in A is in B</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كل عنصر في A موجود في B، و A لا تساوي B</template>
+          <template class="content-en">Every element in A is in B, and A ≠ B</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">إمكانية التساوي</template>
+          <template class="content-en">Possibility of Equality</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ممكن (A يمكن أن تساوي B)</template>
+          <template class="content-en">Possible (A can equal B)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير ممكن (يجب أن تحتوي B على عنصر إضافي واحد على الأقل)</template>
+          <template class="content-en">Not possible (B must have at least one extra element)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تعتبر المجموعة الخالية مجموعة جزئية من أي مجموعة؟</template>
+      <template class="content-en">Why is the empty set considered a subset of every set?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه لا يوجد أي عنصر في المجموعة الخالية ينتهك شرط المجموعة الجزئية (وهو أن كل عنصر في الأولى يجب أن يكون في الثانية). هذا يُعرف بالصحة الفراغية (Vacuous truth).</p></template>
+      <template class="content-en"><p>Because there is no element in the empty set that violates the subset condition (that every element in the first must be in the second). This is known as a vacuous truth.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="cardinality-and-countability" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> حجم المجموعات والقابلية للعد</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Cardinality and Countability</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>حجم المجموعة (Cardinality) هو عدد عناصرها. المجموعات القابلة للعد هي التي يمكننا ترتيب عناصرها في قائمة وربطها بالأعداد الصحيحة الموجبة.</p></template>
+    <template class="content-en"><p>Cardinality is the number of elements in a set. Countable sets are those whose elements can be listed and paired one-to-one with positive integers.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Cardinality" data-ar="حجم المجموعة (الكاردينالية)" data-en-def="The number of distinct elements in a set.">الحجم (Cardinality)<span class="smart-term-tooltip"></span></span></strong>: يُرمز له بـ $|A|$، وهو عدد العناصر المتميزة في مجموعة منتهية. إذا كان هناك تطابق واحد لواحد (bijection) بين مجموعتين $A$ و $B$، فإن لهما نفس الحجم $|A| = |B|$.</p><p><strong><span class="smart-term" data-term-en="Countable Set" data-ar="مجموعة قابلة للعد" data-en-def="A set that is finite or has a one-to-one correspondence with positive integers.">المجموعات القابلة للعد (Countable Sets)<span class="smart-term-tooltip"></span></span></strong>: هي المجموعات المنتهية أو التي لها نفس حجم مجموعة الأعداد الصحيحة الموجبة. يُرمز لحجم المجموعة غير المنتهية القابلة للعد بالرمز $\aleph_0$ (<span class="smart-term" data-term-en="Aleph Null ($leph_0$)" data-ar="أليف نول" data-en-def="The cardinality of a countably infinite set.">أليف نول<span class="smart-term-tooltip"></span></span>).</p></template>
+    <template class="content-en"><p><strong><span class="smart-term" data-term-en="Cardinality" data-ar="حجم المجموعة (الكاردينالية)" data-en-def="The number of distinct elements in a set.">Cardinality<span class="smart-term-tooltip"></span></span></strong>: Denoted by $|A|$, it is the number of distinct elements in a finite set. Two sets $A$ and $B$ have the same cardinality ($|A| = |B|$) if there is a one-to-one correspondence (bijection) between them.</p><p><strong><span class="smart-term" data-term-en="Countable Set" data-ar="مجموعة قابلة للعد" data-en-def="A set that is finite or has a one-to-one correspondence with positive integers.">Countable Sets<span class="smart-term-tooltip"></span></span></strong>: A set that is either finite or has the same cardinality as the set of positive integers. The cardinality of a countably infinite set is denoted by $\aleph_0$ (<span class="smart-term" data-term-en="Aleph Null ($leph_0$)" data-ar="أليف نول" data-en-def="The cardinality of a countably infinite set.">aleph null<span class="smart-term-tooltip"></span></span>).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لإثبات أن مجموعة غير منتهية هي قابلة للعد، يجب إيجاد دالة تقابل (bijection) بينها وبين الأعداد الطبيعية $\mathbb{N}$.</p><p>على سبيل المثال، مجموعة الأعداد الزوجية الموجبة قابلة للعد باستخدام الدالة $f(x) = 2x$. مجموعة الأعداد الصحيحة $\mathbb{Z}$ قابلة للعد أيضاً بترتيبها كالتالي: $0, 1, -1, 2, -2, \dots$. حتى الأعداد النسبية الموجبة قابلة للعد.</p></template>
+    <template class="content-en"><p>To show an infinite set is countable, one must find a bijection from the positive integers to the set.</p><p>For example, the set of positive even integers is countable using $f(x) = 2x$. The set of all integers $\mathbb{Z}$ is also countable by listing them as $0, 1, -1, 2, -2, \dots$. Even the set of positive rational numbers is countable.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حجم المجموعة غير المنتهية القابلة للعد (أليف نول).</strong></template>
+      <template class="content-en"><strong>The cardinality of a countably infinite set (aleph null).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$|S| = \aleph_0$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A diagram showing a one-to-one correspondence (bijection) between natural numbers (1, 2, 3, 4, 5, 6...) and positive even integers (2, 4, 6, 8, 10, 12...). Use vertical double-headed blue arrows connecting 1 to 2, 2 to 4, 3 to 6, etc. Style: educational, dark background #0d1117, accent color #00ffff, viewBox 0 0 800 300. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Markers for highlighted arrow -->
+        <marker id="arrow-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 2 L 8 5 L 0 8 Z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-tail" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 10 2 L 2 5 L 10 8 Z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Markers for standard arrows -->
+        <marker id="arrow-head-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 0 2 L 8 5 L 0 8 Z" fill="var(--brand-400)" />
+        </marker>
+        <marker id="arrow-tail-muted" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M 10 2 L 2 5 L 10 8 Z" fill="var(--brand-400)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" rx="8" />
+
+    <!-- Title and Subtitle -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Bijection: Natural Numbers ↔ Even Integers</text>
+    <text x="400" y="70" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">تقابل: الأعداد الطبيعية ↔ الأعداد الزوجية</text>
+
+    <!-- Set Backgrounds (Subtle grouping) -->
+    <rect x="20" y="110" width="640" height="80" rx="12" fill="var(--brand-500)" opacity="0.05" />
+    <rect x="20" y="110" width="640" height="80" rx="12" fill="none" stroke="var(--brand-500)" stroke-width="1" stroke-dasharray="4,4" opacity="0.4" />
+    
+    <rect x="20" y="290" width="640" height="80" rx="12" fill="var(--brand-500)" opacity="0.05" />
+    <rect x="20" y="290" width="640" height="80" rx="12" fill="none" stroke="var(--brand-500)" stroke-width="1" stroke-dasharray="4,4" opacity="0.4" />
+
+    <!-- Set Labels -->
+    <!-- Top Set (Natural Numbers) -->
+    <text x="70" y="140" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">ℕ</text>
+    <text x="70" y="160" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">طبيعية</text>
+    <text x="70" y="176" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle">Natural</text>
+
+    <!-- Bottom Set (Even Integers) -->
+    <text x="70" y="320" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2ℕ</text>
+    <text x="70" y="340" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">زوجية</text>
+    <text x="70" y="356" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle">Even</text>
+
+    <!-- Arrows (Drawn before nodes so they sit underneath) -->
+    <line x1="150" y1="195" x2="150" y2="285" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-tail-muted)" marker-end="url(#arrow-head-muted)" />
+    <line x1="230" y1="195" x2="230" y2="285" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-tail-muted)" marker-end="url(#arrow-head-muted)" />
+    
+    <!-- Highlighted Arrow -->
+    <line x1="310" y1="195" x2="310" y2="285" stroke="var(--brand-500)" stroke-width="3" marker-start="url(#arrow-tail)" marker-end="url(#arrow-head)" />
+    
+    <line x1="390" y1="195" x2="390" y2="285" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-tail-muted)" marker-end="url(#arrow-head-muted)" />
+    <line x1="470" y1="195" x2="470" y2="285" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-tail-muted)" marker-end="url(#arrow-head-muted)" />
+    <line x1="550" y1="195" x2="550" y2="285" stroke="var(--brand-400)" stroke-width="2" marker-start="url(#arrow-tail-muted)" marker-end="url(#arrow-head-muted)" />
+    
+    <!-- Ellipsis Arrow -->
+    <line x1="625" y1="195" x2="625" y2="285" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="5,5" marker-start="url(#arrow-tail-muted)" marker-end="url(#arrow-head-muted)" />
+
+    <!-- Highlight Label -->
+    <rect x="325" y="230" width="44" height="22" rx="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1" />
+    <text x="347" y="245" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">× 2</text>
+
+    <!-- Nodes: Top Set (Natural Numbers) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">
+        <rect x="125" y="125" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="150" y="157" fill="var(--text-primary)">1</text>
+
+        <rect x="205" y="125" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="230" y="157" fill="var(--text-primary)">2</text>
+
+        <!-- Highlighted Node -->
+        <rect x="285" y="125" width="50" height="50" rx="12" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="310" y="157" fill="var(--bg-surface)">3</text>
+
+        <rect x="365" y="125" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="390" y="157" fill="var(--text-primary)">4</text>
+
+        <rect x="445" y="125" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="470" y="157" fill="var(--text-primary)">5</text>
+
+        <rect x="525" y="125" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="550" y="157" fill="var(--text-primary)">6</text>
+    </g>
+
+    <!-- Nodes: Bottom Set (Even Integers) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">
+        <rect x="125" y="305" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="150" y="337" fill="var(--text-primary)">2</text>
+
+        <rect x="205" y="305" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="230" y="337" fill="var(--text-primary)">4</text>
+
+        <!-- Highlighted Node -->
+        <rect x="285" y="305" width="50" height="50" rx="12" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="310" y="337" fill="var(--bg-surface)">6</text>
+
+        <rect x="365" y="305" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="390" y="337" fill="var(--text-primary)">8</text>
+
+        <rect x="445" y="305" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="470" y="337" fill="var(--text-primary)">10</text>
+
+        <rect x="525" y="305" width="50" height="50" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="550" y="337" fill="var(--text-primary)">12</text>
+    </g>
+
+    <!-- Ellipsis (Infinity indication) -->
+    <g fill="var(--text-muted)">
+        <!-- Top -->
+        <circle cx="610" cy="150" r="3" />
+        <circle cx="625" cy="150" r="3" />
+        <circle cx="640" cy="150" r="3" />
+        
+        <!-- Bottom -->
+        <circle cx="610" cy="330" r="3" />
+        <circle cx="625" cy="330" r="3" />
+        <circle cx="640" cy="330" r="3" />
+    </g>
+
+    <!-- Formula Box (Right Side) -->
+    <rect x="670" y="180" width="110" height="120" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    
+    <text x="725" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Bijection</text>
+    <text x="725" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">تقابل</text>
+    
+    <line x1="680" y1="235" x2="770" y2="235" stroke="var(--border-color)" stroke-width="1" />
+    
+    <text x="725" y="258" font-family="monospace" font-size="15" fill="var(--text-primary)" text-anchor="middle">f(n) = 2n</text>
+    <text x="725" y="282" font-family="monospace" font-size="13" fill="var(--text-secondary)" text-anchor="middle">f⁻¹(m) = m/2</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Countable Sets</th>
+        <th>Uncountable Sets</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الارتباط بالأعداد الصحيحة الموجبة</template>
+          <template class="content-en">Mapping to Positive Integers</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يوجد تطابق واحد لواحد (Bijection)</template>
+          <template class="content-en">One-to-one correspondence exists</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">لا يمكن إيجاد تطابق شامل</template>
+          <template class="content-en">Cannot establish full correspondence</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أمثلة</template>
+          <template class="content-en">Examples</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الأعداد الصحيحة (Z)، الأعداد النسبية (Q)</template>
+          <template class="content-en">Integers (Z), Rational numbers (Q)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الأعداد الحقيقية (R)</template>
+          <template class="content-en">Real numbers (R)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكن لمجموعة الأعداد الصحيحة (Z) أن تكون قابلة للعد رغم أنها تمتد للمالانهاية في الاتجاهين الموجب والسالب؟</template>
+      <template class="content-en">How can the set of integers (Z) be countable even though it extends to infinity in both positive and negative directions?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يمكننا ترتيبها في تسلسل واحد يتناوب بين الموجب والسالب (0, 1, -1, 2, -2...)، مما يسمح بربط كل عدد صحيح برقم فهرس موجب فريد.</p></template>
+      <template class="content-en"><p>Because we can list them in a single sequence alternating between positive and negative (0, 1, -1, 2, -2...), allowing us to map each integer to a unique positive index.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="matrices-introduction" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> مقدمة في المصفوفات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Introduction to Matrices</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المصفوفة هي جدول مستطيل من الأرقام مرتبة في صفوف وأعمدة، تشبه جداول البيانات.</p></template>
+    <template class="content-en"><p>A matrix is a rectangular array of numbers arranged in rows and columns, much like a spreadsheet.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Matrix" data-ar="المصفوفة" data-en-def="A rectangular array of numbers.">المصفوفة (Matrix)<span class="smart-term-tooltip"></span></span></strong> هي ترتيب مستطيل للأرقام. المصفوفة التي تحتوي على $m$ من الصفوف و $n$ من الأعمدة تسمى مصفوفة $m \times n$.</p><p>إذا كان عدد الصفوف يساوي عدد الأعمدة، تسمى <strong><span class="smart-term" data-term-en="Square Matrix" data-ar="مصفوفة مربعة" data-en-def="A matrix with the same number of rows and columns.">مصفوفة مربعة (Square Matrix)<span class="smart-term-tooltip"></span></span></strong>. يُشار إلى العنصر في الصف $i$ والعمود $j$ بالرمز $a_{ij}$.</p><p>تتساوى مصفوفتان إذا كان لهما نفس الأبعاد وكانت العناصر المتقابلة متساوية.</p></template>
+    <template class="content-en"><p>A <strong><span class="smart-term" data-term-en="Matrix" data-ar="المصفوفة" data-en-def="A rectangular array of numbers.">matrix<span class="smart-term-tooltip"></span></span></strong> is a rectangular array of numbers. A matrix with $m$ rows and $n$ columns is called an $m \times n$ matrix.</p><p>If the number of rows equals the number of columns, it is called a <strong><span class="smart-term" data-term-en="Square Matrix" data-ar="مصفوفة مربعة" data-en-def="A matrix with the same number of rows and columns.">square matrix<span class="smart-term-tooltip"></span></span></strong>. The element in the $i$-th row and $j$-th column is denoted by $a_{ij}$.</p><p>Two matrices are equal if they have the same dimensions and corresponding entries are equal.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p><strong>جمع المصفوفات (Matrix Addition)</strong>: إذا كانت $A$ و $B$ مصفوفتين بأبعاد $m \times n$، فإن مجموعهما $A + B$ هو مصفوفة $m \times n$ حيث كل عنصر هو مجموع العنصرين المتقابلين $a_{ij} + b_{ij}$.</p><p>لا يمكن جمع مصفوفتين بأبعاد مختلفة.</p></template>
+    <template class="content-en"><p><strong>Matrix Addition</strong>: Let $A = [a_{ij}]$ and $B = [b_{ij}]$ be $m \times n$ matrices. Their sum $A + B$ is the $m \times n$ matrix that has $a_{ij} + b_{ij}$ as its $(i, j)$-th element.</p><p>Matrices of different sizes cannot be added.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>جمع مصفوفتين يتم بجمع العناصر المتقابلة.</strong></template>
+      <template class="content-en"><strong>Matrix addition is performed by adding corresponding elements.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$A + B = [a_{ij} + b_{ij}]$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُشترط أن تكون المصفوفتان بنفس الأبعاد لإجراء عملية الجمع؟</template>
+      <template class="content-en">Why is it required for two matrices to have the same dimensions to perform addition?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن عملية الجمع تُعرّف على أنها جمع العناصر المتقابلة في نفس المواقع. إذا اختلفت الأبعاد، ستوجد عناصر ليس لها مقابل لجمعها.</p></template>
+      <template class="content-en"><p>Because addition is defined element-wise. If dimensions differ, there will be elements without a corresponding counterpart to add to.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="matrix-multiplication" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> ضرب المصفوفات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Matrix Multiplication</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>لضرب مصفوفتين، نضرب صفوف المصفوفة الأولى في أعمدة المصفوفة الثانية ونجمع النواتج.</p></template>
+    <template class="content-en"><p>To multiply two matrices, we compute the dot product of the rows of the first matrix with the columns of the second matrix.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Matrix Product" data-ar="حاصل ضرب المصفوفات" data-en-def="The result of multiplying two matrices, requiring inner dimensions to match.">ضرب المصفوفات (Matrix Products)<span class="smart-term-tooltip"></span></span></strong>: لتكن $A$ مصفوفة بأبعاد $m \times k$ و $B$ مصفوفة بأبعاد $k \times n$. حاصل الضرب $AB$ هو مصفوفة بأبعاد $m \times n$.</p><p>العنصر $c_{ij}$ في المصفوفة الناتجة يساوي مجموع حواصل ضرب العناصر المتقابلة من الصف $i$ في المصفوفة $A$ والعمود $j$ في المصفوفة $B$.</p></template>
+    <template class="content-en"><p><strong><span class="smart-term" data-term-en="Matrix Product" data-ar="حاصل ضرب المصفوفات" data-en-def="The result of multiplying two matrices, requiring inner dimensions to match.">Matrix Products<span class="smart-term-tooltip"></span></span></strong>: Let $A$ be an $m \times k$ matrix and $B$ be a $k \times n$ matrix. The product $AB$ is the $m \times n$ matrix.</p><p>The $(i, j)$-th entry $c_{ij}$ is equal to the sum of the products of the corresponding elements from the $i$-th row of $A$ and the $j$-th column of $B$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>شرط أساسي لضرب المصفوفات هو أن يكون عدد أعمدة المصفوفة الأولى ($k$) مساوياً لعدد صفوف المصفوفة الثانية ($k$).</p><p>ضرب المصفوفات <strong>ليس إبدالياً</strong>، أي أن $AB \neq BA$ بشكل عام. في الواقع، قد يكون $AB$ معرّفاً بينما $BA$ غير معرّف إذا لم تتطابق الأبعاد بشكل عكسي.</p></template>
+    <template class="content-en"><p>A strict requirement for matrix multiplication is that the number of columns in the first matrix ($k$) must equal the number of rows in the second matrix ($k$).</p><p>Matrix multiplication is <strong>not commutative</strong>, meaning $AB \neq BA$ in general. In fact, $AB$ might be defined while $BA$ is undefined if dimensions don't match in reverse.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة حساب العنصر في مصفوفة ناتجة عن عملية الضرب.</strong></template>
+      <template class="content-en"><strong>Formula to calculate an element in the resulting product matrix.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$c_{ij} = a_{i1}b_{1j} + a_{i2}b_{2j} + \dots + a_{ik}b_{kj}$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Visual representation of matrix multiplication. Show a 4x3 matrix multiplied by a 3x2 matrix resulting in a 4x2 matrix. Highlight the first row of the first matrix and the first column of the second matrix, with arrows pointing to the top-left cell of the result matrix to show the dot product calculation. Style: educational, dark background #0d1117, accent colors #ff00ff and #00ffff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg id="dgm-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        <style>
+            #dgm-1 .title { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 22px; font-weight: bold; fill: var(--text-primary); text-anchor: middle; }
+            #dgm-1 .subtitle { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 16px; font-weight: bold; fill: var(--text-primary); text-anchor: middle; }
+            #dgm-1 .label { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 14px; fill: var(--text-secondary); text-anchor: middle; }
+            #dgm-1 .math-text { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 18px; fill: var(--text-primary); text-anchor: middle; dominant-baseline: central; }
+            #dgm-1 .math-text-bold { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 18px; font-weight: bold; fill: var(--brand-500); text-anchor: middle; dominant-baseline: central; }
+            #dgm-1 .operator { font-family: system-ui, 'Cairo', 'Inter', sans-serif; font-size: 24px; fill: var(--text-secondary); text-anchor: middle; dominant-baseline: central; }
+            #dgm-1 .bracket { fill: none; stroke: var(--text-primary); stroke-width: 2; }
+            #dgm-1 .highlight-box { fill: var(--brand-500); opacity: 0.15; stroke: var(--brand-500); stroke-width: 2; stroke-dasharray: 4 2; }
+            #dgm-1 .result-box { fill: var(--brand-500); opacity: 0.15; stroke: var(--brand-500); stroke-width: 2; }
+            #dgm-1 .arrow-path { fill: none; stroke: var(--brand-500); stroke-width: 2; stroke-dasharray: 5 3; }
+            #dgm-1 .bg-panel { fill: var(--bg-elevated); rx: 8; }
+        </style>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title -->
+    <text x="400" y="25" class="title">Matrix Multiplication / ضرب المصفوفات</text>
+
+    <!-- Dot Product Label -->
+    <text x="325" y="65" class="subtitle" fill="var(--brand-500)">Dot Product / الضرب النقطي</text>
+
+    <!-- Connection Arrows -->
+    <path d="M 120 135 C 120 40, 520 40, 520 130" class="arrow-path" marker-end="url(#arrow)"/>
+    <path d="M 275 130 C 275 70, 540 70, 540 130" class="arrow-path" marker-end="url(#arrow)"/>
+
+    <!-- Matrix A Area -->
+    <rect x="30" y="110" width="180" height="220" class="bg-panel"/>
+    <path d="M 50 130 L 40 130 L 40 310 L 50 310" class="bracket"/>
+    <path d="M 190 130 L 200 130 L 200 310 L 190 310" class="bracket"/>
+    
+    <!-- Matrix A Highlight (Row 1) -->
+    <rect x="45" y="140" width="150" height="40" rx="4" class="highlight-box"/>
+    
+    <!-- Matrix A Elements -->
+    <g class="math-text">
+        <text x="70" y="160" class="math-text-bold">1</text>
+        <text x="120" y="160" class="math-text-bold">2</text>
+        <text x="170" y="160" class="math-text-bold">3</text>
+        
+        <text x="70" y="200">4</text> <text x="120" y="200">5</text> <text x="170" y="200">6</text>
+        <text x="70" y="240">7</text> <text x="120" y="240">8</text> <text x="170" y="240">9</text>
+        <text x="70" y="280">0</text> <text x="120" y="280">1</text> <text x="170" y="280">2</text>
+    </g>
+
+    <!-- Multiply Operator -->
+    <text x="225" y="220" class="operator">×</text>
+
+    <!-- Matrix B Area -->
+    <rect x="240" y="110" width="120" height="180" class="bg-panel"/>
+    <path d="M 260 130 L 250 130 L 250 270 L 260 270" class="bracket"/>
+    <path d="M 340 130 L 350 130 L 350 270 L 340 270" class="bracket"/>
+    
+    <!-- Matrix B Highlight (Col 1) -->
+    <rect x="255" y="135" width="40" height="130" rx="4" class="highlight-box"/>
+    
+    <!-- Matrix B Elements -->
+    <g class="math-text">
+        <text x="275" y="160" class="math-text-bold">2</text> <text x="325" y="160">0</text>
+        <text x="275" y="200" class="math-text-bold">1</text> <text x="325" y="200">3</text>
+        <text x="275" y="240" class="math-text-bold">4</text> <text x="325" y="240">1</text>
+    </g>
+
+    <!-- Equals Operator -->
+    <text x="390" y="220" class="operator">=</text>
+
+    <!-- Matrix C Area -->
+    <rect x="420" y="110" width="350" height="220" class="bg-panel"/>
+    <path d="M 440 130 L 430 130 L 430 310 L 440 310" class="bracket"/>
+    <path d="M 750 130 L 760 130 L 760 310 L 750 310" class="bracket"/>
+    
+    <!-- Matrix C Highlight (Cell 1,1) -->
+    <rect x="435" y="140" width="190" height="40" rx="4" class="result-box"/>
+    
+    <!-- Matrix C Elements -->
+    <g class="math-text">
+        <text x="530" y="160" font-size="15" font-weight="bold" fill="var(--brand-500)">1(2) + 2(1) + 3(4) = 16</text>
+        <text x="690" y="160">9</text>
+        
+        <text x="530" y="200">37</text> <text x="690" y="200">21</text>
+        <text x="530" y="240">58</text> <text x="690" y="240">33</text>
+        <text x="530" y="280">9</text>  <text x="690" y="280">5</text>
+    </g>
+
+    <!-- Bottom Labels -->
+    <text x="120" y="355" class="subtitle">Matrix A / مصفوفة أ</text>
+    <text x="120" y="375" class="label">4 rows × 3 cols</text>
+
+    <text x="300" y="355" class="subtitle">Matrix B / مصفوفة ب</text>
+    <text x="300" y="375" class="label">3 rows × 2 cols</text>
+
+    <text x="595" y="355" class="subtitle">Result C / النتيجة ج</text>
+    <text x="595" y="375" class="label">4 rows × 2 cols</text>
+
+    <!-- Dimension Rule -->
+    <g transform="translate(400, 390)" class="label" font-size="15">
+        <text>
+            Dimensions: (4 × <tspan fill="var(--brand-500)" font-weight="bold">3</tspan>) × (<tspan fill="var(--brand-500)" font-weight="bold">3</tspan> × 2) = (4 × 2)
+        </text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت المصفوفة A بأبعاد 3x4 والمصفوفة B بأبعاد 4x5، فما هي أبعاد المصفوفة الناتجة AB؟ وهل يمكن حساب BA؟</template>
+      <template class="content-en">If matrix A is 3x4 and matrix B is 4x5, what are the dimensions of AB? Can BA be calculated?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>أبعاد AB ستكون 3x5. لا يمكن حساب BA لأن عدد أعمدة B (5) لا يساوي عدد صفوف A (3).</p></template>
+      <template class="content-en"><p>The dimensions of AB will be 3x5. BA cannot be calculated because the number of columns in B (5) does not equal the number of rows in A (3).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="special-matrices-and-transpose" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> المصفوفات الخاصة والمنقولة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Special Matrices and Transposes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>مصفوفة الوحدة تعمل كالرقم 1 في الضرب، ومنقول المصفوفة يقلب صفوفها إلى أعمدة، والمصفوفة المتماثلة لا تتغير عند قلبها.</p></template>
+    <template class="content-en"><p>The identity matrix acts like the number 1 in multiplication, the transpose flips rows into columns, and a symmetric matrix remains unchanged when transposed.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p><strong><span class="smart-term" data-term-en="Identity Matrix" data-ar="مصفوفة الوحدة" data-en-def="A square matrix with 1s on the diagonal and 0s elsewhere.">مصفوفة الوحدة (Identity Matrix)<span class="smart-term-tooltip"></span></span></strong> $I_n$: هي مصفوفة مربعة $n \times n$ تحتوي على 1 في القطر الرئيسي و 0 في البقية (تُعرّف باستخدام دلتا كرونكر $\delta_{ij}$).</p><p><strong><span class="smart-term" data-term-en="Transpose" data-ar="منقول المصفوفة" data-en-def="A matrix formed by swapping the rows and columns of a given matrix.">منقول المصفوفة (Transpose)<span class="smart-term-tooltip"></span></span></strong> $A^t$: يتم الحصول عليه بتبديل الصفوف والأعمدة، بحيث يصبح العنصر $b_{ij} = a_{ji}$.</p><p><strong><span class="smart-term" data-term-en="Symmetric Matrix" data-ar="مصفوفة متماثلة" data-en-def="A square matrix that is equal to its transpose.">المصفوفة المتماثلة (Symmetric Matrix)<span class="smart-term-tooltip"></span></span></strong>: هي مصفوفة مربعة تتساوى مع منقولها ($A = A^t$)، مما يعني أن $a_{ij} = a_{ji}$ لجميع القيم.</p></template>
+    <template class="content-en"><p><strong><span class="smart-term" data-term-en="Identity Matrix" data-ar="مصفوفة الوحدة" data-en-def="A square matrix with 1s on the diagonal and 0s elsewhere.">Identity Matrix<span class="smart-term-tooltip"></span></span></strong> $I_n$: An $n \times n$ square matrix with 1s on the main diagonal and 0s elsewhere (defined using Kronecker delta $\delta_{ij}$).</p><p><strong><span class="smart-term" data-term-en="Transpose" data-ar="منقول المصفوفة" data-en-def="A matrix formed by swapping the rows and columns of a given matrix.">Transpose<span class="smart-term-tooltip"></span></span></strong> $A^t$: Obtained by interchanging rows and columns, so $b_{ij} = a_{ji}$.</p><p><strong><span class="smart-term" data-term-en="Symmetric Matrix" data-ar="مصفوفة متماثلة" data-en-def="A square matrix that is equal to its transpose.">Symmetric Matrix<span class="smart-term-tooltip"></span></span></strong>: A square matrix that is equal to its transpose ($A = A^t$), meaning $a_{ij} = a_{ji}$ for all $i$ and $j$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>مصفوفة الوحدة $I_n$ لها خاصية هامة: لأي مصفوفة مربعة $A$ من نفس الحجم، $A I_n = I_n A = A$.</p><p>المصفوفات المتماثلة يجب أن تكون مربعة بالضرورة، وتلعب دوراً حاسماً في تمثيل العلاقات غير الموجهة في نظرية الرسومات (Graph Theory).</p></template>
+    <template class="content-en"><p>The identity matrix $I_n$ has the property that for any square matrix $A$ of the same size, $A I_n = I_n A = A$.</p><p>Symmetric matrices must inherently be square and play a crucial role in representing undirected relations in Graph Theory.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>دلتا كرونكر المستخدمة لتعريف مصفوفة الوحدة.</strong></template>
+      <template class="content-en"><strong>Kronecker delta used to define the identity matrix.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\delta_{ij} = \begin{cases} 1 & \text{if } i = j \\ 0 & \text{if } i \neq j \end{cases}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكن لمصفوفة غير مربعة أن تكون متماثلة؟</template>
+      <template class="content-en">Can a non-square matrix be symmetric?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، لأن منقول المصفوفة غير المربعة سيغير أبعادها (مثلاً من 2x3 إلى 3x2)، وبالتالي لا يمكن أن تتساوى المصفوفة الأصلية مع منقولها لاختلاف الأبعاد.</p></template>
+      <template class="content-en"><p>No, because transposing a non-square matrix changes its dimensions (e.g., from 2x3 to 3x2), so the original matrix and its transpose cannot be equal due to dimension mismatch.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة المحورية. تخيلوا أن 'المجموعات' هي الصناديق الأساسية التي نجمع فيها بياناتنا في علوم الحاسب. فهمنا لكيفية عمل هذه الصناديق (المجموعات الجزئية، التقاطع، الحجم) هو الأساس لكل خوارزمية سنتعلمها. ركزوا جيداً على مفهوم 'القابلية للعد'؛ قد يبدو غريباً أن اللانهاية لها أحجام مختلفة، لكن تذكروا دائماً: إذا استطعنا ترتيب العناصر في قائمة، فهي قابلة للعد! بعد ذلك، ننتقل إلى 'المصفوفات'، وهي ببساطة جداول منظمة من الأرقام. في الامتحان، الأخطاء الشائعة تكمن في ضرب المصفوفات (تذكروا: صف في عمود، والترتيب مهم جداً لأن AB لا يساوي BA). تدربوا على إيجاد المنقول (Transpose) والتحقق من التماثل. هذه المفاهيم هي لغة الآلة في معالجة الصور والذكاء الاصطناعي. بالتوفيق!</template>
+    <template class="content-en">Welcome, my friends, to this pivotal module. Imagine 'Sets' as the fundamental boxes where we gather our data in Computer Science. Understanding how these boxes work (subsets, cardinality) is the foundation for every algorithm we will learn. Pay close attention to 'Countability'; it might seem strange that infinity comes in different sizes, but always remember: if we can list the elements, it's countable! Next, we transition to 'Matrices', which are simply organized tables of numbers. On the exam, the most common mistakes happen in matrix multiplication (remember: row by column, and order matters immensely because AB ≠ BA). Practice finding the transpose and checking for symmetry. These concepts are the machine's language for image processing and AI. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يتغير محتوى المجموعة إذا قمنا بتغيير ترتيب عناصرها أو تكرارها؟</template>
+          <template class="content-en">Does the content of a set change if we change the order of its elements or repeat them?</template>
+          <span class="content-target">هل يتغير محتوى المجموعة إذا قمنا بتغيير ترتيب عناصرها أو تكرارها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، المجموعات غير مرتبة بطبيعتها، والتكرار لا يُحدث فرقاً. المجموعة {1, 2, 2, 3} هي تماماً نفس المجموعة {3, 1, 2}.</template>
+          <template class="content-en">No, sets are inherently unordered, and repetition makes no difference. The set {1, 2, 2, 3} is exactly the same as {3, 1, 2}.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين ∅ و {∅}؟</template>
+          <template class="content-en">What is the difference between ∅ and {∅}?</template>
+          <span class="content-target">ما الفرق بين ∅ و {∅}؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الرمز ∅ يمثل المجموعة الخالية التي لا تحتوي على أي عناصر (حجمها 0). أما {∅} فهي مجموعة أحادية تحتوي على عنصر واحد، وهذا العنصر هو المجموعة الخالية (حجمها 1).</template>
+          <template class="content-en">The symbol ∅ represents the empty set with no elements (cardinality 0). {∅} is a singleton set containing exactly one element, which happens to be the empty set (cardinality 1).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نثبت أن مجموعة غير منتهية هي مجموعة قابلة للعد؟</template>
+          <template class="content-en">How do we prove that an infinite set is countable?</template>
+          <span class="content-target">كيف نثبت أن مجموعة غير منتهية هي مجموعة قابلة للعد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نثبت ذلك بإيجاد دالة تقابل (تطابق واحد لواحد) بين عناصر هذه المجموعة ومجموعة الأعداد الصحيحة الموجبة. بعبارة أخرى، إذا استطعنا ترتيب عناصرها في تسلسل مفهرس بالأرقام 1، 2، 3... فهي قابلة للعد.</template>
+          <template class="content-en">We prove it by finding a bijection (one-to-one correspondence) between its elements and the set of positive integers. In other words, if we can list its elements in a sequence indexed by 1, 2, 3..., it is countable.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل مجموعة الأعداد النسبية الموجبة قابلة للعد؟</template>
+          <template class="content-en">Is the set of positive rational numbers countable?</template>
+          <span class="content-target">هل مجموعة الأعداد النسبية الموجبة قابلة للعد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، هي قابلة للعد. يمكننا ترتيبها في تسلسل محدد (مثل 1, 1/2, 2, 3, 1/3...) لتغطية كل كسر ممكن دون تفويت أي منها.</template>
+          <template class="content-en">Yes, it is countable. We can arrange them in a specific sequence (like 1, 1/2, 2, 3, 1/3...) to cover every possible fraction without missing any.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الدقيق بين المجموعة الجزئية (⊆) والمجموعة الجزئية الفعلية (⊂)؟</template>
+          <template class="content-en">What is the exact difference between a subset (⊆) and a proper subset (⊂)?</template>
+          <span class="content-target">ما هو الفرق الدقيق بين المجموعة الجزئية (⊆) والمجموعة الجزئية الفعلية (⊂)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المجموعة الجزئية تسمح بأن تكون المجموعتان متساويتين تماماً. أما المجموعة الجزئية الفعلية فتشترط أن تكون المجموعة الأولى جزءاً من الثانية، ولكن الثانية يجب أن تحتوي على عنصر إضافي واحد على الأقل (أي لا يمكن أن تتساويا).</template>
+          <template class="content-en">A subset allows the two sets to be exactly equal. A proper subset requires the first set to be part of the second, but the second MUST contain at least one extra element (they cannot be equal).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى نعتبر أن مصفوفتين متساويتان؟</template>
+          <template class="content-en">When do we consider two matrices to be equal?</template>
+          <span class="content-target">متى نعتبر أن مصفوفتين متساويتان؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تتساوى مصفوفتان إذا كان لهما نفس الأبعاد (نفس عدد الصفوف والأعمدة) وكانت جميع العناصر المتقابلة في نفس المواقع متساوية تماماً.</template>
+          <template class="content-en">Two matrices are equal if they have the exact same dimensions (same number of rows and columns) and all corresponding entries in the same positions are exactly equal.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكننا دائماً ضرب أي مصفوفتين؟</template>
+          <template class="content-en">Can we always multiply any two matrices?</template>
+          <span class="content-target">هل يمكننا دائماً ضرب أي مصفوفتين؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، شرط الضرب صارم: يجب أن يكون عدد أعمدة المصفوفة الأولى مساوياً لعدد صفوف المصفوفة الثانية. إذا لم يتحقق هذا الشرط، فإن عملية الضرب غير معرّفة.</template>
+          <template class="content-en">No, the condition for multiplication is strict: the number of columns in the first matrix MUST equal the number of rows in the second matrix. If this is not met, the multiplication is undefined.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث لأبعاد المصفوفة عند إيجاد منقولها (Transpose)؟</template>
+          <template class="content-en">What happens to the dimensions of a matrix when we find its transpose?</template>
+          <span class="content-target">ماذا يحدث لأبعاد المصفوفة عند إيجاد منقولها (Transpose)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تنعكس الأبعاد. إذا كانت المصفوفة الأصلية بأبعاد m × n، فإن منقولها سيكون بأبعاد n × m.</template>
+          <template class="content-en">The dimensions are reversed. If the original matrix is m × n, its transpose will be n × m.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الشرط الأساسي لتكون المصفوفة متماثلة (Symmetric)؟</template>
+          <template class="content-en">What is the primary requirement for a matrix to be symmetric?</template>
+          <span class="content-target">ما هو الشرط الأساسي لتكون المصفوفة متماثلة (Symmetric)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">أولاً، يجب أن تكون مصفوفة مربعة. ثانياً، يجب أن تتساوى مع منقولها (A = A^t)، مما يعني أن العناصر حول القطر الرئيسي متطابقة كأنها مرآة (a_ij = a_ji).</template>
+          <template class="content-en">First, it must be a square matrix. Second, it must equal its transpose (A = A^t), meaning the elements across the main diagonal mirror each other perfectly (a_ij = a_ji).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو دور مصفوفة الوحدة (Identity Matrix) في ضرب المصفوفات؟</template>
+          <template class="content-en">What is the role of the Identity Matrix in matrix multiplication?</template>
+          <span class="content-target">ما هو دور مصفوفة الوحدة (Identity Matrix) في ضرب المصفوفات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تلعب دور الرقم '1' في ضرب الأعداد العادية. عند ضرب أي مصفوفة مربعة في مصفوفة الوحدة (من نفس الحجم)، فإن النتيجة هي المصفوفة الأصلية نفسها دون تغيير (AI = IA = A).</template>
+          <template class="content-en">It plays the role of the number '1' in regular multiplication. When any square matrix is multiplied by the identity matrix (of the same size), the result is the original matrix unchanged (AI = IA = A).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو تعريف المجموعة (Set)؟",
+      "en": "What is the definition of a Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تجميع غير مرتب من الأشياء المتميزة.",
+        "en": "An unordered collection of distinct objects."
+      },
+      "example": {
+        "ar": "الطلاب في الفصل، أو {a, b, c, d}",
+        "en": "Students in a class, or {a, b, c, d}"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي طريقة القائمة (Roster Method)؟",
+      "en": "What is the Roster Method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة لوصف المجموعة بكتابة جميع عناصرها صراحة.",
+        "en": "A way of describing a set by explicitly listing all its members."
+      },
+      "example": {
+        "ar": "S = {a, b, c, d}",
+        "en": "S = {a, b, c, d}"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي طريقة بناء المجموعة (Set-Builder Notation)؟",
+      "en": "What is Set-Builder Notation?"
+    },
+    "back": {
+      "definition": {
+        "ar": "وصف المجموعة بذكر الخصائص التي يجب أن يمتلكها العنصر.",
+        "en": "Characterizing elements in a set by stating the properties they must have."
+      },
+      "example": {
+        "ar": "O = {x | x is an odd positive integer less than 10}",
+        "en": "O = {x | x is an odd positive integer less than 10}"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ماذا يمثل الرمز N في المجموعات؟",
+      "en": "What does the symbol N represent in sets?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة الأعداد الطبيعية.",
+        "en": "The set of all natural numbers."
+      },
+      "example": {
+        "ar": "{0, 1, 2, 3, ...}",
+        "en": "{0, 1, 2, 3, ...}"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ماذا يمثل الرمز Z في المجموعات؟",
+      "en": "What does the symbol Z represent in sets?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة الأعداد الصحيحة.",
+        "en": "The set of all integers."
+      },
+      "example": {
+        "ar": "{..., -2, -1, 0, 1, 2, ...}",
+        "en": "{..., -2, -1, 0, 1, 2, ...}"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ماذا يمثل الرمز Q في المجموعات؟",
+      "en": "What does the symbol Q represent in sets?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة الأعداد النسبية.",
+        "en": "The set of rational numbers."
+      },
+      "example": {
+        "ar": "{p/q | p ∈ Z, q ∈ Z, and q ≠ 0}",
+        "en": "{p/q | p ∈ Z, q ∈ Z, and q ≠ 0}"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي المجموعة الخالية (Empty Set)؟",
+      "en": "What is the Empty Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة التي لا تحتوي على أي عناصر.",
+        "en": "The set with no elements."
+      },
+      "example": {
+        "ar": "∅ أو {}",
+        "en": "∅ or {}"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي المجموعة الأحادية (Singleton Set)؟",
+      "en": "What is a Singleton Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة تحتوي على عنصر واحد فقط.",
+        "en": "A set with exactly one element."
+      },
+      "example": {
+        "ar": "{∅}",
+        "en": "{∅}"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي المجموعة الشاملة (Universal Set)؟",
+      "en": "What is the Universal Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المجموعة التي تحتوي على كل شيء قيد الدراسة حالياً.",
+        "en": "The set containing everything currently under consideration."
+      },
+      "example": {
+        "ar": "U",
+        "en": "U"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو تعريف المجموعة الجزئية (Subset)؟",
+      "en": "What is the definition of a Subset?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تكون A مجموعة جزئية من B إذا كان كل عنصر في A هو أيضاً عنصر في B.",
+        "en": "Set A is a subset of B if every element of A is also an element of B."
+      },
+      "example": {
+        "ar": "A ⊆ B",
+        "en": "A ⊆ B"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي المجموعة الجزئية الفعلية (Proper Subset)؟",
+      "en": "What is a Proper Subset?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة جزئية A من B حيث A لا تساوي B.",
+        "en": "A subset A of B where A ≠ B."
+      },
+      "example": {
+        "ar": "A ⊂ B",
+        "en": "A ⊂ B"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو حجم المجموعة (Cardinality)؟",
+      "en": "What is the Cardinality of a set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عدد العناصر المتميزة في المجموعة.",
+        "en": "The number of distinct elements in a set."
+      },
+      "example": {
+        "ar": "|{1, 2, 3}| = 3",
+        "en": "|{1, 2, 3}| = 3"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "متى تكون المجموعة قابلة للعد (Countable)؟",
+      "en": "When is a set Countable?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا كانت منتهية أو لها نفس حجم مجموعة الأعداد الصحيحة الموجبة.",
+        "en": "If it is either finite or has the same cardinality as the set of positive integers."
+      },
+      "example": {
+        "ar": "مجموعة الأعداد الصحيحة Z",
+        "en": "The set of integers Z"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هو أليف نول (Aleph Null)؟",
+      "en": "What is Aleph Null (ℵ0)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الرمز المستخدم لتمثيل حجم مجموعة غير منتهية قابلة للعد.",
+        "en": "The symbol used to denote the cardinality of a countably infinite set."
+      },
+      "example": {
+        "ar": "|S| = ℵ0",
+        "en": "|S| = ℵ0"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي المصفوفة (Matrix)؟",
+      "en": "What is a Matrix?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ترتيب مستطيل من الأرقام في صفوف وأعمدة.",
+        "en": "A rectangular array of numbers."
+      },
+      "example": {
+        "ar": "مصفوفة بأبعاد m × n",
+        "en": "An m × n matrix"
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي المصفوفة المربعة (Square Matrix)؟",
+      "en": "What is a Square Matrix?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مصفوفة يتساوى فيها عدد الصفوف مع عدد الأعمدة.",
+        "en": "A matrix with the same number of rows as columns."
+      },
+      "example": {
+        "ar": "مصفوفة 3 × 3",
+        "en": "A 3 × 3 matrix"
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هو شرط جمع مصفوفتين؟",
+      "en": "What is the condition for adding two matrices?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجب أن يكون لهما نفس الأبعاد (نفس عدد الصفوف والأعمدة).",
+        "en": "They must have the exact same dimensions (same number of rows and columns)."
+      },
+      "example": {
+        "ar": "A (m×n) + B (m×n)",
+        "en": "A (m×n) + B (m×n)"
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما هي مصفوفة الوحدة (Identity Matrix)؟",
+      "en": "What is the Identity Matrix?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مصفوفة مربعة تحتوي على 1 في القطر الرئيسي و 0 في باقي المواقع.",
+        "en": "A square matrix with 1s on the main diagonal and 0s elsewhere."
+      },
+      "example": {
+        "ar": "I_n",
+        "en": "I_n"
+      }
+    }
+  },
+  {
+    "id": 19,
+    "front": {
+      "ar": "ما هو منقول المصفوفة (Transpose)؟",
+      "en": "What is the Transpose of a matrix?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مصفوفة تنتج عن تبديل صفوف وأعمدة المصفوفة الأصلية.",
+        "en": "A matrix obtained by interchanging the rows and columns of the original matrix."
+      },
+      "example": {
+        "ar": "A^t حيث b_ij = a_ji",
+        "en": "A^t where b_ij = a_ji"
+      }
+    }
+  },
+  {
+    "id": 20,
+    "front": {
+      "ar": "ما هي المصفوفة المتماثلة (Symmetric Matrix)؟",
+      "en": "What is a Symmetric Matrix?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مصفوفة مربعة تتساوى مع منقولها.",
+        "en": "A square matrix that is equal to its transpose."
+      },
+      "example": {
+        "ar": "A = A^t",
+        "en": "A = A^t"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من الرموز التالية يمثل مجموعة الأعداد النسبية؟",
+      "en": "Which of the following symbols represents the set of rational numbers?"
+    },
+    "options": {
+      "ar": [
+        "N",
+        "Z",
+        "Q",
+        "R"
+      ],
+      "en": [
+        "N",
+        "Z",
+        "Q",
+        "R"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الرمز Q يمثل الأعداد النسبية (Rational numbers) التي يمكن كتابتها على شكل كسر p/q.",
+      "en": "The symbol Q represents rational numbers, which can be written as a fraction p/q."
+    },
+    "hint": {
+      "ar": "تذكر كلمة Quotient (حاصل القسمة).",
+      "en": "Think of the word Quotient."
+    },
+    "difficulty": "easy",
+    "conceptId": "sets-and-notation"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو حجم (Cardinality) المجموعة الخالية ∅؟",
+      "en": "What is the cardinality of the empty set ∅?"
+    },
+    "options": {
+      "ar": [
+        "1",
+        "0",
+        "غير معرف",
+        "ℵ0"
+      ],
+      "en": [
+        "1",
+        "0",
+        "Undefined",
+        "ℵ0"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المجموعة الخالية لا تحتوي على أي عناصر، لذا حجمها هو 0.",
+      "en": "The empty set contains no elements, so its cardinality is 0."
+    },
+    "hint": {
+      "ar": "كم عدد العناصر داخل مجموعة فارغة؟",
+      "en": "How many items are in an empty box?"
+    },
+    "difficulty": "easy",
+    "conceptId": "cardinality-and-countability"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "إذا كانت A = {1, 2, 3} و B = {1, 2, 3, 4}، فأي من العبارات التالية صحيحة؟",
+      "en": "If A = {1, 2, 3} and B = {1, 2, 3, 4}, which of the following statements is true?"
+    },
+    "options": {
+      "ar": [
+        "A = B",
+        "B ⊂ A",
+        "A ⊂ B",
+        "A ∈ B"
+      ],
+      "en": [
+        "A = B",
+        "B ⊂ A",
+        "A ⊂ B",
+        "A ∈ B"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "كل عناصر A موجودة في B، و A لا تساوي B، لذا A هي مجموعة جزئية فعلية من B (A ⊂ B).",
+      "en": "All elements of A are in B, and A ≠ B, so A is a proper subset of B (A ⊂ B)."
+    },
+    "hint": {
+      "ar": "هل A تحتوي على كل عناصر B أم العكس؟ وهل هما متساويتان؟",
+      "en": "Does A contain all elements of B or vice versa? Are they equal?"
+    },
+    "difficulty": "medium",
+    "conceptId": "subsets-and-universal-sets"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من المجموعات التالية تعتبر قابلة للعد (Countable)؟",
+      "en": "Which of the following sets is considered countable?"
+    },
+    "options": {
+      "ar": [
+        "مجموعة الأعداد الحقيقية",
+        "مجموعة الأعداد الصحيحة",
+        "فترة الأرقام بين 0 و 1",
+        "جميع ما سبق"
+      ],
+      "en": [
+        "Set of real numbers",
+        "Set of integers",
+        "Interval of numbers between 0 and 1",
+        "All of the above"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مجموعة الأعداد الصحيحة قابلة للعد لأنه يمكن ترتيبها في تسلسل وربطها بالأعداد الطبيعية.",
+      "en": "The set of integers is countable because it can be listed in a sequence and mapped to natural numbers."
+    },
+    "hint": {
+      "ar": "تذكر التسلسل: 0, 1, -1, 2, -2...",
+      "en": "Remember the sequence: 0, 1, -1, 2, -2..."
+    },
+    "difficulty": "medium",
+    "conceptId": "cardinality-and-countability"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الشرط الأساسي لجمع مصفوفتين A و B؟",
+      "en": "What is the primary condition for adding two matrices A and B?"
+    },
+    "options": {
+      "ar": [
+        "أن تكونا مصفوفتين مربعتين",
+        "أن يكون عدد أعمدة A يساوي عدد صفوف B",
+        "أن يكون لهما نفس الأبعاد (m × n)",
+        "أن تحتوي كلاهما على أرقام موجبة فقط"
+      ],
+      "en": [
+        "They must be square matrices",
+        "Columns of A must equal rows of B",
+        "They must have the exact same dimensions (m × n)",
+        "They must both contain only positive numbers"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لجمع مصفوفتين، يجب أن تتطابق أبعادهما تماماً لكي نتمكن من جمع العناصر المتقابلة.",
+      "en": "To add two matrices, their dimensions must match exactly so corresponding elements can be added."
+    },
+    "hint": {
+      "ar": "الجمع يتم عن طريق العناصر المتقابلة.",
+      "en": "Addition is done element by element."
+    },
+    "difficulty": "easy",
+    "conceptId": "matrices-introduction"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "إذا كانت المصفوفة A بأبعاد 3 × 2 والمصفوفة B بأبعاد 2 × 4، فما هي أبعاد المصفوفة الناتجة AB؟",
+      "en": "If matrix A is 3 × 2 and matrix B is 2 × 4, what are the dimensions of the product matrix AB?"
+    },
+    "options": {
+      "ar": [
+        "2 × 2",
+        "3 × 4",
+        "4 × 3",
+        "لا يمكن ضربهما"
+      ],
+      "en": [
+        "2 × 2",
+        "3 × 4",
+        "4 × 3",
+        "They cannot be multiplied"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عند ضرب مصفوفة m×k في مصفوفة k×n، تكون النتيجة مصفوفة بأبعاد m×n. هنا 3×2 و 2×4 تعطي 3×4.",
+      "en": "When multiplying an m×k matrix by a k×n matrix, the result is an m×n matrix. Here 3×2 and 2×4 yields 3×4."
+    },
+    "hint": {
+      "ar": "الأبعاد الداخلية تختفي وتبقى الأبعاد الخارجية.",
+      "en": "Inner dimensions cancel out, leaving the outer dimensions."
+    },
+    "difficulty": "medium",
+    "conceptId": "matrix-multiplication"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "ماذا يمثل الرمز a_ij في المصفوفة؟",
+      "en": "What does the symbol a_ij represent in a matrix?"
+    },
+    "options": {
+      "ar": [
+        "العنصر في العمود i والصف j",
+        "العنصر في الصف i والعمود j",
+        "مجموع الصف i والعمود j",
+        "حاصل ضرب الصف i في العمود j"
+      ],
+      "en": [
+        "The element in column i and row j",
+        "The element in row i and column j",
+        "The sum of row i and column j",
+        "The product of row i and column j"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الرمز a_ij يشير دائماً إلى العنصر الموجود في الصف i والعمود j.",
+      "en": "The notation a_ij always refers to the entry in the i-th row and j-th column."
+    },
+    "hint": {
+      "ar": "الترتيب دائماً: صف ثم عمود (Row then Column).",
+      "en": "Order is always: Row then Column (RC)."
+    },
+    "difficulty": "easy",
+    "conceptId": "matrices-introduction"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "متى نقول عن المصفوفة A أنها مصفوفة متماثلة (Symmetric)؟",
+      "en": "When is a matrix A considered symmetric?"
+    },
+    "options": {
+      "ar": [
+        "إذا كانت A = -A",
+        "إذا كانت A = I_n",
+        "إذا كانت A = A^t",
+        "إذا كانت جميع عناصرها متساوية"
+      ],
+      "en": [
+        "If A = -A",
+        "If A = I_n",
+        "If A = A^t",
+        "If all its elements are equal"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المصفوفة المتماثلة هي المصفوفة المربعة التي تتساوى مع منقولها (A = A^t).",
+      "en": "A symmetric matrix is a square matrix that is equal to its transpose (A = A^t)."
+    },
+    "hint": {
+      "ar": "تبديل الصفوف بالأعمدة لا يغير المصفوفة.",
+      "en": "Swapping rows and columns doesn't change the matrix."
+    },
+    "difficulty": "medium",
+    "conceptId": "special-matrices-and-transpose"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو حجم المجموعة S = {a, b, c, b, a}؟",
+      "en": "What is the cardinality of the set S = {a, b, c, b, a}?"
+    },
+    "options": {
+      "ar": [
+        "5",
+        "4",
+        "3",
+        "1"
+      ],
+      "en": [
+        "5",
+        "4",
+        "3",
+        "1"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "التكرار لا يُحسب في المجموعات. العناصر المتميزة هي a, b, c فقط، لذا الحجم هو 3.",
+      "en": "Repetition does not count in sets. The distinct elements are only a, b, c, so the cardinality is 3."
+    },
+    "hint": {
+      "ar": "احذف العناصر المكررة أولاً.",
+      "en": "Remove duplicates first."
+    },
+    "difficulty": "easy",
+    "conceptId": "sets-and-notation"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في مصفوفة الوحدة I_n، ما هي قيمة العنصر عندما يكون i ≠ j؟",
+      "en": "In the identity matrix I_n, what is the value of the element when i ≠ j?"
+    },
+    "options": {
+      "ar": [
+        "1",
+        "0",
+        "n",
+        "-1"
+      ],
+      "en": [
+        "1",
+        "0",
+        "n",
+        "-1"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "حسب تعريف دلتا كرونكر، العناصر خارج القطر الرئيسي (حيث i ≠ j) تكون قيمتها 0.",
+      "en": "According to the Kronecker delta definition, elements off the main diagonal (where i ≠ j) are 0."
+    },
+    "hint": {
+      "ar": "ما هي الأرقام الموجودة خارج القطر الرئيسي في مصفوفة الوحدة؟",
+      "en": "What numbers are outside the main diagonal in an identity matrix?"
+    },
+    "difficulty": "medium",
+    "conceptId": "special-matrices-and-transpose"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين المجموعة الخالية ∅ والمجموعة الأحادية {∅}. الأولى لا تحتوي على شيء (حجمها 0)، بينما الثانية تحتوي على عنصر واحد وهو المجموعة الخالية (حجمها 1).</template>
+      <template class="content-en">Confusing the empty set ∅ with the singleton set {∅}. The first contains nothing (cardinality 0), while the second contains exactly one element which happens to be the empty set (cardinality 1).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">افتراض أن ضرب المصفوفات عملية إبدالية. تذكر دائماً أن AB لا يساوي BA بالضرورة، وقد يكون أحدهما غير معرّف أصلاً!</template>
+      <template class="content-en">Assuming matrix multiplication is commutative. Always remember that AB ≠ BA in general, and one might not even be defined!</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المجموعة الخالية هي مجموعة جزئية من أي مجموعة أخرى. هذا المفهوم يُعرف بالصحة الفراغية (Vacuous Truth) ويُستخدم كثيراً في البراهين الرياضية.</template>
+      <template class="content-en">The empty set is a subset of EVERY other set. This concept is known as a Vacuous Truth and is heavily used in mathematical proofs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">لإثبات أن مجموعة لا نهائية هي 'قابلة للعد'، كل ما تحتاجه هو إيجاد طريقة لترتيب عناصرها في قائمة واحدة متسلسلة (ربطها بالأعداد 1، 2، 3...).</template>
+      <template class="content-en">To prove an infinite set is 'countable', all you need is to find a way to list its elements in a single sequential list (mapping them to 1, 2, 3...).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند ضرب المصفوفات، تأكد دائماً من مطابقة الأبعاد الداخلية (m × k مضروبة في k × n). إذا لم يتطابق الرقمان الداخليان، فالعملية مستحيلة.</template>
+      <template class="content-en">When multiplying matrices, always check the inner dimensions (m × k multiplied by k × n). If the inner numbers don't match, the operation is impossible.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="index.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M02.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

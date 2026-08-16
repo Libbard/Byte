@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS477" data-module="1">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مقدمة في المترجمات · CS477 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS477" data-page-title-en="CS477">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="index.html" data-gh-next="M02.html" data-gh-card="../../hub/course.html?code=CS477"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#compiler-concept" class="toc-link" data-bilingual>
+        <template class="content-ar">مفهوم المترجم (Compiler)</template>
+        <template class="content-en">Concept of a Compiler</template>
+        <span class="content-target">مفهوم المترجم (Compiler)</span>
+      </a>
+      <a href="#compiler-toolchain" class="toc-link" data-bilingual>
+        <template class="content-ar">سلسلة أدوات المترجم (Compiler Toolchain)</template>
+        <template class="content-en">The Compiler Toolchain</template>
+        <span class="content-target">سلسلة أدوات المترجم (Compiler Toolchain)</span>
+      </a>
+      <a href="#compiler-structure" class="toc-link" data-bilingual>
+        <template class="content-ar">هيكل المترجم (Compiler Structure)</template>
+        <template class="content-en">The Structure of a Compiler</template>
+        <span class="content-target">هيكل المترجم (Compiler Structure)</span>
+      </a>
+      <a href="#compilation-stages" class="toc-link" data-bilingual>
+        <template class="content-ar">مراحل الترجمة (Stages Within a Compiler)</template>
+        <template class="content-en">Stages Within a Compiler</template>
+        <span class="content-target">مراحل الترجمة (Stages Within a Compiler)</span>
+      </a>
+      <a href="#example-compilation" class="toc-link" data-bilingual>
+        <template class="content-ar">مثال على الترجمة (Example Compilation)</template>
+        <template class="content-en">Example Compilation</template>
+        <span class="content-target">مثال على الترجمة (Example Compilation)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 1</template>
+      <template class="content-en">Module 1</template>
+      <span class="content-target">الوحدة 1</span>
+    </span> · CS477
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">مقدمة في المترجمات</h1>
+      <p class="hero-description">نظرة عامة على المترجمات، هيكلها، سلسلة الأدوات، ومراحل الترجمة من الكود المصدري إلى لغة الآلة.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Introduction to Compilers</h1>
+      <p class="hero-description">An overview of compilers, their structure, the compiler toolchain, and the stages of compilation from source code to machine language.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المترجمات</span>
+      <span class="tag">سلسلة الأدوات</span>
+      <span class="tag">التحليل النحوي</span>
+      <span class="tag">التمثيل الوسيط</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Compilers</span>
+      <span class="tag">Toolchain</span>
+      <span class="tag">Parsing</span>
+      <span class="tag">Intermediate Representation</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم المفهوم الأساسي للمترجم ودوره في معالجة اللغات.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح الهيكل الداخلي للمترجم (الواجهة الأمامية والواجهة الخلفية).</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على مراحل الترجمة المختلفة من التحليل المعجمي إلى توليد الكود.</span></li>
+      <li><span class="obj-icon">✦</span><span>استيعاب دور كل أداة في سلسلة أدوات المترجم (المعالج المسبق، المجمع، الرابط).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the concept of a compiler and its role in language processing.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain the structure of a compiler (front-end and back-end).</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn the stages of compilation from lexical analysis to code generation.</span></li>
+      <li><span class="obj-icon">✦</span><span>Grasp the role of each tool in the compiler toolchain (preprocessor, assembler, linker).</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="compiler-concept" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مفهوم المترجم (Compiler)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Concept of a Compiler</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المترجم هو برنامج حاسوبي يترجم الكود المكتوب بلغة عالية المستوى إلى لغة التجميع أو لغة الآلة لتنفيذه.</p></template>
+    <template class="content-en"><p>A compiler is a computer program that translates a program written in a high-level language into the native assembly or machine language of a computer.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المترجم التقليدي يترجم لغات مثل C أو C++ أو Java إلى لغة الآلة.</p><p>ومع ذلك، تُستخدم تقنيات المترجمات في أي برنامج يعالج لغة معينة.</p><p>على سبيل المثال، برنامج التنضيد TEX يترجم المخطوطات إلى مستندات Postscript أو PDF.</p><p>دراسة المترجمات تساعد المبرمجين على كتابة كود أكثر فعالية، وتصحيح الأخطاء بشكل أفضل، وحتى إنشاء لغات جديدة أو <span class="smart-term" data-term-en="Domain Specific Language" data-ar="لغة مخصصة لمجال معين" data-en-def="A custom, compact language designed to make a specific class of problems easier to solve.">لغات مخصصة لمجالات معينة (Domain Specific Languages)</span>.</p></template>
+    <template class="content-en"><p>A traditional compiler translates languages like C, C++, or Java into machine code.</p><p>However, the techniques used in a compiler are also applied in any program that processes a language.</p><p>For example, a typesetting program like TEX translates a manuscript into a Postscript/PDF document.</p><p>Studying compilers helps programmers write more effective code, debug better, and even create new or <span class="smart-term" data-term-en="Domain Specific Language" data-ar="لغة مخصصة لمجال معين" data-en-def="A custom, compact language designed to make a specific class of problems easier to solve.">domain-specific languages</span> (little languages).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا ندرس المترجمات؟</p><p>الفهم العميق لكيفية تحويل الكود إلى لغة الآلة يزيل الغموض عن سلوك البرامج ويحسن مهارات تصحيح الأخطاء (Debugging).</p><p>بالإضافة إلى ذلك، العديد من المشكلات البرمجية المعقدة تصبح أسهل بكثير عند التعبير عنها ب<span class="smart-term" data-term-en="Domain Specific Language" data-ar="لغة مخصصة لمجال معين" data-en-def="A custom, compact language designed to make a specific class of problems easier to solve.">لغة مخصصة (Domain Specific Language)</span>، وبناء هذه اللغات يتطلب معرفة بتقنيات المترجمات.</p></template>
+    <template class="content-en"><p>Why study compilers?</p><p>A deep understanding of how code is translated into machine language demystifies program behavior and significantly improves debugging skills.</p><p>Furthermore, many complex software problems are made easier by expressing them compactly in a custom language (<span class="smart-term" data-term-en="Domain Specific Language" data-ar="لغة مخصصة لمجال معين" data-en-def="A custom, compact language designed to make a specific class of problems easier to solve.">Domain Specific Language</span>), and building these requires compiler techniques.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يعتبر متصفح الويب الذي يعالج كود HTML و CSS نوعاً من المترجمات بناءً على هذا التعريف؟</template>
+      <template class="content-en">Based on this definition, is a web browser that processes HTML and CSS considered a type of compiler?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، إلى حد ما. متصفح الويب يستخدم تقنيات المترجمات (مثل التحليل النحوي وبناء أشجار DOM) لمعالجة لغات HTML و CSS وتحويلها إلى عرض مرئي، تماماً كما يحول TEX النص إلى PDF.</p></template>
+      <template class="content-en"><p>Yes, to an extent. A web browser uses compiler techniques (like parsing and building DOM trees) to process HTML and CSS languages and translate them into a visual rendering, much like TEX translates text to PDF.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="compiler-toolchain" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> سلسلة أدوات المترجم (Compiler Toolchain)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> The Compiler Toolchain</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>سلسلة الأدوات هي مجموعة من البرامج التي تعمل بتسلسل (<span class="smart-term" data-term-en="Preprocessor" data-ar="المعالج المسبق" data-en-def="Prepares source code by consuming directives starting with # (e.g., macros, file inclusions).">المعالج المسبق</span>، المترجم، المجمع، <span class="smart-term" data-term-en="Linker" data-ar="الرابط" data-en-def="Combines object files and libraries, selecting final memory locations and resolving missing addresses.">الرابط</span>) لتحويل الكود المصدري إلى برنامج تنفيذي.</p></template>
+    <template class="content-en"><p>The toolchain is a sequence of programs (<span class="smart-term" data-term-en="Preprocessor" data-ar="المعالج المسبق" data-en-def="Prepares source code by consuming directives starting with # (e.g., macros, file inclusions).">Preprocessor</span>, Compiler, Assembler, <span class="smart-term" data-term-en="Linker" data-ar="الرابط" data-en-def="Combines object files and libraries, selecting final memory locations and resolving missing addresses.">Linker</span>) invoked in the background to create an executable from source code.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عندما تقوم بتشغيل أمر ترجمة واحد، يتم استدعاء عدة برامج في الخلفية:</p><ol><li><strong><span class="smart-term" data-term-en="Preprocessor" data-ar="المعالج المسبق" data-en-def="Prepares source code by consuming directives starting with # (e.g., macros, file inclusions).">المعالج المسبق (Preprocessor)</span></strong> — يجهز الكود المصدري بمعالجة التوجيهات مثل <code>#include</code> و <code>#define</code>.</li><li><strong>المترجم (Compiler)</strong> — يحلل الكود، يتحقق من الأنواع، يحسنه، وينتج لغة التجميع (Assembly).</li><li><strong>المجمع (Assembler)</strong> — يحول لغة التجميع إلى كود كائني (Object Code) يحتوي على تعليمات الآلة الخام.</li><li><strong><span class="smart-term" data-term-en="Linker" data-ar="الرابط" data-en-def="Combines object files and libraries, selecting final memory locations and resolving missing addresses.">الرابط (Linker)</span></strong> — يدمج ملفات الكائن والمكتبات، ويحدد عناوين الذاكرة النهائية لإنتاج البرنامج التنفيذي.</li></ol></template>
+    <template class="content-en"><p>When you invoke a single compile command, several programs run in the background:</p><ol><li><strong><span class="smart-term" data-term-en="Preprocessor" data-ar="المعالج المسبق" data-en-def="Prepares source code by consuming directives starting with # (e.g., macros, file inclusions).">Preprocessor</span></strong> — Prepares source code by handling directives like <code>#include</code> and <code>#define</code>.</li><li><strong>Compiler</strong> — Scans, parses, type-checks, optimizes, and produces assembly language.</li><li><strong>Assembler</strong> — Consumes assembly code and produces object code (raw machine instructions).</li><li><strong><span class="smart-term" data-term-en="Linker" data-ar="الرابط" data-en-def="Combines object files and libraries, selecting final memory locations and resolving missing addresses.">Linker</span></strong> — Combines object files and libraries, resolving final memory addresses to create the executable.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الكود الكائني (Object Code) الناتج عن المجمع يكون شبه قابل للتنفيذ، لكنه يحتوي على فجوات لأنه لا يعرف عناوين الذاكرة النهائية للدوال (مثل <code>printf</code>).</p><p>هنا يأتي دور <span class="smart-term" data-term-en="Linker" data-ar="الرابط" data-en-def="Combines object files and libraries, selecting final memory locations and resolving missing addresses.">الرابط (Linker)</span> الذي يملأ هذه الفجوات عن طريق ربط الاستدعاءات بالعناوين الفعلية في الذاكرة أو المكتبات الديناميكية/الثابتة.</p></template>
+    <template class="content-en"><p>The object code produced by the assembler is 'almost executable'.</p><p>It contains raw machine instructions but has gaps because it doesn't know the final memory addresses of external functions (like <code>printf</code>).</p><p>The <span class="smart-term" data-term-en="Linker" data-ar="الرابط" data-en-def="Combines object files and libraries, selecting final memory locations and resolving missing addresses.">linker</span>'s crucial role is to fill these gaps by resolving addresses and linking the code with static or dynamic libraries, making the program fully executable.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Flowchart showing the Compiler Toolchain. Left to right flow. Boxes: 'Source (prog.c)' -> 'Preprocessor (cpp)' -> 'Preprocessed Source' -> 'Compiler (cc1)' -> 'Assembly (prog.s)' -> 'Assembler (as)' -> 'Object Code (prog.o)' -> 'Static Linker (ld)' -> 'Executable (prog)'. Add inputs like 'Headers' into Preprocessor, and 'Libraries' into Static Linker. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 1000 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <text x="820" y="50" text-anchor="middle" font-size="28" font-weight="bold" fill="var(--text-primary)">The Compiler Toolchain / سلسلة أدوات المترجم</text>
+  <text x="820" y="80" text-anchor="middle" font-size="16" fill="var(--text-secondary)">From Source Code to Executable Program</text>
+
+  <!-- Grouping Boxes -->
+  <rect x="190" y="250" width="900" height="140" rx="12" fill="none" stroke="var(--brand-400)" stroke-dasharray="8,8" stroke-width="2" opacity="0.4" />
+  <text x="640" y="235" text-anchor="middle" fill="var(--text-muted)" font-size="15" font-weight="bold">Compilation Phase / مرحلة الترجمة</text>
+
+  <rect x="1270" y="250" width="180" height="140" rx="12" fill="none" stroke="var(--brand-400)" stroke-dasharray="8,8" stroke-width="2" opacity="0.4" />
+  <text x="1360" y="235" text-anchor="middle" fill="var(--text-muted)" font-size="15" font-weight="bold">Linking Phase / مرحلة الربط</text>
+
+  <!-- Arrows (Main Flow) -->
+  <path d="M 170 320 L 198 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 350 320 L 378 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 530 320 L 558 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 710 320 L 738 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 890 320 L 918 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 1070 320 L 1098 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 1250 320 L 1278 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 1430 320 L 1458 320" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+
+  <!-- Arrows (Side Inputs) -->
+  <path d="M 280 180 L 280 268" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 1360 180 L 1360 268" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 1360 460 L 1360 372" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+
+  <!-- ==================== NODES ==================== -->
+
+  <!-- 1. Source Code (File) -->
+  <g>
+    <path d="M 30 280 L 150 280 L 170 300 L 170 360 L 30 360 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="150,280 150,300 170,300" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="100" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">الكود المصدري</text>
+    <text x="100" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Source Code</text>
+    <text x="100" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">prog.c</text>
+  </g>
+
+  <!-- 2. Preprocessor (Tool) -->
+  <g>
+    <rect x="210" y="280" width="140" height="80" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="280" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">المعالج المسبق</text>
+    <text x="280" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Preprocessor</text>
+    <text x="280" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">cpp</text>
+  </g>
+
+  <!-- 3. Preprocessed Source (File) -->
+  <g>
+    <path d="M 390 280 L 510 280 L 530 300 L 530 360 L 390 360 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="510,280 510,300 530,300" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="460" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">الكود المعالج</text>
+    <text x="460" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Preprocessed</text>
+    <text x="460" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">prog.i</text>
+  </g>
+
+  <!-- 4. Compiler (Tool) -->
+  <g>
+    <rect x="570" y="280" width="140" height="80" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="640" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">المترجم</text>
+    <text x="640" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Compiler</text>
+    <text x="640" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">cc1</text>
+  </g>
+
+  <!-- 5. Assembly (File) -->
+  <g>
+    <path d="M 750 280 L 870 280 L 890 300 L 890 360 L 750 360 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="870,280 870,300 890,300" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="820" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">لغة التجميع</text>
+    <text x="820" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Assembly</text>
+    <text x="820" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">prog.s</text>
+  </g>
+
+  <!-- 6. Assembler (Tool) -->
+  <g>
+    <rect x="930" y="280" width="140" height="80" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="1000" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">المجمع</text>
+    <text x="1000" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Assembler</text>
+    <text x="1000" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">as</text>
+  </g>
+
+  <!-- 7. Object Code (File) -->
+  <g>
+    <path d="M 1110 280 L 1230 280 L 1250 300 L 1250 360 L 1110 360 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="1230,280 1230,300 1250,300" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="1180" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">كود الكائن</text>
+    <text x="1180" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Object Code</text>
+    <text x="1180" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">prog.o</text>
+  </g>
+
+  <!-- 8. Linker (Tool) -->
+  <g>
+    <rect x="1290" y="280" width="140" height="80" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="1360" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">الرابط</text>
+    <text x="1360" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Static Linker</text>
+    <text x="1360" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">ld</text>
+  </g>
+
+  <!-- 9. Executable (File) -->
+  <g>
+    <path d="M 1470 280 L 1590 280 L 1610 300 L 1610 360 L 1470 360 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="1590,280 1590,300 1610,300" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="1540" y="310" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">ملف تنفيذي</text>
+    <text x="1540" y="330" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">Executable</text>
+    <text x="1540" y="350" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">prog</text>
+  </g>
+
+  <!-- ==================== SIDE INPUTS ==================== -->
+
+  <!-- Headers (Input to Preprocessor) -->
+  <g>
+    <path d="M 210 100 L 330 100 L 350 120 L 350 180 L 210 180 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="330,100 330,120 350,120" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="280" y="130" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">ملفات الترويسة</text>
+    <text x="280" y="150" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text-primary)">Headers</text>
+    <text x="280" y="170" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--brand-500)">stdio.h</text>
+  </g>
+
+  <!-- Libraries (Input to Linker) -->
+  <g>
+    <path d="M 1290 100 L 1410 100 L 1430 120 L 1430 180 L 1290 180 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="1410,100 1410,120 1430,120" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="1360" y="130" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">المكتبات</text>
+    <text x="1360" y="150" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text-primary)">Libraries</text>
+    <text x="1360" y="170" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--brand-500)">libc.a, .so</text>
+  </g>
+
+  <!-- Other Objects (Input to Linker) -->
+  <g>
+    <path d="M 1290 460 L 1410 460 L 1430 480 L 1430 540 L 1290 540 Z" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <polyline points="1410,460 1410,480 1430,480" fill="none" stroke="var(--border-color)" stroke-width="2" />
+    <text x="1360" y="490" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">ملفات كائن أخرى</text>
+    <text x="1360" y="510" text-anchor="middle" font-size="13" font-weight="bold" fill="var(--text-primary)">Other Objects</text>
+    <text x="1360" y="530" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--brand-500)">math.o</text>
+  </g>
+
+  <!-- ==================== LEGEND ==================== -->
+  <g transform="translate(0, 20)">
+    <rect x="630" y="540" width="20" height="20" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="2" />
+    <path d="M 645 540 L 650 545 L 650 560" fill="none" stroke="var(--border-color)" stroke-width="1" />
+    <text x="660" y="555" font-size="14" fill="var(--text-secondary)">File / ملف</text>
+
+    <rect x="760" y="540" width="20" height="20" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+    <text x="790" y="555" font-size="14" fill="var(--text-secondary)">Tool / أداة</text>
+
+    <path d="M 880 550 L 920 550" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="935" y="555" font-size="14" fill="var(--text-secondary)">Data Flow / تدفق البيانات</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا نسيت تضمين مكتبة تحتوي على تعريف دالة استخدمتها في الكود؟ أي أداة ستفشل؟</template>
+      <template class="content-en">What happens if you forget to include a library containing the definition of a function you used? Which tool will fail?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيفشل الرابط (Linker). المترجم والمجمع سيقومان بعملهما بافتراض وجود الدالة، لكن الرابط لن يتمكن من العثور على عنوان الذاكرة الفعلي للدالة لملء الفجوة، مما يؤدي إلى خطأ (Unresolved External Symbol).</p></template>
+      <template class="content-en"><p>The Linker will fail. The compiler and assembler will process the code assuming the function exists elsewhere, but the linker will not find the actual memory address to resolve the reference, resulting in an 'unresolved external symbol' error.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="compiler-structure" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> هيكل المترجم (Compiler Structure)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> The Structure of a Compiler</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>ينقسم المترجم إلى قسمين رئيسيين: <span class="smart-term" data-term-en="Front End" data-ar="الواجهة الأمامية" data-en-def="The analysis part of the compiler that breaks down source code and builds the intermediate representation.">الواجهة الأمامية</span> (التحليل) والواجهة الخلفية (التجميع)، ويربط بينهما <span class="smart-term" data-term-en="Symbol Table" data-ar="جدول الرموز" data-en-def="A data structure containing a record for each variable name, with fields for its attributes like type, scope, and storage.">جدول الرموز (Symbol Table)</span>.</p></template>
+    <template class="content-en"><p>A compiler is divided into two main parts: the <span class="smart-term" data-term-en="Front End" data-ar="الواجهة الأمامية" data-en-def="The analysis part of the compiler that breaks down source code and builds the intermediate representation.">front-end</span> (analysis) and the back-end (synthesis), bridged by the <span class="smart-term" data-term-en="Symbol Table" data-ar="جدول الرموز" data-en-def="A data structure containing a record for each variable name, with fields for its attributes like type, scope, and storage.">Symbol Table</span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عملية الترجمة تتكون من مرحلتين أساسيتين:</p><ol><li><strong>جزء التحليل (Analysis - Front End)</strong> — يكسر البرنامج المصدري إلى أجزاء، يفرض هيكلاً نحوياً، وينشئ تمثيلاً وسيطاً (IR). كما يكتشف الأخطاء النحوية والدلالية.</li><li><strong>جزء التجميع (Synthesis - Back End)</strong> — يبني البرنامج الهدف (Target Program) المطلوب من التمثيل الوسيط والمعلومات الموجودة في جدول الرموز.</li></ol><p><strong><span class="smart-term" data-term-en="Symbol Table" data-ar="جدول الرموز" data-en-def="A data structure containing a record for each variable name, with fields for its attributes like type, scope, and storage.">جدول الرموز (Symbol Table)</span></strong> — هو هيكل بيانات يحتوي على سجل لكل اسم متغير، مع حقول لسماته (مثل النوع، النطاق، الذاكرة المخصصة، ومعلومات الدوال).</p></template>
+    <template class="content-en"><p>The compilation process consists of two primary phases:</p><ol><li><strong>Analysis part (<span class="smart-term" data-term-en="Front End" data-ar="الواجهة الأمامية" data-en-def="The analysis part of the compiler that breaks down source code and builds the intermediate representation.">Front End</span>)</strong> — Breaks up the source program into constituent pieces, imposes a grammatical structure, and creates an intermediate representation (IR). It also detects syntax and semantic errors.</li><li><strong>Synthesis part (Back End)</strong> — Constructs the desired target program from the intermediate representation and the information in the symbol table.</li></ol><p><strong><span class="smart-term" data-term-en="Symbol Table" data-ar="جدول الرموز" data-en-def="A data structure containing a record for each variable name, with fields for its attributes like type, scope, and storage.">Symbol Table</span></strong> — A data structure containing a record for each variable name, with fields for its attributes (storage allocated, type, scope, and procedure arguments/return types).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الفصل بين <span class="smart-term" data-term-en="Front End" data-ar="الواجهة الأمامية" data-en-def="The analysis part of the compiler that breaks down source code and builds the intermediate representation.">الواجهة الأمامية</span> والخلفية يعتبر تصميماً معمارياً ممتازاً؛ لأنه يسمح بإعادة استخدام الواجهة الأمامية للغات مختلفة، وإعادة استخدام الواجهة الخلفية لمعماريات أجهزة مختلفة.</p><p>يجب تصميم <span class="smart-term" data-term-en="Symbol Table" data-ar="جدول الرموز" data-en-def="A data structure containing a record for each variable name, with fields for its attributes like type, scope, and storage.">جدول الرموز</span> بحيث يسمح للمترجم بالعثور على السجلات بسرعة وتخزين أو استرجاع البيانات بكفاءة عالية، حيث يتم الوصول إليه باستمرار خلال جميع مراحل الترجمة.</p></template>
+    <template class="content-en"><p>Separating the compiler into a <span class="smart-term" data-term-en="Front End" data-ar="الواجهة الأمامية" data-en-def="The analysis part of the compiler that breaks down source code and builds the intermediate representation.">front-end</span> and back-end is an excellent architectural design.</p><p>It allows the front-end to be reused for different programming languages, and the back-end to be reused for different hardware architectures.</p><p>The <span class="smart-term" data-term-en="Symbol Table" data-ar="جدول الرموز" data-en-def="A data structure containing a record for each variable name, with fields for its attributes like type, scope, and storage.">symbol table</span> must be designed for high performance, allowing the compiler to quickly find records and store/retrieve data, as it is accessed continuously across all compilation phases.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Block diagram showing Compiler Phases. Top to bottom flow: 'character stream' -> [Lexical Analyzer] -> 'token stream' -> [Syntax Analyzer] -> 'syntax tree' -> [Semantic Analyzer] -> 'syntax tree' -> [Intermediate Code Generator] -> 'intermediate representation' -> [Machine-Independent Code Optimizer] -> 'intermediate representation' -> [Code Generator] -> 'target-machine code' -> [Machine-Dependent Code Optimizer] -> 'target-machine code'. Add a large box on the side labeled 'Symbol Table' with arrows connecting to all phases. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 800 800. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1150" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Standard Arrow -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Dashed Arrow for Symbol Table (Right) -->
+    <marker id="arrow-dashed-right" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--brand-400)" />
+    </marker>
+
+    <!-- Dashed Arrow for Symbol Table (Left) -->
+    <marker id="arrow-dashed-left" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 10 1 L 1 5 L 10 9 z" fill="var(--brand-400)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    
+    <!-- ================= SYMBOL TABLE ================= -->
+    <g id="symbol-table">
+      <rect x="535" y="120" width="200" height="900" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,4" />
+      
+      <!-- Symbol Table Icon -->
+      <g transform="translate(605, 480)">
+        <rect x="0" y="0" width="60" height="40" rx="4" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+        <line x1="0" y1="13" x2="60" y2="13" stroke="var(--brand-500)" stroke-width="2" />
+        <line x1="0" y1="26" x2="60" y2="26" stroke="var(--brand-500)" stroke-width="2" />
+        <line x1="20" y1="0" x2="20" y2="40" stroke="var(--brand-500)" stroke-width="2" />
+      </g>
+
+      <text x="635" y="555" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Symbol Table</text>
+      <text x="635" y="585" font-size="18" fill="var(--text-secondary)" text-anchor="middle">جدول الرموز</text>
+    </g>
+
+    <!-- ================= STREAMS & PHASES ================= -->
+
+    <!-- Stream 0: Character Stream -->
+    <g id="stream-0">
+      <text x="255" y="55" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Character Stream</text>
+      <text x="255" y="75" font-size="13" fill="var(--text-muted)" text-anchor="middle">تيار الرموز</text>
+      <line x1="255" y1="85" x2="255" y2="110" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 1: Lexical Analyzer -->
+    <g id="phase-1">
+      <rect x="75" y="120" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="145" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Lexical Analyzer</text>
+      <text x="255" y="165" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المحلل المعجمي</text>
+      
+      <!-- Connections to Symbol Table -->
+      <line x1="435" y1="140" x2="525" y2="140" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="160" x2="445" y2="160" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 1: Token Stream -->
+    <g id="stream-1">
+      <line x1="255" y1="180" x2="255" y2="200" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="220" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Token Stream</text>
+      <text x="255" y="240" font-size="13" fill="var(--text-muted)" text-anchor="middle">تيار الوحدات</text>
+      <line x1="255" y1="245" x2="255" y2="255" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 2: Syntax Analyzer -->
+    <g id="phase-2">
+      <rect x="75" y="260" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="285" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Syntax Analyzer</text>
+      <text x="255" y="305" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المحلل النحوي</text>
+      
+      <line x1="435" y1="280" x2="525" y2="280" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="300" x2="445" y2="300" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 2: Syntax Tree -->
+    <g id="stream-2">
+      <line x1="255" y1="320" x2="255" y2="340" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="360" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Syntax Tree</text>
+      <text x="255" y="380" font-size="13" fill="var(--text-muted)" text-anchor="middle">شجرة النحو</text>
+      <line x1="255" y1="385" x2="255" y2="395" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 3: Semantic Analyzer -->
+    <g id="phase-3">
+      <rect x="75" y="400" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="425" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Semantic Analyzer</text>
+      <text x="255" y="445" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المحلل الدلالي</text>
+      
+      <line x1="435" y1="420" x2="525" y2="420" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="440" x2="445" y2="440" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 3: Syntax Tree -->
+    <g id="stream-3">
+      <line x1="255" y1="460" x2="255" y2="480" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="500" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Syntax Tree</text>
+      <text x="255" y="520" font-size="13" fill="var(--text-muted)" text-anchor="middle">شجرة النحو</text>
+      <line x1="255" y1="525" x2="255" y2="535" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 4: Intermediate Code Generator -->
+    <g id="phase-4">
+      <rect x="75" y="540" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="565" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Intermediate Code Generator</text>
+      <text x="255" y="585" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مولد الكود الوسيط</text>
+      
+      <line x1="435" y1="560" x2="525" y2="560" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="580" x2="445" y2="580" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 4: Intermediate Representation -->
+    <g id="stream-4">
+      <line x1="255" y1="600" x2="255" y2="620" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="640" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Intermediate Representation</text>
+      <text x="255" y="660" font-size="13" fill="var(--text-muted)" text-anchor="middle">التمثيل الوسيط</text>
+      <line x1="255" y1="665" x2="255" y2="675" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 5: Machine-Independent Code Optimizer -->
+    <g id="phase-5">
+      <rect x="75" y="680" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="705" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Machine-Independent Code Optimizer</text>
+      <text x="255" y="725" font-size="14" fill="var(--text-secondary)" text-anchor="middle">محسن الكود المستقل عن الآلة</text>
+      
+      <line x1="435" y1="700" x2="525" y2="700" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="720" x2="445" y2="720" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 5: Intermediate Representation -->
+    <g id="stream-5">
+      <line x1="255" y1="740" x2="255" y2="760" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="780" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Intermediate Representation</text>
+      <text x="255" y="800" font-size="13" fill="var(--text-muted)" text-anchor="middle">التمثيل الوسيط</text>
+      <line x1="255" y1="805" x2="255" y2="815" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 6: Code Generator -->
+    <g id="phase-6">
+      <rect x="75" y="820" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="845" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Code Generator</text>
+      <text x="255" y="865" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مولد الكود</text>
+      
+      <line x1="435" y1="840" x2="525" y2="840" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="860" x2="445" y2="860" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 6: Target-Machine Code -->
+    <g id="stream-6">
+      <line x1="255" y1="880" x2="255" y2="900" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="920" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Target-Machine Code</text>
+      <text x="255" y="940" font-size="13" fill="var(--text-muted)" text-anchor="middle">كود الآلة الهدف</text>
+      <line x1="255" y1="945" x2="255" y2="955" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+    </g>
+
+    <!-- Phase 7: Machine-Dependent Code Optimizer -->
+    <g id="phase-7">
+      <rect x="75" y="960" width="360" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+      <text x="255" y="985" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Machine-Dependent Code Optimizer</text>
+      <text x="255" y="1005" font-size="14" fill="var(--text-secondary)" text-anchor="middle">محسن الكود المعتمد على الآلة</text>
+      
+      <line x1="435" y1="980" x2="525" y2="980" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-right)" />
+      <line x1="535" y1="1000" x2="445" y2="1000" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow-dashed-left)" />
+    </g>
+
+    <!-- Stream 7: Target-Machine Code (Output) -->
+    <g id="stream-7">
+      <line x1="255" y1="1020" x2="255" y2="1050" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+      <text x="255" y="1075" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Target-Machine Code</text>
+      <text x="255" y="1095" font-size="13" fill="var(--text-muted)" text-anchor="middle">كود الآلة الهدف</text>
+    </g>
+
+  </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Front End (Analysis)</th><th>Back End (Synthesis)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الوظيفة الأساسية</template>
+          <template class="content-en">Primary Function</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تكسير الكود المصدري وفهم الهيكل النحوي والدلالي</template>
+          <template class="content-en">Breaks up source code, understands syntax and semantics</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">بناء الكود الهدف (لغة الآلة) من التمثيل الوسيط</template>
+          <template class="content-en">Constructs target machine code from IR</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المخرجات</template>
+          <template class="content-en">Output</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">التمثيل الوسيط (IR) وشجرة AST</template>
+          <template class="content-en">Intermediate Representation (IR) and AST</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كود التجميع أو لغة الآلة</template>
+          <template class="content-en">Assembly or Machine Code</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الاعتمادية</template>
+          <template class="content-en">Dependency</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يعتمد على لغة البرمجة المصدرية</template>
+          <template class="content-en">Dependent on the source programming language</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يعتمد على معمارية الجهاز الهدف (Hardware)</template>
+          <template class="content-en">Dependent on the target hardware architecture</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر جدول الرموز مهماً جداً في مرحلة التحليل الدلالي (Semantic Analysis)؟</template>
+      <template class="content-en">Why is the Symbol Table so crucial during the Semantic Analysis phase?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن مرحلة التحليل الدلالي تحتاج إلى التحقق من توافق الأنواع (Type-checking). للقيام بذلك، يجب أن تعرف نوع كل متغير تم الإعلان عنه مسبقاً، وهذه المعلومات يتم تخزينها واسترجاعها من جدول الرموز.</p></template>
+      <template class="content-en"><p>Because semantic analysis involves type-checking. To do this, the compiler must know the type of each previously declared variable, and this information is stored in and retrieved from the Symbol Table.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="compilation-stages" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> مراحل الترجمة (Stages Within a Compiler)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Stages Within a Compiler</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>يمر الكود بعدة مراحل: الماسح (Scanner)، المعرب (Parser)، الإجراءات الدلالية، توليد التمثيل الوسيط (IR)، المحسن (Optimizer)، ومولد الكود (Code Generator).</p></template>
+    <template class="content-en"><p>Code passes through several stages: Scanner, Parser, Semantic Routines, IR Generator, Optimizer, and Code Generator.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ol><li><strong>الماسح (Scanner)</strong> — يقرأ النص ويجمع الحروف لتكوين رموز (Tokens).</li><li><strong>المعرب (Parser)</strong> — يجمع الرموز في عبارات بناءً على قواعد اللغة (Grammar) وينتج <span class="smart-term" data-term-en="Abstract Syntax Tree (AST)" data-ar="شجرة الصياغة المجردة" data-en-def="A tree representation that captures the grammatical structures and structural relationships of the program.">شجرة الصياغة المجردة (AST)</span>.</li><li><strong>الإجراءات الدلالية (Semantic Routines)</strong> — تتحقق من المعنى الإضافي مثل التحقق من الأنواع (Type-checking).</li><li><strong>التمثيل الوسيط (IR)</strong> — تحويل AST إلى شكل مبسط يشبه لغة التجميع للتحليل الدقيق.</li><li><strong>المحسن (Optimizer)</strong> — يقلل حجم الكود ويزيد سرعته (مثل إزالة الكود الميت).</li><li><strong>مولد الكود (Code Generator)</strong> — يحول IR إلى لغة تجميع فعلية، ويدير <span class="smart-term" data-term-en="Register Allocation" data-ar="تخصيص السجلات" data-en-def="The process in the code generator that effectively manages the limited number of hardware registers.">تخصيص السجلات (Register Allocation)</span>.</li></ol></template>
+    <template class="content-en"><ol><li><strong>Scanner</strong> — Consumes plain text and groups characters into complete tokens.</li><li><strong>Parser</strong> — Groups tokens into statements based on grammar, producing an <span class="smart-term" data-term-en="Abstract Syntax Tree (AST)" data-ar="شجرة الصياغة المجردة" data-en-def="A tree representation that captures the grammatical structures and structural relationships of the program.">Abstract Syntax Tree (AST)</span>.</li><li><strong>Semantic Routines</strong> — Derive meaning and perform type-checking for consistency.</li><li><strong>Intermediate Representation (IR)</strong> — Converts AST into a simplified assembly-like form for analysis.</li><li><strong>Optimizer</strong> — Makes the program smaller and faster (e.g., removing dead code).</li><li><strong>Code Generator</strong> — Transforms optimized IR into concrete assembly, handling <span class="smart-term" data-term-en="Register Allocation" data-ar="تخصيص السجلات" data-en-def="The process in the code generator that effectively manages the limited number of hardware registers.">register allocation</span> and instruction selection.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المحسنات (Optimizers) مصممة عادة لتقرأ الكود بصيغة IR وتخرج نفس صيغة IR.</p><p>هذا التصميم يسمح بتطبيق عدة محسنات بشكل مستقل وبأي ترتيب.</p><p>مولد الكود يواجه تحديات متعلقة بالعتاد (Hardware)، مثل العدد المحدود من السجلات (Registers) في وحدة المعالجة المركزية، مما يتطلب خوارزميات ذكية ل<span class="smart-term" data-term-en="Register Allocation" data-ar="تخصيص السجلات" data-en-def="The process in the code generator that effectively manages the limited number of hardware registers.">تخصيص السجلات</span> وترتيب التعليمات بأكثر الطرق كفاءة.</p></template>
+    <template class="content-en"><p>Optimizers are typically designed to read the program in IR format and emit the same IR format.</p><p>This allows multiple optimizers to be applied independently and in arbitrary order.</p><p>The Code Generator faces hardware-specific challenges, such as a limited number of CPU registers.</p><p>It must perform complex <span class="smart-term" data-term-en="Register Allocation" data-ar="تخصيص السجلات" data-en-def="The process in the code generator that effectively manages the limited number of hardware registers.">register allocation</span> and instruction sequencing to produce highly efficient machine code.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نقوم بالتحسين (Optimization) مباشرة على شجرة الصياغة المجردة (AST) بدلاً من التمثيل الوسيط (IR)؟</template>
+      <template class="content-en">Why don't we perform optimization directly on the Abstract Syntax Tree (AST) instead of the Intermediate Representation (IR)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>التمثيل الوسيط (IR) يكون خطياً (Linear) وأقرب إلى لغة الآلة، مما يسهل اكتشاف الكود الميت وتحسين العمليات الحسابية مقارنة بالهيكل الشجري المعقد لـ AST.</p></template>
+      <template class="content-en"><p>IR is linear and closer to actual machine code, making it much easier to perform low-level optimizations like dead code elimination and register allocation compared to the complex, hierarchical structure of an AST.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="example-compilation" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> مثال على الترجمة (Example Compilation)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Example Compilation</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تتبع عبارة مثل <code>height = (width+56) * factor(foo);</code> يوضح كيف تتحول من نص إلى رموز، ثم إلى شجرة (AST)، ثم إلى تمثيل وسيط (IR)، وأخيراً إلى كود تجميع (Assembly).</p></template>
+    <template class="content-en"><p>Tracing a statement like <code>height = (width+56) * factor(foo);</code> shows how it transforms from text to tokens, to an AST, to IR, and finally to Assembly code.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>خطوات معالجة العبارة:</p><ol><li><strong>الماسح</strong> — يولد رموزاً مثل <code>id:height</code>, <code>=</code>, <code>(</code>, <code>id:width</code>, <code>+</code>, <code>int:56</code>. في هذه المرحلة لا يُعرف الغرض من كل رمز (هل factor دالة أم متغير؟).</li><li><strong>المعرب</strong> — يطبق قواعد اللغة (Grammar) لبناء شجرة (AST) توضح أن الجمع يتم بين width و 56، وأن factor هو استدعاء دالة.</li><li><strong>الإجراءات الدلالية</strong> — تتحقق من الأنواع (مثلاً، هل width عدد صحيح؟).</li><li><strong>توليد IR</strong> — يتم اجتياز الشجرة (Post-order traversal) لتوليد تعليمات خطية تشبه التجميع.</li><li><strong>توليد الكود</strong> — تحويل IR إلى تعليمات X86 فعلية (مثل <code>MOVQ</code>, <code>ADDQ</code>, <code>IMULQ</code>).</li></ol></template>
+    <template class="content-en"><p>Steps to process the statement:</p><ol><li><strong>Scanner</strong> — Emits tokens like <code>id:height</code>, <code>=</code>, <code>(</code>, <code>id:width</code>, <code>+</code>, <code>int:56</code>. At this stage, the purpose of each token is unclear (is factor a function or variable?).</li><li><strong>Parser</strong> — Applies grammar rules to build an AST showing structural relationships (addition on width and 56, function call on factor).</li><li><strong>Semantic Routines</strong> — Perform type-checking (e.g., is width an integer?).</li><li><strong>IR Generation</strong> — A <span class="smart-term" data-term-en="Post-order Traversal" data-ar="الاجتياز البعدي" data-en-def="A method of traversing a tree where children are visited before their parent, used here to generate linear IR from an AST.">post-order traversal</span> of the AST generates linear, assembly-like instructions.</li><li><strong>Code Generation</strong> — Converts IR into concrete X86 assembly (e.g., <code>MOVQ</code>, <code>ADDQ</code>, <code>IMULQ</code>).</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في مرحلة الماسح (Scanner)، لا يعرف المترجم نوع المتغير <code>width</code>، لذا فإن الرمز <code>+</code> قد يعني جمع أعداد صحيحة، أو جمع أعداد عشرية، أو حتى دمج نصوص.</p><p>يتم تحديد المعنى الدقيق لاحقاً في مرحلة الإجراءات الدلالية.</p><p>عند توليد كود التجميع النهائي، لا يوجد بالضرورة تطابق واحد لواحد (One-to-one) بين تعليمات التمثيل الوسيط (IR) وتعليمات التجميع الفعلية، حيث يعتمد ذلك على بنية المعالج وتحسينات مولد الكود.</p></template>
+    <template class="content-en"><p>During the Scanner phase, the compiler doesn't know the type of <code>width</code>, so the <code>+</code> token could potentially represent integer addition, floating-point addition, or string concatenation.</p><p>The exact meaning is resolved later in the Semantic Routines.</p><p>When generating the final assembly code, there is not necessarily a one-to-one correspondence between IR instructions and actual assembly instructions, as this depends heavily on the target CPU architecture and the code generator's optimizations.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>assembly</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>MOVQ    width, %rax
+ADDQ    $56, %rax
+MOVQ    %rax, -8(%rbp)
+MOVQ    foo, %edi
+CALL    factor
+MOVQ    -8(%rbp), %rbx
+IMULQ   %rbx
+MOVQ    %rax, height</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Tree diagram showing an Abstract Syntax Tree (AST). Root node 'ASSIGN'. Left child 'ID height'. Right child 'MUL'. 'MUL' has left child 'ADD' and right child 'CALL'. 'ADD' has children 'ID width' and 'INT 56'. 'CALL' has children 'ID factor' and 'ID foo'. Arrows point downwards from parents to children. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 600 500. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border-color)" stroke-width="1" opacity="0.2"/>
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+    <rect width="100%" height="100%" fill="url(#grid)" />
+
+    <!-- Title & Context -->
+    <text x="30" y="40" font-size="20" font-weight="bold" fill="var(--text-primary)">Abstract Syntax Tree (AST)</text>
+    <text x="30" y="65" font-size="15" fill="var(--text-secondary)">شجرة النحو المجرد</text>
+
+    <!-- Code Snippet Box -->
+    <g transform="translate(530, 20)">
+        <rect x="0" y="0" width="240" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-dasharray="4 4" stroke-width="1.5"/>
+        <text x="120" y="25" text-anchor="middle" font-family="monospace" font-size="13" fill="var(--brand-500)">height = (width + 56) * foo(factor)</text>
+    </g>
+
+    <!-- Connecting Lines (Curved Paths for better aesthetics) -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)">
+        <!-- Level 0 to Level 1 -->
+        <path d="M 370 92 C 370 117, 200 117, 200 142" />
+        <path d="M 370 92 C 370 117, 535 117, 535 142" />
+        
+        <!-- Level 1 to Level 2 -->
+        <path d="M 535 212 C 535 237, 405 237, 405 262" />
+        <path d="M 535 212 C 535 237, 665 237, 665 262" />
+        
+        <!-- Level 2 to Level 3 (ADD children) -->
+        <path d="M 405 332 C 405 357, 340 357, 340 382" />
+        <path d="M 405 332 C 405 357, 470 357, 470 382" />
+        
+        <!-- Level 2 to Level 3 (CALL children) -->
+        <path d="M 665 332 C 665 357, 600 357, 600 382" />
+        <path d="M 665 332 C 665 357, 730 357, 730 382" />
+    </g>
+
+    <!-- Nodes -->
+    <!-- Level 0: Root -->
+    <g transform="translate(370, 60)">
+        <rect x="-50" y="-32" width="100" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+        <text x="0" y="-2" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">ASSIGN</text>
+        <text x="0" y="18" text-anchor="middle" font-size="14" fill="var(--text-secondary)">إسناد</text>
+    </g>
+
+    <!-- Level 1 -->
+    <g transform="translate(200, 180)">
+        <rect x="-50" y="-32" width="100" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" />
+        <text x="0" y="-12" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">ID</text>
+        <text x="0" y="4" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">height</text>
+        <text x="0" y="20" text-anchor="middle" font-size="12" fill="var(--text-muted)">متغير</text>
+    </g>
+
+    <g transform="translate(535, 180)">
+        <rect x="-50" y="-32" width="100" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="-2" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">MUL</text>
+        <text x="0" y="18" text-anchor="middle" font-size="14" fill="var(--text-secondary)">ضرب</text>
+    </g>
+
+    <!-- Level 2 -->
+    <g transform="translate(405, 300)">
+        <rect x="-50" y="-32" width="100" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="-2" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">ADD</text>
+        <text x="0" y="18" text-anchor="middle" font-size="14" fill="var(--text-secondary)">جمع</text>
+    </g>
+
+    <g transform="translate(665, 300)">
+        <rect x="-50" y="-32" width="100" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="0" y="-2" text-anchor="middle" font-size="16" font-weight="bold" fill="var(--text-primary)">CALL</text>
+        <text x="0" y="18" text-anchor="middle" font-size="14" fill="var(--text-secondary)">استدعاء</text>
+    </g>
+
+    <!-- Level 3 (Leaves) -->
+    <g transform="translate(340, 420)">
+        <rect x="-45" y="-32" width="90" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3 3" />
+        <text x="0" y="-12" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">ID</text>
+        <text x="0" y="4" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">width</text>
+        <text x="0" y="20" text-anchor="middle" font-size="12" fill="var(--text-muted)">متغير</text>
+    </g>
+
+    <g transform="translate(470, 420)">
+        <rect x="-45" y="-32" width="90" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3 3" />
+        <text x="0" y="-12" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">INT</text>
+        <text x="0" y="4" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">56</text>
+        <text x="0" y="20" text-anchor="middle" font-size="12" fill="var(--text-muted)">قيمة</text>
+    </g>
+
+    <g transform="translate(600, 420)">
+        <rect x="-45" y="-32" width="90" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3 3" />
+        <text x="0" y="-12" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">ID</text>
+        <text x="0" y="4" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">foo</text>
+        <text x="0" y="20" text-anchor="middle" font-size="12" fill="var(--text-muted)">دالة</text>
+    </g>
+
+    <g transform="translate(730, 420)">
+        <rect x="-45" y="-32" width="90" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3 3" />
+        <text x="0" y="-12" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--text-primary)">ID</text>
+        <text x="0" y="4" text-anchor="middle" font-size="13" font-family="monospace" fill="var(--brand-500)">factor</text>
+        <text x="0" y="20" text-anchor="middle" font-size="12" fill="var(--text-muted)">متغير</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُستخدم الاجتياز البعدي (Post-order traversal) لتوليد التمثيل الوسيط من شجرة AST؟</template>
+      <template class="content-en">Why is a post-order traversal used to generate IR from the AST?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا نحتاج إلى تقييم (أو حساب) المعاملات (الأبناء) قبل أن نتمكن من تطبيق العملية (الأب) عليها. على سبيل المثال، يجب حساب (width+56) قبل ضربه في نتيجة الدالة.</p></template>
+      <template class="content-en"><p>Because we must evaluate the operands (children) before we can apply the operator (parent) to them. For example, (width+56) must be computed before it can be multiplied by the function's result.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم في عالم المترجمات! تخيل أنك تتحدث لغة لا يفهمها صديقك، فتحتاج إلى مترجم فوري. المترجم (Compiler) هو هذا الوسيط بينك وبين الحاسوب. في هذه الوحدة، ركزنا على الصورة الكبيرة. تذكر دائماً سلسلة الأدوات: المعالج المسبق يجهز الكود، المترجم يحلله، المجمع يحوله للغة الآلة، والرابط يجمع القطع معاً. للامتحان، ركزوا بشدة على الفرق بين الواجهة الأمامية (التحليل) والواجهة الخلفية (التجميع)، وكيف يعمل جدول الرموز كذاكرة مركزية للمترجم. لا تخلطوا بين الماسح (الذي يقرأ الحروف) والمعرب (الذي يبني الشجرة النحوية). فهمكم لهذه الرحلة من النص الخام إلى الكود التنفيذي هو مفتاح النجاح في هذا المقرر.</template>
+    <template class="content-en">Welcome to the world of Compilers! Imagine speaking a language your friend doesn't understand; you need an interpreter. The Compiler is that mediator between you and the machine. In this module, we focused on the big picture. Always remember the toolchain sequence: Preprocessor prepares, Compiler analyzes, Assembler translates to machine code, and Linker connects the pieces. For the exam, focus heavily on the difference between the Front End (Analysis) and Back End (Synthesis), and how the Symbol Table acts as the compiler's central memory. Don't confuse the Scanner (which reads characters) with the Parser (which builds the syntax tree). Understanding this journey from raw text to executable code is your key to success in this course.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين المترجم (Compiler) وسلسلة الأدوات (Toolchain)؟</template>
+          <template class="content-en">What is the difference between a Compiler and a Toolchain?</template>
+          <span class="content-target">ما هو الفرق بين المترجم (Compiler) وسلسلة الأدوات (Toolchain)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المترجم هو برنامج واحد ضمن سلسلة الأدوات يقوم بتحليل الكود وتوليد لغة التجميع. سلسلة الأدوات هي المجموعة الكاملة (المعالج المسبق، المترجم، المجمع، الرابط) التي تعمل معاً لإنتاج البرنامج التنفيذي النهائي.</template>
+          <template class="content-en">The compiler is just one program within the toolchain that parses code and generates assembly. The toolchain is the complete sequence (preprocessor, compiler, assembler, linker) working together to produce the final executable.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى الرابط (Linker) إذا كان المجمع (Assembler) ينتج كود الآلة؟</template>
+          <template class="content-en">Why do we need a Linker if the Assembler already produces machine code?</template>
+          <span class="content-target">لماذا نحتاج إلى الرابط (Linker) إذا كان المجمع (Assembler) ينتج كود الآلة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المجمع ينتج كوداً كائنياً (Object Code) يحتوي على تعليمات الآلة، لكنه لا يعرف عناوين الذاكرة النهائية للدوال الخارجية (مثل دوال المكتبات). الرابط يملأ هذه الفجوات لإنشاء ملف تنفيذي متكامل.</template>
+          <template class="content-en">The assembler produces object code with machine instructions, but it doesn't know the final memory addresses of external functions (like library functions). The linker fills these gaps to create a complete executable.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين الماسح (Scanner) والمعرب (Parser)؟</template>
+          <template class="content-en">What is the difference between the Scanner and the Parser?</template>
+          <span class="content-target">ما هو الفرق بين الماسح (Scanner) والمعرب (Parser)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الماسح يقرأ النص حرفاً بحرف ويجمعه في رموز (Tokens) دون فهم القواعد. المعرب يأخذ هذه الرموز ويطبق عليها قواعد اللغة (Grammar) لبناء شجرة الصياغة المجردة (AST).</template>
+          <template class="content-en">The scanner reads text character by character and groups them into tokens without understanding grammar. The parser takes these tokens and applies grammar rules to build the Abstract Syntax Tree (AST).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الدور الحيوي لجدول الرموز (Symbol Table)؟</template>
+          <template class="content-en">What is the vital role of the Symbol Table?</template>
+          <span class="content-target">ما هو الدور الحيوي لجدول الرموز (Symbol Table)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو هيكل بيانات يخزن معلومات حول كل متغير أو دالة (مثل النوع، النطاق، الذاكرة). يتم استخدامه في جميع مراحل الترجمة، خاصة في التحليل الدلالي للتحقق من الأنواع.</template>
+          <template class="content-en">It is a data structure that stores information about every variable or function (like type, scope, memory). It is used across all compilation phases, especially in semantic analysis for type-checking.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم التمثيل الوسيط (IR) بدلاً من الترجمة المباشرة إلى لغة التجميع؟</template>
+          <template class="content-en">Why use an Intermediate Representation (IR) instead of translating directly to assembly?</template>
+          <span class="content-target">لماذا نستخدم التمثيل الوسيط (IR) بدلاً من الترجمة المباشرة إلى لغة التجميع؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التمثيل الوسيط يبسط الكود ويجعله مستقلاً عن العتاد، مما يسهل تطبيق خوارزميات التحسين (Optimization) بشكل فعال قبل توليد الكود الخاص بمعالج معين.</template>
+          <template class="content-en">IR simplifies the code and makes it hardware-independent, making it much easier to apply optimization algorithms effectively before generating CPU-specific code.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث خلال مرحلة الإجراءات الدلالية (Semantic Routines)؟</template>
+          <template class="content-en">What happens during the Semantic Routines phase?</template>
+          <span class="content-target">ماذا يحدث خلال مرحلة الإجراءات الدلالية (Semantic Routines)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتم اجتياز شجرة AST للتحقق من المعنى المنطقي للبرنامج، وأهم عملية هنا هي التحقق من الأنواع (Type-checking) لضمان عدم وجود عمليات غير قانونية (مثل جمع نص مع رقم).</template>
+          <template class="content-en">The AST is traversed to check the logical meaning of the program. The most important operation here is type-checking to ensure no illegal operations occur (like adding a string to a number).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يعرف المعرب (Parser) ما إذا كان تسلسل الرموز يمثل برنامجاً صالحاً؟</template>
+          <template class="content-en">How does the Parser know if a sequence of tokens forms a valid program?</template>
+          <span class="content-target">كيف يعرف المعرب (Parser) ما إذا كان تسلسل الرموز يمثل برنامجاً صالحاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">من خلال البحث عن أنماط تتطابق مع قواعد اللغة (Grammar). إذا أمكن استبدال تسلسل الرموز بالجانب الأيسر من قاعدة نحوية، يتم بناء عقدة في شجرة AST.</template>
+          <template class="content-en">By looking for patterns that match the language's Grammar. If a sequence of tokens can be replaced by the left side of a grammar rule, a node is built in the AST.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين الواجهة الأمامية (Front End) والواجهة الخلفية (Back End) للمترجم؟</template>
+          <template class="content-en">What is the difference between the Front End and Back End of a compiler?</template>
+          <span class="content-target">ما هو الفرق بين الواجهة الأمامية (Front End) والواجهة الخلفية (Back End) للمترجم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الواجهة الأمامية (التحليل) تعتمد على لغة البرمجة وتقوم بفهم الكود وتوليد IR. الواجهة الخلفية (التجميع) تعتمد على العتاد وتأخذ IR لتوليد كود الآلة النهائي.</template>
+          <template class="content-en">The Front End (Analysis) is language-dependent; it understands the code and generates IR. The Back End (Synthesis) is hardware-dependent; it takes the IR and generates the final machine code.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">أعط مثالاً على برنامج يعالج لغة ولكنه ليس مترجماً تقليدياً.</template>
+          <template class="content-en">Give an example of a language processing program that isn't a traditional compiler.</template>
+          <span class="content-target">أعط مثالاً على برنامج يعالج لغة ولكنه ليس مترجماً تقليدياً.</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">برنامج التنضيد TEX، الذي يترجم المخطوطات النصية إلى مستندات Postscript أو PDF باستخدام تقنيات مشابهة للمترجمات.</template>
+          <template class="content-en">The TEX typesetting program, which translates text manuscripts into Postscript or PDF documents using compiler-like techniques.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المهام الرئيسية لمولد الكود (Code Generator)؟</template>
+          <template class="content-en">What are the main tasks of the Code Generator?</template>
+          <span class="content-target">ما هي المهام الرئيسية لمولد الكود (Code Generator)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تحويل التمثيل الوسيط (IR) إلى لغة تجميع، وإدارة تخصيص السجلات (Register Allocation)، واختيار وترتيب التعليمات بأكثر الطرق كفاءة للعتاد الهدف.</template>
+          <template class="content-en">Transforming IR into assembly language, managing register allocation, and selecting/sequencing instructions in the most efficient way for the target hardware.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "المترجم (Compiler)",
+      "en": "Compiler"
+    },
+    "back": {
+      "definition": {
+        "ar": "برنامج يترجم لغة عالية المستوى إلى لغة تجميع أو لغة آلة.",
+        "en": "A program that translates a high-level language into native assembly or machine language."
+      },
+      "example": {
+        "ar": "تحويل كود C إلى كود تنفيذي.",
+        "en": "Translating C code into an executable."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "المعالج المسبق (Preprocessor)",
+      "en": "Preprocessor"
+    },
+    "back": {
+      "definition": {
+        "ar": "أداة تجهز الكود المصدري بمعالجة التوجيهات التي تبدأ برمز #.",
+        "en": "A tool that prepares source code by consuming directives starting with the # symbol."
+      },
+      "example": {
+        "ar": "معالجة #include و #define في لغة C.",
+        "en": "Handling #include and #define in C."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "المجمع (Assembler)",
+      "en": "Assembler"
+    },
+    "back": {
+      "definition": {
+        "ar": "أداة تستهلك كود التجميع وتنتج كود كائني (Object Code).",
+        "en": "A tool that consumes assembly code and produces object code."
+      },
+      "example": {
+        "ar": "تحويل ملف .s إلى ملف .o",
+        "en": "Converting a .s file to a .o file."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "الكود الكائني (Object Code)",
+      "en": "Object Code"
+    },
+    "back": {
+      "definition": {
+        "ar": "تعليمات آلة خام تحتوي على فجوات في عناوين الذاكرة النهائية.",
+        "en": "Raw machine language instructions that contain gaps for final memory addresses."
+      },
+      "example": {
+        "ar": "ملف لا يعرف بعد عنوان دالة printf.",
+        "en": "A file that doesn't yet know the address of the printf function."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "الرابط (Linker)",
+      "en": "Linker"
+    },
+    "back": {
+      "definition": {
+        "ar": "أداة تدمج ملفات الكائن والمكتبات وتحدد عناوين الذاكرة النهائية.",
+        "en": "A tool that combines object files and libraries, selecting final memory locations."
+      },
+      "example": {
+        "ar": "ربط كودك مع مكتبة C القياسية لإنتاج ملف تنفيذي.",
+        "en": "Linking your code with the standard C library to produce an executable."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "الماسح (Scanner / Lexical Analyzer)",
+      "en": "Scanner"
+    },
+    "back": {
+      "definition": {
+        "ar": "المرحلة التي تقرأ النص وتجمع الحروف لتكوين رموز (Tokens).",
+        "en": "The stage that consumes plain text and groups characters to form complete tokens."
+      },
+      "example": {
+        "ar": "تحويل النص 'int x' إلى رمزين: نوع ومعرف.",
+        "en": "Converting 'int x' into two tokens: type and identifier."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "الرمز (Token)",
+      "en": "Token"
+    },
+    "back": {
+      "definition": {
+        "ar": "هيكل بيانات صغير يصف طبيعة ومحتوى كل رمز في الكود.",
+        "en": "A small data structure that describes the nature and contents of each symbol."
+      },
+      "example": {
+        "ar": "id:height أو int:56",
+        "en": "id:height or int:56"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "المعرب (Parser / Syntax Analyzer)",
+      "en": "Parser"
+    },
+    "back": {
+      "definition": {
+        "ar": "المرحلة التي تجمع الرموز في عبارات بناءً على قواعد اللغة وتنتج AST.",
+        "en": "The stage that groups tokens into statements based on grammar, producing an AST."
+      },
+      "example": {
+        "ar": "التأكد من أن الأقواس مغلقة بشكل صحيح.",
+        "en": "Ensuring parentheses are properly matched."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "شجرة الصياغة المجردة (AST)",
+      "en": "Abstract Syntax Tree (AST)"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل شجري يوضح العلاقات الهيكلية بين الرموز في البرنامج.",
+        "en": "A tree representation capturing the grammatical structures and relationships of the program."
+      },
+      "example": {
+        "ar": "عقدة جمع (+) لها ابنان يمثلان المعاملات.",
+        "en": "An addition node (+) with two children representing the operands."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "الإجراءات الدلالية (Semantic Routines)",
+      "en": "Semantic Routines"
+    },
+    "back": {
+      "definition": {
+        "ar": "مرحلة تجتاز AST لاستنتاج معاني إضافية مثل التحقق من الأنواع.",
+        "en": "A stage that traverses the AST to derive additional meaning, such as type-checking."
+      },
+      "example": {
+        "ar": "التأكد من عدم جمع نص مع رقم بشكل غير قانوني.",
+        "en": "Ensuring a string is not illegally added to a number."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "التمثيل الوسيط (IR)",
+      "en": "Intermediate Representation (IR)"
+    },
+    "back": {
+      "definition": {
+        "ar": "شكل مبسط يشبه لغة التجميع يُستخدم للتحليل الدقيق والتحسين.",
+        "en": "A simplified form of assembly code suitable for detailed analysis and optimization."
+      },
+      "example": {
+        "ar": "كود خطي يحتوي على عدد لا نهائي من السجلات الوهمية.",
+        "en": "Linear code with an infinite number of virtual registers."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "المحسن (Optimizer)",
+      "en": "Optimizer"
+    },
+    "back": {
+      "definition": {
+        "ar": "مرحلة تعدل التمثيل الوسيط لجعل البرنامج أصغر وأسرع.",
+        "en": "A stage that modifies the IR to make the program smaller, faster, or more efficient."
+      },
+      "example": {
+        "ar": "إزالة الكود الميت (Dead code removal).",
+        "en": "Dead code removal."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "مولد الكود (Code Generator)",
+      "en": "Code Generator"
+    },
+    "back": {
+      "definition": {
+        "ar": "المرحلة النهائية التي تحول IR المحسن إلى لغة تجميع فعلية.",
+        "en": "The final stage that transforms optimized IR into a concrete assembly language program."
+      },
+      "example": {
+        "ar": "تخصيص السجلات الفعلية للمعالج.",
+        "en": "Allocating actual hardware registers."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "جدول الرموز (Symbol Table)",
+      "en": "Symbol Table"
+    },
+    "back": {
+      "definition": {
+        "ar": "هيكل بيانات يخزن معلومات حول المتغيرات والدوال (النوع، النطاق، إلخ).",
+        "en": "A data structure storing information about variables and functions (type, scope, etc.)."
+      },
+      "example": {
+        "ar": "تخزين أن المتغير x هو من نوع int.",
+        "en": "Storing that variable x is of type int."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "الواجهة الأمامية (Front End)",
+      "en": "Front End"
+    },
+    "back": {
+      "definition": {
+        "ar": "جزء التحليل في المترجم الذي يكسر الكود وينشئ التمثيل الوسيط.",
+        "en": "The analysis part of the compiler that breaks down code and creates the IR."
+      },
+      "example": {
+        "ar": "يتضمن الماسح والمعرب.",
+        "en": "Includes the scanner and parser."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "الواجهة الخلفية (Back End)",
+      "en": "Back End"
+    },
+    "back": {
+      "definition": {
+        "ar": "جزء التجميع في المترجم الذي يبني الكود الهدف من التمثيل الوسيط.",
+        "en": "The synthesis part of the compiler that constructs the target code from the IR."
+      },
+      "example": {
+        "ar": "يتضمن مولد الكود والمحسن المعتمد على الآلة.",
+        "en": "Includes the code generator and machine-dependent optimizer."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "لغة مخصصة (Domain Specific Language)",
+      "en": "Domain Specific Language (DSL)"
+    },
+    "back": {
+      "definition": {
+        "ar": "لغة صغيرة مصممة لحل مشكلات في مجال معين بشكل مدمج.",
+        "en": "A little language designed to express problems compactly in a specific domain."
+      },
+      "example": {
+        "ar": "لغة SQL لقواعد البيانات.",
+        "en": "SQL for databases."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من الأدوات التالية مسؤولة عن معالجة التوجيهات التي تبدأ برمز # في لغة C؟",
+      "en": "Which of the following tools is responsible for handling directives starting with the # symbol in C?"
+    },
+    "options": {
+      "ar": [
+        "المترجم (Compiler)",
+        "المعالج المسبق (Preprocessor)",
+        "الرابط (Linker)",
+        "المجمع (Assembler)"
+      ],
+      "en": [
+        "Compiler",
+        "Preprocessor",
+        "Linker",
+        "Assembler"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المعالج المسبق يجهز الكود المصدري عن طريق استبدال الماكرو وتضمين الملفات قبل أن يبدأ المترجم الفعلي عمله.",
+      "en": "The preprocessor prepares the source code by handling macros and file inclusions before the actual compiler starts."
+    },
+    "hint": {
+      "ar": "تذكر #include و #define.",
+      "en": "Think about #include and #define."
+    },
+    "difficulty": "easy",
+    "conceptId": "compiler-toolchain"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هي المخرجات المباشرة لمرحلة الماسح (Scanner)؟",
+      "en": "What is the direct output of the Scanner phase?"
+    },
+    "options": {
+      "ar": [
+        "شجرة الصياغة المجردة (AST)",
+        "التمثيل الوسيط (IR)",
+        "سلسلة من الرموز (Tokens)",
+        "كود التجميع (Assembly Code)"
+      ],
+      "en": [
+        "Abstract Syntax Tree (AST)",
+        "Intermediate Representation (IR)",
+        "A series of Tokens",
+        "Assembly Code"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الماسح يقرأ النص حرفاً بحرف ويجمعه في رموز (Tokens) لتمريرها إلى المعرب.",
+      "en": "The scanner reads text character by character and groups them into Tokens to pass to the parser."
+    },
+    "hint": {
+      "ar": "الماسح يسمى أيضاً المحلل المعجمي.",
+      "en": "The scanner is also called the lexical analyzer."
+    },
+    "difficulty": "easy",
+    "conceptId": "compilation-stages"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "لماذا لا يمكن تنفيذ الكود الكائني (Object Code) مباشرة؟",
+      "en": "Why is Object Code not immediately executable?"
+    },
+    "options": {
+      "ar": [
+        "لأنه لا يزال مكتوباً بلغة عالية المستوى.",
+        "لأنه يحتوي على فجوات في عناوين الذاكرة النهائية.",
+        "لأنه لم يتم تحسينه بعد.",
+        "لأنه لا يحتوي على جدول الرموز."
+      ],
+      "en": [
+        "Because it is still written in a high-level language.",
+        "Because it contains gaps for final memory addresses.",
+        "Because it hasn't been optimized yet.",
+        "Because it lacks a symbol table."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الكود الكائني يحتوي على تعليمات الآلة ولكنه يفتقر إلى العناوين النهائية للدوال الخارجية، والتي يجب أن يملأها الرابط (Linker).",
+      "en": "Object code contains machine instructions but lacks final addresses for external functions, which must be filled by the Linker."
+    },
+    "hint": {
+      "ar": "تذكر دور الرابط (Linker).",
+      "en": "Remember the role of the Linker."
+    },
+    "difficulty": "medium",
+    "conceptId": "compiler-toolchain"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي مرحلة من مراحل المترجم مسؤولة عن التحقق من الأنواع (Type-checking)؟",
+      "en": "Which compiler stage is responsible for Type-checking?"
+    },
+    "options": {
+      "ar": [
+        "الماسح (Scanner)",
+        "المعرب (Parser)",
+        "الإجراءات الدلالية (Semantic Routines)",
+        "مولد الكود (Code Generator)"
+      ],
+      "en": [
+        "Scanner",
+        "Parser",
+        "Semantic Routines",
+        "Code Generator"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الإجراءات الدلالية تجتاز شجرة AST للتحقق من التناسق المنطقي مثل توافق الأنواع.",
+      "en": "Semantic routines traverse the AST to check for logical consistency, such as type compatibility."
+    },
+    "hint": {
+      "ar": "هذه المرحلة تبحث عن 'المعنى' الإضافي للكود.",
+      "en": "This stage looks for the additional 'meaning' of the code."
+    },
+    "difficulty": "medium",
+    "conceptId": "compilation-stages"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو الغرض الرئيسي من جدول الرموز (Symbol Table)؟",
+      "en": "What is the primary purpose of the Symbol Table?"
+    },
+    "options": {
+      "ar": [
+        "تخزين الكود المصدري كنسخة احتياطية.",
+        "تخزين سجل لكل اسم متغير مع سماته مثل النوع والنطاق.",
+        "توليد كود التجميع النهائي.",
+        "ربط المكتبات الخارجية بالبرنامج."
+      ],
+      "en": [
+        "To store the source code as a backup.",
+        "To store a record for each variable name with attributes like type and scope.",
+        "To generate the final assembly code.",
+        "To link external libraries to the program."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "جدول الرموز هو هيكل بيانات مركزي يستخدم لتتبع المتغيرات والدوال وخصائصها طوال عملية الترجمة.",
+      "en": "The Symbol Table is a central data structure used to track variables, functions, and their properties throughout compilation."
+    },
+    "hint": {
+      "ar": "يحتوي على 'سجلات' للأسماء.",
+      "en": "It contains 'records' for names."
+    },
+    "difficulty": "medium",
+    "conceptId": "compiler-structure"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما الذي يوجه عمل المعرب (Parser) لتجميع الرموز في عبارات؟",
+      "en": "What guides the Parser in grouping tokens into statements?"
+    },
+    "options": {
+      "ar": [
+        "جدول الرموز",
+        "قواعد اللغة (Grammar)",
+        "المعالج المسبق",
+        "المحسن (Optimizer)"
+      ],
+      "en": [
+        "Symbol Table",
+        "Grammar",
+        "Preprocessor",
+        "Optimizer"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المعرب يستخدم قواعد اللغة (Grammar) التي تحدد القواعد الشكلية لتكوين العبارات في لغة معينة.",
+      "en": "The parser uses the Grammar, which states the formal rules of composition in a given language."
+    },
+    "hint": {
+      "ar": "مجموعة القواعد التي تحدد بنية اللغة.",
+      "en": "The set of rules defining the language structure."
+    },
+    "difficulty": "medium",
+    "conceptId": "compilation-stages"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "في أي مرحلة يتم عادةً تخصيص السجلات (Register Allocation)؟",
+      "en": "In which stage does Register Allocation typically occur?"
+    },
+    "options": {
+      "ar": [
+        "الواجهة الأمامية (Front End)",
+        "توليد التمثيل الوسيط (IR Generation)",
+        "مولد الكود (Code Generator)",
+        "الماسح (Scanner)"
+      ],
+      "en": [
+        "Front End",
+        "IR Generation",
+        "Code Generator",
+        "Scanner"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مولد الكود يتعامل مع تفاصيل العتاد مثل العدد المحدود من السجلات في المعالج.",
+      "en": "The Code Generator deals with hardware specifics like the limited number of CPU registers."
+    },
+    "hint": {
+      "ar": "هذه المرحلة قريبة جداً من العتاد (Hardware).",
+      "en": "This stage is very close to the hardware."
+    },
+    "difficulty": "hard",
+    "conceptId": "compilation-stages"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي الميزة الرئيسية لتصميم المحسنات (Optimizers) بحيث تقرأ وتخرج نفس صيغة التمثيل الوسيط (IR)؟",
+      "en": "What is the main advantage of designing Optimizers to read and emit the same IR format?"
+    },
+    "options": {
+      "ar": [
+        "يسمح بتخطي مرحلة التجميع.",
+        "يسمح بتطبيق المحسنات بشكل مستقل وبأي ترتيب.",
+        "يلغي الحاجة إلى جدول الرموز.",
+        "يجعل الكود قابلاً للتنفيذ مباشرة."
+      ],
+      "en": [
+        "It allows skipping the assembly phase.",
+        "It allows optimizers to be applied independently and in arbitrary order.",
+        "It eliminates the need for a symbol table.",
+        "It makes the code directly executable."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "توحيد المدخلات والمخرجات للمحسنات يسمح بتركيبها كأنابيب (Pipeline) مرنة.",
+      "en": "Standardizing the input and output of optimizers allows them to be composed flexibly in a pipeline."
+    },
+    "hint": {
+      "ar": "فكر في المرونة في ترتيب العمليات.",
+      "en": "Think about flexibility in ordering operations."
+    },
+    "difficulty": "hard",
+    "conceptId": "compilation-stages"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو الفرق الرئيسي بين جزء التحليل (Analysis) وجزء التجميع (Synthesis) في المترجم؟",
+      "en": "What is the main difference between the Analysis and Synthesis parts of a compiler?"
+    },
+    "options": {
+      "ar": [
+        "التحليل يبني الكود الهدف، بينما التجميع يكسر الكود المصدري.",
+        "التحليل يكسر الكود المصدري وينشئ IR، بينما التجميع يبني الكود الهدف من IR.",
+        "التحليل يتعامل مع الرابط، بينما التجميع يتعامل مع المعالج المسبق.",
+        "لا يوجد فرق، هما اسمان لنفس العملية."
+      ],
+      "en": [
+        "Analysis builds target code, while Synthesis breaks source code.",
+        "Analysis breaks source code and creates IR, while Synthesis builds target code from IR.",
+        "Analysis deals with the linker, while Synthesis deals with the preprocessor.",
+        "There is no difference; they are names for the same process."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التحليل (الواجهة الأمامية) يفهم الكود، والتجميع (الواجهة الخلفية) يولد الكود النهائي.",
+      "en": "Analysis (Front End) understands the code, and Synthesis (Back End) generates the final code."
+    },
+    "hint": {
+      "ar": "التحليل = تفكيك، التجميع = بناء.",
+      "en": "Analysis = breaking down, Synthesis = building up."
+    },
+    "difficulty": "medium",
+    "conceptId": "compiler-structure"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في مثال الترجمة، لماذا لا يعرف المترجم الغرض من الرمز `factor` في مرحلة الماسح (Scanner)؟",
+      "en": "In the compilation example, why doesn't the compiler know the purpose of the `factor` token during the Scanner phase?"
+    },
+    "options": {
+      "ar": [
+        "لأن الماسح يحدد فقط أنه 'معرف' (Identifier) دون فهم السياق النحوي.",
+        "لأن الكود يحتوي على خطأ مطبعي.",
+        "لأن جدول الرموز يتم حذفه في هذه المرحلة.",
+        "لأن الماسح لا يقرأ الحروف الإنجليزية."
+      ],
+      "en": [
+        "Because the scanner only identifies it as an 'identifier' without understanding grammatical context.",
+        "Because the code contains a typo.",
+        "Because the symbol table is deleted at this stage.",
+        "Because the scanner doesn't read English letters."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الماسح يجمع الحروف فقط لتكوين رموز أساسية. فهم السياق (هل هو دالة أم متغير؟) يحدث لاحقاً في المعرب والإجراءات الدلالية.",
+      "en": "The scanner only groups characters into basic tokens. Understanding context (is it a function or variable?) happens later in the parser and semantic routines."
+    },
+    "hint": {
+      "ar": "الماسح لا يهتم بالقواعد (Grammar).",
+      "en": "The scanner doesn't care about Grammar."
+    },
+    "difficulty": "hard",
+    "conceptId": "example-compilation"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين المترجم (Compiler) والمجمع (Assembler). المترجم يحول اللغات عالية المستوى إلى تجميع، بينما المجمع يحول التجميع إلى كود آلة (Object Code).</template>
+      <template class="content-en">Confusing the Compiler with the Assembler. The compiler translates high-level languages to assembly, while the assembler translates assembly to machine code (Object Code).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المحسنات (Optimizers) مصممة لتقرأ وتكتب نفس صيغة التمثيل الوسيط (IR). هذا السر المعماري يسمح بتشغيل المحسنات بأي ترتيب أو حتى تكرارها دون كسر سلسلة الترجمة.</template>
+      <template class="content-en">Optimizers are designed to read and write the exact same IR format. This architectural secret allows optimizers to be run in any order or even repeated without breaking the compilation pipeline.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">جدول الرموز (Symbol Table) هو الجسر الحيوي الذي يربط جميع مراحل المترجم. بدونه، ستفقد مرحلة التحليل الدلالي القدرة على التحقق من الأنواع، وسيفشل مولد الكود في تخصيص الذاكرة.</template>
+      <template class="content-en">The Symbol Table is the vital bridge connecting all compiler phases. Without it, semantic analysis couldn't type-check, and the code generator would fail to allocate memory.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الكود الكائني (Object Code) جاهز للتنفيذ المباشر. في الواقع، هو 'شبه جاهز' ويحتاج إلى الرابط (Linker) لملء فجوات عناوين الذاكرة.</template>
+      <template class="content-en">Believing that Object Code is ready for direct execution. In reality, it is 'almost executable' and needs the Linker to fill in memory address gaps.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الفصل بين الواجهة الأمامية (Front End) والخلفية (Back End) يسمح بإنشاء مترجمات تدعم لغات متعددة وتعمل على أجهزة متعددة بإعادة استخدام المكونات.</template>
+      <template class="content-en">Separating the Front End and Back End allows the creation of compilers that support multiple languages and target multiple architectures by reusing components.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="index.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M02.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

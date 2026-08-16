@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS477" data-module="6">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التمثيل الوسيط · CS477 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS477" data-page-title-en="CS477">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M05.html" data-gh-next="M07.html" data-gh-card="../../hub/course.html?code=CS477"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#intermediate-representation-ir" class="toc-link" data-bilingual>
+        <template class="content-ar">التمثيل الوسيط (IR)</template>
+        <template class="content-en">Intermediate Representation (IR)</template>
+        <span class="content-target">التمثيل الوسيط (IR)</span>
+      </a>
+      <a href="#types-of-ir" class="toc-link" data-bilingual>
+        <template class="content-ar">أنواع التمثيل الوسيط</template>
+        <template class="content-en">Types of Intermediate Languages</template>
+        <span class="content-target">أنواع التمثيل الوسيط</span>
+      </a>
+      <a href="#abstract-syntax-tree-ast" class="toc-link" data-bilingual>
+        <template class="content-ar">شجرة النحو المجردة (AST) في الـ IR</template>
+        <template class="content-en">Abstract Syntax Tree (AST) in IR</template>
+        <span class="content-target">شجرة النحو المجردة (AST) في الـ IR</span>
+      </a>
+      <a href="#directed-acyclic-graph-dag" class="toc-link" data-bilingual>
+        <template class="content-ar">الرسم البياني الموجه غير الدوري (DAG)</template>
+        <template class="content-en">Directed Acyclic Graph (DAG)</template>
+        <span class="content-target">الرسم البياني الموجه غير الدوري (DAG)</span>
+      </a>
+      <a href="#control-flow-graph-cfg" class="toc-link" data-bilingual>
+        <template class="content-ar">الرسم البياني لتدفق التحكم (CFG)</template>
+        <template class="content-en">Control Flow Graph (CFG)</template>
+        <span class="content-target">الرسم البياني لتدفق التحكم (CFG)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS477
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">التمثيل الوسيط</h1>
+      <p class="hero-description">دراسة مفاهيم التمثيل الوسيط (IR) في تصميم المترجمات، بما في ذلك شجرة النحو المجردة (AST)، الرسم البياني الموجه غير الدوري (DAG)، والرسم البياني لتدفق التحكم (CFG).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Intermediate Representation</h1>
+      <p class="hero-description">Study of Intermediate Representation (IR) concepts in compiler design, including Abstract Syntax Tree (AST), Directed Acyclic Graph (DAG), and Control Flow Graph (CFG).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المترجمات</span>
+      <span class="tag">التمثيل الوسيط</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Compilers</span>
+      <span class="tag">Intermediate Representation</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف مفهوم التمثيل الوسيط (IR) وأهميته في المترجمات.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح شجرة النحو المجردة (AST) كشكل من أشكال التمثيل الوسيط.</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف الرسم البياني الموجه غير الدوري (DAG) وكيفية استخدامه لتحسين التعبيرات.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم الرسم البياني لتدفق التحكم (CFG) لتمثيل هياكل البرامج.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe the concept of intermediate representation (IR) and its importance in compilers.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain the abstract syntax tree (AST) as a form of intermediate representation.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe the directed acyclic graph (DAG) and how it is used to optimize expressions.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the Control Flow Graph (CFG) for representing program structures.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="intermediate-representation-ir" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> التمثيل الوسيط (IR)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Intermediate Representation (IR)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>التمثيل الوسيط هو لغة تواصل داخلية بين <span class="smart-term" data-term-en="Front end" data-ar="الواجهة الأمامية" data-en-def="The part of the compiler that analyzes the source code and generates the IR.">الواجهة الأمامية<span class="smart-term-tooltip"></span></span> و<span class="smart-term" data-term-en="Back end" data-ar="الواجهة الخلفية" data-en-def="The part of the compiler that takes the IR and generates target machine code.">الواجهة الخلفية<span class="smart-term-tooltip"></span></span> للمترجم، تشبه لغة تجميع عالمية مستقلة عن الآلة.</p></template>
+    <template class="content-en"><p>IR is an internal communication language between the compiler's <span class="smart-term" data-term-en="Front end" data-ar="الواجهة الأمامية" data-en-def="The part of the compiler that analyzes the source code and generates the IR.">front end<span class="smart-term-tooltip"></span></span> and <span class="smart-term" data-term-en="Back end" data-ar="الواجهة الخلفية" data-en-def="The part of the compiler that takes the IR and generates target machine code.">back end<span class="smart-term-tooltip"></span></span>, acting like a universal, machine-independent assembly language.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تستخدم معظم المترجمات الإنتاجية تمثيلاً وسيطاً (IR) يقع بين البنية المجردة للغة المصدر والبنية الملموسة للغة الهدف (التجميع).</p><p>يتميز الـ IR ببنية بسيطة ومنتظمة تسهل التحسين، التحليل، وتوليد الكود بكفاءة.</p><p>يحل الـ IR مشكلة $m \times n$.</p><p>بدون الـ IR، لترجمة $m$ لغة إلى $n$ آلة، نحتاج إلى $m \times n$ مترجم.</p><p>باستخدام الـ IR، نحتاج فقط إلى $m$ واجهة أمامية، $n$ مولد كود، ومُحسّن كود واحد، مما يقلل الجهد إلى $m + n$.</p></template>
+    <template class="content-en"><p>Most production compilers use an intermediate representation (IR) that lies between the abstract structure of the source language and the concrete structure of the target (assembly) language.</p><p>An IR has a simple, regular structure facilitating optimization, analysis, and efficient code generation.</p><p>IR solves the $m \times n$ problem.</p><p>Without IR, compiling $m$ languages to $n$ machines requires $m \times n$ compilers.</p><p>With IR, we only need $m$ front ends, $n$ code generators, and 1 optimizer, reducing the effort to $m + n$.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا صُمم الـ IR بهذا الشكل؟</p><p>الهدف الأساسي هو فصل تفاصيل لغة المصدر عن تفاصيل الآلة الهدف.</p><p>هذا يسمح بإعادة استخدام مُحسّن الكود (Optimizer)، وهو أحد أكبر وأعقد مكونات المترجم.</p><p>من ناحية التنفيذ، غالباً ما يمتلك الـ IR تنسيقاً خارجياً يمكن كتابته في ملف نصي لتبادله بين أدوات مختلفة، ولكنه عند تحميله في الذاكرة يُمثل كهيكل بيانات لتسهيل خوارزميات العبور (Traversal).</p><p>يرتبط الـ IR ارتباطاً وثيقاً بمراحل التحليل الدلالي (Semantic Analysis) حيث يتم توليده عادةً عبر الترجمة الموجهة بالصيغة (Syntax Directed Translation) أثناء عملية الإعراب (Parsing).</p></template>
+    <template class="content-en"><p>Why is IR designed this way?</p><p>The primary goal is to decouple source language details from target machine details.</p><p>This allows the reuse of the code optimizer, which is one of the largest and most difficult-to-write components of a compiler.</p><p>Implementation-wise, an IR often has a defined external format that can be written to a text file for exchange between unrelated tools.</p><p>When loaded into memory, it is represented as a data structure to facilitate traversal algorithms.</p><p>IR is deeply connected to semantic analysis, as it is often implementable via syntax-directed translation, allowing it to be folded into the parsing process itself.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A bipartite graph comparison. Left side: 4 source language boxes connected to 3 target machine boxes with 12 intersecting lines (m*n problem). Right side: 4 source language boxes connected to a single central 'Intermediate code optimizer' box, which then connects to 3 target machine boxes (m+n solution). Style: educational, dark background #0d1117, accent colors for boxes, clear flow arrows. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 550" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Marker for Left Side (Muted) -->
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)"/>
+        </marker>
+        
+        <!-- Marker for Right Side (Highlighted) -->
+        <marker id="arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Center Dividing Line -->
+    <line x1="500" y1="80" x2="500" y2="480" stroke="var(--border-color)" stroke-dasharray="6,6" stroke-width="2"/>
+
+    <!-- ========================================== -->
+    <!-- TITLES & HEADERS                           -->
+    <!-- ========================================== -->
+
+    <!-- Left Title -->
+    <text x="250" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Without IR / بدون لغة وسيطة</text>
+    <text x="250" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">m × n Compilers (12 Front-Back pairs)</text>
+
+    <!-- Right Title -->
+    <text x="750" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">With IR / مع لغة وسيطة</text>
+    <text x="750" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">m + n Compilers (4 Front + 3 Back)</text>
+
+    <!-- Column Labels (Left Side) -->
+    <text x="100" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">Source Languages</text>
+    <text x="100" y="115" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">لغات المصدر</text>
+
+    <text x="400" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">Target Machines</text>
+    <text x="400" y="165" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">الأجهزة المستهدفة</text>
+
+    <!-- Column Labels (Right Side) -->
+    <text x="580" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">Front-ends</text>
+    <text x="580" y="115" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">واجهات أمامية</text>
+
+    <text x="920" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">Back-ends</text>
+    <text x="920" y="165" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">واجهات خلفية</text>
+
+
+    <!-- ========================================== -->
+    <!-- PATHS (Drawn first to stay behind nodes)   -->
+    <!-- ========================================== -->
+
+    <g id="left-paths" fill="none" stroke="var(--brand-400)" stroke-width="1.5" marker-end="url(#arrow-muted)">
+        <!-- From S1 (C/C++) -->
+        <path d="M 150 150 C 240 150, 250 200, 346 200" />
+        <path d="M 150 150 C 240 150, 250 300, 346 300" />
+        <path d="M 150 150 C 240 150, 250 400, 346 400" />
+        <!-- From S2 (Java) -->
+        <path d="M 150 250 C 240 250, 250 200, 346 200" />
+        <path d="M 150 250 C 240 250, 250 300, 346 300" />
+        <path d="M 150 250 C 240 250, 250 400, 346 400" />
+        <!-- From S3 (Python) -->
+        <path d="M 150 350 C 240 350, 250 200, 346 200" />
+        <path d="M 150 350 C 240 350, 250 300, 346 300" />
+        <path d="M 150 350 C 240 350, 250 400, 346 400" />
+        <!-- From S4 (Pascal) -->
+        <path d="M 150 450 C 240 450, 250 200, 346 200" />
+        <path d="M 150 450 C 240 450, 250 300, 346 300" />
+        <path d="M 150 450 C 240 450, 250 400, 346 400" />
+    </g>
+
+    <g id="right-paths" fill="none" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow-solid)">
+        <!-- Sources to IR -->
+        <path d="M 630 150 C 655 150, 660 255, 686 255" />
+        <path d="M 630 250 C 655 250, 660 275, 686 275" />
+        <path d="M 630 350 C 655 350, 660 305, 686 305" />
+        <path d="M 630 450 C 655 450, 660 325, 686 325" />
+        <!-- IR to Targets -->
+        <path d="M 810 260 C 835 260, 845 200, 866 200" />
+        <path d="M 810 290 C 835 290, 845 300, 866 300" />
+        <path d="M 810 320 C 835 320, 845 400, 866 400" />
+    </g>
+
+
+    <!-- ========================================== -->
+    <!-- NODES (Left Side)                          -->
+    <!-- ========================================== -->
+
+    <g id="left-nodes">
+        <!-- Source Languages -->
+        <rect x="50" y="130" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="100" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">C / C++</text>
+
+        <rect x="50" y="230" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="100" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Java</text>
+
+        <rect x="50" y="330" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="100" y="350" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Python</text>
+
+        <rect x="50" y="430" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="100" y="450" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Pascal</text>
+
+        <!-- Target Machines -->
+        <rect x="350" y="180" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="400" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">x86</text>
+
+        <rect x="350" y="280" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="400" y="300" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">ARM</text>
+
+        <rect x="350" y="380" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="400" y="400" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">MIPS</text>
+    </g>
+
+
+    <!-- ========================================== -->
+    <!-- NODES (Right Side)                         -->
+    <!-- ========================================== -->
+
+    <g id="right-nodes">
+        <!-- Source Languages (Front-ends) -->
+        <rect x="530" y="130" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="580" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">C / C++</text>
+
+        <rect x="530" y="230" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="580" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Java</text>
+
+        <rect x="530" y="330" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="580" y="350" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Python</text>
+
+        <rect x="530" y="430" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="580" y="450" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Pascal</text>
+
+        <!-- Intermediate Representation (IR) Box -->
+        <!-- Highlight Glow -->
+        <rect x="685" y="235" width="130" height="110" rx="12" fill="var(--brand-500)" opacity="0.15"/>
+        <!-- Main Box -->
+        <rect x="690" y="240" width="120" height="100" rx="10" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2.5"/>
+        
+        <text x="750" y="260" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Intermediate</text>
+        <text x="750" y="280" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">Representation</text>
+        <text x="750" y="300" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="middle">(IR)</text>
+        <text x="750" y="320" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">لغة وسيطة</text>
+
+        <!-- Target Machines (Back-ends) -->
+        <rect x="870" y="180" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="920" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">x86</text>
+
+        <rect x="870" y="280" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="920" y="300" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">ARM</text>
+
+        <rect x="870" y="380" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="920" y="400" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">MIPS</text>
+    </g>
+
+
+    <!-- ========================================== -->
+    <!-- EQUATIONS / SUMMARY                        -->
+    <!-- ========================================== -->
+
+    <!-- Left Equation -->
+    <rect x="175" y="500" width="150" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--border-color)"/>
+    <text x="250" y="520" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="middle">4 × 3 = 12 Compilers</text>
+
+    <!-- Right Equation -->
+    <rect x="675" y="500" width="150" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--border-color)"/>
+    <text x="750" y="520" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="middle">4 + 3 = 7 Compilers</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا أردنا إضافة دعم للغة برمجة جديدة في مترجم يعتمد على الـ IR، ما هي المكونات التي يجب كتابتها من الصفر؟</template>
+      <template class="content-en">If we want to add support for a new programming language in an IR-based compiler, which components must be written from scratch?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نحتاج فقط إلى كتابة واجهة أمامية (Front end) جديدة تترجم اللغة الجديدة إلى الـ IR المشترك. لا نحتاج لتعديل المُحسّن أو الواجهات الخلفية.</p></template>
+      <template class="content-en"><p>We only need to write a new front end that translates the new language into the common IR. The optimizer and back ends remain untouched.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="types-of-ir" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> أنواع التمثيل الوسيط</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Types of Intermediate Languages</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>ينقسم التمثيل الوسيط إلى عالي المستوى (قريب من لغة المصدر) ومنخفض المستوى (قريب من لغة الآلة).</p></template>
+    <template class="content-en"><p>Intermediate representations are divided into High-Level (closer to source language) and Low-Level (closer to target machine).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتنوع أشكال التمثيل الوسيط بناءً على التطبيق والهدف:</p><ul><li><strong>تمثيلات عالية المستوى (High Level):</strong> مثل أشجار النحو (Syntax Trees). تكون أقرب إلى لغة المصدر، ويسهل توليدها، لكن تحسين الكود عليها قد لا يكون مباشراً.</li><li><strong>تمثيلات منخفضة المستوى (Low Level):</strong> مثل كود العناوين الثلاثة (3-address code) و RTL. تكون أقرب إلى الآلة الهدف، وتسهل عمليات التحسين وتوليد الكود النهائي.</li></ul><p>تشمل الأشكال الكلاسيكية: الرباعيات (Quadruples)، الثلاثيات (Triples)، الثلاثيات غير المباشرة، وأشجار النحو المجردة.</p></template>
+    <template class="content-en"><p>IR types vary based on the application and goal:</p><ul><li><strong>High Level Representations:</strong> e.g., syntax trees. They are closer to the source language, easy to generate from input, but code optimizations may not be straightforward.</li><li><strong>Low Level Representations:</strong> e.g., 3-address code, RTL. They are closer to the target machine, making optimizations and final code generation easier.</li></ul><p>Classical forms include Quadruples, triples, indirect triples, and abstract syntax trees (AST) used for machine-independent optimizations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>اختيار مستوى الـ IR هو مقايضة (Trade-off) هندسية.</p><p>الـ IR عالي المستوى يحتفظ بمعلومات دلالية غنية (مثل هياكل المصفوفات والحلقات) مما يفيد في تحليلات معينة، بينما الـ IR منخفض المستوى يكسر هذه الهياكل إلى عمليات بسيطة جداً تكشف فرص التحسين الدقيقة (مثل تخصيص السجلات).</p><p>تستخدم المترجمات الحديثة غالباً مستويات متعددة من الـ IR.</p><p>تبدأ بـ IR عالي المستوى، ثم تخفضه (Lowering) تدريجياً إلى IR منخفض المستوى مع تطبيق تحسينات مختلفة في كل مرحلة.</p><p>أشكال حديثة مثل <span class="smart-term" data-term-en="SSA (Static Single Assignment)" data-ar="التعيين الفردي الثابت" data-en-def="A recent IR form where every variable is assigned exactly once, enabling highly effective optimizations.">SSA (Static Single Assignment)<span class="smart-term-tooltip"></span></span> و <span class="smart-term" data-term-en="PDG (Program Dependence Graph)" data-ar="الرسم البياني لاعتمادية البرنامج" data-en-def="An IR useful in automatic parallelization and instruction scheduling.">PDG (Dependence Graph)<span class="smart-term-tooltip"></span></span> توفر قدرات متقدمة للتحسين الموازي وجدولة التعليمات.</p></template>
+    <template class="content-en"><p>Choosing the IR level is an engineering trade-off.</p><p>High-level IR retains rich semantic information (like array structures and loops) useful for certain analyses, while low-level IR breaks these down into simple operations exposing fine-grained optimization opportunities (like register allocation).</p><p>Modern compilers often use multiple levels of IR.</p><p>They start with a high-level IR and progressively 'lower' it to a low-level IR, applying different optimizations at each stage.</p><p>Recent forms like <span class="smart-term" data-term-en="SSA (Static Single Assignment)" data-ar="التعيين الفردي الثابت" data-en-def="A recent IR form where every variable is assigned exactly once, enabling highly effective optimizations.">SSA (Static Single Assignment)<span class="smart-term-tooltip"></span></span> and <span class="smart-term" data-term-en="PDG (Program Dependence Graph)" data-ar="الرسم البياني لاعتمادية البرنامج" data-en-def="An IR useful in automatic parallelization and instruction scheduling.">PDG (Dependence Graph)<span class="smart-term-tooltip"></span></span> provide advanced capabilities for parallelization and instruction scheduling.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>High-Level IR</th>
+        <th>Low-Level IR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">القرب من</template>
+          <template class="content-en">Closeness to</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لغة المصدر</template>
+          <template class="content-en">Source language</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">الآلة الهدف</template>
+          <template class="content-en">Target machine</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">سهولة التوليد</template>
+          <template class="content-en">Ease of Generation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهل جداً من الكود المصدري</template>
+          <template class="content-en">Easy to generate from input</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يتطلب مراحل تحويل (Lowering)</template>
+          <template class="content-en">Requires lowering phases</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تحسين الكود (Optimization)</template>
+          <template class="content-en">Code Optimization</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير مباشر / معقد</template>
+          <template class="content-en">Not straightforward</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أسهل وأكثر فعالية</template>
+          <template class="content-en">Easier for optimizations</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر تحسين الكود أصعب في التمثيلات عالية المستوى (High Level IR)؟</template>
+      <template class="content-en">Why is code optimization considered less straightforward in High Level IR?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن العقد في التمثيلات عالية المستوى (مثل AST) تحتوي على خيارات وبنى فرعية معقدة وغنية جداً، مما يجعل من الصعب تطبيق تحويلات رياضية أو منطقية بسيطة وموحدة عليها مقارنة بالتعليمات البسيطة في الـ Low Level IR.</p></template>
+      <template class="content-en"><p>Because nodes in High Level IR (like AST) have a rich structure with many options and sub-structures, making it difficult to apply simple, uniform mathematical or logical transformations compared to the atomic instructions in Low Level IR.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="abstract-syntax-tree-ast" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> شجرة النحو المجردة (AST) في الـ IR</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Abstract Syntax Tree (AST) in IR</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الـ AST هي تمثيل شجري للكود المصدري، جيدة لتوليد الكود البسيط ولكنها معقدة جداً لإجراء تحسينات متقدمة.</p></template>
+    <template class="content-en"><p>AST is a tree representation of source code, good for simple code emission but too complex for advanced optimizations.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن أن تكون شجرة النحو المجردة (AST) تمثيلاً وسيطاً قابلاً للاستخدام إذا كان الهدف ببساطة هو توليد لغة التجميع دون قدر كبير من التحسين.</p><p>بمجرد اكتمال التحقق من النوع (Type-checking)، يمكن تطبيق تحسينات بسيطة مثل <span class="smart-term" data-term-en="Constant Folding" data-ar="طي الثوابت" data-en-def="A simple optimization where constant expressions are evaluated at compile time rather than runtime.">طي الثوابت (Constant Folding)<span class="smart-term-tooltip"></span></span> على الـ AST مباشرة.</p><p>لتوليد الكود من الـ AST، يتم إجراء <span class="smart-term" data-term-en="Post-order traversal" data-ar="العبور اللاحق" data-en-def="A tree traversal method where children are visited before the node itself, useful for code generation.">عبور لاحق (Post-order traversal)<span class="smart-term-tooltip"></span></span> للشجرة وإصدار تعليمات تجميع تقابل كل عقدة.</p><p>ومع ذلك، في المترجمات الإنتاجية، لا تُعد الـ AST خياراً رائعاً للـ IR لأن بنيتها غنية جداً.</p><p>كل عقدة تحتوي على عدد كبير من الخيارات والبنى الفرعية (مثلاً: عقدة الجمع قد تعني جمع أعداد صحيحة، أو عائمة، أو دمج نصوص)، مما يصعب إجراء تحويلات قوية.</p></template>
+    <template class="content-en"><p>The AST can be a usable IR if the goal is simply to emit assembly language without a great deal of optimization.</p><p>Once type-checking is complete, simple optimizations like strength reduction and <span class="smart-term" data-term-en="Constant Folding" data-ar="طي الثوابت" data-en-def="A simple optimization where constant expressions are evaluated at compile time rather than runtime.">constant folding<span class="smart-term-tooltip"></span></span> can be applied to the AST itself.</p><p>To generate assembly language, one simply performs a <span class="smart-term" data-term-en="Post-order traversal" data-ar="العبور اللاحق" data-en-def="A tree traversal method where children are visited before the node itself, useful for code generation.">post-order traversal<span class="smart-term-tooltip"></span></span> of the AST and emits assembly instructions corresponding to each node.</p><p>However, in a production compiler, the AST isn't a great choice for IR mainly because the structure is too rich.</p><p>Each node has a large number of different options and substructures (e.g., an addition node could represent integer addition, floating-point addition, Boolean-or, or string concatenation), making robust transformations difficult.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>التعقيد في الـ AST ينبع من ارتباطها الوثيق بقواعد لغة المصدر. هذا الارتباط يجعلها ممتازة لاكتشاف الأخطاء الدلالية، ولكنه يمثل عائقاً عند محاولة إعادة ترتيب التعليمات لتحسين الأداء.</p><p>حالة الحافة هنا هي العمليات المتعددة الأشكال (Polymorphic operations). في الـ AST، تظل العملية مجردة (مثلاً `+`) حتى يتم تحليل الأنواع. في الـ IR المنخفض، يجب أن تكون العملية صريحة تماماً (مثلاً `IADD` للرقم الصحيح أو `FADD` للرقم العائم).</p><p>لذلك، يتم عادةً تحويل الـ AST إلى هياكل أبسط مثل DAG أو CFG قبل البدء في مراحل التحسين المعقدة.</p></template>
+    <template class="content-en"><p>The complexity of the AST stems from its tight coupling with the source language's grammar. This makes it excellent for semantic error detection but a hindrance when trying to reorder instructions for performance optimization.</p><p>An edge case here is polymorphic operations. In an AST, an operation remains abstract (e.g., `+`) until types are resolved. In a lower-level IR, the operation must be completely explicit (e.g., `IADD` for integer or `FADD` for float).</p><p>Therefore, the AST is typically transformed into simpler structures like a DAG or CFG before complex optimization phases begin.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم العبور اللاحق (Post-order) تحديداً لتوليد الكود من الـ AST؟</template>
+      <template class="content-en">Why do we specifically use Post-order traversal to generate code from an AST?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا نحتاج إلى تقييم (أو توليد كود) المعاملات (الأبناء) أولاً قبل أن نتمكن من تطبيق العملية (العقدة الأب) عليها.</p></template>
+      <template class="content-en"><p>Because we need to evaluate (or generate code for) the operands (children) first before we can apply the operation (parent node) to them.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="directed-acyclic-graph-dag" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الرسم البياني الموجه غير الدوري (DAG)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Directed Acyclic Graph (DAG)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الـ DAG هو تبسيط للـ AST يسمح بمشاركة العقد المتطابقة لتجنب تكرار الحسابات (التعبيرات الفرعية المشتركة).</p></template>
+    <template class="content-en"><p>A DAG is a simplified AST that allows sharing identical nodes to avoid redundant computations (common sub-expressions).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الرسم البياني الموجه غير الدوري (DAG) هو خطوة مبسطة من الـ AST.</p><p>يشبه الـ AST ولكنه يسمح ببنية رسم بياني عشوائية (بدون حلقات)، وتكون العقد الفردية مبسطة جداً وصريحة حول غرضها (مثلاً <code>IADD</code> للجمع الصحيح، <code>FMUL</code> للضرب العائم، <code>ITOF</code> للتحويل).</p><p>الميزة الكبرى للـ DAG هي قدرته على تحديد <b>التعبيرات الفرعية المشتركة (Common Sub-expressions)</b>.</p><p>على سبيل المثال، في التعبير <code>x=(a+10)*(a+10)</code>، يتم حساب <code>a+10</code> مرة واحدة فقط في الـ DAG، ويتم توجيه سهمين من عقدة الضرب إلى نفس عقدة الجمع.</p><p>يُستخدم الـ DAG أيضاً لتمثيل حسابات العناوين المعقدة (مثل المصفوفات والمؤشرات) بتفصيل أكبر لمشاركتها وتحسينها.</p><p>مثلاً <code>x=a[i]</code> تتوسع لتشمل ضرب الفهرس <code>i</code> في حجم العنصر وجمعه مع عنوان البداية <code>a</code>.</p></template>
+    <template class="content-en"><p>The directed acyclic graph (DAG) is one step simplified from the AST.</p><p>It is similar to the AST, except it can have an arbitrary graph structure (no cycles), and individual nodes are greatly simplified and explicit about their purpose (e.g., <code>IADD</code> for integer add, <code>FMUL</code> for float multiply, <code>ITOF</code> for conversion).</p><p>The major advantage of a DAG is its ability to identify <b>common sub-expressions</b>.</p><p>For example, in the expression <code>x=(a+10)*(a+10)</code>, the computation <code>a+10</code> is only performed once in the DAG, with two arrows pointing from the multiplication node to the same addition node.</p><p>DAGs are also commonly used to represent address computations related to pointers and arrays in greater detail so they can be shared and optimized.</p><p>For example, <code>x=a[i]</code> expands to include multiplying index <code>i</code> by object size and adding it to base address <code>a</code>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يعتمد بناء الـ DAG على افتراض حاسم: أن التعبيرات يمكن تقييمها بأي ترتيب (متوافق مع أسبقية المعاملات) وأن القيم الموجودة مسبقاً في الـ DAG لا تتغير.</p><p>هذا الافتراض ينهار عند وجود أوامر تعدل القيم (مثل التعيينات المتعددة لنفس المتغير) أو هياكل التحكم (مثل الحلقات).</p><p>لذلك، الـ DAG ممتاز لتمثيل <b>الكتل الأساسية (Basic Blocks)</b> الخالية من التفرعات، ولكنه غير فعال لتمثيل تدفق التحكم العام للبرنامج.</p><p>من الناحية البرمجية، يتم بناء الـ DAG عادةً باستخدام جدول تجزئة (Hash Table) للبحث عن العقد الموجودة مسبقاً قبل إنشاء عقدة جديدة، مما يضمن دمج التعبيرات المتطابقة تلقائياً.</p></template>
+    <template class="content-en"><p>Building a DAG relies on a crucial assumption: common sub-expressions can be evaluated in any order (consistent with operator precedence) and the values already in the DAG do not change.</p><p>This assumption fails when we consider multiple statements that modify values or control flow structures.</p><p>Therefore, a DAG by itself is highly suitable for encoding expressions within a single <b>Basic Block</b> (branch-free code), but it isn't effective for control flow or ordered program structures.</p><p>Programmatically, a DAG is typically constructed using a Hash Table (Value Numbering) to look up existing nodes before creating a new one, ensuring identical expressions are automatically merged.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Two side-by-side diagrams comparing AST and DAG for x=(a+10)*(a+10). Left (AST): Tree structure with ASSIGN at top, pointing to 'x' and 'MUL'. 'MUL' points to two separate 'ADD' nodes. Both 'ADD' nodes point to their own 'a' and '10' leaves. Right (DAG): ASSIGN points to 'x' and 'FMUL'. 'FMUL' has two arrows pointing to a SINGLE 'FADD' node. 'FADD' points to 'a' and 'ITOF'. 'ITOF' points to '10'. Use distinct colors for nodes and clear directional arrows. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 600" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Gradient for Highlighted Nodes -->
+        <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Center Dividing Line -->
+    <line x1="550" y1="80" x2="550" y2="560" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,8" />
+
+    <!-- ========================================== -->
+    <!-- TITLES                                     -->
+    <!-- ========================================== -->
+    
+    <!-- Left Title (AST) -->
+    <text x="275" y="45" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)">Abstract Syntax Tree (AST)</text>
+    <text x="275" y="70" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)">شجرة النحو المجردة</text>
+
+    <!-- Right Title (DAG) -->
+    <text x="825" y="45" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)">Directed Acyclic Graph (DAG)</text>
+    <text x="825" y="70" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)">الرسم البياني الموجه غير الدوري</text>
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: AST                             -->
+    <!-- ========================================== -->
+
+    <!-- Dashed Highlight Boxes for Duplicated Subexpressions -->
+    <rect x="135" y="245" width="190" height="145" rx="8" fill="var(--brand-500)" fill-opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="230" y="235" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--brand-500)">Duplicated / مكرر</text>
+
+    <rect x="365" y="245" width="190" height="145" rx="8" fill="var(--brand-500)" fill-opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="460" y="235" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--brand-500)">Duplicated / مكرر</text>
+
+    <!-- AST Edges -->
+    <path d="M 245 140 L 145 180" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 245 140 L 345 180" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 345 220 L 230 260" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 345 220 L 460 260" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 230 300 L 180 340" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 230 300 L 280 340" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 460 300 L 410 340" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 460 300 L 510 340" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+    <!-- AST Nodes -->
+    <!-- ASSIGN -->
+    <rect x="205" y="100" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="245" y="126" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">ASSIGN</text>
+
+    <!-- x -->
+    <rect x="105" y="180" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="145" y="206" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">x</text>
+
+    <!-- MUL -->
+    <rect x="305" y="180" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="345" y="206" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">MUL</text>
+
+    <!-- ADD (Left) - Highlighted -->
+    <rect x="190" y="260" width="80" height="40" rx="8" fill="url(#highlightGrad)" stroke="var(--brand-600)" stroke-width="2"/>
+    <text x="230" y="286" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--bg-surface)">ADD</text>
+
+    <!-- ADD (Right) - Highlighted -->
+    <rect x="420" y="260" width="80" height="40" rx="8" fill="url(#highlightGrad)" stroke="var(--brand-600)" stroke-width="2"/>
+    <text x="460" y="286" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--bg-surface)">ADD</text>
+
+    <!-- a (Left) -->
+    <rect x="140" y="340" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="180" y="366" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">a</text>
+
+    <!-- 10 (Left) -->
+    <rect x="240" y="340" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="280" y="366" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">10</text>
+
+    <!-- a (Right) -->
+    <rect x="370" y="340" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="410" y="366" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">a</text>
+
+    <!-- 10 (Right) -->
+    <rect x="470" y="340" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="510" y="366" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">10</text>
+
+    <!-- AST Educational Text -->
+    <text x="275" y="460" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">No shared nodes. Subexpression is duplicated.</text>
+    <text x="275" y="485" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">لا توجد عقد مشتركة. التعبير الفرعي مكرر.</text>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: DAG                            -->
+    <!-- ========================================== -->
+
+    <!-- Dashed Highlight Box for Shared Subexpression -->
+    <rect x="790" y="255" width="270" height="250" rx="8" fill="var(--brand-500)" fill-opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="925" y="245" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="600" fill="var(--brand-500)">Shared Subexpression / تعبير فرعي مشترك</text>
+
+    <!-- DAG Edges -->
+    <path d="M 825 140 L 725 180" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 825 140 L 925 180" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    
+    <!-- Curved arrows for FMUL to FADD (Left and Right operands) -->
+    <path d="M 910 220 C 870 235, 870 255, 910 270" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 940 220 C 980 235, 980 255, 940 270" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    
+    <!-- Labels for curved arrows -->
+    <text x="875" y="250" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">L</text>
+    <text x="975" y="250" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" fill="var(--brand-500)">R</text>
+
+    <path d="M 925 310 L 850 360" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 925 310 L 1000 360" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+    <path d="M 1000 400 L 1000 450" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+    <!-- DAG Nodes -->
+    <!-- ASSIGN -->
+    <rect x="785" y="100" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="825" y="126" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">ASSIGN</text>
+
+    <!-- x -->
+    <rect x="685" y="180" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="725" y="206" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">x</text>
+
+    <!-- FMUL -->
+    <rect x="885" y="180" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="925" y="206" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">FMUL</text>
+
+    <!-- FADD - Highlighted -->
+    <rect x="885" y="270" width="80" height="40" rx="8" fill="url(#highlightGrad)" stroke="var(--brand-600)" stroke-width="2"/>
+    <text x="925" y="296" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--bg-surface)">FADD</text>
+
+    <!-- a -->
+    <rect x="810" y="360" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="850" y="386" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">a</text>
+
+    <!-- ITOF -->
+    <rect x="960" y="360" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="1000" y="386" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">ITOF</text>
+
+    <!-- 10 -->
+    <rect x="960" y="450" width="80" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="1000" y="476" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">10</text>
+
+    <!-- DAG Educational Text -->
+    <text x="825" y="540" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="600" fill="var(--text-primary)">Shared node for (a+10). Memory efficient.</text>
+    <text x="825" y="565" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)">عقدة مشتركة للتعبير (a+10). كفاءة أعلى في الذاكرة.</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكننا استخدام الـ DAG لتمثيل حلقة `while`؟</template>
+      <template class="content-en">Why can't we use a DAG to represent a `while` loop?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الـ DAG (حسب تعريفه) هو رسم بياني 'غير دوري' (Acyclic)، بينما الحلقات تتطلب مسارات دائرية (Cycles) للعودة إلى شرط الحلقة.</p></template>
+      <template class="content-en"><p>Because a DAG (by definition) is 'Acyclic' (no cycles), whereas loops inherently require cyclic paths to return to the loop condition.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="control-flow-graph-cfg" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الرسم البياني لتدفق التحكم (CFG)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Control Flow Graph (CFG)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الـ CFG هو رسم بياني يمثل مسارات التنفيذ المحتملة للبرنامج، حيث تمثل العقد كتلاً من الأوامر المتسلسلة، وتمثل الحواف التفرعات والحلقات.</p></template>
+    <template class="content-en"><p>A CFG is a graph representing all possible execution paths of a program, where nodes are blocks of sequential statements and edges are branches/loops.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمثل الرسم البياني لتدفق التحكم (CFG) الهيكل عالي المستوى للبرنامج. هو رسم بياني موجه (يمكن أن يكون دورياً/يحتوي على حلقات) حيث تتكون كل عقدة من <b>كتلة أساسية (Basic Block)</b> من العبارات المتسلسلة.</p><p>تمثل حواف الرسم البياني التدفقات المحتملة للتحكم بين الكتل الأساسية. ينتج عن البناء الشرطي (مثل `if` أو `switch`) تفرعات (Branches) في الرسم البياني، بينما ينتج عن بناء الحلقة (مثل `for` أو `while`) <span class="smart-term" data-term-en="Reverse Edge" data-ar="الحافة العكسية" data-en-def="An edge in a CFG that points back to a previously executed block, representing a loop.">حواف عكسية (Reverse edges)<span class="smart-term-tooltip"></span></span>.</p><p>يختلف الـ CFG عن الـ AST في الهيكلة؛ فبينما تضع الـ AST تعبيرات التحكم كأبناء مباشرين لعقدة الحلقة، يضع الـ CFG كل تعبير في الترتيب الذي سيتم تنفيذه به فعلياً، مما يسهل تتبع تدفق التنفيذ.</p></template>
+    <template class="content-en"><p>A control flow graph (CFG) represents the higher-level structure of the program. It is a directed graph (possibly cyclic) where each node consists of a <b>basic block</b> of sequential statements.</p><p>The edges of the graph represent the possible flows of control between <span class="smart-term" data-term-en="Basic Block" data-ar="الكتلة الأساسية" data-en-def="A sequence of sequential statements with no branches in or out, except at the entry and exit.">basic block<span class="smart-term-tooltip"></span></span>s. A conditional construct (like `if` or `switch`) results in branches in the graph, while a loop construct (like `for` or `while`) results in <span class="smart-term" data-term-en="Reverse Edge" data-ar="الحافة العكسية" data-en-def="An edge in a CFG that points back to a previously executed block, representing a loop.">reverse edges<span class="smart-term-tooltip"></span></span>.</p><p>The CFG has a different structure than the AST. While an AST for a `for-loop` has control expressions as immediate children of the loop node, the CFG places each one in the exact order it would be executed in practice, making execution flow easy to trace.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الكتلة الأساسية (Basic Block) هي تسلسل من التعليمات لا يحتوي على أي تفرعات للداخل (إلا في بدايته) ولا تفرعات للخارج (إلا في نهايته).</p><p>هذا المفهوم حيوي لأن داخل الكتلة الأساسية الواحدة، يمكننا استخدام الـ DAG بأمان لتحسين التعبيرات.</p><p>الـ CFG هو الأساس لجميع تحليلات تدفق البيانات (Data-Flow Analysis) العالمية، مثل تحليل المتغيرات الحية (Liveness Analysis) ونشر الثوابت العالمي.</p><p>بدون الـ CFG، لا يمكن للمترجم فهم كيف تنتقل القيم عبر التفرعات والحلقات.</p><p>حواف الـ CFG غالباً ما تُصنف إلى حواف صحيحة (True) وخاطئة (False) عند الخروج من كتل الشروط، مما يوجه مسار التنفيذ بناءً على التقييم.</p></template>
+    <template class="content-en"><p>A Basic Block is a sequence of instructions with no incoming branches (except to the first instruction) and no outgoing branches (except from the last instruction).</p><p>This concept is vital because, within a single basic block, we can safely use a DAG to optimize expressions.</p><p>The CFG is the foundation for all global Data-Flow Analysis, such as Liveness Analysis and global constant propagation.</p><p>Without a CFG, the compiler cannot understand how values propagate across branches and loops.</p><p>CFG edges exiting conditional blocks are often labeled as True or False, explicitly directing the execution path based on the condition's evaluation.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A Control Flow Graph for a loop with an if-else statement. Nodes are rectangles containing code. Top node 'i=0;' points down to 'if(i<10)'. 'if(i<10)' points down-left to 'if(i%2==0)' (labeled 'true') and down-right to 'return;' (labeled 'false'). 'if(i%2==0)' points down-left to 'print &quot;even&quot;;' (labeled 'true') and down-right to 'print &quot;odd&quot;;' (labeled 'false'). Both print nodes point down to 'print &quot;\n&quot;;'. This node points down to 'i++;'. Finally, 'i++;' has a long curved arrow pointing back up to 'if(i<10)'. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 750" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Dashed Arrowhead Marker for Loop -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+
+        <!-- Highlight Gradient -->
+        <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+
+        <!-- Drop Shadow -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.08"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)">Control Flow Graph: Loop with If-Else</text>
+        <text x="400" y="65" font-size="16" fill="var(--text-secondary)">رسم بياني للتحكم: حلقة مع عبارة شرطية</text>
+    </g>
+
+    <!-- Edges (Lines) -->
+    <g stroke-width="2" fill="none">
+        <!-- 1 to 2 -->
+        <path d="M 460,164 L 460,202" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 2 to 3 (True) -->
+        <path d="M 460,274 L 320,312" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 2 to 4 (False) -->
+        <path d="M 460,274 L 600,312" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 3 to 5 (True) -->
+        <path d="M 320,384 L 180,422" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 3 to 6 (False) -->
+        <path d="M 320,384 L 460,422" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 5 to 7 -->
+        <path d="M 180,494 L 320,532" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 6 to 7 -->
+        <path d="M 460,494 L 320,532" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 7 to 8 -->
+        <path d="M 320,604 L 320,642" stroke="var(--brand-500)" marker-end="url(#arrow)" />
+        
+        <!-- 8 to 2 (Loop Back) -->
+        <path d="M 240,682 L 80,682 Q 60,682 60,662 L 60,262 Q 60,242 80,242 L 372,242" stroke="var(--brand-400)" stroke-dasharray="6,4" marker-end="url(#arrow-dashed)" />
+    </g>
+
+    <!-- Edge Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">
+        <!-- 2 to 3 (True) -->
+        <rect x="345" y="273" width="90" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1" />
+        <text x="390" y="291" fill="var(--brand-500)" font-weight="bold">True / صحيح</text>
+
+        <!-- 2 to 4 (False) -->
+        <rect x="485" y="273" width="90" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1" />
+        <text x="530" y="291" fill="var(--brand-500)" font-weight="bold">False / خطأ</text>
+
+        <!-- 3 to 5 (True) -->
+        <rect x="205" y="383" width="90" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1" />
+        <text x="250" y="401" fill="var(--brand-500)" font-weight="bold">True / صحيح</text>
+
+        <!-- 3 to 6 (False) -->
+        <rect x="345" y="383" width="90" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1" />
+        <text x="390" y="401" fill="var(--brand-500)" font-weight="bold">False / خطأ</text>
+
+        <!-- Loop Back Label -->
+        <rect x="95" y="450" width="110" height="26" rx="13" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="1" />
+        <text x="150" y="468" fill="var(--brand-500)" font-weight="bold">Loop / تكرار</text>
+    </g>
+
+    <!-- Nodes -->
+    <g filter="url(#shadow)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        
+        <!-- Node 1: i = 0; (Highlighted Start) -->
+        <rect x="380" y="100" width="160" height="64" rx="8" fill="url(#highlightGrad)" />
+        <text x="460" y="122" font-size="13" fill="rgba(255,255,255,0.85)">Initialization / تهيئة</text>
+        <text x="460" y="146" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="#ffffff">i = 0;</text>
+
+        <!-- Node 2: if (i < 10) -->
+        <rect x="380" y="210" width="160" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="460" y="232" font-size="13" fill="var(--text-muted)">Loop Condition / شرط الحلقة</text>
+        <text x="460" y="256" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="var(--text-primary)">if (i &lt; 10)</text>
+
+        <!-- Node 3: if (i % 2 == 0) -->
+        <rect x="240" y="320" width="160" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="320" y="342" font-size="13" fill="var(--text-muted)">If Condition / شرط</text>
+        <text x="320" y="366" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="var(--text-primary)">if (i % 2 == 0)</text>
+
+        <!-- Node 4: return; (Highlighted End) -->
+        <rect x="520" y="320" width="160" height="64" rx="8" fill="url(#highlightGrad)" />
+        <text x="600" y="342" font-size="13" fill="rgba(255,255,255,0.85)">Exit / خروج</text>
+        <text x="600" y="366" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="#ffffff">return;</text>
+
+        <!-- Node 5: print "even"; -->
+        <rect x="100" y="430" width="160" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="180" y="452" font-size="13" fill="var(--text-muted)">True Branch / مسار صحيح</text>
+        <text x="180" y="476" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="var(--text-primary)">print "even";</text>
+
+        <!-- Node 6: print "odd"; -->
+        <rect x="380" y="430" width="160" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="460" y="452" font-size="13" fill="var(--text-muted)">False Branch / مسار خطأ</text>
+        <text x="460" y="476" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="var(--text-primary)">print "odd";</text>
+
+        <!-- Node 7: print "\n"; -->
+        <rect x="240" y="540" width="160" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="320" y="562" font-size="13" fill="var(--text-muted)">Merge Point / نقطة دمج</text>
+        <text x="320" y="586" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="var(--text-primary)">print "\n";</text>
+
+        <!-- Node 8: i++; -->
+        <rect x="240" y="650" width="160" height="64" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="320" y="672" font-size="13" fill="var(--text-muted)">Increment / زيادة</text>
+        <text x="320" y="696" font-size="16" font-family="'JetBrains Mono', 'Fira Code', monospace" font-weight="bold" fill="var(--text-primary)">i++;</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>AST</th>
+        <th>DAG</th>
+        <th>CFG</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الهيكل الأساسي</template>
+          <template class="content-en">Basic Structure</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">شجرة (Tree)</template>
+          <template class="content-en">Tree</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">رسم بياني موجه غير دوري</template>
+          <template class="content-en">Directed Acyclic Graph</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">رسم بياني موجه (قد يكون دورياً)</template>
+          <template class="content-en">Directed Graph (possibly cyclic)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعامل مع التعبيرات المكررة</template>
+          <template class="content-en">Handling Redundant Expressions</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يكرر العقد</template>
+          <template class="content-en">Duplicates nodes</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يدمج العقد (مشاركة)</template>
+          <template class="content-en">Merges nodes (sharing)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير مخصص للتعبيرات الدقيقة</template>
+          <template class="content-en">Not for fine expressions</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تمثيل تدفق التحكم (الحلقات)</template>
+          <template class="content-en">Control Flow Representation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">هرمي (كأبناء للعقدة)</template>
+          <template class="content-en">Hierarchical (children of node)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير قادر على تمثيل الحلقات</template>
+          <template class="content-en">Cannot represent loops</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">حواف عكسية وتفرعات واضحة</template>
+          <template class="content-en">Clear reverse edges & branches</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يتكامل الـ DAG مع الـ CFG في المترجمات الحديثة؟</template>
+      <template class="content-en">How do DAG and CFG integrate in modern compilers?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يُستخدم الـ CFG لتمثيل الهيكل العام للبرنامج (التفرعات والحلقات)، بينما يُستخدم الـ DAG داخل كل 'كتلة أساسية' (Basic Block) في الـ CFG لتحسين التعبيرات الرياضية محلياً.</p></template>
+      <template class="content-en"><p>The CFG is used to represent the overall program structure (branches and loops), while a DAG is used inside each individual 'Basic Block' of the CFG to optimize mathematical expressions locally.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في هذه المراجعة السريعة للوحدة السادسة. تخيلوا أنكم تبنون مترجماً يدعم 5 لغات برمجة و 4 معالجات مختلفة. هل ستكتبون 20 مترجماً؟ بالطبع لا! هنا يأتي دور 'التمثيل الوسيط' (IR) كبطل خفي يقلل الجهد إلى 9 مكونات فقط. في الامتحان، ركزوا جيداً على الفروق بين هياكل الـ IR الثلاثة: الـ AST ممتاز للتحليل النحوي ولكنه 'غني جداً' للتحسين. لذلك، نقوم بتبسيطه إلى DAG لاكتشاف 'التعبيرات الفرعية المشتركة' (تذكروا مثال a+10). لكن مهلاً، الـ DAG لا يفهم الحلقات! لذا نضعه داخل 'كتل أساسية' ونربطها معاً لتكوين الـ CFG الذي يمثل تدفق البرنامج بالكامل. لا تنسوا أيضاً الأشكال الحديثة مثل SSA التي تجعل التحسينات المتقدمة ممكنة. رتبوا هذه المفاهيم في أذهانكم: AST للغة، DAG للرياضيات داخل الكتلة، و CFG لهيكل البرنامج ككل. بالتوفيق!</template>
+    <template class="content-en">Welcome, future engineers, to this quick review of Module 6. Imagine building a compiler supporting 5 languages and 4 processors. Will you write 20 compilers? Of course not! This is where the 'Intermediate Representation' (IR) steps in as the unsung hero, reducing the effort to just 9 components. For the exam, focus heavily on the differences between the three IR structures: The AST is great for syntax but 'too rich' for optimization. So, we simplify it into a DAG to catch 'common sub-expressions' (remember the a+10 example). But wait, a DAG doesn't understand loops! So we place it inside 'basic blocks' and connect them to form a CFG, which represents the entire program's flow. Don't forget modern forms like SSA that make advanced optimizations possible. Organize these in your mind: AST for language, DAG for math inside a block, and CFG for the overall program structure. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف الأساسي من استخدام التمثيل الوسيط (IR)؟</template>
+          <template class="content-en">What is the primary goal of using an Intermediate Representation (IR)?</template>
+          <span class="content-target">ما هو الهدف الأساسي من استخدام التمثيل الوسيط (IR)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الهدف هو فصل الواجهة الأمامية (الخاصة بلغة المصدر) عن الواجهة الخلفية (الخاصة بالآلة)، مما يحل مشكلة m*n ويسمح بإعادة استخدام مُحسّن الكود.</template>
+          <template class="content-en">The goal is to decouple the front end (source language specific) from the back end (machine specific), solving the m*n problem and allowing the reuse of the code optimizer.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين الـ IR عالي المستوى ومنخفض المستوى؟</template>
+          <template class="content-en">What is the difference between High-Level and Low-Level IR?</template>
+          <span class="content-target">ما الفرق بين الـ IR عالي المستوى ومنخفض المستوى؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عالي المستوى (مثل AST) قريب من الكود المصدري ويسهل توليده، بينما منخفض المستوى (مثل 3-address code) قريب من لغة الآلة ويسهل تحسينه.</template>
+          <template class="content-en">High-level (like AST) is close to source code and easy to generate, while low-level (like 3-address code) is close to machine language and easier to optimize.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا نكتفي باستخدام الـ AST كتمثيل وسيط نهائي؟</template>
+          <template class="content-en">Why don't we just use the AST as the final intermediate representation?</template>
+          <span class="content-target">لماذا لا نكتفي باستخدام الـ AST كتمثيل وسيط نهائي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن بنيتها غنية ومعقدة جداً. العقدة الواحدة قد تحمل معاني متعددة (Polymorphic)، مما يجعل تطبيق خوارزميات التحسين القوية أمراً صعباً.</template>
+          <template class="content-en">Because its structure is too rich and complex. A single node can have multiple meanings (polymorphic), making robust optimization algorithms difficult to apply.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحسن الـ DAG أداء البرنامج مقارنة بالـ AST؟</template>
+          <template class="content-en">How does a DAG improve program performance compared to an AST?</template>
+          <span class="content-target">كيف يحسن الـ DAG أداء البرنامج مقارنة بالـ AST؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الـ DAG يكتشف التعبيرات الفرعية المشتركة ويدمجها في عقدة واحدة، مما يمنع المعالج من تكرار نفس العملية الحسابية عدة مرات.</template>
+          <template class="content-en">A DAG detects common sub-expressions and merges them into a single node, preventing the processor from repeating the same calculation multiple times.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي نقطة الضعف القاتلة في الـ DAG؟</template>
+          <template class="content-en">What is the fatal weakness of a DAG?</template>
+          <span class="content-target">ما هي نقطة الضعف القاتلة في الـ DAG؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا يمكنه تمثيل تدفق التحكم (Control Flow) مثل الحلقات (Loops) أو الجمل الشرطية المعقدة، لأنه يفترض أن القيم لا تتغير وأنه لا توجد مسارات دائرية.</template>
+          <template class="content-en">It cannot represent control flow like loops or complex conditionals, because it assumes values do not change and there are no cyclic paths.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الكتلة الأساسية (Basic Block)؟</template>
+          <template class="content-en">What is a Basic Block?</template>
+          <span class="content-target">ما هي الكتلة الأساسية (Basic Block)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي سلسلة من الأوامر البرمجية التي تُنفذ بشكل متتالي، حيث لا يمكن الدخول إليها إلا من بدايتها ولا الخروج منها إلا من نهايتها (لا توجد تفرعات بداخلها).</template>
+          <template class="content-en">It is a sequence of instructions executed sequentially, where entry is only at the beginning and exit is only at the end (no branches inside).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمثل الـ CFG حلقة `while`؟</template>
+          <template class="content-en">How does a CFG represent a `while` loop?</template>
+          <span class="content-target">كيف يمثل الـ CFG حلقة `while`؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يمثلها باستخدام 'حافة عكسية' (Reverse Edge) تعود من نهاية كتلة الحلقة إلى كتلة تقييم الشرط.</template>
+          <template class="content-en">It represents it using a 'reverse edge' that loops back from the end of the loop body block to the condition evaluation block.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني عقدة `ITOF` في الـ DAG؟</template>
+          <template class="content-en">What does an `ITOF` node mean in a DAG?</template>
+          <span class="content-target">ماذا تعني عقدة `ITOF` في الـ DAG؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعني Integer-To-Float. وهي عقدة تُضاف صراحةً لتحويل نوع البيانات من صحيح إلى عائم قبل إجراء عملية حسابية تتطلب ذلك.</template>
+          <template class="content-en">It means Integer-To-Float. It's an explicit node added to convert data type from integer to float before performing an arithmetic operation that requires it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم تمثيل الوصول لمصفوفة `a[i]` في الـ DAG؟</template>
+          <template class="content-en">How is array access `a[i]` represented in a DAG?</template>
+          <span class="content-target">كيف يتم تمثيل الوصول لمصفوفة `a[i]` في الـ DAG؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا يُمثل كعقدة واحدة، بل يتوسع لعمليات حسابية: ضرب الفهرس `i` في حجم العنصر، ثم جمعه مع عنوان بداية المصفوفة `a`.</template>
+          <template class="content-en">It is not represented as a single node, but expands into math operations: multiplying index `i` by element size, then adding it to the base address of `a`.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الـ SSA ولماذا يُعتبر مهماً؟</template>
+          <template class="content-en">What is SSA and why is it important?</template>
+          <span class="content-target">ما هو الـ SSA ولماذا يُعتبر مهماً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التعيين الفردي الثابت (SSA) هو شكل IR يُعطى فيه كل متغير قيمة مرة واحدة فقط. هذا يسهل جداً تتبع تدفق البيانات وتطبيق تحسينات متقدمة مثل نشر الثوابت.</template>
+          <template class="content-en">Static Single Assignment (SSA) is an IR form where every variable is assigned a value exactly once. This makes tracking data flow and applying advanced optimizations like constant propagation much easier.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "التمثيل الوسيط (IR)",
+      "en": "Intermediate Representation (IR)"
+    },
+    "back": {
+      "definition": {
+        "ar": "هيكل بيانات يقع بين لغة المصدر ولغة التجميع، يسهل التحليل والتحسين.",
+        "en": "A data structure between source language and assembly language that facilitates analysis and optimization."
+      },
+      "example": {
+        "ar": "AST, DAG, CFG, 3-address code.",
+        "en": "AST, DAG, CFG, 3-address code."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "مشكلة $m \\times n$",
+      "en": "$m \\times n$ Problem"
+    },
+    "back": {
+      "definition": {
+        "ar": "الحاجة لكتابة مترجم كامل لكل زوج من (لغة مصدر، آلة هدف). يحلها الـ IR بتقليلها إلى $m + n$.",
+        "en": "The need to write a full compiler for every (source, target) pair. IR solves this by reducing it to $m + n$."
+      },
+      "example": {
+        "ar": "بدلاً من 12 مترجم لـ 4 لغات و 3 آلات، نستخدم 4 واجهات أمامية و 3 خلفية.",
+        "en": "Instead of 12 compilers for 4 languages and 3 machines, we use 4 front ends and 3 back ends."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "الواجهة الأمامية (Front end)",
+      "en": "Front end"
+    },
+    "back": {
+      "definition": {
+        "ar": "الجزء من المترجم الذي يحلل لغة المصدر ويولد التمثيل الوسيط (IR).",
+        "en": "The compiler part that analyzes source language and generates the IR."
+      },
+      "example": {
+        "ar": "المحلل المعجمي والنحوي (Lexer & Parser).",
+        "en": "Lexer and Parser."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "الواجهة الخلفية (Back end)",
+      "en": "Back end"
+    },
+    "back": {
+      "definition": {
+        "ar": "الجزء من المترجم الذي يأخذ الـ IR ويولد كود الآلة الهدف.",
+        "en": "The compiler part that takes IR and generates target machine code."
+      },
+      "example": {
+        "ar": "مولد الكود (Code Generator).",
+        "en": "Code Generator."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "IR عالي المستوى",
+      "en": "High Level IR"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل قريب من لغة المصدر، يسهل توليده ولكن يصعب تحسينه مباشرة.",
+        "en": "Representation closer to source language, easy to generate but harder to optimize directly."
+      },
+      "example": {
+        "ar": "شجرة النحو المجردة (AST).",
+        "en": "Abstract Syntax Tree (AST)."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "IR منخفض المستوى",
+      "en": "Low Level IR"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل قريب من لغة الآلة، يسهل إجراء التحسينات وتوليد الكود النهائي عليه.",
+        "en": "Representation closer to target machine, easier for optimizations and final code generation."
+      },
+      "example": {
+        "ar": "كود العناوين الثلاثة (3-address code).",
+        "en": "3-address code."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "شجرة النحو المجردة (AST)",
+      "en": "Abstract Syntax Tree (AST)"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل شجري للكود، بنيته غنية جداً مما يجعله غير مثالي للتحسينات المعقدة.",
+        "en": "Tree representation of code, its structure is too rich making it non-ideal for complex optimizations."
+      },
+      "example": {
+        "ar": "عقدة `+` قد تعني جمع أرقام أو دمج نصوص.",
+        "en": "A `+` node could mean number addition or string concatenation."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "الرسم البياني الموجه غير الدوري (DAG)",
+      "en": "Directed Acyclic Graph (DAG)"
+    },
+    "back": {
+      "definition": {
+        "ar": "تبسيط للـ AST يسمح بمشاركة العقد لتجنب تكرار حساب التعبيرات الفرعية المشتركة.",
+        "en": "Simplified AST allowing node sharing to avoid redundant computation of common sub-expressions."
+      },
+      "example": {
+        "ar": "في `(a+10)*(a+10)`، تُحسب `a+10` مرة واحدة.",
+        "en": "In `(a+10)*(a+10)`, `a+10` is computed only once."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "التعبير الفرعي المشترك",
+      "en": "Common Sub-expression"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية حسابية تتكرر بنفس القيم، يمكن حسابها مرة واحدة وإعادة استخدام نتيجتها (يتم اكتشافها بواسطة DAG).",
+        "en": "A computation repeated with the same values, can be computed once and reused (detected by DAG)."
+      },
+      "example": {
+        "ar": "`a+10` في التعبير `(a+10)*(a+10)`.",
+        "en": "`a+10` in the expression `(a+10)*(a+10)`."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "الرسم البياني لتدفق التحكم (CFG)",
+      "en": "Control Flow Graph (CFG)"
+    },
+    "back": {
+      "definition": {
+        "ar": "رسم بياني يمثل الهيكل العام للبرنامج، عقده هي كتل أساسية وحوافه هي مسارات التحكم.",
+        "en": "Graph representing overall program structure, nodes are basic blocks and edges are control paths."
+      },
+      "example": {
+        "ar": "تمثيل حلقة `while` باستخدام حافة عكسية (Reverse edge).",
+        "en": "Representing a `while` loop using a reverse edge."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "الكتلة الأساسية (Basic Block)",
+      "en": "Basic Block"
+    },
+    "back": {
+      "definition": {
+        "ar": "تسلسل من الأوامر يتم تنفيذه بشكل متتالي دون أي تفرعات للداخل أو الخارج (إلا في البداية والنهاية).",
+        "en": "Sequence of statements executed sequentially without incoming or outgoing branches (except at entry/exit)."
+      },
+      "example": {
+        "ar": "ثلاث عمليات حسابية متتالية قبل جملة `if`.",
+        "en": "Three sequential math operations before an `if` statement."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "التعيين الفردي الثابت (SSA)",
+      "en": "Static Single Assignment (SSA)"
+    },
+    "back": {
+      "definition": {
+        "ar": "شكل حديث من الـ IR حيث يتم تعيين قيمة لكل متغير مرة واحدة فقط، مما يسهل التحسينات المتقدمة.",
+        "en": "Recent IR form where each variable is assigned exactly once, enabling advanced optimizations."
+      },
+      "example": {
+        "ar": "نشر الثوابت الشرطي (Conditional constant propagation).",
+        "en": "Conditional constant propagation."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "الرسم البياني لاعتمادية البرنامج (PDG)",
+      "en": "Program Dependence Graph (PDG)"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع من الـ IR مفيد في الموازاة التلقائية وجدولة التعليمات.",
+        "en": "An IR type useful in automatic parallelization and instruction scheduling."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "قواعد السمات (Attribute Grammars)",
+      "en": "Attribute Grammars"
+    },
+    "back": {
+      "definition": {
+        "ar": "قواعد غير مرتبطة بترتيب تقييم محدد، تُستخدم لإضافة دلالات (Annotations) لشجرة الإعراب.",
+        "en": "Grammars not tied to a specific evaluation order, used to annotate/decorate the parse tree."
+      },
+      "example": {
+        "ar": "تمرير نوع المتغير من الإعلان إلى الاستخدام.",
+        "en": "Passing variable type from declaration to usage."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "عقدة ITOF",
+      "en": "ITOF Node"
+    },
+    "back": {
+      "definition": {
+        "ar": "عقدة صريحة في الـ DAG تقوم بتحويل قيمة صحيحة (Integer) إلى قيمة عائمة (Float).",
+        "en": "Explicit node in a DAG that converts an Integer value to a Float value."
+      },
+      "example": {
+        "ar": "تحويل الرقم `10` إلى `10.0` قبل جمعه مع متغير عائم `a`.",
+        "en": "Converting `10` to `10.0` before adding to float `a`."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هي المشكلة الرئيسية التي يحلها استخدام التمثيل الوسيط (IR) في المترجمات؟",
+      "en": "What is the main problem solved by using an Intermediate Representation (IR) in compilers?"
+    },
+    "options": {
+      "ar": [
+        "مشكلة بطء التحليل المعجمي",
+        "مشكلة m × n (الحاجة لمترجمات متعددة لكل لغة وآلة)",
+        "مشكلة نفاد الذاكرة أثناء الترجمة",
+        "مشكلة الأخطاء النحوية في لغة المصدر"
+      ],
+      "en": [
+        "Slow lexical analysis problem",
+        "The m × n problem (need for multiple compilers for each language and machine)",
+        "Out of memory problem during compilation",
+        "Syntax errors in the source language"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يقلل الـ IR عدد المكونات المطلوبة من m*n إلى m+n، حيث نحتاج فقط لواجهة أمامية لكل لغة وواجهة خلفية لكل آلة.",
+      "en": "IR reduces the required components from m*n to m+n, needing only one front end per language and one back end per machine."
+    },
+    "hint": {
+      "ar": "تذكر عدد اللغات (m) وعدد الآلات (n).",
+      "en": "Remember the number of languages (m) and machines (n)."
+    },
+    "difficulty": "easy",
+    "conceptId": "intermediate-representation-ir"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من التمثيلات التالية يُعتبر الأقرب إلى لغة المصدر؟",
+      "en": "Which of the following representations is considered closest to the source language?"
+    },
+    "options": {
+      "ar": [
+        "كود العناوين الثلاثة (3-address code)",
+        "شجرة النحو المجردة (AST)",
+        "الرسم البياني لتدفق التحكم (CFG)",
+        "RTL"
+      ],
+      "en": [
+        "3-address code",
+        "Abstract Syntax Tree (AST)",
+        "Control Flow Graph (CFG)",
+        "RTL"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الـ AST هو تمثيل عالي المستوى (High Level IR) يحتفظ بهيكل لغة المصدر.",
+      "en": "AST is a High Level IR that retains the structure of the source language."
+    },
+    "hint": {
+      "ar": "ابحث عن التمثيل 'عالي المستوى'.",
+      "en": "Look for the 'High Level' representation."
+    },
+    "difficulty": "easy",
+    "conceptId": "types-of-ir"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "لماذا لا تُعتبر الـ AST خياراً مثالياً كـ IR في المترجمات الإنتاجية للتحسينات المعقدة؟",
+      "en": "Why is the AST not an ideal choice for IR in production compilers for complex optimizations?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تستهلك ذاكرة قليلة جداً",
+        "لأن بنيتها غنية جداً وتحتوي على خيارات فرعية معقدة",
+        "لأنها لا تستطيع تمثيل العمليات الحسابية",
+        "لأنها قريبة جداً من لغة الآلة"
+      ],
+      "en": [
+        "Because it consumes very little memory",
+        "Because its structure is too rich and contains complex sub-options",
+        "Because it cannot represent arithmetic operations",
+        "Because it is too close to machine language"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بنية الـ AST الغنية (مثل العقد متعددة الأشكال) تجعل من الصعب تطبيق تحويلات رياضية قوية وموحدة.",
+      "en": "The rich structure of AST (like polymorphic nodes) makes it difficult to apply robust, uniform mathematical transformations."
+    },
+    "hint": {
+      "ar": "فكر في تعقيد العقد في الشجرة.",
+      "en": "Think about the complexity of the nodes in the tree."
+    },
+    "difficulty": "medium",
+    "conceptId": "abstract-syntax-tree-ast"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي الميزة الرئيسية للرسم البياني الموجه غير الدوري (DAG) مقارنة بـ AST؟",
+      "en": "What is the main advantage of a Directed Acyclic Graph (DAG) compared to an AST?"
+    },
+    "options": {
+      "ar": [
+        "تمثيل الحلقات اللانهائية",
+        "تحديد ومشاركة التعبيرات الفرعية المشتركة",
+        "توليد كود الآلة مباشرة بدون واجهة خلفية",
+        "اكتشاف الأخطاء النحوية"
+      ],
+      "en": [
+        "Representing infinite loops",
+        "Identifying and sharing common sub-expressions",
+        "Generating machine code directly without a back end",
+        "Detecting syntax errors"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يسمح الـ DAG بتوجيه عدة أسهم لنفس العقدة، مما يمنع تكرار حساب نفس التعبير (مثل a+10).",
+      "en": "DAG allows multiple arrows to point to the same node, preventing redundant computation of the same expression (like a+10)."
+    },
+    "hint": {
+      "ar": "كيف يتعامل مع `(a+10)*(a+10)`؟",
+      "en": "How does it handle `(a+10)*(a+10)`?"
+    },
+    "difficulty": "medium",
+    "conceptId": "directed-acyclic-graph-dag"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من الهياكل التالية هو الأنسب لتمثيل تدفق التحكم مثل الحلقات (Loops) والتفرعات (Branches)؟",
+      "en": "Which of the following structures is most suitable for representing control flow like loops and branches?"
+    },
+    "options": {
+      "ar": [
+        "DAG",
+        "AST",
+        "CFG",
+        "RTL"
+      ],
+      "en": [
+        "DAG",
+        "AST",
+        "CFG",
+        "RTL"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الـ CFG (الرسم البياني لتدفق التحكم) مصمم خصيصاً لتمثيل مسارات التنفيذ، بما في ذلك الحواف العكسية للحلقات.",
+      "en": "CFG (Control Flow Graph) is specifically designed to represent execution paths, including reverse edges for loops."
+    },
+    "hint": {
+      "ar": "ابحث عن الهيكل الذي يحتوي على 'تدفق التحكم' في اسمه.",
+      "en": "Look for the structure with 'Control Flow' in its name."
+    },
+    "difficulty": "easy",
+    "conceptId": "control-flow-graph-cfg"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هو الافتراض الذي يعتمد عليه الـ DAG والذي يجعله غير مناسب لتمثيل أوامر التحكم المتعددة؟",
+      "en": "What assumption does DAG rely on that makes it unsuitable for representing multiple control statements?"
+    },
+    "options": {
+      "ar": [
+        "أن جميع المتغيرات هي أعداد صحيحة",
+        "أن التعبيرات يمكن تقييمها بأي ترتيب وأن القيم لا تتغير",
+        "أن البرنامج لا يحتوي على دوال",
+        "أن الذاكرة غير محدودة"
+      ],
+      "en": [
+        "That all variables are integers",
+        "That expressions can be evaluated in any order and values do not change",
+        "That the program has no functions",
+        "That memory is unlimited"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يفترض الـ DAG أن القيم ثابتة أثناء التقييم. إذا تغيرت قيمة متغير (بسبب حلقة أو تعيين جديد)، ينهار هذا الافتراض.",
+      "en": "DAG assumes values are constant during evaluation. If a variable's value changes (due to a loop or reassignment), this assumption fails."
+    },
+    "hint": {
+      "ar": "فكر في تأثير تغيير قيمة متغير على التعبيرات المشتركة.",
+      "en": "Think about the effect of changing a variable's value on shared expressions."
+    },
+    "difficulty": "hard",
+    "conceptId": "directed-acyclic-graph-dag"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "مما تتكون العقد (Nodes) في الرسم البياني لتدفق التحكم (CFG)؟",
+      "en": "What do the nodes in a Control Flow Graph (CFG) consist of?"
+    },
+    "options": {
+      "ar": [
+        "معاملات رياضية فردية",
+        "كتل أساسية (Basic Blocks) من العبارات المتسلسلة",
+        "متغيرات البرنامج فقط",
+        "رموز لغة التجميع"
+      ],
+      "en": [
+        "Individual mathematical operators",
+        "Basic blocks of sequential statements",
+        "Program variables only",
+        "Assembly language tokens"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "كل عقدة في الـ CFG تمثل 'كتلة أساسية'، وهي مجموعة من الأوامر التي تنفذ بشكل متسلسل دون تفرع.",
+      "en": "Each node in a CFG represents a 'basic block', a set of instructions executed sequentially without branching."
+    },
+    "hint": {
+      "ar": "إنها ليست تعليمة واحدة، بل مجموعة متسلسلة.",
+      "en": "It's not a single instruction, but a sequential group."
+    },
+    "difficulty": "medium",
+    "conceptId": "control-flow-graph-cfg"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "في سياق الـ DAG، ماذا تمثل عقدة `ITOF`؟",
+      "en": "In the context of a DAG, what does an `ITOF` node represent?"
+    },
+    "options": {
+      "ar": [
+        "تكرار حلقة (Iteration of For)",
+        "تحويل عدد صحيح إلى عائم (Integer to Float)",
+        "شرط إذا كان خطأ (If True Or False)",
+        "إدخال إلى ملف (Input To File)"
+      ],
+      "en": [
+        "Iteration of For",
+        "Integer to Float conversion",
+        "If True Or False condition",
+        "Input To File"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تُضاف عقدة ITOF صراحةً في الـ DAG بعد التحقق من النوع لتحويل الأعداد الصحيحة إلى عائمة قبل العمليات الحسابية العائمة.",
+      "en": "An ITOF node is explicitly added in the DAG after type-checking to convert integers to floats before floating-point arithmetic."
+    },
+    "hint": {
+      "ar": "فكر في أنواع البيانات (Types).",
+      "en": "Think about data types."
+    },
+    "difficulty": "medium",
+    "conceptId": "directed-acyclic-graph-dag"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "أي شكل من أشكال الـ IR يُعد حديثاً ويُمكّن من تحسينات أكثر فعالية مثل نشر الثوابت الشرطي؟",
+      "en": "Which form of IR is recent and enables more effective optimizations like conditional constant propagation?"
+    },
+    "options": {
+      "ar": [
+        "AST",
+        "SSA (Static Single Assignment)",
+        "Triples",
+        "Quadruples"
+      ],
+      "en": [
+        "AST",
+        "SSA (Static Single Assignment)",
+        "Triples",
+        "Quadruples"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الـ SSA هو شكل حديث حيث يتم تعيين كل متغير مرة واحدة فقط، مما يسهل تتبع تدفق البيانات وتحسينها.",
+      "en": "SSA is a recent form where each variable is assigned exactly once, making data flow tracking and optimization easier."
+    },
+    "hint": {
+      "ar": "الاسم يحتوي على 'Single Assignment'.",
+      "en": "The name contains 'Single Assignment'."
+    },
+    "difficulty": "medium",
+    "conceptId": "types-of-ir"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "كيف يتم تمثيل الوصول إلى مصفوفة `x=a[i]` في الـ DAG قبل توليد الكود؟",
+      "en": "How is an array access `x=a[i]` represented in a DAG before code generation?"
+    },
+    "options": {
+      "ar": [
+        "كعقدة واحدة تسمى LOOKUP",
+        "يتم تجاهلها حتى وقت التشغيل",
+        "تتوسع لتشمل حسابات العناوين (ضرب الفهرس في الحجم وجمعه مع عنوان البداية)",
+        "تتحول إلى حلقة while"
+      ],
+      "en": [
+        "As a single node called LOOKUP",
+        "It is ignored until runtime",
+        "It expands to include address computations (multiplying index by size and adding to base address)",
+        "It turns into a while loop"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في الـ DAG، يتم تفصيل عمليات الوصول للمصفوفات إلى حسابات عناوين صريحة (IADD, IMUL) ليتم تحسينها ومشاركتها.",
+      "en": "In a DAG, array accesses are detailed into explicit address computations (IADD, IMUL) so they can be optimized and shared."
+    },
+    "hint": {
+      "ar": "كيف يحسب المعالج عنوان العنصر في الذاكرة؟",
+      "en": "How does the processor calculate the element's address in memory?"
+    },
+    "difficulty": "hard",
+    "conceptId": "directed-acyclic-graph-dag"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">مشكلة $m \times n$: هي السبب الرئيسي لوجود الـ IR. بدون الـ IR، ستحتاج الشركات لكتابة مترجم كامل لكل لغة ولكل معالج. الـ IR يجعل المترجم معيارياً (Modular).</template>
+      <template class="content-en">The $m \times n$ problem: This is the primary reason IR exists. Without IR, companies would need to write a full compiler for every language and every processor. IR makes the compiler modular.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">احذر من الخلط بين AST و DAG. كلاهما يمثل التعبيرات، لكن الـ DAG يدمج العقد المتطابقة (التعبيرات الفرعية المشتركة) بينما الـ AST يكررها كفروع منفصلة.</template>
+      <template class="content-en">Beware of confusing AST and DAG. Both represent expressions, but a DAG merges identical nodes (common sub-expressions) while an AST duplicates them as separate branches.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">لا تعتقد أن الـ DAG يمكنه تمثيل البرنامج بأكمله. الـ DAG يفشل عند وجود حلقات (Loops) لأنه 'غير دوري' (Acyclic). لتمثيل البرنامج كاملاً، نستخدم الـ CFG.</template>
+      <template class="content-en">Do not think a DAG can represent the entire program. A DAG fails when there are loops because it is 'Acyclic'. To represent the full program, we use a CFG.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في الـ DAG، عملية بسيطة مثل `a[i]` تتحول إلى عملية رياضية معقدة تتضمن جلب عنوان `a` من جدول الرموز (Symbol Table)، وضرب `i` في حجم العنصر، ثم جمعهما.</template>
+      <template class="content-en">In a DAG, a simple operation like `a[i]` turns into complex math involving fetching the address of `a` from the symbol table, multiplying `i` by the element size, and adding them.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الكتلة الأساسية (Basic Block) هي وحدة البناء للـ CFG. داخل الكتلة الأساسية الواحدة، التنفيذ خطي تماماً، مما يجعلها المكان المثالي لتطبيق الـ DAG لتحسين التعبيرات.</template>
+      <template class="content-en">The Basic Block is the building block of the CFG. Inside a single basic block, execution is strictly linear, making it the perfect place to apply a DAG for expression optimization.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M05.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M07.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

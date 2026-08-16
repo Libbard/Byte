@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS477" data-module="9">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لغة التجميع (Assembly Language) · CS477 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS477" data-page-title-en="CS477">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M08.html" data-gh-next="M10.html" data-gh-card="../../hub/course.html?code=CS477"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#arm-architecture-risc" class="toc-link" data-bilingual>
+        <template class="content-ar">معمارية ARM وحوسبة RISC</template>
+        <template class="content-en">ARM Architecture and RISC</template>
+        <span class="content-target">معمارية ARM وحوسبة RISC</span>
+      </a>
+      <a href="#registers-and-data-types" class="toc-link" data-bilingual>
+        <template class="content-ar">السجلات وأنواع البيانات</template>
+        <template class="content-en">Registers and Data Types</template>
+        <span class="content-target">السجلات وأنواع البيانات</span>
+      </a>
+      <a href="#addressing-modes" class="toc-link" data-bilingual>
+        <template class="content-ar">طرق العنونة (Addressing Modes)</template>
+        <template class="content-en">Addressing Modes</template>
+        <span class="content-target">طرق العنونة (Addressing Modes)</span>
+      </a>
+      <a href="#basic-arithmetic-and-logic" class="toc-link" data-bilingual>
+        <template class="content-ar">الحساب والمنطق الأساسي</template>
+        <template class="content-en">Basic Arithmetic and Logic</template>
+        <span class="content-target">الحساب والمنطق الأساسي</span>
+      </a>
+      <a href="#comparisons-and-branches" class="toc-link" data-bilingual>
+        <template class="content-ar">المقارنات والتفرع (Comparisons and Branches)</template>
+        <template class="content-en">Comparisons and Branches</template>
+        <span class="content-target">المقارنات والتفرع (Comparisons and Branches)</span>
+      </a>
+      <a href="#the-stack" class="toc-link" data-bilingual>
+        <template class="content-ar">المكدس (The Stack)</template>
+        <template class="content-en">The Stack</template>
+        <span class="content-target">المكدس (The Stack)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 9</template>
+      <template class="content-en">Module 9</template>
+      <span class="content-target">الوحدة 9</span>
+    </span> · CS477
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">لغة التجميع (Assembly Language)</h1>
+      <p class="hero-description">مقدمة في لغة التجميع لبنية ARM، تشمل السجلات، أنواع البيانات، طرق العنونة، العمليات الحسابية الأساسية، والمكدس.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Assembly Language</h1>
+      <p class="hero-description">Introduction to ARM Assembly Language, covering registers, data types, addressing modes, basic arithmetic, and the stack.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">لغة التجميع</span>
+      <span class="tag">معمارية ARM</span>
+      <span class="tag">السجلات</span>
+      <span class="tag">المكدس</span>
+      <span class="tag">المترجمات</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Assembly Language</span>
+      <span class="tag">ARM Architecture</span>
+      <span class="tag">Registers</span>
+      <span class="tag">Stack</span>
+      <span class="tag">Compilers</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 30 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح أهمية لغة التجميع لبنية ARM.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعريف السجلات وأنواع البيانات في معمارية ARM.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على طرق العنونة الأساسية لنقل البيانات.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على العمليات الحسابية والمنطقية الأساسية.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain the significance of ARM Assembly.</span></li>
+      <li><span class="obj-icon">✦</span><span>Define Registers and Data Types.</span></li>
+      <li><span class="obj-icon">✦</span><span>Introduction to basic addressing modes.</span></li>
+      <li><span class="obj-icon">✦</span><span>Introduction to Basic Arithmetic.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="arm-architecture-risc" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> معمارية ARM وحوسبة RISC</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> ARM Architecture and RISC</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>معمارية ARM هي بنية تعتمد على مجموعة تعليمات مخفضة (<span class="smart-term" data-term-en="RISC" data-ar="حاسوب بمجموعة تعليمات مخفضة" data-en-def="Reduced Instruction Set Computer, an architecture that uses a small, highly optimized set of instructions.">RISC<span class="smart-term-tooltip"></span></span>)، مما يجعلها أقل استهلاكاً للطاقة وأسهل في الجدولة مقارنة بـ <span class="smart-term" data-term-en="CISC" data-ar="حاسوب بمجموعة تعليمات معقدة" data-en-def="Complex Instruction Set Computer, an architecture where single instructions can execute several low-level operations.">CISC<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>ARM is a <span class="smart-term" data-term-en="RISC" data-ar="حاسوب بمجموعة تعليمات مخفضة" data-en-def="Reduced Instruction Set Computer, an architecture that uses a small, highly optimized set of instructions.">Reduced Instruction Set Computer (RISC)<span class="smart-term-tooltip"></span></span> architecture, known for lower power consumption and simpler pipelining compared to <span class="smart-term" data-term-en="CISC" data-ar="حاسوب بمجموعة تعليمات معقدة" data-en-def="Complex Instruction Set Computer, an architecture where single instructions can execute several low-level operations.">CISC<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تتمتع معمارية ARM بتاريخ طويل يضاهي معمارية X86، وقد بدأت كجهاز Acorn <span class="smart-term" data-term-en="RISC" data-ar="حاسوب بمجموعة تعليمات مخفضة" data-en-def="Reduced Instruction Set Computer, an architecture that uses a small, highly optimized set of instructions.">RISC<span class="smart-term-tooltip"></span></span> ذي 32 بت في عام 1987. تطورت لاحقاً لتصبح وحدة معالجة مركزية منخفضة الطاقة تُستخدم على نطاق واسع في الأنظمة المدمجة والأجهزة المحمولة.</p><p>تعتمد ARM على مجموعة أصغر من التعليمات (RISC) مقارنة بحواسيب مجموعة التعليمات المعقدة (<span class="smart-term" data-term-en="CISC" data-ar="حاسوب بمجموعة تعليمات معقدة" data-en-def="Complex Instruction Set Computer, an architecture where single instructions can execute several low-level operations.">CISC<span class="smart-term-tooltip"></span></span>) مثل X86. هذا التبسيط يجعل التعليمات أسهل في التنفيذ المتوازي (Pipelining)، مما يقلل من تعقيد الشريحة واستهلاكها للطاقة.</p></template>
+    <template class="content-en"><p>The ARM processor architecture originated as the 32-bit Acorn RISC Machine in 1987. It has evolved into a widely-used low-power CPU employed in embedded and mobile systems.</p><p>ARM is an example of a <span class="smart-term" data-term-en="RISC" data-ar="حاسوب بمجموعة تعليمات مخفضة" data-en-def="Reduced Instruction Set Computer, an architecture that uses a small, highly optimized set of instructions.">Reduced Instruction Set Computer (RISC)<span class="smart-term-tooltip"></span></span> rather than a <span class="smart-term" data-term-en="CISC" data-ar="حاسوب بمجموعة تعليمات معقدة" data-en-def="Complex Instruction Set Computer, an architecture where single instructions can execute several low-level operations.">Complex Instruction Set Computer (CISC)<span class="smart-term-tooltip"></span></span>. Compared to X86, ARM relies on a smaller set of instructions which are simpler to pipeline or run in parallel, reducing the complexity and energy consumption of the chip.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا صُممت ARM كـ <span class="smart-term" data-term-en="RISC" data-ar="حاسوب بمجموعة تعليمات مخفضة" data-en-def="Reduced Instruction Set Computer, an architecture that uses a small, highly optimized set of instructions.">RISC<span class="smart-term-tooltip"></span></span>؟ الهدف الأساسي هو تقليل دورات المعالج لكل تعليمة، مما يسمح بتنفيذ أسرع واستهلاك طاقة أقل، وهو أمر حاسم للأجهزة المحمولة.</p><p>على الرغم من تصنيفها كـ RISC، تُعتبر ARM أحياناً RISC جزئياً (Partially RISC) بسبب وجود بعض الاستثناءات والتعليمات المعقدة التي أُضيفت بمرور الوقت لتحسين الأداء.</p><p>أحدث إصدارات هذه المعمارية هي ARMv7-A (بنية 32 بت) و ARMv8-A (بنية 64 بت)، وكلتاهما تدعمان ميزات متقدمة في إدارة الذاكرة وتنفيذ التعليمات.</p></template>
+    <template class="content-en"><p>The design philosophy behind ARM's <span class="smart-term" data-term-en="RISC" data-ar="حاسوب بمجموعة تعليمات مخفضة" data-en-def="Reduced Instruction Set Computer, an architecture that uses a small, highly optimized set of instructions.">RISC<span class="smart-term-tooltip"></span></span> approach is to execute instructions in a single clock cycle whenever possible, which drastically reduces power consumption and heat generation—ideal for mobile devices.</p><p>Interestingly, ARM is sometimes considered partially RISC due to a few exceptions in its instruction set that perform complex operations (like loading multiple registers at once) to optimize code density and performance.</p><p>The evolution from ARMv7-A (32-bit) to ARMv8-A (64-bit) introduced significant enhancements, including a larger register file and a streamlined instruction set, while maintaining backward compatibility paradigms.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>ARM (RISC)</th><th>X86 (CISC)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">حجم مجموعة التعليمات</template>
+          <template class="content-en">Instruction Set Size</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">صغيرة وبسيطة</template>
+          <template class="content-en">Smaller, simpler</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">كبيرة ومعقدة</template>
+          <template class="content-en">Large, complex</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استهلاك الطاقة</template>
+          <template class="content-en">Power Consumption</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منخفض (مناسب للمحمول)</template>
+          <template class="content-en">Low (Mobile friendly)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مرتفع</template>
+          <template class="content-en">High</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الوصول للذاكرة</template>
+          <template class="content-en">Memory Access</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مفصول (Load/Store فقط)</template>
+          <template class="content-en">Separated (Load/Store only)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مدمج في العديد من التعليمات</template>
+          <template class="content-en">Integrated in many instructions</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تُفضل معمارية ARM في الهواتف الذكية على معمارية X86؟</template>
+      <template class="content-en">Why is the ARM architecture preferred in smartphones over the X86 architecture?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن ARM تعتمد على بنية RISC التي تستخدم تعليمات أبسط، مما يقلل من تعقيد الشريحة واستهلاك الطاقة، وهو أمر حيوي للأجهزة التي تعمل بالبطاريات.</p></template>
+      <template class="content-en"><p>Because ARM uses a RISC architecture with simpler instructions, reducing chip complexity and power consumption, which is critical for battery-operated devices.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="registers-and-data-types" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> السجلات وأنواع البيانات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Registers and Data Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تحتوي ARM-32 على 16 سجلاً عاماً (r0-r15)، حيث تُخصص السجلات الأخيرة لوظائف محددة مثل مؤشر المكدس (sp) وعداد البرنامج (pc).</p></template>
+    <template class="content-en"><p>ARM-32 has 16 general-purpose registers (r0-r15), with the highest registers reserved for specific roles like the Stack Pointer (sp) and Program Counter (pc).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في بنية ARM-32، يوجد 16 سجلاً للأغراض العامة، مرقمة من r0 إلى r15. السجلات من r0 إلى r10 تُستخدم كأغراض عامة بحتة، بينما السجلات من r11 إلى r15 لها أدوار محددة:</p><ol><li><strong>r11 (fp):</strong> مؤشر الإطار (Frame Pointer).</li><li><strong>r12 (ip):</strong> سجل مؤقت للاستدعاءات الداخلية (Intra-Procedure-Call Scratch Register).</li><li><strong>r13 (sp):</strong> مؤشر المكدس (Stack Pointer).</li><li><strong>r14 (lr):</strong> <span class="smart-term" data-term-en="Link Register (lr)" data-ar="سجل الرابط" data-en-def="Register r14, used to store the return address when a function call is made.">سجل الرابط<span class="smart-term-tooltip"></span></span> (Link Register) لحفظ عنوان العودة.</li><li><strong>r15 (pc):</strong> عداد البرنامج (Program Counter).</li></ol><p>بالإضافة إلى ذلك، هناك سجلان لا يمكن الوصول إليهما مباشرة:</p><ul><li><strong><span class="smart-term" data-term-en="CPSR" data-ar="سجل حالة البرنامج الحالي" data-en-def="Current Program Status Register, holds comparison results and privileged process data.">CPSR<span class="smart-term-tooltip"></span></span></strong> (سجل حالة البرنامج الحالي)</li><li>و <strong>SPSR</strong> (سجل حالة البرنامج المحفوظ)،</li></ul><p>وهما يحفظان نتائج عمليات المقارنة والبيانات ذات الامتيازات.</p></template>
+    <template class="content-en"><p>ARM-32 features a set of 16 general-purpose registers, r0-r15. While r0-r10 are strictly general purpose, the higher registers have specific conventions:</p><ol><li><strong>r11 (fp):</strong> Frame Pointer.</li><li><strong>r12 (ip):</strong> Intra-Procedure-Call Scratch Register.</li><li><strong>r13 (sp):</strong> Stack Pointer.</li><li><strong>r14 (lr):</strong> <span class="smart-term" data-term-en="Link Register (lr)" data-ar="سجل الرابط" data-en-def="Register r14, used to store the return address when a function call is made.">Link Register<span class="smart-term-tooltip"></span></span> (Return Address).</li><li><strong>r15 (pc):</strong> Program Counter.</li></ol><p>Additionally, there are two registers that cannot be directly accessed:</p><ul><li>the <strong><span class="smart-term" data-term-en="CPSR" data-ar="سجل حالة البرنامج الحالي" data-en-def="Current Program Status Register, holds comparison results and privileged process data.">Current Program Status Register (CPSR)<span class="smart-term-tooltip"></span></span></strong></li><li>and the <strong>Saved Program Status Register (SPSR)</strong>.</li></ul><p>These hold the results of comparison operations and privileged data regarding the process.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تستخدم ARM لواحق (Suffixes) لتحديد أحجام البيانات في التعليمات. على سبيل المثال،</p><ul><li><strong>B</strong> تعني Byte (8 بت)،</li><li><strong>H</strong> تعني Halfword (16 بت)،</li><li>و <strong>W</strong> تعني Word (32 بت).</li></ul><p>إذا لم يتم تحديد لاحقة، يفترض المجمّع أن المعامل هو كلمة غير موقعة (Unsigned Word).</p><p>على عكس X86، لا توجد بنية تسمية للسجلات للأحجام التي تقل عن كلمة (Word). السجل بأكمله يُستخدم، ويتم التعامل مع حجم البيانات من خلال لاحقة التعليمة نفسها.</p><p>سجل <span class="smart-term" data-term-en="CPSR" data-ar="سجل حالة البرنامج الحالي" data-en-def="Current Program Status Register, holds comparison results and privileged process data.">CPSR<span class="smart-term-tooltip"></span></span> بالغ الأهمية لأنه يحتوي على أعلام الحالة (مثل N للسالب و Z للصفر) التي تعتمد عليها تعليمات التفرع الشرطي (Conditional Branches).</p></template>
+    <template class="content-en"><p>ARM uses specific suffixes to indicate data sizes:</p><ul><li><strong>B</strong> for Byte (8 bits),</li><li><strong>H</strong> for Halfword (16 bits),</li><li>and <strong>W</strong> for Word (32 bits).</li></ul><p>If no suffix is given, the assembler assumes an unsigned word operand.</p><p>Unlike X86, which has specific register names for smaller data chunks (like AL, AH, AX in x86), ARM has no register naming structure for anything below a word. The instruction suffix dictates how the data in the 32-bit register is treated.</p><p>The <span class="smart-term" data-term-en="CPSR" data-ar="سجل حالة البرنامج الحالي" data-en-def="Current Program Status Register, holds comparison results and privileged process data.">CPSR<span class="smart-term-tooltip"></span></span> is critical for control flow. It stores condition flags (Negative, Zero, Carry, Overflow) updated by arithmetic and comparison instructions, which dictate whether subsequent conditional instructions will execute.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A vertical block diagram showing the 16 ARM registers (r0 to r15). Highlight r11 to r15 with distinct colors and labels: r11 (fp), r12 (ip), r13 (sp), r14 (lr), r15 (pc). Below them, show two separate special registers: CPSR and SPSR. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 800 600, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 780" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="400" y="40" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">ARM Architecture Registers</text>
+  <text x="400" y="65" font-size="16" fill="var(--text-secondary)" text-anchor="middle">سجلات معمارية ARM</text>
+
+  <!-- Core Registers Section Bounding Box -->
+  <rect x="80" y="90" width="660" height="460" rx="16" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" />
+  
+  <!-- Column Headers -->
+  <text x="210" y="120" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Low Registers</text>
+  <text x="210" y="140" font-size="14" fill="var(--text-muted)" text-anchor="middle">سجلات منخفضة (r0 - r7)</text>
+  
+  <text x="430" y="120" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">High Registers</text>
+  <text x="430" y="140" font-size="14" fill="var(--text-muted)" text-anchor="middle">سجلات عالية (r8 - r15)</text>
+
+  <!-- Left Column: r0 to r7 -->
+  <!-- r0 -->
+  <rect x="120" y="160" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="183" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r0</text>
+  <!-- r1 -->
+  <rect x="120" y="208" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="231" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r1</text>
+  <!-- r2 -->
+  <rect x="120" y="256" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="279" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r2</text>
+  <!-- r3 -->
+  <rect x="120" y="304" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="327" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r3</text>
+  <!-- r4 -->
+  <rect x="120" y="352" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="375" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r4</text>
+  <!-- r5 -->
+  <rect x="120" y="400" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="423" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r5</text>
+  <!-- r6 -->
+  <rect x="120" y="448" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="471" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r6</text>
+  <!-- r7 -->
+  <rect x="120" y="496" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="210" y="519" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r7</text>
+
+  <!-- Right Column: r8 to r10 (Normal) -->
+  <!-- r8 -->
+  <rect x="340" y="160" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="430" y="183" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r8</text>
+  <!-- r9 -->
+  <rect x="340" y="208" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="430" y="231" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r9</text>
+  <!-- r10 -->
+  <rect x="340" y="256" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" />
+  <text x="430" y="279" font-size="15" font-weight="600" fill="var(--text-primary)" text-anchor="middle">r10</text>
+
+  <!-- Right Column: r11 to r15 (Highlighted Special Registers) -->
+  <!-- r11 (fp) -->
+  <rect x="340" y="304" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="430" y="327" font-size="15" font-weight="600" text-anchor="middle">
+    <tspan fill="var(--text-primary)">r11</tspan>
+    <tspan fill="var(--brand-500)"> (fp)</tspan>
+  </text>
+  <line x1="520" y1="322" x2="550" y2="322" stroke="var(--brand-400)" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="630" y="316" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Frame Pointer</text>
+  <text x="630" y="334" font-size="13" fill="var(--text-secondary)" text-anchor="middle">مؤشر الإطار</text>
+
+  <!-- r12 (ip) -->
+  <rect x="340" y="352" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="430" y="375" font-size="15" font-weight="600" text-anchor="middle">
+    <tspan fill="var(--text-primary)">r12</tspan>
+    <tspan fill="var(--brand-500)"> (ip)</tspan>
+  </text>
+  <line x1="520" y1="370" x2="550" y2="370" stroke="var(--brand-400)" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="630" y="364" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Intra-Procedure</text>
+  <text x="630" y="382" font-size="13" fill="var(--text-secondary)" text-anchor="middle">مؤشر الإجراء</text>
+
+  <!-- r13 (sp) -->
+  <rect x="340" y="400" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="430" y="423" font-size="15" font-weight="600" text-anchor="middle">
+    <tspan fill="var(--text-primary)">r13</tspan>
+    <tspan fill="var(--brand-500)"> (sp)</tspan>
+  </text>
+  <line x1="520" y1="418" x2="550" y2="418" stroke="var(--brand-400)" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="630" y="412" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Stack Pointer</text>
+  <text x="630" y="430" font-size="13" fill="var(--text-secondary)" text-anchor="middle">مؤشر المكدس</text>
+
+  <!-- r14 (lr) -->
+  <rect x="340" y="448" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="430" y="471" font-size="15" font-weight="600" text-anchor="middle">
+    <tspan fill="var(--text-primary)">r14</tspan>
+    <tspan fill="var(--brand-500)"> (lr)</tspan>
+  </text>
+  <line x1="520" y1="466" x2="550" y2="466" stroke="var(--brand-400)" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="630" y="460" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Link Register</text>
+  <text x="630" y="478" font-size="13" fill="var(--text-secondary)" text-anchor="middle">سجل الربط</text>
+
+  <!-- r15 (pc) -->
+  <rect x="340" y="496" width="180" height="36" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="430" y="519" font-size="15" font-weight="600" text-anchor="middle">
+    <tspan fill="var(--text-primary)">r15</tspan>
+    <tspan fill="var(--brand-500)"> (pc)</tspan>
+  </text>
+  <line x1="520" y1="514" x2="550" y2="514" stroke="var(--brand-400)" stroke-width="1" stroke-dasharray="3,3" />
+  <text x="630" y="508" font-size="14" font-weight="600" fill="var(--text-primary)" text-anchor="middle">Program Counter</text>
+  <text x="630" y="526" font-size="13" fill="var(--text-secondary)" text-anchor="middle">عداد البرنامج</text>
+
+  <!-- Status Registers Section Bounding Box -->
+  <rect x="80" y="565" width="660" height="190" rx="16" fill="none" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" />
+  
+  <text x="400" y="590" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Status Registers</text>
+  <text x="400" y="610" font-size="14" fill="var(--text-muted)" text-anchor="middle">سجلات الحالة</text>
+
+  <!-- CPSR -->
+  <rect x="250" y="625" width="300" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="400" y="643" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    CPSR <tspan fill="var(--text-primary)" font-weight="normal">- Current Program Status</tspan>
+  </text>
+  <text x="400" y="663" font-size="13" fill="var(--text-secondary)" text-anchor="middle">سجل حالة البرنامج الحالي</text>
+
+  <!-- Arrow from CPSR to SPSR -->
+  <line x1="400" y1="671" x2="400" y2="695" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="500" y="680" font-size="13" fill="var(--text-muted)" text-anchor="middle">Saved on exception</text>
+  <text x="500" y="696" font-size="13" fill="var(--text-muted)" text-anchor="middle">يُحفظ عند الاستثناء</text>
+
+  <!-- SPSR -->
+  <rect x="250" y="700" width="300" height="46" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,4" />
+  <text x="400" y="718" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+    SPSR <tspan fill="var(--text-primary)" font-weight="normal">- Saved Program Status</tspan>
+  </text>
+  <text x="400" y="738" font-size="13" fill="var(--text-secondary)" text-anchor="middle">سجل حالة البرنامج المحفوظ</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا لم نستخدم لاحقة حجم البيانات مع تعليمة في ARM؟</template>
+      <template class="content-en">What happens if no data size suffix is provided with an ARM instruction?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يفترض المجمّع (Assembler) أن المعامل هو كلمة غير موقعة (Unsigned Word) بحجم 32 بت.</p></template>
+      <template class="content-en"><p>The assembler assumes an unsigned word (32-bit) operand by default.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="addressing-modes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> طرق العنونة (Addressing Modes)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Addressing Modes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تستخدم ARM تعليمة MOV لنقل البيانات بين السجلات والقيم الثابتة، بينما تستخدم LDR و STR حصرياً لنقل البيانات بين السجلات والذاكرة.</p></template>
+    <template class="content-en"><p>ARM uses the MOV instruction to move data between registers and constants, while LDR (load) and STR (store) are used exclusively for memory access.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعتمد ARM على فئتين مختلفتين من التعليمات لنقل البيانات:</p><ol><li><strong>MOV:</strong> تنسخ البيانات والثوابت بين السجلات. مثال: <code>MOV r0, #3</code> (نقل قيمة فورية) أو <code>MOV r1, r0</code> (نقل من سجل لسجل).</li><li><strong>LDR و STR:</strong> تُستخدم لنقل البيانات من وإلى الذاكرة. في هذه التعليمات، يكون المعامل الأول هو سجل المصدر أو الوجهة، والمعامل الثاني هو عنوان الذاكرة.</li></ol><p>في أبسط الحالات، يتم إعطاء عنوان الذاكرة بواسطة سجل ويوضع بين أقواس مربعة: <code>LDR Rd, [Ra]</code> و <code>STR Rs, [Ra]</code>.</p></template>
+    <template class="content-en"><p>ARM makes use of two different classes of instructions to move data:</p><ol><li><strong>MOV:</strong> Copies data and constants between registers. Example: <code>MOV r0, #3</code> (Immediate mode) or <code>MOV r1, r0</code> (Register mode).</li><li><strong>LDR and STR:</strong> Load and Store instructions are used to move data between registers and memory. The first argument is the source/destination register, and the second is the memory address.</li></ol><p>In the simplest case, the memory address is given by a register and indicated in brackets: <code>LDR Rd, [Ra]</code> and <code>STR Rs, [Ra]</code>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>معظم تعليمات ARM تضع سجل الوجهة (Destination) على اليسار وسجل المصدر (Source) على اليمين.</p><p>ميزة خاصة في ARM هي القدرة على تحميل عناوين المتغيرات باستخدام <span class="smart-term" data-term-en="Literal Pool" data-ar="تجمع الحرفيات" data-en-def="A block of memory used by the assembler to store constant values and addresses that are loaded into registers.">تجمع الحرفيات<span class="smart-term-tooltip"></span></span> (Literal Pool). التعليمة <code>LDR r1, =x</code> هي تعليمة وهمية (Pseudo-instruction) يقوم المجمّع بتوسيعها لتحميل عنوان المتغير x من تجمع حرفيات مجاور، ثم يمكن استخدام <code>LDR r2, [r1]</code> لتحميل قيمة x الفعلية.</p><p>هذا الفصل الصارم بين تعليمات الذاكرة (LDR/STR) وتعليمات السجلات (MOV/Arithmetic) هو سمة مميزة لبنية Load/Store الخاصة بـ RISC.</p></template>
+    <template class="content-en"><p>Most ARM instructions indicate the destination register on the left and the source register on the right.</p><p>A unique feature in ARM assembly is the use of the <span class="smart-term" data-term-en="Literal Pool" data-ar="تجمع الحرفيات" data-en-def="A block of memory used by the assembler to store constant values and addresses that are loaded into registers.">literal pool<span class="smart-term-tooltip"></span></span> for loading addresses. The instruction <code>LDR r1, =x</code> is a pseudo-instruction. The assembler expands it into a PC-relative load from an adjacent literal pool to get the address of 'x' into r1. Subsequently, <code>LDR r2, [r1]</code> loads the actual value of 'x'.</p><p>This strict separation between memory access (LDR/STR) and ALU operations (MOV, ADD) is the defining characteristic of a Load/Store architecture, which is fundamental to RISC design.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>assembly</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>LDR r1, =x
+LDR r2, [r1]</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكننا استخدام تعليمة MOV لنقل قيمة من الذاكرة مباشرة إلى سجل؟</template>
+      <template class="content-en">Why can't we use the MOV instruction to move a value directly from memory to a register?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن ARM تستخدم معمارية Load/Store، حيث تعليمة MOV مخصصة فقط للتعامل مع السجلات والقيم الفورية، بينما الوصول للذاكرة يتطلب تعليمات LDR/STR حصرياً.</p></template>
+      <template class="content-en"><p>Because ARM uses a Load/Store architecture. MOV is strictly for registers and immediate values, while memory access requires dedicated LDR/STR instructions.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="basic-arithmetic-and-logic" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الحساب والمنطق الأساسي</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Basic Arithmetic and Logic</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>توفر ARM تعليمات منطقية تشبه التعليمات الحسابية في بنيتها، مثل AND و ORR و EOR و <span class="smart-term" data-term-en="BIC" data-ar="مسح البتات" data-en-def="Bitwise-Bit-Clear instruction, performs an AND operation with the complement of the second operand.">BIC<span class="smart-term-tooltip"></span></span> و <span class="smart-term" data-term-en="MVN" data-ar="النقل مع النفي" data-en-def="Move-Not instruction, performs a bitwise NOT operation on the source before moving it to the destination.">MVN<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>ARM provides logical instructions that are structurally similar to arithmetic ones, including AND, ORR, EOR, <span class="smart-term" data-term-en="BIC" data-ar="مسح البتات" data-en-def="Bitwise-Bit-Clear instruction, performs an AND operation with the complement of the second operand.">BIC<span class="smart-term-tooltip"></span></span>, and <span class="smart-term" data-term-en="MVN" data-ar="النقل مع النفي" data-en-def="Move-Not instruction, performs a bitwise NOT operation on the source before moving it to the destination.">MVN<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التعليمات المنطقية في ARM تشبه جداً التعليمات الحسابية من حيث الهيكل (سجل الوجهة، ثم المعاملات). تشمل هذه التعليمات:</p><ol><li><strong>AND:</strong> عملية (و) المنطقية (Bitwise-And).</li><li><strong>ORR:</strong> عملية (أو) المنطقية (Bitwise-Or).</li><li><strong>EOR:</strong> عملية (أو) الحصرية (Bitwise-Xor).</li><li><strong>BIC:</strong> مسح البتات (Bitwise-Bit-Clear)، وهي تعادل عملية AND بين القيمة الأولى ومعكوس القيمة الثانية.</li><li><strong>MVN:</strong> النقل مع النفي (Move-Not)، وتقوم بإجراء نفي منطقي (Bitwise-Not) أثناء نقل القيمة من سجل لآخر.</li></ol></template>
+    <template class="content-en"><p>The logical instructions in ARM are very similar in structure to the arithmetic instructions. They typically take a destination register and two source operands. The primary logical instructions are:</p><ol><li><strong>AND:</strong> Bitwise-And.</li><li><strong>ORR:</strong> Bitwise-Or.</li><li><strong>EOR:</strong> Bitwise-Exclusive-Or (Xor).</li><li><strong>BIC:</strong> Bitwise-Bit-Clear. This is the equivalent of a bitwise-and of the first value and the inverted second value.</li><li><strong>MVN:</strong> Move-Not. This instruction performs a bitwise-not while moving from one register to another.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تعليمة <span class="smart-term" data-term-en="BIC" data-ar="مسح البتات" data-en-def="Bitwise-Bit-Clear instruction, performs an AND operation with the complement of the second operand.">BIC<span class="smart-term-tooltip"></span></span> مفيدة جداً في برمجة الأنظمة لمسح بتات معينة (Masking) دون التأثير على البتات الأخرى في السجل. على سبيل المثال، <code>BIC r0, r1, #0xFF</code> ستمسح البايت الأقل أهمية.</p><p>تعليمة <span class="smart-term" data-term-en="MVN" data-ar="النقل مع النفي" data-en-def="Move-Not instruction, performs a bitwise NOT operation on the source before moving it to the destination.">MVN<span class="smart-term-tooltip"></span></span> لا تقوم فقط بنقل القيمة، بل تعكس جميع البتات (1s complement). هذا مفيد لتوليد ثوابت سالبة أو أقنعة معكوسة بسرعة دون الحاجة لتحميلها من الذاكرة.</p></template>
+    <template class="content-en"><p>The <span class="smart-term" data-term-en="BIC" data-ar="مسح البتات" data-en-def="Bitwise-Bit-Clear instruction, performs an AND operation with the complement of the second operand.">BIC<span class="smart-term-tooltip"></span></span> (Bit Clear) instruction is highly useful in systems programming for masking out specific bits without altering the rest of the register. For instance, it effectively performs <code>Dest = Src1 AND NOT Src2</code>.</p><p>The <span class="smart-term" data-term-en="MVN" data-ar="النقل مع النفي" data-en-def="Move-Not instruction, performs a bitwise NOT operation on the source before moving it to the destination.">MVN<span class="smart-term-tooltip"></span></span> instruction is a clever optimization. Instead of needing a separate NOT instruction followed by a MOV, MVN does both. It is frequently used to load negative constants or inverted bitmasks directly into a register without needing a memory access to a literal pool.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>assembly</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>AND Rd, Rm, Rn
+BIC Rd, Rm, Rn
+MVN Rd, Rn</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف تختلف تعليمة BIC عن تعليمة AND؟</template>
+      <template class="content-en">How does the BIC instruction differ from the AND instruction?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تعليمة AND تقوم بعملية (و) المنطقية المباشرة بين المعاملين، بينما تعليمة BIC تقوم بعملية (و) المنطقية بين المعامل الأول و(معكوس) المعامل الثاني.</p></template>
+      <template class="content-en"><p>AND performs a direct bitwise AND between two operands, whereas BIC performs a bitwise AND between the first operand and the INVERTED second operand.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="comparisons-and-branches" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> المقارنات والتفرع (Comparisons and Branches)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Comparisons and Branches</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُستخدم تعليمة CMP لمقارنة قيمتين وتحديث أعلام الحالة في CPSR، والتي تُستخدم لاحقاً بواسطة تعليمات التفرع الشرطي مثل BEQ و BNE.</p></template>
+    <template class="content-en"><p>The CMP instruction compares two values and updates the status flags in the CPSR, which are then used by conditional branch instructions like BEQ and BNE.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تعليمة CMP تقارن قيمتين وتقوم بتعيين أعلام N (سالب) و Z (صفر) في سجل CPSR. في حالة مقارنة سجل بقيمة فورية، يجب أن تكون القيمة الفورية هي المعامل الثاني: <code>CMP Rd, #imm</code>.</p><p>تعتمد تعليمات التفرع على هذه الأعلام للقفز إلى عناوين محددة:</p><ol><li><strong>B:</strong> تفرع غير مشروط (Branch Always).</li><li><strong>BL:</strong> تفرع مع رابط (Branch and Link)، تُستخدم لاستدعاء الدوال حيث تحفظ عنوان العودة في سجل الرابط (lr).</li><li><strong>BX:</strong> تفرع وتبديل (Branch and Exchange)، تقفز للعنوان الموجود في سجل، وتُستخدم غالباً للعودة من دالة <code>BX lr</code>.</li><li><strong>BLX:</strong> تفرع ورابط وتبديل، تُستخدم لاستدعاء مؤشرات الدوال (Function Pointers).</li></ol></template>
+    <template class="content-en"><p>The CMP instruction compares two values and sets the N (negative) and Z (zero) flags in the CPSR, to be read by later instructions. When comparing a register and an immediate value, the immediate must be the second operand: <code>CMP Rd, #imm</code>.</p><p>Branch instructions consult these CPSR flags to jump to labels:</p><ol><li><strong>B:</strong> Unconditional branch.</li><li><strong>BL:</strong> Branch-and-link, used for function calls. It sets the link register (lr) to the address of the next instruction before jumping.</li><li><strong>BX:</strong> Branch and Exchange, branches to an address in a register. Frequently used to return from a function via <code>BX lr</code>.</li><li><strong>BLX:</strong> Branch-Link-Exchange, used to invoke function pointers or virtual methods.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>ميزة فريدة في مجموعة تعليمات ARM هي <span class="smart-term" data-term-en="Conditional Execution" data-ar="التنفيذ الشرطي" data-en-def="A feature where an instruction is executed only if specific condition flags in the CPSR are met, defined by a 4-bit field in the instruction.">التنفيذ الشرطي<span class="smart-term-tooltip"></span></span> (Conditional Execution). يحتوي كل كلمة تعليمة على حقل من 4 بتات يشير إلى واحد من 16 شرطاً محتملاً يجب أن يتحقق، وإلا يتم تجاهل التعليمة.</p><p>أنواع التفرع الشرطي (مثل BEQ للمساواة، BNE لعدم المساواة، BGT للأكبر من) هي ببساطة تعليمة التفرع الأساسية (B) مع تطبيق اللواحق الشرطية. الأهم من ذلك، يمكن تطبيق هذه اللواحق المكونة من حرفين على أي تعليمة تقريباً في ARM، وليس فقط تعليمات التفرع (مثل ADDEQ).</p></template>
+    <template class="content-en"><p>A special and powerful feature of the ARM instruction set is <span class="smart-term" data-term-en="Conditional Execution" data-ar="التنفيذ الشرطي" data-en-def="A feature where an instruction is executed only if specific condition flags in the CPSR are met, defined by a 4-bit field in the instruction.">conditional execution<span class="smart-term-tooltip"></span></span>. A 4-bit field in each instruction word indicates one of 16 possible conditions that must hold; otherwise, the instruction is treated as a NOP (ignored).</p><p>The various conditional branches (BEQ, BNE, BGT, BLT, etc.) are simply the plain branch (B) instruction with condition suffixes applied. Crucially, these same two-letter suffixes can be applied to almost ANY instruction in ARM (e.g., MOVEQ, ADDNE), which helps eliminate short branches and improves pipeline efficiency.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>assembly</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>CMP r0, #10
+BEQ .L1
+BL my_function
+BX lr</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف تساهم ميزة التنفيذ الشرطي في تحسين أداء معالج ARM؟</template>
+      <template class="content-en">How does the conditional execution feature improve the performance of an ARM processor?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>تقلل من الحاجة إلى تعليمات التفرع (Branches) القصيرة، مما يمنع إفراغ خط الأنابيب (Pipeline Flushes) ويجعل تنفيذ الكود أسرع وأكثر كفاءة.</p></template>
+      <template class="content-en"><p>It reduces the need for short branch instructions, thereby preventing pipeline flushes and making code execution faster and more efficient.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="the-stack" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> المكدس (The Stack)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> The Stack</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تُستخدم التعليمات الوهمية PUSH و POP لإدارة المكدس في ARM، وتسمح بدفع أو سحب عدة سجلات دفعة واحدة باستخدام <span class="smart-term" data-term-en="Bitmask" data-ar="قناع البتات" data-en-def="A sequence of bits used to select which registers are included in a multiple-register load or store operation (like PUSH/POP).">قناع بتات<span class="smart-term-tooltip"></span></span> (Bitmask).</p></template>
+    <template class="content-en"><p>The PUSH and POP pseudo-instructions manage the stack in ARM, allowing multiple registers to be moved at once using a <span class="smart-term" data-term-en="Bitmask" data-ar="قناع البتات" data-en-def="A sequence of bits used to select which registers are included in a multiple-register load or store operation (like PUSH/POP).">bitmask<span class="smart-term-tooltip"></span></span>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>التعامل مع المكدس في ARM يتم عادةً عبر التعليمات الوهمية PUSH و POP:</p><ol><li><strong>PUSH:</strong> تدفع القيم إلى المكدس. يمكنها نقل أي عدد من السجلات في تعليمة واحدة عن طريق تمريرها كقائمة، مثل <code>PUSH {r0, r1, r2}</code>. يتم تشفير هذه القائمة كقناع بتات (Bitmask).</li><li><strong>POP:</strong> تسحب القيم من المكدس إلى السجلات، مثل <code>POP {r0, r1, r2}</code>.</li></ol><p>يمكن أيضاً تنفيذ هذه العمليات يدوياً باستخدام تعليمات LDR و STR مع تعديل مؤشر المكدس (sp). على سبيل المثال، سحب قيمة يدوياً: <code>LDR r0, [sp]</code> ثم <code>ADD sp, sp, #4</code>، أو بتعليمة واحدة: <code>LDR r0, [sp], #4</code>.</p></template>
+    <template class="content-en"><p>Stack operations in ARM are typically handled using the PUSH and POP pseudo-instructions:</p><ol><li><strong>PUSH:</strong> Moves data onto the stack. It can move any number of registers at once (encoded as a bitmask), e.g., <code>PUSH {r0, r1, r2}</code>.</li><li><strong>POP:</strong> Retrieves data from the stack into registers, e.g., <code>POP {r0, r1, r2}</code>.</li></ol><p>Popping a value off the stack manually involves loading the value and updating the stack pointer: <code>LDR r0, [sp]</code> followed by <code>ADD sp, sp, #4</code>. This can be combined into a single instruction using post-indexed addressing: <code>LDR r0, [sp], #4</code>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على عكس معمارية X86 التي تقيد أحجام البيانات المدفوعة للمكدس، تسمح ARM بدفع أي عناصر بيانات تتراوح من بايت واحد إلى كلمة مزدوجة (Double-word) إلى المكدس، طالما تم احترام محاذاة البيانات (Data Alignment).</p><p>استخدام قناع البتات في PUSH و POP هو تحسين قوي في RISC، حيث يسمح بحفظ واستعادة سياق الدالة (Function Prologue/Epilogue) بتعليمة واحدة فقط، مما يقلل من حجم الكود ويسرع الاستدعاءات.</p></template>
+    <template class="content-en"><p>Unlike X86, which has strict rules about stack push sizes, ARM allows any data items ranging from a byte to a double-word to be pushed onto the stack, provided that data alignment rules are respected.</p><p>The ability to push/pop multiple registers using a bitmask is a significant optimization in ARM. It allows a function's prologue (saving registers) and epilogue (restoring registers and returning) to be executed in single instructions, greatly improving code density and execution speed.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>assembly</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>PUSH {r4, r5, lr}
+@ Function body
+POP {r4, r5, pc}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر استخدام PUSH {r0, r1, r2} أفضل من كتابة ثلاث تعليمات PUSH منفصلة؟</template>
+      <template class="content-en">Why is using PUSH {r0, r1, r2} better than writing three separate PUSH instructions?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يقلل من حجم الكود (تعليمة واحدة بدلاً من ثلاث) ويقلل من عدد مرات الوصول للذاكرة وتحديث مؤشر المكدس، مما يحسن الأداء.</p></template>
+      <template class="content-en"><p>It reduces code size (one instruction instead of three) and minimizes memory accesses and stack pointer updates, improving performance.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في عالم ARM. لماذا ندرس لغة التجميع في كورس المترجمات؟ لأن المترجم (Compiler) في النهاية يجب أن يولد هذا الكود! معمارية ARM هي المهيمنة اليوم في الهواتف والأنظمة المدمجة بفضل تصميم RISC الذي يركز على البساطة والكفاءة. ركزوا جيداً على الفرق الجوهري بين تعليمات الذاكرة (LDR/STR) وتعليمات السجلات (MOV)؛ هذا الفصل هو قلب معمارية Load/Store. في الامتحان، غالباً ما أختبر فهمكم لكيفية استدعاء الدوال (باستخدام BL و lr) وكيفية إدارة المكدس باستخدام PUSH و POP. لا تنسوا أيضاً ميزة التنفيذ الشرطي (Conditional Execution) وكيف تستخدم أعلام CPSR لتجنب التفرع غير الضروري. فهم هذه الأساسيات سيجعل كتابة مولد الكود (Code Generator) في مشروع المترجم الخاص بكم مهمة واضحة وممتعة. بالتوفيق!</template>
+    <template class="content-en">Welcome, future engineers, to the world of ARM. Why study assembly in a Compilers course? Because your compiler ultimately has to generate this code! ARM architecture dominates mobile and embedded systems today thanks to its RISC design, which emphasizes simplicity and efficiency. Pay close attention to the strict separation between memory instructions (LDR/STR) and register instructions (MOV); this is the heart of a Load/Store architecture. On the exam, I frequently test your understanding of function calls (using BL and the link register lr) and stack management (PUSH/POP bitmasks). Don't forget the elegance of Conditional Execution and how it uses CPSR flags to avoid costly branches. Mastering these basics will make writing the Code Generator for your compiler project a clear and enjoyable task. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم معمارية ARM بدلاً من X86 في الأجهزة المحمولة؟</template>
+          <template class="content-en">Why do we use ARM architecture instead of X86 in mobile devices?</template>
+          <span class="content-target">لماذا نستخدم معمارية ARM بدلاً من X86 في الأجهزة المحمولة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن ARM تعتمد على بنية RISC التي تستخدم تعليمات أبسط، مما يسهل عملية الجدولة (Pipelining) ويقلل بشكل كبير من استهلاك الطاقة والحرارة.</template>
+          <template class="content-en">Because ARM uses a RISC architecture with simpler instructions, which makes pipelining easier and significantly reduces power consumption and heat.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين سجل CPSR وسجل SPSR؟</template>
+          <template class="content-en">What is the difference between the CPSR and SPSR registers?</template>
+          <span class="content-target">ما هو الفرق بين سجل CPSR وسجل SPSR؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">CPSR يحفظ حالة البرنامج الحالي (مثل أعلام المقارنة N و Z)، بينما SPSR يُستخدم لحفظ حالة البرنامج عند حدوث استثناء (Exception) للتمكن من العودة لاحقاً.</template>
+          <template class="content-en">CPSR holds the Current Program Status (like N and Z flags), while SPSR is the Saved Program Status Register used to preserve state during exceptions.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل استدعاءات الدوال في ARM؟</template>
+          <template class="content-en">How do function calls work in ARM?</template>
+          <span class="content-target">كيف تعمل استدعاءات الدوال في ARM؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نستخدم تعليمة BL (Branch and Link) التي تقفز إلى الدالة وتحفظ عنوان العودة تلقائياً في سجل الرابط (lr أو r14).</template>
+          <template class="content-en">We use the BL (Branch and Link) instruction, which jumps to the function and automatically saves the return address in the link register (lr or r14).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نعود من دالة تم استدعاؤها؟</template>
+          <template class="content-en">How do we return from a called function?</template>
+          <span class="content-target">كيف نعود من دالة تم استدعاؤها؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام تعليمة BX lr، والتي تقفز إلى العنوان المحفوظ في سجل الرابط.</template>
+          <template class="content-en">By using the BX lr instruction, which branches to the address saved in the link register.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التنفيذ الشرطي (Conditional Execution)؟</template>
+          <template class="content-en">What is Conditional Execution?</template>
+          <span class="content-target">ما هو التنفيذ الشرطي (Conditional Execution)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو ميزة تسمح بتنفيذ التعليمة فقط إذا تطابقت أعلام CPSR مع شرط محدد (مخزن في 4 بتات داخل التعليمة)، مما يقلل الحاجة لتعليمات التفرع.</template>
+          <template class="content-en">It's a feature where an instruction executes only if CPSR flags match a specific condition (stored in a 4-bit field), reducing the need for branches.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين تعليمة MOV وتعليمة LDR؟</template>
+          <template class="content-en">What is the difference between MOV and LDR?</template>
+          <span class="content-target">ما الفرق بين تعليمة MOV وتعليمة LDR؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">MOV تتعامل فقط مع السجلات والقيم الفورية، بينما LDR هي التعليمة الوحيدة (مع STR) القادرة على الوصول إلى الذاكرة.</template>
+          <template class="content-en">MOV only deals with registers and immediate values, whereas LDR is the only instruction (along with STR) capable of accessing memory.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تفعل تعليمة MVN؟</template>
+          <template class="content-en">What does the MVN instruction do?</template>
+          <span class="content-target">ماذا تفعل تعليمة MVN؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم بنقل القيمة من مصدر إلى وجهة مع عكس جميع بتاتها (Bitwise NOT)، وهي مفيدة لتوليد الثوابت السالبة.</template>
+          <template class="content-en">It moves a value from source to destination while performing a bitwise NOT (inverting all bits), useful for generating negative constants.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث إذا لم نحدد لاحقة حجم البيانات (مثل B أو H) في التعليمة؟</template>
+          <template class="content-en">What happens if we don't specify a data size suffix (like B or H) in an instruction?</template>
+          <span class="content-target">ماذا يحدث إذا لم نحدد لاحقة حجم البيانات (مثل B أو H) في التعليمة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يفترض المجمّع تلقائياً أنك تتعامل مع كلمة غير موقعة (Unsigned Word) بحجم 32 بت.</template>
+          <template class="content-en">The assembler automatically assumes you are working with an unsigned word (32 bits).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تعمل تعليمة CMP؟</template>
+          <template class="content-en">How does the CMP instruction work?</template>
+          <span class="content-target">كيف تعمل تعليمة CMP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تقوم بطرح المعامل الثاني من الأول لتحديث أعلام الحالة (N, Z) في CPSR، لكنها تتخلص من نتيجة الطرح ولا تحفظها.</template>
+          <template class="content-en">It subtracts the second operand from the first to update the status flags (N, Z) in the CPSR, but discards the result of the subtraction.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكننا دفع عدة سجلات للمكدس بكفاءة؟</template>
+          <template class="content-en">How can we push multiple registers to the stack efficiently?</template>
+          <span class="content-target">كيف يمكننا دفع عدة سجلات للمكدس بكفاءة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام تعليمة PUSH مع قائمة سجلات (مثل PUSH {r0, r1})، حيث يتم تشفيرها كقناع بتات (Bitmask) وتنفذ كتعليمة واحدة.</template>
+          <template class="content-en">By using the PUSH instruction with a register list (e.g., PUSH {r0, r1}), which is encoded as a bitmask and executed as a single instruction.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ماذا يعني اختصار RISC؟",
+      "en": "What does RISC stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "حاسوب بمجموعة تعليمات مخفضة.",
+        "en": "Reduced Instruction Set Computer."
+      },
+      "example": {
+        "ar": "معمارية ARM هي مثال على RISC.",
+        "en": "ARM architecture is an example of RISC."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي وظيفة السجل r13 في ARM؟",
+      "en": "What is the function of register r13 in ARM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعمل كمؤشر المكدس (Stack Pointer - sp).",
+        "en": "It serves as the Stack Pointer (sp)."
+      },
+      "example": {
+        "ar": "يُستخدم لتتبع قمة المكدس في الذاكرة.",
+        "en": "Used to track the top of the stack in memory."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي وظيفة السجل r14 في ARM؟",
+      "en": "What is the function of register r14 in ARM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعمل كسجل الرابط (Link Register - lr) لحفظ عنوان العودة.",
+        "en": "It serves as the Link Register (lr) to hold the return address."
+      },
+      "example": {
+        "ar": "يتم تحديثه تلقائياً عند استخدام تعليمة BL.",
+        "en": "Automatically updated when using the BL instruction."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي وظيفة السجل r15 في ARM؟",
+      "en": "What is the function of register r15 in ARM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعمل كعداد البرنامج (Program Counter - pc).",
+        "en": "It serves as the Program Counter (pc)."
+      },
+      "example": {
+        "ar": "يحتوي على عنوان التعليمة التالية التي سيتم تنفيذها.",
+        "en": "Holds the address of the next instruction to be executed."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو سجل CPSR؟",
+      "en": "What is the CPSR register?"
+    },
+    "back": {
+      "definition": {
+        "ar": "سجل حالة البرنامج الحالي، يحفظ نتائج المقارنات (الأعلام).",
+        "en": "Current Program Status Register, holds comparison results (flags)."
+      },
+      "example": {
+        "ar": "يحتوي على أعلام N (سالب) و Z (صفر).",
+        "en": "Contains N (negative) and Z (zero) flags."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما الفرق بين تعليمات MOV و LDR؟",
+      "en": "What is the difference between MOV and LDR instructions?"
+    },
+    "back": {
+      "definition": {
+        "ar": "MOV تنقل البيانات بين السجلات والثوابت، بينما LDR تحمل البيانات من الذاكرة إلى السجل.",
+        "en": "MOV moves data between registers/constants, while LDR loads data from memory to a register."
+      },
+      "example": {
+        "ar": "MOV r0, #3 مقابل LDR r0, [r1]",
+        "en": "MOV r0, #3 vs LDR r0, [r1]"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ماذا تفعل تعليمة BIC؟",
+      "en": "What does the BIC instruction do?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مسح البتات (Bitwise-Bit-Clear)، تعادل AND مع معكوس المعامل الثاني.",
+        "en": "Bitwise-Bit-Clear, equivalent to AND with the inverted second operand."
+      },
+      "example": {
+        "ar": "BIC Rd, Rm, Rn",
+        "en": "BIC Rd, Rm, Rn"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ماذا تفعل تعليمة MVN؟",
+      "en": "What does the MVN instruction do?"
+    },
+    "back": {
+      "definition": {
+        "ar": "النقل مع النفي (Move-Not)، تنقل القيمة بعد عكس جميع بتاتها.",
+        "en": "Move-Not, performs a bitwise NOT while moving from one register to another."
+      },
+      "example": {
+        "ar": "MVN Rd, Rn",
+        "en": "MVN Rd, Rn"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "كيف تعمل تعليمة CMP؟",
+      "en": "How does the CMP instruction work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقارن قيمتين وتحدث أعلام الحالة (N, Z) في سجل CPSR دون حفظ نتيجة الطرح.",
+        "en": "Compares two values and sets the N and Z flags in the CPSR without saving the subtraction result."
+      },
+      "example": {
+        "ar": "CMP r0, #10",
+        "en": "CMP r0, #10"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي وظيفة تعليمة BL؟",
+      "en": "What is the function of the BL instruction?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تفرع ورابط (Branch and Link)، تُستخدم لاستدعاء الدوال وتحفظ عنوان العودة في lr.",
+        "en": "Branch and Link, used for function calls. It saves the return address in lr."
+      },
+      "example": {
+        "ar": "BL my_function",
+        "en": "BL my_function"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "كيف نعود من دالة في ARM؟",
+      "en": "How do we return from a function in ARM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام تعليمة BX للقفز إلى العنوان المحفوظ في سجل الرابط (lr).",
+        "en": "Using the BX instruction to jump to the address saved in the link register (lr)."
+      },
+      "example": {
+        "ar": "BX lr",
+        "en": "BX lr"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو التنفيذ الشرطي (Conditional Execution) في ARM؟",
+      "en": "What is Conditional Execution in ARM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "ميزة تسمح بتنفيذ التعليمة فقط إذا تحققت شروط معينة في أعلام CPSR، محددة بـ 4 بتات في التعليمة.",
+        "en": "A feature allowing an instruction to execute only if specific CPSR flags match a 4-bit condition field."
+      },
+      "example": {
+        "ar": "ADDEQ (جمع فقط إذا كان شرط المساواة متحققاً).",
+        "en": "ADDEQ (Add only if Equal condition is met)."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف يتم دفع عدة سجلات للمكدس دفعة واحدة؟",
+      "en": "How are multiple registers pushed to the stack at once?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام تعليمة PUSH مع قائمة سجلات يتم تشفيرها كقناع بتات (Bitmask).",
+        "en": "Using the PUSH instruction with a register list encoded as a bitmask."
+      },
+      "example": {
+        "ar": "PUSH {r0, r1, r2}",
+        "en": "PUSH {r0, r1, r2}"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ماذا تعني اللاحقة 'B' في تعليمات ARM؟",
+      "en": "What does the 'B' suffix mean in ARM instructions?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تشير إلى أن حجم البيانات هو بايت واحد (8 بت).",
+        "en": "Indicates that the data size is a Byte (8 bits)."
+      },
+      "example": {
+        "ar": "LDRB (تحميل بايت).",
+        "en": "LDRB (Load Byte)."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ماذا يحدث إذا لم يتم تحديد لاحقة حجم البيانات في ARM؟",
+      "en": "What happens if no data size suffix is specified in ARM?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يفترض المجمّع أن المعامل هو كلمة غير موقعة (Unsigned Word) بحجم 32 بت.",
+        "en": "The assembler assumes an unsigned word (32-bit) operand."
+      },
+      "example": {
+        "ar": "LDR تعادل تحميل 32 بت.",
+        "en": "LDR defaults to loading 32 bits."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي تعليمة BLX؟",
+      "en": "What is the BLX instruction?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تفرع ورابط وتبديل، تُستخدم لاستدعاء مؤشرات الدوال أو القفز غير المباشر.",
+        "en": "Branch-Link-Exchange, used to invoke function pointers or indirect jumps."
+      },
+      "example": {
+        "ar": "BLX r0",
+        "en": "BLX r0"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من السجلات التالية يُستخدم كمؤشر المكدس (Stack Pointer) في ARM؟",
+      "en": "Which of the following registers is used as the Stack Pointer in ARM?"
+    },
+    "options": {
+      "ar": [
+        "r11",
+        "r12",
+        "r13",
+        "r14"
+      ],
+      "en": [
+        "r11",
+        "r12",
+        "r13",
+        "r14"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "السجل r13 مخصص ليكون مؤشر المكدس (sp) في معمارية ARM.",
+      "en": "Register r13 is designated as the Stack Pointer (sp) in ARM architecture."
+    },
+    "hint": {
+      "ar": "تذكر الاختصار sp.",
+      "en": "Remember the abbreviation sp."
+    },
+    "difficulty": "easy",
+    "conceptId": "registers-and-data-types"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي تعليمة تُستخدم حصرياً لنقل البيانات من الذاكرة إلى السجل؟",
+      "en": "Which instruction is used exclusively to move data from memory to a register?"
+    },
+    "options": {
+      "ar": [
+        "MOV",
+        "LDR",
+        "STR",
+        "PUSH"
+      ],
+      "en": [
+        "MOV",
+        "LDR",
+        "STR",
+        "PUSH"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تعليمة LDR (Load) تُستخدم لتحميل البيانات من الذاكرة إلى السجلات، بينما MOV تتعامل فقط مع السجلات والقيم الفورية.",
+      "en": "The LDR (Load) instruction is used to load data from memory into registers, whereas MOV only handles registers and immediates."
+    },
+    "hint": {
+      "ar": "LDR تعني Load.",
+      "en": "LDR stands for Load."
+    },
+    "difficulty": "easy",
+    "conceptId": "addressing-modes"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي وظيفة تعليمة BIC في ARM؟",
+      "en": "What is the function of the BIC instruction in ARM?"
+    },
+    "options": {
+      "ar": [
+        "إجراء عملية OR المنطقية",
+        "إجراء عملية AND مع معكوس المعامل الثاني",
+        "نقل القيمة مع نفيها",
+        "مقارنة قيمتين"
+      ],
+      "en": [
+        "Perform logical OR",
+        "Perform AND with the inverted second operand",
+        "Move value with NOT",
+        "Compare two values"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تعليمة BIC (Bit Clear) تقوم بعملية AND بين المعامل الأول ومعكوس المعامل الثاني لمسح بتات محددة.",
+      "en": "The BIC (Bit Clear) instruction performs an AND operation between the first operand and the inverted second operand to clear specific bits."
+    },
+    "hint": {
+      "ar": "اسمها يعني مسح البتات (Bit Clear).",
+      "en": "Its name stands for Bit Clear."
+    },
+    "difficulty": "medium",
+    "conceptId": "basic-arithmetic-and-logic"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أين يتم حفظ عنوان العودة عند استخدام تعليمة BL (Branch and Link)؟",
+      "en": "Where is the return address saved when using the BL (Branch and Link) instruction?"
+    },
+    "options": {
+      "ar": [
+        "في المكدس (Stack)",
+        "في سجل CPSR",
+        "في سجل الرابط (r14 / lr)",
+        "في عداد البرنامج (r15 / pc)"
+      ],
+      "en": [
+        "On the Stack",
+        "In the CPSR register",
+        "In the Link Register (r14 / lr)",
+        "In the Program Counter (r15 / pc)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تعليمة BL تقوم تلقائياً بحفظ عنوان التعليمة التالية في سجل الرابط (lr أو r14) قبل القفز.",
+      "en": "The BL instruction automatically saves the address of the next instruction in the Link Register (lr or r14) before jumping."
+    },
+    "hint": {
+      "ar": "ابحث عن السجل الذي يحتوي على حرف L.",
+      "en": "Look for the register with an L in its abbreviation."
+    },
+    "difficulty": "medium",
+    "conceptId": "comparisons-and-branches"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ماذا يفترض المجمّع (Assembler) إذا لم يتم توفير لاحقة حجم البيانات لتعليمة ARM؟",
+      "en": "What does the assembler assume if no data size suffix is provided for an ARM instruction?"
+    },
+    "options": {
+      "ar": [
+        "بايت (8 بت)",
+        "نصف كلمة (16 بت)",
+        "كلمة غير موقعة (32 بت)",
+        "كلمة مزدوجة (64 بت)"
+      ],
+      "en": [
+        "Byte (8 bits)",
+        "Halfword (16 bits)",
+        "Unsigned word (32 bits)",
+        "Double word (64 bits)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الافتراضي في ARM هو التعامل مع البيانات ككلمة غير موقعة (Unsigned Word) بحجم 32 بت.",
+      "en": "The default in ARM is to treat data as an unsigned word (32 bits)."
+    },
+    "hint": {
+      "ar": "حجم السجل الافتراضي في ARM-32.",
+      "en": "The default register size in ARM-32."
+    },
+    "difficulty": "easy",
+    "conceptId": "registers-and-data-types"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "كيف يتم تشفير قائمة السجلات في تعليمة PUSH {r0, r1, r2}؟",
+      "en": "How is the list of registers encoded in the PUSH {r0, r1, r2} instruction?"
+    },
+    "options": {
+      "ar": [
+        "كمصفوفة من العناوين",
+        "كقناع بتات (Bitmask)",
+        "كسلسلة نصية",
+        "كقيمة فورية متسلسلة"
+      ],
+      "en": [
+        "As an array of addresses",
+        "As a bitmask",
+        "As a string",
+        "As a sequential immediate value"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تسمح ARM بدفع عدة سجلات بتعليمة واحدة عن طريق تشفير السجلات المطلوبة كقناع بتات (Bitmask) داخل التعليمة.",
+      "en": "ARM allows pushing multiple registers in a single instruction by encoding the desired registers as a bitmask within the instruction word."
+    },
+    "hint": {
+      "ar": "طريقة فعالة لتمثيل مجموعة من الخيارات الثنائية.",
+      "en": "An efficient way to represent a set of binary choices."
+    },
+    "difficulty": "medium",
+    "conceptId": "the-stack"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي سجل يحتوي على أعلام الحالة (N, Z) التي يتم تحديثها بواسطة تعليمة CMP؟",
+      "en": "Which register holds the status flags (N, Z) updated by the CMP instruction?"
+    },
+    "options": {
+      "ar": [
+        "SPSR",
+        "CPSR",
+        "PC",
+        "LR"
+      ],
+      "en": [
+        "SPSR",
+        "CPSR",
+        "PC",
+        "LR"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "سجل حالة البرنامج الحالي (CPSR) هو الذي يحفظ نتائج عمليات المقارنة (الأعلام).",
+      "en": "The Current Program Status Register (CPSR) holds the results of comparison operations (flags)."
+    },
+    "hint": {
+      "ar": "CPSR تعني Current Program Status Register.",
+      "en": "CPSR stands for Current Program Status Register."
+    },
+    "difficulty": "easy",
+    "conceptId": "registers-and-data-types"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "في تعليمة CMP مع قيمة فورية (Immediate)، أين يجب أن توضع القيمة الفورية؟",
+      "en": "In a CMP instruction with an immediate value, where must the immediate be placed?"
+    },
+    "options": {
+      "ar": [
+        "كمعامل أول",
+        "كمعامل ثاني",
+        "في أي مكان",
+        "لا يمكن استخدام قيمة فورية مع CMP"
+      ],
+      "en": [
+        "As the first operand",
+        "As the second operand",
+        "Anywhere",
+        "Immediate values cannot be used with CMP"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في ARM، يجب أن تكون القيمة الفورية هي المعامل الثاني في تعليمة CMP، مثل CMP Rd, #imm.",
+      "en": "In ARM, the immediate value must be the second operand in a CMP instruction, e.g., CMP Rd, #imm."
+    },
+    "hint": {
+      "ar": "تذكر الصيغة: CMP Rd, #imm.",
+      "en": "Remember the syntax: CMP Rd, #imm."
+    },
+    "difficulty": "medium",
+    "conceptId": "comparisons-and-branches"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هي الميزة التي تسمح بتجاهل تعليمة ARM إذا لم تتحقق شروط معينة في CPSR؟",
+      "en": "What feature allows an ARM instruction to be ignored if certain conditions in the CPSR are not met?"
+    },
+    "options": {
+      "ar": [
+        "التنفيذ المتوازي (Pipelining)",
+        "التنفيذ الشرطي (Conditional Execution)",
+        "تجمع الحرفيات (Literal Pool)",
+        "قناع البتات (Bitmask)"
+      ],
+      "en": [
+        "Pipelining",
+        "Conditional Execution",
+        "Literal Pool",
+        "Bitmask"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التنفيذ الشرطي يستخدم حقلاً من 4 بتات في التعليمة لتحديد ما إذا كان يجب تنفيذها بناءً على أعلام CPSR.",
+      "en": "Conditional execution uses a 4-bit field in the instruction to determine if it should execute based on CPSR flags."
+    },
+    "hint": {
+      "ar": "الكلمة تحتوي على 'شرط'.",
+      "en": "The word contains 'condition'."
+    },
+    "difficulty": "medium",
+    "conceptId": "comparisons-and-branches"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ماذا تفعل التعليمة الوهمية LDR r1, =x ؟",
+      "en": "What does the pseudo-instruction LDR r1, =x do?"
+    },
+    "options": {
+      "ar": [
+        "تحمل قيمة x مباشرة إلى r1",
+        "تحمل عنوان x من تجمع الحرفيات (Literal Pool) إلى r1",
+        "تنسخ قيمة r1 إلى x",
+        "تقارن r1 مع x"
+      ],
+      "en": [
+        "Loads the value of x directly into r1",
+        "Loads the address of x from a literal pool into r1",
+        "Copies the value of r1 to x",
+        "Compares r1 with x"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الصيغة =x هي تعليمة وهمية يقوم المجمّع بتوسيعها لتحميل عنوان المتغير x من تجمع الحرفيات المجاور.",
+      "en": "The =x syntax is a pseudo-instruction expanded by the assembler to load the address of x from an adjacent literal pool."
+    },
+    "hint": {
+      "ar": "علامة = تشير إلى العنوان وليس القيمة.",
+      "en": "The = sign refers to the address, not the value."
+    },
+    "difficulty": "hard",
+    "conceptId": "addressing-modes"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين MOV و LDR. تذكر أن MOV لا يمكنها الوصول للذاكرة أبداً؛ إنها تتعامل فقط مع السجلات والقيم الفورية. للوصول للذاكرة، يجب استخدام LDR أو STR.</template>
+      <template class="content-en">Confusing MOV with LDR. Remember that MOV can NEVER access memory; it only deals with registers and immediate values. For memory access, you MUST use LDR or STR.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تعليمة MVN لا تقوم فقط بنقل القيمة، بل هي طريقة ذكية لتحميل ثوابت سالبة أو أقنعة معكوسة دون الحاجة للوصول إلى الذاكرة (Literal Pool)، مما يوفر دورات المعالج.</template>
+      <template class="content-en">The MVN instruction isn't just for moving values; it's a clever optimization to load negative constants or inverted bitmasks directly without needing a memory access to a literal pool, saving CPU cycles.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">التنفيذ الشرطي (Conditional Execution) هو قوة ARM الخفية. بدلاً من كتابة تعليمات تفرع (Branches) قصيرة تتسبب في إفراغ خط الأنابيب (Pipeline Flush)، يمكنك ببساطة إضافة لاحقة شرطية لأي تعليمة (مثل ADDEQ).</template>
+      <template class="content-en">Conditional Execution is ARM's hidden superpower. Instead of writing short branches that cause pipeline flushes, you can simply append a condition suffix to almost any instruction (e.g., ADDEQ).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند استخدام تعليمة CMP مع قيمة فورية (Immediate)، يجب أن تكون القيمة الفورية هي المعامل الثاني دائماً (CMP Rd, #imm). وضعها كمعامل أول سيؤدي إلى خطأ في التجميع.</template>
+      <template class="content-en">When using the CMP instruction with an immediate value, the immediate MUST always be the second operand (CMP Rd, #imm). Placing it first will cause an assembly error.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">تعليمة PUSH {r0, r1, r2} لا تنفذ ثلاث عمليات دفع منفصلة. يتم تشفيرها كقناع بتات (Bitmask) في تعليمة واحدة، مما يجعل حفظ سياق الدالة سريعاً جداً.</template>
+      <template class="content-en">The PUSH {r0, r1, r2} instruction doesn't execute three separate pushes. It is encoded as a single bitmask in one instruction word, making function context saving extremely fast.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M08.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M10.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

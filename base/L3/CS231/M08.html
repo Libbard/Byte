@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS231" data-module="8">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المنطق التوافقي (الجزء الثاني): مفككات التشفير، المشفرات، والمجمعات · CS231 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS231" data-page-title-en="CS231">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M07.html" data-gh-next="M09.html" data-gh-card="../../hub/course.html?code=CS231"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#cpu-datapath-control" class="toc-link" data-bilingual>
+        <template class="content-ar">مسار البيانات ووحدة التحكم في المعالج</template>
+        <template class="content-en">CPU Datapath and Control Unit</template>
+        <span class="content-target">مسار البيانات ووحدة التحكم في المعالج</span>
+      </a>
+      <a href="#decoders" class="toc-link" data-bilingual>
+        <template class="content-ar">مفككات التشفير (Decoders)</template>
+        <template class="content-en">Decoders</template>
+        <span class="content-target">مفككات التشفير (Decoders)</span>
+      </a>
+      <a href="#implementing-logic-decoders" class="toc-link" data-bilingual>
+        <template class="content-ar">تنفيذ الدوال المنطقية باستخدام مفككات التشفير</template>
+        <template class="content-en">Implementing Logic with Decoders</template>
+        <span class="content-target">تنفيذ الدوال المنطقية باستخدام مفككات التشفير</span>
+      </a>
+      <a href="#encoders" class="toc-link" data-bilingual>
+        <template class="content-ar">المشفرات (Encoders)</template>
+        <template class="content-en">Encoders</template>
+        <span class="content-target">المشفرات (Encoders)</span>
+      </a>
+      <a href="#multiplexors" class="toc-link" data-bilingual>
+        <template class="content-ar">المجمعات (Multiplexors / Mux)</template>
+        <template class="content-en">Multiplexors (Mux)</template>
+        <span class="content-target">المجمعات (Multiplexors / Mux)</span>
+      </a>
+      <a href="#implementing-logic-mux" class="toc-link" data-bilingual>
+        <template class="content-ar">تنفيذ الدوال المنطقية باستخدام المجمعات</template>
+        <template class="content-en">Implementing Logic with Multiplexers</template>
+        <span class="content-target">تنفيذ الدوال المنطقية باستخدام المجمعات</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 8</template>
+      <template class="content-en">Module 8</template>
+      <span class="content-target">الوحدة 8</span>
+    </span> · CS231
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">المنطق التوافقي (الجزء الثاني): مفككات التشفير، المشفرات، والمجمعات</h1>
+      <p class="hero-description">تغطي هذه الوحدة المكونات الأساسية في مسار بيانات وحدة المعالجة المركزية، بما في ذلك مفككات التشفير (Decoders)، المشفرات (Encoders)، والمجمعات (Multiplexors)، وكيفية استخدامها لتنفيذ الدوال المنطقية.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Combinational Logic (Cont.): Decoders, Encoders, and Multiplexors</h1>
+      <p class="hero-description">This module covers fundamental components in the CPU datapath, including Decoders, Encoders, and Multiplexors, and how to use them to implement Boolean logic functions.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المنطق التوافقي</span>
+      <span class="tag">مفكك التشفير</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Combinational Logic</span>
+      <span class="tag">Decoder</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم أساسيات مفككات التشفير (Decoders)، استخداماتها، وكيفية تصميمها.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم أساسيات المشفرات (Encoders)، استخداماتها، وكيفية تصميمها.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم أساسيات المجمعات (Multiplexers)، استخداماتها، وكيفية تصميمها.</span></li>
+      <li><span class="obj-icon">✦</span><span>تصميم وتنفيذ الدوال المنطقية (Boolean functions) باستخدام مفككات التشفير والمجمعات.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Learn the basics of decoders, what they are used for, how they work, and how to create a decoder.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn the basics of encoders, what they are used for, how they work, and how to create an encoder.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn the basics of multiplexers, what they are used for, how they work, and how to create a multiplexer.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn how to design a Boolean function using decoders and multiplexers.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="cpu-datapath-control" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مسار البيانات ووحدة التحكم في المعالج</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> CPU Datapath and Control Unit</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يتكون المعالج من <span class="smart-term" data-term-en="Datapath" data-ar="مسار البيانات" data-en-def="The component of the CPU that performs arithmetic and logic operations.">مسار بيانات<span class="smart-term-tooltip"></span></span> للعمليات الحسابية و<span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The component of the CPU that directs operation by sending control signals.">وحدة تحكم<span class="smart-term-tooltip"></span></span> لإرسال إشارات التوجيه.</p>
+    </template>
+    <template class="content-en">
+      <p>A CPU consists of a <span class="smart-term" data-term-en="Datapath" data-ar="مسار البيانات" data-en-def="The component of the CPU that performs arithmetic and logic operations.">Datapath<span class="smart-term-tooltip"></span></span> for arithmetic/logic operations and a <span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The component of the CPU that directs operation by sending control signals.">Control Unit<span class="smart-term-tooltip"></span></span> that sends control signals.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>أي وحدة معالجة مركزية (CPU) تتكون من جزأين رئيسيين:</p><ul><li><strong><span class="smart-term" data-term-en="Datapath" data-ar="مسار البيانات" data-en-def="The component of the CPU that performs arithmetic and logic operations.">مسار البيانات (Datapath Unit)<span class="smart-term-tooltip"></span></span></strong> الذي ينفذ العمليات الحسابية والمنطقية،</li><li>و<strong><span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The component of the CPU that directs operation by sending control signals.">وحدة التحكم (Control Unit)<span class="smart-term-tooltip"></span></span></strong> التي ترسل إشارات التحكم إلى مسار البيانات لتنفيذ عمليات معينة.</li></ul><p>عند توصيل عدة أجهزة بناقل بيانات (Bus)، يجب أن يكون جهاز واحد فقط نشطاً في كل مرة لتجنب تضارب البيانات. تستخدم إشارات التحكم (Enable/Disable) لتفعيل الجهاز المطلوب.</p></template>
+    <template class="content-en"><p>Any CPU consists of two main parts:</p><ul><li>the <strong><span class="smart-term" data-term-en="Datapath" data-ar="مسار البيانات" data-en-def="The component of the CPU that performs arithmetic and logic operations.">Datapath Unit<span class="smart-term-tooltip"></span></span></strong> which performs Arithmetic/Logic Operations,</li><li>and the <strong><span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The component of the CPU that directs operation by sending control signals.">Control Unit<span class="smart-term-tooltip"></span></span></strong> which sends control signals to the datapath to perform certain operations.</li></ul><p>When multiple devices are attached to a Bus, only one device has to be active at a time (writing info on the bus). Control signals (Enable/Disable) from the Control Unit are needed to enable each device.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>إذا كان لدينا العديد من الأجهزة المتصلة بالناقل، فإن استخدام سلك تحكم منفصل لكل جهاز يصبح غير عملي (يحتاج لأسلاك كثيرة جداً).</p><p>هنا تبرز الحاجة إلى 'فك تشفير العناوين' (Address Decoding) لتقليل عدد أسلاك التحكم المطلوبة من <span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The component of the CPU that directs operation by sending control signals.">وحدة التحكم<span class="smart-term-tooltip"></span></span>.</p></template>
+    <template class="content-en"><p>If more devices are to be attached to the bus, we would need many more wires coming out of the <span class="smart-term" data-term-en="Control Unit" data-ar="وحدة التحكم" data-en-def="The component of the CPU that directs operation by sending control signals.">control unit<span class="smart-term-tooltip"></span></span> if we used a 1-to-1 mapping.</p><p>This necessitates Address Decoding, where a smaller number of wires can select one of many devices using a decoder.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[6]: Detailed SVG generation prompt: A block diagram showing a CPU interacting with Memory and Input/Output. Inside the CPU, show two main blocks: 'Control Unit' and 'Datapath'. Arrows should indicate data/instructions flowing between Memory, I/O, and the CPU. A clock signal (square wave) should be shown feeding into the CPU. Style: educational, dark background #0d1117, accent colors blue and red, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="6">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Standard Arrowhead -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+        <!-- Muted/Secondary Arrowhead -->
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-400)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Diagram Title -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">CPU Interaction with Memory and I/O</text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle">تفاعل وحدة المعالجة المركزية مع الذاكرة والإدخال/الإخراج</text>
+
+    <!-- ========================================== -->
+    <!-- MAIN BLOCKS                                -->
+    <!-- ========================================== -->
+
+    <!-- I/O Block -->
+    <rect x="20" y="150" width="140" height="160" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="90" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Input / Output</text>
+    <text x="90" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">الإدخال / الإخراج</text>
+
+    <!-- Memory Block -->
+    <rect x="640" y="150" width="140" height="160" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="710" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Memory</text>
+    <text x="710" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">الذاكرة</text>
+
+    <!-- CPU Boundary -->
+    <rect x="250" y="100" width="300" height="250" rx="12" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="8 6"/>
+    <text x="400" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Central Processing Unit (CPU)</text>
+    <text x="400" y="150" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">وحدة المعالجة المركزية</text>
+
+    <!-- CPU Internal: Control Unit -->
+    <rect x="270" y="170" width="260" height="60" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="400" y="195" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Control Unit</text>
+    <text x="400" y="215" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">وحدة التحكم</text>
+
+    <!-- CPU Internal: Datapath -->
+    <rect x="270" y="270" width="260" height="60" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="400" y="295" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Datapath (ALU &amp; Registers)</text>
+    <text x="400" y="315" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مسار البيانات</text>
+
+    <!-- ========================================== -->
+    <!-- CONNECTIONS & ARROWS                       -->
+    <!-- ========================================== -->
+
+    <!-- I/O <-> CPU -->
+    <!-- Input to CPU -->
+    <path d="M 160 190 L 240 190" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="205" y="182" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Input / إدخال</text>
+    
+    <!-- Output from CPU -->
+    <path d="M 240 260 L 160 260" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="205" y="252" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Output / إخراج</text>
+
+    <!-- CPU <-> Memory -->
+    <!-- Address (CPU -> Mem) -->
+    <path d="M 550 170 L 630 170" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#arrow-muted)"/>
+    <text x="590" y="162" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Address / عنوان</text>
+
+    <!-- Instructions (Mem -> CPU) -->
+    <path d="M 630 210 L 550 210" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="590" y="202" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Instructions / تعليمات</text>
+
+    <!-- Data Write (CPU -> Mem) -->
+    <path d="M 550 250 L 630 250" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="590" y="242" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Data Write / كتابة</text>
+
+    <!-- Data Read (Mem -> CPU) -->
+    <path d="M 630 290 L 550 290" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="590" y="282" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">Data Read / قراءة</text>
+
+    <!-- Internal CPU Connections -->
+    <!-- Control Signals (CU -> Datapath) -->
+    <path d="M 360 235 L 360 265" fill="none" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow-muted)"/>
+    <text x="350" y="254" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="end">Control / تحكم</text>
+
+    <!-- Status Flags (Datapath -> CU) -->
+    <path d="M 440 265 L 440 235" fill="none" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow-muted)"/>
+    <text x="450" y="254" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="start">Status / حالة</text>
+
+    <!-- ========================================== -->
+    <!-- CLOCK SIGNAL                               -->
+    <!-- ========================================== -->
+    
+    <!-- Clock Arrow -->
+    <path d="M 400 415 L 400 360" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Clock Square Wave Graphic -->
+    <path d="M 360 440 L 370 440 L 370 420 L 390 420 L 390 440 L 410 440 L 410 420 L 430 420 L 430 440 L 440 440" fill="none" stroke="var(--brand-500)" stroke-width="3"/>
+    
+    <!-- Clock Labels -->
+    <text x="400" y="465" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Clock Signal</text>
+    <text x="400" y="485" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">إشارة الساعة</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا حاولت وحدة التحكم تفعيل جهازين للكتابة على ناقل البيانات في نفس الوقت؟</template>
+      <template class="content-en">What happens if the Control Unit enables two devices to write to the bus at the same time?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيحدث تضارب في البيانات (Data Collision) مما يؤدي إلى تلف الإشارات وقراءة قيم غير صحيحة.</p></template>
+      <template class="content-en"><p>A data collision will occur on the bus, leading to corrupted signals and incorrect data being read.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="decoders" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> مفككات التشفير (Decoders)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Decoders</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>دائرة منطقية تحول n من المدخلات إلى 2^n من المخرجات، حيث يتم تفعيل مخرج واحد فقط بناءً على القيمة الثنائية للمدخل.</p>
+    </template>
+    <template class="content-en">
+      <p>A logic circuit with n inputs and 2^n outputs that drives high the single output corresponding to the binary code of the input.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مفكك التشفير هو دائرة توافقية تحتوي على <strong>n مدخلات</strong> و <strong>2^n مخرجات</strong>. يقوم بتفعيل (Drive High) المخرج الذي يتوافق مع الرمز الثنائي للمدخل.</p><p>على سبيل المثال، مفكك تشفير 2-إلى-4 يأخذ مدخلين ويفعل واحداً من 4 مخرجات. المخرجات تمثل فعلياً <strong>الحدود الصغرى (Minterms)</strong> للمدخلات.</p><p>من تطبيقاته:</p><ul><li><strong>فك تشفير العناوين (Address Decoding)</strong> لاختيار أجهزة أو بنوك ذاكرة،</li><li>و<strong>تحويل الأنظمة العددية</strong> (مثل من ثنائي إلى ثماني).</li></ul></template>
+    <template class="content-en"><p>A <span class="smart-term" data-term-en="Decoder" data-ar="مفكك التشفير" data-en-def="A circuit that converts binary information from n input lines to a maximum of 2^n unique output lines.">Decoder<span class="smart-term-tooltip"></span></span> is a combinational circuit with <strong>n inputs</strong> and <strong>2^n outputs</strong>. It drives high the output corresponding to the binary code of the input.</p><p>For example, a 2-to-4 line decoder takes 2 inputs and activates one of 4 outputs. Notice that the outputs are exactly the <strong>minterms</strong> of the inputs.</p><p>Applications include:</p><ul><li><strong>Address Decoding</strong> (selecting memory banks or devices)</li><li>and <strong>binary to octal/hex converters</strong>.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحتوي العديد من مفككات التشفير على طرف <strong>تمكين (Enable)</strong>. إذا كان التمكين غير مفعل، تكون جميع المخرجات 0 بغض النظر عن المدخلات.</p><p>يُستخدم طرف التمكين لتوسيع مفككات التشفير؛ مثلاً يمكن بناء مفكك تشفير 3-إلى-8 باستخدام جهازي مفكك تشفير 2-إلى-4، حيث يعمل المدخل الثالث (A2) كإشارة تمكين (مباشرة لأحدهما ومعكوسة للآخر).</p></template>
+    <template class="content-en"><p>Many decoders include an <strong><span class="smart-term" data-term-en="Enable Pin" data-ar="طرف التمكين" data-en-def="An input pin that controls whether the decoder is active or inactive.">Enable (EN)<span class="smart-term-tooltip"></span></span></strong> pin. When EN is low, all outputs are 0 regardless of inputs.</p><p>The Enable pin is crucial for expansion. For instance, a 3-to-8 decoder can be realized using two 2-to-4 line decoders with an enable. The most significant bit (A2) is used to enable the top decoder when 0, and the bottom decoder when 1.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>عدد المخرجات يساوي 2 مرفوعة لأس عدد المدخلات.</strong></template>
+      <template class="content-en"><strong>The number of outputs is 2 to the power of the number of inputs.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Outputs = 2^n$$</div>
+  </div>
+
+  <!-- DIAGRAM[5]: Detailed SVG generation prompt: A schematic showing how to build a 3-to-8 decoder using two 2-to-4 decoders. Inputs A0 and A1 go to both 2-to-4 decoders. Input A2 goes through a NOT gate to the Enable of the top decoder, and directly to the Enable of the bottom decoder. The top decoder outputs D0-D3, and the bottom outputs D4-D7. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 500. -->
+<div class="svg-diagram" data-diagram-id="5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,1 L8,5 L0,9 Z" fill="var(--brand-500)" />
+    </marker>
+    <!-- No inline style - use CSS variables only -->
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title Section -->
+  <g id="title">
+    <text x="400" y="35" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3-to-8 Decoder using two 2-to-4 Decoders</text>
+    <text x="400" y="60" font-size="16" fill="var(--text-secondary)" text-anchor="middle">مفكك شفرة 3 إلى 8 باستخدام مفككي 2 إلى 4</text>
+  </g>
+
+  <!-- System Boundary (Dashed Box) -->
+  <g id="boundary">
+    <rect x="190" y="80" width="420" height="380" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,8" rx="12" />
+    <text x="400" y="445" font-size="16" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">3-to-8 Decoder (مفكك 3 إلى 8)</text>
+  </g>
+
+  <!-- Routing Lines (Paths) -->
+  <g id="routing" stroke="var(--brand-500)" stroke-width="2" fill="none" stroke-linejoin="round">
+    <!-- A0 Routing -->
+    <path d="M 100 230 L 380 230" />
+    <path d="M 380 130 L 380 330" />
+    <path d="M 380 130 L 412 130" marker-end="url(#arrow)" />
+    <path d="M 380 330 L 412 330" marker-end="url(#arrow)" />
+
+    <!-- A1 Routing -->
+    <path d="M 100 270 L 340 270" />
+    <path d="M 340 170 L 340 370" />
+    <path d="M 340 170 L 412 170" marker-end="url(#arrow)" />
+    <path d="M 340 370 L 412 370" marker-end="url(#arrow)" />
+
+    <!-- A2 Routing -->
+    <path d="M 100 310 L 220 310" />
+    <path d="M 220 210 L 220 410" />
+    
+    <!-- A2 to Top Decoder (via NOT gate) -->
+    <path d="M 220 210 L 242 210" marker-end="url(#arrow)" />
+    <path d="M 290 210 L 412 210" marker-end="url(#arrow)" />
+    
+    <!-- A2 to Bottom Decoder (Direct) -->
+    <path d="M 220 410 L 412 410" marker-end="url(#arrow)" />
+
+    <!-- Output Lines Top Decoder -->
+    <path d="M 580 120 L 642 120" marker-end="url(#arrow)" />
+    <path d="M 580 150 L 642 150" marker-end="url(#arrow)" />
+    <path d="M 580 180 L 642 180" marker-end="url(#arrow)" />
+    <path d="M 580 210 L 642 210" marker-end="url(#arrow)" />
+
+    <!-- Output Lines Bottom Decoder -->
+    <path d="M 580 320 L 642 320" marker-end="url(#arrow)" />
+    <path d="M 580 350 L 642 350" marker-end="url(#arrow)" />
+    <path d="M 580 380 L 642 380" marker-end="url(#arrow)" />
+    <path d="M 580 410 L 642 410" marker-end="url(#arrow)" />
+  </g>
+
+  <!-- Junction Dots -->
+  <g id="junctions" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="1.5">
+    <circle cx="380" cy="230" r="4.5" />
+    <circle cx="340" cy="270" r="4.5" />
+    <circle cx="220" cy="310" r="4.5" />
+  </g>
+
+  <!-- NOT Gate -->
+  <g id="not-gate">
+    <polygon points="250,195 280,210 250,225" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <circle cx="285" cy="210" r="5" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="265" y="185" font-size="13" fill="var(--text-muted)" text-anchor="middle">NOT</text>
+  </g>
+
+  <!-- Decoders -->
+  <g id="decoders">
+    <!-- Top Decoder -->
+    <rect x="420" y="100" width="160" height="140" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="500" y="160" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2-to-4 Decoder</text>
+    <text x="500" y="185" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مفكك 2 إلى 4</text>
+    
+    <!-- Top Decoder Pins -->
+    <text x="430" y="135" font-size="14" fill="var(--text-secondary)">I0</text>
+    <text x="430" y="175" font-size="14" fill="var(--text-secondary)">I1</text>
+    <text x="430" y="215" font-size="14" font-weight="bold" fill="var(--brand-400)">E</text>
+    
+    <text x="570" y="125" font-size="14" fill="var(--text-secondary)" text-anchor="end">O0</text>
+    <text x="570" y="155" font-size="14" fill="var(--text-secondary)" text-anchor="end">O1</text>
+    <text x="570" y="185" font-size="14" fill="var(--text-secondary)" text-anchor="end">O2</text>
+    <text x="570" y="215" font-size="14" fill="var(--text-secondary)" text-anchor="end">O3</text>
+
+    <!-- Bottom Decoder -->
+    <rect x="420" y="300" width="160" height="140" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="500" y="360" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">2-to-4 Decoder</text>
+    <text x="500" y="385" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مفكك 2 إلى 4</text>
+    
+    <!-- Bottom Decoder Pins -->
+    <text x="430" y="335" font-size="14" fill="var(--text-secondary)">I0</text>
+    <text x="430" y="375" font-size="14" fill="var(--text-secondary)">I1</text>
+    <text x="430" y="415" font-size="14" font-weight="bold" fill="var(--brand-400)">E</text>
+    
+    <text x="570" y="325" font-size="14" fill="var(--text-secondary)" text-anchor="end">O0</text>
+    <text x="570" y="355" font-size="14" fill="var(--text-secondary)" text-anchor="end">O1</text>
+    <text x="570" y="385" font-size="14" fill="var(--text-secondary)" text-anchor="end">O2</text>
+    <text x="570" y="415" font-size="14" fill="var(--text-secondary)" text-anchor="end">O3</text>
+  </g>
+
+  <!-- Global Inputs & Outputs Labels -->
+  <g id="io-labels">
+    <!-- Inputs -->
+    <text x="90" y="235" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end">A0</text>
+    <text x="90" y="215" font-size="13" fill="var(--text-muted)" text-anchor="end">(LSB)</text>
+    
+    <text x="90" y="275" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end">A1</text>
+    
+    <text x="90" y="315" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end">A2</text>
+    <text x="90" y="335" font-size="13" fill="var(--text-muted)" text-anchor="end">(MSB)</text>
+
+    <!-- Outputs -->
+    <text x="655" y="125" font-size="16" font-weight="bold" fill="var(--text-primary)">D0</text>
+    <text x="655" y="155" font-size="16" font-weight="bold" fill="var(--text-primary)">D1</text>
+    <text x="655" y="185" font-size="16" font-weight="bold" fill="var(--text-primary)">D2</text>
+    <text x="655" y="215" font-size="16" font-weight="bold" fill="var(--text-primary)">D3</text>
+    
+    <text x="655" y="325" font-size="16" font-weight="bold" fill="var(--text-primary)">D4</text>
+    <text x="655" y="355" font-size="16" font-weight="bold" fill="var(--text-primary)">D5</text>
+    <text x="655" y="385" font-size="16" font-weight="bold" fill="var(--text-primary)">D6</text>
+    <text x="655" y="415" font-size="16" font-weight="bold" fill="var(--text-primary)">D7</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كم عدد مفككات التشفير 3-إلى-8 المطلوبة لبناء مفكك تشفير 4-إلى-16؟</template>
+      <template class="content-en">How many 3-to-8 decoders are needed to build a 4-to-16 decoder?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نحتاج إلى مفككي تشفير (2) من نوع 3-إلى-8، مع استخدام المدخل الرابع كإشارة تمكين (Enable) لاختيار أحدهما.</p></template>
+      <template class="content-en"><p>Two 3-to-8 decoders are needed, using the 4th input bit as the Enable signal to select between them.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="implementing-logic-decoders" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> تنفيذ الدوال المنطقية باستخدام مفككات التشفير</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Implementing Logic with Decoders</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>بما أن مفكك التشفير يولد جميع <span class="smart-term" data-term-en="Minterm" data-ar="الحد الأصغر" data-en-def="A product term in a Boolean expression where all variables appear exactly once.">الحدود الصغرى (Minterms)<span class="smart-term-tooltip"></span></span>، يمكننا تنفيذ أي دالة منطقية بتوصيل المخرجات المطلوبة ببوابة OR.</p>
+    </template>
+    <template class="content-en">
+      <p>Since a decoder generates all <span class="smart-term" data-term-en="Minterm" data-ar="الحد الأصغر" data-en-def="A product term in a Boolean expression where all variables appear exactly once.">minterms<span class="smart-term-tooltip"></span></span>, any Boolean function can be implemented by connecting the required minterm outputs to an OR gate.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن لمفكك تشفير بحجم n:2^n تنفيذ أي دالة منطقية تتكون من n متغيرات. تُستخدم المتغيرات كمدخلات تحكم (Control inputs) لمفكك التشفير، ويتم ربط طرف التمكين (Enable) بـ 1 (مفعل).</p><p>يقوم مفكك التشفير بتوليد جميع <span class="smart-term" data-term-en="Minterm" data-ar="الحد الأصغر" data-en-def="A product term in a Boolean expression where all variables appear exactly once.">الحدود الصغرى (Minterms)<span class="smart-term-tooltip"></span></span> الممكنة. لتشكيل الدالة المطلوبة، نأخذ المخرجات التي تقابل الحدود الصغرى الموجودة في الدالة ونجمعها باستخدام بوابة <strong>OR</strong>.</p></template>
+    <template class="content-en"><p>An n:2^n decoder implements any function of n variables. The variables are used as control inputs, and the Enable input is tied to 1.</p><p>The decoder generates the appropriate <span class="smart-term" data-term-en="Minterm" data-ar="الحد الأصغر" data-en-def="A product term in a Boolean expression where all variables appear exactly once.">minterm<span class="smart-term-tooltip"></span></span> based on the control signals. To form the function, the appropriate minterms are logically summed using an <strong>OR GATE</strong>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يمكن لمفكك تشفير واحد تنفيذ دوال متعددة في نفس الوقت (مثل دالتي المجموع S والحمل C في الجامع الكامل) ببساطة عن طريق إضافة بوابة OR منفصلة لكل دالة.</p><p>يجب الانتباه إلى ترتيب المتغيرات؛ المتغير الأكثر أهمية (MSB) يجب أن يوصل بالمدخل الأكثر أهمية في مفكك التشفير لضمان تطابق أرقام الحدود الصغرى.</p></template>
+    <template class="content-en"><p>A single decoder can implement multiple functions simultaneously (e.g., both 'S' and 'C' for a full adder) by using multiple OR gates.</p><p>It is critical to map the variables correctly: the Most Significant Bit (MSB) of the function must be connected to the MSB input of the decoder to ensure the minterm indices match the truth table.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>دالة ممثلة بمجموع الحدود الصغرى، يتم تنفيذها بجمع المخرجات 1، 2، 4، و 7 من مفكك التشفير.</strong></template>
+      <template class="content-en"><strong>A function represented as a sum of minterms, implemented by ORing outputs 1, 2, 4, and 7 of the decoder.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$F(x,y,z) = \sum m(1,2,4,7)$$</div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG generation prompt: A 3-to-8 decoder with inputs x, y, z. Outputs D1, D2, D4, D7 are highlighted and connected to a 4-input OR gate to produce output 'S'. Outputs D3, D5, D6, D7 are connected to another 4-input OR gate to produce output 'C'. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead for logic lines -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Arrowhead for inputs -->
+    <marker id="arrow-input" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="var(--text-secondary)" />
+    </marker>
+
+    <!-- Junction Dot -->
+    <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+      <circle cx="5" cy="5" r="3" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title and Subtitle -->
+  <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">
+    Full Adder using 3-to-8 Decoder
+  </text>
+  <text x="400" y="70" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" text-anchor="middle" fill="var(--text-secondary)">
+    جامع كامل باستخدام مفكك شفرة 3 إلى 8
+  </text>
+
+  <!-- 3-to-8 Decoder Box -->
+  <rect x="100" y="100" width="140" height="300" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+  
+  <!-- Decoder Labels -->
+  <text x="170" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">3-to-8 Decoder</text>
+  <text x="170" y="385" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle" fill="var(--text-secondary)">مفكك شفرة</text>
+
+  <!-- Decoder Inputs (Left Side) -->
+  <!-- x -->
+  <path d="M 40,170 L 90,170" stroke="var(--text-secondary)" stroke-width="2" fill="none" marker-end="url(#arrow-input)" />
+  <text x="25" y="175" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)">x</text>
+  <text x="115" y="175" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">x</text>
+  
+  <!-- y -->
+  <path d="M 40,245 L 90,245" stroke="var(--text-secondary)" stroke-width="2" fill="none" marker-end="url(#arrow-input)" />
+  <text x="25" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)">y</text>
+  <text x="115" y="250" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">y</text>
+  
+  <!-- z -->
+  <path d="M 40,320 L 90,320" stroke="var(--text-secondary)" stroke-width="2" fill="none" marker-end="url(#arrow-input)" />
+  <text x="25" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)">z</text>
+  <text x="115" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">z</text>
+
+  <!-- Decoder Outputs (Right Side) -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" text-anchor="end">
+    <text x="230" y="130" fill="var(--text-muted)">D0</text>
+    <text x="230" y="165" fill="var(--brand-500)">D1</text>
+    <text x="230" y="200" fill="var(--brand-500)">D2</text>
+    <text x="230" y="235" fill="var(--brand-500)">D3</text>
+    <text x="230" y="270" fill="var(--brand-500)">D4</text>
+    <text x="230" y="305" fill="var(--brand-500)">D5</text>
+    <text x="230" y="340" fill="var(--brand-500)">D6</text>
+    <text x="230" y="375" fill="var(--brand-500)">D7</text>
+  </g>
+
+  <!-- Routing Lines -->
+  <!-- D0 (Unused) -->
+  <path d="M 240,125 L 265,125" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4 4" fill="none" />
+  <text x="275" y="130" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)">Unused</text>
+
+  <!-- D1 to S -->
+  <path d="M 240,160 L 270,160 L 270,171 L 545,171" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <!-- D2 to S -->
+  <path d="M 240,195 L 290,195 L 290,187 L 545,187" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <!-- D4 to S -->
+  <path d="M 240,265 L 310,265 L 310,203 L 545,203" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <!-- D3 to C -->
+  <path d="M 240,230 L 330,230 L 330,311 L 545,311" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <!-- D5 to C -->
+  <path d="M 240,300 L 350,300 L 350,327 L 545,327" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <!-- D6 to C -->
+  <path d="M 240,335 L 370,335 L 370,343 L 545,343" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  
+  <!-- D7 to S and C (Splits) -->
+  <path d="M 240,370 L 390,370 L 390,219 L 545,219" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <path d="M 390,359 L 545,359" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <!-- Junction Dot for D7 split -->
+  <circle cx="390" cy="359" r="4" fill="var(--brand-500)" />
+
+  <!-- OR Gate S (Sum) -->
+  <g>
+    <text x="600" y="135" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">S = Σ(1, 2, 4, 7)</text>
+    <path d="M 555, 155 Q 575, 195 555, 235 C 585, 235 625, 215 645, 195 C 625, 175 585, 155 555, 155 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="590" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">OR</text>
+    <path d="M 645, 195 L 690, 195" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="705" y="190" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">S</text>
+    <text x="705" y="210" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">المجموع</text>
+  </g>
+
+  <!-- OR Gate C (Carry) -->
+  <g>
+    <text x="600" y="275" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="var(--text-primary)">C = Σ(3, 5, 6, 7)</text>
+    <path d="M 555, 295 Q 575, 335 555, 375 C 585, 375 625, 355 645, 335 C 625, 315 585, 295 555, 295 Z" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="590" y="340" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)">OR</text>
+    <path d="M 645, 335 L 690, 335" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="705" y="330" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)">C</text>
+    <text x="705" y="350" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)">الحمل</text>
+  </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت الدالة تحتوي على عدد كبير جداً من الحدود الصغرى (مثلاً 14 حد من أصل 16)، هل هناك طريقة أفضل لتنفيذها باستخدام مفكك التشفير؟</template>
+      <template class="content-en">If a function contains a very large number of minterms (e.g., 14 out of 16), is there a better way to implement it using a decoder?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، يمكننا استخدام بوابة NOR لجمع الحدود الصغرى غير الموجودة (الحدين المتبقيين)، مما يقلل من حجم البوابة المطلوبة.</p></template>
+      <template class="content-en"><p>Yes, we can use a NOR gate to sum the missing minterms (the 2 remaining ones) instead of an OR gate for the 14 present ones, simplifying the hardware.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="encoders" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> المشفرات (Encoders)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Encoders</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>عكس مفكك التشفير؛ يأخذ 2^n مدخلات (واحد منها فقط نشط) ويخرج الرمز الثنائي n المقابل له.</p>
+    </template>
+    <template class="content-en">
+      <p>The opposite of a decoder; it takes 2^n inputs (only one active at a time) and outputs the corresponding n-bit binary code.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المشفر (Encoder) هو الدائرة العكسية لمفكك التشفير. يحتوي على <strong>2^n مدخلات</strong> (أو أقل) و <strong>n مخرجات</strong>. من أهم شروطه أن <strong>مدخلاً واحداً فقط يمكن أن يكون نشطاً في نفس الوقت</strong>.</p><p>من الأمثلة الشائعة: محول من النظام الثماني إلى الثنائي (Octal to Binary Encoder)، والذي يحتوي على 8 مدخلات (D0 إلى D7) و 3 مخرجات (A0, A1, A2).</p></template>
+    <template class="content-en"><p>An <span class="smart-term" data-term-en="Encoder" data-ar="المشفر" data-en-def="A digital circuit that performs the inverse operation of a decoder, compressing 2^n inputs into n outputs.">Encoder<span class="smart-term-tooltip"></span></span> is the opposite of a decoder. It has <strong>2^n inputs</strong> (or less, e.g., BCD in) and <strong>n outputs</strong>. A critical constraint is that <strong>only one input is active at a time</strong>.</p><p>Examples include:</p><ul><li><strong>Octal to binary conversion</strong></li><li>and <strong>Hexadecimal to binary conversion</strong>.</li></ul><p>An Octal to Binary Encoder has 8 inputs (D0-D7) and 3 outputs (A0, A1, A2).</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لتصميم مشفر، ننظر إلى جدول الحقيقة ونستنتج معادلة كل مخرج. مثلاً، المخرج z (أو A0) يكون 1 عندما يكون المدخل D1 أو D3 أو D5 أو D7 نشطاً. لذلك، z = D1 + D3 + D5 + D7. يتم تنفيذ ذلك باستخدام بوابات OR.</p><p>المشكلة في المشفر العادي هي أنه إذا كانت جميع المدخلات 0، فإن المخرج يكون 0، وهو نفس مخرج تفعيل D0. تُحل هذه المشكلة عادةً باستخدام 'مشفر الأولوية' (Priority Encoder) الذي يضيف مخرجاً إضافياً لبيان صحة المدخلات.</p></template>
+    <template class="content-en"><p>To design an encoder, we derive the Boolean expression for each output from the truth table. For example, output z (or A0) is 1 when D1, D3, D5, or D7 is 1. Thus, z = D1 + D3 + D5 + D7. This is implemented using OR gates.</p><p>A limitation of a standard encoder is that if all inputs are 0, the output is 000, which is indistinguishable from D0 being active. This is typically resolved using a Priority Encoder with a 'Valid' output bit.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>معادلة المخرج الأول (البت الأقل أهمية) في مشفر من ثماني إلى ثنائي.</strong></template>
+      <template class="content-en"><strong>The equation for the least significant output bit in an Octal to Binary encoder.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$z = D_1 + D_3 + D_5 + D_7$$</div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A truth table and logic gate diagram for an Octal to Binary Encoder. Show 8 inputs (D0-D7) and 3 outputs (x, y, z). Show z connected to an OR gate taking inputs D1, D3, D5, D7. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead for standard lines -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-secondary)" />
+    </marker>
+    <!-- Arrowhead for highlighted/brand lines -->
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <!-- Glow effect for the OR gate -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="400" y="35" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" text-anchor="middle">Octal to Binary Encoder / مشفر من ثماني إلى ثنائي</text>
+  <text x="400" y="60" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">Truth Table &amp; Logic Diagram for Output 'z'</text>
+
+  <!-- ========================================== -->
+  <!-- LEFT PANE: TRUTH TABLE                     -->
+  <!-- ========================================== -->
+  <g transform="translate(40, 90)">
+    <!-- Table Background & Border -->
+    <rect x="0" y="0" width="280" height="260" fill="var(--bg-elevated)" rx="8" stroke="var(--border-color)" stroke-width="1" />
+    
+    <!-- Vertical Highlight for 'z' column -->
+    <rect x="210" y="0" width="70" height="260" fill="var(--brand-500)" opacity="0.1" rx="8" />
+
+    <!-- Horizontal Highlights for active 'z' rows (D1, D3, D5, D7) -->
+    <rect x="0" y="63" width="280" height="24" fill="var(--brand-500)" opacity="0.05" />
+    <rect x="0" y="113" width="280" height="24" fill="var(--brand-500)" opacity="0.05" />
+    <rect x="0" y="163" width="280" height="24" fill="var(--brand-500)" opacity="0.05" />
+    <rect x="0" y="213" width="280" height="24" fill="var(--brand-500)" opacity="0.05" />
+
+    <!-- Header Background -->
+    <path d="M 0 8 Q 0 0 8 0 L 272 0 Q 280 0 280 8 L 280 35 L 0 35 Z" fill="var(--border-color)" opacity="0.3" />
+    
+    <!-- Grid Lines -->
+    <line x1="0" y1="35" x2="280" y2="35" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="90" y1="0" x2="90" y2="260" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="150" y1="0" x2="150" y2="260" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="210" y1="0" x2="210" y2="260" stroke="var(--border-color)" stroke-width="1" />
+
+    <!-- Header Text -->
+    <text x="45" y="23" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" text-anchor="middle">Active Input</text>
+    <text x="120" y="23" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">x</text>
+    <text x="180" y="23" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="middle">y</text>
+    <text x="245" y="23" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">z</text>
+
+    <!-- Data Rows -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">
+      <!-- D0 -->
+      <text x="45" y="55" fill="var(--text-secondary)">D0</text>
+      <text x="120" y="55" fill="var(--text-secondary)">0</text>
+      <text x="180" y="55" fill="var(--text-secondary)">0</text>
+      <text x="245" y="55" fill="var(--text-secondary)">0</text>
+      
+      <!-- D1 -->
+      <text x="45" y="80" fill="var(--text-primary)" font-weight="bold">D1</text>
+      <text x="120" y="80" fill="var(--text-secondary)">0</text>
+      <text x="180" y="80" fill="var(--text-secondary)">0</text>
+      <text x="245" y="80" fill="var(--brand-500)" font-weight="bold">1</text>
+      
+      <!-- D2 -->
+      <text x="45" y="105" fill="var(--text-secondary)">D2</text>
+      <text x="120" y="105" fill="var(--text-secondary)">0</text>
+      <text x="180" y="105" fill="var(--text-secondary)">1</text>
+      <text x="245" y="105" fill="var(--text-secondary)">0</text>
+      
+      <!-- D3 -->
+      <text x="45" y="130" fill="var(--text-primary)" font-weight="bold">D3</text>
+      <text x="120" y="130" fill="var(--text-secondary)">0</text>
+      <text x="180" y="130" fill="var(--text-secondary)">1</text>
+      <text x="245" y="130" fill="var(--brand-500)" font-weight="bold">1</text>
+      
+      <!-- D4 -->
+      <text x="45" y="155" fill="var(--text-secondary)">D4</text>
+      <text x="120" y="155" fill="var(--text-secondary)">1</text>
+      <text x="180" y="155" fill="var(--text-secondary)">0</text>
+      <text x="245" y="155" fill="var(--text-secondary)">0</text>
+      
+      <!-- D5 -->
+      <text x="45" y="180" fill="var(--text-primary)" font-weight="bold">D5</text>
+      <text x="120" y="180" fill="var(--text-secondary)">1</text>
+      <text x="180" y="180" fill="var(--text-secondary)">0</text>
+      <text x="245" y="180" fill="var(--brand-500)" font-weight="bold">1</text>
+      
+      <!-- D6 -->
+      <text x="45" y="205" fill="var(--text-secondary)">D6</text>
+      <text x="120" y="205" fill="var(--text-secondary)">1</text>
+      <text x="180" y="205" fill="var(--text-secondary)">1</text>
+      <text x="245" y="205" fill="var(--text-secondary)">0</text>
+      
+      <!-- D7 -->
+      <text x="45" y="230" fill="var(--text-primary)" font-weight="bold">D7</text>
+      <text x="120" y="230" fill="var(--text-secondary)">1</text>
+      <text x="180" y="230" fill="var(--text-secondary)">1</text>
+      <text x="245" y="230" fill="var(--brand-500)" font-weight="bold">1</text>
+    </g>
+
+    <!-- Table Subtitle -->
+    <text x="140" y="285" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Truth Table / جدول الحقيقة</text>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- RIGHT PANE TOP: BLOCK DIAGRAM              -->
+  <!-- ========================================== -->
+  <g transform="translate(420, 90)">
+    <!-- Bounding Box for Block Diagram -->
+    <rect x="0" y="0" width="340" height="170" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-dasharray="4 4" rx="8" />
+    <text x="170" y="25" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Block Diagram / المخطط الصندوقي</text>
+
+    <!-- Encoder Box -->
+    <rect x="120" y="40" width="100" height="110" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="6" />
+    <text x="170" y="85" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">8-to-3</text>
+    <text x="170" y="105" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Encoder</text>
+    <text x="170" y="125" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">مشفر</text>
+
+    <!-- Input Lines (D0 - D7) -->
+    <g stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#arrow)">
+      <line x1="60" y1="50" x2="115" y2="50" />
+      <line x1="60" y1="62" x2="115" y2="62" />
+      <line x1="60" y1="74" x2="115" y2="74" />
+      <line x1="60" y1="86" x2="115" y2="86" />
+      <line x1="60" y1="98" x2="115" y2="98" />
+      <line x1="60" y1="110" x2="115" y2="110" />
+      <line x1="60" y1="122" x2="115" y2="122" />
+      <line x1="60" y1="134" x2="115" y2="134" />
+    </g>
+    
+    <!-- Input Labels -->
+    <g fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="11" text-anchor="end">
+      <text x="50" y="54">D0</text>
+      <text x="50" y="66">D1</text>
+      <text x="50" y="78">D2</text>
+      <text x="50" y="90">D3</text>
+      <text x="50" y="102">D4</text>
+      <text x="50" y="114">D5</text>
+      <text x="50" y="126">D6</text>
+      <text x="50" y="138">D7</text>
+    </g>
+
+    <!-- Output Lines (x, y, z) -->
+    <g stroke="var(--text-secondary)" stroke-width="2" marker-end="url(#arrow)">
+      <line x1="220" y1="60" x2="280" y2="60" />
+      <line x1="220" y1="95" x2="280" y2="95" />
+    </g>
+    <line x1="220" y1="130" x2="280" y2="130" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+
+    <!-- Output Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" text-anchor="start">
+      <text x="290" y="65" fill="var(--text-primary)">x</text>
+      <text x="290" y="100" fill="var(--text-primary)">y</text>
+      <text x="290" y="135" fill="var(--brand-500)">z</text>
+    </g>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- RIGHT PANE BOTTOM: LOGIC GATE FOR 'z'      -->
+  <!-- ========================================== -->
+  <g transform="translate(420, 280)">
+    <!-- Bounding Box for Logic Gate -->
+    <rect x="0" y="0" width="340" height="200" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-dasharray="4 4" rx="8" />
+    <text x="170" y="25" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Logic for Output 'z' / المنطق للمخرج z</text>
+
+    <!-- Input Lines to OR Gate -->
+    <g stroke="var(--brand-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 60 60 L 165 60" />
+      <path d="M 60 90 L 175 90" />
+      <path d="M 60 120 L 175 120" />
+      <path d="M 60 150 L 165 150" />
+    </g>
+
+    <!-- Input Labels -->
+    <g fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" text-anchor="end">
+      <text x="45" y="65">D1</text>
+      <text x="45" y="95">D3</text>
+      <text x="45" y="125">D5</text>
+      <text x="45" y="155">D7</text>
+    </g>
+
+    <!-- OR Gate -->
+    <g transform="translate(160, 50)">
+      <!-- OR Gate Path: M 0,0 C 30,0 60,10 80,55 C 60,100 30,110 0,110 C 20,80 20,30 0,0 Z -->
+      <path d="M 0,0 C 30,0 60,10 80,55 C 60,100 30,110 0,110 C 20,80 20,30 0,0 Z" 
+            fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2.5" filter="url(#glow)" />
+    </g>
+
+    <!-- Output Line from OR Gate -->
+    <line x1="240" y1="105" x2="290" y2="105" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#arrow-brand)" />
+    
+    <!-- Output Label -->
+    <text x="305" y="110" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="start">z</text>
+
+    <!-- Equation -->
+    <text x="170" y="185" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">z = D1 + D3 + D5 + D7</text>
+  </g>
+
+
+  <!-- ========================================== -->
+  <!-- CONNECTING ANNOTATIONS                     -->
+  <!-- ========================================== -->
+  
+  <!-- Curved Arrow from Truth Table to Logic Gate -->
+  <path d="M 320 220 C 370 220, 370 385, 410 385" fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrow-brand)" opacity="0.7" />
+  
+  <!-- Annotation Text on Curve -->
+  <rect x="335" y="285" width="130" height="40" fill="var(--bg-surface)" opacity="0.9" rx="4" />
+  <text x="400" y="300" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold" text-anchor="middle">z is 1 when</text>
+  <text x="400" y="316" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="11" text-anchor="middle">D1, D3, D5, D7 are active</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Decoder</th><th>Encoder</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المدخلات والمخرجات</template>
+          <template class="content-en">Inputs and Outputs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">n مدخلات إلى 2^n مخرجات</template>
+          <template class="content-en">n inputs to 2^n outputs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">2^n مدخلات إلى n مخرجات</template>
+          <template class="content-en">2^n inputs to n outputs</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الوظيفة الأساسية</template>
+          <template class="content-en">Primary Function</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">توسيع البيانات (تفعيل خط واحد بناءً على الرمز)</template>
+          <template class="content-en">Expands data (activates one line based on code)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ضغط البيانات (توليد رمز بناءً على الخط النشط)</template>
+          <template class="content-en">Compresses data (generates code based on active line)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث في المشفر العادي إذا تم تفعيل مدخلين (مثل D3 و D6) في نفس الوقت؟</template>
+      <template class="content-en">What happens in a standard encoder if two inputs (e.g., D3 and D6) are active at the same time?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سيقوم المشفر بإجراء عملية OR للمخرجات، مما ينتج عنه قيمة خاطئة (D3=011 و D6=110، النتيجة ستكون 111 أي 7)، ولهذا نستخدم مشفر الأولوية.</p></template>
+      <template class="content-en"><p>The encoder will OR the outputs together, producing an incorrect binary code (D3=011, D6=110 -> output 111, which is 7). This is why Priority Encoders are used.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="multiplexors" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> المجمعات (Multiplexors / Mux)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Multiplexors (Mux)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>مفتاح إلكتروني يختار واحداً من عدة مدخلات بيانات ويمرره إلى مخرج واحد بناءً على خطوط الاختيار.</p>
+    </template>
+    <template class="content-en">
+      <p>An electronic switch that selects one of several data inputs and passes it to a single output based on select lines.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>المجمع (Multiplexer أو Mux) هو دائرة تختار واحداً من مجموعة مدخلات لتمريره إلى المخرج. لكل <strong>2^n مدخل بيانات</strong>، نحتاج إلى <strong>n <span class="smart-term" data-term-en="Select Lines" data-ar="خطوط الاختيار" data-en-def="Inputs to a multiplexer that determine which data input is routed to the output.">خطوط اختيار (Select lines)<span class="smart-term-tooltip"></span></span></strong>.</p><p>يُستخدم بكثرة في مسار بيانات المعالج (CPU Datapath) لاختيار البيانات، مثل اختيار أي سجل (Register) سيتم إرسال بياناته إلى وحدة الحساب والمنطق (ALU).</p><p>يتكون داخلياً من مستوى من بوابات AND (للتفعيل بناءً على خطوط الاختيار) تليها بوابة OR لتجميع الناتج.</p></template>
+    <template class="content-en"><p>A <span class="smart-term" data-term-en="Multiplexer (Mux)" data-ar="المجمع" data-en-def="A device that selects between several analog or digital input signals and forwards the selected input to a single output line.">Multiplexer (or Mux)<span class="smart-term-tooltip"></span></span> selects one of a set of inputs to pass on to the output. For every <strong>2^n inputs</strong>, we need <strong>n <span class="smart-term" data-term-en="Select Lines" data-ar="خطوط الاختيار" data-en-def="Inputs to a multiplexer that determine which data input is routed to the output.">select lines<span class="smart-term-tooltip"></span></span></strong>.</p><p>Applications include choosing from sets of data, such as selecting which memory or register data goes to the ALU.</p><p>Structurally, it consists of a plane of AND gates (acting as enabling circuits based on select lines) followed by an OR gate.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يمكن تجميع المجمعات للتعامل مع كلمات بيانات متعددة البتات. على سبيل المثال، مجمع Quad 2-to-4 Line Mux يختار بين مجموعتين من 4 خطوط (A0-A3 أو B0-B3) بناءً على خط اختيار واحد (S).</p><p>إذا كان S=0، تمر المجموعة A إلى المخرج، وإذا كان S=1 تمر المجموعة B. هذا أساسي في توجيه البيانات (Buses) داخل المعالج.</p></template>
+    <template class="content-en"><p>Multiplexers can be banked to handle multi-bit data words. For example, a Quad 2-to-1 Line Mux selects one set of 4 lines.</p><p>When S=0, the 4-bits (A3-A0) are sent to the output (Y3-Y0). When S=1, the 4-bits (B3-B0) are sent. This is fundamental for routing multi-bit buses in a CPU architecture.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المعادلة المنطقية لمجمع 2-إلى-1.</strong></template>
+      <template class="content-en"><strong>The Boolean equation for a 2-to-1 multiplexer.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Y = S' \cdot I_0 + S \cdot I_1$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: A block diagram of a 4-to-1 Multiplexer. Show 4 data inputs (D0, D1, D2, D3) on the left, 2 select lines (S0, S1) at the bottom, and 1 output (Y) on the right. Inside the block, write 'MUX'. Show an arrow indicating flow from inputs to output. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 600 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for standard flow -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        
+        <!-- Arrowhead for internal dashed flow -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)"/>
+        </marker>
+
+        <!-- Subtle shadow for elevated elements -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Title Section -->
+    <text x="400" y="45" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">4-to-1 Multiplexer (MUX)</text>
+    <text x="400" y="75" font-size="18" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">مُجمّع بيانات 4 إلى 1</text>
+
+    <!-- Main MUX Block (Trapezoid) -->
+    <polygon points="320,120 320,360 480,300 480,180" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" filter="url(#shadow)"/>
+    
+    <!-- MUX Internal Labels -->
+    <text x="400" y="235" font-size="28" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">MUX</text>
+    <text x="400" y="265" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">4 : 1</text>
+
+    <!-- Internal Pin Indicators -->
+    <text x="335" y="155" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+    <text x="335" y="215" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+    <text x="335" y="275" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">2</text>
+    <text x="335" y="335" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">3</text>
+    
+    <text x="373.3" y="330" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">S₁</text>
+    <text x="426.7" y="310" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">S₀</text>
+    
+    <text x="465" y="245" font-size="14" font-weight="bold" fill="var(--text-muted)" text-anchor="end" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Y</text>
+
+    <!-- Internal Flow Arrow -->
+    <line x1="345" y1="240" x2="455" y2="240" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-dashed)"/>
+
+    <!-- Data Inputs (Left) -->
+    <g>
+        <line x1="160" y1="150" x2="320" y2="150" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="160" y1="210" x2="320" y2="210" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="160" y1="270" x2="320" y2="270" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="160" y1="330" x2="320" y2="330" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        
+        <text x="140" y="156" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₀</text>
+        <text x="140" y="216" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₁</text>
+        <text x="140" y="276" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₂</text>
+        <text x="140" y="336" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="end" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₃</text>
+        
+        <text x="100" y="100" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Data Inputs</text>
+        <text x="100" y="125" font-size="14" fill="var(--text-muted)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">مداخل البيانات</text>
+    </g>
+
+    <!-- Select Lines (Bottom) -->
+    <g>
+        <line x1="373.3" y1="420" x2="373.3" y2="340" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="426.7" y1="420" x2="426.7" y2="320" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        
+        <text x="373.3" y="445" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">S₁</text>
+        <text x="426.7" y="445" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">S₀</text>
+        
+        <text x="400" y="475" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Select Lines</text>
+        <text x="400" y="495" font-size="14" fill="var(--text-muted)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">خطوط التحديد</text>
+    </g>
+
+    <!-- Output (Right) -->
+    <g>
+        <line x1="480" y1="240" x2="630" y2="240" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        
+        <text x="645" y="246" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="start" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Y</text>
+        
+        <text x="680" y="200" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Output</text>
+        <text x="680" y="225" font-size="14" fill="var(--text-muted)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">المخرج</text>
+    </g>
+
+    <!-- Truth Table (Educational Addition) -->
+    <g transform="translate(560, 290)">
+        <rect x="0" y="0" width="200" height="170" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1.5" filter="url(#shadow)"/>
+        
+        <text x="100" y="25" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Truth Table</text>
+        <text x="100" y="45" font-size="13" fill="var(--text-muted)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">جدول الحقيقة</text>
+        
+        <!-- Table Grid Lines -->
+        <line x1="0" y1="55" x2="200" y2="55" stroke="var(--border-color)" stroke-width="1.5"/>
+        <line x1="66" y1="55" x2="66" y2="170" stroke="var(--border-color)" stroke-width="1.5"/>
+        <line x1="133" y1="55" x2="133" y2="170" stroke="var(--border-color)" stroke-width="1.5"/>
+        
+        <!-- Table Headers -->
+        <text x="33" y="75" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">S₁</text>
+        <text x="100" y="75" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">S₀</text>
+        <text x="166" y="75" font-size="15" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">Y</text>
+        
+        <!-- Row 1 -->
+        <text x="33" y="100" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+        <text x="100" y="100" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+        <text x="166" y="100" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₀</text>
+        
+        <!-- Row 2 -->
+        <text x="33" y="120" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+        <text x="100" y="120" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+        <text x="166" y="120" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₁</text>
+        
+        <!-- Row 3 -->
+        <text x="33" y="140" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+        <text x="100" y="140" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">0</text>
+        <text x="166" y="140" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₂</text>
+        
+        <!-- Row 4 -->
+        <text x="33" y="160" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+        <text x="100" y="160" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">1</text>
+        <text x="166" y="160" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">D₃</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لديك 32 سجل (Registers) في المعالج وتريد اختيار واحد منها، ما هو حجم المجمع المطلوب وكم عدد خطوط الاختيار؟</template>
+      <template class="content-en">If you have 32 registers in a CPU and want to select one, what size MUX is needed and how many select lines?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نحتاج إلى مجمع 32-إلى-1، وسيتطلب 5 خطوط اختيار (لأن 2^5 = 32).</p></template>
+      <template class="content-en"><p>A 32-to-1 MUX is needed, which requires 5 select lines (since 2^5 = 32).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="implementing-logic-mux" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تنفيذ الدوال المنطقية باستخدام المجمعات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Implementing Logic with Multiplexers</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يمكن استخدام المجمع كـ <span class="smart-term" data-term-en="Lookup Table (LUT)" data-ar="جدول البحث" data-en-def="An array or matrix of data that contains precalculated values, which a MUX mimics when implementing logic.">جدول بحث<span class="smart-term-tooltip"></span></span> لتنفيذ أي دالة منطقية بتوصيل المتغيرات بخطوط الاختيار وقيم الدالة بمدخلات البيانات.</p>
+    </template>
+    <template class="content-en">
+      <p>A MUX can act as a <span class="smart-term" data-term-en="Lookup Table (LUT)" data-ar="جدول البحث" data-en-def="An array or matrix of data that contains precalculated values, which a MUX mimics when implementing logic.">Lookup Table<span class="smart-term-tooltip"></span></span> to implement any Boolean function by connecting variables to select lines and function values to data inputs.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن لمجمع بحجم <strong>2^n:1</strong> تنفيذ أي دالة من n متغيرات. يتم استخدام المتغيرات كخطوط اختيار (Control inputs)، بينما يتم توصيل مدخلات البيانات (D0, D1...) بالقيم 0 أو 1 بناءً على جدول الحقيقة للدالة.</p><p>في جوهره، يعمل المجمع كـ <strong><span class="smart-term" data-term-en="Lookup Table (LUT)" data-ar="جدول البحث" data-en-def="An array or matrix of data that contains precalculated values, which a MUX mimics when implementing logic.">جدول بحث (Lookup Table)<span class="smart-term-tooltip"></span></span></strong>.</p></template>
+    <template class="content-en"><p>A <strong>2^n:1</strong> multiplexer implements any function of n variables. The variables are used as control (select) inputs, and the data inputs (D0-D...) are tied to 0 or 1 based on the function's truth table.</p><p>In essence, it acts as a <strong><span class="smart-term" data-term-en="Lookup Table (LUT)" data-ar="جدول البحث" data-en-def="An array or matrix of data that contains precalculated values, which a MUX mimics when implementing logic.">lookup table<span class="smart-term-tooltip"></span></span></strong>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p><strong>التنفيذ المحسن (Optimized):</strong> يمكن لمجمع بحجم <strong>2^(n-1):1</strong> تنفيذ دالة من n متغيرات. نستخدم n-1 متغير كخطوط اختيار، ونربط مدخلات البيانات بالمتغير الأخير (أو معكوسه، أو 0، أو 1).</p><p>مثلاً، لدالة من 3 متغيرات (A,B,C)، نستخدم مجمع 4:1. نربط A و B بخطوط الاختيار، ونقارن المخرج F مع المتغير C لكل حالة لتحديد ما إذا كان المدخل سيكون C، C'، 0، أو 1.</p></template>
+    <template class="content-en"><p><strong>Optimized Implementation:</strong> A <strong>2^(n-1):1</strong> mux can implement any function of n variables. We use n-1 variables as select lines, and tie the data inputs to the last variable, its complement, 0, or 1.</p><p>For a 3-variable function (A,B,C), we use a 4:1 MUX. A and B are select lines. We find the relationship between C and F for each combination of A and B to determine the data inputs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show the optimized implementation of a 3-variable function using a 4:1 MUX. A truth table on the left shows A, B, C, and F. A 4:1 MUX on the right has A and B connected to select lines S1 and S0. The data inputs 0, 1, 2, 3 are connected to C', C', 0, and 1 respectively. Style: educational, dark background #0d1117, accent colors, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for dashed connection lines -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)"/>
+        </marker>
+        <!-- Arrowhead for solid input lines -->
+        <marker id="arrow-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-primary)"/>
+        </marker>
+        <!-- Arrowhead for output and select lines -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Main Titles -->
+    <text x="425" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Optimized 3-Variable Function using 4:1 MUX</text>
+    <text x="425" y="70" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle">تنفيذ دالة بـ 3 متغيرات باستخدام 4:1 MUX</text>
+
+    <!-- ========================================== -->
+    <!-- TRUTH TABLE SECTION (LEFT)                 -->
+    <!-- ========================================== -->
+    
+    <!-- Table Title -->
+    <text x="170" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Truth Table / جدول الحقيقة</text>
+
+    <!-- Table Outer Border -->
+    <rect x="50" y="115" width="230" height="270" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    
+    <!-- Column Highlights -->
+    <!-- A & B Columns Highlight (Select Lines) -->
+    <rect x="52" y="145" width="98" height="238" fill="var(--brand-500)" opacity="0.05" rx="4"/>
+    <!-- F Column Highlight (Output) -->
+    <rect x="200" y="145" width="78" height="238" fill="var(--brand-500)" opacity="0.05" rx="4"/>
+
+    <!-- Table Headers -->
+    <text x="75" y="138" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">A</text>
+    <text x="125" y="138" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">B</text>
+    <text x="175" y="138" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">C</text>
+    <text x="240" y="138" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">F</text>
+
+    <!-- Header Separator Line -->
+    <line x1="50" y1="145" x2="280" y2="145" stroke="var(--border-color)" stroke-width="2"/>
+    <!-- Vertical Separator Line -->
+    <line x1="200" y1="115" x2="200" y2="385" stroke="var(--border-color)" stroke-width="2"/>
+
+    <!-- Table Rows (Data) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-primary)" text-anchor="middle">
+        <!-- Group 0: A=0, B=0 -->
+        <text x="75" y="165">0</text> <text x="125" y="165">0</text> <text x="175" y="165">0</text> <text x="240" y="165" font-weight="bold" fill="var(--brand-500)">1</text>
+        <text x="75" y="195">0</text> <text x="125" y="195">0</text> <text x="175" y="195">1</text> <text x="240" y="195" font-weight="bold" fill="var(--brand-500)">0</text>
+        <line x1="50" y1="205" x2="280" y2="205" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+        <!-- Group 1: A=0, B=1 -->
+        <text x="75" y="225">0</text> <text x="125" y="225">1</text> <text x="175" y="225">0</text> <text x="240" y="225" font-weight="bold" fill="var(--brand-500)">1</text>
+        <text x="75" y="255">0</text> <text x="125" y="255">1</text> <text x="175" y="255">1</text> <text x="240" y="255" font-weight="bold" fill="var(--brand-500)">0</text>
+        <line x1="50" y1="265" x2="280" y2="265" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+        <!-- Group 2: A=1, B=0 -->
+        <text x="75" y="285">1</text> <text x="125" y="285">0</text> <text x="175" y="285">0</text> <text x="240" y="285" font-weight="bold" fill="var(--brand-500)">0</text>
+        <text x="75" y="315">1</text> <text x="125" y="315">0</text> <text x="175" y="315">1</text> <text x="240" y="315" font-weight="bold" fill="var(--brand-500)">0</text>
+        <line x1="50" y1="325" x2="280" y2="325" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+        <!-- Group 3: A=1, B=1 -->
+        <text x="75" y="345">1</text> <text x="125" y="345">1</text> <text x="175" y="345">0</text> <text x="240" y="345" font-weight="bold" fill="var(--brand-500)">1</text>
+        <text x="75" y="375">1</text> <text x="125" y="375">1</text> <text x="175" y="375">1</text> <text x="240" y="375" font-weight="bold" fill="var(--brand-500)">1</text>
+    </g>
+
+    <!-- Grouping Brackets & Logic Derivation -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2">
+        <path d="M 285 150 L 295 150 L 295 200 L 285 200" />
+        <path d="M 285 210 L 295 210 L 295 260 L 285 260" />
+        <path d="M 285 270 L 295 270 L 295 320 L 285 320" />
+        <path d="M 285 330 L 295 330 L 295 380 L 285 380" />
+    </g>
+
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="start">
+        <text x="305" y="180">D0 = C'</text>
+        <text x="305" y="240">D1 = C'</text>
+        <text x="305" y="300">D2 = 0</text>
+        <text x="305" y="360">D3 = 1</text>
+    </g>
+
+    <!-- Legend for Select Lines -->
+    <rect x="50" y="410" width="230" height="60" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+    <text x="165" y="435" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">A, B used as Select Lines (S1, S0)</text>
+    <text x="165" y="455" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">A, B تستخدم كخطوط اختيار</text>
+
+
+    <!-- ========================================== -->
+    <!-- CONNECTION CURVES                          -->
+    <!-- ========================================== -->
+    <g fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-dashed)">
+        <path d="M 365 175 C 400 175, 410 180, 445 180" />
+        <path d="M 365 235 C 400 235, 410 240, 445 240" />
+        <path d="M 360 295 C 400 295, 410 300, 445 300" />
+        <path d="M 360 355 C 400 355, 410 360, 445 360" />
+    </g>
+
+
+    <!-- ========================================== -->
+    <!-- MUX SECTION (RIGHT)                        -->
+    <!-- ========================================== -->
+    
+    <!-- MUX Title -->
+    <text x="610" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">4:1 Multiplexer / المبدل</text>
+
+    <!-- MUX Body (Trapezoid) -->
+    <polygon points="550,130 670,190 670,350 550,410" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3"/>
+    
+    <!-- MUX Main Label -->
+    <text x="610" y="275" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">4:1 MUX</text>
+
+    <!-- MUX Inputs (Data Lines) -->
+    <g stroke="var(--text-primary)" stroke-width="2" marker-end="url(#arrow-solid)">
+        <line x1="460" y1="180" x2="540" y2="180" />
+        <line x1="460" y1="240" x2="540" y2="240" />
+        <line x1="460" y1="300" x2="540" y2="300" />
+        <line x1="460" y1="360" x2="540" y2="360" />
+    </g>
+
+    <!-- Input Values (C', C', 0, 1) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+        <text x="480" y="172">C'</text>
+        <text x="480" y="232">C'</text>
+        <text x="480" y="292">0</text>
+        <text x="480" y="352">1</text>
+    </g>
+
+    <!-- MUX Pin Labels (0, 1, 2, 3) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="start">
+        <text x="560" y="185">0</text>
+        <text x="560" y="245">1</text>
+        <text x="560" y="305">2</text>
+        <text x="560" y="365">3</text>
+    </g>
+
+    <!-- MUX Select Lines (Bottom) -->
+    <g stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)">
+        <line x1="590" y1="460" x2="590" y2="395" />
+        <line x1="630" y1="460" x2="630" y2="375" />
+    </g>
+
+    <!-- Select Line Labels (A, B) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+        <text x="590" y="480">A</text>
+        <text x="630" y="480">B</text>
+    </g>
+
+    <!-- MUX Select Pin Labels (S1, S0) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">
+        <text x="590" y="380">S1</text>
+        <text x="630" y="360">S0</text>
+    </g>
+
+    <!-- MUX Output Line -->
+    <line x1="670" y1="270" x2="740" y2="270" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)"/>
+    
+    <!-- Output Label -->
+    <text x="760" y="276" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">F</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Decoder</th><th>Multiplexer (MUX)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المكونات الإضافية المطلوبة</template>
+          <template class="content-en">Additional Components Needed</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يتطلب بوابة OR خارجية لجمع الحدود الصغرى</template>
+          <template class="content-en">Requires external OR gate to sum minterms</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا يتطلب بوابات إضافية (يعمل كجدول بحث جاهز)</template>
+          <template class="content-en">No extra gates needed (acts as a ready LUT)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">توصيل المتغيرات</template>
+          <template class="content-en">Variable Connection</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">المتغيرات توصل بالمدخلات</template>
+          <template class="content-en">Variables connected to inputs</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">المتغيرات توصل بخطوط الاختيار (Select lines)</template>
+          <template class="content-en">Variables connected to select lines</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لتنفيذ دالة من 4 متغيرات باستخدام الطريقة المحسنة، ما هو حجم المجمع الذي ستحتاجه؟</template>
+      <template class="content-en">To implement a 4-variable function using the optimized method, what size MUX do you need?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>سنحتاج إلى مجمع 8:1 (حيث 2^(4-1) = 8)، ونستخدم 3 متغيرات لخطوط الاختيار والمتغير الرابع لمدخلات البيانات.</p></template>
+      <template class="content-en"><p>An 8:1 MUX is needed (since 2^(4-1) = 8). 3 variables are used for select lines, and the 4th for data inputs.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في الوحدة الثامنة! اليوم نتعمق في قلب اتخاذ القرار وتوجيه البيانات داخل وحدة المعالجة المركزية (CPU). تخيلوا ناقل البيانات (Bus) كطريق سريع بمسار واحد؛ تعمل مفككات التشفير (Decoders) كشرطي مرور يضمن أن جهازاً واحداً فقط يتحدث في كل مرة لتجنب حوادث البيانات. أما المجمعات (Multiplexors) فهي كمحولات مسار القطار، تختار أي تيار بيانات سيصل إلى وحدة الحساب والمنطق (ALU). بالنسبة للامتحان، ركزوا جيداً على كيفية استخدام هذه المكونات الجاهزة لتنفيذ دوال منطقية مخصصة. تذكروا دائماً: مفكك التشفير يولد حدوداً صغرى (Minterms) - لذا لا تنسوا إضافة بوابة OR! بينما يعمل المجمع كجدول بحث (Lookup Table). إتقان التنفيذ المحسن للمجمع (باستخدام خطوط اختيار n-1) هو سؤال كلاسيكي ومضمون في الاختبار، فتأكدوا من فهم كيفية ربط المتغير الأخير بمدخلات البيانات. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome to Module 8! Today we dive into the heart of the CPU's decision-making and routing: Decoders, Encoders, and Multiplexors. Think of the CPU bus as a single-lane highway; decoders act as traffic cops ensuring only one device talks at a time to prevent data collisions. Multiplexors are like railway switches, selecting which data stream gets to proceed to the ALU. For the exam, pay close attention to how we use these off-the-shelf components to implement custom Boolean logic. Remember that a decoder generates minterms—so you must add an OR gate! Meanwhile, a MUX acts as a hardware lookup table. Mastering the optimized MUX implementation (using n-1 select lines) is a guaranteed point-scorer on the test, so make sure you practice finding the relationship for that last variable. Happy studying!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى فك تشفير العناوين (Address Decoding) على ناقل البيانات؟</template>
+          <template class="content-en">Why do we need address decoding on a bus?</template>
+          <span class="content-target">لماذا نحتاج إلى فك تشفير العناوين (Address Decoding) على ناقل البيانات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لضمان أن جهازاً واحداً فقط نشط ويكتب على الناقل في نفس الوقت، مما يمنع تضارب البيانات، ولتقليل عدد أسلاك التحكم الخارجة من وحدة التحكم.</template>
+          <template class="content-en">To ensure only one device is active and writing to the bus at a time, preventing data collisions, and to minimize the number of control wires coming from the Control Unit.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العلاقة بين المدخلات والمخرجات في مفكك التشفير؟</template>
+          <template class="content-en">What is the relationship between inputs and outputs in a decoder?</template>
+          <span class="content-target">ما هي العلاقة بين المدخلات والمخرجات في مفكك التشفير؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">n مدخلات تنتج 2^n مخرجات، حيث يمثل كل مخرج حداً أصغر (Minterm) فريداً.</template>
+          <template class="content-en">n inputs produce 2^n outputs, representing all possible unique minterms.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يساعد طرف التمكين (Enable) في توسيع مفككات التشفير؟</template>
+          <template class="content-en">How does the Enable (EN) pin help in expanding decoders?</template>
+          <span class="content-target">كيف يساعد طرف التمكين (Enable) في توسيع مفككات التشفير؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يسمح لنا بتشغيل أو إيقاف مفككات تشفير معينة بناءً على البتات الأكثر أهمية (MSB)، مما يمكننا من دمج مفككات صغيرة لبناء مفكك أكبر.</template>
+          <template class="content-en">It allows us to turn specific decoders on or off based on higher-order bits, enabling the combination of smaller decoders into larger ones.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تنفذ دالة منطقية باستخدام مفكك التشفير؟</template>
+          <template class="content-en">How do you implement a Boolean function using a decoder?</template>
+          <span class="content-target">كيف تنفذ دالة منطقية باستخدام مفكك التشفير؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نوصل المتغيرات بمدخلات مفكك التشفير، ثم نستخدم بوابة OR لجمع المخرجات (الحدود الصغرى) التي تقابل الآحاد في جدول الحقيقة للدالة.</template>
+          <template class="content-en">Connect the variables to the decoder inputs, and use an OR gate to sum the specific outputs (minterms) that correspond to the 1s in the function's truth table.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الرئيسي بين المشفر (Encoder) ومفكك التشفير (Decoder)؟</template>
+          <template class="content-en">What is the main difference between an encoder and a decoder?</template>
+          <span class="content-target">ما هو الفرق الرئيسي بين المشفر (Encoder) ومفكك التشفير (Decoder)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المشفر يضغط 2^n مدخلات إلى n مخرجات، بينما مفكك التشفير يوسع n مدخلات إلى 2^n مخرجات.</template>
+          <template class="content-en">An encoder compresses 2^n inputs into n outputs, while a decoder expands n inputs into 2^n outputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الافتراض الحرج لمدخلات المشفر العادي؟</template>
+          <template class="content-en">What is a critical assumption for a standard encoder's inputs?</template>
+          <span class="content-target">ما هو الافتراض الحرج لمدخلات المشفر العادي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يُفترض أن خط إدخال واحد فقط يمكن أن يكون نشطاً (High) في أي وقت معين.</template>
+          <template class="content-en">It is assumed that only one input line can be active (High) at any given time.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تحدد عدد خطوط الاختيار (Select lines) للمجمع (MUX)؟</template>
+          <template class="content-en">How do you determine the number of select lines for a MUX?</template>
+          <span class="content-target">كيف تحدد عدد خطوط الاختيار (Select lines) للمجمع (MUX)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا كان المجمع يحتوي على 2^n مدخلات بيانات، فإنه يتطلب n خطوط اختيار.</template>
+          <template class="content-en">If a MUX has 2^n data inputs, it requires n select lines.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الاستخدام العملي للمجمع في مسار بيانات المعالج؟</template>
+          <template class="content-en">What is a practical use of a MUX in a CPU datapath?</template>
+          <span class="content-target">ما هو الاستخدام العملي للمجمع في مسار بيانات المعالج؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">اختيار بيانات السجل (Register) التي سيتم إرسالها إلى وحدة الحساب والمنطق (ALU) كمعاملات.</template>
+          <template class="content-en">Selecting which register's data is sent to the Arithmetic Logic Unit (ALU) as operands.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يمكن استخدام المجمع كبوابة منطقية عامة الأغراض؟</template>
+          <template class="content-en">How can a MUX be used as a general-purpose logic gate?</template>
+          <span class="content-target">كيف يمكن استخدام المجمع كبوابة منطقية عامة الأغراض؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام المتغيرات كخطوط اختيار وربط مدخلات البيانات بـ 0 أو 1 بناءً على جدول الحقيقة، ليعمل كجدول بحث (Lookup Table).</template>
+          <template class="content-en">By using the variables as select lines and tying the data inputs to 0 or 1 based on the truth table, acting as a lookup table.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نقوم بتحسين تنفيذ المنطق باستخدام المجمع لتقليل حجمه؟</template>
+          <template class="content-en">How do we optimize MUX logic implementation to use a smaller MUX?</template>
+          <span class="content-target">كيف نقوم بتحسين تنفيذ المنطق باستخدام المجمع لتقليل حجمه؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">باستخدام n-1 متغير لخطوط الاختيار، وتغذية المتغير الأخير (أو معكوسه، أو 0، أو 1) مباشرة في مدخلات البيانات.</template>
+          <template class="content-en">By using n-1 variables for the select lines and feeding the last variable (or its complement, 0, or 1) directly into the data inputs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هما المكونان الرئيسيان لأي وحدة معالجة مركزية (CPU)؟",
+      "en": "What are the two main parts of any CPU?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مسار البيانات (Datapath) ووحدة التحكم (Control Unit).",
+        "en": "Datapath Unit and Control Unit."
+      },
+      "example": {
+        "ar": "مسار البيانات ينفذ العمليات، ووحدة التحكم ترسل الإشارات.",
+        "en": "Datapath performs operations, Control Unit sends signals."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي وظيفة مفكك التشفير (Decoder) من حيث المدخلات والمخرجات؟",
+      "en": "What is the input/output relationship of a Decoder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يأخذ n مدخلات ويولد 2^n مخرجات.",
+        "en": "It has n inputs and 2^n outputs."
+      },
+      "example": {
+        "ar": "مفكك تشفير 3-إلى-8.",
+        "en": "A 3-to-8 decoder."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ماذا تمثل مخرجات مفكك التشفير (Decoder)؟",
+      "en": "What do the outputs of a decoder represent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثل الحدود الصغرى (Minterms) للمدخلات.",
+        "en": "They represent the minterms of the inputs."
+      },
+      "example": {
+        "ar": "المخرج D3 يمثل الحد الأصغر m3.",
+        "en": "Output D3 represents minterm m3."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي فائدة طرف التمكين (Enable) في مفكك التشفير؟",
+      "en": "What is the purpose of the Enable pin in a decoder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح بتشغيل أو إيقاف الدائرة، ويستخدم لتوسيع مفككات التشفير لربطها معاً.",
+        "en": "It turns the circuit on/off and is used for expansion (combining multiple decoders)."
+      },
+      "example": {
+        "ar": "استخدام التمكين لربط جهازي 2-إلى-4 لعمل جهاز 3-إلى-8.",
+        "en": "Using EN to combine two 2-to-4 decoders into a 3-to-8 decoder."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "كيف تنفذ دالة منطقية باستخدام مفكك التشفير؟",
+      "en": "How do you implement a Boolean function using a decoder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بتوصيل المتغيرات بالمدخلات، وجمع المخرجات (الحدود الصغرى) المطلوبة باستخدام بوابة OR.",
+        "en": "Connect variables to inputs, and sum the required outputs (minterms) using an OR gate."
+      },
+      "example": {
+        "ar": "F = m1 + m4 -> نربط المخرج 1 و 4 ببوابة OR.",
+        "en": "F = m1 + m4 -> connect outputs 1 and 4 to an OR gate."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو المشفر (Encoder)؟",
+      "en": "What is an Encoder?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دائرة تأخذ 2^n مدخلات وتخرج n مخرجات (عكس مفكك التشفير).",
+        "en": "A circuit with 2^n inputs and n outputs (the opposite of a decoder)."
+      },
+      "example": {
+        "ar": "محول من ثماني إلى ثنائي (8 مدخلات، 3 مخرجات).",
+        "en": "Octal to binary converter (8 inputs, 3 outputs)."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو الشرط الأساسي لمدخلات المشفر العادي؟",
+      "en": "What is the primary condition for a standard encoder's inputs?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يجب أن يكون مدخل واحد فقط نشطاً في نفس الوقت.",
+        "en": "Only one input can be active at a time."
+      },
+      "example": {
+        "ar": "إذا كان D3 نشطاً، يجب أن تكون باقي المدخلات 0.",
+        "en": "If D3 is active, all other inputs must be 0."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو المجمع (Multiplexer)؟",
+      "en": "What is a Multiplexer (Mux)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دائرة تختار واحداً من عدة مدخلات بيانات وتمرره إلى مخرج واحد.",
+        "en": "A circuit that selects one of several data inputs to pass to a single output."
+      },
+      "example": {
+        "ar": "اختيار أي سجل سيتم إرساله إلى وحدة الحساب والمنطق.",
+        "en": "Selecting which register goes to the ALU."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "كم عدد خطوط الاختيار (Select lines) المطلوبة لمجمع يحتوي على 2^n مدخلات؟",
+      "en": "How many select lines are needed for a MUX with 2^n inputs?"
+    },
+    "back": {
+      "definition": {
+        "ar": "نحتاج إلى n خطوط اختيار.",
+        "en": "n select lines are needed."
+      },
+      "example": {
+        "ar": "مجمع 8-إلى-1 يحتاج 3 خطوط اختيار.",
+        "en": "An 8-to-1 MUX needs 3 select lines."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "كيف يعمل المجمع كجدول بحث (Lookup Table)؟",
+      "en": "How does a MUX act as a Lookup Table?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بتوصيل المتغيرات بخطوط الاختيار، وتوصيل مدخلات البيانات بقيم الدالة (0 أو 1).",
+        "en": "By connecting variables to select lines and data inputs to the function's values (0 or 1)."
+      },
+      "example": {
+        "ar": "تنفيذ دالة من 3 متغيرات باستخدام مجمع 8:1.",
+        "en": "Implementing a 3-variable function with an 8:1 MUX."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو حجم المجمع المطلوب لتنفيذ دالة من n متغيرات باستخدام الطريقة المحسنة (Optimized)؟",
+      "en": "What size MUX is needed to implement an n-variable function using the optimized method?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجمع بحجم 2^(n-1):1.",
+        "en": "A 2^(n-1):1 MUX."
+      },
+      "example": {
+        "ar": "دالة من 3 متغيرات تحتاج مجمع 4:1 بدلاً من 8:1.",
+        "en": "A 3-variable function needs a 4:1 MUX instead of 8:1."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "في التنفيذ المحسن للمجمع، ماذا نوصل بمدخلات البيانات؟",
+      "en": "In the optimized MUX implementation, what is connected to the data inputs?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المتغير الأخير، أو معكوسه، أو 0، أو 1.",
+        "en": "The last variable, its complement, 0, or 1."
+      },
+      "example": {
+        "ar": "توصيل C أو 'C أو 0 أو 1.",
+        "en": "Connecting C, C', 0, or 1."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو فك تشفير العناوين (Address Decoding)؟",
+      "en": "What is Address Decoding?"
+    },
+    "back": {
+      "definition": {
+        "ar": "استخدام مفكك تشفير لتفعيل جهاز واحد فقط على ناقل البيانات بناءً على عنوان ثنائي.",
+        "en": "Using a decoder to enable only one device on a bus based on a binary address."
+      },
+      "example": {
+        "ar": "اختيار بنك ذاكرة واحد من أصل 4 باستخدام سلكين.",
+        "en": "Selecting 1 of 4 memory banks using 2 wires."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي البوابات المنطقية الأساسية داخل المجمع (MUX)؟",
+      "en": "What are the basic logic gates inside a MUX?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مستوى من بوابات AND تليها بوابة OR واحدة.",
+        "en": "A plane of AND gates followed by an OR gate."
+      },
+      "example": {
+        "ar": "بوابات AND تفعل المدخل المختار، و OR تجمع الناتج.",
+        "en": "AND gates enable the selected input, OR gate sums the result."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "لماذا نستخدم المجمعات (Multiplexers) في مسار البيانات (Datapath)؟",
+      "en": "Why are Multiplexers used in the Datapath?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لاختيار وتوجيه البيانات من مصادر متعددة إلى وجهة واحدة.",
+        "en": "To select and route data from multiple sources to a single destination."
+      },
+      "example": {
+        "ar": "توجيه ناتج وحدة الحساب والمنطق أو الذاكرة إلى السجل.",
+        "en": "Routing ALU output or Memory data to a register."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من المكونات التالية يرسل إشارات التحكم إلى مسار البيانات لتنفيذ عمليات معينة؟",
+      "en": "Which of the following components sends control signals to the datapath to perform certain operations?"
+    },
+    "options": {
+      "ar": [
+        "وحدة الحساب والمنطق (ALU)",
+        "وحدة التحكم (Control Unit)",
+        "الذاكرة (Memory)",
+        "المجمع (Multiplexer)"
+      ],
+      "en": [
+        "Arithmetic Logic Unit (ALU)",
+        "Control Unit",
+        "Memory",
+        "Multiplexer"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "وحدة التحكم هي المسؤولة عن إرسال إشارات التحكم لتوجيه مسار البيانات.",
+      "en": "The Control Unit is responsible for sending control signals to direct the datapath."
+    },
+    "hint": {
+      "ar": "فكر في الجزء الذي 'يتحكم' في سير العمليات.",
+      "en": "Think about the part that 'controls' the flow of operations."
+    },
+    "difficulty": "easy",
+    "conceptId": "cpu-datapath-control"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "كم عدد المخرجات في مفكك تشفير (Decoder) يحتوي على 4 مدخلات؟",
+      "en": "How many outputs does a decoder with 4 inputs have?"
+    },
+    "options": {
+      "ar": [
+        "4",
+        "8",
+        "16",
+        "32"
+      ],
+      "en": [
+        "4",
+        "8",
+        "16",
+        "32"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "مفكك التشفير يحتوي على 2^n مخرجات. 2^4 = 16.",
+      "en": "A decoder has 2^n outputs. 2^4 = 16."
+    },
+    "hint": {
+      "ar": "استخدم المعادلة 2^n.",
+      "en": "Use the formula 2^n."
+    },
+    "difficulty": "easy",
+    "conceptId": "decoders"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "عند تنفيذ دالة منطقية باستخدام مفكك التشفير، ما هي البوابة المنطقية التي يجب إضافتها لجمع المخرجات؟",
+      "en": "When implementing a Boolean function using a decoder, which logic gate must be added to sum the outputs?"
+    },
+    "options": {
+      "ar": [
+        "AND",
+        "OR",
+        "XOR",
+        "NAND"
+      ],
+      "en": [
+        "AND",
+        "OR",
+        "XOR",
+        "NAND"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مفكك التشفير يولد الحدود الصغرى (Minterms)، ولتنفيذ الدالة نحتاج لجمعها باستخدام بوابة OR.",
+      "en": "The decoder generates minterms, and to implement the function we sum them using an OR gate."
+    },
+    "hint": {
+      "ar": "الدالة هي 'مجموع' الحدود الصغرى.",
+      "en": "The function is a 'sum' of minterms."
+    },
+    "difficulty": "medium",
+    "conceptId": "implementing-logic-decoders"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "كم عدد مفككات التشفير 2-إلى-4 المطلوبة لبناء مفكك تشفير 3-إلى-8؟",
+      "en": "How many 2-to-4 decoders are required to build a 3-to-8 decoder?"
+    },
+    "options": {
+      "ar": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "en": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نحتاج إلى جهازي 2-إلى-4، حيث يتم استخدام المدخل الثالث كإشارة تمكين (Enable) لاختيار أحدهما.",
+      "en": "Two 2-to-4 decoders are needed, using the 3rd input as an Enable signal to select between them."
+    },
+    "hint": {
+      "ar": "كل جهاز يعطي 4 مخرجات، ونحن نحتاج 8.",
+      "en": "Each device gives 4 outputs, and we need 8."
+    },
+    "difficulty": "medium",
+    "conceptId": "decoders"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من الدوائر التالية تقوم بعكس عمل مفكك التشفير (Decoder)؟",
+      "en": "Which of the following circuits performs the inverse operation of a Decoder?"
+    },
+    "options": {
+      "ar": [
+        "المجمع (Multiplexer)",
+        "المشفر (Encoder)",
+        "الجامع (Adder)",
+        "المقارن (Comparator)"
+      ],
+      "en": [
+        "Multiplexer",
+        "Encoder",
+        "Adder",
+        "Comparator"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المشفر يأخذ 2^n مدخلات ويخرج n مخرجات، وهو عكس مفكك التشفير.",
+      "en": "An encoder takes 2^n inputs and outputs n lines, which is the exact opposite of a decoder."
+    },
+    "hint": {
+      "ar": "اسمه يعكس اسم Decoder.",
+      "en": "Its name is the counterpart to Decoder."
+    },
+    "difficulty": "easy",
+    "conceptId": "encoders"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في المشفر العادي (Standard Encoder)، ما هو الشرط الأساسي للمدخلات؟",
+      "en": "In a standard encoder, what is the primary condition for the inputs?"
+    },
+    "options": {
+      "ar": [
+        "يجب أن تكون جميع المدخلات 1",
+        "يمكن أن يكون أي عدد من المدخلات نشطاً",
+        "يجب أن يكون مدخل واحد فقط نشطاً في نفس الوقت",
+        "يجب أن تكون المدخلات متسلسلة"
+      ],
+      "en": [
+        "All inputs must be 1",
+        "Any number of inputs can be active",
+        "Only one input can be active at a time",
+        "Inputs must be sequential"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المشفر العادي يفترض أن مدخلاً واحداً فقط هو النشط لكي يولد الرمز الثنائي الصحيح.",
+      "en": "A standard encoder assumes only one input is active to generate the correct binary code."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا ضغطت زرين في نفس الوقت؟",
+      "en": "What happens if you press two buttons at once?"
+    },
+    "difficulty": "medium",
+    "conceptId": "encoders"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "كم عدد خطوط الاختيار (Select lines) المطلوبة لمجمع (MUX) يحتوي على 16 مدخل بيانات؟",
+      "en": "How many select lines are required for a MUX with 16 data inputs?"
+    },
+    "options": {
+      "ar": [
+        "2",
+        "3",
+        "4",
+        "8"
+      ],
+      "en": [
+        "2",
+        "3",
+        "4",
+        "8"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "بما أن 16 = 2^4، فإننا نحتاج إلى 4 خطوط اختيار.",
+      "en": "Since 16 = 2^4, we need 4 select lines."
+    },
+    "hint": {
+      "ar": "حل المعادلة 2^n = 16.",
+      "en": "Solve 2^n = 16."
+    },
+    "difficulty": "easy",
+    "conceptId": "multiplexors"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هو التطبيق الشائع للمجمع (Multiplexer) داخل وحدة المعالجة المركزية؟",
+      "en": "What is a common application of a Multiplexer in a CPU?"
+    },
+    "options": {
+      "ar": [
+        "تخزين البيانات بشكل دائم",
+        "اختيار أي سجل سيتم إرسال بياناته إلى وحدة الحساب والمنطق",
+        "توليد إشارات الساعة (Clock signals)",
+        "تحويل النظام الثماني إلى ثنائي"
+      ],
+      "en": [
+        "Storing data permanently",
+        "Selecting which register's data is sent to the ALU",
+        "Generating clock signals",
+        "Converting octal to binary"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المجمع يعمل كمفتاح يختار مصدر بيانات واحد من بين عدة مصادر لتمريره إلى وجهة معينة مثل ALU.",
+      "en": "A MUX acts as a switch selecting one data source from many to pass to a destination like the ALU."
+    },
+    "hint": {
+      "ar": "المجمع يختار (Selects).",
+      "en": "A MUX selects."
+    },
+    "difficulty": "medium",
+    "conceptId": "multiplexors"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "لتنفيذ دالة منطقية من 3 متغيرات باستخدام الطريقة المحسنة (Optimized)، ما هو حجم المجمع (MUX) الذي يجب استخدامه؟",
+      "en": "To implement a 3-variable Boolean function using the optimized method, what size MUX should be used?"
+    },
+    "options": {
+      "ar": [
+        "2:1 MUX",
+        "4:1 MUX",
+        "8:1 MUX",
+        "16:1 MUX"
+      ],
+      "en": [
+        "2:1 MUX",
+        "4:1 MUX",
+        "8:1 MUX",
+        "16:1 MUX"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الطريقة المحسنة تستخدم مجمع بحجم 2^(n-1):1. لـ 3 متغيرات، 2^(3-1) = 2^2 = 4، لذا نستخدم 4:1 MUX.",
+      "en": "The optimized method uses a 2^(n-1):1 MUX. For 3 variables, 2^(3-1) = 2^2 = 4, so a 4:1 MUX is used."
+    },
+    "hint": {
+      "ar": "استخدم المعادلة 2^(n-1).",
+      "en": "Use the formula 2^(n-1)."
+    },
+    "difficulty": "hard",
+    "conceptId": "implementing-logic-mux"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "في التنفيذ المحسن للدوال باستخدام المجمع (MUX)، ماذا يتم توصيله بمدخلات البيانات (Data inputs)؟",
+      "en": "In the optimized implementation of functions using a MUX, what is connected to the data inputs?"
+    },
+    "options": {
+      "ar": [
+        "جميع المتغيرات",
+        "المتغير الأخير (أو معكوسه، أو 0، أو 1)",
+        "إشارة التمكين (Enable) فقط",
+        "بوابات OR خارجية"
+      ],
+      "en": [
+        "All variables",
+        "The last variable (or its complement, 0, or 1)",
+        "Only the Enable signal",
+        "External OR gates"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في الطريقة المحسنة، نستخدم n-1 متغير كخطوط اختيار، ونربط مدخلات البيانات بالمتغير الأخير بناءً على علاقته بالدالة.",
+      "en": "In the optimized method, n-1 variables are used as select lines, and data inputs are tied to the last variable based on its relationship to the function."
+    },
+    "hint": {
+      "ar": "نحن نوفر خط اختيار واحد عن طريق استغلال المتغير المتبقي.",
+      "en": "We save one select line by utilizing the remaining variable."
+    },
+    "difficulty": "hard",
+    "conceptId": "implementing-logic-mux"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين المشفر (Encoder) ومفكك التشفير (Decoder). تذكر: مفكك التشفير 'يفك' الرمز الصغير إلى خطوط كثيرة (n إلى 2^n)، بينما المشفر 'يضغط' الخطوط الكثيرة إلى رمز صغير (2^n إلى n).</template>
+      <template class="content-en">Confusing Encoder and Decoder. Remember: Decoder 'expands' a small code to many lines (n to 2^n), while Encoder 'compresses' many lines into a small code (2^n to n).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">طرف التمكين (Enable) هو السر وراء توسيع مفككات التشفير. بدونه، ستحتاج إلى تصميم شريحة جديدة بالكامل لكل حجم. باستخدامه، يمكنك بناء مفكك تشفير بأي حجم باستخدام شرائح أصغر.</template>
+      <template class="content-en">The Enable pin is the secret to expanding decoders. Without it, you'd need a custom chip for every size. With it, you can build any size decoder using smaller off-the-shelf chips.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المجمع (MUX) هو في الأساس 'جدول بحث' (Lookup Table) برمجي مطبق في الأجهزة (Hardware). يمكنك تنفيذ أي دالة منطقية بمجرد توصيل الأصفار والآحاد الصحيحة بمدخلاته.</template>
+      <template class="content-en">A MUX is essentially a hardware 'Lookup Table' (LUT). You can implement ANY Boolean function just by hardwiring the correct 0s and 1s to its data inputs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند تنفيذ دالة باستخدام مفكك التشفير، ينسى الطلاب إضافة بوابة OR. مفكك التشفير يولد الحدود الصغرى (Minterms) فقط؛ يجب جمعها ببوابة OR لتكوين الدالة النهائية.</template>
+      <template class="content-en">When implementing logic with a decoder, students often forget the OR gate. The decoder only generates minterms; you MUST sum them with an OR gate to form the final function.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">التنفيذ المحسن للمجمع (Optimized MUX) يوفر حجم المجمع للنصف. بدلاً من استخدام مجمع 8:1 لدالة من 3 متغيرات، نستخدم مجمع 4:1 وندخل المتغير الثالث مباشرة في البيانات.</template>
+      <template class="content-en">Optimized MUX implementation cuts the required MUX size in half. Instead of an 8:1 MUX for a 3-variable function, use a 4:1 MUX and feed the 3rd variable directly into the data inputs.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M07.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M09.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

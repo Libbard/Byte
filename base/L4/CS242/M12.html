@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS242" data-module="12">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>فئات إضافية من المشاكل (نظرية الحوسبة) · CS242 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS242" data-page-title-en="CS242">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M11.html" data-gh-next="M13.html" data-gh-card="../../hub/course.html?code=CS242"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#restricted-satisfiability-ksat" class="toc-link" data-bilingual>
+        <template class="content-ar">مشكلة الإرضاء المقيدة (k-SAT)</template>
+        <template class="content-en">Restricted Satisfiability Problem (k-SAT)</template>
+        <span class="content-target">مشكلة الإرضاء المقيدة (k-SAT)</span>
+      </a>
+      <a href="#reduction-csat-to-3sat" class="toc-link" data-bilingual>
+        <template class="content-ar">اختزال CSAT إلى 3-SAT</template>
+        <template class="content-en">Reduction of CSAT to 3SAT</template>
+        <span class="content-target">اختزال CSAT إلى 3-SAT</span>
+      </a>
+      <a href="#independent-set-node-cover" class="toc-link" data-bilingual>
+        <template class="content-ar">المجموعة المستقلة وغطاء العقد (Independent Set & Node Cover)</template>
+        <template class="content-en">Independent Set & Node Cover</template>
+        <span class="content-target">المجموعة المستقلة وغطاء العقد (Independent Set & Node Cover)</span>
+      </a>
+      <a href="#polynomial-space-ps-nps" class="toc-link" data-bilingual>
+        <template class="content-ar">المساحة متعددة الحدود (PS و NPS)</template>
+        <template class="content-en">Polynomial Space (PS & NPS)</template>
+        <span class="content-target">المساحة متعددة الحدود (PS و NPS)</span>
+      </a>
+      <a href="#savitchs-theorem" class="toc-link" data-bilingual>
+        <template class="content-ar">نظرية سافيتش (Savitch's Theorem)</template>
+        <template class="content-en">Savitch's Theorem</template>
+        <span class="content-target">نظرية سافيتش (Savitch's Theorem)</span>
+      </a>
+      <a href="#quantified-boolean-formulas-qbf" class="toc-link" data-bilingual>
+        <template class="content-ar">الصيغ المنطقية المكممة (QBF)</template>
+        <template class="content-en">Quantified Boolean Formulas (QBF)</template>
+        <span class="content-target">الصيغ المنطقية المكممة (QBF)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 12</template>
+      <template class="content-en">Module 12</template>
+      <span class="content-target">الوحدة 12</span>
+    </span> · CS242
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">فئات إضافية من المشاكل (نظرية الحوسبة)</h1>
+      <p class="hero-description">تغطية متقدمة لمشاكل NP-Complete الإضافية مثل 3-SAT و Node Cover، ومقدمة لفئات تعقيد المساحة (PS و NPS)، ونظرية سافيتش، ومشاكل QBF.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Additional Classes of Problems (Theory of Computing)</h1>
+      <p class="hero-description">Advanced coverage of additional NP-Complete problems like 3-SAT and Node Cover, introduction to space complexity classes (PS and NPS), Savitch's Theorem, and QBF problems.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">التعقيد الحسابي</span>
+      <span class="tag">NP-Complete</span>
+      <span class="tag">تعقيد المساحة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Computational Complexity</span>
+      <span class="tag">NP-Complete</span>
+      <span class="tag">Space Complexity</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>شرح التعقيدات المختلفة للمشاكل الحسابية.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم مشكلة الإرضاء المقيدة (k-SAT) وكيفية اختزال CSAT إلى 3-SAT.</span></li>
+      <li><span class="obj-icon">✦</span><span>التعرف على مشاكل NP-Complete الإضافية مثل Independent Set و Node Cover.</span></li>
+      <li><span class="obj-icon">✦</span><span>استيعاب فئات المساحة متعددة الحدود (PS و NPS) وإثبات نظرية سافيتش.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل مشكلة الصيغ المنطقية المكممة (QBF) كأول مشكلة PS-Complete.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Explain various complexities of computational problems.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the Restricted Satisfiability Problem (k-SAT) and how to reduce CSAT to 3-SAT.</span></li>
+      <li><span class="obj-icon">✦</span><span>Identify additional NP-Complete problems such as Independent Set and Node Cover.</span></li>
+      <li><span class="obj-icon">✦</span><span>Comprehend Polynomial Space classes (PS and NPS) and the proof of Savitch's Theorem.</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze the Quantified Boolean Formulas (QBF) problem as the premier PS-Complete problem.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="restricted-satisfiability-ksat" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مشكلة الإرضاء المقيدة (k-SAT)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Restricted Satisfiability Problem (k-SAT)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هي مشكلة إرضاء منطقية حيث يحتوي كل قيد (Clause) على عدد k بالضبط من المتغيرات. تخيلها كقفل يتطلب بالضبط k من المفاتيح لفتحه.</p></template>
+    <template class="content-en"><p>A boolean satisfiability problem where each clause contains exactly k literals. Think of it as a lock that requires exactly k specific keys to open.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تكون الصيغة المنطقية في صيغة k-CNF إذا كانت عبارة عن ضرب (AND) لمجموعة من <span class="smart-term" data-term-en="Clause" data-ar="القيد (العبارة)" data-en-def="The logical OR of one or more literals.">القيود</span>، وكل قيد هو جمع (OR) لعدد k بالضبط من <span class="smart-term" data-term-en="Literal" data-ar="المتغير المنطقي (حرفي)" data-en-def="A variable or a negated variable (e.g., x or ¬y).">المتغيرات (Literals)</span>.</p><p>مشكلة 1-SAT و 2-SAT يمكن حلها في وقت خطي (تنتمي للفئة P)، بينما مشكلة 3-SAT وما فوقها هي مشاكل NP-Complete.</p><p>إثبات أن 2-SAT في P يعتمد على تتبع القيم الإجبارية للمتغيرات عند افتراض قيمة معينة.</p></template>
+    <template class="content-en"><p>A boolean expression is in k-CNF if it is the AND of <span class="smart-term" data-term-en="Clause" data-ar="القيد (العبارة)" data-en-def="The logical OR of one or more literals.">clauses</span>, each of which is the OR of exactly k distinct <span class="smart-term" data-term-en="Literal" data-ar="المتغير المنطقي (حرفي)" data-en-def="A variable or a negated variable (e.g., x or ¬y).">literals</span>.</p><p>1-SAT and 2-SAT have linear-time algorithms (they are in P), whereas 3-SAT and higher are NP-complete.</p><p>The proof that 2-SAT is in P relies on picking an assignment and seeing what other truth values are forced, resolving in polynomial time.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>السبب في أن 3-SAT هي NP-Complete بينما 2-SAT في P يعود إلى بنية القيود.</p><ul><li><strong>في 2-SAT،</strong> إذا كان أحد المتغيرين خاطئاً، فإن الآخر يُجبر على أن يكون صحيحاً، مما يسمح ببناء رسم بياني للتبعات (Implication Graph) وحله في وقت خطي.</li><li><strong>أما في 3-SAT،</strong> فإن خطأ متغير واحد يترك خيارين للمتغيرين الآخرين، مما يؤدي إلى تفرع أسي في الاحتمالات.</li></ul></template>
+    <template class="content-en"><p>The reason 3-SAT is NP-Complete while 2-SAT is in P lies in the clause structure.</p><ul><li><strong>In 2-SAT,</strong> falsifying one literal forces the other to be true, allowing the problem to be modeled as an implication graph and solved in linear time.</li><li><strong>In 3-SAT,</strong> falsifying one literal leaves an OR of two other literals, leading to branching possibilities and exponential worst-case time.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>مثال لصيغة 3-SAT حيث يحتوي كل قيد على 3 متغيرات.</strong></template>
+      <template class="content-en"><strong>Example of a 3-SAT formula where each clause has exactly 3 literals.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$(x + y + z)(x + \neg y + z)(x + y + \neg z)$$</div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>2-SAT</th><th>3-SAT</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">عدد المتغيرات في كل قيد</template>
+          <template class="content-en">Literals per clause</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">2 بالضبط</template>
+          <template class="content-en">Exactly 2</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">3 بالضبط</template>
+          <template class="content-en">Exactly 3</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">فئة التعقيد</template>
+          <template class="content-en">Complexity Class</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">P (وقت متعدد الحدود)</template>
+          <template class="content-en">P (Polynomial Time)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">NP-Complete</template>
+          <template class="content-en">NP-Complete</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكننا تحويل كل صيغة منطقية إلى k-SAT مكافئة؟</template>
+      <template class="content-en">Why can't every boolean formula have a k-SAT equivalent?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن بعض الصيغ قد تتطلب عدداً أسياً من القيود عند تحويلها إلى CNF، وليس كل صيغة يمكن تقييدها بـ k متغيرات لكل قيد دون تغيير طبيعة المشكلة أو إضافة متغيرات جديدة (كما نفعل في الاختزال).</p></template>
+      <template class="content-en"><p>Because converting to CNF can exponentiate the size of the formula, and strictly limiting clauses to exactly k literals requires introducing new variables (which preserves satisfiability but not strict logical equivalence).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="reduction-csat-to-3sat" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> اختزال CSAT إلى 3-SAT</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Reduction of CSAT to 3SAT</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هو تحويل أي قيد طويل في CSAT إلى مجموعة من القيود القصيرة (3 متغيرات) بإضافة متغيرات وسيطة جديدة، مثل كسر عصا طويلة إلى قطع صغيرة وربطها بمفاصل.</p></template>
+    <template class="content-en"><p>Converting any long clause in CSAT into a set of short clauses (3 literals) by introducing new intermediate variables, like breaking a long stick into smaller pieces connected by joints.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>لإثبات أن 3-SAT هي NP-Complete، نقوم باختزال مشكلة CSAT (التي نعلم أنها NP-Complete) إليها.</p><p>إذا كان لدينا قيد طويل $(x_1 + x_2 + ... + x_n)$ حيث $n \ge 4$، نقوم بإدخال متغيرات جديدة $y_1, y_2, ..., y_{n-3}$. نستبدل القيد الأصلي بـ: $(x_1 + x_2 + y_1)(x_3 + y_2 + \neg y_1) ... (x_{n-1} + x_n + \neg y_{n-3})$.</p><p>هذا الاختزال يتم في وقت خطي ويحافظ على قابلية الإرضاء.</p></template>
+    <template class="content-en"><p>To prove 3-SAT is NP-Complete, we reduce CSAT to it.</p><p>For a clause $(x_1 + x_2 + ... + x_n)$ with $n \ge 4$, we introduce new variables $y_1, y_2, ..., y_{n-3}$. We replace the clause with: $(x_1 + x_2 + y_1)(x_3 + y_2 + \neg y_1) ... (x_{n-1} + x_n + \neg y_{n-3})$.</p><p>This reduction takes linear time and preserves satisfiability.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المتغيرات الجديدة $y_i$ تعمل كـ 'مرحلات' (Relays).</p><ul><li><strong>إذا كان القيد الأصلي قابلاً للإرضاء،</strong> فإن أحد المتغيرات $x_i$ على الأقل سيكون صحيحاً. يمكننا حينها تعيين قيم المتغيرات $y$ بحيث تكون القيود التي تسبق $x_i$ صحيحة والقيود التي تليها صحيحة أيضاً.</li><li><strong>إذا لم يكن أي $x_i$ صحيحاً،</strong> فإن سلسلة المتغيرات $y$ ستؤدي إلى تناقض في القيد الأخير، مما يجعل الصيغة الجديدة غير قابلة للإرضاء.</li></ul></template>
+    <template class="content-en"><p>The new variables $y_i$ act as 'relays'. If the original clause is satisfiable, at least one $x_i$ is true. We can then assign the $y$ variables such that $y_j = true$ for $j < i-1$ and $y_j = false$ for larger $j$, satisfying all new clauses. If all $x_i$ are false, the chain of $y$ variables forces a contradiction at the last clause, making the new formula unsatisfiable.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>صيغة الاختزال من قيد طويل إلى قيود 3-SAT.</strong></template>
+      <template class="content-en"><strong>The reduction formula from a long clause to 3-SAT clauses.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$(x_1+x_2+y_1)(x_3+y_2+\neg y_1) \dots (x_{n-1}+x_n+\neg y_{n-3})$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا نفعل بالقيود التي تحتوي على متغير واحد أو متغيرين فقط عند التحويل إلى 3-SAT؟</template>
+      <template class="content-en">What do we do with clauses that have only 1 or 2 literals when converting to 3-SAT?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نضيف متغيرات وهمية جديدة. للقيد (x)، نستبدله بـ (x+y1+y2)(x+y1+¬y2)(x+¬y1+y2)(x+¬y1+¬y2). وللقيد (w+x)، نستبدله بـ (w+x+y)(w+x+¬y).</p></template>
+      <template class="content-en"><p>We introduce dummy variables. For (x), we replace it with (x+y1+y2)(x+y1+¬y2)(x+¬y1+y2)(x+¬y1+¬y2). For (w+x), we replace it with (w+x+y)(w+x+¬y).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="independent-set-node-cover" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> المجموعة المستقلة وغطاء العقد (Independent Set & Node Cover)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Independent Set & Node Cover</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>المجموعة المستقلة هي عقد لا ترتبط ببعضها، بينما غطاء العقد هو مجموعة عقد تلمس كل حافة في الرسم البياني. هما وجهان لعملة واحدة.</p></template>
+    <template class="content-en"><p>An Independent Set is a set of nodes with no edges between them. A Node Cover is a set of nodes that touches every edge. They are two sides of the same coin.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في رسم بياني G، المجموعة المستقلة (Independent Set) هي مجموعة فرعية من العقد حيث لا توجد حافة تربط بين أي عقدتين فيها. مشكلة IS تسأل: هل توجد مجموعة مستقلة بحجم k؟</p><p>من ناحية أخرى، غطاء العقد (Node Cover) هو مجموعة من العقد بحيث أن كل حافة في G لها على الأقل نهاية واحدة في هذه المجموعة.</p><p>المشكلتان NP-Complete.</p></template>
+    <template class="content-en"><p>In a graph G, an Independent Set (IS) is a subset of nodes where no two nodes are connected by an edge. The IS problem asks if there is an IS of size k.</p><p>A Node Cover (NC) is a subset of nodes such that every edge in G has at least one endpoint in the subset.</p><p>Both problems are NP-Complete.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>العلاقة بينهما عميقة: إذا كانت N هي غطاء عقد للرسم البياني G الذي يحتوي على V من العقد، فإن V - N (العقد المتبقية) تشكل <span class="smart-term" data-term-en="Maximal Independent Set" data-ar="المجموعة المستقلة العظمى" data-en-def="An independent set that is not a subset of any other independent set.">مجموعة مستقلة</span>.</p><p>يتم إثبات أن Node Cover هي NP-Complete عن طريق الاختزال من 3-SAT، حيث يتم بناء 'أعمدة' من العقد لكل قيد، وحواف أفقية بين المتغيرات ونفيها لضمان عدم اختيار المتغير ونفيه معاً.</p></template>
+    <template class="content-en"><p>The relationship is complementary: If N is a node cover for graph G with vertices V, then V - N is an independent set.</p><p>Node Cover is proven NP-Complete via reduction from 3-SAT. For each clause, a 'column' of 3 nodes is created (connected vertically). Horizontal edges connect variables to their negations to prevent assigning both true simultaneously. The budget k is set to twice the number of clauses.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>المجموعة المستقلة هي مكمل غطاء العقد بالنسبة لمجموعة العقد الكلية.</strong></template>
+      <template class="content-en"><strong>The Independent Set is the complement of the Node Cover with respect to the total vertex set.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$IS = V \setminus NC$$</div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Create a graph showing the reduction from 3-SAT to Node Cover. Show 4 columns of 3 nodes each (representing 4 clauses). Connect the 3 nodes in each column with vertical edges (forming a triangle). Add horizontal curved edges connecting nodes that represent a variable 'x' and its negation '-x'. Highlight a subset of nodes in red to represent the Node Cover. Style: educational, dark background #0d1117, accent color #58a6ff, viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrow marker for conflict edges -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="32" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-400)" />
+        </marker>
+        
+        <!-- Gradient for highlighted Vertex Cover nodes -->
+        <linearGradient id="vc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-600)" />
+            <stop offset="100%" stop-color="var(--brand-800)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title and Subtitle -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)">Reduction from 3-SAT to Vertex Cover / تحويل من 3-SAT إلى غطاء العقد</text>
+        <text x="400" y="65" font-size="15" fill="var(--text-secondary)">Highlighted nodes form a Vertex Cover (size 2m) corresponding to a satisfying assignment</text>
+    </g>
+
+    <!-- Clause Gadgets (Triangles) -->
+    <g stroke="var(--text-muted)" stroke-width="2" fill="none">
+        <!-- C1 -->
+        <path d="M 137.5 180 L 102.5 260 L 172.5 260 Z" />
+        <!-- C2 -->
+        <path d="M 312.5 180 L 277.5 260 L 347.5 260 Z" />
+        <!-- C3 -->
+        <path d="M 487.5 180 L 452.5 260 L 522.5 260 Z" />
+        <!-- C4 -->
+        <path d="M 662.5 180 L 627.5 260 L 697.5 260 Z" />
+    </g>
+
+    <!-- Conflict Edges (Consistency between x and ¬x) -->
+    <g stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrow)">
+        <!-- x1 conflicts -->
+        <path d="M 137.5 180 Q 225 130 312.5 180" />
+        <path d="M 487.5 180 Q 400 130 312.5 180" />
+        <path d="M 487.5 180 Q 575 130 662.5 180" />
+        <path d="M 137.5 180 Q 400 80 662.5 180" />
+
+        <!-- x2 conflicts -->
+        <path d="M 102.5 260 Q 190 310 277.5 260" />
+        <path d="M 627.5 260 Q 452.5 380 277.5 260" />
+
+        <!-- x3 conflicts -->
+        <path d="M 172.5 260 Q 312.5 320 452.5 260" />
+
+        <!-- x4 conflicts -->
+        <path d="M 347.5 260 Q 435 310 522.5 260" />
+        <path d="M 347.5 260 Q 522.5 340 697.5 260" />
+    </g>
+
+    <!-- Nodes -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">
+        
+        <!-- Clause 1 -->
+        <!-- n11: x1 (Vertex Cover) -->
+        <circle cx="137.5" cy="180" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="137.5" y="185" fill="var(--bg-surface)">x₁</text>
+        <!-- n12: x2 (Independent Set) -->
+        <circle cx="102.5" cy="260" r="18" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="102.5" y="265" fill="var(--text-primary)">x₂</text>
+        <!-- n13: x3 (Vertex Cover) -->
+        <circle cx="172.5" cy="260" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="172.5" y="265" fill="var(--bg-surface)">x₃</text>
+
+        <!-- Clause 2 -->
+        <!-- n21: ¬x1 (Independent Set) -->
+        <circle cx="312.5" cy="180" r="18" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="312.5" y="185" fill="var(--text-primary)">¬x₁</text>
+        <!-- n22: ¬x2 (Vertex Cover) -->
+        <circle cx="277.5" cy="260" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="277.5" y="265" fill="var(--bg-surface)">¬x₂</text>
+        <!-- n23: x4 (Vertex Cover) -->
+        <circle cx="347.5" cy="260" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="347.5" y="265" fill="var(--bg-surface)">x₄</text>
+
+        <!-- Clause 3 -->
+        <!-- n31: x1 (Vertex Cover) -->
+        <circle cx="487.5" cy="180" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="487.5" y="185" fill="var(--bg-surface)">x₁</text>
+        <!-- n32: ¬x3 (Independent Set) -->
+        <circle cx="452.5" cy="260" r="18" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="452.5" y="265" fill="var(--text-primary)">¬x₃</text>
+        <!-- n33: ¬x4 (Vertex Cover) -->
+        <circle cx="522.5" cy="260" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="522.5" y="265" fill="var(--bg-surface)">¬x₄</text>
+
+        <!-- Clause 4 -->
+        <!-- n41: ¬x1 (Vertex Cover) -->
+        <circle cx="662.5" cy="180" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="662.5" y="185" fill="var(--bg-surface)">¬x₁</text>
+        <!-- n42: x2 (Independent Set) -->
+        <circle cx="627.5" cy="260" r="18" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="627.5" y="265" fill="var(--text-primary)">x₂</text>
+        <!-- n43: ¬x4 (Vertex Cover) -->
+        <circle cx="697.5" cy="260" r="18" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="697.5" y="265" fill="var(--bg-surface)">¬x₄</text>
+    </g>
+
+    <!-- Clause Labels (Inside Triangles) -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">
+        <text x="137.5" y="235">C₁</text>
+        <text x="312.5" y="235">C₂</text>
+        <text x="487.5" y="235">C₃</text>
+        <text x="662.5" y="235">C₄</text>
+    </g>
+
+    <!-- Formula Display -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">
+        <text x="400" y="410" fill="var(--text-primary)">
+            <tspan font-weight="bold">Formula / الصيغة:</tspan>
+            <tspan fill="var(--text-secondary)"> (x₁ ∨ x₂ ∨ x₃) ∧ (¬x₁ ∨ ¬x₂ ∨ x₄) ∧ (x₁ ∨ ¬x₃ ∨ ¬x₄) ∧ (¬x₁ ∨ x₂ ∨ ¬x₄)</tspan>
+        </text>
+    </g>
+
+    <!-- Legend -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="start">
+        <circle cx="120" cy="458" r="8" fill="url(#vc-grad)" stroke="var(--brand-500)" stroke-width="2" />
+        <text x="135" y="463" fill="var(--text-primary)">Vertex Cover / غطاء العقد</text>
+
+        <circle cx="340" cy="458" r="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="355" y="463" fill="var(--text-primary)">Independent Set / مجموعة مستقلة</text>
+
+        <line x1="580" y1="458" x2="610" y2="458" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+        <text x="625" y="463" fill="var(--text-primary)">Conflict / تعارض</text>
+    </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان إيجاد غطاء عقد بحجم k هو NP-Complete، فهل إيجاد غطاء عقد بأي حجم هو أيضاً NP-Complete؟</template>
+      <template class="content-en">If finding a node cover of size k is NP-Complete, is finding a node cover of ANY size also NP-Complete?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، إيجاد غطاء عقد بأي حجم هو أمر تافه (يمكنك اختيار كل العقد في الرسم البياني). الصعوبة تكمن في إيجاد غطاء عقد بحجم أقل من أو يساوي ميزانية محددة k (أو إيجاد أصغر غطاء عقد).</p></template>
+      <template class="content-en"><p>No, finding a node cover of ANY size is trivial (just pick all nodes). The NP-Complete problem is the decision problem: finding a node cover of size less than or equal to a specific budget k.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="polynomial-space-ps-nps" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> المساحة متعددة الحدود (PS و NPS)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Polynomial Space (PS & NPS)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>PS هي المشاكل التي يمكن حلها باستخدام كمية ذاكرة (مساحة) تتناسب مع حجم المدخلات، بغض النظر عن الوقت المستغرق. المساحة أهم من الوقت هنا.</p></template>
+    <template class="content-en"><p>PS is the class of problems solvable using an amount of memory (space) bounded by a polynomial of the input size, regardless of time taken. Space is the primary constraint here.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>فئة PS (Polynomial Space) تشمل جميع اللغات التي يمكن التعرف عليها بواسطة آلة تورينج حتمية (DTM) تستخدم مساحة $p(n)$ كحد أقصى.</p><p>فئة NPS هي نفس المفهوم ولكن باستخدام آلة تورينج غير حتمية (NDTM).</p><p>من الواضح أن $P \subseteq PS$ و $NP \subseteq NPS$، لأنه في وقت متعدد الحدود لا يمكنك زيارة أكثر من عدد متعدد الحدود من خلايا الشريط.</p></template>
+    <template class="content-en"><p>The class PS (Polynomial Space) includes all languages recognizable by a Deterministic Turing Machine (DTM) that uses at most $p(n)$ tape cells.</p><p>NPS is the nondeterministic counterpart (NDTM).</p><p>Obviously, $P \subseteq PS$ and $NP \subseteq NPS$, because in polynomial time, a machine cannot visit more than a polynomial number of tape cells.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على الرغم من أن كل مشكلة في P يمكن حلها في PS، إلا أنه من غير المعروف ما إذا كان $P = PS$.</p><p>النقطة الأساسية في آلات المساحة المحدودة هي أن عدد <span class="smart-term" data-term-en="Instantaneous Description (ID)" data-ar="الوصف اللحظي" data-en-def="A snapshot of a Turing Machine's state, tape contents, and head position.">الحالات الممكنة (IDs)</span> محدود بـ $c^{p(n)}$. يمكننا عد الخطوات حتى $c^{p(n)}$ وإيقاف الآلة إذا تجاوزت هذا الحد، لأنها ستكون قد دخلت في حلقة مفرغة (Infinite Loop).</p></template>
+    <template class="content-en"><p>Although every problem in P is in PS, it remains an open question whether $P = PS$.</p><p>A key property of polyspace-bounded TMs is that the total number of possible <span class="smart-term" data-term-en="Instantaneous Description (ID)" data-ar="الوصف اللحظي" data-en-def="A snapshot of a Turing Machine's state, tape contents, and head position.">Instantaneous Descriptions (IDs)</span> is bounded by $c^{p(n)}$. We can count up to $c^{p(n)}$ in polyspace and halt the machine if it exceeds this, as it must have repeated an ID (entered an infinite loop).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>العلاقة بين فئات التعقيد المختلفة.</strong></template>
+      <template class="content-en"><strong>The relationship between different complexity classes.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$P \subseteq NP \subseteq PS \subseteq EP$$</div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>PS</th><th>NPS</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نوع الآلة</template>
+          <template class="content-en">Machine Type</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">DTM (حتمية)</template>
+          <template class="content-en">DTM (Deterministic)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">NDTM (غير حتمية)</template>
+          <template class="content-en">NDTM (Nondeterministic)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">العلاقة بينهما</template>
+          <template class="content-en">Relationship</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">PS = NPS (حسب نظرية سافيتش)</template>
+          <template class="content-en">PS = NPS (by Savitch's Theorem)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">NPS = PS</template>
+          <template class="content-en">NPS = PS</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن أن تتجاوز المساحة المستخدمة الوقت المستغرق في آلة تورينج؟</template>
+      <template class="content-en">Why can't the space used exceed the time taken in a Turing Machine?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن آلة تورينج يمكنها زيارة خلية شريط واحدة فقط في كل خطوة زمنية. وبالتالي، الحد الأقصى لعدد الخلايا التي يمكن زيارتها (المساحة) هو بالضبط عدد الخطوات الزمنية المنفذة.</p></template>
+      <template class="content-en"><p>Because a Turing Machine can only visit one new tape cell per time step. Therefore, the maximum number of cells visited (space) is bounded by the number of steps taken (time).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="savitchs-theorem" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> نظرية سافيتش (Savitch's Theorem)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Savitch's Theorem</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تثبت أن PS = NPS. أي مشكلة يمكن حلها بمساحة متعددة الحدود بشكل غير حتمي، يمكن حلها بشكل حتمي بمساحة أكبر قليلاً (تربيع المساحة الأصلية).</p></template>
+    <template class="content-en"><p>Proves that PS = NPS. Any problem solvable in polynomial space nondeterministically can be solved deterministically in slightly more space (squaring the original space).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>نظرية سافيتش هي نتيجة مفاجئة تنص على أن $PS = NPS$. الفكرة الأساسية هي أن آلة NTM ذات مساحة متعددة الحدود لديها عدد محدود من الحالات $c^{p(n)}$.</p><p>لمحاكاة هذه الآلة بشكل حتمي، نستخدم خوارزمية '<span class="smart-term" data-term-en="Recursive Doubling" data-ar="المضاعفة العودية" data-en-def="A divide-and-conquer technique used in Savitch's theorem to check reachability in a graph by finding a midpoint.">المضاعفة العودية</span>' (Recursive Doubling). للتحقق مما إذا كان يمكن الوصول من الحالة I إلى الحالة J في $m$ خطوة، نبحث عن حالة وسيطة K بحيث يمكن الوصول من I إلى K، ومن K إلى J، كل منهما في $m/2$ خطوة.</p></template>
+    <template class="content-en"><p>Savitch's Theorem is a surprising result stating that $PS = NPS$. The core idea is that a polyspace NTM has at most $c^{p(n)}$ IDs.</p><p>To simulate this deterministically, we use a '<span class="smart-term" data-term-en="Recursive Doubling" data-ar="المضاعفة العودية" data-en-def="A divide-and-conquer technique used in Savitch's theorem to check reachability in a graph by finding a midpoint.">Recursive Doubling</span>' algorithm. To check if ID I can reach ID J in $m$ moves, we search for an intermediate ID K such that I reaches K, and K reaches J, both in $\le m/2$ moves.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تحليل المساحة لخوارزمية المضاعفة العودية:</p><ul><li>الدالة $f(I, J, m)$ تتطلب مساحة $O(p(n))$ لتخزين I و J و m و K الحالي.</li><li>بما أننا نقسم $m$ على 2 في كل استدعاء عودي، فإن أقصى عمق لمكدس الاستدعاءات (Call Stack) هو $\log_2(c^{p(n)}) = O(p(n))$.</li><li>إجمالي المساحة المطلوبة هو عمق المكدس مضروباً في مساحة كل استدعاء، أي $O(p(n)) \times O(p(n)) = O(p^2(n))$.</li></ul><p>بما أن مربع متعدد الحدود هو متعدد حدود، فإن المحاكاة تتم في مساحة متعددة الحدود.</p></template>
+    <template class="content-en"><p>Space analysis of Recursive Doubling:</p><ul><li>The function $f(I, J, m)$ requires $O(p(n))$ space to store I, J, m, and the current K.</li><li>Since we halve $m$ at each recursive call, the maximum depth of the call stack is $\log_2(c^{p(n)}) = O(p(n))$.</li><li>The total space is the stack depth times the space per call: $O(p(n)) \times O(p(n)) = O(p^2(n))$.</li></ul><p>Since the square of a polynomial is still a polynomial, the simulation runs in polynomial space.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الصيغة الرياضية لنظرية سافيتش.</strong></template>
+      <template class="content-en"><strong>The mathematical formulation of Savitch's Theorem.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$NSPACE(p(n)) \subseteq DSPACE(p^2(n))$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button></div>
+    <pre class="pseudo-block"><code>boolean function f(I, J, m) {
+  for (all ID’s K using p(n) tape)
+    if (f(I, K, m/2) && f(K, J, m/2))
+      return true;
+  return false;
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show the stack implementation of the recursive doubling function 'f'. Draw a horizontal sequence of stack frames (rectangles). Frame 1: 'I, J, m' (O(p(n)) space). Frame 2: 'I, K, m/2' (O(p(n)) space). Frame 3: 'L, K, m/4' (O(p(n)) space). Add an ellipsis '...' then a final frame 'M, N, 1'. Below the entire sequence, draw a large curly brace labeled 'O(p^2(n)) space'. Style: educational, dark background #0d1117, accent color #ff7b72, viewBox 0 0 800 300. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 350" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrowhead Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+    
+    <!-- Drop Shadow for Stack Frames -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" rx="8"/>
+
+  <!-- Main Titles -->
+  <text x="400" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" text-anchor="middle">Stack Frames for Recursive Doubling Function 'f'</text>
+  <text x="400" y="65" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">إطارات المكدس لدالة المضاعفة العودية</text>
+
+  <!-- ================= FRAME 1 ================= -->
+  <text x="115" y="100" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" text-anchor="middle">Frame 1 / الإطار 1</text>
+  <rect x="50" y="110" width="130" height="100" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+  
+  <text x="115" y="142" fill="var(--text-primary)" font-family="monospace, system-ui, sans-serif" font-size="18" font-weight="bold" text-anchor="middle">I, J, m</text>
+  <line x1="50" y1="160" x2="180" y2="160" stroke="var(--border-color)" stroke-width="1"/>
+  <text x="115" y="192" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">O(p(n)) space</text>
+
+  <!-- Arrow 1 to 2 -->
+  <line x1="185" y1="160" x2="222" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ================= FRAME 2 ================= -->
+  <text x="295" y="100" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" text-anchor="middle">Frame 2 / الإطار 2</text>
+  <rect x="230" y="110" width="130" height="100" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+  
+  <text x="295" y="142" fill="var(--text-primary)" font-family="monospace, system-ui, sans-serif" font-size="18" font-weight="bold" text-anchor="middle">I, K, m/2</text>
+  <line x1="230" y1="160" x2="360" y2="160" stroke="var(--border-color)" stroke-width="1"/>
+  <text x="295" y="192" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">O(p(n)) space</text>
+
+  <!-- Arrow 2 to 3 -->
+  <line x1="365" y1="160" x2="402" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ================= FRAME 3 ================= -->
+  <text x="475" y="100" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" text-anchor="middle">Frame 3 / الإطار 3</text>
+  <rect x="410" y="110" width="130" height="100" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+  
+  <text x="475" y="142" fill="var(--text-primary)" font-family="monospace, system-ui, sans-serif" font-size="18" font-weight="bold" text-anchor="middle">L, K, m/4</text>
+  <line x1="410" y1="160" x2="540" y2="160" stroke="var(--border-color)" stroke-width="1"/>
+  <text x="475" y="192" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">O(p(n)) space</text>
+
+  <!-- Arrow 3 to Ellipsis -->
+  <line x1="545" y1="160" x2="555" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ================= ELLIPSIS ================= -->
+  <text x="580" y="168" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="28" font-weight="bold" text-anchor="middle" letter-spacing="4">...</text>
+
+  <!-- Arrow Ellipsis to Final -->
+  <line x1="605" y1="160" x2="612" y2="160" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ================= FINAL FRAME ================= -->
+  <text x="685" y="100" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="600" text-anchor="middle">Final / الإطار الأخير</text>
+  <rect x="620" y="110" width="130" height="100" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" filter="url(#shadow)"/>
+  
+  <text x="685" y="142" fill="var(--text-primary)" font-family="monospace, system-ui, sans-serif" font-size="18" font-weight="bold" text-anchor="middle">M, N, 1</text>
+  <line x1="620" y1="160" x2="750" y2="160" stroke="var(--border-color)" stroke-width="1"/>
+  <text x="685" y="192" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">O(p(n)) space</text>
+
+  <!-- ================= BOTTOM BRACE & LABEL ================= -->
+  <!-- Curly Brace spanning all frames -->
+  <path d="M 50,230 Q 50,250 70,250 L 380,250 Q 400,250 400,270 Q 400,250 420,250 L 730,250 Q 750,250 750,230" fill="none" stroke="var(--brand-500)" stroke-width="2"/>
+
+  <!-- Total Space Labels -->
+  <text x="400" y="305" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Total Space: O(p²(n))</text>
+  <text x="400" y="330" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">المساحة الإجمالية: O(p²(n))</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم خوارزمية البحث في العمق (DFS) العادية لمحاكاة NTM بدلاً من المضاعفة العودية؟</template>
+      <template class="content-en">Why don't we use standard Depth-First Search (DFS) to simulate the NTM instead of recursive doubling?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>البحث في العمق (DFS) يتطلب تتبع جميع العقد التي تمت زيارتها لتجنب الحلقات، مما يتطلب مساحة تتناسب مع عدد العقد الكلي $c^{p(n)}$، وهي مساحة أسية. المضاعفة العودية تعيد حساب المسارات بدلاً من تخزينها، مما يضحي بالوقت (يصبح أسياً) من أجل توفير المساحة (تبقى متعددة الحدود).</p></template>
+      <template class="content-en"><p>Standard DFS requires keeping track of all visited nodes to avoid cycles, which takes space proportional to the total number of nodes $c^{p(n)}$ (exponential space). Recursive doubling recomputes paths instead of storing them, trading time (which becomes exponential) to save space (which remains polynomial).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="quantified-boolean-formulas-qbf" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> الصيغ المنطقية المكممة (QBF)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Quantified Boolean Formulas (QBF)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هي صيغ منطقية تحتوي على محددات الكمية (يوجد $\exists$، ولكل $\forall$). مشكلة تحديد ما إذا كانت صيغة QBF صحيحة هي مشكلة PS-Complete.</p></template>
+    <template class="content-en"><p>Boolean formulas that include quantifiers (exists $\exists$, for all $\forall$). Determining if a QBF is true is a PS-Complete problem.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>مشكلة QBF تسأل: بالنظر إلى صيغة QBF بدون <span class="smart-term" data-term-en="Free Variable" data-ar="المتغير الحر" data-en-def="A variable in a formula that is not bound by any quantifier.">متغيرات حرة (Free Variables)</span>، هل قيمتها 1 (صحيحة)؟</p><p>هذه المشكلة أصعب من SAT بسبب تناوب المحددات (Alternation of quantifiers). إذا استخدمنا المحدد $\exists$ فقط، فإن المشكلة تعود لتكون SAT العادية.</p><p>إثبات أن QBF تنتمي إلى PS يتم عبر تقييم الصيغة باستخدام مكدس (Stack) بعمق $n$، مما يستهلك مساحة $O(n^2)$.</p></template>
+    <template class="content-en"><p>The QBF problem asks: Given a QBF with no <span class="smart-term" data-term-en="Free Variable" data-ar="المتغير الحر" data-en-def="A variable in a formula that is not bound by any quantifier.">free variables</span>, is its value 1 (true)?</p><p>This is harder than SAT due to the alternation of quantifiers. If only $\exists$ is used, it's just SAT.</p><p>Proving QBF is in PS involves evaluating the formula using a stack of subexpressions. The stack depth is at most $n$, and each subexpression is length $\le n$, using $O(n^2)$ space.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لإثبات أن QBF هي PS-Complete، يجب إثبات أن أي مشكلة في PS يمكن اختزالها إلى QBF في وقت متعدد الحدود.</p><p>يتم ذلك باستخدام فكرة المضاعفة العودية (من نظرية سافيتش) لبناء صيغة QBF تعبر عن 'توجد سلسلة من $c^{p(n)}$ خطوة لآلة M تؤدي إلى قبول المدخل w'.</p><p>استخدام المحددات $\forall$ و $\exists$ يسمح بضغط هذه الصيغة بحيث يكون حجمها متعدد الحدود، بدلاً من أن يكون أسياً.</p></template>
+    <template class="content-en"><p>To prove QBF is PS-Complete, we must reduce any PS problem to QBF in polynomial time.</p><p>This uses the recursive doubling idea (from Savitch's Theorem) to construct a QBF stating 'there is a sequence of $c^{p(n)}$ moves of M leading to acceptance of w'.</p><p>The quantifiers $\forall$ and $\exists$ allow us to compress this formula so its size remains polynomial, rather than exponential.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>مثال لصيغة QBF توضح المتغيرات المقيدة.</strong></template>
+      <template class="content-en"><strong>Example of a QBF formula showing bound variables.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$(\forall x)(\exists y)((( \exists x)(x \lor y)) \land \neg (x \land y))$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا كانت صيغة QBF تحتوي على متغيرات حرة؟</template>
+      <template class="content-en">What happens if a QBF formula contains free variables?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا يمكن تقييمها كـ 'صحيح' أو 'خطأ' بشكل مطلق، بل تعتمد قيمتها على القيم المخصصة لتلك المتغيرات الحرة. مشكلة QBF القياسية تفترض عدم وجود متغيرات حرة.</p></template>
+      <template class="content-en"><p>It cannot be evaluated to a definitive 'true' or 'false' value; its truth depends on the assignments given to those free variables. The standard QBF decision problem assumes no free variables.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة الدسمة. اليوم ننتقل من مجرد الحديث عن الوقت (P و NP) إلى الحديث عن 'المساحة' (الذاكرة). تخيل أنك تحل لغزاً معقداً؛ في مشاكل NP نحن نهتم بمدى سرعة حلك للغز، لكن في مشاكل PS نحن نهتم بمقدار 'الورق المسود' الذي تحتاجه، حتى لو استغرقت مليون سنة! تذكروا جيداً الفرق الجوهري بين 2-SAT (السهلة، في P) و 3-SAT (الصعبة، NP-Complete). ركزوا على 'نظرية سافيتش' للامتحان، فهي تثبت بشكل عبقري أن المساحة غير الحتمية لا تعطيك قوة خارقة مقارنة بالمساحة الحتمية (PS = NPS)، وذلك باستخدام حيلة 'المضاعفة العودية' التي تستهلك مساحة O(p^2(n)). وأخيراً، مشكلة QBF هي 'الوحش' الجديد هنا، فهي PS-Complete لأن تناوب المحددات (لكل، ويوجد) يجعلها تتطلب فحص شجرة احتمالات كاملة. راجعوا الاختزالات جيداً، وتذكروا أن الاختزال يجب أن يكون دائماً في وقت متعدد الحدود!</template>
+    <template class="content-en">Welcome friends to this dense module. Today we shift our focus from Time (P and NP) to Space (Memory). Imagine solving a puzzle; in NP we care how fast you solve it, but in PS we care how much 'scratch paper' you need, even if it takes a million years! Remember the stark contrast between 2-SAT (easy, in P) and 3-SAT (hard, NP-Complete). For the exam, focus heavily on Savitch's Theorem. It brilliantly proves that nondeterminism doesn't give you a superpower in space complexity (PS = NPS) by using the 'Recursive Doubling' trick, which uses O(p^2(n)) space. Finally, QBF is our new 'boss monster'; it's PS-Complete because the alternation of quantifiers forces us to evaluate an entire tree of possibilities. Review your reductions, and always remember: reductions must be in polynomial TIME!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا 2-SAT تنتمي لـ P بينما 3-SAT هي NP-Complete؟</template>
+          <template class="content-en">Why is 2-SAT in P while 3-SAT is NP-Complete?</template>
+          <span class="content-target">لماذا 2-SAT تنتمي لـ P بينما 3-SAT هي NP-Complete؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">في 2-SAT، كل قيد يحتوي على متغيرين. إذا افترضنا أن أحدهما خاطئ، فإن الآخر يُجبر فوراً على أن يكون صحيحاً، مما يسمح بحلها خطياً. في 3-SAT، خطأ متغير واحد يترك خيارين، مما يؤدي إلى تفرع أسي.</template>
+          <template class="content-en">In 2-SAT, each clause has 2 literals. Falsifying one immediately forces the other to be true, allowing linear-time resolution. In 3-SAT, falsifying one leaves two choices, leading to exponential branching.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نختزل قيد طويل في CSAT إلى 3-SAT؟</template>
+          <template class="content-en">How do we reduce a long CSAT clause to 3-SAT?</template>
+          <span class="content-target">كيف نختزل قيد طويل في CSAT إلى 3-SAT؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نضيف متغيرات وسيطة (y) لكسر القيد الطويل. القيد (x1+x2+x3+x4) يصبح (x1+x2+y1) AND (x3+x4+¬y1). المتغير y1 يعمل كمرحل ينقل حالة الإرضاء عبر القيود.</template>
+          <template class="content-en">We introduce intermediate variables (y) to break the long clause. (x1+x2+x3+x4) becomes (x1+x2+y1) AND (x3+x4+¬y1). The y1 acts as a relay passing the satisfaction state.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العلاقة بين Independent Set و Node Cover؟</template>
+          <template class="content-en">What is the relationship between Independent Set and Node Cover?</template>
+          <span class="content-target">ما هي العلاقة بين Independent Set و Node Cover؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هما مكملان لبعضهما. إذا كان لديك رسم بياني V، ووجدت غطاء عقد NC، فإن العقد المتبقية (V - NC) تشكل مجموعة مستقلة IS.</template>
+          <template class="content-en">They are complements. If you have a graph V and find a Node Cover NC, the remaining nodes (V - NC) form an Independent Set IS.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني فئة Co-NP؟</template>
+          <template class="content-en">What does the Co-NP class mean?</template>
+          <span class="content-target">ماذا تعني فئة Co-NP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي فئة المشاكل التي يكون 'مكملها' (عكس سؤالها) ينتمي إلى NP. يُعتقد أن مشاكل NP-Complete ليست في Co-NP.</template>
+          <template class="content-en">It is the class of problems whose complement is in NP. It is widely believed that NP-Complete problems are not in Co-NP.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل P تساوي PS؟</template>
+          <template class="content-en">Is P equal to PS?</template>
+          <span class="content-target">هل P تساوي PS؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعلم أن P هي مجموعة فرعية من PS (P ⊆ PS)، لكن من غير المعروف حتى الآن ما إذا كانتا متساويتين. معظم العلماء يعتقدون أنهما غير متساويتين.</template>
+          <template class="content-en">We know P is a subset of PS (P ⊆ PS), but it is currently unknown if they are equal. Most scientists believe they are not.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي الفكرة الأساسية لنظرية سافيتش؟</template>
+          <template class="content-en">What is the core idea of Savitch's Theorem?</template>
+          <span class="content-target">ما هي الفكرة الأساسية لنظرية سافيتش؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تثبت أن PS = NPS باستخدام خوارزمية 'المضاعفة العودية'. بدلاً من تخزين مسارات البحث (مما يستهلك مساحة أسية)، تقوم بإعادة حساب المسارات للتحقق من إمكانية الوصول، مستهلكة مساحة O(p^2(n)) فقط.</template>
+          <template class="content-en">It proves PS = NPS using 'Recursive Doubling'. Instead of storing search paths (which takes exponential space), it recomputes paths to check reachability, using only O(p^2(n)) space.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم الوقت متعدد الحدود للاختزال في مشاكل PS-Complete وليس المساحة؟</template>
+          <template class="content-en">Why use polynomial time for reductions in PS-Complete problems instead of space?</template>
+          <span class="content-target">لماذا نستخدم الوقت متعدد الحدود للاختزال في مشاكل PS-Complete وليس المساحة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الاختزال بمساحة متعددة الحدود قد يستغرق وقتاً أسياً وينتج مخرجات بحجم أسي. إذا حدث ذلك، فلن نتمكن من الإجابة على سؤال P = PS.</template>
+          <template class="content-en">Because a polyspace reduction could take exponential time and produce an exponentially large output. If that happens, we couldn't use it to answer the P = PS question.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الذي يجعل مشكلة QBF صعبة جداً (PS-Complete)؟</template>
+          <template class="content-en">What makes the QBF problem so hard (PS-Complete)?</template>
+          <span class="content-target">ما الذي يجعل مشكلة QBF صعبة جداً (PS-Complete)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">وجود محددات الكمية (لكل ∀، ويوجد ∃) وتناوبها. هذا يجبرنا على تقييم شجرة احتمالات كاملة بدلاً من مجرد البحث عن مسار واحد صحيح كما في SAT.</template>
+          <template class="content-en">The presence and alternation of quantifiers (∀ and ∃). This forces us to evaluate an entire tree of possibilities rather than just finding a single valid path like in SAT.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن لمشكلة في PS أن تستغرق وقتاً أسياً؟</template>
+          <template class="content-en">Can a problem in PS take exponential time?</template>
+          <span class="content-target">هل يمكن لمشكلة في PS أن تستغرق وقتاً أسياً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم! الآلة التي تستخدم مساحة p(n) يمكن أن تمر بعدد c^{p(n)} من الحالات المختلفة قبل أن تتوقف. لذا المساحة المحدودة لا تمنع الوقت الأسي.</template>
+          <template class="content-en">Yes! A machine using p(n) space can go through c^{p(n)} different states before halting. So bounded space does not prevent exponential time.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نثبت أن QBF تنتمي إلى PS؟</template>
+          <template class="content-en">How do we prove that QBF is in PS?</template>
+          <span class="content-target">كيف نثبت أن QBF تنتمي إلى PS؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يمكننا تقييم صيغة QBF باستخدام مكدس (Stack) لتتبع التعبيرات الفرعية. أقصى عمق للمكدس هو n، وكل تعبير طوله n، مما يعني أننا نحتاج مساحة O(n^2) فقط، وهي متعددة الحدود.</template>
+          <template class="content-en">We can evaluate a QBF formula using a stack to track subexpressions. The maximum stack depth is n, and each expression is length n, meaning we only need O(n^2) space, which is polynomial.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو المتغير المنطقي (Literal)؟",
+      "en": "What is a Literal?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو إما متغير أو نفي لمتغير.",
+        "en": "A literal is either a variable, or a negated variable."
+      },
+      "example": {
+        "ar": "x أو ¬y",
+        "en": "x and ¬y"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو القيد (Clause)؟",
+      "en": "What is a Clause?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو عملية OR المنطقية لمتغير منطقي واحد أو أكثر.",
+        "en": "The logical OR of one or more literals."
+      },
+      "example": {
+        "ar": "x ∨ y ∨ ¬z",
+        "en": "x ∨ y ∨ ¬z"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي صيغة CNF؟",
+      "en": "What is CNF (Conjunctive Normal Form)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "صيغة منطقية تتكون من عملية AND لمجموعة من القيود (Clauses).",
+        "en": "A boolean expression that is the AND of clauses."
+      },
+      "example": {
+        "ar": "(x ∨ y) ∧ (¬x ∨ z)",
+        "en": "(x ∨ y) ∧ (¬x ∨ z)"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هي مشكلة k-SAT؟",
+      "en": "What is the k-SAT problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مشكلة إرضاء لصيغة منطقية في شكل CNF حيث يحتوي كل قيد على عدد k بالضبط من المتغيرات.",
+        "en": "A satisfiability problem for a boolean expression in CNF where each clause has exactly k distinct literals."
+      },
+      "example": {
+        "ar": "3-SAT تتطلب 3 متغيرات في كل قيد.",
+        "en": "3-SAT requires exactly 3 literals per clause."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي فئة التعقيد لمشكلة 2-SAT؟",
+      "en": "What is the complexity class of 2-SAT?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنتمي إلى الفئة P (يمكن حلها في وقت خطي).",
+        "en": "It is in P (solvable in linear time)."
+      },
+      "example": {
+        "ar": "خوارزمية تتبع القيم الإجبارية تحلها في O(n^3) أو أفضل.",
+        "en": "Forcing truth values solves it in polynomial time."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي فئة التعقيد لمشكلة 3-SAT؟",
+      "en": "What is the complexity class of 3-SAT?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هي مشكلة NP-Complete.",
+        "en": "It is NP-Complete."
+      },
+      "example": {
+        "ar": "يتم إثباتها عبر الاختزال من مشكلة SAT العامة.",
+        "en": "Proven by reduction from the general SAT problem."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "كيف يتم اختزال قيد طويل في CSAT إلى 3-SAT؟",
+      "en": "How is a long clause in CSAT reduced to 3-SAT?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بإضافة متغيرات جديدة (y) لتقسيم القيد الطويل إلى سلسلة من القيود الثلاثية.",
+        "en": "By introducing new variables (y) to split the long clause into a chain of 3-literal clauses."
+      },
+      "example": {
+        "ar": "(x1+x2+y1)(x3+y2+¬y1)...",
+        "en": "(x1+x2+y1)(x3+y2+¬y1)..."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي المجموعة المستقلة (Independent Set)؟",
+      "en": "What is an Independent Set?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة فرعية من العقد في رسم بياني لا توجد بينها أي حواف.",
+        "en": "A subset of nodes in a graph where no two nodes are connected by an edge."
+      },
+      "example": {
+        "ar": "في مثلث، أي عقدة واحدة هي مجموعة مستقلة.",
+        "en": "In a triangle graph, any single node is an independent set."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو غطاء العقد (Node Cover)؟",
+      "en": "What is a Node Cover?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة من العقد بحيث أن كل حافة في الرسم البياني لها نهاية واحدة على الأقل في هذه المجموعة.",
+        "en": "A set of nodes such that every edge in the graph has at least one endpoint in the set."
+      },
+      "example": {
+        "ar": "العقد المتبقية بعد إزالة مجموعة مستقلة تشكل غطاء عقد.",
+        "en": "The nodes remaining after removing an independent set form a node cover."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي مشكلة الدائرة الهاملتونية (Hamiltonian Circuit)؟",
+      "en": "What is the Hamiltonian Circuit problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إيجاد مسار مغلق (دائرة) في رسم بياني يزور كل عقدة مرة واحدة بالضبط.",
+        "en": "Finding a cycle in a graph that visits every vertex exactly once."
+      },
+      "example": {
+        "ar": "وهي مشكلة NP-Complete.",
+        "en": "It is an NP-Complete problem."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي مشكلة البائع المتجول (TSP)؟",
+      "en": "What is the Traveling Salesman Problem (TSP)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إيجاد أقصر مسار يزور كل العقد مرة واحدة ويعود لنقطة البداية في رسم بياني موزون.",
+        "en": "Determining the shortest tour that visits all vertices exactly once and returns to the start."
+      },
+      "example": {
+        "ar": "وهي مشكلة NP-Complete.",
+        "en": "It is an NP-Complete problem."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي فئة Co-NP؟",
+      "en": "What is the Co-NP class?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة المشاكل التي يكون مكملها (Complement) ينتمي إلى فئة NP.",
+        "en": "A problem/language whose complement is in NP."
+      },
+      "example": {
+        "ar": "يُعتقد أن مشاكل NP-Complete ليست في Co-NP.",
+        "en": "It is believed that NP-Complete problems are not in Co-NP."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هي فئة المساحة متعددة الحدود (PS)؟",
+      "en": "What is Polynomial Space (PS)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اللغات التي يمكن التعرف عليها بواسطة آلة تورينج حتمية تستخدم مساحة p(n) كحد أقصى.",
+        "en": "Languages recognizable by a deterministic Turing machine using at most p(n) tape cells."
+      },
+      "example": {
+        "ar": "P ⊆ PS",
+        "en": "P ⊆ PS"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي فئة NPS؟",
+      "en": "What is NPS?"
+    },
+    "back": {
+      "definition": {
+        "ar": "اللغات التي يمكن التعرف عليها بواسطة آلة تورينج غير حتمية تستخدم مساحة p(n) كحد أقصى.",
+        "en": "Languages recognizable by a nondeterministic Turing machine using at most p(n) tape cells."
+      },
+      "example": {
+        "ar": "NP ⊆ NPS",
+        "en": "NP ⊆ NPS"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ماذا تنص نظرية سافيتش (Savitch's Theorem)؟",
+      "en": "What does Savitch's Theorem state?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تنص على أن PS = NPS.",
+        "en": "It states that PS = NPS."
+      },
+      "example": {
+        "ar": "تستخدم خوارزمية المضاعفة العودية لإثبات ذلك.",
+        "en": "It uses the recursive doubling algorithm to prove this."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "ما هي المساحة التي تتطلبها خوارزمية المضاعفة العودية في نظرية سافيتش؟",
+      "en": "What space is required by the recursive doubling algorithm in Savitch's Theorem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تتطلب مساحة O(p^2(n)).",
+        "en": "It requires O(p^2(n)) space."
+      },
+      "example": {
+        "ar": "مربع متعدد الحدود هو متعدد حدود، لذا تبقى في PS.",
+        "en": "The square of a polynomial is a polynomial, so it remains in PS."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "ما هي مشكلة QBF؟",
+      "en": "What is the QBF problem?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحديد ما إذا كانت صيغة منطقية مكممة (تحتوي على ∀ و ∃) بدون متغيرات حرة هي صحيحة.",
+        "en": "Determining if a Quantified Boolean Formula with no free variables is true."
+      },
+      "example": {
+        "ar": "وهي مشكلة PS-Complete.",
+        "en": "It is a PS-Complete problem."
+      }
+    }
+  },
+  {
+    "id": 18,
+    "front": {
+      "ar": "ما الذي يجعل مشكلة QBF أصعب من SAT؟",
+      "en": "What makes QBF harder than SAT?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تناوب محددات الكمية (Alternation of quantifiers).",
+        "en": "The alternation of quantifiers (∀ and ∃)."
+      },
+      "example": {
+        "ar": "إذا استخدمنا ∃ فقط، تصبح المشكلة SAT.",
+        "en": "If only ∃ is used, the problem is just SAT."
+      }
+    }
+  },
+  {
+    "id": 19,
+    "front": {
+      "ar": "ما هي فئة EP؟",
+      "en": "What is the EP class?"
+    },
+    "back": {
+      "definition": {
+        "ar": "المشاكل التي يمكن حلها في وقت أسي (Exponential Polytime).",
+        "en": "Problems solvable in exponential polytime (c^{p(n)} steps)."
+      },
+      "example": {
+        "ar": "PS ⊆ EP",
+        "en": "PS ⊆ EP"
+      }
+    }
+  },
+  {
+    "id": 20,
+    "front": {
+      "ar": "متى نقول أن مشكلة P هي PS-Complete؟",
+      "en": "When is a problem P said to be PS-Complete?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا كانت في PS، ويمكن اختزال أي مشكلة في PS إليها في وقت متعدد الحدود.",
+        "en": "If it is in PS, and every problem in PS can be reduced to it in polynomial time."
+      },
+      "example": {
+        "ar": "QBF هي مثال على مشكلة PS-Complete.",
+        "en": "QBF is an example of a PS-Complete problem."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من المشاكل التالية يمكن حلها في وقت خطي (تنتمي للفئة P)؟",
+      "en": "Which of the following problems can be solved in linear time (is in P)?"
+    },
+    "options": {
+      "ar": [
+        "3-SAT",
+        "2-SAT",
+        "CSAT",
+        "QBF"
+      ],
+      "en": [
+        "3-SAT",
+        "2-SAT",
+        "CSAT",
+        "QBF"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مشكلة 2-SAT تنتمي للفئة P ويمكن حلها في وقت خطي، بينما 3-SAT و CSAT هي NP-Complete، و QBF هي PS-Complete.",
+      "en": "2-SAT is in P and has a linear-time algorithm, whereas 3-SAT and CSAT are NP-Complete, and QBF is PS-Complete."
+    },
+    "hint": {
+      "ar": "تذكر أن القيود التي تحتوي على متغيرين فقط تجبر المتغير الآخر على قيمة معينة إذا كان الأول خاطئاً.",
+      "en": "Remember that clauses with only 2 literals force the other literal if one is false."
+    },
+    "difficulty": "easy",
+    "conceptId": "restricted-satisfiability-ksat"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "عند اختزال قيد CSAT بطول n (حيث n ≥ 4) إلى 3-SAT، كم عدد المتغيرات الجديدة (y) التي يتم إضافتها؟",
+      "en": "When reducing a CSAT clause of length n (where n ≥ 4) to 3-SAT, how many new variables (y) are introduced?"
+    },
+    "options": {
+      "ar": [
+        "n",
+        "n - 1",
+        "n - 2",
+        "n - 3"
+      ],
+      "en": [
+        "n",
+        "n - 1",
+        "n - 2",
+        "n - 3"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "يتم إضافة n-3 من المتغيرات الجديدة لربط القيود الثلاثية ببعضها.",
+      "en": "n-3 new variables are introduced to chain the 3-literal clauses together."
+    },
+    "hint": {
+      "ar": "راجع صيغة الاختزال: y_1, ..., y_{n-3}.",
+      "en": "Check the reduction formula: y_1, ..., y_{n-3}."
+    },
+    "difficulty": "medium",
+    "conceptId": "reduction-csat-to-3sat"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي العلاقة بين المجموعة المستقلة (IS) وغطاء العقد (NC) في رسم بياني G؟",
+      "en": "What is the relationship between an Independent Set (IS) and a Node Cover (NC) in a graph G?"
+    },
+    "options": {
+      "ar": [
+        "هما نفس الشيء تماماً.",
+        "إذا كانت N غطاء عقد، فإن العقد المتبقية تشكل مجموعة مستقلة.",
+        "لا توجد علاقة بينهما.",
+        "تقاطعهما يشكل دائماً دائرة هاملتونية."
+      ],
+      "en": [
+        "They are exactly the same thing.",
+        "If N is a node cover, the remaining nodes form an independent set.",
+        "There is no relationship between them.",
+        "Their intersection always forms a Hamiltonian circuit."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المجموعة المستقلة هي مكمل غطاء العقد. إذا أزلت غطاء العقد من الرسم البياني، فإن العقد المتبقية لن تحتوي على أي حواف بينها.",
+      "en": "An independent set is the complement of a node cover. If you remove a node cover, the remaining nodes have no edges between them."
+    },
+    "hint": {
+      "ar": "فكر في ما يحدث للحواف عندما تزيل غطاء العقد.",
+      "en": "Think about what happens to the edges when you remove the node cover."
+    },
+    "difficulty": "medium",
+    "conceptId": "independent-set-node-cover"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما الذي تنص عليه نظرية سافيتش (Savitch's Theorem)؟",
+      "en": "What does Savitch's Theorem state?"
+    },
+    "options": {
+      "ar": [
+        "P = NP",
+        "NP = Co-NP",
+        "PS = NPS",
+        "P = PS"
+      ],
+      "en": [
+        "P = NP",
+        "NP = Co-NP",
+        "PS = NPS",
+        "P = PS"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "نظرية سافيتش تثبت أن المساحة متعددة الحدود الحتمية (PS) تساوي المساحة متعددة الحدود غير الحتمية (NPS).",
+      "en": "Savitch's Theorem proves that deterministic polynomial space (PS) equals nondeterministic polynomial space (NPS)."
+    },
+    "hint": {
+      "ar": "تتعلق النظرية بفئات المساحة (Space Classes).",
+      "en": "The theorem is about space complexity classes."
+    },
+    "difficulty": "easy",
+    "conceptId": "savitchs-theorem"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هي المساحة الإجمالية التي تتطلبها خوارزمية المضاعفة العودية في إثبات نظرية سافيتش؟",
+      "en": "What is the total space required by the recursive doubling algorithm in the proof of Savitch's Theorem?"
+    },
+    "options": {
+      "ar": [
+        "O(p(n))",
+        "O(p^2(n))",
+        "O(2^p(n))",
+        "O(n!)"
+      ],
+      "en": [
+        "O(p(n))",
+        "O(p^2(n))",
+        "O(2^p(n))",
+        "O(n!)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عمق المكدس هو O(p(n)) وكل استدعاء يتطلب مساحة O(p(n))، مما يجعل المساحة الإجمالية O(p^2(n)).",
+      "en": "The stack depth is O(p(n)) and each call requires O(p(n)) space, making the total space O(p^2(n))."
+    },
+    "hint": {
+      "ar": "اضرب عمق المكدس في المساحة المطلوبة لكل إطار مكدس.",
+      "en": "Multiply the stack depth by the space required per stack frame."
+    },
+    "difficulty": "hard",
+    "conceptId": "savitchs-theorem"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي من المشاكل التالية تعتبر PS-Complete؟",
+      "en": "Which of the following problems is considered PS-Complete?"
+    },
+    "options": {
+      "ar": [
+        "3-SAT",
+        "Node Cover",
+        "TSP",
+        "QBF"
+      ],
+      "en": [
+        "3-SAT",
+        "Node Cover",
+        "TSP",
+        "QBF"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "مشكلة QBF (الصيغ المنطقية المكممة) هي المشكلة القياسية لفئة PS-Complete.",
+      "en": "The QBF (Quantified Boolean Formulas) problem is the standard PS-Complete problem."
+    },
+    "hint": {
+      "ar": "تحتوي هذه المشكلة على محددات الكمية (∀ و ∃).",
+      "en": "This problem involves quantifiers (∀ and ∃)."
+    },
+    "difficulty": "medium",
+    "conceptId": "quantified-boolean-formulas-qbf"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "لماذا يجب أن يكون الاختزال لمشاكل PS-Complete في وقت متعدد الحدود (Polytime) وليس مساحة متعددة الحدود (Polyspace)؟",
+      "en": "Why must the reduction for PS-Complete problems be in polynomial time (Polytime) rather than polynomial space (Polyspace)?"
+    },
+    "options": {
+      "ar": [
+        "لأن المساحة متعددة الحدود قد تنتج مخرجات بحجم أسي.",
+        "لأن الوقت متعدد الحدود أسهل في البرمجة.",
+        "لأن آلات تورينج لا تدعم اختزالات المساحة.",
+        "هذا غير صحيح، الاختزال يجب أن يكون في مساحة متعددة الحدود."
+      ],
+      "en": [
+        "Because polyspace can exponentiate the output size.",
+        "Because polytime is easier to program.",
+        "Because Turing machines do not support space reductions.",
+        "This is false; the reduction must be in polyspace."
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "إذا استخدمنا اختزالاً بمساحة متعددة الحدود، فقد يستغرق وقتاً أسياً وينتج مخرجات بحجم أسي، مما يكسر خصائص الاختزال المطلوبة للإجابة على سؤال P = PS.",
+      "en": "If we used a polyspace reduction, it could take exponential time and produce an exponentially large output, breaking the properties needed to address the P = PS question."
+    },
+    "hint": {
+      "ar": "تذكر أن المساحة المحدودة لا تمنع الوقت من أن يكون أسياً.",
+      "en": "Remember that bounded space does not prevent time from being exponential."
+    },
+    "difficulty": "hard",
+    "conceptId": "polynomial-space-ps-nps"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هو الحد الأقصى لعدد الحالات (IDs) الممكنة لآلة تورينج تستخدم مساحة p(n)؟",
+      "en": "What is the maximum number of possible Instantaneous Descriptions (IDs) for a Turing machine using p(n) space?"
+    },
+    "options": {
+      "ar": [
+        "O(p(n))",
+        "O(p^2(n))",
+        "c^{p(n)}",
+        "n!"
+      ],
+      "en": [
+        "O(p(n))",
+        "O(p^2(n))",
+        "c^{p(n)}",
+        "n!"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "عدد الحالات الممكنة محدود بـ c^{p(n)} حيث c هو ثابت يعتمد على حجم الأبجدية وعدد الحالات الداخلية للآلة.",
+      "en": "The number of possible IDs is bounded by c^{p(n)}, where c is a constant depending on the alphabet size and the number of internal states."
+    },
+    "hint": {
+      "ar": "العدد ينمو بشكل أسي بالنسبة للمساحة.",
+      "en": "The number grows exponentially with respect to the space."
+    },
+    "difficulty": "medium",
+    "conceptId": "polynomial-space-ps-nps"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما الذي يجعل مشكلة QBF أصعب من مشكلة SAT العادية؟",
+      "en": "What makes the QBF problem harder than the standard SAT problem?"
+    },
+    "options": {
+      "ar": [
+        "أنها تحتوي على متغيرات أكثر.",
+        "تناوب محددات الكمية (∀ و ∃).",
+        "أنها تتطلب مساحة أسية لحلها.",
+        "أنها لا يمكن تحويلها إلى صيغة CNF."
+      ],
+      "en": [
+        "It has more variables.",
+        "The alternation of quantifiers (∀ and ∃).",
+        "It requires exponential space to solve.",
+        "It cannot be converted to CNF."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "وجود محددات الكمية الشاملة (∀) والوجودية (∃) وتناوبها يجعل تقييم الصيغة يتطلب فحص شجرة احتمالات كاملة، مما يرفع تعقيدها إلى PS-Complete.",
+      "en": "The presence and alternation of universal (∀) and existential (∃) quantifiers require evaluating a full tree of possibilities, raising its complexity to PS-Complete."
+    },
+    "hint": {
+      "ar": "فكر في الرموز الإضافية الموجودة في QBF وغير الموجودة في SAT.",
+      "en": "Think about the extra symbols present in QBF that are not in SAT."
+    },
+    "difficulty": "easy",
+    "conceptId": "quantified-boolean-formulas-qbf"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "إذا كانت P = NP، فماذا يمكننا أن نستنتج عن فئة Co-NP؟",
+      "en": "If P = NP, what can we conclude about the Co-NP class?"
+    },
+    "options": {
+      "ar": [
+        "Co-NP ستكون فارغة.",
+        "P = NP = Co-NP.",
+        "Co-NP ستكون أكبر من NP.",
+        "لا يمكن استنتاج شيء."
+      ],
+      "en": [
+        "Co-NP would be empty.",
+        "P = NP = Co-NP.",
+        "Co-NP would be larger than NP.",
+        "Nothing can be concluded."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بما أن الفئة P مغلقة تحت عملية التكملة (Complementation)، فإذا كانت P = NP، فإن مكملات مشاكل NP ستكون أيضاً في P، وبالتالي P = NP = Co-NP.",
+      "en": "Since P is closed under complementation, if P = NP, then the complements of NP problems are also in P, meaning P = NP = Co-NP."
+    },
+    "hint": {
+      "ar": "تذكر أن الفئة P مغلقة تحت عملية التكملة.",
+      "en": "Remember that class P is closed under complementation."
+    },
+    "difficulty": "medium",
+    "conceptId": "polynomial-space-ps-nps"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين 2-SAT و 3-SAT: يعتقد البعض أن كلاهما NP-Complete لأنهما مشاكل إرضاء. تذكر دائماً أن 2-SAT تنتمي لـ P ويمكن حلها في وقت خطي، بينما 3-SAT هي NP-Complete.</template>
+      <template class="content-en">Confusing 2-SAT and 3-SAT: Some think both are NP-Complete because they are satisfiability problems. Always remember 2-SAT is in P (linear time), while 3-SAT is NP-Complete.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المساحة تقيد الوقت، ولكن الوقت لا يقيد المساحة بنفس الطريقة: الآلة التي تستخدم مساحة p(n) يمكن أن تعمل لوقت أسي c^{p(n)} قبل أن تدخل في حلقة مفرغة. لذلك PS تحتوي على مشاكل قد تتطلب وقتاً أسياً.</template>
+      <template class="content-en">Space bounds time, but time bounds space strictly: A machine using p(n) space can run for exponential time c^{p(n)} before looping. Thus, PS contains problems that might require exponential time.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">في نظرية سافيتش، السر يكمن في 'إعادة الحساب' بدلاً من 'التخزين'. المضاعفة العودية تضحي بالوقت (الذي يصبح أسياً) من أجل الحفاظ على المساحة (التي تبقى متعددة الحدود O(p^2(n))).</template>
+      <template class="content-en">In Savitch's Theorem, the secret is 'recomputation' instead of 'storage'. Recursive doubling trades time (which becomes exponential) to conserve space (which remains polynomial O(p^2(n))).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاختزال لمشاكل PS-Complete: يجب أن يكون الاختزال في 'وقت' متعدد الحدود (Polytime) وليس 'مساحة' متعددة الحدود. استخدام مساحة متعددة الحدود للاختزال قد يؤدي إلى مخرجات بحجم أسي، مما يفسد الاختزال.</template>
+      <template class="content-en">Reductions for PS-Complete: The reduction MUST be in polynomial TIME, not polynomial SPACE. A polyspace reduction could produce an exponentially large output, ruining the reduction.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">العلاقة بين Independent Set و Node Cover هي علاقة تكاملية. إذا وجدت أحدهما، فقد وجدت الآخر تلقائياً (V - IS = NC). كلاهما NP-Complete.</template>
+      <template class="content-en">The relationship between Independent Set and Node Cover is complementary. If you find one, you automatically find the other (V - IS = NC). Both are NP-Complete.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M11.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M13.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

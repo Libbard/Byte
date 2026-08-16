@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS478" data-module="6">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التسريع المكاني وهرميات الحجوم المحيطة · CS478 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS478" data-page-title-en="CS478">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M05.html" data-gh-next="M07.html" data-gh-card="../../hub/course.html?code=CS478"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#naive-ray-casting" class="toc-link" data-bilingual>
+        <template class="content-ar">تتبع الأشعة الساذج</template>
+        <template class="content-en">Naïve Ray Casting</template>
+        <span class="content-target">تتبع الأشعة الساذج</span>
+      </a>
+      <a href="#bounding-volumes" class="toc-link" data-bilingual>
+        <template class="content-ar">الحجوم المحيطة</template>
+        <template class="content-en">Bounding Volumes</template>
+        <span class="content-target">الحجوم المحيطة</span>
+      </a>
+      <a href="#bvh" class="toc-link" data-bilingual>
+        <template class="content-ar">هرميات الحجوم المحيطة (BVH)</template>
+        <template class="content-en">Bounding Volume Hierarchies (BVHs)</template>
+        <span class="content-target">هرميات الحجوم المحيطة (BVH)</span>
+      </a>
+      <a href="#surface-area-heuristic" class="toc-link" data-bilingual>
+        <template class="content-ar">الاستدلال بمساحة السطح (SAH)</template>
+        <template class="content-en">Surface Area Heuristic (SAH)</template>
+        <span class="content-target">الاستدلال بمساحة السطح (SAH)</span>
+      </a>
+      <a href="#kd-trees" class="toc-link" data-bilingual>
+        <template class="content-ar">أشجار k-d (k-dimensional trees)</template>
+        <template class="content-en">k-d Trees</template>
+        <span class="content-target">أشجار k-d (k-dimensional trees)</span>
+      </a>
+      <a href="#uniform-grids" class="toc-link" data-bilingual>
+        <template class="content-ar">الشبكات المنتظمة (Uniform Grids)</template>
+        <template class="content-en">Uniform Grids</template>
+        <span class="content-target">الشبكات المنتظمة (Uniform Grids)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 6</template>
+      <template class="content-en">Module 6</template>
+      <span class="content-target">الوحدة 6</span>
+    </span> · CS478
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">التسريع المكاني وهرميات الحجوم المحيطة</h1>
+      <p class="hero-description">تغطي هذه الوحدة هياكل البيانات والخوارزميات المستخدمة لتسريع تتبع الأشعة، بما في ذلك الشبكات المنتظمة، وهرميات الحجوم المحيطة (BVH)، وأشجار k-d، واستدلال مساحة السطح (SAH).</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Spatial Acceleration and Bounding Volume Hierarchies</h1>
+      <p class="hero-description">This module covers data structures and algorithms used to accelerate ray tracing, including uniform grids, Bounding Volume Hierarchies (BVH), k-d trees, and the Surface Area Heuristic (SAH).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">رسومات الحاسوب</span>
+      <span class="tag">تتبع الأشعة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Computer Graphics</span>
+      <span class="tag">Ray Tracing</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم الحاجة إلى هياكل التسريع المكاني في تتبع الأشعة لتجنب التعقيد الزمني O(N).</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين تقسيم الكائنات (مثل BVH) وتقسيم الفضاء (مثل أشجار k-d).</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق استدلال مساحة السطح (SAH) لبناء هرميات حجوم محيطة محسنة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل المفاضلات بين أنواع الحجوم المحيطة المختلفة (الكرات، AABB، OBB).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the need for spatial acceleration structures in ray tracing to avoid O(N) time complexity.</span></li>
+      <li><span class="obj-icon">✦</span><span>Differentiate between object partitioning (e.g., BVHs) and space partitioning (e.g., k-d trees).</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply the Surface Area Heuristic (SAH) to construct optimized bounding volume hierarchies.</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze the trade-offs between different bounding volume types (Spheres, AABBs, OBBs).</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="naive-ray-casting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> تتبع الأشعة الساذج</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Naïve Ray Casting</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>خوارزمية أساسية تختبر كل شعاع مع كل كائن في المشهد، مما يجعلها بطيئة جداً. تشبه البحث عن كتاب في مكتبة ضخمة بالنظر إلى كل كتاب على حدة.</p></template>
+    <template class="content-en"><p>A basic algorithm that tests every ray against every object in the scene, making it extremely slow. It's like searching for a book in a massive library by checking every single book.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في تتبع الأشعة الساذج، يتم إطلاق شعاع لكل بكسل، ويتم اختبار تقاطع هذا الشعاع مع <b>كل كائن</b> في المشهد للعثور على أقرب تقاطع.</p><p>هذا يؤدي إلى تعقيد زمني قدره <code>O(N)</code> لكل شعاع، حيث N هو عدد الكائنات.</p><p>في المشاهد المعقدة التي تحتوي على ملايين المضلعات، يصبح هذا النهج غير عملي حسابياً ويستدعي استخدام هياكل تسريع.</p></template>
+    <template class="content-en"><p>In naïve ray casting, a ray is cast for each pixel, and this ray is tested for intersection against <b>every object</b> in the scene to find the closest hit.</p><p>This results in a time complexity of <code>O(N)</code> per ray, where N is the number of objects.</p><p>In complex scenes with millions of polygons, this approach becomes computationally infeasible and necessitates acceleration structures.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>السبب الرئيسي لعدم كفاءة هذه الطريقة هو أنها لا تستغل التماسك المكاني (Spatial Coherence)؛ فالأشعة تقضي وقتاً طويلاً في اختبار كائنات بعيدة جداً عن مسارها.</p><p>لحل هذه المشكلة، نحتاج إلى:</p><ul><li>تقليل عدد اختبارات التقاطع (عن طريق التقسيم الهرمي)</li><li>وجعل الاختبارات نفسها أكثر كفاءة (باستخدام حجوم محيطة بسيطة).</li></ul></template>
+    <template class="content-en"><p>The primary reason this method is inefficient is that it fails to exploit spatial coherence; rays spend a massive amount of time testing objects that are nowhere near their path.</p><p>To solve this, we must:</p><ul><li>reduce the number of intersection tests (via hierarchical partitioning)</li><li>and make the tests themselves more efficient (by bounding objects with simpler primitives).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>حيث N هو عدد الكائنات و R هو عدد الأشعة.</strong></template>
+      <template class="content-en"><strong>Where N is the number of objects and R is the number of rays.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$O(N \times R)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لدينا مشهد يحتوي على مليون مثلث وشاشة بدقة 1080p، كم عدد اختبارات التقاطع المطلوبة في تتبع الأشعة الساذج؟</template>
+      <template class="content-en">If we have a scene with 1 million triangles and a 1080p screen, how many intersection tests are required in naïve ray casting?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>حوالي 1920 × 1080 × 1,000,000 = 2.07 تريليون اختبار تقاطع للإطار الواحد.</p></template>
+      <template class="content-en"><p>Approximately 1920 * 1080 * 1,000,000 = 2.07 trillion intersection tests for a single frame.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="bounding-volumes" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الحجوم المحيطة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Bounding Volumes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تغليف الكائنات المعقدة بأشكال هندسية بسيطة (مثل الكرات أو الصناديق) لتسريع اختبارات التقاطع. يشبه وضع تمثال معقد داخل صندوق كرتوني لتسهيل نقله.</p></template>
+    <template class="content-en"><p>Encapsulating complex objects within simple geometric shapes (like spheres or boxes) to speed up intersection tests. Like putting a complex sculpture inside a cardboard box to make it easier to handle.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الفكرة الأساسية هي اختبار تقاطع الشعاع مع الحجم المحيط أولاً.</p><p>إذا لم يتقاطع الشعاع مع الحجم المحيط، فمن المؤكد أنه لن يتقاطع مع الكائن المعقد بداخله، مما يوفر الكثير من العمليات الحسابية.</p><ul><li><strong>الكرات (Spheres)</strong> — سهلة جداً في اختبار التقاطع، لكنها غالباً لا تناسب شكل الكائن بدقة (مساحة فارغة كبيرة).</li><li><strong>الصناديق المحاذية للمحاور (<span class="smart-term" data-term-en="AABB" data-ar="الصندوق المحيط المحاذي للمحاور" data-en-def="Axis-Aligned Bounding Box; a rectangular bounding box whose edges are parallel to the coordinate axes.">AABBs<span class="smart-term-tooltip"></span></span>)</strong> — سهلة الاختبار وتوفر ملاءمة أفضل من الكرات في كثير من الحالات.</li><li><strong>الصناديق الموجهة (<span class="smart-term" data-term-en="OBB" data-ar="الصندوق المحيط الموجه" data-en-def="Oriented Bounding Box; a rectangular bounding box that can be rotated to tightly fit the object.">OBBs<span class="smart-term-tooltip"></span></span>)</strong> — توفر أفضل ملاءمة (أضيق حجم)، لكن اختبار التقاطع معها أكثر تكلفة حسابية.</li></ul></template>
+    <template class="content-en"><p>The core idea is to test ray intersection against the bounding volume first.</p><p>If there is no intersection, it is guaranteed there is no intersection with the complex object inside, saving significant computation.</p><ul><li><strong>Spheres</strong> — Very easy to intersect, but usually not a very tight fit (lots of empty space).</li><li><strong>Axis-Aligned Bounding Boxes (<span class="smart-term" data-term-en="AABB" data-ar="الصندوق المحيط المحاذي للمحاور" data-en-def="Axis-Aligned Bounding Box; a rectangular bounding box whose edges are parallel to the coordinate axes.">AABBs<span class="smart-term-tooltip"></span></span>)</strong> — Easy to intersect and often provide a tighter fit than spheres.</li><li><strong>Oriented Bounding Boxes (<span class="smart-term" data-term-en="OBB" data-ar="الصندوق المحيط الموجه" data-en-def="Oriented Bounding Box; a rectangular bounding box that can be rotated to tightly fit the object.">OBBs<span class="smart-term-tooltip"></span></span>)</strong> — Provide the tightest fit, but the intersection test is more computationally expensive.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هناك مفاضلة (Trade-off) دائمًا بين "إحكام الملاءمة" (Tightness of fit) وتكلفة اختبار التقاطع.</p><p>الحجم المحكم يقلل من الإيجابيات الكاذبة (تقاطع الشعاع مع الحجم ولكن ليس مع الكائن)، لكنه قد يتطلب رياضيات معقدة لاختباره.</p><p>يتم تنفيذ تقاطع الشعاع مع AABB عادةً باستخدام خوارزمية "تقاطع الشرائح" (Ray-slab intersection)، حيث يتم حساب فترات التقاطع على طول كل محور (x, y, z) والتحقق من تداخل هذه الفترات.</p></template>
+    <template class="content-en"><p>There is a fundamental trade-off between the 'tightness of fit' and the complexity of the volume intersection test.</p><p>A tighter bound reduces false positives (ray hits the volume but misses the object) but may require complex math to test.</p><p>Ray-AABB intersection is typically implemented using the 'Ray-slab intersection' algorithm, where the ray is parameterized by distance <code>t</code>, and intervals are computed along each axis to check for overlap.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>شرط التقاطع مع صندوق محاذٍ للمحاور (AABB) حيث يجب أن تتداخل فترات التقاطع على جميع المحاور.</strong></template>
+      <template class="content-en"><strong>Condition for AABB intersection where the intersection intervals on all axes must overlap.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$t \in [t_{xmin}, t_{xmax}] \cap [t_{ymin}, t_{ymax}] \cap [t_{zmin}, t_{zmax}]$$</div>
+  </div>
+
+  <!-- DIAGRAM[4]: Detailed SVG showing three identical complex objects (e.g., a wine glass). The first is bounded by a Sphere, the second by an Axis-Aligned Bounding Box (AABB), and the third by an Oriented Bounding Box (OBB). Show how the OBB fits the tightest. Style: educational, dark background #0d1117, accent color #ff8800, viewBox 0 0 800 400, English labels. -->
+<div class="svg-diagram" data-diagram-id="4">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrow Markers -->
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrow-brand" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+    </marker>
+    <marker id="arrow-error" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+    </marker>
+
+    <!-- Complex Object: Wine Glass -->
+    <g id="wine-glass">
+      <!-- Glass Background -->
+      <path id="bowl" d="M -25 -52.5 C -25 -12.5, -8 7.5, 0 7.5 C 8 7.5, 25 -12.5, 25 -52.5 Z" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" />
+      <path d="M -3 7.5 L 3 7.5 L 3 47.5 L -3 47.5 Z" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" />
+      <path d="M -20 47.5 L 20 47.5 L 20 52.5 L -20 52.5 Z" fill="var(--bg-surface)" stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" />
+      
+      <!-- Liquid Clip Path & Fill -->
+      <clipPath id="liquid-clip">
+        <use href="#bowl" />
+      </clipPath>
+      <rect x="-30" y="-20" width="60" height="40" fill="var(--brand-500)" opacity="0.3" clip-path="url(#liquid-clip)" />
+      
+      <!-- Liquid Top Surface -->
+      <ellipse cx="0" cy="-20" rx="18.5" ry="3" fill="var(--brand-500)" opacity="0.5" clip-path="url(#liquid-clip)" />
+      
+      <!-- Glass Rim -->
+      <line x1="-25" y1="-52.5" x2="25" y2="-52.5" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round" />
+      
+      <!-- Glass Reflection -->
+      <path d="M -15 -45 C -15 -20, -5 0, -2 0" stroke="var(--text-primary)" opacity="0.2" stroke-width="2" fill="none" stroke-linecap="round" />
+    </g>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="480" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">Bounding Volumes: Sphere vs AABB vs OBB</text>
+  <text x="480" y="65" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">حجوم الإحاطة: الكرة مقابل الصندوق المحاذي للمحاور مقابل الصندوق الموجه</text>
+
+  <!-- Panel 1: Bounding Sphere -->
+  <rect x="20" y="90" width="290" height="430" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="165" y="130" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Bounding Sphere</text>
+  <text x="165" y="155" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">كرة الإحاطة</text>
+  
+  <g transform="translate(165, 290)">
+    <!-- Object -->
+    <use href="#wine-glass" transform="rotate(45)" />
+    <!-- Sphere -->
+    <circle cx="0" cy="0" r="59" fill="var(--brand-500)" fill-opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 4" />
+    
+    <!-- Center Point & Radius -->
+    <circle cx="0" cy="0" r="3" fill="var(--brand-500)" />
+    <line x1="0" y1="0" x2="41.7" y2="-41.7" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3 3" />
+    <text x="15" y="-25" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold">r</text>
+  </g>
+
+  <!-- Wasted Space Annotation 1 -->
+  <path d="M 240 210 Q 220 210 210 240" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-error)" />
+  <text x="245" y="200" fill="#ef4444" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Wasted Space</text>
+  <text x="245" y="218" fill="#ef4444" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" text-anchor="middle">مساحة ضائعة</text>
+
+  <text x="165" y="450" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Fastest math, but very loose fit</text>
+  <text x="165" y="470" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">حسابات سريعة، لكن إحاطة فضفاضة</text>
+  <text x="165" y="495" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">Radius = Distance to furthest point</text>
+
+
+  <!-- Panel 2: AABB -->
+  <rect x="335" y="90" width="290" height="430" rx="12" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+  <text x="480" y="130" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">AABB (Axis-Aligned)</text>
+  <text x="480" y="155" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">صندوق محاذي للمحاور</text>
+
+  <g transform="translate(480, 290)">
+    <!-- Object -->
+    <use href="#wine-glass" transform="rotate(45)" />
+    <!-- AABB -->
+    <rect x="-55" y="-55" width="110" height="110" fill="var(--brand-500)" fill-opacity="0.05" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6 4" />
+  </g>
+
+  <!-- Global Axes Indicator -->
+  <g transform="translate(360, 380)">
+    <line x1="0" y1="0" x2="30" y2="0" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" />
+    <line x1="0" y1="0" x2="0" y2="-30" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow-muted)" />
+    <text x="35" y="4" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold">X</text>
+    <text x="-4" y="-36" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold">Y</text>
+  </g>
+
+  <!-- Wasted Space Annotation 2 -->
+  <path d="M 560 210 Q 540 210 525 245" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-error)" />
+  <text x="565" y="200" fill="#ef4444" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Wasted Space</text>
+  <text x="565" y="218" fill="#ef4444" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" text-anchor="middle">مساحة ضائعة</text>
+
+  <text x="480" y="450" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Easy updates, poor fit for rotated objects</text>
+  <text x="480" y="470" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">تحديث سهل، إحاطة سيئة للأجسام المائلة</text>
+  <text x="480" y="495" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">Aligned to global X/Y axes</text>
+
+
+  <!-- Panel 3: OBB -->
+  <rect x="650" y="90" width="290" height="430" rx="12" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="795" y="130" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle">OBB (Oriented)</text>
+  <text x="795" y="155" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">صندوق إحاطة موجه</text>
+
+  <g transform="translate(795, 290)">
+    <!-- Object -->
+    <use href="#wine-glass" transform="rotate(45)" />
+    <!-- OBB -->
+    <rect x="-25" y="-52.5" width="50" height="105" transform="rotate(45)" fill="var(--brand-500)" fill-opacity="0.15" stroke="var(--brand-500)" stroke-width="3" />
+  </g>
+
+  <!-- Local Axes Indicator -->
+  <g transform="translate(680, 380)">
+    <g transform="rotate(45)">
+      <line x1="0" y1="0" x2="30" y2="0" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+      <line x1="0" y1="0" x2="0" y2="-30" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)" />
+      <text x="35" y="4" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold">X'</text>
+      <text x="-4" y="-36" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" font-weight="bold">Y'</text>
+    </g>
+  </g>
+
+  <!-- Optimal Fit Annotation -->
+  <path d="M 880 220 Q 860 220 840 250" fill="none" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#arrow-brand)" />
+  <text x="885" y="200" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Tightest Fit</text>
+  <text x="885" y="218" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" text-anchor="middle">أفضل إحاطة</text>
+
+  <text x="795" y="450" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" text-anchor="middle">Complex math, but optimal fit</text>
+  <text x="795" y="470" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">حسابات معقدة، لكن إحاطة مثالية</text>
+  <text x="795" y="495" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" text-anchor="middle">Aligned to object's local axes</text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Spheres</th><th>AABBs</th><th>OBBs</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">إحكام الملاءمة (Tightness of Fit)</template>
+          <template class="content-en">Tightness of Fit</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">ضعيف (مساحة فارغة كبيرة)</template>
+          <template class="content-en">Poor (lots of empty space)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">متوسط</template>
+          <template class="content-en">Medium</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ممتاز (أضيق ملاءمة)</template>
+          <template class="content-en">Excellent (tightest fit)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تكلفة اختبار التقاطع</template>
+          <template class="content-en">Intersection Test Cost</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">رخيصة جداً</template>
+          <template class="content-en">Very cheap</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">رخيصة (تقاطع الشرائح)</template>
+          <template class="content-en">Cheap (Ray-slab)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مكلفة (تتطلب تحويلات مصفوفة)</template>
+          <template class="content-en">Expensive (requires matrix transforms)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون استخدام الكرة كحجم محيط أسوأ خيار ممكن؟</template>
+      <template class="content-en">When is using a sphere as a bounding volume the worst possible choice?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عندما يكون الكائن طويلاً ورفيعاً جداً (مثل قلم أو عصا)، حيث ستحتوي الكرة المحيطة به على مساحة فارغة هائلة، مما يؤدي إلى الكثير من اختبارات التقاطع غير الضرورية.</p></template>
+      <template class="content-en"><p>When the object is very long and thin (like a pencil or a stick), the bounding sphere will contain a massive amount of empty space, leading to many unnecessary intersection tests.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="bvh" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> هرميات الحجوم المحيطة (BVH)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Bounding Volume Hierarchies (BVHs)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هيكل بيانات شجري يجمع الكائنات في حجوم محيطة متداخلة هرمياً. يعتمد على <b> <span class="smart-term" data-term-en="Object Partitioning" data-ar="تقسيم الكائنات" data-en-def="A spatial division strategy where the set of objects is divided into disjoint subsets, though their spatial bounds may overlap.">تقسيم الكائنات<span class="smart-term-tooltip"></span></span> </b> وليس الفضاء.</p></template>
+    <template class="content-en"><p>A tree data structure that groups objects into hierarchically nested bounding volumes. It is based on <b> <span class="smart-term" data-term-en="Object Partitioning" data-ar="تقسيم الكائنات" data-en-def="A spatial division strategy where the set of objects is divided into disjoint subsets, though their spatial bounds may overlap.">Object Partitioning<span class="smart-term-tooltip"></span></span> </b>, not space partitioning.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في BVH، يتم تجميع الكائنات القريبة من بعضها داخل حجم محيط (عقدة).</p><p>ثم يتم تجميع هذه الحجوم في حجوم أكبر، وهكذا حتى يتم تغليف المشهد بأكمله في "عقدة جذرية" واحدة.</p><p>عند تتبع شعاع، يتم اختباره مع الجذر.</p><p>إذا تقاطع، يتم اختبار أبنائه بشكل متكرر. إذا لم يتقاطع مع عقدة، يتم تجاهل جميع الكائنات بداخلها فوراً.</p><p>يتم بناء BVH عادةً باستخدام <b>التقسيم من أعلى إلى أسفل (Top-down recursion)</b>: يتم إحاطة المشهد بالكامل، ثم تقسيمه إلى مجموعتين، وتتكرر العملية حتى تحتوي العقدة على عدد قليل من الكائنات.</p></template>
+    <template class="content-en"><p>In a BVH, objects that are close to each other are grouped within a bounding volume (a node).</p><p>These volumes are then grouped into larger volumes, and so on, until the entire scene is enclosed in a single 'root node'.</p><p>When tracing a ray, it is tested against the root.</p><p>If it hits, its children are tested recursively. If it misses a node, all objects within that node are immediately culled (ignored).</p><p>BVHs are typically constructed using <b>top-down recursion</b>: bound the whole scene, split it into two sets, and recurse on both sides until a node contains only a few primitives.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>ميزة BVH الرئيسية هي أنه يضمن عدم وجود تكرار؛ كل كائن ينتمي إلى عقدة ورقة (Leaf node) واحدة فقط.</p><p>هذا يجعل تحديث الشجرة أسهل إذا تحركت الكائنات (Dynamic scenes).</p><p>ومع ذلك، نظراً لأنه يقسم الكائنات، يمكن أن تتداخل الحجوم المحيطة للعقد الشقيقة في الفضاء.</p><p>هذا التداخل قد يجبر الشعاع على اجتياز كلا الفرعين حتى لو كان يبحث عن أقرب تقاطع فقط.</p></template>
+    <template class="content-en"><p>The main advantage of a BVH is that it guarantees no duplication; each object belongs to exactly one leaf node.</p><p>This makes updating the tree much simpler if objects move or are added (dynamic scenes).</p><p>However, because it partitions objects, the bounding volumes of sibling nodes can overlap in space.</p><p>This overlap might force a ray to traverse both branches even if it's only looking for the closest hit.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Diagram showing a 2D scene with various shapes (triangles, circles) grouped into nested rectangular bounding boxes (A, B, C). Next to it, show the corresponding binary tree structure where A is the root, B and C are children, and the shapes are leaf nodes. Style: educational, dark background #0d1117, accent colors. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--brand-500)"/>
+        </marker>
+    </defs>
+
+    <rect width="800" height="480" fill="var(--bg-surface)"/>
+
+    <text x="400" y="40" fill="var(--text-primary)" font-size="22" font-weight="bold" text-anchor="middle">Bounding Volume Hierarchy (BVH)</text>
+    <text x="400" y="65" fill="var(--text-secondary)" font-size="16" text-anchor="middle">تدرج الحجوم المحيطة</text>
+
+    <text x="200" y="100" fill="var(--text-muted)" font-size="14" text-anchor="middle">Bounding boxes group nearby shapes / الصناديق تجمع الأشكال المتقاربة</text>
+    <text x="600" y="100" fill="var(--text-muted)" font-size="14" text-anchor="middle">Tree structure for fast intersection / هيكل شجري لتسريع التقاطع</text>
+
+    <line x1="400" y1="120" x2="400" y2="420" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" opacity="0.5"/>
+
+    <g id="spatial-scene">
+        <rect x="30" y="120" width="340" height="280" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="8,4"/>
+        <text x="45" y="145" fill="var(--text-primary)" font-size="16" font-weight="bold">Box A (Root)</text>
+
+        <rect x="50" y="160" width="140" height="220" rx="6" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4"/>
+        <text x="60" y="180" fill="var(--text-primary)" font-size="15" font-weight="bold">Box B</text>
+
+        <rect x="210" y="160" width="140" height="220" rx="6" fill="var(--bg-surface)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4"/>
+        <text x="220" y="180" fill="var(--text-primary)" font-size="15" font-weight="bold">Box C</text>
+
+        <polygon points="120,195 90,245 150,245" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="2"/>
+        <text x="120" y="235" fill="var(--bg-surface)" font-size="14" font-weight="bold" text-anchor="middle">T1</text>
+
+        <circle cx="120" cy="325" r="30" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="2"/>
+        <text x="120" y="330" fill="var(--bg-surface)" font-size="14" font-weight="bold" text-anchor="middle">C1</text>
+
+        <polygon points="280,195 250,245 310,245" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="2"/>
+        <text x="280" y="235" fill="var(--bg-surface)" font-size="14" font-weight="bold" text-anchor="middle">T2</text>
+
+        <circle cx="280" cy="325" r="30" fill="var(--brand-500)" stroke="var(--bg-surface)" stroke-width="2"/>
+        <text x="280" y="330" fill="var(--bg-surface)" font-size="14" font-weight="bold" text-anchor="middle">C2</text>
+    </g>
+
+    <g id="logical-tree">
+        <path d="M 600 160 C 600 185, 530 185, 530 210" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        <path d="M 600 160 C 600 185, 670 185, 670 210" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+        
+        <path d="M 530 250 C 530 280, 485 280, 485 310" fill="none" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow)"/>
+        <path d="M 530 250 C 530 280, 575 280, 575 310" fill="none" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow)"/>
+        
+        <path d="M 670 250 C 670 280, 625 280, 625 310" fill="none" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow)"/>
+        <path d="M 670 250 C 670 280, 715 280, 715 310" fill="none" stroke="var(--brand-400)" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <rect x="540" y="120" width="120" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="600" y="146" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Box A</text>
+
+        <rect x="480" y="210" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2"/>
+        <text x="530" y="236" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Box B</text>
+
+        <rect x="620" y="210" width="100" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2"/>
+        <text x="670" y="236" fill="var(--text-primary)" font-size="16" font-weight="bold" text-anchor="middle">Box C</text>
+
+        <rect x="450" y="310" width="70" height="40" rx="6" fill="var(--brand-500)"/>
+        <polygon points="465,322 458,338 472,338" fill="var(--bg-surface)"/>
+        <text x="495" y="336" fill="var(--bg-surface)" font-size="15" font-weight="bold" text-anchor="middle">T1</text>
+
+        <rect x="540" y="310" width="70" height="40" rx="6" fill="var(--brand-500)"/>
+        <circle cx="555" cy="330" r="8" fill="var(--bg-surface)"/>
+        <text x="585" y="336" fill="var(--bg-surface)" font-size="15" font-weight="bold" text-anchor="middle">C1</text>
+
+        <rect x="590" y="310" width="70" height="40" rx="6" fill="var(--brand-500)"/>
+        <polygon points="605,322 598,338 612,338" fill="var(--bg-surface)"/>
+        <text x="635" y="336" fill="var(--bg-surface)" font-size="15" font-weight="bold" text-anchor="middle">T2</text>
+
+        <rect x="680" y="310" width="70" height="40" rx="6" fill="var(--brand-500)"/>
+        <circle cx="695" cy="330" r="8" fill="var(--bg-surface)"/>
+        <text x="725" y="336" fill="var(--bg-surface)" font-size="15" font-weight="bold" text-anchor="middle">C2</text>
+    </g>
+
+    <text x="200" y="450" fill="var(--text-secondary)" font-size="16" font-weight="bold" text-anchor="middle">2D Spatial Scene / المشهد المكاني</text>
+    <text x="600" y="450" fill="var(--text-secondary)" font-size="16" font-weight="bold" text-anchor="middle">Logical Tree Structure / الهيكل الشجري</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر تداخل العقد في BVH مشكلة أثناء تتبع الأشعة؟</template>
+      <template class="content-en">Why is node overlap in a BVH a problem during ray tracing?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الشعاع الذي يمر عبر منطقة التداخل سيضطر إلى اختبار كلا الفرعين في الشجرة، مما يقلل من كفاءة التقليم (Culling) ويزيد من وقت المعالجة.</p></template>
+      <template class="content-en"><p>Because a ray passing through the overlapping region will be forced to test both branches of the tree, reducing culling efficiency and increasing processing time.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="surface-area-heuristic" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الاستدلال بمساحة السطح (SAH)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Surface Area Heuristic (SAH)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نموذج رياضي يستخدم لتقييم جودة تقسيم العقد أثناء بناء BVH أو أشجار k-d، لتقليل التكلفة المتوقعة لاختبارات الأشعة.</p></template>
+    <template class="content-en"><p>A mathematical model used to evaluate the quality of node splits during the construction of BVHs or k-d trees, aiming to minimize the expected cost of ray intersection tests.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>عند بناء BVH، كيف نختار مكان تقسيم الكائنات؟</p><p>التقسيم من المنتصف (Center) أو استخدام الوسيط (Median) قد ينتج أشجاراً غير متوازنة أو ذات تداخل كبير.</p><p>يحل <b>SAH</b> هذه المشكلة من خلال نمذجة التكلفة المتوقعة لاجتياز الشعاع.</p><p>يعتمد على نظرية تنص على: إذا كان الصندوق B موجوداً بالكامل داخل الصندوق A، فإن احتمال أن يتقاطع شعاع عشوائي (يمر عبر A) مع B يتناسب مع نسبة مساحة سطحيهما: <code>SA(B) / SA(A)</code>.</p><p>تقوم خوارزمية البناء بتقييم عدة انقسامات محتملة وتختار الانقسام الذي يقلل من دالة التكلفة الإجمالية.</p></template>
+    <template class="content-en"><p>When building a BVH, how do we choose where to split the objects?</p><p>Splitting at the center or using the median can produce unbalanced trees or volumes with massive overlap.</p><p>The <b>SAH</b> solves this by modeling the expected cost of ray traversal.</p><p>It relies on a theorem: given box B completely contained in box A, the probability that a uniform random ray traversing A intersects B is given by the ratio of their surface areas: <code>SA(B) / SA(A)</code>.</p><p>The construction algorithm greedily evaluates multiple potential splits and chooses the one that minimizes the total cost function.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>دالة التكلفة لـ SAH تحسب كالتالي:</p><ul><li>تكلفة اجتياز العقدة الحالية</li><li>+ (احتمال ضرب الفرع الأيسر × عدد كائناته)</li><li>+ (احتمال ضرب الفرع الأيمن × عدد كائناته).</li></ul><p>هذا يعني أن SAH يفضل إنشاء صناديق صغيرة الحجم (مساحة سطح صغيرة) حتى لو كانت تحتوي على العديد من الكائنات، لأن احتمال ضربها من قبل شعاع عشوائي منخفض جداً.</p><p>هذا ينتج أشجاراً غير متوازنة هيكلياً ولكنها محسنة جداً للأداء الفعلي.</p></template>
+    <template class="content-en"><p>The SAH cost function is calculated as:</p><ul><li>Cost of traversing the current node</li><li>+ (Probability of hitting Left * Number of primitives in Left)</li><li>+ (Probability of hitting Right * Number of primitives in Right).</li></ul><p>This means SAH often prefers creating small boxes (small surface area) even if they contain many objects, because the probability of a random ray hitting them is very low.</p><p>This produces trees that might be structurally unbalanced but are highly optimized for actual ray tracing performance.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>KT هي تكلفة اجتياز العقدة، KI تكلفة تقاطع الكائن، SA مساحة السطح، و N عدد الكائنات في الفرع.</strong></template>
+      <template class="content-en"><strong>KT is traversal cost, KI is intersection cost, SA is surface area, and N is the number of primitives in the branch.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$Cost(L, R) = K_T + K_I \left( \frac{SA(L)}{SA(A)} N_L + \frac{SA(R)}{SA(A)} N_R \right)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم مساحة السطح (Surface Area) بدلاً من الحجم (Volume) في معادلة SAH؟</template>
+      <template class="content-en">Why do we use Surface Area instead of Volume in the SAH equation?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الأشعة عبارة عن خطوط 1D تمر عبر الفضاء 3D. احتمال تقاطع خط مع شكل ثلاثي الأبعاد يتناسب مع مساحة المقطع العرضي للشكل (والتي تتناسب مع مساحة سطحه)، وليس حجمه الداخلي.</p></template>
+      <template class="content-en"><p>Because rays are 1D lines passing through 3D space. The probability of a line intersecting a 3D shape is proportional to the shape's cross-sectional area (which correlates with its surface area), not its internal volume.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="kd-trees" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> أشجار k-d (k-dimensional trees)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> k-d Trees</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>هيكل بيانات يعتمد على <b> <span class="smart-term" data-term-en="Space Partitioning" data-ar="تقسيم الفضاء" data-en-def="A strategy where the bounding space is divided into non-overlapping regions, but objects may cross boundaries.">تقسيم الفضاء<span class="smart-term-tooltip"></span></span> </b> (Space Partitioning) بدلاً من الكائنات، حيث يتم تقسيم الفضاء بشكل متكرر باستخدام مستويات محاذية للمحاور.</p></template>
+    <template class="content-en"><p>A data structure based on <b> <span class="smart-term" data-term-en="Space Partitioning" data-ar="تقسيم الفضاء" data-en-def="A strategy where the bounding space is divided into non-overlapping regions, but objects may cross boundaries.">Space Partitioning<span class="smart-term-tooltip"></span></span> </b> rather than object partitioning, where space is recursively subdivided using axis-aligned planes.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>على عكس BVH الذي يجمع الكائنات، تقوم شجرة k-d بتقسيم الفضاء نفسه.</p><p>في كل عقدة، يتم اختيار محور (x أو y أو z) ومستوى تقسيم يقطع الفضاء إلى نصفين.</p><p>هذا التقسيم هو <b>تقسيم مكاني تكيفي (Adaptive)</b>، مما يعني أن المناطق التي تحتوي على تفاصيل كثيفة يتم تقسيمها بشكل أدق من المناطق الفارغة (على عكس الشبكات المنتظمة Uniform Grids).</p><p>عند تتبع الشعاع، يتم اجتياز الشجرة بالترتيب من الأمام إلى الخلف (Front-to-back).</p><p>الميزة الكبرى هي أن أول تقاطع يتم العثور عليه هو بالضرورة أقرب تقاطع، مما يسمح بإنهاء البحث فوراً (Early termination).</p></template>
+    <template class="content-en"><p>Unlike a BVH which groups objects, a k-d tree partitions the space itself.</p><p>At each node, an axis (x, y, or z) and a splitting plane are chosen to divide the space into two halves.</p><p>This is an <b>adaptive space subdivision</b>, meaning areas with dense geometry are subdivided more finely than empty areas (unlike Uniform Grids).</p><p>When tracing a ray, the tree is traversed in front-to-back order.</p><p>The massive advantage is that the first intersection found is guaranteed to be the closest intersection, allowing the search to terminate immediately.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>العيب الرئيسي لأشجار k-d هو أن الكائن الواحد يمكن أن يمتد عبر مستوى التقسيم، مما يعني أنه قد يتم تخزينه في عدة عقد أوراق (Leaf nodes).</p><p>هذا يؤدي إلى احتمال اختبار نفس الكائن عدة مرات لنفس الشعاع.</p><p>بالإضافة إلى ذلك، بناء أشجار k-d مكلف جداً ويصعب تحديثها إذا تحركت الكائنات، مما يجعلها أقل ملاءمة للمشاهد الديناميكية مقارنة بـ BVH.</p></template>
+    <template class="content-en"><p>The main drawback of k-d trees is that a single object can straddle a splitting plane, meaning it must be referenced in multiple leaf nodes.</p><p>This leads to the possibility of testing the same object multiple times for a single ray.</p><p>Furthermore, building k-d trees is computationally expensive and they are notoriously difficult to update if objects move, making them less suitable for dynamic scenes compared to BVHs.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Show a 2D bounding box containing triangles. Draw vertical and horizontal lines splitting the space adaptively (k-d tree style). Show one triangle crossing a split line, illustrating how it belongs to two spatial partitions. Style: educational, dark background #0d1117, accent colors. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Header -->
+    <text x="400" y="35" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Spatial Partitioning (KD-Tree) / التقسيم المكاني</text>
+    <text x="400" y="60" font-size="15" fill="var(--text-secondary)" text-anchor="middle">A triangle crossing a split line belongs to multiple spatial partitions</text>
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDE: 2D SPATIAL VIEW                 -->
+    <!-- ========================================== -->
+
+    <!-- Main Bounding Box -->
+    <rect x="40" y="120" width="360" height="320" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" rx="4" />
+
+    <!-- Split Lines -->
+    <!-- V1 (Root Split) -->
+    <line x1="220" y1="120" x2="220" y2="440" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6,4" />
+    <text x="220" y="110" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">V1</text>
+
+    <!-- H1 (Left Split) -->
+    <line x1="40" y1="280" x2="220" y2="280" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" />
+    <text x="30" y="285" fill="var(--brand-400)" font-size="15" font-weight="bold" text-anchor="end">H1</text>
+
+    <!-- H2 (Right Split) -->
+    <line x1="220" y1="240" x2="400" y2="240" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" />
+    <text x="410" y="245" fill="var(--brand-400)" font-size="15" font-weight="bold" text-anchor="start">H2</text>
+
+    <!-- V2 (Bottom-Right Split) -->
+    <line x1="310" y1="240" x2="310" y2="440" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4,4" />
+    <text x="310" y="458" fill="var(--brand-400)" font-size="15" font-weight="bold" text-anchor="middle">V2</text>
+
+    <!-- Region Labels -->
+    <text x="55" y="145" fill="var(--text-muted)" font-size="18" font-weight="bold">A</text>
+    <text x="55" y="425" fill="var(--text-muted)" font-size="18" font-weight="bold">B</text>
+    <text x="385" y="145" fill="var(--text-muted)" font-size="18" font-weight="bold" text-anchor="end">C</text>
+    <text x="235" y="425" fill="var(--text-muted)" font-size="18" font-weight="bold">D</text>
+    <text x="385" y="425" fill="var(--text-muted)" font-size="18" font-weight="bold" text-anchor="end">E</text>
+
+    <!-- Triangles -->
+    <!-- T1 -->
+    <polygon points="80,160 130,250 180,180" fill="var(--bg-surface)" stroke="var(--text-secondary)" stroke-width="2" stroke-linejoin="round" />
+    <text x="130" y="205" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle">T1</text>
+
+    <!-- T2 -->
+    <polygon points="60,320 180,300 140,400" fill="var(--bg-surface)" stroke="var(--text-secondary)" stroke-width="2" stroke-linejoin="round" />
+    <text x="125" y="345" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle">T2</text>
+
+    <!-- T3 -->
+    <polygon points="280,140 360,160 320,210" fill="var(--bg-surface)" stroke="var(--text-secondary)" stroke-width="2" stroke-linejoin="round" />
+    <text x="320" y="175" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle">T3</text>
+
+    <!-- T4 -->
+    <polygon points="330,280 380,340 340,420" fill="var(--bg-surface)" stroke="var(--text-secondary)" stroke-width="2" stroke-linejoin="round" />
+    <text x="350" y="350" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle">T4</text>
+
+    <!-- T5 (Highlighted - Crossing V1) -->
+    <polygon points="170,160 270,140 230,220" fill="var(--brand-500)" fill-opacity="0.25" stroke="var(--brand-500)" stroke-width="3" stroke-linejoin="round" />
+    <text x="225" y="180" fill="var(--brand-500)" font-size="16" font-weight="bold" text-anchor="middle">T5</text>
+
+    <!-- Annotation for T5 -->
+    <path d="M 225 95 L 225 135" stroke="var(--brand-500)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="225" y="85" fill="var(--brand-500)" font-size="14" font-weight="bold" text-anchor="middle">Crosses V1 / يتقاطع مع الفاصل</text>
+
+
+    <!-- ========================================== -->
+    <!-- RIGHT SIDE: KD-TREE VIEW                   -->
+    <!-- ========================================== -->
+
+    <text x="600" y="95" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Tree Representation / تمثيل الشجرة</text>
+
+    <!-- Tree Edges -->
+    <g stroke="var(--border-color)" stroke-width="2" fill="none">
+        <path d="M 600 155 L 520 205" />
+        <path d="M 600 155 L 680 205" />
+        <path d="M 520 235 L 480 280" />
+        <path d="M 520 235 L 560 280" />
+        <path d="M 680 235 L 640 280" />
+        <path d="M 680 235 L 720 285" />
+        <path d="M 720 315 L 680 360" />
+        <path d="M 720 315 L 760 360" />
+    </g>
+
+    <!-- Tree Nodes (Splits) -->
+    <!-- Root (V1) -->
+    <rect x="570" y="125" width="60" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="600" y="145" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle">V1</text>
+
+    <!-- L1 (H1) -->
+    <rect x="490" y="205" width="60" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+    <text x="520" y="225" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle">H1</text>
+
+    <!-- R1 (H2) -->
+    <rect x="650" y="205" width="60" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+    <text x="680" y="225" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle">H2</text>
+
+    <!-- R1_R (V2) -->
+    <rect x="690" y="285" width="60" height="30" rx="15" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" />
+    <text x="720" y="305" fill="var(--text-primary)" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle">V2</text>
+
+    <!-- Tree Nodes (Leaves) -->
+    <!-- Leaf A -->
+    <rect x="440" y="280" width="80" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3,3" />
+    <text x="480" y="305" fill="var(--text-secondary)" font-size="14" text-anchor="middle" dominant-baseline="middle">A: T1, <tspan fill="var(--brand-500)" font-weight="bold">T5</tspan></text>
+
+    <!-- Leaf B -->
+    <rect x="530" y="280" width="60" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-dasharray="3,3" />
+    <text x="560" y="305" fill="var(--text-secondary)" font-size="14" text-anchor="middle" dominant-baseline="middle">B: T2</text>
+
+    <!-- Leaf C -->
+    <rect x="600" y="280" width="80" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="1.5" stroke-dasharray="3,3" />
+    <text x="640" y="305" fill="var(--text-secondary)" font-size="14" text-anchor="middle" dominant-baseline="middle">C: T3, <tspan fill="var(--brand-500)" font-weight="bold">T5</tspan></text>
+
+    <!-- Leaf D -->
+    <rect x="645" y="360" width="70" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-dasharray="3,3" />
+    <text x="680" y="385" fill="var(--text-secondary)" font-size="14" text-anchor="middle" dominant-baseline="middle">D: -</text>
+
+    <!-- Leaf E -->
+    <rect x="725" y="360" width="70" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-dasharray="3,3" />
+    <text x="760" y="385" fill="var(--text-secondary)" font-size="14" text-anchor="middle" dominant-baseline="middle">E: T4</text>
+
+
+    <!-- ========================================== -->
+    <!-- BOTTOM EXPLANATION                         -->
+    <!-- ========================================== -->
+    <rect x="100" y="460" width="600" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="400" y="480" fill="var(--text-secondary)" font-size="14" text-anchor="middle">
+        Notice how <tspan fill="var(--brand-500)" font-weight="bold">T5</tspan> is duplicated in leaf nodes A and C to ensure accurate intersection.
+    </text>
+    <text x="400" y="500" fill="var(--text-secondary)" font-size="14" text-anchor="middle">
+        لاحظ كيف يتكرر <tspan fill="var(--brand-500)" font-weight="bold">T5</tspan> في العقد الطرفية A و C لضمان دقة التقاطع.
+    </text>
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>BVH (Object Partitioning)</th><th>k-d Tree (Space Partitioning)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تداخل العقد</template>
+          <template class="content-en">Node Overlap</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">الحجوم يمكن أن تتداخل في الفضاء</template>
+          <template class="content-en">Volumes can overlap in space</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا يوجد تداخل (الفضاء مقسم بوضوح)</template>
+          <template class="content-en">No overlap (space is strictly partitioned)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تكرار الكائنات</template>
+          <template class="content-en">Object Duplication</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">كل كائن موجود في عقدة واحدة فقط</template>
+          <template class="content-en">Each object is in exactly one node</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">الكائن قد يمتد عبر مستويات ويخزن في عدة عقد</template>
+          <template class="content-en">Object can straddle planes and be in multiple nodes</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التحديث للمشاهد الديناميكية</template>
+          <template class="content-en">Updating for Dynamic Scenes</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أسهل في التحديث عند تحرك الكائنات</template>
+          <template class="content-en">Easier to update when objects move</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">صعب ومكلف جداً لإعادة البناء</template>
+          <template class="content-en">Difficult and expensive to rebuild</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">إيقاف البحث المبكر (Early Termination)</template>
+          <template class="content-en">Early Termination</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير مضمون دائماً بسبب التداخل</template>
+          <template class="content-en">Not always guaranteed due to overlap</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أول تقاطع هو الأقرب دائماً</template>
+          <template class="content-en">First intersection is strictly the closest</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكننا تجنب اختبار نفس الكائن مرتين في شجرة k-d؟</template>
+      <template class="content-en">How can we avoid testing the same object twice in a k-d tree?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>باستخدام تقنية تسمى 'Mailboxing'، حيث يتم إعطاء كل شعاع معرفاً فريداً، وعند اختبار كائن، يتم تسجيل معرف الشعاع فيه. إذا واجه الشعاع نفس الكائن في عقدة أخرى، فإنه يتخطاه.</p></template>
+      <template class="content-en"><p>By using a technique called 'Mailboxing', where each ray is given a unique ID, and when an object is tested, it stores the ray ID. If the ray encounters the object again in another node, it skips the test.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="uniform-grids" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> الشبكات المنتظمة (Uniform Grids)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Uniform Grids</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تقسيم الفضاء إلى شبكة ثلاثية الأبعاد من الخلايا المتساوية الحجم. يشبه تحويل المشهد إلى مكعبات ليجو (Voxel grid).</p></template>
+    <template class="content-en"><p>Dividing space into a 3D grid of equally sized cells. It's like turning the scene into a grid of Lego blocks (Voxel grid).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الشبكات المنتظمة هي شكل من أشكال <b>التقسيم المكاني غير التكيفي (Non-adaptive)</b>.</p><p>يتم تقسيم المشهد بأكمله إلى خلايا (Voxel) متساوية الحجم.</p><p>عند تتبع الشعاع، يتم استخدام خوارزمية تشبه تنقيط الخطوط (Line rasterization) للمشي عبر الخلايا التي يمر بها الشعاع بالترتيب.</p><p>يتم اختبار الكائنات الموجودة فقط في الخلايا التي يمر بها الشعاع.</p></template>
+    <template class="content-en"><p>Uniform grids are a form of <b>non-adaptive space partitioning</b>.</p><p>The entire scene bounding box is divided into equally sized cells (voxels).</p><p>When tracing a ray, an algorithm similar to 3D line rasterization is used to incrementally step through the cells the ray intersects.</p><p>Only objects within those specific cells are tested for intersection.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الشبكات المنتظمة رخيصة جداً وسريعة البناء.</p><p>ومع ذلك، أداؤها يكون سيئاً جداً إذا كانت الكائنات غير موزعة بشكل منتظم (مشهد يحتوي على مساحات فارغة ضخمة وتجمعات كثيفة جداً في زاوية واحدة)، حيث سيمر الشعاع عبر مئات الخلايا الفارغة دون فائدة.</p></template>
+    <template class="content-en"><p>Uniform grids are very cheap and fast to construct.</p><p>However, their performance degrades severely if objects are not uniformly distributed (e.g., a scene with massive empty spaces and a highly dense cluster in one corner), as rays will step through hundreds of empty cells uselessly.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: A 2D grid overlaying a scene with a few geometric shapes. A ray is drawn as a line passing through the grid. Highlight only the grid cells that the ray passes through, showing that only objects in those highlighted cells are tested. Style: educational, dark background #0d1117. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead for the Ray -->
+    <marker id="rayArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,1 L8,5 L0,9 Z" fill="var(--brand-500)" />
+    </marker>
+    
+    <!-- Arrowhead for Labels -->
+    <marker id="labelArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 Z" fill="var(--text-secondary)" />
+    </marker>
+
+    <!-- Arrowhead for Highlighted Labels -->
+    <marker id="highlightArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 Z" fill="var(--brand-500)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Title -->
+  <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Grid Acceleration Structure</text>
+  <text x="400" y="60" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">هيكل تسريع الشبكة</text>
+
+  <!-- Base Grid Background -->
+  <rect x="120" y="110" width="560" height="350" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+
+  <!-- Highlighted Cells (Traversed by Ray) -->
+  <g fill="var(--brand-500)" opacity="0.15" stroke="var(--brand-500)" stroke-width="1.5">
+    <rect x="120" y="390" width="70" height="70" />
+    <rect x="190" y="390" width="70" height="70" />
+    <rect x="190" y="320" width="70" height="70" />
+    <rect x="260" y="320" width="70" height="70" />
+    <rect x="330" y="320" width="70" height="70" />
+    <rect x="330" y="250" width="70" height="70" />
+    <rect x="400" y="250" width="70" height="70" />
+    <rect x="470" y="250" width="70" height="70" />
+    <rect x="470" y="180" width="70" height="70" />
+    <rect x="540" y="180" width="70" height="70" />
+    <rect x="610" y="180" width="70" height="70" />
+    <rect x="610" y="110" width="70" height="70" />
+  </g>
+
+  <!-- Grid Lines -->
+  <g stroke="var(--border-color)" stroke-width="1">
+    <!-- Vertical Lines -->
+    <line x1="190" y1="110" x2="190" y2="460" />
+    <line x1="260" y1="110" x2="260" y2="460" />
+    <line x1="330" y1="110" x2="330" y2="460" />
+    <line x1="400" y1="110" x2="400" y2="460" />
+    <line x1="470" y1="110" x2="470" y2="460" />
+    <line x1="540" y1="110" x2="540" y2="460" />
+    <line x1="610" y1="110" x2="610" y2="460" />
+    <!-- Horizontal Lines -->
+    <line x1="120" y1="180" x2="680" y2="180" />
+    <line x1="120" y1="250" x2="680" y2="250" />
+    <line x1="120" y1="320" x2="680" y2="320" />
+    <line x1="120" y1="390" x2="680" y2="390" />
+  </g>
+
+  <!-- Objects in the Scene -->
+  <!-- Skipped Object 1 (Circle) -->
+  <circle cx="295" cy="215" r="20" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="2.5" stroke-dasharray="4 4" opacity="0.7" />
+  
+  <!-- Skipped Object 2 (Rectangle) -->
+  <rect x="555" y="335" width="40" height="40" rx="4" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="2.5" stroke-dasharray="4 4" opacity="0.7" />
+
+  <!-- Tested Object 1 (Triangle - Intersected) -->
+  <path d="M435,265 L460,305 L410,305 Z" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="3" />
+
+  <!-- Tested Object 2 (Diamond - Tested but Missed by Ray) -->
+  <path d="M225,405 L245,425 L225,445 L205,425 Z" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2.5" stroke-dasharray="2 2" />
+
+  <!-- The Ray -->
+  <!-- Ray Glow -->
+  <line x1="80" y1="450" x2="720" y2="150" stroke="var(--brand-500)" stroke-width="8" opacity="0.2" />
+  <!-- Ray Core -->
+  <line x1="80" y1="450" x2="720" y2="150" stroke="var(--brand-500)" stroke-width="2.5" marker-end="url(#rayArrow)" />
+
+  <!-- Ray Entry and Exit Points -->
+  <circle cx="120" cy="431.25" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+  <circle cx="680" cy="168.75" r="4" fill="var(--bg-surface)" stroke="var(--brand-500)" stroke-width="2" />
+
+  <!-- Annotations -->
+  <g font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    
+    <!-- Ray Entry Label -->
+    <text x="70" y="380" font-size="13" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Ray Entry</text>
+    <text x="70" y="398" font-size="13" fill="var(--text-secondary)" text-anchor="middle">نقطة الدخول</text>
+    <path d="M70,405 L112,428" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#labelArrow)" />
+
+    <!-- Ray Exit Label -->
+    <text x="730" y="100" font-size="13" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Ray Exit</text>
+    <text x="730" y="118" font-size="13" fill="var(--text-secondary)" text-anchor="middle">نقطة الخروج</text>
+    <path d="M730,125 L688,162" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#labelArrow)" />
+
+    <!-- Skipped Object Label -->
+    <text x="250" y="60" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Skipped Object</text>
+    <text x="250" y="80" font-size="13" fill="var(--text-secondary)" text-anchor="middle">كائن متخطى</text>
+    <path d="M250,88 L288,190" stroke="var(--text-secondary)" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#labelArrow)" />
+
+    <!-- Tested Object Label -->
+    <text x="650" y="330" font-size="14" fill="var(--brand-500)" text-anchor="middle" font-weight="bold">Tested Object</text>
+    <text x="650" y="350" font-size="13" fill="var(--text-secondary)" text-anchor="middle">كائن مختبر</text>
+    <path d="M650,358 L470,290" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#highlightArrow)" />
+
+    <!-- Tested but Missed Label -->
+    <text x="100" y="270" font-size="13" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Tested (Missed)</text>
+    <text x="100" y="288" font-size="13" fill="var(--text-secondary)" text-anchor="middle">اختبر ولم يصب</text>
+    <path d="M100,295 L210,405" stroke="var(--text-secondary)" stroke-width="1.5" stroke-dasharray="2 2" marker-end="url(#labelArrow)" />
+
+    <!-- Highlighted Cells Label -->
+    <text x="400" y="515" font-size="15" fill="var(--brand-500)" text-anchor="middle" font-weight="bold">Traversed Cells (Tested)</text>
+    <text x="400" y="535" font-size="14" fill="var(--text-secondary)" text-anchor="middle">الخلايا المحددة (تم اختبارها)</text>
+    <path d="M400,495 L370,395" stroke="var(--brand-500)" stroke-width="1.5" marker-end="url(#highlightArrow)" />
+
+    <!-- Ray Label -->
+    <text x="100" y="515" font-size="15" fill="var(--text-primary)" text-anchor="middle" font-weight="bold">Ray</text>
+    <text x="100" y="535" font-size="14" fill="var(--text-secondary)" text-anchor="middle">شعاع</text>
+    <path d="M100,495 L88,460" stroke="var(--text-secondary)" stroke-width="1.5" marker-end="url(#labelArrow)" />
+
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون استخدام الشبكة المنتظمة أفضل من BVH؟</template>
+      <template class="content-en">When is using a uniform grid better than a BVH?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في المشاهد التي تكون فيها الكائنات موزعة بشكل متساوٍ وكثيف في جميع أنحاء الفضاء (مثل محاكاة السوائل أو حقل كويكبات منتظم).</p></template>
+      <template class="content-en"><p>In scenes where objects are uniformly and densely distributed throughout the space (e.g., fluid simulations or a uniform asteroid field).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي الرسوميات في واحدة من أهم وحدات تتبع الأشعة! تخيلوا أنكم تبحثون عن إبرة في كومة قش؛ تتبع الأشعة الساذج يقوم بفحص كل قشة على حدة (O(N))، وهذا مستحيل في الألعاب والأفلام الحديثة. هنا يأتي دور 'التسريع المكاني'. نحن نستخدم حيلتين: إما أن نضع الكائنات في صناديق متداخلة (BVH)، أو نقسم الغرفة نفسها إلى أقسام (k-d trees). تذكروا للامتحان: BVH يقسم الكائنات (لذا قد تتداخل الصناديق)، بينما k-d tree تقسم الفضاء (لذا قد ينقسم الكائن الواحد بين غرفتين). ولا تنسوا معادلة SAH! إنها ليست مجرد رياضيات معقدة، بل هي طريقة ذكية تقول: 'الصندوق الأكبر مساحةً هو الأكثر عرضة للاصطدام بالشعاع، لذا دعونا نقلل مساحات الصناديق المزدحمة'. ركزوا على المفاضلات (Trade-offs) بين AABB و OBB، ومتى نستخدم كل هيكل. بالتوفيق!</template>
+    <template class="content-en">Welcome, graphics engineers, to one of the most critical modules in ray tracing! Imagine searching for a needle in a haystack; naïve ray tracing checks every single piece of hay (O(N)), which is impossible for modern games and movies. Enter 'Spatial Acceleration'. We use two main tricks: either we put objects into nested boxes (BVH), or we slice the room itself into sections (k-d trees). Remember for the exam: BVH partitions objects (so boxes can overlap), while k-d trees partition space (so a single object might be split between two rooms). And don't forget the SAH equation! It's not just complex math; it's a clever heuristic that says, 'A box with a larger surface area is more likely to be hit by a ray, so let's minimize the area of crowded boxes.' Focus on the trade-offs between AABB and OBB, and when to use each structure. Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا نستخدم تتبع الأشعة الساذج (Naïve Ray Casting) في التطبيقات الحقيقية؟</template>
+          <template class="content-en">Why don't we use naïve ray casting in real applications?</template>
+          <span class="content-target">لماذا لا نستخدم تتبع الأشعة الساذج (Naïve Ray Casting) في التطبيقات الحقيقية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن تعقيده الزمني هو O(N) لكل شعاع. في مشهد يحتوي على ملايين المضلعات وشاشة بدقة عالية، سيتطلب الأمر تريليونات من اختبارات التقاطع للإطار الواحد، مما يجعله بطيئاً بشكل غير عملي.</template>
+          <template class="content-en">Because its time complexity is O(N) per ray. In a scene with millions of polygons and a high-resolution screen, it would require trillions of intersection tests per frame, making it impractically slow.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الأساسي بين BVH وشجرة k-d؟</template>
+          <template class="content-en">What is the fundamental difference between a BVH and a k-d tree?</template>
+          <span class="content-target">ما هو الفرق الأساسي بين BVH وشجرة k-d؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">BVH يعتمد على تقسيم الكائنات (Object Partitioning)، حيث كل كائن ينتمي لعقدة واحدة ولكن الحجوم قد تتداخل. شجرة k-d تعتمد على تقسيم الفضاء (Space Partitioning)، حيث الفضاء مقسم بصرامة ولكن الكائن قد ينتمي لعدة عقد.</template>
+          <template class="content-en">A BVH is based on Object Partitioning, where each object belongs to one node but volumes can overlap. A k-d tree is based on Space Partitioning, where space is strictly divided but an object can belong to multiple nodes.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم AABB بدلاً من الكرات (Spheres) أو OBB؟</template>
+          <template class="content-en">Why do we use AABBs instead of Spheres or OBBs?</template>
+          <span class="content-target">لماذا نستخدم AABB بدلاً من الكرات (Spheres) أو OBB؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">AABB يمثل نقطة توازن ممتازة (Sweet spot). الكرات سريعة الاختبار لكن ملاءمتها سيئة جداً للأشكال الطويلة. OBB ملاءمته ممتازة لكن اختباره مكلف جداً. AABB يوفر ملاءمة جيدة واختبار تقاطع سريع (Ray-slab).</template>
+          <template class="content-en">AABB represents an excellent sweet spot. Spheres are fast to test but fit long shapes poorly. OBBs fit perfectly but are very expensive to test. AABBs offer a good fit and a fast intersection test (Ray-slab).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الهدف من استدلال مساحة السطح (SAH)؟</template>
+          <template class="content-en">What is the goal of the Surface Area Heuristic (SAH)?</template>
+          <span class="content-target">ما هو الهدف من استدلال مساحة السطح (SAH)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الهدف هو بناء هيكل تسريع يقلل من التكلفة المتوقعة (Expected cost) لاختبارات تقاطع الأشعة أثناء وقت التشغيل، وذلك عن طريق تقييم احتمالية ضرب الشعاع لكل عقدة بناءً على مساحة سطحها.</template>
+          <template class="content-en">The goal is to build an acceleration structure that minimizes the expected cost of ray intersection tests during runtime, by evaluating the probability of a ray hitting each node based on its surface area.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في شجرة k-d، لماذا يعتبر 'الإنهاء المبكر' (Early termination) ميزة ضخمة؟</template>
+          <template class="content-en">In a k-d tree, why is 'early termination' a massive advantage?</template>
+          <span class="content-target">في شجرة k-d، لماذا يعتبر 'الإنهاء المبكر' (Early termination) ميزة ضخمة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الشجرة يتم اجتيازها بالترتيب من الأمام إلى الخلف (Front-to-back). بمجرد أن يتقاطع الشعاع مع كائن، نكون متأكدين بنسبة 100% أنه أقرب كائن، ولا نحتاج لاختبار الكائنات الموجودة خلفه.</template>
+          <template class="content-en">Because the tree is traversed in front-to-back order. Once a ray intersects an object, we are 100% sure it is the closest object, and we don't need to test any objects behind it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى تفشل الشبكات المنتظمة (Uniform Grids) في تقديم أداء جيد؟</template>
+          <template class="content-en">When do Uniform Grids fail to provide good performance?</template>
+          <span class="content-target">متى تفشل الشبكات المنتظمة (Uniform Grids) في تقديم أداء جيد؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تفشل عندما يكون المشهد غير منتظم التوزيع (مثلاً: ملعب كرة قدم فارغ مع كرة صغيرة معقدة في المنتصف). الشعاع سيضيع وقتاً طويلاً في المرور عبر الخلايا الفارغة (Teapot in a stadium problem).</template>
+          <template class="content-en">They fail when the scene is non-uniformly distributed (e.g., an empty football stadium with a complex small ball in the center). The ray will waste a lot of time stepping through empty cells (Teapot in a stadium problem).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتم بناء BVH باستخدام التقسيم من أعلى إلى أسفل؟</template>
+          <template class="content-en">How is a BVH built using top-down recursion?</template>
+          <span class="content-target">كيف يتم بناء BVH باستخدام التقسيم من أعلى إلى أسفل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نبدأ بصندوق يحيط بكل كائنات المشهد. نختار محوراً ونقسم الكائنات إلى مجموعتين. ننشئ صندوقاً محيطاً لكل مجموعة، ثم نكرر العملية (Recursion) على كل مجموعة حتى نصل إلى عدد قليل من الكائنات في كل صندوق (Leaf node).</template>
+          <template class="content-en">We start with a box bounding all scene objects. We choose an axis and split the objects into two sets. We create a bounding box for each set, then repeat the process (recursion) on each set until we reach a small number of objects per box (leaf node).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المشكلة التي يسببها تداخل العقد (Node overlap) في BVH؟</template>
+          <template class="content-en">What problem does node overlap cause in a BVH?</template>
+          <span class="content-target">ما هي المشكلة التي يسببها تداخل العقد (Node overlap) في BVH؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">إذا مر الشعاع عبر منطقة تتداخل فيها عقدتان، فيجب على الخوارزمية اجتياز كلا الفرعين في الشجرة للبحث عن التقاطع، مما يقلل من كفاءة التقليم (Culling).</template>
+          <template class="content-en">If a ray passes through a region where two nodes overlap, the algorithm must traverse both branches of the tree to search for an intersection, reducing culling efficiency.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم مساحة السطح بدلاً من الحجم في معادلة SAH؟</template>
+          <template class="content-en">Why do we use surface area instead of volume in the SAH equation?</template>
+          <span class="content-target">لماذا نستخدم مساحة السطح بدلاً من الحجم في معادلة SAH؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الأشعة هي خطوط أحادية البعد. احتمالية تقاطع خط عشوائي مع شكل ثلاثي الأبعاد تتناسب طردياً مع مساحة المقطع العرضي للشكل (والتي ترتبط بمساحة سطحه)، وليس بحجمه الداخلي.</template>
+          <template class="content-en">Because rays are 1D lines. The probability of a random line intersecting a 3D shape is directly proportional to the shape's cross-sectional area (which correlates to its surface area), not its internal volume.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">اذكر استخدامات أخرى لهياكل التسريع المكاني غير تتبع الأشعة.</template>
+          <template class="content-en">Name other uses for spatial acceleration structures besides ray tracing.</template>
+          <span class="content-target">اذكر استخدامات أخرى لهياكل التسريع المكاني غير تتبع الأشعة.</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تُستخدم بكثرة في محركات الألعاب لاكتشاف التصادم (Collision detection)، وتقليم هرم الرؤية (Frustum culling) لعدم رسم الأشياء خارج الشاشة، وتخطيط مسار الذكاء الاصطناعي (Path planning).</template>
+          <template class="content-en">They are heavily used in game engines for collision detection, view frustum culling (to avoid drawing off-screen objects), and AI path planning.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لتتبع الأشعة الساذج (Naïve Ray Casting)؟",
+      "en": "What is the time complexity of naïve ray casting?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N) لكل شعاع، حيث N هو عدد الكائنات في المشهد.",
+        "en": "O(N) per ray, where N is the number of objects in the scene."
+      },
+      "example": {
+        "ar": "يجب اختبار كل شعاع مع كل كائن، مما يجعله بطيئاً جداً.",
+        "en": "Every ray must be tested against every object, making it extremely slow."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي الفكرتان الرئيسيتان وراء هياكل التسريع المكاني؟",
+      "en": "What are the two key ideas behind spatial acceleration structures?"
+    },
+    "back": {
+      "definition": {
+        "ar": "1. التقسيم الهرمي (Hierarchical partitioning). 2. إحاطة الكائنات بأشكال هندسية أبسط (Bounding volumes).",
+        "en": "1. Hierarchical partitioning. 2. Bounding objects with simpler primitives."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ماذا يعني AABB؟",
+      "en": "What does AABB stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الصندوق المحيط المحاذي للمحاور (Axis-Aligned Bounding Box).",
+        "en": "Axis-Aligned Bounding Box."
+      },
+      "example": {
+        "ar": "صندوق حوافه موازية لمحاور الإحداثيات X و Y و Z.",
+        "en": "A box whose edges are parallel to the X, Y, and Z coordinate axes."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ماذا يعني OBB؟",
+      "en": "What does OBB stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الصندوق المحيط الموجه (Oriented Bounding Box).",
+        "en": "Oriented Bounding Box."
+      },
+      "example": {
+        "ar": "صندوق يمكن تدويره ليناسب الكائن بشكل أكثر إحكاماً من AABB.",
+        "en": "A box that can be rotated to fit the object more tightly than an AABB."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هي المفاضلة (Trade-off) الأساسية عند اختيار نوع الحجم المحيط؟",
+      "en": "What is the primary trade-off when choosing a bounding volume type?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إحكام الملاءمة (Tightness of fit) مقابل تعقيد اختبار التقاطع (Intersection complexity).",
+        "en": "Tightness of fit vs. volume intersection complexity."
+      },
+      "example": {
+        "ar": "الكرات سهلة الاختبار لكن ملاءمتها سيئة، بينما OBB ملاءمتها ممتازة لكن اختبارها معقد.",
+        "en": "Spheres are easy to test but fit poorly, while OBBs fit perfectly but are complex to test."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "كيف يتم اختبار تقاطع الشعاع مع AABB؟",
+      "en": "How is ray intersection with an AABB typically tested?"
+    },
+    "back": {
+      "definition": {
+        "ar": "باستخدام اختبار تقاطع الشعاع مع الشرائح (Ray-slab intersection).",
+        "en": "Using the Ray-slab intersection test."
+      },
+      "example": {
+        "ar": "حساب فترات التقاطع على طول كل محور والتحقق مما إذا كانت تتقاطع.",
+        "en": "Computing t-intervals along each axis and checking if the intervals overlap."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "هل BVH يعتمد على تقسيم الكائنات أم تقسيم الفضاء؟",
+      "en": "Is a BVH based on object partitioning or space partitioning?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقسيم الكائنات (Object partitioning).",
+        "en": "Object partitioning."
+      },
+      "example": {
+        "ar": "يتم تجميع الكائنات في حجوم، ويمكن أن تتداخل هذه الحجوم في الفضاء.",
+        "en": "Objects are grouped into volumes, and these volumes can overlap in space."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "هل شجرة k-d تعتمد على تقسيم الكائنات أم تقسيم الفضاء؟",
+      "en": "Is a k-d tree based on object partitioning or space partitioning?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقسيم الفضاء (Space partitioning).",
+        "en": "Space partitioning."
+      },
+      "example": {
+        "ar": "يتم تقسيم الفضاء نفسه بمستويات، ولا تتداخل المناطق.",
+        "en": "The space itself is divided by planes, and regions do not overlap."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ماذا يعني SAH؟",
+      "en": "What does SAH stand for?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الاستدلال بمساحة السطح (Surface Area Heuristic).",
+        "en": "Surface Area Heuristic."
+      },
+      "example": {
+        "ar": "نموذج لتقييم التكلفة المتوقعة لاجتياز الشعاع لبناء أشجار محسنة.",
+        "en": "A model to evaluate the expected cost of ray traversal to build optimized trees."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "في SAH، ماذا تمثل النسبة SA(B)/SA(A)؟",
+      "en": "In SAH, what does the ratio SA(B)/SA(A) represent?"
+    },
+    "back": {
+      "definition": {
+        "ar": "احتمال أن يتقاطع شعاع يمر عبر الصندوق A مع الصندوق B الموجود بداخله.",
+        "en": "The probability that a ray traversing box A will intersect box B contained within it."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي الميزة الرئيسية لأشجار k-d أثناء تتبع الأشعة؟",
+      "en": "What is the main advantage of k-d trees during ray tracing?"
+    },
+    "back": {
+      "definition": {
+        "ar": "أول تقاطع يتم العثور عليه هو الأقرب (Front-to-back traversal)، مما يسمح بإنهاء البحث مبكراً.",
+        "en": "The first intersection found is the closest (front-to-back traversal), allowing early termination."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو العيب الرئيسي لأشجار k-d؟",
+      "en": "What is a major disadvantage of k-d trees?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قد يتقاطع الشعاع مع نفس الكائن عدة مرات لأن الكائن يمكن أن يمتد عبر مستويات التقسيم.",
+        "en": "A ray may intersect the same object multiple times because the object can straddle splitting planes."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "متى يكون أداء الشبكات المنتظمة (Uniform Grids) سيئاً؟",
+      "en": "When do Uniform Grids perform poorly?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تكون الكائنات غير موزعة بشكل منتظم (Non-uniformly distributed objects).",
+        "en": "When objects are non-uniformly distributed."
+      },
+      "example": {
+        "ar": "مشهد به مساحات فارغة شاسعة وتجمع كثيف في منطقة صغيرة.",
+        "en": "A scene with vast empty spaces and a dense cluster in a small area."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "اذكر استخدامين لهياكل التسريع المكاني غير تتبع الأشعة.",
+      "en": "Name two uses for spatial acceleration structures other than ray tracing."
+    },
+    "back": {
+      "definition": {
+        "ar": "اكتشاف التصادم (Collision detection)، وتقليم هرم الرؤية (View frustum culling)، وتخطيط المسار (Path planning).",
+        "en": "Collision detection, View frustum culling, and Path/motion planning."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو التقسيم من أعلى إلى أسفل (Top-down recursion) في بناء BVH؟",
+      "en": "What is top-down recursion in BVH construction?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إحاطة المشهد بأكمله، ثم تقسيمه إلى قسمين، وتكرار العملية على الجانبين حتى يتبقى عدد قليل من الكائنات في الصندوق.",
+        "en": "Bound the whole scene, split it into two, and recurse on both sides until only a few primitives remain in the box."
+      },
+      "example": {
+        "ar": "",
+        "en": ""
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لخوارزمية تتبع الأشعة الساذجة (Naïve Ray Casting)؟",
+      "en": "What is the time complexity of the naïve ray casting algorithm?"
+    },
+    "options": {
+      "ar": [
+        "O(1)",
+        "O(log N)",
+        "O(N)",
+        "O(N^2)"
+      ],
+      "en": [
+        "O(1)",
+        "O(log N)",
+        "O(N)",
+        "O(N^2)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في تتبع الأشعة الساذج، يجب اختبار كل شعاع مقابل كل كائن (N) في المشهد.",
+      "en": "In naïve ray casting, every ray must be tested against every object (N) in the scene."
+    },
+    "hint": {
+      "ar": "فكر في عدد الكائنات التي يجب التحقق منها إذا لم يكن هناك هيكل تسريع.",
+      "en": "Think about how many objects must be checked if there is no acceleration structure."
+    },
+    "difficulty": "easy",
+    "conceptId": "naive-ray-casting"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من الحجوم المحيطة التالية يوفر أضيق ملاءمة (Tightest fit) ولكنه الأغلى في اختبار التقاطع؟",
+      "en": "Which of the following bounding volumes provides the tightest fit but is the most expensive to intersect?"
+    },
+    "options": {
+      "ar": [
+        "الكرات (Spheres)",
+        "الصناديق المحاذية للمحاور (AABBs)",
+        "الصناديق الموجهة (OBBs)",
+        "الشبكات المنتظمة (Uniform Grids)"
+      ],
+      "en": [
+        "Spheres",
+        "Axis-Aligned Bounding Boxes (AABBs)",
+        "Oriented Bounding Boxes (OBBs)",
+        "Uniform Grids"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "OBB يمكن تدويره ليناسب الكائن بدقة، مما يقلل المساحة الفارغة، لكن الرياضيات المطلوبة لاختباره معقدة.",
+      "en": "OBBs can be rotated to fit the object precisely, minimizing empty space, but the math required to test them is complex."
+    },
+    "hint": {
+      "ar": "هذا الصندوق يمكن تدويره في أي اتجاه.",
+      "en": "This box can be rotated in any direction."
+    },
+    "difficulty": "medium",
+    "conceptId": "bounding-volumes"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو نوع التقسيم الذي تستخدمه هرميات الحجوم المحيطة (BVH)؟",
+      "en": "What type of partitioning do Bounding Volume Hierarchies (BVHs) use?"
+    },
+    "options": {
+      "ar": [
+        "تقسيم الفضاء (Space partitioning)",
+        "تقسيم الكائنات (Object partitioning)",
+        "التقسيم المنتظم (Uniform partitioning)",
+        "تنقيط الخطوط (Line rasterization)"
+      ],
+      "en": [
+        "Space partitioning",
+        "Object partitioning",
+        "Uniform partitioning",
+        "Line rasterization"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "BVH يجمع الكائنات معاً في حجوم، مما يعني أنه يقسم مجموعة الكائنات، وقد تتداخل الحجوم الناتجة في الفضاء.",
+      "en": "BVHs group objects together into volumes, meaning they partition the set of objects, and the resulting volumes can overlap in space."
+    },
+    "hint": {
+      "ar": "هل يضمن BVH عدم تداخل الفضاء أم عدم تكرار الكائنات؟",
+      "en": "Does a BVH guarantee no spatial overlap or no object duplication?"
+    },
+    "difficulty": "medium",
+    "conceptId": "bvh"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "في استدلال مساحة السطح (SAH)، على ماذا تعتمد احتمالية تقاطع شعاع مع صندوق داخلي B موجود داخل صندوق A؟",
+      "en": "In the Surface Area Heuristic (SAH), what does the probability of a ray intersecting an inner box B contained within box A depend on?"
+    },
+    "options": {
+      "ar": [
+        "نسبة الحجم Volume(B) / Volume(A)",
+        "نسبة مساحة السطح SA(B) / SA(A)",
+        "عدد الكائنات في B مقسوماً على A",
+        "المسافة بين مركز B ومركز A"
+      ],
+      "en": [
+        "The volume ratio Volume(B) / Volume(A)",
+        "The surface area ratio SA(B) / SA(A)",
+        "The number of objects in B divided by A",
+        "The distance between the center of B and A"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "ينص SAH على أن الاحتمال يتناسب مع مساحة السطح، لأن الأشعة هي خطوط 1D.",
+      "en": "SAH states that the probability is proportional to the surface area, because rays are 1D lines."
+    },
+    "hint": {
+      "ar": "اسم الخوارزمية يحتوي على الإجابة.",
+      "en": "The name of the heuristic contains the answer."
+    },
+    "difficulty": "medium",
+    "conceptId": "surface-area-heuristic"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من الهياكل التالية يضمن أن أول تقاطع يتم العثور عليه هو الأقرب، مما يسمح بإنهاء البحث مبكراً؟",
+      "en": "Which of the following structures guarantees that the first intersection found is the closest, allowing early termination?"
+    },
+    "options": {
+      "ar": [
+        "BVH",
+        "أشجار k-d (k-d trees)",
+        "قائمة الكائنات غير المرتبة",
+        "الكرات المحيطة المتداخلة"
+      ],
+      "en": [
+        "BVH",
+        "k-d trees",
+        "Unordered object list",
+        "Nested bounding spheres"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "لأن أشجار k-d تقسم الفضاء بشكل صارم ويتم اجتيازها من الأمام إلى الخلف، فإن أول تقاطع هو الأقرب.",
+      "en": "Because k-d trees strictly partition space and are traversed front-to-back, the first intersection is guaranteed to be the closest."
+    },
+    "hint": {
+      "ar": "هذا الهيكل يقسم الفضاء بمستويات محاذية للمحاور.",
+      "en": "This structure partitions space with axis-aligned planes."
+    },
+    "difficulty": "hard",
+    "conceptId": "kd-trees"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي المشكلة الرئيسية في أشجار k-d مقارنة بـ BVH؟",
+      "en": "What is a major problem with k-d trees compared to BVHs?"
+    },
+    "options": {
+      "ar": [
+        "تتداخل العقد في الفضاء",
+        "لا يمكن استخدامها لتتبع الأشعة",
+        "قد يتم اختبار نفس الكائن عدة مرات",
+        "تتطلب دائماً كرات محيطة"
+      ],
+      "en": [
+        "Nodes overlap in space",
+        "They cannot be used for ray tracing",
+        "The same object may be tested multiple times",
+        "They always require bounding spheres"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في شجرة k-d، يمكن للكائن أن يمتد عبر مستوى التقسيم، مما يجعله موجوداً في عدة عقد أوراق.",
+      "en": "In a k-d tree, an object can straddle a splitting plane, causing it to be present in multiple leaf nodes."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا كان المثلث يقع بالضبط على خط التقسيم؟",
+      "en": "What happens if a triangle lies exactly on the splitting line?"
+    },
+    "difficulty": "hard",
+    "conceptId": "kd-trees"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "متى يكون أداء الشبكات المنتظمة (Uniform Grids) في أسوأ حالاته؟",
+      "en": "When is the performance of Uniform Grids at its worst?"
+    },
+    "options": {
+      "ar": [
+        "عندما تكون الكائنات موزعة بشكل متساوٍ جداً",
+        "عندما تكون الكائنات غير موزعة بشكل منتظم (تجمعات كثيفة ومساحات فارغة)",
+        "عندما يحتوي المشهد على كرات فقط",
+        "عندما يتم استخدامها لاكتشاف التصادم"
+      ],
+      "en": [
+        "When objects are very evenly distributed",
+        "When objects are non-uniformly distributed (dense clusters and empty spaces)",
+        "When the scene contains only spheres",
+        "When used for collision detection"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الشبكات المنتظمة لا تتكيف مع كثافة المشهد، لذا فإن المساحات الفارغة الكبيرة تضيع وقت الاجتياز.",
+      "en": "Uniform grids do not adapt to scene density, so large empty spaces waste traversal time."
+    },
+    "hint": {
+      "ar": "الشبكات المنتظمة غير تكيفية (Non-adaptive).",
+      "en": "Uniform grids are non-adaptive."
+    },
+    "difficulty": "medium",
+    "conceptId": "uniform-grids"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "أي من التطبيقات التالية لا يُعد استخداماً شائعاً لهياكل التسريع المكاني؟",
+      "en": "Which of the following is NOT a common use for spatial acceleration structures?"
+    },
+    "options": {
+      "ar": [
+        "اكتشاف التصادم (Collision detection)",
+        "تقليم هرم الرؤية (View frustum culling)",
+        "تخطيط المسار (Path planning)",
+        "تنعيم الحواف (Anti-aliasing)"
+      ],
+      "en": [
+        "Collision detection",
+        "View frustum culling",
+        "Path planning",
+        "Anti-aliasing"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "تنعيم الحواف يعالج جودة البكسل (عبر أخذ عينات متعددة)، بينما تُستخدم هياكل التسريع للبحث المكاني.",
+      "en": "Anti-aliasing deals with pixel quality (via supersampling), whereas acceleration structures are used for spatial queries."
+    },
+    "hint": {
+      "ar": "ابحث عن الخيار المتعلق بمعالجة الصور بدلاً من الهندسة ثلاثية الأبعاد.",
+      "en": "Look for the option related to image processing rather than 3D geometry."
+    },
+    "difficulty": "easy",
+    "conceptId": "naive-ray-casting"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "كيف يتم اختبار تقاطع الشعاع مع AABB برمجياً؟",
+      "en": "How is ray intersection with an AABB tested programmatically?"
+    },
+    "options": {
+      "ar": [
+        "عن طريق حساب المسافة إلى المركز فقط",
+        "باستخدام خوارزمية تقاطع الشرائح (Ray-slab intersection)",
+        "عن طريق تحويل الشعاع إلى إحداثيات كروية",
+        "باستخدام خوارزمية تنقيط الخطوط (Line rasterization)"
+      ],
+      "en": [
+        "By calculating the distance to the center only",
+        "Using the Ray-slab intersection algorithm",
+        "By converting the ray to spherical coordinates",
+        "Using the line rasterization algorithm"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم حساب فترات التقاطع (t-intervals) على طول كل محور (x, y, z) والتحقق من تداخلها.",
+      "en": "Intersection intervals (t-intervals) are computed along each axis (x, y, z) and checked for overlap."
+    },
+    "hint": {
+      "ar": "تخيل الصندوق كمجموعة من الألواح (Slabs) الموازية للمحاور.",
+      "en": "Imagine the box as a set of axis-aligned slabs."
+    },
+    "difficulty": "medium",
+    "conceptId": "bounding-volumes"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "لماذا نفضل SAH على التقسيم من المنتصف (Center partition) عند بناء BVH؟",
+      "en": "Why do we prefer SAH over Center partition when building a BVH?"
+    },
+    "options": {
+      "ar": [
+        "لأنه أسرع في البناء",
+        "لأنه يضمن شجرة متوازنة تماماً",
+        "لأنه يقلل التكلفة المتوقعة لاختبارات تقاطع الأشعة",
+        "لأنه يمنع تداخل العقد تماماً"
+      ],
+      "en": [
+        "Because it is faster to build",
+        "Because it guarantees a perfectly balanced tree",
+        "Because it minimizes the expected cost of ray intersection tests",
+        "Because it completely prevents node overlap"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "SAH يبني شجرة محسنة لتقليل وقت التتبع الفعلي بناءً على الاحتمالات، حتى لو كانت الشجرة غير متوازنة.",
+      "en": "SAH builds a tree optimized to minimize actual tracing time based on probabilities, even if the tree is unbalanced."
+    },
+    "hint": {
+      "ar": "الهدف من SAH هو تحسين الأداء أثناء وقت التشغيل (التتبع)، وليس وقت البناء.",
+      "en": "The goal of SAH is to optimize runtime (tracing) performance, not build time."
+    },
+    "difficulty": "hard",
+    "conceptId": "surface-area-heuristic"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن BVH يقسم الفضاء. هذا خطأ شائع! BVH يقسم الكائنات (Object Partitioning)، مما يعني أن الحجوم المحيطة للعقد الشقيقة يمكن أن تتداخل في الفضاء.</template>
+      <template class="content-en">Believing that BVH partitions space. This is a common mistake! BVH partitions objects (Object Partitioning), meaning the bounding volumes of sibling nodes can overlap in space.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المفاضلة الأساسية في الحجوم المحيطة هي بين 'إحكام الملاءمة' (Tightness of fit) وتكلفة اختبار التقاطع. OBB محكم جداً لكنه مكلف، بينما الكرة رخيصة لكنها غير محكمة.</template>
+      <template class="content-en">The fundamental trade-off in bounding volumes is between 'tightness of fit' and intersection test cost. OBB is very tight but expensive, while a sphere is cheap but loose.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">خوارزمية SAH لا تهتم بإنشاء شجرة متوازنة (Balanced tree). في الواقع، غالباً ما تنشئ أشجاراً غير متوازنة عمداً إذا كان ذلك يقلل من مساحة سطح العقد التي تحتوي على كائنات كثيرة، لأن ذلك يقلل احتمال ضرب الأشعة لها.</template>
+      <template class="content-en">The SAH algorithm does not care about creating a balanced tree. In fact, it often intentionally creates unbalanced trees if it reduces the surface area of nodes with many objects, minimizing the probability of rays hitting them.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الافتراض بأن أشجار k-d تختبر كل كائن مرة واحدة فقط. نظراً لأنها تقسم الفضاء، يمكن للكائن أن يمتد عبر مستوى التقسيم ويتم تخزينه في عدة عقد، مما يؤدي إلى اختبارات متكررة لنفس الشعاع.</template>
+      <template class="content-en">Assuming k-d trees test every object exactly once. Because they partition space, an object can straddle a splitting plane and be stored in multiple nodes, leading to redundant tests for the same ray.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الشبكات المنتظمة (Uniform Grids) ممتازة وسريعة جداً للمشاهد ذات التوزيع المنتظم للكائنات، ولكنها تنهار في الأداء (تصبح بطيئة جداً) في المشاهد ذات التوزيع غير المنتظم (مساحات فارغة كبيرة).</template>
+      <template class="content-en">Uniform Grids are excellent and very fast for scenes with uniformly distributed objects, but their performance collapses in scenes with non-uniform distribution (large empty spaces).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M05.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M07.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

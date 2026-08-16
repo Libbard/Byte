@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HGTK36LR0M');</script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المعدل الدراسي · GPA Calculator</title>
+  <meta name="description" content="حاسبة المعدل الدراسي لطلاب علوم الحاسب - مقياس SEU 4.0">
+
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+      var fs=localStorage.getItem('garden_font_size');
+      if(fs) document.documentElement.setAttribute('data-font-size',fs);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../shared/garden.css">
+  <link rel="stylesheet" href="../shared/reminders.css">
+  <link rel="stylesheet" href="../shared/skin.css">
+  <link rel="stylesheet" href="../shared/garden-header.css">
+  <link rel="stylesheet" href="../shared/gpa.css">
+  <link rel="stylesheet" href="../shared/gpa-setup.css">
+  <link rel="stylesheet" href="../shared/bottom-nav.css">
+  <link rel="stylesheet" href="../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="المعدل الدراسي" data-page-title-en="GPA Calculator" data-no-notes>
+
+<!--@1.GPAH.1-->
+<header data-gh></header>
+
+<div class="gp-wrap">
+
+  <div class="gp-head">
+    <h1 class="gp-title" data-ar="المعدل الدراسي" data-en="Grade Point Average">المعدل الدراسي</h1>
+    <p class="gp-sub" data-ar="مقياس الجامعة السعودية الإلكترونية · من 4.00"
+       data-en="Saudi Electronic University scale · out of 4.00">مقياس الجامعة السعودية الإلكترونية · من 4.00</p>
+  </div>
+
+  <!--@1.GPAH.2-->
+  <section class="gp-card gp-empty" id="state-empty" hidden>
+    <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+    <p data-ar="لا درجات بعد — ابدأ باسترجاع ما درسته، ثم يحسب المعدل نفسه ويتتبّع تقدّمك حتى التخرّج."
+       data-en="No grades yet — start by recovering what you have already studied; the GPA then computes itself and tracks you to graduation.">لا درجات بعد — ابدأ باسترجاع ما درسته، ثم يحسب المعدل نفسه ويتتبّع تقدّمك حتى التخرّج.</p>
+    <div class="gp-empty-actions">
+      <button class="gp-btn gp-btn--primary" data-act="wizard">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span data-ar="استرجع دراستي السابقة" data-en="Recover my past study">استرجع دراستي السابقة</span>
+      </button>
+      <a class="gp-btn" href="index.html">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span data-ar="أنا جديد — أنشئ فصلي" data-en="I'm new — create my semester">أنا جديد — أنشئ فصلي</span>
+      </a>
+    </div>
+    <p class="gp-empty-hint"
+       data-ar="المعالج يعرض مواد كل مستوى، تؤشّر ما أتممته وتضع تقديره — ويُؤرشَف كل مستوى بمعدّله وحده."
+       data-en="The wizard lists each level's courses; tick what you completed and set its grade — each level is archived with its own GPA.">المعالج يعرض مواد كل مستوى، تؤشّر ما أتممته وتضع تقديره — ويُؤرشَف كل مستوى بمعدّله وحده.</p>
+  </section>
+
+  <!--@1.GPAH.3-->
+  <div id="state-full" hidden>
+
+    <!--@1.GPAH.4-->
+    <section class="gp-card" id="gp-hero-card">
+      <div class="gp-card-head">
+        <span class="gp-eyebrow" data-ar="نظرة عامة" data-en="Overview">نظرة عامة</span>
+        <div class="gp-card-tools">
+          <button class="gp-ico" data-act="png" aria-label="تصدير صورة PNG" title="تصدير صورة PNG"><i class="fa-solid fa-image"></i></button>
+          <button class="gp-ico" data-act="pdf" aria-label="تصدير ملف PDF" title="تصدير ملف PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        </div>
+      </div>
+
+      <div class="gp-hero">
+        <div class="gp-ring">
+          <svg viewBox="0 0 160 160" role="img" aria-labelledby="ring-t">
+            <title id="ring-t">حلقة المعدل التراكمي</title>
+            <defs>
+              <linearGradient id="gpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#3b82f6"/>
+              </linearGradient>
+            </defs>
+            <g transform="rotate(-90 80 80)">
+              <circle class="gp-ring-track" cx="80" cy="80" r="65"></circle>
+              <!--@1.GPAH.5-->
+              <path   class="gp-ring-ghost" id="ring-ghost" d=""></path>
+              <circle class="gp-ring-arc"   id="ring-arc"   cx="80" cy="80" r="65"></circle>
+            </g>
+          </svg>
+          <div class="gp-ring-num">
+            <span class="gp-ring-val" id="cum-gpa">0.00</span>
+            <span class="gp-ring-of" data-ar="من 4.00" data-en="of 4.00">من 4.00</span>
+            <!--@1.GPAH.6-->
+            <span class="gp-ring-wi" id="ring-wi" hidden></span>
+          </div>
+        </div>
+
+        <div class="gp-hero-side">
+          <span class="gp-band" id="cum-band" data-band="mid"><i class="fa-solid fa-circle-check"></i><span>—</span></span>
+          <div class="gp-metrics">
+            <div class="gp-metric">
+              <span class="gp-metric-lbl" data-ar="ساعات مجتازة" data-en="Credits earned">ساعات مجتازة</span>
+              <div class="gp-metric-val"><span id="m-credits">0</span><small id="m-credits-of"></small></div>
+              <div class="gp-metric-bar"><i id="m-credits-bar" style="width:0%"></i></div>
+            </div>
+            <div class="gp-metric">
+              <span class="gp-metric-lbl" data-ar="النقاط" data-en="Points">النقاط</span>
+              <!--@1.GPAH.7-->
+              <div class="gp-metric-val"><span id="m-points">0.00</span><small id="m-points-of"></small></div>
+              <div class="gp-metric-bar"><i id="m-points-bar" style="width:0%"></i></div>
+            </div>
+            <div class="gp-metric">
+              <span class="gp-metric-lbl" data-ar="مواد مقدّرة" data-en="Graded courses">مواد مقدّرة</span>
+              <div class="gp-metric-val"><span id="m-graded">0</span><small id="m-graded-of"></small></div>
+              <div class="gp-metric-bar"><i id="m-graded-bar" data-tone="ok" style="width:0%"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--@1.GPAH.8-->
+    <section class="gp-card" id="gp-cur-card">
+      <div class="gp-card-head">
+        <h2 class="gp-card-title" id="cur-title" data-ar="الفصل الحالي" data-en="Current semester">الفصل الحالي</h2>
+        <span class="gp-badge" data-kind="on"><span data-ar="معدل الفصل" data-en="Term GPA">معدل الفصل</span>&nbsp;<b id="sem-gpa">—</b></span>
+        <div class="gp-card-tools">
+          <button class="gp-ico" data-act="add" aria-label="إضافة مادة" title="إضافة مادة"><i class="fa-solid fa-plus"></i></button>
+          <button class="gp-fold" data-fold aria-expanded="true" aria-label="طيّ البطاقة"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+      </div>
+      <div class="gp-card-body">
+        <div class="gp-rows" id="rows">
+          <div class="gp-rowhead" aria-hidden="true">
+            <span data-ar="الرمز" data-en="Code">الرمز</span>
+            <span data-ar="المادة" data-en="Course">المادة</span>
+            <span data-ar="ساعات" data-en="Cr">ساعات</span>
+            <span data-ar="التقدير" data-en="Grade">التقدير</span>
+            <span data-ar="النقاط" data-en="Points">النقاط</span>
+            <span></span>
+          </div>
+        </div>
+
+        <div class="gp-total">
+          <span class="gp-total-lbl" data-ar="المجموع" data-en="Total">المجموع</span>
+          <span class="gp-row-cr" id="t-credits">0</span>
+          <span></span>
+          <span class="gp-row-pts" id="t-points">0.00</span>
+          <span></span>
+        </div>
+
+        <button class="gp-cta" data-act="add">
+          <i class="fa-solid fa-plus"></i><span data-ar="إضافة مادة" data-en="Add course">إضافة مادة</span>
+        </button>
+
+        <div class="gp-wi" id="wi-strip" hidden>
+          <div class="gp-wi-txt">
+            <b data-ar="ماذا لو؟" data-en="What if?">ماذا لو؟</b>
+            <span data-ar="— قدِّر درجات المواد التي لم تُقدَّر بعد (الحقول المقطّعة) لترى أثرها. القوس المقطّع في الحلقة يتحرّك معك."
+                  data-en="— estimate the grades of ungraded courses (the dashed fields) to see the impact. The dashed arc on the ring moves with you.">— قدِّر درجات المواد التي لم تُقدَّر بعد (الحقول المقطّعة) لترى أثرها. القوس المقطّع في الحلقة يتحرّك معك.</span>
+          </div>
+          <div class="gp-wi-out">
+            <span class="gp-metric-lbl" data-ar="المعدل المتوقّع" data-en="Projected GPA">المعدل المتوقّع</span>
+            <div class="gp-wi-val" id="wi-gpa" data-empty="1">—</div>
+            <span class="gp-wi-delta" id="wi-delta" hidden></span>
+          </div>
+          <button class="gp-btn gp-btn--sm" data-act="wi-clear">
+            <i class="fa-solid fa-eraser"></i><span data-ar="مسح التقديرات" data-en="Clear">مسح التقديرات</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!--@1.GPAH.9-->
+    <section class="gp-card" id="gp-fc-card">
+      <div class="gp-card-head">
+        <h2 class="gp-card-title" data-ar="التوقّع حتى التخرّج" data-en="Forecast to graduation">التوقّع حتى التخرّج</h2>
+        <div class="gp-card-tools">
+          <button class="gp-btn gp-btn--sm" data-act="add-sem">
+            <i class="fa-solid fa-plus"></i><span data-ar="فصل مخطّط" data-en="Planned term">فصل مخطّط</span>
+          </button>
+          <button class="gp-fold" data-fold aria-expanded="true" aria-label="طيّ البطاقة"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+      </div>
+      <div class="gp-card-body">
+        <div class="gp-chart-wrap">
+          <!--@1.GPAH.10-->
+          <svg class="gp-chart" id="chart" data-font role="img" aria-labelledby="chart-t">
+            <title id="chart-t">منحنى المعدل التراكمي</title>
+          </svg>
+          <div class="gp-legend">
+            <span class="gp-legend-item"><i class="gp-swatch gp-swatch--past"></i><span data-ar="مسجّل" data-en="Recorded">مسجّل</span></span>
+            <span class="gp-legend-item"><i class="gp-swatch gp-swatch--plan"></i><span data-ar="متوقّع" data-en="Forecast">متوقّع</span></span>
+            <span class="gp-legend-item"><i class="gp-swatch gp-swatch--hon"></i><span data-ar="عتبة الشرف" data-en="Honour threshold">عتبة الشرف</span></span>
+            <span class="gp-legend-item gp-legend-out" id="hon-out" hidden></span>
+          </div>
+        </div>
+
+        <div class="gp-scen">
+          <span class="gp-scen-lbl" data-ar="لو حصلت على:" data-en="If I score:">لو حصلت على:</span>
+          <button class="gp-chip" data-scen="A+">A+</button>
+          <button class="gp-chip" data-scen="A">A</button>
+          <button class="gp-chip" data-scen="B+">B+</button>
+          <button class="gp-chip" data-scen="B">B</button>
+          <button class="gp-chip" data-scen="C+">C+</button>
+          <button class="gp-chip" data-scen="C">C</button>
+          <button class="gp-chip" data-scen="D+">D+</button>
+          <button class="gp-chip" data-scen="D">D</button>
+          <button class="gp-chip" data-scen="F">F</button>
+          <button class="gp-chip is-on" data-scen="" data-ar="خطّتي" data-en="My plan">خطّتي</button>
+          <!--@1.GPAH.11-->
+          <button class="gp-chip gp-chip--act" data-act="predict">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span data-ar="توقّع من أدائي" data-en="Predict from my record">توقّع من أدائي</span>
+          </button>
+        </div>
+
+        <div id="plan-list"></div>
+
+        <div class="gp-target">
+          <div class="gp-target-row">
+            <label for="target-inp" data-ar="أريد التخرّج بمعدل" data-en="I want to graduate with">أريد التخرّج بمعدل</label>
+            <input type="number" class="gp-target-inp" id="target-inp" min="0" max="4" step="0.05" value="3.50">
+          </div>
+          <div class="gp-verdict" id="target-out"><i class="fa-solid fa-circle-info"></i><div>—</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!--@1.GPAH.12-->
+    <section class="gp-card" id="gp-hon-card">
+      <div class="gp-card-head">
+        <h2 class="gp-card-title" data-ar="مرتبة الشرف" data-en="Honour roll">مرتبة الشرف</h2>
+        <span class="gp-eyebrow" id="hon-basis"></span>
+        <div class="gp-card-tools">
+          <button class="gp-fold" data-fold aria-expanded="true" aria-label="طيّ البطاقة"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+      </div>
+      <div class="gp-card-body">
+        <div class="gp-honor" id="honor"></div>
+        <ul class="gp-cond" id="hon-cond"></ul>
+      </div>
+    </section>
+
+    <!--@1.GPAH.13-->
+    <section class="gp-card" id="gp-rec-card">
+      <div class="gp-card-head">
+        <h2 class="gp-card-title" data-ar="السجل الأكاديمي" data-en="Academic record">السجل الأكاديمي</h2>
+        <div class="gp-card-tools">
+          <button class="gp-btn gp-btn--sm" data-act="wizard">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span data-ar="أضف من المعالج" data-en="Add via wizard">أضف من المعالج</span>
+          </button>
+          <button class="gp-fold" data-fold aria-expanded="true" aria-label="طيّ البطاقة"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+      </div>
+      <div class="gp-card-body"><div id="record"></div></div>
+    </section>
+
+  </div>
+</div>
+
+<!--@1.GPAH.14-->
+<div class="gp-overlay" id="modal-add" hidden>
+  <div class="gp-modal" role="dialog" aria-modal="true" aria-labelledby="modal-add-t">
+    <div class="gp-modal-head">
+      <h3 id="modal-add-t" data-ar="إضافة مادة" data-en="Add course">إضافة مادة</h3>
+      <button class="gp-ico" data-act="close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="gp-search-wrap">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" class="gp-search" id="pick-search" data-ar-placeholder="ابحث عن مادة أو رمزها…" data-en-placeholder="Search a course or its code…" placeholder="ابحث عن مادة أو رمزها…">
+    </div>
+    <div class="gp-modal-body"><div class="gp-pick" id="pick-list"></div></div>
+    <div class="gp-modal-foot">
+      <button class="gp-cta" data-act="manual">
+        <i class="fa-solid fa-pen"></i><span data-ar="مادة خارج القائمة" data-en="A course not listed">مادة خارج القائمة</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!--@1.GPAH.15-->
+<div class="gp-overlay" id="modal-manual" hidden>
+  <div class="gp-modal" role="dialog" aria-modal="true" aria-labelledby="modal-man-t">
+    <div class="gp-modal-head">
+      <h3 id="modal-man-t" data-ar="إضافة مادة يدوياً" data-en="Add course manually">إضافة مادة يدوياً</h3>
+      <button class="gp-ico" data-act="close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="gp-modal-body">
+      <input type="text" class="gp-search" id="manual-name" data-ar-placeholder="اسم المادة" data-en-placeholder="Course name" placeholder="اسم المادة">
+      <input type="number" class="gp-search" id="manual-credits" min="1" max="12" value="3" data-ar-placeholder="الساعات المعتمدة" data-en-placeholder="Credit hours" placeholder="الساعات المعتمدة">
+    </div>
+    <div class="gp-modal-foot">
+      <button class="gp-btn gp-btn--primary" data-act="manual-confirm"><span data-ar="إضافة" data-en="Add">إضافة</span></button>
+      <button class="gp-btn" data-act="close"><span data-ar="إلغاء" data-en="Cancel">إلغاء</span></button>
+    </div>
+  </div>
+</div>
+
+<!--@1.GPAH.16-->
+<div class="gp-overlay" id="modal-edit" hidden>
+  <div class="gp-modal" role="dialog" aria-modal="true" aria-labelledby="modal-ed-t">
+    <div class="gp-modal-head">
+      <h3 id="modal-ed-t" data-ar="تعديل السجل" data-en="Edit record">تعديل السجل</h3>
+      <button class="gp-ico" data-act="close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="gp-modal-body">
+      <label class="gp-metric-lbl" for="ed-name" data-ar="اسم الفصل" data-en="Semester name">اسم الفصل</label>
+      <input type="text" class="gp-search" id="ed-name" maxlength="60">
+      <div id="ed-rows"></div>
+      <!--@1.GPAH.17-->
+      <button type="button" class="gp-pick-btn gp-pick-btn--add" id="ed-add"
+              data-menu="edadd" aria-haspopup="listbox">
+        <i class="fa-solid fa-plus"></i>
+        <span data-ar="أضف مادة إلى هذا الفصل" data-en="Add a course to this term">أضف مادة إلى هذا الفصل</span>
+      </button>
+    </div>
+    <div class="gp-modal-foot">
+      <button class="gp-btn gp-btn--primary" data-act="ed-save"><span data-ar="حفظ" data-en="Save">حفظ</span></button>
+      <button class="gp-btn gp-btn--danger" data-act="ed-delete"><span data-ar="حذف الفصل" data-en="Delete term">حذف الفصل</span></button>
+      <button class="gp-btn" data-act="close"><span data-ar="إلغاء" data-en="Cancel">إلغاء</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="gp-toast" id="toast" role="status" aria-live="polite"></div>
+
+<!--@1.GPAH.18-->
+<script src="../shared/endpoints.js"></script>
+<script src="../shared/garden.js"></script>
+<script src="../shared/garden-header.js"></script>
+<script src="../shared/vendor/html2canvas.min.js"></script>
+<script src="../shared/vendor/jspdf.umd.min.js"></script>
+<script src="../shared/export.js"></script>
+<script src="../shared/garden-data.js"></script>
+<script src="../shared/bilingual-name.js"></script>
+<script src="../shared/gpa.js"></script>
+<script src="../shared/gpa-setup.js"></script>
+<script src="../shared/bottom-nav.js"></script>
+<script src="../shared/sw-register.js"></script>
+<script src="../shared/reminders-db.js"></script>
+<script src="../shared/reminders.js"></script>
+<script src="../shared/firebase-sync.js"></script>
+</body>
+</html>

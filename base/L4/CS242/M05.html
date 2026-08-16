@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS242" data-module="5">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>القواعد واللغات الخالية من السياق · CS242 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS242" data-page-title-en="CS242">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M04.html" data-gh-next="M06.html" data-gh-card="../../hub/course.html?code=CS242"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <!-- Fixed links -->
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <!-- ONE PER CONCEPT from json.concepts[] -->
+      <a href="#context-free-grammars" class="toc-link" data-bilingual>
+        <template class="content-ar">القواعد الخالية من السياق (CFG)</template>
+        <template class="content-en">Context-Free Grammars (CFG)</template>
+        <span class="content-target">القواعد الخالية من السياق (CFG)</span>
+      </a>
+      <a href="#derivations" class="toc-link" data-bilingual>
+        <template class="content-ar">الاشتقاقات (Derivations)</template>
+        <template class="content-en">Derivations</template>
+        <span class="content-target">الاشتقاقات (Derivations)</span>
+      </a>
+      <a href="#parse-trees" class="toc-link" data-bilingual>
+        <template class="content-ar">أشجار الإعراب (Parse Trees)</template>
+        <template class="content-en">Parse Trees</template>
+        <span class="content-target">أشجار الإعراب (Parse Trees)</span>
+      </a>
+      <a href="#ambiguity" class="toc-link" data-bilingual>
+        <template class="content-ar">الغموض في القواعد واللغات (Ambiguity)</template>
+        <template class="content-en">Ambiguity in Grammars and Languages</template>
+        <span class="content-target">الغموض في القواعد واللغات (Ambiguity)</span>
+      </a>
+      <a href="#cfl-and-regular-languages" class="toc-link" data-bilingual>
+        <template class="content-ar">العلاقة بين اللغات الخالية من السياق واللغات المنتظمة</template>
+        <template class="content-en">Relationship between CFLs and Regular Languages</template>
+        <span class="content-target">العلاقة بين اللغات الخالية من السياق واللغات المنتظمة</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <!-- Fixed bottom links -->
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 5</template>
+      <template class="content-en">Module 5</template>
+      <span class="content-target">الوحدة 5</span>
+    </span> · CS242
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">القواعد واللغات الخالية من السياق</h1>
+      <p class="hero-description">دراسة القواعد الخالية من السياق (CFGs)، أشجار الإعراب، الاشتقاقات، الغموض، وتطبيقاتها في المترجمات ولغات الترميز.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Context-Free Grammars and Languages</h1>
+      <p class="hero-description">Study of Context-Free Grammars (CFGs), parse trees, derivations, ambiguity, and their applications in compilers and markup languages.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">القواعد الخالية من السياق</span>
+      <span class="tag">أشجار الإعراب</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Context-Free Grammars</span>
+      <span class="tag">Parse Trees</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف القواعد الخالية من السياق (CFGs) ومكوناتها الأساسية.</span></li>
+      <li><span class="obj-icon">✦</span><span>شرح عملية الإعراب والغموض باستخدام أشجار الاشتقاق.</span></li>
+      <li><span class="obj-icon">✦</span><span>التمييز بين الاشتقاق في أقصى اليسار والاشتقاق في أقصى اليمين.</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم العلاقة بين اللغات الخالية من السياق واللغات المنتظمة.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe Context-Free grammars (CFGs) and their core components.</span></li>
+      <li><span class="obj-icon">✦</span><span>Explain parsing and ambiguity using derivation trees.</span></li>
+      <li><span class="obj-icon">✦</span><span>Differentiate between left-most and right-most derivations.</span></li>
+      <li><span class="obj-icon">✦</span><span>Understand the relationship between Context-Free Languages and Regular Languages.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="context-free-grammars" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> القواعد الخالية من السياق (CFG)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Context-Free Grammars (CFG)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>نظام رياضي يصف اللغات التي تدعم الاستبدال العودي، مثل لغات البرمجة. تخيلها كقوالب متداخلة يمكن أن تحتوي على قوالب أخرى من نفس النوع.</p>
+    </template>
+    <template class="content-en">
+      <p>A mathematical system describing languages that support recursive substitution, like programming languages. Think of it as nested templates that can contain other templates.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>القاعدة الخالية من السياق يُرمز لها بـ G = (V, T, P, S)، حيث:</p><ul><li><strong>V</strong> هي مجموعة <span class="smart-term" data-term-en="Variable / Non-terminal" data-ar="متغير / رمز غير طرفي" data-en-def="Symbols on the left side of a production that can be replaced.">المتغيرات (الرموز غير الطرفية)</span>،</li><li><strong>T</strong> هي مجموعة <span class="smart-term" data-term-en="Terminal" data-ar="رمز طرفي" data-en-def="Symbols on the right side of a production that form the final string.">الرموز الطرفية</span>،</li><li><strong>P</strong> هي مجموعة قواعد الإنتاج (Productions)، و</li><li><strong>S</strong> هو متغير البداية.</li></ul><p>تُستخدم هذه القواعد لتعريف اللغات الخالية من السياق (CFLs) التي تعتبر فئة أكبر من اللغات المنتظمة، وتسمح بتمثيل الهياكل المتداخلة مثل الأقواس المتطابقة.</p></template>
+    <template class="content-en"><p>A context-free grammar is denoted as G = (V, T, P, S), where:</p><ul><li><strong>V</strong> is the set of <span class="smart-term" data-term-en="Variable / Non-terminal" data-ar="متغير / رمز غير طرفي" data-en-def="Symbols on the left side of a production that can be replaced.">variables (non-terminals)</span>,</li><li><strong>T</strong> is the set of <span class="smart-term" data-term-en="Terminal" data-ar="رمز طرفي" data-en-def="Symbols on the right side of a production that form the final string.">terminal symbols</span>,</li><li><strong>P</strong> is the set of productions, and</li><li><strong>S</strong> is the start variable.</li></ul><p>These grammars define Context-Free Languages (CFLs), a larger class than regular languages, allowing the representation of nested structures like matching parentheses.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لماذا نحتاج CFGs؟ اللغات المنتظمة لا يمكنها تذكر عدد غير محدود من العناصر (مثل مطابقة عدد الأقواس المفتوحة والمغلقة) بسبب محدودية الحالات في الآلات المحدودة (DFA/NFA).</p><p>الـ CFG يحل هذه المشكلة من خلال الاستدعاء الذاتي (العودية) في قواعد الإنتاج، مما يسمح بتوليد لغات مثل المتناظرات (Palindromes) و a^n b^n.</p></template>
+    <template class="content-en"><p>Why do we need CFGs? Regular languages cannot remember an unbounded count of items (like matching open and close parentheses) due to the finite states in DFAs/NFAs.</p><p>CFGs solve this through recursion in their production rules, allowing the generation of languages like palindromes and a^n b^n.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعريف الرسمي للقاعدة الخالية من السياق.</strong></template>
+      <template class="content-en"><strong>Formal definition of a Context-Free Grammar.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$G = (V, T, P, S)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن للغة المتناظرات (Palindromes) أن تكون لغة منتظمة؟</template>
+      <template class="content-en">Why can't the language of palindromes be a regular language?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الآلة المحدودة لا تمتلك ذاكرة كافية لتذكر النصف الأول من السلسلة لمطابقته بشكل عكسي مع النصف الثاني. يتطلب ذلك بنية عودية توفرها CFG.</p></template>
+      <template class="content-en"><p>Because a finite automaton lacks the memory to remember the first half of the string to match it in reverse with the second half. This requires a recursive structure provided by a CFG.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="derivations" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الاشتقاقات (Derivations)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Derivations</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>عملية استبدال المتغيرات تدريجياً بقواعد الإنتاج حتى نصل إلى سلسلة تتكون فقط من رموز طرفية.</p>
+    </template>
+    <template class="content-en">
+      <p>The step-by-step process of replacing variables with production rules until a string of only terminal symbols is formed.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الاشتقاق هو تسلسل من الاستبدالات. هناك نوعان رئيسيان:</p><ol><li><strong>الاشتقاق في أقصى اليسار (Left-most derivation):</strong> يتم فيه استبدال المتغير الموجود في أقصى اليسار دائمًا في كل خطوة.</li><li><strong>الاشتقاق في أقصى اليمين (Right-most derivation):</strong> يتم فيه استبدال المتغير الموجود في أقصى اليمين دائمًا.</li></ol><p>لكل اشتقاق في أقصى اليسار، يوجد اشتقاق مكافئ في أقصى اليمين.</p></template>
+    <template class="content-en"><p>A derivation is a sequence of substitutions. There are two main types:</p><ol><li><strong>Left-most derivation:</strong> Always substitute the leftmost variable in each step.</li><li><strong>Right-most derivation:</strong> Always substitute the rightmost variable.</li></ol><p>For every leftmost derivation, there is an equivalent rightmost derivation.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الاشتقاقات هي الأساس الذي تعمل عليه المترجمات (Compilers) للتحقق من صحة بناء الجملة (Syntax).</p><p>الاستدلال العودي (Recursive inference) هو العملية العكسية للاشتقاق، حيث نبدأ من الجسم (Body) ونستنتج الرأس (Head).</p></template>
+    <template class="content-en"><p>Derivations are the foundation upon which compilers perform syntax checking.</p><p>Recursive inference is the reverse process of derivation, where we start from the body and infer the head.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>A يشتق X في خطوات متعددة باستخدام القاعدة G.</strong></template>
+      <template class="content-en"><strong>A derives X in multiple steps using grammar G.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$A \Rightarrow^*_G X$$</div>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Left-most Derivation</th>
+        <th>Right-most Derivation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المتغير المستبدل</template>
+          <template class="content-en">Variable Replaced</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أقصى اليسار دائماً</template>
+          <template class="content-en">Always the leftmost</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أقصى اليمين دائماً</template>
+          <template class="content-en">Always the rightmost</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">شجرة الإعراب الناتجة</template>
+          <template class="content-en">Resulting Parse Tree</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">نفس الشجرة (إذا لم يكن هناك غموض)</template>
+          <template class="content-en">Same tree (if unambiguous)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">نفس الشجرة (إذا لم يكن هناك غموض)</template>
+          <template class="content-en">Same tree (if unambiguous)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">اجتياز الشجرة (Tree Traversal)</template>
+          <template class="content-en">Tree Traversal</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">بحث بالعمق (DFS) من اليسار لليمين</template>
+          <template class="content-en">DFS left to right</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">بحث بالعمق (DFS) من اليمين لليسار</template>
+          <template class="content-en">DFS right to left</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل يمكن أن يكون لسلسلة واحدة أكثر من اشتقاق في أقصى اليسار؟</template>
+      <template class="content-en">Can a single string have more than one left-most derivation?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نعم، إذا كانت القاعدة غامضة (Ambiguous Grammar).</p></template>
+      <template class="content-en"><p>Yes, if the grammar is ambiguous.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="parse-trees" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> أشجار الإعراب (Parse Trees)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Parse Trees</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تمثيل شجري مرئي لعملية الاشتقاق، يوضح كيف تم بناء السلسلة من متغير البداية.</p>
+    </template>
+    <template class="content-en">
+      <p>A visual tree representation of a derivation, showing how a string was built from the start variable.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في شجرة الإعراب، تُمثل كل <span class="smart-term" data-term-en="Internal Node" data-ar="عقدة داخلية" data-en-def="A node in a parse tree that represents a variable (non-terminal).">عقدة داخلية (Internal node)</span> متغيراً (Variable)، بينما تُمثل كل <span class="smart-term" data-term-en="Leaf Node" data-ar="عقدة ورقية" data-en-def="A node in a parse tree that represents a terminal symbol.">ورقة (Leaf)</span> رمزاً طرفياً (Terminal).</p><p>إذا كان لدينا إنتاج A -> X1 X2 ... Xk، فإن العقدة A سيكون لها أبناء X1 إلى Xk من اليسار إلى اليمين.</p><p>قراءة الأوراق من اليسار إلى اليمين تعطينا السلسلة المشتقة (Yield).</p></template>
+    <template class="content-en"><p>In a parse tree, each <span class="smart-term" data-term-en="Internal Node" data-ar="عقدة داخلية" data-en-def="A node in a parse tree that represents a variable (non-terminal).">internal node</span> is labeled by a variable, and each <span class="smart-term" data-term-en="Leaf Node" data-ar="عقدة ورقية" data-en-def="A node in a parse tree that represents a terminal symbol.">leaf</span> represents a terminal symbol.</p><p>For a production A -> X1 X2 ... Xk, the node A will have children X1 to Xk from left to right.</p><p>Reading the leaves from left to right gives the derived string (the yield).</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>أشجار الإعراب توفر تمثيلاً مستقلاً عن ترتيب الاشتقاق. سواء استخدمت اشتقاقاً في أقصى اليسار أو أقصى اليمين، ستحصل على نفس شجرة الإعراب (بافتراض عدم وجود غموض).</p><p>التمرير بعمق (DFS) من اليسار لليمين يولد الاشتقاق الأيسر، ومن اليمين لليسار يولد الاشتقاق الأيمن.</p></template>
+    <template class="content-en"><p>Parse trees provide a representation independent of derivation order. Whether you use a left-most or right-most derivation, you get the same parse tree (assuming no ambiguity).</p><p>A Depth-First Search (DFS) from left to right yields the left-most derivation, and right to left yields the right-most derivation.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: A hierarchical tree structure representing a parse tree. The root node is 'E'. It branches into three children: 'E', '+', and 'E'. The left 'E' branches into 'F', which branches into 'a'. The right 'E' branches into 'F', which branches into '1'. Leaves are 'a', '+', '1'. Style: educational, dark background #0d1117, accent color #58a6ff, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+        </marker>
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)"/>
+        </marker>
+    </defs>
+
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Parse Tree / شجرة الإعراب</text>
+
+    <rect x="20" y="20" width="160" height="120" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+    <circle cx="50" cy="55" r="15" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+    <text x="110" y="48" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Non-terminal</text>
+    <text x="110" y="66" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">غير طرفي</text>
+    <circle cx="50" cy="100" r="15" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="110" y="93" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">Terminal</text>
+    <text x="110" y="111" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">طرفي</text>
+
+    <rect x="620" y="20" width="160" height="120" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1"/>
+    <text x="700" y="45" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Grammar / القواعد</text>
+    <text x="700" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">E → E + E | F</text>
+    <text x="700" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle">F → a | 1</text>
+
+    <line x1="400" y1="75" x2="276.4" y2="140.9" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="400" y1="75" x2="400" y2="125" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="400" y1="75" x2="523.6" y2="140.9" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <line x1="250" y1="155" x2="250" y2="205" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="550" y1="155" x2="550" y2="205" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <line x1="250" y1="235" x2="250" y2="285" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="550" y1="235" x2="550" y2="285" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <line x1="250" y1="340" x2="250" y2="355" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow-dashed)"/>
+    <line x1="400" y1="180" x2="400" y2="355" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow-dashed)"/>
+    <line x1="550" y1="340" x2="550" y2="355" stroke="var(--brand-400)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow-dashed)"/>
+
+    <g>
+        <circle cx="400" cy="75" r="25" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="400" y="83" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">E</text>
+    </g>
+
+    <g>
+        <circle cx="250" cy="155" r="25" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="250" y="163" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">E</text>
+    </g>
+    <g>
+        <circle cx="400" cy="155" r="25" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="400" y="163" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">+</text>
+    </g>
+    <g>
+        <circle cx="550" cy="155" r="25" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="550" y="163" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">E</text>
+    </g>
+
+    <g>
+        <circle cx="250" cy="235" r="25" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="250" y="243" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">F</text>
+    </g>
+    <g>
+        <circle cx="550" cy="235" r="25" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+        <text x="550" y="243" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">F</text>
+    </g>
+
+    <g>
+        <circle cx="250" cy="315" r="25" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="250" y="323" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">a</text>
+    </g>
+    <g>
+        <circle cx="550" cy="315" r="25" fill="var(--brand-500)" stroke="var(--brand-500)" stroke-width="2"/>
+        <text x="550" y="323" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">1</text>
+    </g>
+
+    <rect x="250" y="360" width="300" height="36" rx="18" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="1" stroke-dasharray="4 4"/>
+    <text x="400" y="384" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Yield / الحصيلة : a + 1</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما العلاقة بين شجرة الإعراب والاستدلال العودي؟</template>
+      <template class="content-en">What is the relationship between a parse tree and recursive inference?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>الاستدلال العودي يعادل اجتياز شجرة الإعراب من الأسفل إلى الأعلى (Bottom-up traversal).</p></template>
+      <template class="content-en"><p>Recursive inference is equivalent to a bottom-up traversal of the parse tree.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="ambiguity" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> الغموض في القواعد واللغات (Ambiguity)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Ambiguity in Grammars and Languages</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>القاعدة الغامضة هي التي يمكنها توليد نفس السلسلة بأكثر من طريقة (أكثر من شجرة إعراب واحدة).</p>
+    </template>
+    <template class="content-en">
+      <p>An ambiguous grammar is one that can generate the same string in more than one way (more than one parse tree).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يُقال إن القاعدة الخالية من السياق (CFG) <span class="smart-term" data-term-en="Ambiguous Grammar" data-ar="قاعدة غامضة" data-en-def="A grammar that produces more than one parse tree for some string.">غامضة</span> إذا كانت هناك سلسلة نصية واحدة على الأقل تمتلك أكثر من اشتقاق واحد في أقصى اليسار (وبالتالي أكثر من شجرة إعراب واحدة).</p><p>الغموض يمثل مشكلة في المترجمات لأن شجرة الإعراب تحدد كيفية تقييم التعبير (مثلاً، أسبقية العمليات الحسابية).</p><p>يمكن إزالة الغموض في بعض القواعد عن طريق فرض قواعد الأسبقية (Precedence rules).</p></template>
+    <template class="content-en"><p>A CFG is <span class="smart-term" data-term-en="Ambiguous Grammar" data-ar="قاعدة غامضة" data-en-def="A grammar that produces more than one parse tree for some string.">ambiguous</span> if there exists at least one string that has more than one left-most derivation (and thus more than one parse tree).</p><p>Ambiguity is problematic in compilers because the parse tree determines how an expression is evaluated (e.g., operator precedence).</p><p>Ambiguity can sometimes be removed by imposing precedence rules.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>هناك لغات تُسمى '<span class="smart-term" data-term-en="Inherently Ambiguous Language" data-ar="لغة غامضة بطبيعتها" data-en-def="A language for which every possible CFG is ambiguous.">لغات غامضة بطبيعتها</span>' (Inherently Ambiguous CFLs). في هذه اللغات، من المستحيل كتابة قاعدة غير غامضة لها.</p><p>مثال على ذلك: L = {a^n b^n c^m d^m} U {a^n b^m c^m d^n}.</p><p>أي قاعدة تحاول توليد هذه اللغة ستكون غامضة حتماً عند تقاطع المجموعتين (عندما n=m).</p></template>
+    <template class="content-en"><p>There are languages called '<span class="smart-term" data-term-en="Inherently Ambiguous Language" data-ar="لغة غامضة بطبيعتها" data-en-def="A language for which every possible CFG is ambiguous.">Inherently Ambiguous CFLs</span>'. For these languages, it is impossible to write an unambiguous grammar.</p><p>An example is L = {a^n b^n c^m d^m} U {a^n b^m c^m d^n}.</p><p>Any grammar generating this language will inevitably be ambiguous at the intersection of the two sets (when n=m).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Two different parse trees side-by-side for the expression 'a * b + c'. Tree 1 evaluates '+' first (E -> E * E, right E -> E + E). Tree 2 evaluates '*' first (E -> E + E, left E -> E * E). Show the resulting mathematical difference: (a*b)+c vs a*(b+c). Style: educational, dark background #0d1117, accent color #ff7b72, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrow marker for tree edges -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="30" refY="5" markerWidth="10" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <!-- Gradient for terminal nodes -->
+        <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--brand-800)" />
+            <stop offset="100%" stop-color="var(--brand-600)" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Main Title -->
+    <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="central">
+        Ambiguous Grammar: Parse Trees for "a * b + c"
+    </text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="central">
+        قواعد غامضة: أشجار الإعراب
+    </text>
+
+    <!-- Center Divider -->
+    <line x1="400" y1="100" x2="400" y2="460" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="6,6" />
+
+    <!-- ========================================== -->
+    <!-- TREE 1 (Left Side): Evaluates '+' first    -->
+    <!-- ========================================== -->
+
+    <!-- Grammar Rule Label -->
+    <text x="200" y="105" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="central">
+        Root Rule: E → E * E
+    </text>
+
+    <!-- Edges -->
+    <g stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)">
+        <!-- Level 0 to 1 -->
+        <line x1="200" y1="140" x2="120" y2="210" />
+        <line x1="200" y1="140" x2="200" y2="210" />
+        <line x1="200" y1="140" x2="280" y2="210" />
+        <!-- Level 1 to 2 -->
+        <line x1="120" y1="210" x2="120" y2="280" />
+        <line x1="280" y1="210" x2="220" y2="280" />
+        <line x1="280" y1="210" x2="280" y2="280" />
+        <line x1="280" y1="210" x2="340" y2="280" />
+        <!-- Level 2 to 3 -->
+        <line x1="220" y1="280" x2="220" y2="350" />
+        <line x1="340" y1="280" x2="340" y2="350" />
+    </g>
+
+    <!-- Non-Terminal Nodes -->
+    <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2">
+        <circle cx="200" cy="140" r="20" />
+        <circle cx="120" cy="210" r="20" />
+        <circle cx="280" cy="210" r="20" />
+        <circle cx="220" cy="280" r="20" />
+        <circle cx="340" cy="280" r="20" />
+    </g>
+
+    <!-- Terminal Nodes -->
+    <g fill="url(#highlight)" stroke="var(--brand-500)" stroke-width="2">
+        <circle cx="200" cy="210" r="20" /> <!-- * -->
+        <circle cx="120" cy="280" r="20" /> <!-- a -->
+        <circle cx="280" cy="280" r="20" /> <!-- + -->
+        <circle cx="220" cy="350" r="20" /> <!-- b -->
+        <circle cx="340" cy="350" r="20" /> <!-- c -->
+    </g>
+
+    <!-- Node Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central">
+        <!-- Non-terminals -->
+        <g fill="var(--text-primary)">
+            <text x="200" y="140">E</text>
+            <text x="120" y="210">E</text>
+            <text x="280" y="210">E</text>
+            <text x="220" y="280">E</text>
+            <text x="340" y="280">E</text>
+        </g>
+        <!-- Terminals -->
+        <g fill="var(--bg-surface)">
+            <text x="200" y="213">*</text>
+            <text x="120" y="280">a</text>
+            <text x="280" y="282">+</text>
+            <text x="220" y="350">b</text>
+            <text x="340" y="350">c</text>
+        </g>
+    </g>
+
+    <!-- Result Box 1 -->
+    <rect x="100" y="390" width="200" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="200" y="410" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central">
+        a * (b + c)
+    </text>
+    <text x="200" y="450" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="central">
+        Evaluates '+' first / تقييم '+' أولاً
+    </text>
+
+
+    <!-- ========================================== -->
+    <!-- TREE 2 (Right Side): Evaluates '*' first   -->
+    <!-- ========================================== -->
+
+    <!-- Grammar Rule Label -->
+    <text x="600" y="105" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="central">
+        Root Rule: E → E + E
+    </text>
+
+    <!-- Edges -->
+    <g stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)">
+        <!-- Level 0 to 1 -->
+        <line x1="600" y1="140" x2="520" y2="210" />
+        <line x1="600" y1="140" x2="600" y2="210" />
+        <line x1="600" y1="140" x2="680" y2="210" />
+        <!-- Level 1 to 2 -->
+        <line x1="520" y1="210" x2="460" y2="280" />
+        <line x1="520" y1="210" x2="520" y2="280" />
+        <line x1="520" y1="210" x2="580" y2="280" />
+        <line x1="680" y1="210" x2="680" y2="280" />
+        <!-- Level 2 to 3 -->
+        <line x1="460" y1="280" x2="460" y2="350" />
+        <line x1="580" y1="280" x2="580" y2="350" />
+    </g>
+
+    <!-- Non-Terminal Nodes -->
+    <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2">
+        <circle cx="600" cy="140" r="20" />
+        <circle cx="520" cy="210" r="20" />
+        <circle cx="680" cy="210" r="20" />
+        <circle cx="460" cy="280" r="20" />
+        <circle cx="580" cy="280" r="20" />
+    </g>
+
+    <!-- Terminal Nodes -->
+    <g fill="url(#highlight)" stroke="var(--brand-500)" stroke-width="2">
+        <circle cx="600" cy="210" r="20" /> <!-- + -->
+        <circle cx="520" cy="280" r="20" /> <!-- * -->
+        <circle cx="680" cy="280" r="20" /> <!-- c -->
+        <circle cx="460" cy="350" r="20" /> <!-- a -->
+        <circle cx="580" cy="350" r="20" /> <!-- b -->
+    </g>
+
+    <!-- Node Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central">
+        <!-- Non-terminals -->
+        <g fill="var(--text-primary)">
+            <text x="600" y="140">E</text>
+            <text x="520" y="210">E</text>
+            <text x="680" y="210">E</text>
+            <text x="460" y="280">E</text>
+            <text x="580" y="280">E</text>
+        </g>
+        <!-- Terminals -->
+        <g fill="var(--bg-surface)">
+            <text x="600" y="212">+</text>
+            <text x="520" y="283">*</text>
+            <text x="680" y="280">c</text>
+            <text x="460" y="350">a</text>
+            <text x="580" y="350">b</text>
+        </g>
+    </g>
+
+    <!-- Result Box 2 -->
+    <rect x="500" y="390" width="200" height="40" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="600" y="410" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle" dominant-baseline="central">
+        (a * b) + c
+    </text>
+    <text x="600" y="450" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" fill="var(--text-secondary)" text-anchor="middle" dominant-baseline="central">
+        Evaluates '*' first / تقييم '*' أولاً
+    </text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمكننا حل مشكلة الغموض في التعبيرات الحسابية مثل E -> E + E | E * E ؟</template>
+      <template class="content-en">How can we resolve ambiguity in arithmetic expressions like E -> E + E | E * E?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عن طريق إعادة كتابة القاعدة لفرض مستويات الأسبقية، مثل إدخال متغيرات جديدة (T للضرب، F للأقواس) بحيث يُجبر الإعراب على تنفيذ الضرب قبل الجمع.</p></template>
+      <template class="content-en"><p>By rewriting the grammar to enforce precedence levels, such as introducing new variables (T for multiplication, F for parentheses) to force parsing multiplication before addition.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="cfl-and-regular-languages" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> العلاقة بين اللغات الخالية من السياق واللغات المنتظمة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Relationship between CFLs and Regular Languages</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>كل لغة منتظمة هي لغة خالية من السياق، ولكن العكس غير صحيح. اللغات المنتظمة يمكن تمثيلها بقواعد خطية (Linear Grammars).</p>
+    </template>
+    <template class="content-en">
+      <p>Every regular language is a context-free language, but not vice versa. Regular languages can be represented by linear grammars.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>فئة اللغات الخالية من السياق (CFL) أكبر من فئة اللغات المنتظمة (RL) وتحتويها.</p><p>أي لغة منتظمة يمكن تمثيلها باستخدام 'قاعدة خطية يمنى' (Right-linear CFG) حيث تكون جميع الإنتاجات على الشكل A -> wB أو A -> w (حيث w سلسلة من الرموز الطرفية).</p><p>وبالمثل، القواعد الخطية اليسرى (Left-linear CFGs) تمثل أيضاً لغات منتظمة.</p></template>
+    <template class="content-en"><p>The class of Context-Free Languages (CFL) is strictly larger than and contains the class of Regular Languages (RL).</p><p>Any regular language can be represented using a 'Right-linear CFG' where all productions are of the form A -> wB or A -> w (where w is a string of terminals).</p><p>Similarly, Left-linear CFGs also represent regular languages.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يمكن تحويل أي آلة حالة محدودة (DFA/NFA) مباشرة إلى قاعدة خطية يمنى.</p><p>تمثل الحالات المتغيرات (Variables)، وتمثل الانتقالات قواعد الإنتاج (Productions).</p><p>هذا يثبت رياضياً أن قدرة CFG تتجاوز أو تساوي قدرة الآلات المحدودة.</p></template>
+    <template class="content-en"><p>Any Finite Automaton (DFA/NFA) can be directly converted into a right-linear grammar.</p><p>States become variables, and transitions become production rules.</p><p>This mathematically proves that the power of CFGs is a superset of finite automata.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A Venn diagram showing 'Regular Languages (FA/RE)' as a smaller circle completely inside a larger circle labeled 'Context-Free Languages (PDA/CFG)'. Style: educational, dark background #0d1117, accent color #2ea043, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)"/>
+        </marker>
+        <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+            <circle cx="5" cy="5" r="5" fill="var(--brand-400)"/>
+        </marker>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+    <!-- Outer Circle: Context-Free Languages -->
+    <circle cx="400" cy="200" r="180" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="3" filter="url(#shadow)"/>
+
+    <!-- Inner Circle: Regular Languages -->
+    <circle cx="400" cy="260" r="100" fill="var(--brand-500)" fill-opacity="0.12" stroke="var(--brand-500)" stroke-width="3"/>
+
+    <!-- Outer Circle Labels (CFL) -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="400" y="65" font-size="20" font-weight="bold" fill="var(--text-primary)">Context-Free Languages</text>
+        <text x="400" y="90" font-size="16" fill="var(--text-secondary)">اللغات خالية السياق</text>
+        <text x="400" y="115" font-size="14" font-weight="bold" fill="var(--brand-500)">PDA / CFG</text>
+        <text x="400" y="140" font-size="14" fill="var(--text-muted)" font-family="monospace">L = { aⁿbⁿ | n ≥ 0 }</text>
+    </g>
+
+    <!-- Inner Circle Labels (RL) -->
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="400" y="215" font-size="18" font-weight="bold" fill="var(--text-primary)">Regular Languages</text>
+        <text x="400" y="240" font-size="15" fill="var(--text-secondary)">اللغات المنتظمة</text>
+        <text x="400" y="265" font-size="14" font-weight="bold" fill="var(--brand-500)">FA / RE</text>
+        <text x="400" y="290" font-size="14" fill="var(--text-muted)" font-family="monospace">L = { a*b* }</text>
+    </g>
+
+    <!-- Left Annotation Box (CFL Property) -->
+    <rect x="30" y="80" width="170" height="90" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="115" y="105" font-size="15" font-weight="bold" fill="var(--text-primary)">Requires Memory</text>
+        <text x="115" y="128" font-size="14" fill="var(--text-secondary)">تتطلب ذاكرة</text>
+        <text x="115" y="150" font-size="13" fill="var(--text-muted)">(Stack / مكدس)</text>
+    </g>
+    <!-- Arrow from Left Box to Outer Circle -->
+    <path d="M 200 125 C 220 125, 230 150, 250 150" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4 4" marker-start="url(#dot)" marker-end="url(#arrow)"/>
+
+    <!-- Right Annotation Box (RL Property) -->
+    <rect x="600" y="230" width="170" height="90" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" filter="url(#shadow)"/>
+    <g text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <text x="685" y="255" font-size="15" font-weight="bold" fill="var(--text-primary)">No Memory</text>
+        <text x="685" y="278" font-size="14" fill="var(--text-secondary)">لا تتطلب ذاكرة</text>
+        <text x="685" y="300" font-size="13" fill="var(--text-muted)">(States / حالات)</text>
+    </g>
+    <!-- Arrow from Right Box to Inner Circle -->
+    <path d="M 600 275 C 570 275, 550 260, 510 260" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4 4" marker-start="url(#dot)" marker-end="url(#arrow)"/>
+
+    <!-- Subset Mathematical Notation at Bottom -->
+    <text x="400" y="390" font-size="15" font-weight="bold" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">RL ⊂ CFL</text>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">هل القاعدة التي تحتوي على إنتاجات خطية يمنى ويسرى معاً تولد دائماً لغة منتظمة؟</template>
+      <template class="content-en">Does a grammar containing BOTH right-linear and left-linear productions always generate a regular language?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، خلط الإنتاجات الخطية اليمنى واليسرى في نفس القاعدة يمكن أن يولد لغة غير منتظمة (لغة خالية من السياق).</p></template>
+      <template class="content-en"><p>No, mixing right-linear and left-linear productions in the same grammar can generate a non-regular context-free language.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة المحورية. لقد انتقلنا الآن من اللغات المنتظمة البسيطة إلى عالم أوسع وأكثر قوة: القواعد الخالية من السياق (CFGs). تذكروا دائماً أن الآلات المحدودة تعاني من 'فقدان الذاكرة'؛ لا يمكنها عد الأقواس المتطابقة أو التحقق من المتناظرات (Palindromes). هنا يأتي دور CFG بفضل قدرتها على 'الاستدعاء الذاتي' (Recursion). في الامتحان، ركزوا جيداً على كيفية رسم 'شجرة الإعراب' (Parse Tree) وكيفية استخراج الاشتقاق الأيسر والأيمن منها. احذروا من فخ الغموض (Ambiguity)؛ المترجمات تكره الغموض لأنه يعني أن الكود قد يُنفذ بطريقتين مختلفتين! تأكدوا من فهمكم لكيفية فرض قواعد الأسبقية لإزالة هذا الغموض، وتذكروا أن بعض اللغات 'عنيدة' وغامضة بطبيعتها. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, my friends, to this pivotal module. We have now moved from simple regular languages to a broader, more powerful realm: Context-Free Grammars (CFGs). Always remember that finite automata suffer from 'amnesia'; they cannot count matching parentheses or check palindromes. This is where CFGs step in with their power of 'recursion'. For the exam, focus heavily on how to draw a 'Parse Tree' and how to extract left-most and right-most derivations from it. Beware the trap of Ambiguity; compilers hate ambiguity because it means code could be executed in two different ways! Make sure you understand how to impose precedence rules to remove this ambiguity, and remember that some languages are just 'stubborn' and inherently ambiguous. Good luck with your studies!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نحتاج إلى القواعد الخالية من السياق (CFGs) إذا كان لدينا تعبيرات منتظمة؟</template>
+          <template class="content-en">Why do we need CFGs if we have regular expressions?</template>
+          <span class="content-target">لماذا نحتاج إلى القواعد الخالية من السياق (CFGs) إذا كان لدينا تعبيرات منتظمة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التعبيرات المنتظمة لا تستطيع تمثيل الهياكل المتداخلة (مثل الأقواس المتطابقة في البرمجة) لأنها تفتقر إلى الذاكرة غير المحدودة. CFGs تستخدم العودية (Recursion) لحل هذه المشكلة.</template>
+          <template class="content-en">Regular expressions cannot represent nested structures (like matching parentheses in programming) because they lack unbounded memory. CFGs use recursion to solve this.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق بين الرمز الطرفي (Terminal) والرمز غير الطرفي (Variable)؟</template>
+          <template class="content-en">What is the difference between a terminal and a non-terminal (variable)?</template>
+          <span class="content-target">ما هو الفرق بين الرمز الطرفي (Terminal) والرمز غير الطرفي (Variable)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الرمز غير الطرفي هو متغير يمكن استبداله بقواعد أخرى (يظهر على يسار القاعدة). الرمز الطرفي هو جزء من السلسلة النهائية ولا يمكن استبداله.</template>
+          <template class="content-en">A non-terminal is a variable that can be replaced by other rules (appears on the left side). A terminal is part of the final string and cannot be replaced.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل كل لغة منتظمة هي لغة خالية من السياق؟</template>
+          <template class="content-en">Is every regular language a context-free language?</template>
+          <span class="content-target">هل كل لغة منتظمة هي لغة خالية من السياق؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، فئة اللغات الخالية من السياق تشمل جميع اللغات المنتظمة. يمكن تمثيل أي لغة منتظمة بقاعدة خطية يمنى أو يسرى.</template>
+          <template class="content-en">Yes, the class of CFLs includes all regular languages. Any regular language can be represented by a right-linear or left-linear grammar.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الاشتقاق في أقصى اليسار (Left-most derivation)؟</template>
+          <template class="content-en">What is a left-most derivation?</template>
+          <span class="content-target">ما هو الاشتقاق في أقصى اليسار (Left-most derivation)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو عملية اشتقاق يتم فيها دائماً اختيار المتغير الموجود في أقصى يسار السلسلة الحالية لاستبداله في الخطوة التالية.</template>
+          <template class="content-en">It is a derivation process where the leftmost variable in the current string is always chosen to be replaced in the next step.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نثبت أن قاعدة ما غامضة (Ambiguous)؟</template>
+          <template class="content-en">How do we prove that a grammar is ambiguous?</template>
+          <span class="content-target">كيف نثبت أن قاعدة ما غامضة (Ambiguous)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يكفي أن نجد سلسلة نصية واحدة فقط يمكن توليدها باستخدام شجرتي إعراب مختلفتين (أو اشتقاقين مختلفين في أقصى اليسار).</template>
+          <template class="content-en">It is enough to find just one string that can be generated using two different parse trees (or two different left-most derivations).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر الغموض مشكلة في بناء المترجمات (Compilers)؟</template>
+          <template class="content-en">Why is ambiguity a problem in building compilers?</template>
+          <span class="content-target">لماذا يعتبر الغموض مشكلة في بناء المترجمات (Compilers)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن شجرة الإعراب تحدد معنى الكود (مثل ترتيب العمليات الحسابية). إذا كان هناك شجرتان، فلن يعرف المترجم أي عملية ينفذ أولاً.</template>
+          <template class="content-en">Because the parse tree determines the meaning of the code (like the order of arithmetic operations). If there are two trees, the compiler won't know which operation to execute first.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكننا دائماً إزالة الغموض من أي قاعدة؟</template>
+          <template class="content-en">Can we always remove ambiguity from any grammar?</template>
+          <span class="content-target">هل يمكننا دائماً إزالة الغموض من أي قاعدة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا. بعض اللغات تسمى 'لغات غامضة بطبيعتها'، مما يعني أنه من المستحيل رياضياً كتابة قاعدة غير غامضة لها.</template>
+          <template class="content-en">No. Some languages are called 'inherently ambiguous languages', meaning it is mathematically impossible to write an unambiguous grammar for them.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي القاعدة الخطية اليمنى (Right-linear grammar)؟</template>
+          <template class="content-en">What is a right-linear grammar?</template>
+          <span class="content-target">ما هي القاعدة الخطية اليمنى (Right-linear grammar)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي قاعدة تكون جميع إنتاجاتها على الشكل A -> wB أو A -> w. وهي تولد اللغات المنتظمة فقط.</template>
+          <template class="content-en">It is a grammar where all productions are of the form A -> wB or A -> w. It generates only regular languages.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما العلاقة بين شجرة الإعراب والاشتقاقين الأيسر والأيمن؟</template>
+          <template class="content-en">What is the relationship between a parse tree and left/right-most derivations?</template>
+          <span class="content-target">ما العلاقة بين شجرة الإعراب والاشتقاقين الأيسر والأيمن؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">شجرة الإعراب الواحدة تتوافق مع اشتقاق أيسر واحد واشتقاق أيمن واحد. الشجرة هي التمثيل الهيكلي الذي يجمع بينهما.</template>
+          <template class="content-en">A single parse tree corresponds to exactly one left-most derivation and one right-most derivation. The tree is the structural representation that unites them.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الاستدلال العودي (Recursive Inference)؟</template>
+          <template class="content-en">What is Recursive Inference?</template>
+          <span class="content-target">ما هو الاستدلال العودي (Recursive Inference)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هو العملية العكسية للاشتقاق، حيث نبدأ من الرموز الطرفية (الأوراق) ونستنتج المتغيرات (الجذور) صعوداً حتى نصل لمتغير البداية.</template>
+          <template class="content-en">It is the reverse process of derivation, where we start from the terminals (leaves) and infer the variables (roots) upwards until we reach the start variable.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "القاعدة الخالية من السياق (CFG)",
+      "en": "Context-Free Grammar (CFG)"
+    },
+    "back": {
+      "definition": {
+        "ar": "نظام رياضي G = (V, T, P, S) يستخدم لتوليد اللغات التي تدعم الاستبدال العودي.",
+        "en": "A mathematical system G = (V, T, P, S) used to generate languages supporting recursive substitution."
+      },
+      "example": {
+        "ar": "A -> 0A0 | 1A1 | ε (لتوليد المتناظرات)",
+        "en": "A -> 0A0 | 1A1 | ε (for palindromes)"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "الرموز غير الطرفية (Variables / Non-terminals)",
+      "en": "Variables / Non-terminals"
+    },
+    "back": {
+      "definition": {
+        "ar": "رموز تظهر على الجانب الأيسر من قواعد الإنتاج ويمكن استبدالها.",
+        "en": "Symbols on the left side of a production that can be replaced."
+      },
+      "example": {
+        "ar": "A, B, S",
+        "en": "A, B, S"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "الرموز الطرفية (Terminals)",
+      "en": "Terminals"
+    },
+    "back": {
+      "definition": {
+        "ar": "الرموز النهائية التي تتكون منها السلسلة ولا يمكن استبدالها.",
+        "en": "The final symbols that make up a string and cannot be replaced."
+      },
+      "example": {
+        "ar": "a, b, 0, 1, ε",
+        "en": "a, b, 0, 1, ε"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "قواعد الإنتاج (Productions)",
+      "en": "Productions"
+    },
+    "back": {
+      "definition": {
+        "ar": "القواعد التي تحدد كيف يمكن استبدال المتغيرات بسلاسل من المتغيرات والرموز الطرفية.",
+        "en": "Rules defining how variables can be replaced by strings of variables and terminals."
+      },
+      "example": {
+        "ar": "A ==> α1 | α2",
+        "en": "A ==> α1 | α2"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "متغير البداية (Start Variable)",
+      "en": "Start Variable"
+    },
+    "back": {
+      "definition": {
+        "ar": "المتغير الذي تبدأ منه عملية الاشتقاق لتوليد السلاسل.",
+        "en": "The variable from which the derivation process begins to generate strings."
+      },
+      "example": {
+        "ar": "S",
+        "en": "S"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "الاشتقاق (Derivation)",
+      "en": "Derivation"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية استبدال المتغيرات خطوة بخطوة للوصول إلى سلسلة من الرموز الطرفية.",
+        "en": "The step-by-step process of replacing variables to reach a string of terminals."
+      },
+      "example": {
+        "ar": "A => 0A0 => 01A10 => 01110",
+        "en": "A => 0A0 => 01A10 => 01110"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "الاشتقاق في أقصى اليسار (Left-most Derivation)",
+      "en": "Left-most Derivation"
+    },
+    "back": {
+      "definition": {
+        "ar": "اشتقاق يتم فيه دائماً استبدال المتغير الموجود في أقصى اليسار أولاً.",
+        "en": "A derivation where the leftmost variable is always replaced first."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "الاشتقاق في أقصى اليمين (Right-most Derivation)",
+      "en": "Right-most Derivation"
+    },
+    "back": {
+      "definition": {
+        "ar": "اشتقاق يتم فيه دائماً استبدال المتغير الموجود في أقصى اليمين أولاً.",
+        "en": "A derivation where the rightmost variable is always replaced first."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "شجرة الإعراب (Parse Tree)",
+      "en": "Parse Tree"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل رسومي لعملية الاشتقاق، العقد الداخلية متغيرات والأوراق رموز طرفية.",
+        "en": "A graphical representation of a derivation, internal nodes are variables and leaves are terminals."
+      },
+      "example": {
+        "ar": "[DIAGRAM_UNCLEAR]",
+        "en": "[DIAGRAM_UNCLEAR]"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "الاستدلال العودي (Recursive Inference)",
+      "en": "Recursive Inference"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية استنتاج المتغير (الرأس) من السلسلة (الجسم)، وهي عكس الاشتقاق.",
+        "en": "The process of inferring the variable (head) from the string (body), the reverse of derivation."
+      },
+      "example": {
+        "ar": "اجتياز شجرة الإعراب من الأسفل للأعلى.",
+        "en": "Bottom-up traversal of a parse tree."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "قاعدة غامضة (Ambiguous Grammar)",
+      "en": "Ambiguous Grammar"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة تمتلك أكثر من اشتقاق في أقصى اليسار (أو أكثر من شجرة إعراب) لنفس السلسلة.",
+        "en": "A grammar that has more than one left-most derivation (or parse tree) for the same string."
+      },
+      "example": {
+        "ar": "E -> E + E | E * E",
+        "en": "E -> E + E | E * E"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "لغة غامضة بطبيعتها (Inherently Ambiguous Language)",
+      "en": "Inherently Ambiguous Language"
+    },
+    "back": {
+      "definition": {
+        "ar": "لغة لا يمكن كتابة قاعدة غير غامضة لها؛ كل قواعدها الممكنة غامضة.",
+        "en": "A language for which it is impossible to write an unambiguous grammar; all its possible CFGs are ambiguous."
+      },
+      "example": {
+        "ar": "L = {a^n b^n c^m d^m} U {a^n b^m c^m d^n}",
+        "en": "L = {a^n b^n c^m d^m} U {a^n b^m c^m d^n}"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "قاعدة خطية يمنى (Right-linear Grammar)",
+      "en": "Right-linear Grammar"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة تكون جميع إنتاجاتها على الشكل A -> wB أو A -> w. تولد لغات منتظمة.",
+        "en": "A grammar where all productions are A -> wB or A -> w. Generates regular languages."
+      },
+      "example": {
+        "ar": "A -> 01B | C",
+        "en": "A -> 01B | C"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "قاعدة خطية يسرى (Left-linear Grammar)",
+      "en": "Left-linear Grammar"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة تكون جميع إنتاجاتها على الشكل A -> Bw أو A -> w. تولد لغات منتظمة.",
+        "en": "A grammar where all productions are A -> Bw or A -> w. Generates regular languages."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "YACC",
+      "en": "YACC"
+    },
+    "back": {
+      "definition": {
+        "ar": "Yet Another Compiler-Compiler، أداة تستخدم القواعد الخالية من السياق لبناء المترجمات.",
+        "en": "Yet Another Compiler-Compiler, a tool that uses CFGs to build compilers."
+      },
+      "example": {
+        "ar": "[EXAMPLE_NEEDED]",
+        "en": "[EXAMPLE_NEEDED]"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي مما يلي يمثل المكونات الأربعة للقاعدة الخالية من السياق (CFG)؟",
+      "en": "Which of the following represents the four components of a Context-Free Grammar (CFG)?"
+    },
+    "options": {
+      "ar": [
+        "(Q, Σ, δ, q0)",
+        "(V, T, P, S)",
+        "(V, E, W, S)",
+        "(N, T, Q, F)"
+      ],
+      "en": [
+        "(Q, Σ, δ, q0)",
+        "(V, T, P, S)",
+        "(V, E, W, S)",
+        "(N, T, Q, F)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "القاعدة الخالية من السياق تتكون من المتغيرات (V)، الرموز الطرفية (T)، قواعد الإنتاج (P)، ومتغير البداية (S).",
+      "en": "A CFG consists of Variables (V), Terminals (T), Productions (P), and a Start variable (S)."
+    },
+    "hint": {
+      "ar": "تذكر الأحرف الأولى للكلمات الإنجليزية: Variables, Terminals, Productions, Start.",
+      "en": "Remember the initials: Variables, Terminals, Productions, Start."
+    },
+    "difficulty": "easy",
+    "conceptId": "context-free-grammars"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما الذي تمثله العقد الداخلية (Internal nodes) في شجرة الإعراب؟",
+      "en": "What do the internal nodes in a parse tree represent?"
+    },
+    "options": {
+      "ar": [
+        "الرموز الطرفية",
+        "المتغيرات (الرموز غير الطرفية)",
+        "قواعد الإنتاج",
+        "السلسلة النهائية"
+      ],
+      "en": [
+        "Terminals",
+        "Variables (Non-terminals)",
+        "Productions",
+        "The final string"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في شجرة الإعراب، العقد الداخلية تمثل المتغيرات، بينما الأوراق تمثل الرموز الطرفية.",
+      "en": "In a parse tree, internal nodes represent variables, while leaves represent terminals."
+    },
+    "hint": {
+      "ar": "العقد التي تتفرع منها فروع أخرى هي التي يمكن استبدالها.",
+      "en": "Nodes that branch out are the ones that can be replaced."
+    },
+    "difficulty": "easy",
+    "conceptId": "parse-trees"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "متى يُقال عن القاعدة الخالية من السياق أنها 'غامضة'؟",
+      "en": "When is a Context-Free Grammar said to be 'ambiguous'?"
+    },
+    "options": {
+      "ar": [
+        "إذا كانت تحتوي على متغيرات كثيرة.",
+        "إذا كانت تولد لغة منتظمة.",
+        "إذا كان لسلسلة واحدة أكثر من اشتقاق في أقصى اليسار.",
+        "إذا لم يكن لها متغير بداية."
+      ],
+      "en": [
+        "If it has too many variables.",
+        "If it generates a regular language.",
+        "If a single string has more than one left-most derivation.",
+        "If it lacks a start variable."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الغموض يعني وجود أكثر من طريقة صحيحة (أكثر من شجرة إعراب أو اشتقاق أيسر) لتوليد نفس السلسلة.",
+      "en": "Ambiguity means there is more than one valid way (more than one parse tree or left-most derivation) to generate the same string."
+    },
+    "hint": {
+      "ar": "فكر في التعبيرات الحسابية التي يمكن تقييمها بطريقتين مختلفتين.",
+      "en": "Think of arithmetic expressions that can be evaluated in two different ways."
+    },
+    "difficulty": "medium",
+    "conceptId": "ambiguity"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "أي من العبارات التالية صحيحة فيما يتعلق باللغات المنتظمة واللغات الخالية من السياق؟",
+      "en": "Which of the following statements is true regarding Regular Languages and Context-Free Languages?"
+    },
+    "options": {
+      "ar": [
+        "كل لغة خالية من السياق هي لغة منتظمة.",
+        "كل لغة منتظمة هي لغة خالية من السياق.",
+        "لا توجد علاقة بينهما.",
+        "اللغات المنتظمة أقوى من اللغات الخالية من السياق."
+      ],
+      "en": [
+        "Every CFL is a regular language.",
+        "Every regular language is a CFL.",
+        "There is no relationship between them.",
+        "Regular languages are more powerful than CFLs."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "فئة اللغات الخالية من السياق تحتوي بداخلها فئة اللغات المنتظمة. كل لغة منتظمة يمكن تمثيلها بقاعدة خطية.",
+      "en": "The class of CFLs strictly contains the class of regular languages. Every regular language can be represented by a linear grammar."
+    },
+    "hint": {
+      "ar": "تذكر مخطط فن (Venn Diagram) الذي يوضح المجموعات.",
+      "en": "Remember the Venn Diagram showing the sets."
+    },
+    "difficulty": "medium",
+    "conceptId": "cfl-and-regular-languages"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو نوع القاعدة التي تكون جميع إنتاجاتها على الشكل A -> wB أو A -> w؟",
+      "en": "What type of grammar has all its productions in the form A -> wB or A -> w?"
+    },
+    "options": {
+      "ar": [
+        "قاعدة غامضة",
+        "قاعدة خطية يسرى",
+        "قاعدة خطية يمنى",
+        "قاعدة غير مقيدة"
+      ],
+      "en": [
+        "Ambiguous grammar",
+        "Left-linear grammar",
+        "Right-linear grammar",
+        "Unrestricted grammar"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "القاعدة الخطية اليمنى تضع المتغير (إن وجد) في أقصى يمين الإنتاج، وتولد لغات منتظمة.",
+      "en": "A right-linear grammar places the variable (if any) at the extreme right of the production, and generates regular languages."
+    },
+    "hint": {
+      "ar": "انظر إلى موقع المتغير B في الإنتاج.",
+      "en": "Look at the position of variable B in the production."
+    },
+    "difficulty": "medium",
+    "conceptId": "cfl-and-regular-languages"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في الاشتقاق في أقصى اليسار (Left-most derivation)، أي متغير يتم استبداله أولاً؟",
+      "en": "In a left-most derivation, which variable is replaced first?"
+    },
+    "options": {
+      "ar": [
+        "المتغير الأيمن",
+        "المتغير الأيسر",
+        "متغير البداية فقط",
+        "أي متغير عشوائي"
+      ],
+      "en": [
+        "The rightmost variable",
+        "The leftmost variable",
+        "Only the start variable",
+        "Any random variable"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "كما يوحي الاسم، يتم دائماً اختيار المتغير الموجود في أقصى اليسار لاستبداله في كل خطوة.",
+      "en": "As the name implies, the leftmost variable is always chosen for replacement in each step."
+    },
+    "hint": {
+      "ar": "الاسم يفسر نفسه.",
+      "en": "The name is self-explanatory."
+    },
+    "difficulty": "easy",
+    "conceptId": "derivations"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "كيف يمكننا إزالة الغموض من قاعدة التعبيرات الحسابية؟",
+      "en": "How can we remove ambiguity from an arithmetic expression grammar?"
+    },
+    "options": {
+      "ar": [
+        "بإزالة جميع المتغيرات.",
+        "بفرض قواعد الأسبقية (Precedence rules).",
+        "بتحويلها إلى آلة محدودة.",
+        "لا يمكن إزالة الغموض أبداً."
+      ],
+      "en": [
+        "By removing all variables.",
+        "By imposing precedence rules.",
+        "By converting it to a finite automaton.",
+        "Ambiguity can never be removed."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يمكن إزالة الغموض في التعبيرات الحسابية عن طريق إعادة كتابة القاعدة لتشمل مستويات أسبقية (مثل الضرب قبل الجمع).",
+      "en": "Ambiguity in arithmetic expressions can be removed by rewriting the grammar to include precedence levels (like multiplication before addition)."
+    },
+    "hint": {
+      "ar": "كيف يعرف الحاسوب أن الضرب يسبق الجمع؟",
+      "en": "How does the computer know multiplication comes before addition?"
+    },
+    "difficulty": "medium",
+    "conceptId": "ambiguity"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي اللغة الغامضة بطبيعتها (Inherently Ambiguous Language)؟",
+      "en": "What is an Inherently Ambiguous Language?"
+    },
+    "options": {
+      "ar": [
+        "لغة لا تحتوي على قواعد.",
+        "لغة كل قواعدها الممكنة غامضة.",
+        "لغة منتظمة معقدة.",
+        "لغة تحتوي على متغير واحد فقط."
+      ],
+      "en": [
+        "A language with no grammars.",
+        "A language for which every possible grammar is ambiguous.",
+        "A complex regular language.",
+        "A language with only one variable."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "اللغة الغامضة بطبيعتها هي لغة لا يمكن إيجاد أي قاعدة غير غامضة لها.",
+      "en": "An inherently ambiguous language is one for which no unambiguous grammar can be found."
+    },
+    "hint": {
+      "ar": "المشكلة في اللغة نفسها وليس في القاعدة المكتوبة.",
+      "en": "The problem lies in the language itself, not the written grammar."
+    },
+    "difficulty": "hard",
+    "conceptId": "ambiguity"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هي العملية العكسية للاشتقاق (Derivation)؟",
+      "en": "What is the reverse process of Derivation?"
+    },
+    "options": {
+      "ar": [
+        "الاستدلال العودي (Recursive Inference)",
+        "الاشتقاق الأيمن",
+        "التقييم (Evaluation)",
+        "الترميز (Tokenization)"
+      ],
+      "en": [
+        "Recursive Inference",
+        "Right derivation",
+        "Evaluation",
+        "Tokenization"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "الاستدلال العودي يبدأ من الجسم (السلسلة) ويستنتج الرأس (المتغير)، وهو ما يعادل اجتياز شجرة الإعراب من الأسفل للأعلى.",
+      "en": "Recursive inference starts from the body (string) and infers the head (variable), equivalent to a bottom-up parse tree traversal."
+    },
+    "hint": {
+      "ar": "عملية استنتاج المتغيرات من السلاسل.",
+      "en": "The process of inferring variables from strings."
+    },
+    "difficulty": "medium",
+    "conceptId": "parse-trees"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "لماذا لغة المتناظرات (Palindromes) ليست لغة منتظمة؟",
+      "en": "Why is the language of palindromes not a regular language?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تحتوي على أرقام وحروف.",
+        "لأنها تتطلب ذاكرة غير محدودة لمطابقة النصف الأول مع الثاني.",
+        "لأنها لغة غامضة بطبيعتها.",
+        "لأنها لا تحتوي على متغير بداية."
+      ],
+      "en": [
+        "Because it contains numbers and letters.",
+        "Because it requires unbounded memory to match the first half with the second.",
+        "Because it is inherently ambiguous.",
+        "Because it lacks a start variable."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الآلات المحدودة (التي تقبل اللغات المنتظمة) لا تمتلك ذاكرة كافية لتذكر سلسلة طويلة لمطابقتها بشكل عكسي، وهذا يتطلب قاعدة خالية من السياق.",
+      "en": "Finite automata (which accept regular languages) lack the memory to remember a long string to match it in reverse; this requires a CFG."
+    },
+    "hint": {
+      "ar": "تذكر نظرية الضخ (Pumping Lemma) ومحدودية الحالات.",
+      "en": "Remember the Pumping Lemma and the limitation of states."
+    },
+    "difficulty": "hard",
+    "conceptId": "context-free-grammars"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">كل لغة منتظمة هي لغة خالية من السياق (CFL)، ولكن العكس غير صحيح. اللغات الخالية من السياق هي مجموعة أشمل.</template>
+      <template class="content-en">Every regular language is a Context-Free Language (CFL), but not vice versa. CFLs are a superset.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين 'القاعدة الغامضة' و 'اللغة الغامضة بطبيعتها'. القاعدة الغامضة يمكن أحياناً إعادة كتابتها لتصبح غير غامضة. أما اللغة الغامضة بطبيعتها، فمن المستحيل كتابة قاعدة غير غامضة لها.</template>
+      <template class="content-en">Confusing 'Ambiguous Grammar' with 'Inherently Ambiguous Language'. An ambiguous grammar can sometimes be rewritten to be unambiguous. An inherently ambiguous language CANNOT have an unambiguous grammar.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاشتقاق في أقصى اليسار والاشتقاق في أقصى اليمين سينتجان دائماً نفس شجرة الإعراب بالضبط، طالما أن القاعدة غير غامضة.</template>
+      <template class="content-en">Left-most and right-most derivations will ALWAYS produce the exact same parse tree, provided the grammar is unambiguous.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن القواعد الخطية (Linear Grammars) تولد لغات خالية من السياق غير منتظمة. في الواقع، القواعد الخطية اليمنى واليسرى تولد اللغات المنتظمة فقط.</template>
+      <template class="content-en">Believing that linear grammars generate non-regular CFLs. In reality, right-linear and left-linear grammars generate ONLY regular languages.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M04.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M06.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

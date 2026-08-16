@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS363" data-module="5">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أنواع البيانات: المفاهيم المتقدمة · CS363 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS363" data-page-title-en="CS363">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M04.html" data-gh-next="M06.html" data-gh-card="../../hub/course.html?code=CS363"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#union-types" class="toc-link" data-bilingual>
+        <template class="content-ar">الأنواع الموحدة (Union Types)</template>
+        <template class="content-en">Union Types</template>
+        <span class="content-target">الأنواع الموحدة (Union Types)</span>
+      </a>
+      <a href="#pointers-and-references" class="toc-link" data-bilingual>
+        <template class="content-ar">المؤشرات والمراجع (Pointers and References)</template>
+        <template class="content-en">Pointer and Reference Types</template>
+        <span class="content-target">المؤشرات والمراجع (Pointers and References)</span>
+      </a>
+      <a href="#pointer-problems" class="toc-link" data-bilingual>
+        <template class="content-ar">مشاكل المؤشرات (Pointer Problems)</template>
+        <template class="content-en">Problems with Pointers</template>
+        <span class="content-target">مشاكل المؤشرات (Pointer Problems)</span>
+      </a>
+      <a href="#heap-management" class="toc-link" data-bilingual>
+        <template class="content-ar">إدارة الذاكرة الديناميكية (Heap Management)</template>
+        <template class="content-en">Heap Management</template>
+        <span class="content-target">إدارة الذاكرة الديناميكية (Heap Management)</span>
+      </a>
+      <a href="#optional-types" class="toc-link" data-bilingual>
+        <template class="content-ar">الأنواع الاختيارية (Optional Types)</template>
+        <template class="content-en">Optional Types</template>
+        <span class="content-target">الأنواع الاختيارية (Optional Types)</span>
+      </a>
+      <a href="#type-checking-and-strong-typing" class="toc-link" data-bilingual>
+        <template class="content-ar">التحقق من الأنواع والأنواع القوية (Type Checking & Strong Typing)</template>
+        <template class="content-en">Type Checking and Strong Typing</template>
+        <span class="content-target">التحقق من الأنواع والأنواع القوية (Type Checking & Strong Typing)</span>
+      </a>
+      <a href="#type-equivalence" class="toc-link" data-bilingual>
+        <template class="content-ar">تكافؤ الأنواع (Type Equivalence)</template>
+        <template class="content-en">Type Equivalence</template>
+        <span class="content-target">تكافؤ الأنواع (Type Equivalence)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 5</template>
+      <template class="content-en">Module 5</template>
+      <span class="content-target">الوحدة 5</span>
+    </span> · CS363
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">أنواع البيانات: المفاهيم المتقدمة</h1>
+      <p class="hero-description">دراسة تفصيلية لأنواع البيانات المهيكلة، المؤشرات، إدارة الذاكرة الديناميكية، التحقق من الأنواع، وتكافؤ الأنواع في لغات البرمجة.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Data Types: Advanced Concepts</h1>
+      <p class="hero-description">A detailed study of structured data types, pointers, dynamic memory management, type checking, and type equivalence in programming languages.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">أنواع البيانات</span>
+      <span class="tag">إدارة الذاكرة</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Data Types</span>
+      <span class="tag">Memory Management</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>مناقشة تفاصيل أنواع البيانات المهيكلة وتحديداً المصفوفات، السجلات، القوائم، والأنواع الموحدة (Unions).</span></li>
+      <li><span class="obj-icon">✦</span><span>فهم المؤشرات (Pointers)، المراجع (References)، والأنواع الاختيارية (Optional Types).</span></li>
+      <li><span class="obj-icon">✦</span><span>وصف وتقييم قضايا التصميم والخيارات التي اتخذها مصممو اللغات الشائعة.</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة أساسيات نظرية أنواع البيانات بما في ذلك التحقق من الأنواع، الأنواع القوية، وقواعد تكافؤ الأنواع.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Discuss the details of structured data types—specifically, arrays, associative arrays, records, tuples, lists, and unions.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss pointers, references, and the optional types.</span></li>
+      <li><span class="obj-icon">✦</span><span>Describe and evaluate the design issues and the design choices made by the designers of some common languages.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss the fundamentals of the theory of data types including type checking, strong typing, and type equivalence rules.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<!-- CONCEPT 1 -->
+<section id="union-types" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> الأنواع الموحدة (Union Types)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Union Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>نوع بيانات يسمح بتخزين قيم من أنواع مختلفة في أوقات مختلفة خلال التنفيذ، مثل صندوق يمكنه حمل نوع واحد فقط من العناصر في كل مرة.</p>
+    </template>
+    <template class="content-en">
+      <p>A type whose variables are allowed to store different type values at different times during execution, like a single container that holds one item type at a time.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الأنواع الموحدة (Unions) تنقسم إلى نوعين:</p><ul><li><strong><span class="smart-term" data-term-en="Free Union" data-ar="النوع الموحد الحر" data-en-def="A union construct with no language support for type checking (e.g., C/C++).">الأنواع الموحدة الحرة (Free Unions)<span class="smart-term-tooltip"></span></span></strong> كما في C و C++ حيث لا يوجد دعم من اللغة للتحقق من النوع مما يجعلها غير آمنة.</li><li>و<strong><span class="smart-term" data-term-en="Discriminated Union" data-ar="النوع الموحد المميز" data-en-def="A union that includes a type indicator (discriminant) for type checking.">الأنواع الموحدة المميزة (Discriminated Unions)<span class="smart-term-tooltip"></span></span></strong> كما في ML، Haskell، و F#، والتي تتطلب مؤشراً للنوع (Discriminant) للتحقق من النوع بأمان.</li></ul><p>لغات مثل Java و C# لا تدعم الأنواع الموحدة بسبب مخاوف تتعلق بالسلامة.</p></template>
+    <template class="content-en"><p>Unions are divided into two categories:</p><ul><li><strong><span class="smart-term" data-term-en="Free Union" data-ar="النوع الموحد الحر" data-en-def="A union construct with no language support for type checking (e.g., C/C++).">Free Unions<span class="smart-term-tooltip"></span></span></strong> (used in C/C++) which lack language support for type checking and are therefore unsafe.</li><li><strong><span class="smart-term" data-term-en="Discriminated Union" data-ar="النوع الموحد المميز" data-en-def="A union that includes a type indicator (discriminant) for type checking.">Discriminated Unions<span class="smart-term-tooltip"></span></span></strong> (used in ML, Haskell, F#) require a type indicator called a discriminant to allow safe type checking.</li></ul><p>Java and C# do not support unions due to growing concerns for safety in programming languages.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>في F#، يتم تعريف الأنواع الموحدة باستخدام عبارة `type` مع المعامل `OR` (|). يتم الوصول إلى القيمة باستخدام مطابقة الأنماط (Pattern Matching).</p><p>غياب الأنواع الموحدة في Java و C# يعكس توجهاً نحو أمان الذاكرة والأنواع (Type Safety)، حيث يمكن استبدالها بهياكل كائنية التوجه (Polymorphism).</p></template>
+    <template class="content-en"><p>In F#, unions are defined with a type statement using OR (|) and accessed via pattern matching.</p><p>The absence of unions in Java and C# reflects a paradigm shift towards memory and type safety, where object-oriented polymorphism is preferred over raw memory overlaying.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>fsharp</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>type intReal =
+  | IntValue of int
+  | RealValue of float;;
+
+let ir1 = IntValue 17;;
+let ir2 = RealValue 3.4;;
+
+let printType value = 
+  match value with
+  | IntValue value -&gt; printfn "int"
+  | RealValue value -&gt; printfn "float";;</code></pre>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Free Unions</th><th>Discriminated Unions</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التحقق من النوع (Type Checking)</template>
+          <template class="content-en">Type Checking</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير مدعوم</template>
+          <template class="content-en">Not supported</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">مدعوم عبر مؤشر النوع</template>
+          <template class="content-en">Supported via discriminant</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">الأمان (Safety)</template>
+          <template class="content-en">Safety</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">غير آمن</template>
+          <template class="content-en">Unsafe</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">آمن</template>
+          <template class="content-en">Safe</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أمثلة اللغات</template>
+          <template class="content-en">Language Examples</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">C, C++</template>
+          <template class="content-en">C, C++</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">ML, Haskell, F#</template>
+          <template class="content-en">ML, Haskell, F#</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تخلت لغات مثل Java عن دعم الأنواع الموحدة (Unions) بالرغم من كفاءتها في استهلاك الذاكرة؟</template>
+      <template class="content-en">Why did languages like Java abandon support for Unions despite their memory efficiency?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الأنواع الموحدة الحرة غير آمنة وتسمح بتجاوز نظام التحقق من الأنواع، مما قد يؤدي إلى أخطاء كارثية في وقت التشغيل. Java تفضل الأمان (Type Safety) على التوفير الطفيف في الذاكرة.</p></template>
+      <template class="content-en"><p>Because free unions are inherently unsafe and allow bypassing the type-checking system, leading to potential runtime crashes. Java prioritizes type safety over minor memory optimizations.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 2 -->
+<section id="pointers-and-references" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> المؤشرات والمراجع (Pointers and References)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Pointer and Reference Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>المؤشر هو متغير يخزن عنوان ذاكرة لمتغير آخر، بينما المرجع هو اسم مستعار (Alias) لكائن موجود.</p>
+    </template>
+    <template class="content-en">
+      <p>A pointer is a variable that stores the memory address of another variable, while a reference is an alias to an existing object.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>توفر المؤشرات قوة العنونة غير المباشرة وإدارة الذاكرة الديناميكية (<span class="smart-term" data-term-en="Heap" data-ar="الذاكرة الديناميكية (الكومة)" data-en-def="The area where storage is dynamically created and accessed via pointers.">Heap<span class="smart-term-tooltip"></span></span>). العمليتان الأساسيتان هما:</p><ul><li><strong>التعيين (Assignment)</strong> لضبط قيمة المؤشر لعنوان مفيد،</li><li>و<strong><span class="smart-term" data-term-en="Dereferencing" data-ar="إلغاء المرجعية" data-en-def="Yielding the value stored at the location represented by the pointer's value.">إلغاء المرجعية (Dereferencing)<span class="smart-term-tooltip"></span></span></strong> للحصول على القيمة المخزنة في العنوان.</li></ul><p>في C++، يتم إلغاء المرجعية صراحة باستخدام `*`. المراجع في C++ تستخدم أساساً للمعاملات الشكلية (Formal Parameters)، بينما في Java، حلت المراجع محل المؤشرات بالكامل للإشارة إلى الكائنات.</p></template>
+    <template class="content-en"><p>Pointers provide the power of indirect addressing and dynamic memory management (<span class="smart-term" data-term-en="Heap" data-ar="الذاكرة الديناميكية (الكومة)" data-en-def="The area where storage is dynamically created and accessed via pointers.">Heap<span class="smart-term-tooltip"></span></span>). The two fundamental operations are</p><ul><li><strong>Assignment</strong> (setting the pointer to a useful address) and</li><li><strong><span class="smart-term" data-term-en="Dereferencing" data-ar="إلغاء المرجعية" data-en-def="Yielding the value stored at the location represented by the pointer's value.">Dereferencing<span class="smart-term-tooltip"></span></span></strong> (yielding the value stored at the location).</li></ul><p>In C++, explicit dereferencing uses `*`. C++ references are primarily used for formal parameters, whereas Java extends references to replace pointers entirely, referring to objects rather than addresses.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>المؤشرات في C/C++ مرنة للغاية وتسمح بالعمليات الحسابية (Pointer Arithmetic) مثل `*(p+5)` الذي يكافئ `stuff[5]`. يمكن أن يكون نوع النطاق غير ثابت باستخدام `void *`.</p><p>ومع ذلك، هذه المرونة تجعل المؤشرات خطيرة وتشبه عبارات `goto` في توسيع نطاق الخلايا التي يمكن الوصول إليها.</p></template>
+    <template class="content-en"><p>Pointers in C/C++ are extremely flexible, allowing pointer arithmetic like `*(p+5)` which is equivalent to `stuff[5]`. The domain type need not be fixed (`void *`).</p><p>However, this flexibility makes pointers dangerous, acting like `goto` statements by widening the range of cells accessible by a variable.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>cpp</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>float stuff[100];
+float *p;
+p = stuff;
+// *(p+5) is equivalent to stuff[5] and p[5]</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Show two memory boxes. Box 1 labeled 'ptr' contains the value '7080'. Box 2 labeled 'An anonymous dynamic variable' is at address '7080' and contains the value '206'. A solid arrow points from 'ptr' to Box 2. A dashed arrow points from Box 2 to a third box labeled 'j', illustrating the assignment operation 'j = *ptr'. Style: educational, dark background #0d1117, accent color #58a6ff, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Background Pattern -->
+        <pattern id="dot-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="var(--text-muted)" opacity="0.15" />
+        </pattern>
+
+        <!-- Solid Arrow Marker -->
+        <marker id="arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+
+        <!-- Dashed Arrow Marker -->
+        <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-400)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+    <rect width="100%" height="100%" fill="url(#dot-grid)" />
+
+    <!-- Diagram Title -->
+    <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Pointer Dereference and Assignment</text>
+    <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">إلغاء مرجعية المؤشر وتعيين القيمة</text>
+
+    <!-- ================= BOX 1: ptr ================= -->
+    <g transform="translate(0, 0)">
+        <!-- Top Labels -->
+        <text x="130" y="180" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">ptr</text>
+        <text x="130" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مؤشر</text>
+        
+        <!-- Memory Box -->
+        <rect x="60" y="220" width="140" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        
+        <!-- Value -->
+        <text x="130" y="268" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="26" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">7080</text>
+        
+        <!-- Address Label -->
+        <rect x="90" y="315" width="80" height="26" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="130" y="333" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">0x1000</text>
+    </g>
+
+    <!-- ================= BOX 2: Anonymous Dynamic Variable ================= -->
+    <g transform="translate(0, 0)">
+        <!-- Top Labels -->
+        <text x="400" y="180" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Anonymous Var</text>
+        <text x="400" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">متغير ديناميكي مجهول</text>
+        
+        <!-- Memory Box (Highlighted) -->
+        <rect x="330" y="220" width="140" height="80" rx="8" fill="var(--brand-500)" opacity="0.08" />
+        <rect x="330" y="220" width="140" height="80" rx="8" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+        
+        <!-- Value -->
+        <text x="400" y="268" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">206</text>
+        
+        <!-- Address Label (Highlighted to match ptr value) -->
+        <rect x="360" y="315" width="80" height="26" rx="4" fill="var(--brand-500)" opacity="0.15" />
+        <rect x="360" y="315" width="80" height="26" rx="4" fill="none" stroke="var(--brand-500)" stroke-width="1" />
+        <text x="400" y="333" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">7080</text>
+    </g>
+
+    <!-- ================= BOX 3: j ================= -->
+    <g transform="translate(0, 0)">
+        <!-- Top Labels -->
+        <text x="670" y="180" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">j</text>
+        <text x="670" y="200" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المتغير j</text>
+        
+        <!-- Memory Box -->
+        <rect x="600" y="220" width="140" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        
+        <!-- Value -->
+        <text x="670" y="268" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="26" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">206</text>
+        
+        <!-- Address Label -->
+        <rect x="630" y="315" width="80" height="26" rx="4" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="670" y="333" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-muted)" text-anchor="middle">0x2000</text>
+    </g>
+
+    <!-- ================= ARROWS & DATA FLOW ================= -->
+    
+    <!-- Solid Arrow: ptr -> Anonymous Var -->
+    <g>
+        <circle cx="200" cy="260" r="4" fill="var(--brand-500)" />
+        <path d="M 200 260 L 315 260" stroke="var(--brand-500)" stroke-width="3" fill="none" marker-end="url(#arrow-solid)" />
+        
+        <!-- Arrow Label -->
+        <text x="265" y="238" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Points to</text>
+        <text x="265" y="254" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="12" fill="var(--text-secondary)" text-anchor="middle">يشير إلى</text>
+    </g>
+
+    <!-- Dashed Arrow: Anonymous Var -> j (Assignment) -->
+    <g>
+        <circle cx="400" cy="210" r="4" fill="var(--brand-400)" />
+        <path d="M 400 210 C 400 70, 670 70, 670 205" stroke="var(--brand-400)" stroke-width="3" stroke-dasharray="8,6" fill="none" marker-end="url(#arrow-dashed)" />
+        
+        <!-- Dashed Arrow Label (Masked background for readability) -->
+        <rect x="475" y="85" width="120" height="46" rx="6" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="535" y="106" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-400)" text-anchor="middle">j = *ptr</text>
+        <text x="535" y="124" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">نسخ القيمة</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر <code>void *</code> في C/C++ مفيداً ولكنه خطير في نفس الوقت؟</template>
+      <template class="content-en">Why is <code>void *</code> in C/C++ useful but simultaneously dangerous?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>مفيد لأنه يسمح بإنشاء هياكل بيانات عامة تقبل أي نوع. خطير لأنه يفقد معلومات النوع، مما يمنع المترجم من التحقق من صحة الأنواع (Type Checking) ولا يمكن إلغاء مرجعيته مباشرة دون تحويله (Casting).</p></template>
+      <template class="content-en"><p>It is useful for generic programming as it can point to any type. It is dangerous because it bypasses type checking and cannot be dereferenced without explicit casting, potentially leading to runtime memory errors.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 3 -->
+<section id="pointer-problems" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> مشاكل المؤشرات (Pointer Problems)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Problems with Pointers</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>المؤشرات المتدلية (Dangling Pointers) تشير إلى ذاكرة تم تحريرها، وتسرب الذاكرة (Memory Leak) يحدث عندما نفقد الوصول إلى ذاكرة محجوزة.</p>
+    </template>
+    <template class="content-en">
+      <p>Dangling pointers point to deallocated memory, while memory leaks occur when allocated memory is no longer accessible.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>هناك مشكلتان رئيسيتان مع المؤشرات:</p><ul><li><strong>1. <span class="smart-term" data-term-en="Dangling Pointer" data-ar="المؤشر المتدلي" data-en-def="A pointer that points to a heap-dynamic variable that has been deallocated.">المؤشرات المتدلية (Dangling Pointers)<span class="smart-term-tooltip"></span></span>:</strong> مؤشر يشير إلى متغير ديناميكي تم تحريره.</li><li><strong>2. المتغيرات المفقودة (Lost heap-dynamic variable / Garbage):</strong> متغير ديناميكي تم حجزه ولكنه لم يعد قابلاً للوصول بواسطة البرنامج، وتسمى هذه العملية <strong><span class="smart-term" data-term-en="Memory Leakage" data-ar="تسرب الذاكرة" data-en-def="The process of losing heap-dynamic variables, making them inaccessible (garbage).">تسرب الذاكرة (Memory Leakage)<span class="smart-term-tooltip"></span></span></strong>.</li></ul></template>
+    <template class="content-en"><p>There are two major problems with pointers:</p><ul><li><strong>1. <span class="smart-term" data-term-en="Dangling Pointer" data-ar="المؤشر المتدلي" data-en-def="A pointer that points to a heap-dynamic variable that has been deallocated.">Dangling Pointers<span class="smart-term-tooltip"></span></span>:</strong> A pointer that points to a heap-dynamic variable that has been deallocated.</li><li><strong>2. Lost heap-dynamic variable (Garbage):</strong> An allocated heap-dynamic variable that is no longer accessible to the user program.</li></ul><p>The process of losing these variables is called <strong><span class="smart-term" data-term-en="Memory Leakage" data-ar="تسرب الذاكرة" data-en-def="The process of losing heap-dynamic variables, making them inaccessible (garbage).">Memory Leakage<span class="smart-term-tooltip"></span></span></strong>.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لحل مشكلة المؤشرات المتدلية، تُستخدم تقنيتان:</p><ul><li><strong>شواهد القبور (Tombstones):</strong> خلية إضافية في الذاكرة تشير إلى المتغير، وعند التحرير تصبح nil، لكنها مكلفة في الوقت والمساحة.</li><li><strong>الأقفال والمفاتيح (Locks-and-keys):</strong> يمثل المؤشر كزوج (مفتاح، عنوان)، ويحتوي المتغير على قفل. عند الوصول، يجب أن يتطابق المفتاح مع القفل.</li></ul></template>
+    <template class="content-en"><p>To solve the dangling pointer problem, two techniques exist:</p><ul><li><strong>Tombstones:</strong> An extra heap cell that acts as an intermediary. When deallocated, the tombstone is set to nil. It is costly in time and space.</li><li><strong>Locks-and-keys:</strong> Pointer values are represented as (key, address) pairs. The heap variable has an integer lock. Access is granted only if the key matches the lock.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يمنع نهج 'الأقفال والمفاتيح' مشكلة المؤشرات المتدلية؟</template>
+      <template class="content-en">How does the 'Locks-and-keys' approach prevent dangling pointers?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>عند تحرير المتغير، يتم تغيير أو مسح قيمة القفل في الذاكرة. إذا حاول مؤشر متدلي الوصول إليه لاحقاً، فإن المفتاح الموجود في المؤشر لن يتطابق مع القفل الجديد (أو المفقود)، مما يمنع الوصول غير الآمن.</p></template>
+      <template class="content-en"><p>When the variable is deallocated, its lock value is changed or cleared. If a dangling pointer tries to access it later, its key will no longer match the lock, preventing unsafe access.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 4 -->
+<section id="heap-management" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> إدارة الذاكرة الديناميكية (Heap Management)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Heap Management</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>إدارة الذاكرة تستخدم طريقتين لاسترداد القمامة: عدادات المراجع (نهج استباقي) و Mark-Sweep (نهج كسول).</p>
+    </template>
+    <template class="content-en">
+      <p>Heap management reclaims garbage using two approaches: Reference Counters (eager approach) and Mark-Sweep (lazy approach).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>إدارة الذاكرة الديناميكية عملية معقدة، خاصة مع الخلايا متغيرة الحجم. لاسترداد الذاكرة المفقودة (Garbage Collection)، يوجد نهجان:</p><ul><li><strong>1. <span class="smart-term" data-term-en="Reference Counter" data-ar="عداد المراجع" data-en-def="An eager garbage collection approach maintaining a count of pointers to a cell.">عدادات المراجع (Reference Counters)<span class="smart-term-tooltip"></span></span>:</strong> نهج استباقي (Eager) يحتفظ بعداد في كل خلية لعدد المؤشرات التي تشير إليها. ميزته أنه تدريجي ولا يسبب تأخيرات كبيرة، لكن عيوبه تشمل استهلاك المساحة والوقت وصعوبة التعامل مع الخلايا المتصلة دائرياً.</li><li><strong>2. <span class="smart-term" data-term-en="Mark-Sweep" data-ar="التحديد والمسح" data-en-def="A lazy garbage collection approach that traces reachable cells and reclaims unmarked ones.">التحديد والمسح (Mark-Sweep)<span class="smart-term-tooltip"></span></span>:</strong> نهج كسول (Lazy) يبدأ عندما تفرغ الذاكرة. يقوم بتتبع كل المؤشرات وتحديد الخلايا التي يمكن الوصول إليها، ثم يعيد الخلايا غير المحددة (القمامة) إلى قائمة المساحة المتاحة.</li></ul></template>
+    <template class="content-en"><p>Heap management is a complex run-time process. To reclaim garbage, two approaches are used:</p><ul><li><strong>1. <span class="smart-term" data-term-en="Reference Counter" data-ar="عداد المراجع" data-en-def="An eager garbage collection approach maintaining a count of pointers to a cell.">Reference Counters<span class="smart-term-tooltip"></span></span> (Eager approach):</strong> Maintains a counter in every cell storing the number of pointers pointing to it. It is intrinsically incremental (avoids execution delays) but requires extra space/time and struggles with circular references.</li><li><strong>2. <span class="smart-term" data-term-en="Mark-Sweep" data-ar="التحديد والمسح" data-en-def="A lazy garbage collection approach that traces reachable cells and reclaims unmarked ones.">Mark-Sweep<span class="smart-term-tooltip"></span></span> (Lazy approach):</strong> Occurs when the variable space becomes empty. It traces all pointers, marks reachable cells, and returns unmarked (garbage) cells to the available list.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>خوارزمية Mark-Sweep الأصلية كانت تسبب تأخيرات كبيرة في التنفيذ لأنها توقف البرنامج بالكامل (Stop-the-world). الخوارزميات الحديثة تتجنب ذلك باستخدام التحديد والمسح التدريجي (Incremental Mark-Sweep).</p><p>إدارة الخلايا متغيرة الحجم (Variable-Size Cells) تضيف تعقيدات إضافية مثل صعوبة التحديد الأولي وصيانة قائمة المساحات المتاحة (Fragmentation).</p></template>
+    <template class="content-en"><p>The original Mark-Sweep algorithm caused significant delays in application execution (Stop-the-world). Contemporary algorithms avoid this by doing it more often, called incremental mark-sweep.</p><p>Variable-size cells add further difficulties, such as nontrivial marking processes and overhead in maintaining the list of available space (fragmentation).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: A tree structure representing the 'Marking Algorithm'. Root node 'r' points to node 1. Node 1 points to 2 and 7. Node 2 points to 3 and 6. Node 3 points to 4 and 5. Node 7 points to 8 and 10. Node 8 points to 9. Node 10 points to 11 and 12. Dashed arrows trace the depth-first traversal path through the nodes, showing the order of node marking. Style: educational, dark background #0d1117, accent color #2ea043, viewBox 0 0 800 500. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <marker id="solid-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-muted)" />
+        </marker>
+        <marker id="dashed-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title -->
+    <text x="400" y="30" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)">Marking Algorithm (Depth-First Search)</text>
+    <text x="400" y="55" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)">خوارزمية التعليم (البحث في العمق)</text>
+
+    <!-- Legend -->
+    <rect x="20" y="20" width="220" height="80" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+    <line x1="35" y1="40" x2="65" y2="40" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#solid-arrow)" />
+    <text x="140" y="40" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" dy="0.35em">Tree Edge / حافة الشجرة</text>
+    <line x1="35" y1="70" x2="65" y2="70" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#dashed-arrow)" />
+    <text x="140" y="70" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" dy="0.35em">Traversal / مسار الاجتياز</text>
+
+    <!-- Tree Edges (Solid Lines) -->
+    <g stroke="var(--text-muted)" stroke-width="2" marker-end="url(#solid-arrow)">
+        <!-- r to 1 -->
+        <line x1="400" y1="90" x2="400" y2="145" />
+        <!-- 1 to 2 -->
+        <line x1="400" y1="170" x2="271.4" y2="247.2" />
+        <!-- 1 to 7 -->
+        <line x1="400" y1="170" x2="528.6" y2="247.2" />
+        <!-- 2 to 3 -->
+        <line x1="250" y1="260" x2="168.6" y2="333.3" />
+        <!-- 2 to 6 -->
+        <line x1="250" y1="260" x2="331.4" y2="333.3" />
+        <!-- 3 to 4 -->
+        <line x1="150" y1="350" x2="112.1" y2="418.2" />
+        <!-- 3 to 5 -->
+        <line x1="150" y1="350" x2="187.9" y2="418.2" />
+        <!-- 7 to 8 -->
+        <line x1="550" y1="260" x2="468.6" y2="333.3" />
+        <!-- 7 to 10 -->
+        <line x1="550" y1="260" x2="631.4" y2="333.3" />
+        <!-- 8 to 9 -->
+        <line x1="450" y1="350" x2="450" y2="415" />
+        <!-- 10 to 11 -->
+        <line x1="650" y1="350" x2="612.1" y2="418.2" />
+        <!-- 10 to 12 -->
+        <line x1="650" y1="350" x2="687.9" y2="418.2" />
+    </g>
+
+    <!-- DFS Traversal Path (Dashed Lines) -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#dashed-arrow)" stroke-linejoin="round" stroke-linecap="round">
+        <!-- Start to 1 -->
+        <path d="M 400 60 Q 370 60 370 90 L 370 170" />
+        <!-- 1 to 2 -->
+        <path d="M 370 170 L 220 260" />
+        <!-- 2 to 3 -->
+        <path d="M 220 260 L 120 350" />
+        <!-- 3 to 4 -->
+        <path d="M 120 350 L 70 440" />
+        <!-- 4 to 5 (Backtrack to 3, down to 5) -->
+        <path d="M 70 440 C 70 475, 130 475, 130 440 Q 150 380 170 440" />
+        <!-- 5 to 6 (Backtrack to 2, down to 6) -->
+        <path d="M 170 440 C 170 475, 230 475, 230 440 L 180 350 Q 250 290 320 350" />
+        <!-- 6 to 7 (Backtrack to 1, down to 7) -->
+        <path d="M 320 350 C 320 385, 380 385, 380 350 L 280 260 Q 400 200 520 260" />
+        <!-- 7 to 8 -->
+        <path d="M 520 260 L 420 350" />
+        <!-- 8 to 9 -->
+        <path d="M 420 350 L 420 440" />
+        <!-- 9 to 10 (Backtrack to 7, down to 10) -->
+        <path d="M 420 440 C 420 475, 480 475, 480 440 L 480 350 Q 550 290 620 350" />
+        <!-- 10 to 11 -->
+        <path d="M 620 350 L 570 440" />
+        <!-- 11 to 12 (Backtrack to 10, down to 12) -->
+        <path d="M 570 440 C 570 475, 630 475, 630 440 Q 650 380 670 440" />
+        <!-- 12 back to Root -->
+        <path d="M 670 440 C 670 475, 730 475, 730 440 L 680 350 L 580 260 L 430 170 L 430 90 Q 430 60 400 60" />
+    </g>
+
+    <!-- Nodes -->
+    <g fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2">
+        <circle cx="400" cy="90" r="20" />
+        <circle cx="400" cy="170" r="20" />
+        <circle cx="250" cy="260" r="20" />
+        <circle cx="550" cy="260" r="20" />
+        <circle cx="150" cy="350" r="20" />
+        <circle cx="350" cy="350" r="20" />
+        <circle cx="450" cy="350" r="20" />
+        <circle cx="650" cy="350" r="20" />
+        <circle cx="100" cy="440" r="20" />
+        <circle cx="200" cy="440" r="20" />
+        <circle cx="450" cy="440" r="20" />
+        <circle cx="600" cy="440" r="20" />
+        <circle cx="700" cy="440" r="20" />
+    </g>
+
+    <!-- Node Labels -->
+    <g fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" text-anchor="middle">
+        <text x="400" y="90" dy="0.35em">r</text>
+        <text x="400" y="170" dy="0.35em">1</text>
+        <text x="250" y="260" dy="0.35em">2</text>
+        <text x="550" y="260" dy="0.35em">7</text>
+        <text x="150" y="350" dy="0.35em">3</text>
+        <text x="350" y="350" dy="0.35em">6</text>
+        <text x="450" y="350" dy="0.35em">8</text>
+        <text x="650" y="350" dy="0.35em">10</text>
+        <text x="100" y="440" dy="0.35em">4</text>
+        <text x="200" y="440" dy="0.35em">5</text>
+        <text x="450" y="440" dy="0.35em">9</text>
+        <text x="600" y="440" dy="0.35em">11</text>
+        <text x="700" y="440" dy="0.35em">12</text>
+    </g>
+
+    <!-- Extra Labels -->
+    <text x="460" y="90" text-anchor="middle" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" dy="0.35em">Root / الجذر</text>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Reference Counters</th><th>Mark-Sweep</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">النهج (Approach)</template>
+          <template class="content-en">Approach</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">استباقي (Eager)</template>
+          <template class="content-en">Eager</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">كسول (Lazy)</template>
+          <template class="content-en">Lazy</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">تأثير الأداء (Performance Impact)</template>
+          <template class="content-en">Performance Impact</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">تدريجي، يتجنب التأخيرات الكبيرة</template>
+          <template class="content-en">Incremental, avoids significant delays</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يسبب تأخيرات كبيرة (ما لم يكن تدريجياً)</template>
+          <template class="content-en">Causes significant delays (unless incremental)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعامل مع الهياكل الدائرية</template>
+          <template class="content-en">Handling Circular Structures</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يفشل (يسبب تسرب)</template>
+          <template class="content-en">Fails (causes leaks)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ينجح في استردادها</template>
+          <template class="content-en">Successfully reclaims</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تفشل خوارزمية 'عدادات المراجع' في التعامل مع الهياكل الدائرية (Circular Structures)؟</template>
+      <template class="content-en">Why does the 'Reference Counter' algorithm fail with circular structures?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن العقد في الهيكل الدائري تشير إلى بعضها البعض، مما يجعل عداد المراجع الخاص بها دائماً أكبر من الصفر، حتى لو لم يعد البرنامج الرئيسي قادراً على الوصول إلى هذا الهيكل، مما يؤدي إلى تسرب الذاكرة.</p></template>
+      <template class="content-en"><p>Because nodes in a circular structure point to each other, keeping their reference counts above zero even if the entire structure is disconnected from the main program, leading to a memory leak.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 5 -->
+<section id="optional-types" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> الأنواع الاختيارية (Optional Types)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Optional Types</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>أنواع تسمح للمتغير بأن يحتوي على قيمة صالحة أو لا يحتوي على شيء (null/nil).</p>
+    </template>
+    <template class="content-en">
+      <p>Types that allow a variable to indicate it currently has no value (null/nil).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الأنواع الاختيارية مفيدة عندما تكون هناك حاجة لمتغير للإشارة إلى أنه لا يحتوي حالياً على قيمة. لغات مثل C#، F#، و Swift تدعم هذه الأنواع.</p><p>في C#، الأنواع المرجعية (Reference types) هي بالفعل اختيارية (تستخدم `null`). يمكن جعل أنواع القيمة (Value types) اختيارية بإضافة علامة استفهام `?` إلى اسم النوع، مثل `int? x`. في Swift، يُستخدم `nil` بدلاً من `null`.</p></template>
+    <template class="content-en"><p>Optional types are useful when there is a need for a variable to indicate that it currently has no value. Languages like C#, F#, and Swift have optional types.</p><p>In C#, reference types are already optional (using `null`). Value types (struct types) can be declared optional by attaching a question mark to the type name, e.g., `int? x`. In Swift, `nil` is used instead of `null`.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الأنواع الاختيارية تزيد من أمان البرنامج من خلال إجبار المبرمج على التعامل مع حالة 'عدم وجود قيمة' بشكل صريح، مما يقلل من أخطاء NullReferenceException الشهيرة.</p></template>
+    <template class="content-en"><p>Optional types increase program safety by forcing the programmer to explicitly handle the 'no value' case, significantly reducing the infamous NullReferenceException errors.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>csharp</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>int? x = null;
+if (x == null) {
+    // Handle no-value case
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما الفرق بين <code>int x</code> و <code>int? x</code> في لغة C#؟</template>
+      <template class="content-en">What is the difference between <code>int x</code> and <code>int? x</code> in C#?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p><code>int x</code> هو نوع قيمة يجب أن يحتوي دائماً على رقم صحيح. <code>int? x</code> هو نوع اختياري يمكن أن يحتوي على رقم صحيح أو القيمة <code>null</code> (لا شيء).</p></template>
+      <template class="content-en"><p><code>int x</code> is a value type that must always hold an integer. <code>int? x</code> is an optional type that can hold an integer or the value <code>null</code>.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 6 -->
+<section id="type-checking-and-strong-typing" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> التحقق من الأنواع والأنواع القوية (Type Checking & Strong Typing)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Type Checking and Strong Typing</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>التحقق من الأنواع يضمن توافق المعاملات، واللغة قوية الأنواع تكتشف دائماً أخطاء عدم التوافق.</p>
+    </template>
+    <template class="content-en">
+      <p>Type checking ensures operand compatibility, and a strongly typed language always detects type errors.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><strong>التحقق من الأنواع (Type Checking):</strong> هو نشاط ضمان أن معاملات المشغل من أنواع متوافقة. النوع المتوافق إما أن يكون قانونياً للمشغل، أو يُسمح بتحويله ضمنياً (<span class="smart-term" data-term-en="Coercion" data-ar="التحويل الضمني (القسري)" data-en-def="Automatic, implicit conversion of a type by compiler-generated code to a legal type.">Coercion<span class="smart-term-tooltip"></span></span>) إلى نوع قانوني.</li><li><strong>الأنواع القوية (Strong Typing):</strong> تكون لغة البرمجة قوية الأنواع إذا كانت أخطاء النوع تُكتشف دائماً. ميزتها أنها تسمح باكتشاف سوء استخدام المتغيرات.</li></ul></template>
+    <template class="content-en"><ul><li><strong>Type Checking:</strong> The activity of ensuring that the operands of an operator are of compatible types. A compatible type is either legal for the operator or allowed to be implicitly converted (<span class="smart-term" data-term-en="Coercion" data-ar="التحويل الضمني (القسري)" data-en-def="Automatic, implicit conversion of a type by compiler-generated code to a legal type.">Coercion<span class="smart-term-tooltip"></span></span>) to a legal type.</li><li><strong>Strong Typing:</strong> A programming language is strongly typed if type errors are always detected. Its advantage is detecting misuses of variables that result in type errors.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>قواعد التحويل الضمني (Coercion rules) تضعف الأنواع القوية بشكل كبير.</p><p>C و C++ ليستا لغات قوية الأنواع (بسبب الأنواع الموحدة الحرة وتجاوز التحقق من المعاملات). Java و C# قريبتان من ذلك، لكن التحويلات الضمنية تضعفها مقارنة بلغة مثل Ada. ML و F# تعتبر لغات قوية الأنواع.</p></template>
+    <template class="content-en"><p>Coercion rules strongly affect strong typing—they can weaken it considerably.</p><p>C and C++ are not strongly typed (parameter checking can be avoided; unions are not checked). Java and C# are almost strongly typed, but Java's assignment coercions make it less effective than Ada. ML and F# are strongly typed.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف يضعف التحويل الضمني (Coercion) من قوة نظام الأنواع (Strong Typing)؟</template>
+      <template class="content-en">How does coercion weaken strong typing?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>التحويل الضمني يخفي الأخطاء المنطقية المحتملة عن طريق تحويل نوع إلى آخر تلقائياً بدلاً من الإبلاغ عن خطأ، مما قد يؤدي إلى فقدان الدقة أو سلوك غير متوقع.</p></template>
+      <template class="content-en"><p>Coercion hides potential logical errors by automatically converting one type to another instead of reporting a type error, which can lead to loss of precision or unexpected behavior.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<!-- CONCEPT 7 -->
+<section id="type-equivalence" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> تكافؤ الأنواع (Type Equivalence)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Type Equivalence</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>يحدد متى يعتبر نوعان متطابقين: إما بالاسم (نفس الإعلان) أو بالهيكل (نفس التكوين الداخلي).</p>
+    </template>
+    <template class="content-en">
+      <p>Determines when two types are considered identical: either by Name (same declaration) or by Structure (same internal layout).</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><ul><li><strong>تكافؤ الأنواع بالاسم (Name Type Equivalence):</strong> يعني أن المتغيرين لهما أنواع متكافئة إذا كانا في نفس الإعلان أو في إعلانات تستخدم نفس اسم النوع. سهل التنفيذ ولكنه مقيد للغاية (مثلاً: المعاملات الشكلية يجب أن تتطابق تماماً مع الفعلية).</li><li><strong>تكافؤ الأنواع بالهيكل (Structure Type Equivalence):</strong> يعني أن المتغيرين متكافئان إذا كان لنوعيهما هياكل متطابقة. أكثر مرونة ولكنه أصعب في التنفيذ.</li></ul></template>
+    <template class="content-en"><ul><li><strong>Name Type Equivalence:</strong> Means two variables have equivalent types if they are in either the same declaration or in declarations that use the same type name. It is easy to implement but highly restrictive.</li><li><strong>Structure Type Equivalence:</strong> Means two variables have equivalent types if their types have identical structures. It is more flexible but harder to implement.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من عيوب التكافؤ بالهيكل أنه لا يمكنه التمييز بين أنواع لها نفس الهيكل ولكن بدلالات مختلفة (مثلاً: نوعان يمثلان السرعة والوزن، كلاهما Float، سيعتبران متكافئين هيكلياً مما قد يسبب أخطاء منطقية).</p><p>كما يطرح أسئلة معقدة: هل السجلان متكافئان إذا اختلفت أسماء الحقول؟ هل المصفوفتان متكافئتان إذا اختلفت الفهارس `[1..10]` و `[0..9]`؟</p></template>
+    <template class="content-en"><p>A flaw of structural equivalence is the inability to differentiate between types of the same structure with different semantics (e.g., different units like speed and weight, both float).</p><p>It also raises complex design issues: Are records equivalent if field names differ? Are arrays equivalent if subscripts differ (`[1..10]` vs `[0..9]`)?</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Name Equivalence</th><th>Structure Equivalence</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المرونة (Flexibility)</template>
+          <template class="content-en">Flexibility</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">مقيد للغاية</template>
+          <template class="content-en">Highly restrictive</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">أكثر مرونة</template>
+          <template class="content-en">More flexible</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">سهولة التنفيذ</template>
+          <template class="content-en">Ease of Implementation</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">سهل</template>
+          <template class="content-en">Easy</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">صعب</template>
+          <template class="content-en">Harder</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر التكافؤ بالاسم (Name Equivalence) أكثر أماناً من التكافؤ بالهيكل (Structure Equivalence) في بعض الحالات؟</template>
+      <template class="content-en">Why is Name Equivalence considered safer than Structure Equivalence in some cases?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يمنع الخلط العرضي بين أنواع البيانات التي لها نفس الهيكل ولكن تمثل مفاهيم مختلفة (مثل خلط متغير يمثل 'درجة الحرارة' مع متغير يمثل 'المسافة' وكلاهما من نوع Float).</p></template>
+      <template class="content-en"><p>Because it prevents accidental mixing of data types that share the same structure but represent entirely different concepts (e.g., mixing a 'Temperature' float with a 'Distance' float).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة الدسمة والمهمة جداً للامتحان. لقد غصنا اليوم في أعماق 'أنواع البيانات'، وتحديداً كيف تتعامل اللغات المختلفة مع الذاكرة والأنواع. تذكروا دائماً المقارنة الكلاسيكية بين C/C++ التي تمنحكم حرية مطلقة (ومخاطر عالية مثل المؤشرات المتدلية والأنواع الموحدة الحرة) وبين لغات مثل Java و C# التي تقيد هذه الحرية لصالح الأمان (استبدال المؤشرات بالمراجع، وإلغاء الأنواع الموحدة). في الامتحان، ركزوا بشدة على طرق إدارة الذاكرة الديناميكية: متى نستخدم 'عدادات المراجع' (الاستباقية) ومتى نستخدم 'التحديد والمسح' (الكسولة)، وما هي عيوب كل منهما (خاصة مشكلة الهياكل الدائرية). لا تنسوا أيضاً فهم كيف يضعف 'التحويل الضمني' (Coercion) من 'الأنواع القوية' (Strong Typing). هذه المفاهيم ليست مجرد نظريات، بل هي القرارات الهندسية التي تشكل اللغات التي تكتبون بها كودكم كل يوم. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, my friends, to this dense and highly exam-relevant module. Today we dove deep into 'Data Types', specifically how different languages handle memory and type safety. Always remember the classic trade-off: C/C++ gives you absolute freedom (with high risks like dangling pointers and free unions), while Java and C# restrict this freedom in favor of safety (replacing pointers with references, dropping unions). For the exam, focus heavily on heap management approaches: when to use 'Reference Counters' (eager) versus 'Mark-Sweep' (lazy), and their respective drawbacks (especially the circular structure issue). Also, make sure you understand how 'Coercion' weakens 'Strong Typing'. These aren't just theories; they are the engineering decisions that shape the languages you code in every day. Best of luck with your studies!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعتبر الأنواع الموحدة الحرة (Free Unions) غير آمنة؟</template>
+          <template class="content-en">Why are Free Unions considered unsafe?</template>
+          <span class="content-target">لماذا تعتبر الأنواع الموحدة الحرة (Free Unions) غير آمنة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها لا تتضمن أي آلية لغوية للتحقق من النوع المخزن حالياً. يمكن للمبرمج تخزين قيمة كعدد عشري (Float) ثم قراءتها كعدد صحيح (Int)، مما يؤدي إلى تفسير خاطئ للبتات في الذاكرة وأخطاء كارثية.</template>
+          <template class="content-en">Because they lack any language mechanism to check the currently stored type. A programmer can store a float and read it as an int, leading to misinterpretation of memory bits and catastrophic errors.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تحل لغات مثل F# مشكلة أمان الأنواع الموحدة؟</template>
+          <template class="content-en">How do languages like F# solve the safety issue of unions?</template>
+          <span class="content-target">كيف تحل لغات مثل F# مشكلة أمان الأنواع الموحدة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تستخدم الأنواع الموحدة المميزة (Discriminated Unions)، حيث يتم إرفاق مؤشر نوع (Discriminant) مع القيمة. لا يمكن الوصول إلى القيمة إلا من خلال مطابقة الأنماط (Pattern Matching) التي تضمن التعامل مع النوع الصحيح.</template>
+          <template class="content-en">They use Discriminated Unions, where a type indicator (discriminant) is attached to the value. The value can only be accessed via pattern matching, ensuring the correct type is handled.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين المؤشر (Pointer) والمرجع (Reference) في C++؟</template>
+          <template class="content-en">What is the fundamental difference between a pointer and a reference in C++?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين المؤشر (Pointer) والمرجع (Reference) في C++؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المؤشر هو متغير مستقل يخزن عنوان ذاكرة ويمكن تغيير قيمته ليشير إلى مكان آخر. المرجع هو مجرد اسم مستعار (Alias) لمتغير موجود، وبمجرد ربطه، لا يمكن تغييره ليشير إلى متغير آخر.</template>
+          <template class="content-en">A pointer is an independent variable that stores a memory address and can be reassigned to point elsewhere. A reference is an alias for an existing variable and, once bound, cannot be reassigned.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">اشرح كيف تعمل تقنية 'شواهد القبور' (Tombstones).</template>
+          <template class="content-en">Explain how the 'Tombstones' technique works.</template>
+          <span class="content-target">اشرح كيف تعمل تقنية 'شواهد القبور' (Tombstones).</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بدلاً من أن يشير المؤشر مباشرة إلى المتغير في الذاكرة، فإنه يشير إلى 'شاهد قبر' (خلية وسيطة)، والذي بدوره يشير إلى المتغير. عند تحرير المتغير، يتم تعيين شاهد القبر إلى nil. أي محاولة لاحقة لاستخدام المؤشر ستجد nil وتمنع الوصول غير الآمن.</template>
+          <template class="content-en">Instead of pointing directly to the variable, the pointer points to a 'tombstone' (an intermediary cell), which points to the variable. When deallocated, the tombstone is set to nil. Any subsequent access via the pointer hits nil, preventing unsafe access.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي ميزة وعيب نهج 'عداد المراجع' (Reference Counters)؟</template>
+          <template class="content-en">What is the advantage and disadvantage of the 'Reference Counters' approach?</template>
+          <span class="content-target">ما هي ميزة وعيب نهج 'عداد المراجع' (Reference Counters)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الميزة: استرداد الذاكرة يتم تدريجياً وبشكل فوري دون إيقاف البرنامج. العيب: يستهلك مساحة إضافية للعداد، ويستغرق وقتاً لتحديثه مع كل عملية تعيين، ويفشل في تحرير الهياكل الدائرية.</template>
+          <template class="content-en">Advantage: Memory reclamation is incremental and immediate, avoiding program pauses. Disadvantage: It consumes extra space for the counter, takes time to update on every assignment, and fails to reclaim circular structures.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تعتبر إدارة الخلايا متغيرة الحجم (Variable-Size Cells) أصعب في الذاكرة الديناميكية؟</template>
+          <template class="content-en">Why is managing Variable-Size Cells harder in the heap?</template>
+          <span class="content-target">لماذا تعتبر إدارة الخلايا متغيرة الحجم (Variable-Size Cells) أصعب في الذاكرة الديناميكية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها تتطلب خوارزميات معقدة للعثور على مساحة مناسبة عند الحجز، وتسبب تجزئة الذاكرة (Fragmentation). كما أن عملية التحديد (Marking) في خوارزمية Mark-Sweep تصبح غير بديهية لأن حجم كل خلية يجب تحديده أولاً.</template>
+          <template class="content-en">Because it requires complex algorithms to find fitting space during allocation, causing memory fragmentation. Also, the marking process in Mark-Sweep becomes nontrivial as the size of each cell must be determined first.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الهدف من الأنواع الاختيارية (Optional Types) في لغات مثل Swift و C#؟</template>
+          <template class="content-en">What is the purpose of Optional Types in languages like Swift and C#?</template>
+          <span class="content-target">ما الهدف من الأنواع الاختيارية (Optional Types) في لغات مثل Swift و C#؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الهدف هو توفير طريقة آمنة للتعامل مع غياب القيمة. بدلاً من استخدام قيم سحرية (مثل -1) أو المخاطرة بأخطاء NullReferenceException، يجبر النوع الاختياري المبرمج على التحقق من وجود القيمة قبل استخدامها.</template>
+          <template class="content-en">The purpose is to provide a safe way to handle the absence of a value. Instead of using magic values (like -1) or risking NullReferenceExceptions, optional types force the programmer to check for a value's existence before using it.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل لغة Java تعتبر لغة قوية الأنواع (Strongly Typed) تماماً؟ ولماذا؟</template>
+          <template class="content-en">Is Java considered a perfectly strongly typed language? Why?</template>
+          <span class="content-target">هل لغة Java تعتبر لغة قوية الأنواع (Strongly Typed) تماماً؟ ولماذا؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي قريبة جداً من ذلك، ولكنها ليست مثالية. على الرغم من أنها تكتشف أخطاء الأنواع، إلا أن وجود التحويلات الضمنية (Coercions) يضعف من فعاليتها مقارنة بلغات أكثر صرامة مثل Ada أو F#.</template>
+          <template class="content-en">It is very close, but not perfectly. Although it detects type errors, the presence of implicit coercions weakens its effectiveness compared to stricter languages like Ada or F#.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين تكافؤ الاسم وتكافؤ الهيكل؟</template>
+          <template class="content-en">What is the difference between Name Equivalence and Structure Equivalence?</template>
+          <span class="content-target">ما الفرق بين تكافؤ الاسم وتكافؤ الهيكل؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تكافؤ الاسم يتطلب أن يكون للمتغيرين نفس اسم النوع المعرف مسبقاً (صارم جداً). تكافؤ الهيكل يتطلب فقط أن يكون التكوين الداخلي للنوعين متطابقاً (مرن ولكنه قد يسمح بخلط مفاهيم مختلفة لها نفس الهيكل).</template>
+          <template class="content-en">Name equivalence requires variables to share the exact same defined type name (very strict). Structure equivalence only requires the internal layout of the types to be identical (flexible but may allow mixing different concepts with the same structure).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا تم استبعاد الأنواع الموحدة (Unions) من لغات مثل Java و C#؟</template>
+          <template class="content-en">Why were Unions excluded from languages like Java and C#?</template>
+          <span class="content-target">لماذا تم استبعاد الأنواع الموحدة (Unions) من لغات مثل Java و C#؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">بسبب المخاوف المتزايدة بشأن أمان البرامج. الأنواع الموحدة تسمح بتجاوز نظام التحقق من الأنواع. بدلاً من ذلك، تعتمد هذه اللغات على البرمجة كائنية التوجه (تعدد الأشكال Polymorphism) لتحقيق نفس المرونة بأمان تام.</template>
+          <template class="content-en">Due to growing concerns for program safety. Unions allow bypassing the type-checking system. Instead, these languages rely on Object-Oriented Programming (Polymorphism) to achieve similar flexibility safely.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "النوع الموحد (Union)",
+      "en": "Union Type"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع يسمح لمتغيراته بتخزين قيم من أنواع مختلفة في أوقات مختلفة أثناء التنفيذ.",
+        "en": "A type whose variables are allowed to store different type values at different times during execution."
+      },
+      "example": {
+        "ar": "استخدام نفس مساحة الذاكرة لتخزين إما عدد صحيح أو عدد عشري.",
+        "en": "Using the same memory space to store either an int or a float."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "النوع الموحد الحر (Free Union)",
+      "en": "Free Union"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع موحد لا يوفر دعماً لغوياً للتحقق من النوع، مما يجعله غير آمن.",
+        "en": "A union construct in which there is no language support for type checking."
+      },
+      "example": {
+        "ar": "Unions في لغتي C و C++.",
+        "en": "Unions in C and C++."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "النوع الموحد المميز (Discriminated Union)",
+      "en": "Discriminated Union"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع موحد يتطلب مؤشراً للنوع (Discriminant) للسماح بالتحقق من النوع.",
+        "en": "A union that requires a type indicator called a discriminant for type checking."
+      },
+      "example": {
+        "ar": "Unions في لغات ML، Haskell، و F#.",
+        "en": "Unions in ML, Haskell, and F#."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "المؤشر (Pointer)",
+      "en": "Pointer"
+    },
+    "back": {
+      "definition": {
+        "ar": "متغير يحتوي على عنوان ذاكرة لمتغير آخر أو القيمة الخاصة nil.",
+        "en": "A variable that has a range of values consisting of memory addresses and a special value, nil."
+      },
+      "example": {
+        "ar": "float *p;",
+        "en": "float *p;"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "إلغاء المرجعية (Dereferencing)",
+      "en": "Dereferencing"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية الحصول على القيمة المخزنة في الموقع الذي يمثله عنوان المؤشر.",
+        "en": "Yielding the value stored at the location represented by the pointer's value."
+      },
+      "example": {
+        "ar": "j = *ptr في C++.",
+        "en": "j = *ptr in C++."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "المؤشر المتدلي (Dangling Pointer)",
+      "en": "Dangling Pointer"
+    },
+    "back": {
+      "definition": {
+        "ar": "مؤشر يشير إلى متغير في الذاكرة الديناميكية تم تحريره (Deallocated).",
+        "en": "A pointer that points to a heap-dynamic variable that has been deallocated."
+      },
+      "example": {
+        "ar": "الوصول إلى ذاكرة بعد استدعاء دالة free() عليها.",
+        "en": "Accessing memory after calling free() on it."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "تسرب الذاكرة (Memory Leakage)",
+      "en": "Memory Leakage"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية فقدان الوصول إلى متغيرات الذاكرة الديناميكية المحجوزة (Garbage).",
+        "en": "The process of losing heap-dynamic variables, making them inaccessible to the user program."
+      },
+      "example": {
+        "ar": "تغيير قيمة مؤشر يشير إلى ذاكرة محجوزة دون تحريرها أولاً.",
+        "en": "Reassigning a pointer to a new address without freeing the old allocated memory."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "شاهد القبر (Tombstone)",
+      "en": "Tombstone"
+    },
+    "back": {
+      "definition": {
+        "ar": "خلية إضافية في الذاكرة تعمل كمؤشر وسيط لمنع المؤشرات المتدلية.",
+        "en": "An extra heap cell that is a pointer to the heap-dynamic variable, used to prevent dangling pointers."
+      },
+      "example": {
+        "ar": "عند التحرير، يبقى شاهد القبر ولكن يتم تعيينه إلى nil.",
+        "en": "When deallocated, the tombstone remains but is set to nil."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "الأقفال والمفاتيح (Locks-and-keys)",
+      "en": "Locks-and-keys"
+    },
+    "back": {
+      "definition": {
+        "ar": "طريقة لتمثيل المؤشرات كأزواج (مفتاح، عنوان) لمنع الوصول غير الآمن للذاكرة المحررة.",
+        "en": "Pointer values represented as (key, address) pairs to prevent dangling pointer access."
+      },
+      "example": {
+        "ar": "يجب أن يتطابق مفتاح المؤشر مع قفل المتغير للوصول إليه.",
+        "en": "The pointer's key must match the variable's lock to allow access."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "عداد المراجع (Reference Counter)",
+      "en": "Reference Counter"
+    },
+    "back": {
+      "definition": {
+        "ar": "نهج استباقي لإدارة الذاكرة يحتفظ بعداد لعدد المؤشرات التي تشير إلى الخلية.",
+        "en": "An eager approach to heap management maintaining a counter in every cell for pointers pointing to it."
+      },
+      "example": {
+        "ar": "عندما يصل العداد إلى صفر، يتم تحرير الخلية فوراً.",
+        "en": "When the counter reaches zero, the cell is immediately reclaimed."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "التحديد والمسح (Mark-Sweep)",
+      "en": "Mark-Sweep"
+    },
+    "back": {
+      "definition": {
+        "ar": "نهج كسول لاسترداد الذاكرة يقوم بتتبع الخلايا التي يمكن الوصول إليها وإعادة الباقي كقمامة.",
+        "en": "A lazy approach to garbage collection that traces reachable cells and returns unmarked ones to available space."
+      },
+      "example": {
+        "ar": "يبدأ العمل عادة عندما تنفد مساحة الذاكرة المتاحة.",
+        "en": "Typically begins when the list of variable space becomes empty."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "النوع الاختياري (Optional Type)",
+      "en": "Optional Type"
+    },
+    "back": {
+      "definition": {
+        "ar": "نوع يسمح للمتغير بالإشارة إلى أنه لا يحتوي حالياً على قيمة.",
+        "en": "A type useful when there is a need for a variable to indicate that it currently has no value."
+      },
+      "example": {
+        "ar": "int? x في C# أو استخدام nil في Swift.",
+        "en": "int? x in C# or using nil in Swift."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "التحقق من الأنواع (Type Checking)",
+      "en": "Type Checking"
+    },
+    "back": {
+      "definition": {
+        "ar": "نشاط ضمان أن معاملات المشغل من أنواع متوافقة.",
+        "en": "The activity of ensuring that the operands of an operator are of compatible types."
+      },
+      "example": {
+        "ar": "التأكد من عدم جمع سلسلة نصية مع رقم دون تحويل.",
+        "en": "Ensuring a string is not added to an integer without conversion."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "التحويل الضمني (Coercion)",
+      "en": "Coercion"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل تلقائي للنوع بواسطة المترجم إلى نوع قانوني.",
+        "en": "Automatic, implicit conversion of a type by compiler-generated code to a legal type."
+      },
+      "example": {
+        "ar": "تحويل int إلى float تلقائياً عند جمعهما.",
+        "en": "Automatically converting an int to a float when adding them."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "الأنواع القوية (Strong Typing)",
+      "en": "Strong Typing"
+    },
+    "back": {
+      "definition": {
+        "ar": "خاصية في لغة البرمجة تضمن اكتشاف جميع أخطاء الأنواع دائماً.",
+        "en": "A property of a programming language where type errors are always detected."
+      },
+      "example": {
+        "ar": "لغات ML و F# تعتبر قوية الأنواع.",
+        "en": "ML and F# are considered strongly typed languages."
+      }
+    }
+  },
+  {
+    "id": 16,
+    "front": {
+      "ar": "تكافؤ الأنواع بالاسم (Name Type Equivalence)",
+      "en": "Name Type Equivalence"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعتبر المتغيران متكافئين فقط إذا كانا في نفس الإعلان أو يستخدمان نفس اسم النوع.",
+        "en": "Variables have equivalent types if they are in the same declaration or use the same type name."
+      },
+      "example": {
+        "ar": "سهل التنفيذ ولكنه مقيد للغاية.",
+        "en": "Easy to implement but highly restrictive."
+      }
+    }
+  },
+  {
+    "id": 17,
+    "front": {
+      "ar": "تكافؤ الأنواع بالهيكل (Structure Type Equivalence)",
+      "en": "Structure Type Equivalence"
+    },
+    "back": {
+      "definition": {
+        "ar": "يعتبر المتغيران متكافئين إذا كان لنوعيهما هياكل متطابقة.",
+        "en": "Variables have equivalent types if their types have identical structures."
+      },
+      "example": {
+        "ar": "أكثر مرونة ولكنه لا يفرق بين أنواع بنفس الهيكل ودلالات مختلفة.",
+        "en": "More flexible but cannot differentiate between types of the same structure with different semantics."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من اللغات التالية تدعم الأنواع الموحدة المميزة (Discriminated Unions)؟",
+      "en": "Which of the following languages support Discriminated Unions?"
+    },
+    "options": {
+      "ar": [
+        "C و C++",
+        "Java و C#",
+        "ML، Haskell، و F#",
+        "Python و Ruby"
+      ],
+      "en": [
+        "C and C++",
+        "Java and C#",
+        "ML, Haskell, and F#",
+        "Python and Ruby"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "لغات ML و Haskell و F# تدعم الأنواع الموحدة المميزة التي تتضمن مؤشراً للنوع للتحقق الآمن.",
+      "en": "ML, Haskell, and F# support discriminated unions which include a type indicator for safe type checking."
+    },
+    "hint": {
+      "ar": "تذكر اللغات الوظيفية المذكورة في المحاضرة.",
+      "en": "Remember the functional languages mentioned in the lecture."
+    },
+    "difficulty": "easy",
+    "conceptId": "union-types"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو المؤشر المتدلي (Dangling Pointer)؟",
+      "en": "What is a dangling pointer?"
+    },
+    "options": {
+      "ar": [
+        "مؤشر يشير إلى متغير لم يتم تهيئته.",
+        "مؤشر يشير إلى متغير في الذاكرة الديناميكية تم تحريره.",
+        "مؤشر يشير إلى دالة بدلاً من متغير.",
+        "مؤشر لا يمكن تغيير قيمته."
+      ],
+      "en": [
+        "A pointer pointing to an uninitialized variable.",
+        "A pointer pointing to a heap-dynamic variable that has been deallocated.",
+        "A pointer pointing to a function instead of a variable.",
+        "A pointer whose value cannot be changed."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "المؤشر المتدلي هو مؤشر خطير يستمر في الإشارة إلى موقع في الذاكرة تم إرجاعه إلى النظام.",
+      "en": "A dangling pointer is a dangerous pointer that continues to point to a memory location that has been returned to the system."
+    },
+    "hint": {
+      "ar": "فكر في الذاكرة التي تم تحريرها (Deallocated).",
+      "en": "Think about deallocated memory."
+    },
+    "difficulty": "medium",
+    "conceptId": "pointer-problems"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هي المشكلة الرئيسية في خوارزمية 'عداد المراجع' (Reference Counter) لاسترداد الذاكرة؟",
+      "en": "What is the main problem with the 'Reference Counter' garbage collection algorithm?"
+    },
+    "options": {
+      "ar": [
+        "تسبب تأخيرات كبيرة في التنفيذ.",
+        "لا يمكنها التعامل مع الخلايا المتصلة دائرياً.",
+        "لا تعمل مع الخلايا ذات الحجم الثابت.",
+        "تتطلب إيقاف البرنامج بالكامل للعمل."
+      ],
+      "en": [
+        "It causes significant execution delays.",
+        "It has complications for cells connected circularly.",
+        "It does not work with single-size cells.",
+        "It requires stopping the entire program to run."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عدادات المراجع تفشل في تحرير الذاكرة إذا كانت الكائنات تشير إلى بعضها البعض في حلقة دائرية، لأن العداد لن يصل أبداً إلى الصفر.",
+      "en": "Reference counters fail to reclaim memory if objects point to each other in a circular loop, as their counts will never reach zero."
+    },
+    "hint": {
+      "ar": "ماذا يحدث إذا أشار كائن (أ) إلى (ب) وأشار (ب) إلى (أ)؟",
+      "en": "What happens if object A points to B, and B points to A?"
+    },
+    "difficulty": "medium",
+    "conceptId": "heap-management"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "في C++، التعبير `*(p+5)` يكافئ:",
+      "en": "In C++, the expression `*(p+5)` is equivalent to:"
+    },
+    "options": {
+      "ar": [
+        "p[5]",
+        "stuff[p+5]",
+        "p + 5",
+        "&p[5]"
+      ],
+      "en": [
+        "p[5]",
+        "stuff[p+5]",
+        "p + 5",
+        "&p[5]"
+      ]
+    },
+    "correctIndex": 0,
+    "explanation": {
+      "ar": "بسبب حسابيات المؤشرات (Pointer Arithmetic)، إضافة 5 إلى المؤشر ثم إلغاء مرجعيته يكافئ الوصول إلى العنصر الخامس في المصفوفة `p[5]`.",
+      "en": "Due to pointer arithmetic, adding 5 to the pointer and dereferencing it is equivalent to accessing the 5th index `p[5]`."
+    },
+    "hint": {
+      "ar": "كيف يتم الوصول إلى عناصر المصفوفة باستخدام المؤشرات؟",
+      "en": "How are array elements accessed using pointers?"
+    },
+    "difficulty": "easy",
+    "conceptId": "pointers-and-references"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو التحويل الضمني (Coercion)؟",
+      "en": "What is Coercion?"
+    },
+    "options": {
+      "ar": [
+        "تحويل صريح للنوع يكتبه المبرمج.",
+        "تحويل تلقائي للنوع بواسطة المترجم إلى نوع قانوني.",
+        "خطأ يحدث عند عدم تطابق الأنواع.",
+        "منع المترجم من تغيير أنواع البيانات."
+      ],
+      "en": [
+        "An explicit type conversion written by the programmer.",
+        "An automatic, implicit conversion of a type by the compiler to a legal type.",
+        "An error that occurs when types mismatch.",
+        "Preventing the compiler from changing data types."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "التحويل الضمني هو تحويل تلقائي يقوم به المترجم للسماح بتنفيذ العمليات على أنواع غير متطابقة ولكن متوافقة.",
+      "en": "Coercion is an automatic conversion performed by the compiler to allow operations on mismatched but compatible types."
+    },
+    "hint": {
+      "ar": "كلمة 'ضمني' تعني أنه يحدث تلقائياً.",
+      "en": "The word 'implicit' means it happens automatically."
+    },
+    "difficulty": "easy",
+    "conceptId": "type-checking-and-strong-typing"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "لماذا لا تعتبر لغتا C و C++ لغات قوية الأنواع (Strongly Typed)؟",
+      "en": "Why are C and C++ not considered strongly typed languages?"
+    },
+    "options": {
+      "ar": [
+        "لأنها لا تدعم الأنواع الموحدة.",
+        "لأن التحقق من نوع المعاملات يمكن تجنبه والأنواع الموحدة لا يتم التحقق منها.",
+        "لأنها لا تحتوي على مؤشرات.",
+        "لأنها تستخدم التكافؤ بالهيكل فقط."
+      ],
+      "en": [
+        "Because they do not support unions.",
+        "Because parameter type checking can be avoided and unions are not type checked.",
+        "Because they do not have pointers.",
+        "Because they only use structure type equivalence."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "وجود الأنواع الموحدة الحرة (Free Unions) وإمكانية تجاوز التحقق من الأنواع يجعل C و C++ غير قوية الأنواع.",
+      "en": "The presence of free unions and the ability to bypass parameter type checking make C and C++ not strongly typed."
+    },
+    "hint": {
+      "ar": "تذكر الأنواع الموحدة الحرة (Free Unions).",
+      "en": "Remember Free Unions."
+    },
+    "difficulty": "medium",
+    "conceptId": "type-checking-and-strong-typing"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي من طرق تكافؤ الأنواع تعتبر الأسهل في التنفيذ ولكنها مقيدة للغاية؟",
+      "en": "Which type equivalence method is easy to implement but highly restrictive?"
+    },
+    "options": {
+      "ar": [
+        "تكافؤ الهيكل (Structure Equivalence)",
+        "تكافؤ الاسم (Name Equivalence)",
+        "التكافؤ الديناميكي (Dynamic Equivalence)",
+        "التكافؤ الضمني (Coercion Equivalence)"
+      ],
+      "en": [
+        "Structure Equivalence",
+        "Name Equivalence",
+        "Dynamic Equivalence",
+        "Coercion Equivalence"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تكافؤ الاسم يتطلب فقط مقارنة أسماء الأنواع أو الإعلانات، مما يجعله سهلاً ولكنه يمنع توافق الأنواع المتطابقة هيكلياً إذا اختلفت أسماؤها.",
+      "en": "Name equivalence only requires comparing type names or declarations, making it easy but preventing compatibility of structurally identical types with different names."
+    },
+    "hint": {
+      "ar": "يعتمد على 'اسم' النوع.",
+      "en": "It relies on the 'name' of the type."
+    },
+    "difficulty": "easy",
+    "conceptId": "type-equivalence"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "كيف يتم الإعلان عن نوع اختياري (Optional Type) لنوع القيمة في C#؟",
+      "en": "How is an optional type declared for a value type in C#?"
+    },
+    "options": {
+      "ar": [
+        "optional int x;",
+        "int? x;",
+        "int x = null;",
+        "int x?;"
+      ],
+      "en": [
+        "optional int x;",
+        "int? x;",
+        "int x = null;",
+        "int x?;"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في C#، يتم إضافة علامة استفهام `?` بعد اسم النوع لجعله اختيارياً.",
+      "en": "In C#, a question mark `?` is attached to the type name to make it optional."
+    },
+    "hint": {
+      "ar": "استخدم علامة الاستفهام.",
+      "en": "Use the question mark."
+    },
+    "difficulty": "easy",
+    "conceptId": "optional-types"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ما هو العيب الرئيسي لخوارزمية Mark-Sweep في شكلها الأصلي؟",
+      "en": "What is the main disadvantage of the Mark-Sweep algorithm in its original form?"
+    },
+    "options": {
+      "ar": [
+        "تستهلك مساحة كبيرة لكل خلية.",
+        "لا يمكنها التعامل مع الهياكل الدائرية.",
+        "تسبب تأخيرات كبيرة في تنفيذ التطبيق.",
+        "تتطلب تدخل المبرمج يدوياً."
+      ],
+      "en": [
+        "It consumes a lot of space per cell.",
+        "It cannot handle circular structures.",
+        "It caused significant delays in application execution.",
+        "It requires manual programmer intervention."
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الخوارزمية الأصلية كانت توقف البرنامج بالكامل للقيام بعملية التتبع والمسح، مما يسبب تأخيرات ملحوظة.",
+      "en": "The original algorithm stopped the entire program to perform tracing and sweeping, causing noticeable delays."
+    },
+    "hint": {
+      "ar": "فكر في نهج 'Stop-the-world'.",
+      "en": "Think about the 'Stop-the-world' approach."
+    },
+    "difficulty": "medium",
+    "conceptId": "heap-management"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "ما هي التقنية التي تستخدم زوجاً من (مفتاح، عنوان) لحل مشكلة المؤشرات المتدلية؟",
+      "en": "Which technique uses a (key, address) pair to solve the dangling pointer problem?"
+    },
+    "options": {
+      "ar": [
+        "شواهد القبور (Tombstones)",
+        "الأقفال والمفاتيح (Locks-and-keys)",
+        "عدادات المراجع (Reference Counters)",
+        "التحديد والمسح (Mark-Sweep)"
+      ],
+      "en": [
+        "Tombstones",
+        "Locks-and-keys",
+        "Reference Counters",
+        "Mark-Sweep"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تقنية الأقفال والمفاتيح تمثل المؤشر كزوج (مفتاح، عنوان) وتتطلب تطابق المفتاح مع قفل المتغير للوصول إليه.",
+      "en": "The Locks-and-keys technique represents the pointer as a (key, address) pair and requires the key to match the variable's lock for access."
+    },
+    "hint": {
+      "ar": "الاسم يدل على الآلية (مفتاح وقفل).",
+      "en": "The name indicates the mechanism (key and lock)."
+    },
+    "difficulty": "easy",
+    "conceptId": "pointer-problems"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن لغة Java تحتوي على مؤشرات (Pointers). الحقيقة هي أن Java تستخدم المراجع (References) للكائنات، والتي تختلف عن المؤشرات لأنها لا تسمح بالعمليات الحسابية (Pointer Arithmetic) وتشير إلى الكائنات بدلاً من عناوين الذاكرة المباشرة.</template>
+      <template class="content-en">Thinking Java has pointers. In reality, Java uses references to objects, which differ from pointers because they do not allow pointer arithmetic and refer to objects rather than raw memory addresses.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الأنواع الموحدة (Unions) في C/C++ تسمى 'حرة' لأنها تترك مسؤولية تتبع النوع المخزن حالياً للمبرمج بالكامل. هذا هو السبب الرئيسي لعدم اعتبار C/C++ لغات قوية الأنواع.</template>
+      <template class="content-en">Unions in C/C++ are called 'free' because they leave the responsibility of tracking the currently stored type entirely to the programmer. This is a primary reason C/C++ are not considered strongly typed.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">التحويل الضمني (Coercion) هو العدو الخفي للأنواع القوية (Strong Typing). كلما زادت قواعد التحويل الضمني في اللغة، كلما ضعفت قدرتها على اكتشاف أخطاء الأنواع.</template>
+      <template class="content-en">Coercion is the hidden enemy of Strong Typing. The more coercion rules a language has, the weaker its ability to strictly detect type errors.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين المؤشر المتدلي (Dangling Pointer) وتسرب الذاكرة (Memory Leak). المؤشر المتدلي هو مؤشر يشير إلى ذاكرة تم تحريرها (خطر الوصول غير المصرح به). تسرب الذاكرة هو ذاكرة محجوزة فقدنا المؤشر الذي يشير إليها (خطر نفاد الذاكرة).</template>
+      <template class="content-en">Confusing Dangling Pointers with Memory Leaks. A dangling pointer points to freed memory (risk of unauthorized access). A memory leak is allocated memory that lost its pointer (risk of running out of memory).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M04.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M06.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS240" data-module="10">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الترتيب (الجزء الثاني): خوارزميات الدمج، الترتيب السريع، والترتيب الخارجي · CS240 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS240" data-page-title-en="CS240">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M09.html" data-gh-next="M11.html" data-gh-card="../../hub/course.html?code=CS240"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#mergesort-algorithm" class="toc-link" data-bilingual>
+        <template class="content-ar">خوارزمية ترتيب الدمج (Mergesort)</template>
+        <template class="content-en">Mergesort Algorithm</template>
+        <span class="content-target">خوارزمية ترتيب الدمج (Mergesort)</span>
+      </a>
+      <a href="#quicksort-algorithm" class="toc-link" data-bilingual>
+        <template class="content-ar">خوارزمية الترتيب السريع (Quicksort)</template>
+        <template class="content-en">Quicksort Algorithm</template>
+        <span class="content-target">خوارزمية الترتيب السريع (Quicksort)</span>
+      </a>
+      <a href="#external-sorting" class="toc-link" data-bilingual>
+        <template class="content-ar">الترتيب الخارجي (External Sorting)</template>
+        <template class="content-en">External Sorting</template>
+        <span class="content-target">الترتيب الخارجي (External Sorting)</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 10</template>
+      <template class="content-en">Module 10</template>
+      <span class="content-target">الوحدة 10</span>
+    </span> · CS240
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الترتيب (الجزء الثاني): خوارزميات الدمج، الترتيب السريع، والترتيب الخارجي</h1>
+      <p class="hero-description">تغطية شاملة لخوارزميات الترتيب المتقدمة بما في ذلك خوارزمية الدمج (Mergesort)، الترتيب السريع (Quicksort) مع استراتيجيات اختيار المحور، ومقدمة في الترتيب الخارجي للبيانات الضخمة.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Sorting II: Mergesort, Quicksort, and External Sorting</h1>
+      <p class="hero-description">Comprehensive coverage of advanced sorting algorithms including Mergesort, Quicksort with pivot selection strategies, and an introduction to External Sorting for massive datasets.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">خوارزميات الترتيب</span>
+      <span class="tag">ترتيب الدمج</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Sorting Algorithms</span>
+      <span class="tag">Mergesort</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم مشكلة ترتيب العناصر وتحليل تعقيد الخوارزميات المختلفة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تنفيذ خوارزميات الترتيب المتقدمة مثل ترتيب الدمج (Mergesort) والترتيب السريع (Quicksort).</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق استراتيجيات التقسيم واختيار المحور (Pivot) لتحسين أداء الترتيب السريع.</span></li>
+      <li><span class="obj-icon">✦</span><span>تعلم كيفية ترتيب كميات ضخمة من البيانات باستخدام تقنيات الترتيب الخارجي.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the problem of sorting elements and analyze various sorting algorithms and their complexity.</span></li>
+      <li><span class="obj-icon">✦</span><span>Implement various sorting algorithms such as Mergesort and Quicksort.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply partitioning and pivot selection strategies to optimize Quicksort performance.</span></li>
+      <li><span class="obj-icon">✦</span><span>Learn how to sort large amounts of data using External Sorting techniques.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="mergesort-algorithm" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> خوارزمية ترتيب الدمج (Mergesort)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Mergesort Algorithm</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>خوارزمية تعتمد على مبدأ '<span class="smart-term" data-term-en="Divide and Conquer" data-ar="فرق تسد" data-en-def="An algorithm design paradigm based on multi-branched recursion.">فرق تسد<span class="smart-term-tooltip"></span></span>'، حيث تقسم القائمة إلى نصفين، ترتبهما، ثم تدمجهما. تشبه تقسيم مهمة كبيرة بين فريقين ثم تجميع النتائج.</p>
+    </template>
+    <template class="content-en">
+      <p>A <span class="smart-term" data-term-en="Divide and Conquer" data-ar="فرق تسد" data-en-def="An algorithm design paradigm based on multi-branched recursion.">divide-and-conquer<span class="smart-term-tooltip"></span></span> algorithm that recursively splits a list in half, sorts them, and merges them. Like splitting a large task between two teams and combining the results.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>ترتيب الدمج هو مثال على <span class="smart-term" data-term-en="Recursive Algorithm" data-ar="خوارزمية عودية" data-en-def="An algorithm that calls itself with smaller input values.">الخوارزميات العودية<span class="smart-term-tooltip"></span></span> (Recursive).</p><ul><li><strong>وقت التشغيل في أسوأ الحالات</strong> هو O(N log N).</li><li><strong>العملية الأساسية في هذه الخوارزمية</strong> هي دمج قائمتين مرتبتين.</li></ul><p>تقوم الخوارزمية بتقسيم القائمة إلى نصفين بشكل متكرر حتى يحتوي كل جزء على عنصر واحد فقط (حيث يعتبر العنصر الواحد مرتباً)، ثم تبدأ عملية الدمج العكسية لتكوين قائمة واحدة مرتبة.</p></template>
+    <template class="content-en"><p>Mergesort is an example of a <span class="smart-term" data-term-en="Recursive Algorithm" data-ar="خوارزمية عودية" data-en-def="An algorithm that calls itself with smaller input values.">recursive algorithm<span class="smart-term-tooltip"></span></span>.</p><ul><li><strong>The worst-case running time</strong> is O(N log N).</li><li><strong>The basic operation in this algorithm</strong> is merging two sorted lists.</li></ul><p>It orders values by recursively dividing the list in half. The recursion stops when each sub-list has one element, then it recombines them by merging.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>على الرغم من كفاءة خوارزمية الدمج من حيث الوقت O(N log N)، إلا أن عيبها الرئيسي هو الحاجة إلى مساحة إضافية في الذاكرة (مصفوفة مؤقتة) لعملية الدمج، مما يجعل تعقيد المساحة O(N).</p><p>هذا يجعلها أقل تفضيلاً في الذاكرة الرئيسية مقارنة بالترتيب السريع، لكنها ممتازة في الترتيب الخارجي.</p></template>
+    <template class="content-en"><p>Despite its optimal O(N log N) time complexity, Mergesort's main drawback is its space complexity. It requires a temporary array of size N to merge the sub-lists, making it O(N) in space.</p><p>This makes it less favorable for in-memory sorting compared to Quicksort, but highly suitable for External Sorting where sequential access is required.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعقيد الزمني لأسوأ حالة في خوارزمية ترتيب الدمج.</strong></template>
+      <template class="content-en"><strong>Worst-case time complexity for Mergesort.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$O(N \log N)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button></div>
+    <pre class="pseudo-block"><code>mergesort(data[], firstItem, lastItem)
+if firstItem < lastItem
+  middleItem = (firstItem + lastItem) / 2;
+  mergesort(data[], firstItem, middleItem);
+  mergesort(data[], middleItem +1, lastItem);
+  merge(data[], firstItem, lastItem);</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: A tree diagram showing the Mergesort process. Start with an array [66, 17, 69, 63, 22, 57, 32, 50, 7, 90]. Show it splitting into two halves, then recursively splitting until single elements remain. Then show the merging process upwards, combining into sorted sub-arrays until the final sorted array is formed. Dark background #0d1117, accent color #007acc, clear Arabic and English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1050" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="background-color: var(--bg-surface); font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)"/>
+    </marker>
+    <linearGradient id="finalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="var(--brand-800)"/>
+      <stop offset="100%" stop-color="var(--brand-600)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+  <!-- Title & Subtitle -->
+  <text x="600" y="50" text-anchor="middle" font-size="28" font-weight="bold" fill="var(--text-primary)">Mergesort Algorithm / خوارزمية الترتيب بالدمج</text>
+  <text x="600" y="80" text-anchor="middle" font-size="16" fill="var(--text-secondary)">Divide and Conquer: Recursively split into halves, then merge in sorted order</text>
+
+  <!-- Phase Dividers & Labels -->
+  <line x1="100" y1="580" x2="1100" y2="580" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,8" opacity="0.6"/>
+  
+  <!-- Split Phase Label -->
+  <rect x="50" y="280" width="180" height="40" rx="20" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+  <text x="140" y="306" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--text-primary)">Split Phase / التقسيم</text>
+  <line x1="140" y1="340" x2="140" y2="500" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- Merge Phase Label -->
+  <rect x="50" y="780" width="180" height="40" rx="20" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+  <text x="140" y="806" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--brand-500)">Merge Phase / الدمج</text>
+  <line x1="140" y1="640" x2="140" y2="760" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <!-- ARROWS -->
+  <g stroke="var(--brand-500)" stroke-width="2" opacity="0.8">
+    <!-- L0 to L1 -->
+    <line x1="600" y1="160" x2="400" y2="215" marker-end="url(#arrow)"/>
+    <line x1="600" y1="160" x2="800" y2="215" marker-end="url(#arrow)"/>
+    <!-- L1 to L2 -->
+    <line x1="400" y1="260" x2="320" y2="315" marker-end="url(#arrow)"/>
+    <line x1="400" y1="260" x2="520" y2="315" marker-end="url(#arrow)"/>
+    <line x1="800" y1="260" x2="720" y2="315" marker-end="url(#arrow)"/>
+    <line x1="800" y1="260" x2="920" y2="315" marker-end="url(#arrow)"/>
+    <!-- L2 to L3 -->
+    <line x1="320" y1="360" x2="280" y2="415" marker-end="url(#arrow)"/>
+    <line x1="320" y1="360" x2="400" y2="415" marker-end="url(#arrow)"/>
+    <line x1="520" y1="360" x2="480" y2="415" marker-end="url(#arrow)"/>
+    <line x1="520" y1="360" x2="560" y2="415" marker-end="url(#arrow)"/>
+    <line x1="720" y1="360" x2="680" y2="415" marker-end="url(#arrow)"/>
+    <line x1="720" y1="360" x2="800" y2="415" marker-end="url(#arrow)"/>
+    <line x1="920" y1="360" x2="880" y2="415" marker-end="url(#arrow)"/>
+    <line x1="920" y1="360" x2="960" y2="415" marker-end="url(#arrow)"/>
+    <!-- L3 to L4 -->
+    <line x1="280" y1="460" x2="240" y2="515" marker-end="url(#arrow)"/>
+    <line x1="280" y1="460" x2="320" y2="515" marker-end="url(#arrow)"/>
+    <line x1="400" y1="460" x2="400" y2="515" marker-end="url(#arrow)"/>
+    <line x1="480" y1="460" x2="480" y2="515" marker-end="url(#arrow)"/>
+    <line x1="560" y1="460" x2="560" y2="515" marker-end="url(#arrow)"/>
+    <line x1="680" y1="460" x2="640" y2="515" marker-end="url(#arrow)"/>
+    <line x1="680" y1="460" x2="720" y2="515" marker-end="url(#arrow)"/>
+    <line x1="800" y1="460" x2="800" y2="515" marker-end="url(#arrow)"/>
+    <line x1="880" y1="460" x2="880" y2="515" marker-end="url(#arrow)"/>
+    <line x1="960" y1="460" x2="960" y2="515" marker-end="url(#arrow)"/>
+    <!-- L4 to L5 -->
+    <line x1="240" y1="560" x2="280" y2="615" marker-end="url(#arrow)"/>
+    <line x1="320" y1="560" x2="280" y2="615" marker-end="url(#arrow)"/>
+    <line x1="400" y1="560" x2="400" y2="615" marker-end="url(#arrow)"/>
+    <line x1="480" y1="560" x2="480" y2="615" marker-end="url(#arrow)"/>
+    <line x1="560" y1="560" x2="560" y2="615" marker-end="url(#arrow)"/>
+    <line x1="640" y1="560" x2="680" y2="615" marker-end="url(#arrow)"/>
+    <line x1="720" y1="560" x2="680" y2="615" marker-end="url(#arrow)"/>
+    <line x1="800" y1="560" x2="800" y2="615" marker-end="url(#arrow)"/>
+    <line x1="880" y1="560" x2="880" y2="615" marker-end="url(#arrow)"/>
+    <line x1="960" y1="560" x2="960" y2="615" marker-end="url(#arrow)"/>
+    <!-- L5 to L6 -->
+    <line x1="280" y1="660" x2="320" y2="715" marker-end="url(#arrow)"/>
+    <line x1="400" y1="660" x2="320" y2="715" marker-end="url(#arrow)"/>
+    <line x1="480" y1="660" x2="520" y2="715" marker-end="url(#arrow)"/>
+    <line x1="560" y1="660" x2="520" y2="715" marker-end="url(#arrow)"/>
+    <line x1="680" y1="660" x2="720" y2="715" marker-end="url(#arrow)"/>
+    <line x1="800" y1="660" x2="720" y2="715" marker-end="url(#arrow)"/>
+    <line x1="880" y1="660" x2="920" y2="715" marker-end="url(#arrow)"/>
+    <line x1="960" y1="660" x2="920" y2="715" marker-end="url(#arrow)"/>
+    <!-- L6 to L7 -->
+    <line x1="320" y1="760" x2="400" y2="815" marker-end="url(#arrow)"/>
+    <line x1="520" y1="760" x2="400" y2="815" marker-end="url(#arrow)"/>
+    <line x1="720" y1="760" x2="800" y2="815" marker-end="url(#arrow)"/>
+    <line x1="920" y1="760" x2="800" y2="815" marker-end="url(#arrow)"/>
+    <!-- L7 to L8 -->
+    <line x1="400" y1="860" x2="600" y2="915" marker-end="url(#arrow)"/>
+    <line x1="800" y1="860" x2="600" y2="915" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ARRAYS (NODES) -->
+  <g font-size="16" font-weight="600" text-anchor="middle" fill="var(--text-primary)">
+    
+    <!-- LEVEL 0 -->
+    <g>
+      <rect x="400" y="120" width="400" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="440" y1="120" x2="440" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="480" y1="120" x2="480" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="520" y1="120" x2="520" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="560" y1="120" x2="560" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="600" y1="120" x2="600" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="640" y1="120" x2="640" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="680" y1="120" x2="680" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="720" y1="120" x2="720" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="760" y1="120" x2="760" y2="160" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="420" y="146">66</text><text x="460" y="146">17</text><text x="500" y="146">69</text><text x="540" y="146">63</text><text x="580" y="146">22</text>
+      <text x="620" y="146">57</text><text x="660" y="146">32</text><text x="700" y="146">50</text><text x="740" y="146">7</text><text x="780" y="146">90</text>
+    </g>
+
+    <!-- LEVEL 1 -->
+    <g>
+      <rect x="300" y="220" width="200" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="340" y1="220" x2="340" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="380" y1="220" x2="380" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="420" y1="220" x2="420" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="460" y1="220" x2="460" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="320" y="246">66</text><text x="360" y="246">17</text><text x="400" y="246">69</text><text x="440" y="246">63</text><text x="480" y="246">22</text>
+    </g>
+    <g>
+      <rect x="700" y="220" width="200" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="740" y1="220" x2="740" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="780" y1="220" x2="780" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="820" y1="220" x2="820" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="860" y1="220" x2="860" y2="260" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="720" y="246">57</text><text x="760" y="246">32</text><text x="800" y="246">50</text><text x="840" y="246">7</text><text x="880" y="246">90</text>
+    </g>
+
+    <!-- LEVEL 2 -->
+    <g>
+      <rect x="260" y="320" width="120" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="300" y1="320" x2="300" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="340" y1="320" x2="340" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="280" y="346">66</text><text x="320" y="346">17</text><text x="360" y="346">69</text>
+    </g>
+    <g>
+      <rect x="480" y="320" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="520" y1="320" x2="520" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="500" y="346">63</text><text x="540" y="346">22</text>
+    </g>
+    <g>
+      <rect x="660" y="320" width="120" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="700" y1="320" x2="700" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="740" y1="320" x2="740" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="680" y="346">57</text><text x="720" y="346">32</text><text x="760" y="346">50</text>
+    </g>
+    <g>
+      <rect x="880" y="320" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="920" y1="320" x2="920" y2="360" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="900" y="346">7</text><text x="940" y="346">90</text>
+    </g>
+
+    <!-- LEVEL 3 -->
+    <g>
+      <rect x="240" y="420" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="280" y1="420" x2="280" y2="460" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="260" y="446">66</text><text x="300" y="446">17</text>
+    </g>
+    <g>
+      <rect x="380" y="420" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="400" y="446">69</text>
+    </g>
+    <g>
+      <rect x="460" y="420" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="480" y="446">63</text>
+    </g>
+    <g>
+      <rect x="540" y="420" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="560" y="446">22</text>
+    </g>
+    <g>
+      <rect x="640" y="420" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <line x1="680" y1="420" x2="680" y2="460" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="660" y="446">57</text><text x="700" y="446">32</text>
+    </g>
+    <g>
+      <rect x="780" y="420" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="800" y="446">50</text>
+    </g>
+    <g>
+      <rect x="860" y="420" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="880" y="446">7</text>
+    </g>
+    <g>
+      <rect x="940" y="420" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="960" y="446">90</text>
+    </g>
+
+    <!-- LEVEL 4 (Singles) -->
+    <g>
+      <rect x="220" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="240" y="546">66</text>
+    </g>
+    <g>
+      <rect x="300" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="320" y="546">17</text>
+    </g>
+    <g>
+      <rect x="380" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="400" y="546">69</text>
+    </g>
+    <g>
+      <rect x="460" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="480" y="546">63</text>
+    </g>
+    <g>
+      <rect x="540" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="560" y="546">22</text>
+    </g>
+    <g>
+      <rect x="620" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="640" y="546">57</text>
+    </g>
+    <g>
+      <rect x="700" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="720" y="546">32</text>
+    </g>
+    <g>
+      <rect x="780" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="800" y="546">50</text>
+    </g>
+    <g>
+      <rect x="860" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="880" y="546">7</text>
+    </g>
+    <g>
+      <rect x="940" y="520" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+      <text x="960" y="546">90</text>
+    </g>
+
+    <!-- LEVEL 5 (Merge 1) -->
+    <g>
+      <rect x="240" y="620" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="280" y1="620" x2="280" y2="660" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="260" y="646">17</text><text x="300" y="646">66</text>
+    </g>
+    <g>
+      <rect x="380" y="620" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="400" y="646">69</text>
+    </g>
+    <g>
+      <rect x="460" y="620" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="480" y="646">63</text>
+    </g>
+    <g>
+      <rect x="540" y="620" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="560" y="646">22</text>
+    </g>
+    <g>
+      <rect x="640" y="620" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="680" y1="620" x2="680" y2="660" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="660" y="646">32</text><text x="700" y="646">57</text>
+    </g>
+    <g>
+      <rect x="780" y="620" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="800" y="646">50</text>
+    </g>
+    <g>
+      <rect x="860" y="620" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="880" y="646">7</text>
+    </g>
+    <g>
+      <rect x="940" y="620" width="40" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="960" y="646">90</text>
+    </g>
+
+    <!-- LEVEL 6 (Merge 2) -->
+    <g>
+      <rect x="260" y="720" width="120" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="300" y1="720" x2="300" y2="760" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="340" y1="720" x2="340" y2="760" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="280" y="746">17</text><text x="320" y="746">66</text><text x="360" y="746">69</text>
+    </g>
+    <g>
+      <rect x="480" y="720" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="520" y1="720" x2="520" y2="760" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="500" y="746">22</text><text x="540" y="746">63</text>
+    </g>
+    <g>
+      <rect x="660" y="720" width="120" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="700" y1="720" x2="700" y2="760" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="740" y1="720" x2="740" y2="760" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="680" y="746">32</text><text x="720" y="746">50</text><text x="760" y="746">57</text>
+    </g>
+    <g>
+      <rect x="880" y="720" width="80" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="920" y1="720" x2="920" y2="760" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="900" y="746">7</text><text x="940" y="746">90</text>
+    </g>
+
+    <!-- LEVEL 7 (Merge 3) -->
+    <g>
+      <rect x="300" y="820" width="200" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="340" y1="820" x2="340" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="380" y1="820" x2="380" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="420" y1="820" x2="420" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="460" y1="820" x2="460" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="320" y="846">17</text><text x="360" y="846">22</text><text x="400" y="846">63</text><text x="440" y="846">66</text><text x="480" y="846">69</text>
+    </g>
+    <g>
+      <rect x="700" y="820" width="200" height="40" rx="6" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="740" y1="820" x2="740" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="780" y1="820" x2="780" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="820" y1="820" x2="820" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="860" y1="820" x2="860" y2="860" stroke="var(--brand-500)" stroke-width="2"/>
+      <text x="720" y="846">7</text><text x="760" y="846">32</text><text x="800" y="846">50</text><text x="840" y="846">57</text><text x="880" y="846">90</text>
+    </g>
+
+    <!-- LEVEL 8 (Merge 4 - Final Sorted Array) -->
+    <g>
+      <rect x="400" y="920" width="400" height="40" rx="6" fill="url(#finalGrad)" stroke="var(--brand-500)" stroke-width="2"/>
+      <line x1="440" y1="920" x2="440" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="480" y1="920" x2="480" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="520" y1="920" x2="520" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="560" y1="920" x2="560" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="600" y1="920" x2="600" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="640" y1="920" x2="640" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="680" y1="920" x2="680" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="720" y1="920" x2="720" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <line x1="760" y1="920" x2="760" y2="960" stroke="var(--bg-surface)" stroke-width="2" opacity="0.5"/>
+      <!-- Text for final array uses bg-surface for high contrast against the brand gradient -->
+      <g fill="var(--bg-surface)">
+        <text x="420" y="946">7</text><text x="460" y="946">17</text><text x="500" y="946">22</text><text x="540" y="946">32</text><text x="580" y="946">50</text>
+        <text x="620" y="946">57</text><text x="660" y="946">63</text><text x="700" y="946">66</text><text x="740" y="946">69</text><text x="780" y="946">90</text>
+      </g>
+    </g>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تتوقف عملية التقسيم في خوارزمية الدمج عندما يتبقى عنصر واحد فقط؟</template>
+      <template class="content-en">Why does the division process in Mergesort stop when only one element remains?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن القائمة التي تحتوي على عنصر واحد تعتبر مرتبة تلقائياً، وهي حالة الأساس (Base Case) التي تسمح ببدء عملية الدمج العكسية.</p></template>
+      <template class="content-en"><p>Because a list with a single element is inherently sorted, serving as the base case to begin the merging process.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="quicksort-algorithm" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> خوارزمية الترتيب السريع (Quicksort)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Quicksort Algorithm</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>خوارزمية سريعة جداً تعتمد على اختيار عنصر '<span class="smart-term" data-term-en="Pivot" data-ar="المحور" data-en-def="The element chosen in Quicksort to partition the array.">محور<span class="smart-term-tooltip"></span></span>' (Pivot) وتقسيم باقي العناصر إلى أصغر منه وأكبر منه، ثم ترتيب القسمين.</p>
+    </template>
+    <template class="content-en">
+      <p>A very fast sorting algorithm that selects a '<span class="smart-term" data-term-en="Pivot" data-ar="المحور" data-en-def="The element chosen in Quicksort to partition the array.">pivot<span class="smart-term-tooltip"></span></span>' element, partitions the remaining elements into smaller and larger groups, and sorts them recursively.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الترتيب السريع هو خوارزمية سريعة عملياً بمتوسط وقت تشغيل O(N log N)، ولكن أسوأ حالة لها هي O(N^2).</p><p>تعتمد على <span class="smart-term" data-term-en="Partitioning" data-ar="التقسيم" data-en-def="The process of rearranging elements around the pivot.">تقسيم<span class="smart-term-tooltip"></span></span> القائمة حول عنصر محوري (Pivot). يتم نقل العناصر الأصغر من المحور إلى يساره، والعناصر الأكبر إلى يمينه.</p><p>من أهم مزاياها مقارنة بترتيب الدمج أنها لا تحتاج إلى مصفوفة مؤقتة (In-place sorting).</p></template>
+    <template class="content-en"><p>Quicksort is a fast sorting algorithm in practice with an average running time of O(N log N), though its worst-case is O(N^2).</p><p>It orders values by <span class="smart-term" data-term-en="Partitioning" data-ar="التقسيم" data-en-def="The process of rearranging elements around the pivot.">partitioning<span class="smart-term-tooltip"></span></span> the list around one element (the pivot). Elements smaller than the pivot go to the left, and larger elements go to the right.</p><p>A major advantage over Mergesort is that no temporary array is needed.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>أداء الترتيب السريع يعتمد بشكل كبير على استراتيجية اختيار المحور.</p><ul><li><strong>اختيار العنصر الأول كمحور</strong> يعتبر سيئاً إذا كانت المصفوفة مرتبة مسبقاً (أو مرتبة عكسياً)، مما يؤدي إلى تعقيد O(N^2).</li><li><strong>الاستراتيجية الأفضل هي 'وسيط الثلاثة' (Median of three)</strong>، حيث يتم اختيار الوسيط بين العنصر الأول، الأخير، والأوسط، مما يقلل احتمالية التقسيم السيء.</li></ul><p>كما يمكن دمجها مع Heapsort أو Insertion sort للمصفوفات الصغيرة لتحسين الأداء.</p></template>
+    <template class="content-en"><p>Quicksort's performance heavily depends on pivot selection.</p><ul><li><strong>Selecting the first element</strong> is a poor strategy if the array is already sorted or reverse-sorted, leading to O(N^2) time.</li><li><strong>The best strategy is 'Median of three'</strong> (median of the first, middle, and last elements), which provides a better approximation of the actual median and avoids poor partitioning.</li></ul><p>It can also be combined with Heapsort or Insertion sort for small sub-arrays to optimize the inner loop.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعقيد الزمني لأسوأ حالة في الترتيب السريع (عندما يكون التقسيم غير متوازن تماماً).</strong></template>
+      <template class="content-en"><strong>Worst-case time complexity for Quicksort (when partitioning is highly unbalanced).</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$O(N^2)$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: A diagram illustrating Quicksort partitioning. Show an array with a selected Pivot. Show arrows moving elements smaller than the pivot to 'Group 1' (left) and elements larger to 'Group 3' (right). Dark background #0d1117, accent colors for groups. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title -->
+    <text x="400" y="40" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Quicksort Partitioning</text>
+    <text x="400" y="65" font-size="18" fill="var(--text-secondary)" text-anchor="middle">تقسيم الترتيب السريع</text>
+
+    <!-- Top Array (Unpartitioned) -->
+    <g transform="translate(195, 100)">
+        <!-- Indices -->
+        <text x="25" y="-10" font-size="13" fill="var(--text-muted)" text-anchor="middle">0</text>
+        <text x="85" y="-10" font-size="13" fill="var(--text-muted)" text-anchor="middle">1</text>
+        <text x="145" y="-10" font-size="13" fill="var(--text-muted)" text-anchor="middle">2</text>
+        <text x="205" y="-10" font-size="13" fill="var(--text-muted)" text-anchor="middle">3</text>
+        <text x="265" y="-10" font-size="13" fill="var(--text-muted)" text-anchor="middle">4</text>
+        <text x="325" y="-10" font-size="13" fill="var(--text-muted)" text-anchor="middle">5</text>
+        <text x="385" y="-10" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">6</text>
+
+        <!-- Box 0: 3 -->
+        <rect x="0" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="25" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3</text>
+        <text x="25" y="70" font-size="14" fill="var(--text-muted)" text-anchor="middle">&lt; 5</text>
+
+        <!-- Box 1: 8 -->
+        <rect x="60" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="85" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">8</text>
+        <text x="85" y="70" font-size="14" fill="var(--text-muted)" text-anchor="middle">&gt; 5</text>
+
+        <!-- Box 2: 1 -->
+        <rect x="120" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="145" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1</text>
+        <text x="145" y="70" font-size="14" fill="var(--text-muted)" text-anchor="middle">&lt; 5</text>
+
+        <!-- Box 3: 7 -->
+        <rect x="180" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="205" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">7</text>
+        <text x="205" y="70" font-size="14" fill="var(--text-muted)" text-anchor="middle">&gt; 5</text>
+
+        <!-- Box 4: 0 -->
+        <rect x="240" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="265" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">0</text>
+        <text x="265" y="70" font-size="14" fill="var(--text-muted)" text-anchor="middle">&lt; 5</text>
+
+        <!-- Box 5: 9 -->
+        <rect x="300" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="325" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">9</text>
+        <text x="325" y="70" font-size="14" fill="var(--text-muted)" text-anchor="middle">&gt; 5</text>
+
+        <!-- Box 6: 5 (Pivot) -->
+        <rect x="360" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+        <text x="385" y="32" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">5</text>
+        <text x="385" y="70" font-size="14" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Pivot</text>
+    </g>
+
+    <!-- Flow Arrows -->
+    <!-- Left Arrow (Smaller) -->
+    <path d="M 300 190 C 300 230, 180 210, 180 260" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <!-- Right Arrow (Larger) -->
+    <path d="M 480 190 C 480 220, 610 200, 610 260" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow)" />
+    
+    <!-- Center Arrow (Pivot) -->
+    <path d="M 580 190 C 580 260, 400 230, 400 260" fill="none" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrow)" />
+
+    <!-- Arrow Labels -->
+    <!-- Left Label -->
+    <rect x="190" y="201" width="100" height="40" rx="4" fill="var(--bg-surface)" />
+    <text x="240" y="217" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Smaller</text>
+    <text x="240" y="235" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">أصغر</text>
+
+    <!-- Right Label -->
+    <rect x="540" y="208" width="100" height="40" rx="4" fill="var(--bg-surface)" />
+    <text x="590" y="224" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Larger</text>
+    <text x="590" y="242" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">أكبر</text>
+
+    <!-- Center Label -->
+    <rect x="440" y="220" width="100" height="40" rx="4" fill="var(--bg-surface)" />
+    <text x="490" y="236" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Pivot</text>
+    <text x="490" y="254" font-size="13" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">المحور</text>
+
+    <!-- Bottom Groups (Partitioned) -->
+    <!-- Group 1 Bounding Box -->
+    <rect x="85" y="265" width="190" height="80" rx="12" fill="none" stroke="var(--brand-400)" stroke-dasharray="6,6" stroke-width="2" />
+    <text x="180" y="370" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Group 1 (&lt; Pivot)</text>
+    <text x="180" y="390" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المجموعة 1 (أصغر)</text>
+
+    <!-- Group 1 Elements -->
+    <g transform="translate(100, 280)">
+        <rect x="0" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="25" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3</text>
+
+        <rect x="60" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="85" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">1</text>
+
+        <rect x="120" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="145" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">0</text>
+    </g>
+
+    <!-- Group 2 Bounding Box -->
+    <rect x="360" y="265" width="80" height="80" rx="12" fill="none" stroke="var(--brand-400)" stroke-dasharray="6,6" stroke-width="2" />
+    <text x="400" y="370" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Group 2</text>
+    <text x="400" y="390" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المحور</text>
+
+    <!-- Group 2 Elements -->
+    <g transform="translate(375, 280)">
+        <rect x="0" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+        <text x="25" y="32" font-size="20" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">5</text>
+    </g>
+
+    <!-- Group 3 Bounding Box -->
+    <rect x="515" y="265" width="190" height="80" rx="12" fill="none" stroke="var(--brand-400)" stroke-dasharray="6,6" stroke-width="2" />
+    <text x="610" y="370" font-size="16" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Group 3 (&gt; Pivot)</text>
+    <text x="610" y="390" font-size="14" fill="var(--text-secondary)" text-anchor="middle">المجموعة 3 (أكبر)</text>
+
+    <!-- Group 3 Elements -->
+    <g transform="translate(530, 280)">
+        <rect x="0" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="25" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">8</text>
+
+        <rect x="60" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="85" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">7</text>
+
+        <rect x="120" y="0" width="50" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="145" y="32" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">9</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Mergesort</th>
+        <th>Quicksort</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">متوسط وقت التشغيل</template>
+          <template class="content-en">Average Running Time</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">O(N log N)</template>
+          <template class="content-en">O(N log N)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">O(N log N)</template>
+          <template class="content-en">O(N log N)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أسوأ وقت تشغيل</template>
+          <template class="content-en">Worst-case Running Time</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">O(N log N)</template>
+          <template class="content-en">O(N log N)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">O(N^2)</template>
+          <template class="content-en">O(N^2)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">استخدام الذاكرة الإضافية</template>
+          <template class="content-en">Extra Memory Usage</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">يحتاج مصفوفة مؤقتة O(N)</template>
+          <template class="content-en">Requires temporary array O(N)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">لا يحتاج (In-place)</template>
+          <template class="content-en">Not needed (In-place)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم استراتيجية 'وسيط الثلاثة' (Median of three) بدلاً من حساب الوسيط الفعلي لجميع العناصر؟</template>
+      <template class="content-en">Why do we use the 'Median of three' strategy instead of calculating the actual median of all elements?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن حساب الوسيط الفعلي لجميع العناصر يتطلب وقتاً طويلاً مما يبطئ الخوارزمية، بينما 'وسيط الثلاثة' يوفر تقديراً جيداً بتكلفة حسابية منخفضة جداً.</p></template>
+      <template class="content-en"><p>Because calculating the actual median takes too much time and slows down the algorithm, whereas 'Median of three' provides a good estimate with very low computational cost.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="external-sorting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الترتيب الخارجي (External Sorting)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> External Sorting</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>تقنية تُستخدم لترتيب كميات ضخمة من البيانات التي لا يمكن أن تتسع في <span class="smart-term" data-term-en="Main Memory" data-ar="الذاكرة الرئيسية" data-en-def="RAM, where data must reside for fast, directly addressable access.">الذاكرة الرئيسية<span class="smart-term-tooltip"></span></span> (RAM)، وتعتمد على وسائط التخزين الخارجية.</p>
+    </template>
+    <template class="content-en">
+      <p>A technique used to sort massive amounts of data that cannot fit into <span class="smart-term" data-term-en="Main Memory" data-ar="الذاكرة الرئيسية" data-en-def="RAM, where data must reside for fast, directly addressable access.">main memory<span class="smart-term-tooltip"></span></span> (RAM), relying on external mass storage devices.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الخوارزميات السابقة مثل Quicksort تتطلب أن تتسع البيانات في الذاكرة الرئيسية لتكون قابلة للعنونة المباشرة. إذا لم تكن البيانات قابلة للوصول المباشر، تفقد هذه الخوارزميات كفاءتها.</p><p>الترتيب الخارجي يحل هذه المشكلة عن طريق قراءة البيانات في أجزاء (Chunks) تتسع في الذاكرة، ترتيبها (غالباً باستخدام Mergesort)، تخزينها في ملفات مؤقتة، ثم دمج هذه الملفات المرتبة.</p></template>
+    <template class="content-en"><p>Previous algorithms like Quicksort require the input to fit into main memory (directly addressable). If input is not directly accessed, they lose efficiency because elements can only be accessed sequentially.</p><p>External sorting handles very large inputs using mass storage devices. It typically reads data in memory-sized chunks, sorts them, stores them in files, and then merges the sorted files.</p></template>
+    <div class="content-target"></div>
+  </div>
+  
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الترتيب الخارجي يعتمد بشكل كبير على الأجهزة (Device dependent) مقارنة بالترتيب الداخلي، لأن سرعة القراءة والكتابة على القرص الصلب هي عنق الزجاجة.</p><p>خوارزمية الدمج (Mergesort) هي الخيار المثالي هنا لأنها تصل إلى البيانات <span class="smart-term" data-term-en="Sequential Access" data-ar="الوصول التسلسلي" data-en-def="Accessing data in a sequence, typical of reading from external files.">بشكل تسلسلي<span class="smart-term-tooltip"></span></span> (Sequential access)، وهو ما يتناسب تماماً مع طبيعة وسائط التخزين الخارجية التي تكون بطيئة في الوصول العشوائي.</p></template>
+    <template class="content-en"><p>External sorting is much more device-dependent than internal sorting because disk I/O is the bottleneck.</p><p>Mergesort is the ideal algorithm for the merging phase because it accesses data <span class="smart-term" data-term-en="Sequential Access" data-ar="الوصول التسلسلي" data-en-def="Accessing data in a sequence, typical of reading from external files.">sequentially<span class="smart-term-tooltip"></span></span>, which perfectly matches the performance characteristics of mass storage devices that are slow at random access.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا نستخدم الترتيب السريع (Quicksort) في مرحلة دمج الملفات في الترتيب الخارجي؟</template>
+      <template class="content-en">Why don't we use Quicksort in the file merging phase of External Sorting?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الترتيب السريع يتطلب وصولاً عشوائياً (Random Access) للبيانات لعملية التقسيم، وهو أمر بطيء جداً على أقراص التخزين الخارجية. بينما الترتيب بالدمج يقرأ البيانات بشكل تسلسلي.</p></template>
+      <template class="content-en"><p>Because Quicksort requires random access to data for partitioning, which is extremely slow on external storage. Mergesort, however, reads data sequentially.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا شباب في الجزء الثاني من خوارزميات الترتيب. في هذا الموديول، ننتقل من الخوارزميات البسيطة إلى الخوارزميات الاحترافية التي تُستخدم في العالم الحقيقي. ركزوا معي جيداً على خوارزميتين أساسيتين: ترتيب الدمج (Mergesort) والترتيب السريع (Quicksort). في الامتحان، غالباً ما أقارن بينهما. تذكروا دائماً: الدمج يضمن لك O(N log N) لكنه يطمع في ذاكرة إضافية O(N). أما الترتيب السريع فهو بطل الذاكرة (In-place) وسريع جداً، لكن احذر من 'فخ المحور السيء' الذي قد يهبط بك إلى O(N^2)! لذلك نستخدم 'وسيط الثلاثة'. أخيراً، إذا سألتكم في الامتحان: 'ماذا لو كانت البيانات بحجم تيرابايت والذاكرة 8 جيجا؟' الإجابة فوراً هي: الترتيب الخارجي (External Sorting) باستخدام تقنية الدمج. راجعوا تتبع المؤشرات i و j في Quicksort، فهي سؤال كلاسيكي في الاختبارات!</template>
+    <template class="content-en">Welcome to Sorting II. Here we transition from basic algorithms to the heavyweights used in the real world. Focus heavily on Mergesort and Quicksort. In exams, I love comparing them. Always remember: Mergesort guarantees O(N log N) but is greedy for extra memory O(N). Quicksort is the memory champion (in-place) and blazing fast, but beware the 'bad pivot trap' that drops it to O(N^2)! That's why we use 'Median of three'. Finally, if I ask: 'What if you have a Terabyte of data and 8GB of RAM?' The immediate answer is External Sorting using merging techniques. Make sure you trace the i and j pointers in Quicksort—it's a classic exam question!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين Mergesort و Quicksort من حيث استخدام الذاكرة؟</template>
+          <template class="content-en">What is the fundamental difference between Mergesort and Quicksort regarding memory usage?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين Mergesort و Quicksort من حيث استخدام الذاكرة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">Mergesort يحتاج إلى مصفوفة مؤقتة بحجم N لعملية الدمج (تعقيد مساحة O(N))، بينما Quicksort يقوم بالترتيب في نفس المصفوفة (In-place) ولا يحتاج لمساحة إضافية تذكر.</template>
+          <template class="content-en">Mergesort requires a temporary array of size N for merging (O(N) space complexity), whereas Quicksort sorts in-place and requires minimal extra space.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يصل Quicksort إلى أسوأ حالة O(N^2)؟</template>
+          <template class="content-en">When does Quicksort hit its worst-case O(N^2)?</template>
+          <span class="content-target">متى يصل Quicksort إلى أسوأ حالة O(N^2)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يحدث ذلك عندما يكون التقسيم غير متوازن تماماً في كل خطوة، مثلاً إذا اخترنا العنصر الأول كمحور وكانت المصفوفة مرتبة بالفعل أو مرتبة عكسياً.</template>
+          <template class="content-en">It happens when partitioning is completely unbalanced at every step, for example, if we pick the first element as pivot and the array is already sorted or reverse-sorted.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف تحل استراتيجية 'وسيط الثلاثة' (Median of three) مشكلة أسوأ حالة في Quicksort؟</template>
+          <template class="content-en">How does the 'Median of three' strategy solve the worst-case problem in Quicksort?</template>
+          <span class="content-target">كيف تحل استراتيجية 'وسيط الثلاثة' (Median of three) مشكلة أسوأ حالة في Quicksort؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عن طريق اختيار الوسيط بين العنصر الأول، الأوسط، والأخير كمحور. هذا يضمن أن المحور لن يكون أصغر أو أكبر عنصر، مما يمنع التقسيم غير المتوازن حتى لو كانت المصفوفة مرتبة.</template>
+          <template class="content-en">By choosing the median of the first, middle, and last elements as the pivot. This ensures the pivot is never the extreme smallest or largest, preventing unbalanced partitions even in sorted arrays.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا لا نستخدم Quicksort لترتيب البيانات الضخمة جداً (الترتيب الخارجي)؟</template>
+          <template class="content-en">Why don't we use Quicksort for sorting massive data (External Sorting)?</template>
+          <span class="content-target">لماذا لا نستخدم Quicksort لترتيب البيانات الضخمة جداً (الترتيب الخارجي)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن Quicksort يتطلب وصولاً عشوائياً (Random Access) للبيانات لعملية التقسيم. وسائط التخزين الخارجية بطيئة جداً في الوصول العشوائي وتفضل الوصول التسلسلي.</template>
+          <template class="content-en">Because Quicksort requires random access to data for partitioning. Mass storage devices are extremely slow at random access and favor sequential access.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يعمل الترتيب الخارجي باختصار؟</template>
+          <template class="content-en">How does External Sorting work in short?</template>
+          <span class="content-target">كيف يعمل الترتيب الخارجي باختصار؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يقرأ البيانات في أجزاء تتسع في الذاكرة (RAM)، يرتبها داخلياً، يحفظها في ملفات مؤقتة، ثم يدمج هذه الملفات المرتبة معاً.</template>
+          <template class="content-en">It reads data in chunks that fit into RAM, sorts them internally, saves them to temporary files, and then merges these sorted files together.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في خوارزمية Mergesort، متى تتوقف عملية الاستدعاء الذاتي (Recursion)؟</template>
+          <template class="content-en">In Mergesort, when does the recursion stop?</template>
+          <span class="content-target">في خوارزمية Mergesort، متى تتوقف عملية الاستدعاء الذاتي (Recursion)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تتوقف عندما يتم تقسيم القائمة إلى أجزاء يحتوي كل منها على عنصر واحد فقط، لأن العنصر الواحد يعتبر مرتباً.</template>
+          <template class="content-en">It stops when the list is divided into parts containing exactly one element, because a single element is inherently sorted.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">في استراتيجية تقسيم Quicksort، لماذا نبدل المحور مع العنصر الأخير قبل بدء المؤشرات؟</template>
+          <template class="content-en">In Quicksort partitioning, why do we swap the pivot with the last element before starting the pointers?</template>
+          <span class="content-target">في استراتيجية تقسيم Quicksort، لماذا نبدل المحور مع العنصر الأخير قبل بدء المؤشرات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لإبعاد المحور عن طريق المؤشرات i و j أثناء حركتهما للبحث عن العناصر التي يجب تبديلها.</template>
+          <template class="content-en">To get the pivot out of the way of pointers i and j while they move to find elements that need swapping.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث في Quicksort عندما يتقاطع المؤشران i و j؟</template>
+          <template class="content-en">What happens in Quicksort when pointers i and j cross?</template>
+          <span class="content-target">ماذا يحدث في Quicksort عندما يتقاطع المؤشران i و j؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تتوقف عملية التقسيم الحالية، ويتم تبديل المحور (الموجود في النهاية) مع العنصر الذي يشير إليه المؤشر i، ليأخذ المحور مكانه النهائي الصحيح.</template>
+          <template class="content-en">The current partitioning stops, and the pivot (stored at the end) is swapped with the element pointed to by i, placing the pivot in its final correct position.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يمكن دمج Quicksort مع خوارزميات أخرى لتحسين الأداء؟</template>
+          <template class="content-en">Can Quicksort be combined with other algorithms to improve performance?</template>
+          <span class="content-target">هل يمكن دمج Quicksort مع خوارزميات أخرى لتحسين الأداء؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">نعم، من الشائع دمج Quicksort مع Heapsort أو Insertion sort للتعامل مع المصفوفات الفرعية الصغيرة جداً لتسريع العملية.</template>
+          <template class="content-en">Yes, it is common to combine Quicksort with Heapsort or Insertion sort to handle very small sub-arrays to speed up the process.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي العملية الأساسية التي تعتمد عليها خوارزمية Mergesort؟</template>
+          <template class="content-en">What is the basic operation that Mergesort relies on?</template>
+          <span class="content-target">ما هي العملية الأساسية التي تعتمد عليها خوارزمية Mergesort؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">العملية الأساسية هي دمج قائمتين مرتبتين مسبقاً لإنتاج قائمة واحدة مرتبة.</template>
+          <template class="content-en">The basic operation is merging two previously sorted lists to produce a single sorted list.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو وقت التشغيل لأسوأ حالة في خوارزمية ترتيب الدمج (Mergesort)؟",
+      "en": "What is the worst-case running time of Mergesort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N log N)",
+        "en": "O(N log N)"
+      },
+      "example": {
+        "ar": "بغض النظر عن حالة المصفوفة الأولية، سيستغرق الدمج دائماً O(N log N).",
+        "en": "Regardless of the initial array state, Mergesort always takes O(N log N)."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي العملية الأساسية (Basic Operation) في خوارزمية ترتيب الدمج؟",
+      "en": "What is the basic operation in the Mergesort algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "دمج قائمتين مرتبتين.",
+        "en": "Merging two sorted lists."
+      },
+      "example": {
+        "ar": "دمج {17, 66} مع {22, 63, 69} لإنتاج قائمة واحدة مرتبة.",
+        "en": "Merging {17, 66} with {22, 63, 69} to produce a single sorted list."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "متى تتوقف عملية الاستدعاء الذاتي (Recursion) في ترتيب الدمج؟",
+      "en": "When does the recursion stop in Mergesort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تحتوي كل قائمة فرعية على عنصر واحد فقط.",
+        "en": "When each sub-list has exactly one element."
+      },
+      "example": {
+        "ar": "القائمة {66} تعتبر مرتبة ولا تحتاج لمزيد من التقسيم.",
+        "en": "The list {66} is considered sorted and needs no further division."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو متوسط وقت التشغيل لخوارزمية الترتيب السريع (Quicksort)؟",
+      "en": "What is the average running time for Quicksort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N log N)",
+        "en": "O(N log N)"
+      },
+      "example": {
+        "ar": "في معظم الحالات العملية، يعمل الترتيب السريع بكفاءة O(N log N).",
+        "en": "In most practical cases, Quicksort operates efficiently at O(N log N)."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو وقت التشغيل لأسوأ حالة في خوارزمية الترتيب السريع؟",
+      "en": "What is the worst-case running time for Quicksort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N^2)",
+        "en": "O(N^2)"
+      },
+      "example": {
+        "ar": "يحدث هذا إذا تم اختيار العنصر الأول كمحور وكانت المصفوفة مرتبة بالفعل.",
+        "en": "This happens if the first element is chosen as pivot and the array is already sorted."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هي الميزة الرئيسية للترتيب السريع على ترتيب الدمج من حيث الذاكرة؟",
+      "en": "What is the main memory advantage of Quicksort over Mergesort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الترتيب السريع لا يحتاج إلى مصفوفة مؤقتة (Temporary array).",
+        "en": "Quicksort does not need a temporary array."
+      },
+      "example": {
+        "ar": "يتم تبديل العناصر في نفس المصفوفة (In-place).",
+        "en": "Elements are swapped within the same array (In-place)."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي المجموعات الثلاث التي تتكون عند اختيار محور (Pivot) في الترتيب السريع؟",
+      "en": "What are the three groups formed when selecting a pivot in Quicksort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "مجموعة 1 (أصغر من المحور)، مجموعة 2 (تساوي المحور)، مجموعة 3 (أكبر من المحور).",
+        "en": "Group 1 (smaller than pivot), Group 2 (equal to pivot), Group 3 (larger than pivot)."
+      },
+      "example": {
+        "ar": "إذا كان المحور 50، فالعنصر 32 يذهب للمجموعة 1، و 66 للمجموعة 3.",
+        "en": "If pivot is 50, element 32 goes to Group 1, and 66 to Group 3."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "لماذا يعتبر اختيار العنصر الأول كمحور استراتيجية سيئة أحياناً؟",
+      "en": "Why is selecting the first element as a pivot sometimes a bad strategy?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأنه إذا كانت القائمة مرتبة (أو مرتبة عكسياً)، ستذهب كل العناصر لمجموعة واحدة، مما يؤدي لتعقيد O(N^2).",
+        "en": "Because if the list is sorted (or reverse-sorted), all elements go to one group, leading to O(N^2) complexity."
+      },
+      "example": {
+        "ar": "في القائمة {9, 8, 7, 6}، اختيار 9 كمحور يضع كل العناصر الباقية في مجموعة واحدة.",
+        "en": "In list {9, 8, 7, 6}, choosing 9 as pivot puts all remaining elements in one group."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي أفضل استراتيجية لاختيار المحور في الترتيب السريع؟",
+      "en": "What is the best strategy for selecting a pivot in Quicksort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "استراتيجية 'وسيط الثلاثة' (Median of three).",
+        "en": "The 'Median of three' strategy."
+      },
+      "example": {
+        "ar": "حساب الوسيط بين العنصر الأول، الأخير، والأوسط.",
+        "en": "Calculating the median of the first, last, and middle elements."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "في استراتيجية التقسيم للترتيب السريع، ما هي الخطوة الأولى بعد اختيار المحور؟",
+      "en": "In the Quicksort partitioning strategy, what is the first step after selecting the pivot?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تبديل المحور مع العنصر الأخير في المصفوفة.",
+        "en": "Swap the pivot with the last item in the array."
+      },
+      "example": {
+        "ar": "إذا كان المحور 6 والعنصر الأخير 8، نقوم بتبديلهما لإبعاد المحور عن طريق المؤشرات.",
+        "en": "If pivot is 6 and last item is 8, swap them to keep the pivot out of the way of pointers."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ماذا يحدث عندما يتقاطع المؤشران i و j في عملية تقسيم الترتيب السريع؟",
+      "en": "What happens when pointers i and j cross in the Quicksort partitioning process?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تتوقف عملية التقسيم، ويتم تبديل المحور مع العنصر الذي يشير إليه المؤشر i.",
+        "en": "Partitioning stops, and the pivot element is swapped with the element pointed to by i."
+      },
+      "example": {
+        "ar": "هذا يضع المحور في مكانه الصحيح النهائي في المصفوفة المرتبة.",
+        "en": "This places the pivot in its final correct position in the sorted array."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "متى نلجأ لاستخدام الترتيب الخارجي (External Sorting)؟",
+      "en": "When do we resort to using External Sorting?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عندما تكون كمية البيانات ضخمة جداً ولا تتسع في الذاكرة الرئيسية (RAM).",
+        "en": "When the input data is much too large to fit into main memory (RAM)."
+      },
+      "example": {
+        "ar": "ترتيب قاعدة بيانات بحجم تيرابايت باستخدام ذاكرة عشوائية بحجم 8 جيجابايت.",
+        "en": "Sorting a terabyte-sized database using 8GB of RAM."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "لماذا تفقد خوارزميات مثل Quicksort كفاءتها إذا لم تكن البيانات في الذاكرة الرئيسية؟",
+      "en": "Why do algorithms like Quicksort lose efficiency if data is not in main memory?"
+    },
+    "back": {
+      "definition": {
+        "ar": "لأنها تتطلب عنونة مباشرة (وصول عشوائي)، بينما البيانات الخارجية يتم الوصول إليها تسلسلياً.",
+        "en": "Because they require direct addressability (random access), whereas external data is accessed sequentially."
+      },
+      "example": {
+        "ar": "القفز بين عناصر متباعدة على القرص الصلب يسبب تأخيراً كبيراً.",
+        "en": "Jumping between distant elements on a hard drive causes massive delays."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي الخوارزمية التي تُستخدم غالباً كجزء من الترتيب الخارجي؟",
+      "en": "Which algorithm is often used as part of External Sorting?"
+    },
+    "back": {
+      "definition": {
+        "ar": "خوارزمية ترتيب الدمج (Mergesort).",
+        "en": "The Mergesort algorithm."
+      },
+      "example": {
+        "ar": "يتم ترتيب أجزاء صغيرة في الذاكرة ثم دمجها في ملفات خارجية.",
+        "en": "Small chunks are sorted in memory, then merged into external files."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هي الخطوة الأولى في خوارزمية الترتيب الخارجي؟",
+      "en": "What is the first step in the External Sorting algorithm?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قراءة البيانات من الملف وتقسيمها إلى مجموعات بيانات صغيرة بحجم الذاكرة المتاحة.",
+        "en": "Read the input data from the file and input it as data sets of the size of memory."
+      },
+      "example": {
+        "ar": "قراءة 1 جيجابايت من البيانات في كل مرة إذا كانت الذاكرة المتاحة 1 جيجابايت.",
+        "en": "Reading 1GB of data at a time if the available memory is 1GB."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "ما هو وقت التشغيل لأسوأ حالة (Worst-case) في خوارزمية ترتيب الدمج (Mergesort)؟",
+      "en": "What is the worst-case running time of Mergesort?"
+    },
+    "options": {
+      "ar": [
+        "O(N)",
+        "O(N log N)",
+        "O(N^2)",
+        "O(log N)"
+      ],
+      "en": [
+        "O(N)",
+        "O(N log N)",
+        "O(N^2)",
+        "O(log N)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "خوارزمية الدمج تضمن دائماً وقت تشغيل O(N log N) في جميع الحالات لأنها تقسم المصفوفة دائماً إلى نصفين.",
+      "en": "Mergesort guarantees an O(N log N) running time in all cases because it always divides the array exactly in half."
+    },
+    "hint": {
+      "ar": "تذكر أن الدمج لا يتأثر بحالة ترتيب المصفوفة الأولية.",
+      "en": "Remember that Mergesort is not affected by the initial sorted state of the array."
+    },
+    "difficulty": "easy",
+    "conceptId": "mergesort-algorithm"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "أي من الخوارزميات التالية لا تتطلب مصفوفة مؤقتة (Temporary array) أثناء التنفيذ؟",
+      "en": "Which of the following algorithms does NOT require a temporary array during execution?"
+    },
+    "options": {
+      "ar": [
+        "ترتيب الدمج (Mergesort)",
+        "الترتيب الخارجي (External Sorting)",
+        "الترتيب السريع (Quicksort)",
+        "جميع ما سبق"
+      ],
+      "en": [
+        "Mergesort",
+        "External Sorting",
+        "Quicksort",
+        "All of the above"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الترتيب السريع يقوم بتبديل العناصر في نفس المصفوفة (In-place)، بينما ترتيب الدمج يحتاج لمصفوفة مؤقتة لعملية الدمج.",
+      "en": "Quicksort swaps elements within the same array (in-place), whereas Mergesort requires a temporary array for the merging process."
+    },
+    "hint": {
+      "ar": "هذه إحدى المزايا الرئيسية لهذه الخوارزمية وتجعلها أسرع عملياً.",
+      "en": "This is one of the main advantages of this algorithm, making it faster in practice."
+    },
+    "difficulty": "medium",
+    "conceptId": "quicksort-algorithm"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "ما هو وقت التشغيل لأسوأ حالة (Worst-case) في خوارزمية الترتيب السريع (Quicksort)؟",
+      "en": "What is the worst-case running time for Quicksort?"
+    },
+    "options": {
+      "ar": [
+        "O(N log N)",
+        "O(N)",
+        "O(N^2)",
+        "O(1)"
+      ],
+      "en": [
+        "O(N log N)",
+        "O(N)",
+        "O(N^2)",
+        "O(1)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تحدث أسوأ حالة O(N^2) عندما يكون التقسيم غير متوازن تماماً، مثل اختيار العنصر الأول كمحور في مصفوفة مرتبة مسبقاً.",
+      "en": "The worst-case O(N^2) occurs when partitioning is highly unbalanced, such as choosing the first element as a pivot in an already sorted array."
+    },
+    "hint": {
+      "ar": "يحدث هذا عندما تذهب جميع العناصر إلى مجموعة واحدة في كل خطوة تقسيم.",
+      "en": "This happens when all elements go into a single group during every partition step."
+    },
+    "difficulty": "medium",
+    "conceptId": "quicksort-algorithm"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هي أفضل استراتيجية لاختيار المحور (Pivot) في الترتيب السريع لتجنب أسوأ حالة؟",
+      "en": "What is the best strategy for selecting a pivot in Quicksort to avoid the worst-case scenario?"
+    },
+    "options": {
+      "ar": [
+        "اختيار العنصر الأول دائماً",
+        "اختيار العنصر الأخير دائماً",
+        "حساب الوسيط الفعلي لجميع العناصر",
+        "استراتيجية وسيط الثلاثة (Median of three)"
+      ],
+      "en": [
+        "Always select the first element",
+        "Always select the last element",
+        "Calculate the actual median of all elements",
+        "Median of three strategy"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "استراتيجية وسيط الثلاثة (اختيار الوسيط بين العنصر الأول والأخير والأوسط) توفر تقديراً جيداً للوسيط الفعلي دون إبطاء الخوارزمية.",
+      "en": "The Median of three strategy (median of first, last, and middle elements) provides a good estimate of the actual median without slowing down the algorithm."
+    },
+    "hint": {
+      "ar": "حساب الوسيط الفعلي مكلف جداً، واختيار العنصر الأول خطير.",
+      "en": "Calculating the actual median is too expensive, and picking the first element is risky."
+    },
+    "difficulty": "medium",
+    "conceptId": "quicksort-algorithm"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "في خوارزمية الترتيب السريع، ماذا نفعل بالمحور (Pivot) كخطوة أولى في استراتيجية التقسيم؟",
+      "en": "In Quicksort, what do we do with the pivot as the first step in the partitioning strategy?"
+    },
+    "options": {
+      "ar": [
+        "نتركه في مكانه",
+        "نبدله مع العنصر الأخير",
+        "نبدله مع العنصر الأول",
+        "نحذفه من المصفوفة"
+      ],
+      "en": [
+        "Leave it in its place",
+        "Swap it with the last item",
+        "Swap it with the first item",
+        "Delete it from the array"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يتم تبديل المحور مع العنصر الأخير لإبعاده عن طريق المؤشرات (i و j) أثناء عملية التقسيم.",
+      "en": "The pivot is swapped with the last item to keep it out of the way of the pointers (i and j) during the partitioning process."
+    },
+    "hint": {
+      "ar": "نريد إبعاد المحور عن منطقة العمل حتى ينتهي المؤشران من عملهما.",
+      "en": "We want to move the pivot out of the working area until the pointers finish their job."
+    },
+    "difficulty": "hard",
+    "conceptId": "quicksort-algorithm"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "متى يتم استخدام الترتيب الخارجي (External Sorting)؟",
+      "en": "When is External Sorting used?"
+    },
+    "options": {
+      "ar": [
+        "عندما تكون المصفوفة صغيرة جداً",
+        "عندما نحتاج إلى ترتيب سريع جداً في الذاكرة",
+        "عندما تكون البيانات ضخمة جداً ولا تتسع في الذاكرة الرئيسية",
+        "عندما تكون البيانات مرتبة مسبقاً"
+      ],
+      "en": [
+        "When the array is very small",
+        "When we need very fast in-memory sorting",
+        "When the input is much too large to fit into main memory",
+        "When the data is already sorted"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الترتيب الخارجي مصمم للتعامل مع البيانات التي تتجاوز سعة الذاكرة الرئيسية (RAM) وتتطلب استخدام وسائط تخزين خارجية.",
+      "en": "External sorting is designed to handle data that exceeds the capacity of main memory (RAM) and requires the use of mass storage devices."
+    },
+    "hint": {
+      "ar": "فكر في كلمة 'خارجي' كإشارة إلى وسائط التخزين الخارجية.",
+      "en": "Think of 'external' as referring to external mass storage devices."
+    },
+    "difficulty": "easy",
+    "conceptId": "external-sorting"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "لماذا تفقد خوارزمية الترتيب السريع كفاءتها في الترتيب الخارجي؟",
+      "en": "Why does Quicksort lose its efficiency in External Sorting?"
+    },
+    "options": {
+      "ar": [
+        "لأنها تتطلب مصفوفة مؤقتة كبيرة",
+        "لأنها تعتمد على الوصول العشوائي (Directly addressable memory)",
+        "لأنها بطيئة جداً في المتوسط",
+        "لأنها لا تدعم الأرقام الكبيرة"
+      ],
+      "en": [
+        "Because it requires a large temporary array",
+        "Because it relies on random access (directly addressable memory)",
+        "Because it is very slow on average",
+        "Because it doesn't support large numbers"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الترتيب السريع يحتاج للقفز بين عناصر المصفوفة (وصول عشوائي)، وهو أمر بطيء جداً على وسائط التخزين الخارجية التي تفضل الوصول التسلسلي.",
+      "en": "Quicksort needs to jump between array elements (random access), which is extremely slow on mass storage devices that favor sequential access."
+    },
+    "hint": {
+      "ar": "وسائط التخزين الخارجية تقرأ البيانات بشكل متسلسل أفضل بكثير من القفز العشوائي.",
+      "en": "Mass storage devices read data sequentially much better than jumping randomly."
+    },
+    "difficulty": "hard",
+    "conceptId": "external-sorting"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي العملية الأساسية (Basic Operation) في خوارزمية ترتيب الدمج؟",
+      "en": "What is the basic operation in the Mergesort algorithm?"
+    },
+    "options": {
+      "ar": [
+        "اختيار المحور (Pivot)",
+        "تبديل العناصر المتجاورة",
+        "دمج قائمتين مرتبتين",
+        "البحث عن أصغر عنصر"
+      ],
+      "en": [
+        "Selecting a pivot",
+        "Swapping adjacent elements",
+        "Merging two sorted lists",
+        "Finding the smallest element"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "العملية الجوهرية في ترتيب الدمج هي أخذ قائمتين فرعيتين مرتبتين ودمجهما في قائمة واحدة مرتبة.",
+      "en": "The core operation in Mergesort is taking two already sorted sub-lists and merging them into a single sorted list."
+    },
+    "hint": {
+      "ar": "اسم الخوارزمية يدل على عمليتها الأساسية.",
+      "en": "The name of the algorithm hints at its basic operation."
+    },
+    "difficulty": "easy",
+    "conceptId": "mergesort-algorithm"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في الترتيب السريع، ماذا يحدث عندما يتقاطع المؤشران i و j؟",
+      "en": "In Quicksort, what happens when pointers i and j cross?"
+    },
+    "options": {
+      "ar": [
+        "نبدأ من جديد",
+        "يتم تبديل المحور مع العنصر الذي يشير إليه i",
+        "يتم تبديل المحور مع العنصر الذي يشير إليه j",
+        "تنتهي الخوارزمية بالكامل"
+      ],
+      "en": [
+        "We start over",
+        "The pivot is swapped with the element pointed to by i",
+        "The pivot is swapped with the element pointed to by j",
+        "The entire algorithm finishes"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "عندما يتقاطع المؤشران، تتوقف عملية التقسيم الحالية، ويتم إرجاع المحور إلى مكانه الصحيح بتبديله مع العنصر عند المؤشر i.",
+      "en": "When the pointers cross, the current partitioning stops, and the pivot is put into its correct place by swapping it with the element at pointer i."
+    },
+    "hint": {
+      "ar": "المؤشر i يشير دائماً إلى عنصر أكبر من المحور بعد التقاطع.",
+      "en": "Pointer i always points to an element larger than the pivot after crossing."
+    },
+    "difficulty": "hard",
+    "conceptId": "quicksort-algorithm"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "كيف يعمل الترتيب الخارجي باستخدام خوارزمية الدمج؟",
+      "en": "How does External Sorting work using the Mergesort algorithm?"
+    },
+    "options": {
+      "ar": [
+        "يرتب كل البيانات على القرص الصلب مباشرة",
+        "يقرأ أجزاء بحجم الذاكرة، يرتبها، يخزنها في ملفات، ثم يدمج الملفات",
+        "يستخدم الترتيب السريع لدمج الملفات",
+        "يضغط البيانات لتتسع في الذاكرة"
+      ],
+      "en": [
+        "Sorts all data directly on the hard drive",
+        "Reads memory-sized chunks, sorts them, stores in files, then merges files",
+        "Uses Quicksort to merge the files",
+        "Compresses data to fit in memory"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الترتيب الخارجي يقرأ البيانات على شكل أجزاء تتسع في الذاكرة، يرتب كل جزء داخلياً، يكتبها كملفات مؤقتة، ثم يقوم بدمج هذه الملفات المرتبة.",
+      "en": "External sorting reads data in chunks that fit in memory, sorts each chunk internally, writes them as temporary files, and then merges these sorted files."
+    },
+    "hint": {
+      "ar": "العملية تتكون من مرحلتين: الترتيب الداخلي للأجزاء، ثم الدمج الخارجي.",
+      "en": "The process consists of two phases: internal sorting of chunks, then external merging."
+    },
+    "difficulty": "medium",
+    "conceptId": "external-sorting"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن الترتيب السريع (Quicksort) دائماً أسرع من ترتيب الدمج (Mergesort) في كل الحالات. في الواقع، أسوأ حالة للترتيب السريع هي O(N^2) بينما ترتيب الدمج يضمن دائماً O(N log N).</template>
+      <template class="content-en">Believing that Quicksort is always faster than Mergesort in all cases. In reality, Quicksort's worst-case is O(N^2), whereas Mergesort guarantees O(N log N).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">السبب الحقيقي وراء سرعة Quicksort في التطبيق العملي (رغم احتمال O(N^2)) هو أن الحلقة الداخلية (Inner loop) محسنة جداً وتعمل في نفس المصفوفة (In-place) مما يقلل من استهلاك الذاكرة المؤقتة (Cache).</template>
+      <template class="content-en">The real reason Quicksort is so fast in practice (despite the O(N^2) risk) is its highly optimized inner loop and in-place sorting, which is very cache-friendly.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">استراتيجية 'وسيط الثلاثة' (Median of three) هي الحل السحري لمشكلة المصفوفات المرتبة مسبقاً في الترتيب السريع، حيث تمنع الخوارزمية من الانحدار إلى تعقيد O(N^2).</template>
+      <template class="content-en">The 'Median of three' strategy is the magic bullet for already-sorted arrays in Quicksort, preventing the algorithm from degrading to O(N^2) complexity.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان أن خوارزمية ترتيب الدمج (Mergesort) تتطلب مساحة إضافية O(N) للمصفوفة المؤقتة. هذا العيب يجعلها غير مناسبة للأنظمة ذات الذاكرة المحدودة جداً.</template>
+      <template class="content-en">Forgetting that Mergesort requires O(N) extra space for the temporary array. This drawback makes it unsuitable for strictly memory-constrained systems.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الترتيب الخارجي يعتمد على الوصول التسلسلي (Sequential Access). لذلك، خوارزمية الدمج هي الملكة هنا، لأنها تقرأ وتكتب البيانات بشكل متسلسل، مما يتناسب مع طبيعة الأقراص الصلبة.</template>
+      <template class="content-en">External sorting relies on Sequential Access. Therefore, Mergesort is king here, as it reads and writes data sequentially, matching the physical nature of hard drives.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M09.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M11.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

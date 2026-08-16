@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS240" data-module="9">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>خوارزميات الترتيب (الجزء الأول) · CS240 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS240" data-page-title-en="CS240">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M08.html" data-gh-next="M10.html" data-gh-card="../../hub/course.html?code=CS240"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#introduction-to-sorting" class="toc-link" data-bilingual>
+        <template class="content-ar">مفهوم الترتيب وأنواعه</template>
+        <template class="content-en">What is Sorting?</template>
+        <span class="content-target">مفهوم الترتيب وأنواعه</span>
+      </a>
+      <a href="#insertion-sort" class="toc-link" data-bilingual>
+        <template class="content-ar">ترتيب الإدراج</template>
+        <template class="content-en">Insertion Sort</template>
+        <span class="content-target">ترتيب الإدراج</span>
+      </a>
+      <a href="#shellsort" class="toc-link" data-bilingual>
+        <template class="content-ar">ترتيب شيل</template>
+        <template class="content-en">Shellsort</template>
+        <span class="content-target">ترتيب شيل</span>
+      </a>
+      <a href="#heapsort" class="toc-link" data-bilingual>
+        <template class="content-ar">ترتيب الكومة</template>
+        <template class="content-en">Heapsort</template>
+        <span class="content-target">ترتيب الكومة</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 9</template>
+      <template class="content-en">Module 9</template>
+      <span class="content-target">الوحدة 9</span>
+    </span> · CS240
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">خوارزميات الترتيب (الجزء الأول)</h1>
+      <p class="hero-description">مقدمة في خوارزميات الترتيب وتحليل تعقيداتها، مع التركيز على ترتيب الإدراج، وترتيب شيل، وترتيب الكومة.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Sorting I</h1>
+      <p class="hero-description">Introduction to sorting algorithms and their complexity analysis, focusing on Insertion Sort, Shellsort, and Heapsort.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">هياكل البيانات</span>
+      <span class="tag">الخوارزميات</span>
+      <span class="tag">الترتيب</span>
+      <span class="tag">التعقيدية الزمنية</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Data Structures</span>
+      <span class="tag">Algorithms</span>
+      <span class="tag">Sorting</span>
+      <span class="tag">Time Complexity</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم مشكلة ترتيب العناصر والمعايير المستخدمة فيها.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل خوارزميات الترتيب المختلفة وحساب تعقيديتها الزمنية.</span></li>
+      <li><span class="obj-icon">✦</span><span>تنفيذ خوارزميات الترتيب المتنوعة مثل ترتيب الإدراج وترتيب شيل.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand the problem of sorting elements.</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze various sorting algorithms and their complexity.</span></li>
+      <li><span class="obj-icon">✦</span><span>Implement various sorting algorithms such as Insertion sort and Shellsort.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="introduction-to-sorting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> مفهوم الترتيب وأنواعه</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> What is Sorting?</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>الترتيب هو عملية تنظيم مجموعة من العناصر بنسق محدد بناءً على معيار معين، مثل ترتيب أوراق اللعب في يدك.</p>
+    </template>
+    <template class="content-en">
+      <p>Sorting is the process of arranging a group of items into a defined order based on a particular criteria, like organizing playing cards in your hand.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>الترتيب هو عملية أساسية في علوم الحاسب. يكمن الاختلاف الرئيسي بين خوارزميات الترتيب في عدد المقارنات التي تحتاجها الخوارزمية لترتيب مجموعة من العناصر.</p><p>تنقسم الخوارزميات عموماً إلى:</p><ul><li><strong><span class="smart-term" data-term-en="Sequential Sort" data-ar="الترتيب التسلسلي" data-en-def="Sorting algorithms that typically require O(N^2) comparisons.">خوارزميات تسلسلية (Sequential Sorts)</span></strong> مثل ترتيب الإدراج والتي تتطلب حوالي O(N^2) من المقارنات، و</li><li><strong><span class="smart-term" data-term-en="Logarithmic Sort" data-ar="الترتيب اللوغاريتمي" data-en-def="Sorting algorithms that typically require O(N log N) comparisons.">خوارزميات لوغاريتمية (Logarithmic Sorts)</span></strong> مثل الترتيب السريع والتي تتطلب عادة O(N log N) من المقارنات.</li></ul></template>
+    <template class="content-en"><p>Sorting is a fundamental operation in computer science. The main difference between sorting algorithms is how many comparisons the algorithm needs to sort the group of items.</p><p>Algorithms are generally divided into:</p><ul><li><strong><span class="smart-term" data-term-en="Sequential Sort" data-ar="الترتيب التسلسلي" data-en-def="Sorting algorithms that typically require O(N^2) comparisons.">Sequential sorts</span></strong> (like insertion sort) which require approximately O(N^2) comparisons, and</li><li><strong><span class="smart-term" data-term-en="Logarithmic Sort" data-ar="الترتيب اللوغاريتمي" data-en-def="Sorting algorithms that typically require O(N log N) comparisons.">Logarithmic sorts</span></strong> (like Quick sort) which typically require O(N log N) comparisons.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الحد الأدنى النظري لترتيب العناصر المعتمد على المقارنة هو O(N log N).</p><p>الخوارزميات التسلسلية تكون مفيدة فقط عندما يكون حجم المدخلات صغيراً جداً أو عندما تكون البيانات شبه مرتبة مسبقاً.</p></template>
+    <template class="content-en"><p>The theoretical lower bound for comparison-based sorting is O(N log N).</p><p>Sequential algorithms are typically only useful when the input size is very small or when the data is already nearly sorted.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Sequential Sorts</th>
+        <th>Logarithmic Sorts</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعقيد الزمني النموذجي</template>
+          <template class="content-en">Typical Time Complexity</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">O(N^2)</template>
+          <template class="content-en">O(N^2)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">O(N log N)</template>
+          <template class="content-en">O(N log N)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">أمثلة</template>
+          <template class="content-en">Examples</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">ترتيب الإدراج، الترتيب بالاختيار</template>
+          <template class="content-en">Insertion Sort, Selection Sort</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">الترتيب السريع، ترتيب الدمج، ترتيب الكومة</template>
+          <template class="content-en">Quick Sort, Merge Sort, Heap Sort</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم الخوارزميات ذات التعقيد O(N^2) إذا كانت الخوارزميات اللوغاريتمية أسرع؟</template>
+      <template class="content-en">Why do we ever use O(N^2) sorting algorithms if logarithmic ones are faster?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الخوارزميات البسيطة مثل ترتيب الإدراج تكون أسرع في التنفيذ الفعلي للمصفوفات الصغيرة جداً بسبب قلة العمليات الإضافية (overhead)، كما أنها تتصرف بكفاءة عالية O(N) إذا كانت المصفوفة شبه مرتبة.</p></template>
+      <template class="content-en"><p>Because simple algorithms like Insertion Sort have lower overhead and are actually faster for very small arrays. They also perform exceptionally well (O(N)) on nearly sorted data.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="insertion-sort" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> ترتيب الإدراج</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Insertion Sort</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>خوارزمية تقوم ببناء القائمة المرتبة عنصراً تلو الآخر، تماماً كما ترتب أوراق اللعب في يدك بسحب ورقة وإدراجها في مكانها الصحيح.</p>
+    </template>
+    <template class="content-en">
+      <p>An algorithm that builds the final sorted array one item at a time, exactly how you sort playing cards in your hands.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>ترتيب الإدراج هو من أبسط خوارزميات الترتيب. يقوم بترتيب قائمة من العناصر عن طريق إدراج عنصر جديد بشكل متكرر في قائمة فرعية مرتبة مسبقاً.</p><p>تبدأ الخوارزمية باعتبار العنصر الأول قائمة فرعية مرتبة بطول 1. ثم تأخذ العنصر الثاني وتدرجه في مكانه الصحيح، وتكرر العملية حتى يتم إدراج جميع العناصر.</p><p>تتطلب الخوارزمية حوالي O(N^2) من المقارنات في أسوأ الحالات بسبب الحلقات المتداخلة.</p></template>
+    <template class="content-en"><p>Insertion sort is one of the simplest sorting algorithms. It sorts a list of items by repeatedly inserting a new element into a sorted sublist.</p><p>The process starts by considering the first item as a sorted sublist of length 1. It then inserts the second item into the sorted sublist, arranging them. This repeats until all items are in their proper positions.</p><p>It requires approximately O(N^2) comparisons in the worst case due to nested loops.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>أهم ميزة لترتيب الإدراج هي كفاءته العالية عندما تكون <span class="smart-term" data-term-en="Presorted Input" data-ar="المدخلات المرتبة مسبقاً" data-en-def="An array that is already sorted or nearly sorted, which makes Insertion Sort run in O(N) time.">المدخلات مرتبة مسبقاً (Presorted)</span>.</p><p>في هذه الحالة، يفشل شرط الحلقة الداخلية فوراً، مما يجعل وقت التشغيل الخطي O(N). هذا يجعله خياراً ممتازاً كجزء من خوارزميات هجينة (مثل Timsort).</p></template>
+    <template class="content-en"><p>The most significant advantage of Insertion Sort is its high efficiency when the <span class="smart-term" data-term-en="Presorted Input" data-ar="المدخلات المرتبة مسبقاً" data-en-def="An array that is already sorted or nearly sorted, which makes Insertion Sort run in O(N) time.">input is presorted</span>.</p><p>In this case, the test in the inner loop always fails immediately, resulting in a linear running time of O(N). This makes it an excellent choice for hybrid algorithms (like Timsort).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعقيد الزمني لترتيب الإدراج في أسوأ الحالات.</strong></template>
+      <template class="content-en"><strong>Worst-case time complexity of Insertion Sort.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$O(N^2)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public static &lt;AnyType extends Comparable&lt;? super AnyType&gt;&gt;
+void insertionSort( AnyType [ ] a )
+{
+    int j;
+    for( int p = 1; p &lt; a.length; p++ )
+    {
+        AnyType tmp = a[ p ];
+        for( j = p; j &gt; 0 &amp;&amp; tmp.compareTo( a[ j - 1 ] ) &lt; 0; j-- )
+            a[ j ] = a[ j - 1 ];
+        a[ j ] = tmp;
+    }
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[3]: Detailed SVG generation prompt: Show an array of numbers [34, 8, 64, 51, 32, 21]. Highlight the first element (34) as sorted. Show an arrow taking the next element (8) and moving it before 34. Style: educational, dark background #0d1117, accent color #00ff00 for sorted portion, #ff0000 for the moving element, viewBox 0 0 800 200. -->
+<div class="svg-diagram" data-diagram-id="3">
+<svg viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="font-family: system-ui, 'Cairo', 'Inter', sans-serif;">
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Definitions for Arrow Markers -->
+    <defs>
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+        </marker>
+    </defs>
+
+    <!-- Title -->
+    <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        Insertion Sort - Step 1 / ترتيب بالإدراج - الخطوة 1
+    </text>
+
+    <!-- ================= ROW 1: INITIAL STATE ================= -->
+    
+    <!-- Indices Row 1 -->
+    <g font-size="14" fill="var(--text-muted)" text-anchor="middle">
+        <text x="200" y="70">0</text>
+        <text x="280" y="70">1</text>
+        <text x="360" y="70">2</text>
+        <text x="440" y="70">3</text>
+        <text x="520" y="70">4</text>
+        <text x="600" y="70">5</text>
+    </g>
+
+    <!-- Array Elements Row 1 -->
+    <!-- Element 0: 34 (Sorted) -->
+    <rect x="170" y="80" width="60" height="60" rx="8" fill="var(--brand-500)" />
+    <text x="200" y="118" font-size="24" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">34</text>
+
+    <!-- Element 1: 8 (Moving/Current) -->
+    <rect x="250" y="80" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" stroke-dasharray="6,6" />
+    <text x="280" y="118" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">8</text>
+
+    <!-- Element 2: 64 (Unsorted) -->
+    <rect x="330" y="80" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="360" y="118" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">64</text>
+
+    <!-- Element 3: 51 (Unsorted) -->
+    <rect x="410" y="80" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="440" y="118" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">51</text>
+
+    <!-- Element 4: 32 (Unsorted) -->
+    <rect x="490" y="80" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="520" y="118" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">32</text>
+
+    <!-- Element 5: 21 (Unsorted) -->
+    <rect x="570" y="80" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="600" y="118" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">21</text>
+
+
+    <!-- ================= ARROWS & ACTIONS ================= -->
+    
+    <!-- Arrow: Moving 8 to index 0 -->
+    <path d="M 280 145 C 280 210, 200 190, 200 252" fill="none" stroke="var(--brand-500)" stroke-width="3" marker-end="url(#arrow-brand)" />
+    
+    <!-- Arrow: Shifting 34 to index 1 -->
+    <path d="M 200 145 C 200 210, 280 190, 280 252" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-muted)" />
+
+    <!-- Straight Arrows for Unsorted Elements -->
+    <path d="M 360 145 L 360 252" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-muted)" />
+    <path d="M 440 145 L 440 252" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-muted)" />
+    <path d="M 520 145 L 520 252" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-muted)" />
+    <path d="M 600 145 L 600 252" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-muted)" />
+
+    <!-- Action Label Pill -->
+    <rect x="170" y="185" width="140" height="30" rx="15" fill="var(--bg-surface)" stroke="var(--border-color)" stroke-width="1" />
+    <text x="240" y="205" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        Insert / إدراج
+    </text>
+
+
+    <!-- ================= ROW 2: AFTER STEP 1 ================= -->
+    
+    <!-- Element 0: 8 (Now Sorted) -->
+    <rect x="170" y="260" width="60" height="60" rx="8" fill="var(--brand-500)" />
+    <text x="200" y="298" font-size="24" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">8</text>
+
+    <!-- Element 1: 34 (Now Sorted) -->
+    <rect x="250" y="260" width="60" height="60" rx="8" fill="var(--brand-500)" />
+    <text x="280" y="298" font-size="24" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">34</text>
+
+    <!-- Element 2: 64 (Unsorted) -->
+    <rect x="330" y="260" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="360" y="298" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">64</text>
+
+    <!-- Element 3: 51 (Unsorted) -->
+    <rect x="410" y="260" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="440" y="298" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">51</text>
+
+    <!-- Element 4: 32 (Unsorted) -->
+    <rect x="490" y="260" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="520" y="298" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">32</text>
+
+    <!-- Element 5: 21 (Unsorted) -->
+    <rect x="570" y="260" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+    <text x="600" y="298" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">21</text>
+
+    <!-- Indices Row 2 -->
+    <g font-size="14" fill="var(--text-muted)" text-anchor="middle">
+        <text x="200" y="340">0</text>
+        <text x="280" y="340">1</text>
+        <text x="360" y="340">2</text>
+        <text x="440" y="340">3</text>
+        <text x="520" y="340">4</text>
+        <text x="600" y="340">5</text>
+    </g>
+
+    <!-- Sorted Portion Bracket -->
+    <path d="M 170 350 L 170 355 L 310 355 L 310 350" fill="none" stroke="var(--brand-500)" stroke-width="2" />
+    <text x="240" y="375" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">
+        Sorted Portion / الجزء المرتب
+    </text>
+
+
+    <!-- ================= LEGEND ================= -->
+    <g transform="translate(250, 410)">
+        <!-- Sorted Legend -->
+        <rect x="0" y="0" width="16" height="16" rx="4" fill="var(--brand-500)" />
+        <text x="24" y="13" font-size="14" fill="var(--text-secondary)" text-anchor="start">Sorted / مرتب</text>
+        
+        <!-- Moving Legend -->
+        <rect x="150" y="0" width="16" height="16" rx="4" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-dasharray="4" />
+        <text x="174" y="13" font-size="14" fill="var(--text-secondary)" text-anchor="start">Moving / يتحرك</text>
+    </g>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو عدد الإزاحات (Shifts) المطلوبة إذا كانت المصفوفة مرتبة ترتيباً عكسياً؟</template>
+      <template class="content-en">How many shifts are required if the array is sorted in reverse order?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>في الترتيب العكسي، كل عنصر جديد يجب مقارنته وإزاحته عبر جميع العناصر السابقة، مما يؤدي إلى الحد الأقصى من الإزاحات وهو N(N-1)/2، أي O(N^2).</p></template>
+      <template class="content-en"><p>In reverse order, every new element must be compared and shifted past all previously sorted elements, leading to the maximum number of shifts: N(N-1)/2, which is O(N^2).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="shellsort" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> ترتيب شيل</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Shellsort</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>نسخة مطورة من ترتيب الإدراج تسمح بتبادل العناصر المتباعدة لتقليل عدد الإزاحات، باستخدام تسلسل من الفجوات (Gaps) يتناقص تدريجياً.</p>
+    </template>
+    <template class="content-en">
+      <p>An improved version of insertion sort that allows the exchange of far items to reduce shifts, using a decreasing sequence of gaps.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يستخدم ترتيب شيل تسلسلاً يسمى <span class="smart-term" data-term-en="Increment Sequence" data-ar="تسلسل الزيادة" data-en-def="The sequence of gaps used in Shellsort to determine which elements are compared and swapped.">تسلسل الزيادة (Increment Sequence)</span> مثل (h1, h2, ..., ht). على عكس ترتيب الإدراج الذي يحرك العناصر خطوة واحدة فقط، يسمح ترتيب شيل بتبادل العناصر البعيدة.</p><p>على سبيل المثال، إذا كان h=5، يتم تبادل العناصر التي تفصل بينها 5 مسافات. يعتمد وقت التشغيل بشكل أساسي على اختيار تسلسل الزيادة.</p><p>تسلسل شيل الأصلي (N/2) يعتبر خياراً سيئاً ويعطي تعقيداً O(N^2) في أسوأ الحالات، بينما <span class="smart-term" data-term-en="Hibbard's Increments" data-ar="زيادات هيبارد" data-en-def="An increment sequence (1, 3, 7, ..., 2^k - 1) that improves Shellsort's worst-case time to O(N^{3/2}).">تسلسل هيبارد (Hibbard's increments)</span> يعطي تعقيداً O(N^{3/2}).</p></template>
+    <template class="content-en"><p>Shellsort uses a sequence called the <span class="smart-term" data-term-en="Increment Sequence" data-ar="تسلسل الزيادة" data-en-def="The sequence of gaps used in Shellsort to determine which elements are compared and swapped.">increment sequence</span> (h1, h2, ..., ht). Unlike insertion sort which moves elements only one position ahead, Shellsort allows the exchange of far items.</p><p>For example, h=5 means you swap items that are 5 positions apart. The running time depends heavily on the choice of increment sequence.</p><p>Shell's suggested sequence (N/2) is a poor choice yielding O(N^2) worst-case, while <span class="smart-term" data-term-en="Hibbard's Increments" data-ar="زيادات هيبارد" data-en-def="An increment sequence (1, 3, 7, ..., 2^k - 1) that improves Shellsort's worst-case time to O(N^{3/2}).">Hibbard's increments</span> yield O(N^{3/2}).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>السبب في أن تسلسل شيل الأصلي سيء هو أن الفجوات الزوجية لا تقوم بخلط العناصر في المواقع الفردية والزوجية حتى الخطوة الأخيرة (h=1)، مما يترك الكثير من العمل للحلقة الأخيرة.</p><p>تسلسلات مثل هيبارد (1, 3, 7, ..., 2^k - 1) تضمن أن تكون الفجوات أعداداً أولية نسبياً، مما يحسن الخلط المبكر للعناصر.</p></template>
+    <template class="content-en"><p>The reason Shell's original sequence is poor is that even gaps do not mix elements in odd and even positions until the very last pass (h=1), leaving too much work for the final insertion sort.</p><p>Sequences like Hibbard's (1, 3, 7, ..., 2^k - 1) ensure gaps are relatively prime, improving early mixing.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>تسلسل الزيادة الأصلي المقترح من شيل (Shell's increments).</strong></template>
+      <template class="content-en"><strong>Shell's original suggested increment sequence.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$h_t = \lfloor N/2 \rfloor, h_k = \lfloor h_{k+1}/2 \rfloor$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>public static &lt;AnyType extends Comparable&lt;? super AnyType&gt;&gt;
+void shellsort( AnyType [ ] a )
+{
+    int j;
+    for( int gap = a.length / 2; gap &gt; 0; gap /= 2 )
+        for( int i = gap; i &lt; a.length; i++ )
+        {
+            AnyType tmp = a[ i ];
+            for( j = i; j &gt;= gap &amp;&amp; tmp.compareTo( a[ j - gap ] ) &lt; 0; j -= gap )
+                a[ j ] = a[ j - gap ];
+            a[ j ] = tmp;
+        }
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Detailed SVG generation prompt: Show an array being sorted with gap=3. Array: [81, 94, 11, 96, 12, 35]. Draw curved lines connecting elements that are 3 indices apart (81 with 96, 94 with 12, 11 with 35). Style: educational, dark background #0d1117, accent colors for different gap groups, viewBox 0 0 800 300. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 350" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow-g1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="var(--brand-500)"/>
+    </marker>
+    <marker id="arrow-g2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="var(--brand-400)"/>
+    </marker>
+    <marker id="arrow-g3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 2 L 10 5 L 0 8 z" fill="var(--text-secondary)"/>
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="var(--bg-surface)"/>
+
+  <text x="400" y="40" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" text-anchor="middle">Shell Sort: Gap = 3 / ترتيب شيل: فجوة = 3</text>
+  <text x="400" y="65" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">Comparing elements 3 indices apart / مقارنة العناصر التي تفصل بينها 3 مؤشرات</text>
+
+  <path d="M 200 190 C 200 70, 440 70, 440 190" fill="none" stroke="var(--brand-500)" stroke-width="2" marker-start="url(#arrow-g1)" marker-end="url(#arrow-g1)"/>
+  <path d="M 280 190 C 280 70, 520 70, 520 190" fill="none" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4" marker-start="url(#arrow-g2)" marker-end="url(#arrow-g2)"/>
+  <path d="M 360 190 C 360 70, 600 70, 600 190" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="2,4" marker-start="url(#arrow-g3)" marker-end="url(#arrow-g3)"/>
+
+  <text x="320" y="85" fill="var(--brand-500)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Group 1 / م 1</text>
+  <text x="400" y="85" fill="var(--brand-400)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Group 2 / م 2</text>
+  <text x="480" y="85" fill="var(--text-secondary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Group 3 / م 3</text>
+
+  <g id="array-group-1">
+    <rect x="170" y="200" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="200" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">81</text>
+    
+    <rect x="410" y="200" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2"/>
+    <text x="440" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">96</text>
+  </g>
+
+  <g id="array-group-2">
+    <rect x="250" y="200" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="280" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">94</text>
+    
+    <rect x="490" y="200" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="520" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">12</text>
+  </g>
+
+  <g id="array-group-3">
+    <rect x="330" y="200" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="2,4"/>
+    <text x="360" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">11</text>
+    
+    <rect x="570" y="200" width="60" height="60" rx="8" fill="var(--bg-elevated)" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="2,4"/>
+    <text x="600" y="238" fill="var(--text-primary)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" text-anchor="middle">35</text>
+  </g>
+
+  <g id="indices">
+    <text x="100" y="225" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">Values</text>
+    <text x="100" y="245" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">القيم</text>
+
+    <text x="100" y="290" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">Indices</text>
+    <text x="100" y="310" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" text-anchor="middle">المؤشرات</text>
+    
+    <text x="200" y="300" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">0</text>
+    <text x="280" y="300" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">1</text>
+    <text x="360" y="300" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">2</text>
+    <text x="440" y="300" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">3</text>
+    <text x="520" y="300" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">4</text>
+    <text x="600" y="300" fill="var(--text-muted)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" text-anchor="middle">5</text>
+  </g>
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يعتبر ترتيب شيل مفيداً عملياً رغم وجود خوارزميات أسرع نظرياً مثل الترتيب السريع؟</template>
+      <template class="content-en">Why is Shellsort practically useful despite the existence of theoretically faster algorithms like Quicksort?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه سهل البرمجة جداً، ولا يستخدم مساحة إضافية (In-place)، وأداؤه ممتاز للمصفوفات متوسطة الحجم (حتى عشرات الآلاف من العناصر) دون التعقيد الإضافي الموجود في الخوارزميات المتقدمة.</p></template>
+      <template class="content-en"><p>Because it is very easy to implement, operates in-place with no extra memory, and performs excellently for moderately sized arrays (up to tens of thousands of elements) without the overhead of more complex algorithms.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="heapsort" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> ترتيب الكومة</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Heapsort</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar">
+      <p>خوارزمية تحول المصفوفة إلى شجرة ثنائية (كومة)، ثم تسحب العنصر الأكبر (الجذر) وتضعه في نهاية المصفوفة بشكل متكرر.</p>
+    </template>
+    <template class="content-en">
+      <p>An algorithm that turns the array into a binary tree (heap), then repeatedly extracts the largest element (the root) and places it at the end of the array.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يعتمد ترتيب الكومة على بنية بيانات الكومة الثنائية (Binary Heap). الكومة هي شجرة ممتلئة تقريباً تحقق خاصية الكومة: في <span class="smart-term" data-term-en="Max-heap" data-ar="كومة الحد الأقصى" data-en-def="A binary tree where every parent node has a value greater than or equal to its children.">كومة الحد الأقصى (Max-heap)</span>، تكون قيمة كل عقدة أكبر من أو تساوي قيم أبنائها.</p><p>لترتيب مصفوفة تصاعدياً، نستخدم Max-heap. تتكون الخوارزمية من مرحلتين:</p><ol><li><strong>بناء الكومة (Build Heap)</strong> وتستغرق أقل من 2N مقارنة.</li><li><strong>مرحلة الترتيب:</strong> تبديل الجذر (أكبر عنصر) مع العنصر الأخير، تقليل حجم الكومة بمقدار 1، ثم إعادة ترتيب الكومة (Fix Heap).</li></ol><p>تتكرر هذه العملية حتى تفرغ الكومة. التعقيد الزمني الكلي في أسوأ الحالات هو O(N log N).</p></template>
+    <template class="content-en"><p>Heapsort relies on the Binary Heap data structure. A heap is an almost complete binary tree that fulfills the heap property: in a <span class="smart-term" data-term-en="Max-heap" data-ar="كومة الحد الأقصى" data-en-def="A binary tree where every parent node has a value greater than or equal to its children.">Max-heap</span>, every node's value is greater than or equal to its children's values.</p><p>To sort an array in increasing order, we use a Max-heap. The algorithm has two phases:</p><ol><li><strong>Build the heap</strong> (takes less than 2N comparisons).</li><li><strong>Sorting phase:</strong> swap the root (largest element) with the last element, decrease heap size by 1, and fix the heap (percolate down).</li></ol><p>This repeats until the heap is empty. The total worst-case time complexity is O(N log N).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم تخزين الكومة بكفاءة داخل مصفوفة أحادية البعد دون الحاجة لمؤشرات. إذا بدأنا الفهرسة من 0، فإن الابن الأيسر للعقدة i يكون في (2i+1)، والابن الأيمن في (2i+2)، والأب في ((i-1)/2).</p><p>هذه الميزة تجعل ترتيب الكومة يعمل في نفس المكان (In-place) بذاكرة إضافية O(1).</p></template>
+    <template class="content-en"><p>The heap is efficiently stored in a 1D array without pointers. If 0-indexed, the left child of node i is at (2i+1), the right child at (2i+2), and the parent at ((i-1)/2).</p><p>This property allows Heapsort to operate strictly in-place with O(1) auxiliary memory.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>التعقيد الزمني لترتيب الكومة في أسوأ الحالات.</strong></template>
+      <template class="content-en"><strong>Worst-case time complexity of Heapsort.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$O(N \log N)$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>java</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>private static int getLeftChildIndex(int index) {
+    return 2 * index + 1;
+}
+private static int getRightChildIndex(int index) {
+    return 2 * index + 2;
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Detailed SVG generation prompt: Show a binary Max-Heap tree and its corresponding array representation. Tree root is 90, children 80 and 70. Array below shows [90, 80, 70, ...]. Draw arrows from array index 0 to index 1 and 2 showing the 2i+1 and 2i+2 relationship. Style: educational, dark background #0d1117, accent color #ffaa00, viewBox 0 0 800 400. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+    <defs>
+        <!-- Arrowhead for Array Relationships -->
+        <marker id="arrow-brand" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--brand-500)" />
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        <text x="400" y="40" font-size="22" font-weight="bold" fill="var(--text-primary)">Max-Heap Array Representation</text>
+        <text x="400" y="65" font-size="16" fill="var(--text-secondary)">تمثيل المصفوفة لكومة الحد الأقصى</text>
+    </g>
+
+    <!-- Tree Edges -->
+    <g stroke="var(--border-color)" stroke-width="2" stroke-linecap="round">
+        <line x1="400" y1="120" x2="280" y2="190" />
+        <line x1="400" y1="120" x2="520" y2="190" />
+        <line x1="280" y1="190" x2="200" y2="260" />
+        <line x1="280" y1="190" x2="360" y2="260" />
+        <line x1="520" y1="190" x2="440" y2="260" />
+        <line x1="520" y1="190" x2="600" y2="260" />
+    </g>
+
+    <!-- Tree Nodes -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central">
+        <!-- Level 2 -->
+        <circle cx="200" cy="260" r="24" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="200" y="260" fill="var(--text-primary)">60</text>
+        <text x="160" y="240" font-size="14" fill="var(--text-muted)">i=3</text>
+
+        <circle cx="360" cy="260" r="24" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="360" y="260" fill="var(--text-primary)">50</text>
+        <text x="320" y="240" font-size="14" fill="var(--text-muted)">i=4</text>
+
+        <circle cx="440" cy="260" r="24" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="440" y="260" fill="var(--text-primary)">40</text>
+        <text x="480" y="240" font-size="14" fill="var(--text-muted)">i=5</text>
+
+        <circle cx="600" cy="260" r="24" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="2" />
+        <text x="600" y="260" fill="var(--text-primary)">30</text>
+        <text x="640" y="240" font-size="14" fill="var(--text-muted)">i=6</text>
+
+        <!-- Level 1 -->
+        <circle cx="280" cy="190" r="24" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4" />
+        <text x="280" y="190" fill="var(--text-primary)">80</text>
+        <text x="240" y="170" font-size="14" fill="var(--brand-500)">i=1</text>
+
+        <circle cx="520" cy="190" r="24" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4" />
+        <text x="520" y="190" fill="var(--text-primary)">70</text>
+        <text x="560" y="170" font-size="14" fill="var(--brand-500)">i=2</text>
+
+        <!-- Root -->
+        <circle cx="400" cy="120" r="24" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+        <text x="400" y="120" fill="var(--text-primary)">90</text>
+        <text x="445" y="100" font-size="15" fill="var(--brand-500)">i=0</text>
+    </g>
+
+    <!-- Array Label -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="end">
+        <text x="170" y="350" font-size="16" font-weight="bold" fill="var(--text-primary)">Array</text>
+        <text x="170" y="370" font-size="14" fill="var(--text-secondary)">مصفوفة</text>
+    </g>
+
+    <!-- Array Representation -->
+    <g transform="translate(190, 330)" font-family="system-ui, 'Cairo', 'Inter', sans-serif" text-anchor="middle">
+        <!-- Box 0 -->
+        <rect x="0" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" rx="4" />
+        <text x="30" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">90</text>
+        <text x="30" y="-10" font-size="15" font-weight="bold" fill="var(--brand-500)">0</text>
+
+        <!-- Box 1 -->
+        <rect x="60" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4" rx="4" />
+        <text x="90" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">80</text>
+        <text x="90" y="-10" font-size="14" font-weight="bold" fill="var(--brand-500)">1</text>
+
+        <!-- Box 2 -->
+        <rect x="120" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="4" rx="4" />
+        <text x="150" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">70</text>
+        <text x="150" y="-10" font-size="14" font-weight="bold" fill="var(--brand-500)">2</text>
+
+        <!-- Box 3 -->
+        <rect x="180" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4" />
+        <text x="210" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">60</text>
+        <text x="210" y="-10" font-size="14" fill="var(--text-muted)">3</text>
+
+        <!-- Box 4 -->
+        <rect x="240" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4" />
+        <text x="270" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">50</text>
+        <text x="270" y="-10" font-size="14" fill="var(--text-muted)">4</text>
+
+        <!-- Box 5 -->
+        <rect x="300" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4" />
+        <text x="330" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">40</text>
+        <text x="330" y="-10" font-size="14" fill="var(--text-muted)">5</text>
+
+        <!-- Box 6 -->
+        <rect x="360" y="0" width="60" height="50" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" rx="4" />
+        <text x="390" y="32" font-size="18" font-weight="bold" fill="var(--text-primary)">30</text>
+        <text x="390" y="-10" font-size="14" fill="var(--text-muted)">6</text>
+    </g>
+
+    <!-- Array Relationship Arrows -->
+    <g fill="none" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-brand)">
+        <!-- Left Child (2i+1) -->
+        <path d="M 210 380 C 210 430, 280 430, 280 388" />
+        <!-- Right Child (2i+2) -->
+        <path d="M 230 380 C 230 490, 340 490, 340 388" />
+    </g>
+
+    <!-- Arrow Labels -->
+    <g font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">
+        <text x="245" y="425">Left Child / الابن الأيسر: 2i+1</text>
+        <text x="285" y="485">Right Child / الابن الأيمن: 2i+2</text>
+    </g>
+
+    <!-- Formula Box -->
+    <g transform="translate(620, 330)" font-family="system-ui, 'Cairo', 'Inter', sans-serif">
+        <rect x="0" y="0" width="160" height="130" rx="8" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="1" />
+        <text x="80" y="25" font-size="14" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Index Formulas</text>
+        <text x="80" y="45" font-size="12" fill="var(--text-secondary)" text-anchor="middle">صيغ الفهرس</text>
+
+        <text x="15" y="70" font-size="13" fill="var(--brand-500)" font-weight="bold">Left:</text>
+        <text x="55" y="70" font-size="13" fill="var(--text-primary)">2i + 1</text>
+
+        <text x="15" y="90" font-size="13" fill="var(--brand-500)" font-weight="bold">Right:</text>
+        <text x="60" y="90" font-size="13" fill="var(--text-primary)">2i + 2</text>
+
+        <text x="15" y="110" font-size="13" fill="var(--brand-500)" font-weight="bold">Parent:</text>
+        <text x="65" y="110" font-size="13" fill="var(--text-primary)">⌊(i - 1) / 2⌋</text>
+    </g>
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Max-heap</th>
+        <th>Min-heap</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">خاصية الجذر</template>
+          <template class="content-en">Root Property</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">يحتوي على أكبر عنصر</template>
+          <template class="content-en">Contains the largest element</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-neutral" data-bilingual>
+          <template class="content-ar">يحتوي على أصغر عنصر</template>
+          <template class="content-en">Contains the smallest element</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">نتيجة الترتيب (في نفس المصفوفة)</template>
+          <template class="content-en">Sorting Result (In-place)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ترتيب تصاعدي (Increasing)</template>
+          <template class="content-en">Increasing sorted order</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">ترتيب تنازلي (Decreasing)</template>
+          <template class="content-en">Decreasing sorted order</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا نستخدم كومة الحد الأقصى (Max-heap) لترتيب العناصر تصاعدياً بدلاً من كومة الحد الأدنى (Min-heap)؟</template>
+      <template class="content-en">Why do we use a Max-heap to sort elements in increasing order instead of a Min-heap?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأننا في كل خطوة نستخرج الجذر (أكبر عنصر في Max-heap) ونضعه في نهاية المصفوفة (في المساحة التي تم تفريغها من الكومة). هذا يملأ المصفوفة من الأكبر إلى الأصغر من اليمين لليسار، مما ينتج مصفوفة مرتبة تصاعدياً في نفس المكان (In-place).</p></template>
+      <template class="content-en"><p>Because at each step we extract the root (the maximum element) and place it at the end of the array (in the space just vacated by the heap shrinking). This fills the array from largest to smallest, right to left, resulting in an in-place increasing sort.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أبطال الخوارزميات. في هذه الوحدة، نغوص في عالم الترتيب (Sorting)، وهو من أهم المواضيع في علوم الحاسب. تخيل أنك ترتب أوراق اللعب في يدك؛ هذا بالضبط ما يفعله 'ترتيب الإدراج' (Insertion Sort). إنه بسيط، لكنه بطيء O(N^2) للمصفوفات الكبيرة، إلا إذا كانت مرتبة مسبقاً! ثم يأتي 'ترتيب شيل' (Shellsort) كترقية ذكية، حيث يسمح بتبادل العناصر البعيدة لتقليل الجهد، وسرعته تعتمد كلياً على 'تسلسل الزيادة' الذي تختاره. وأخيراً، نجم هذه الوحدة: 'ترتيب الكومة' (Heapsort). هذا العبقري يحول المصفوفة إلى شجرة (Max-heap)، ثم يسحب العنصر الأكبر مراراً وتكراراً ليضعه في النهاية. النتيجة؟ ترتيب مضمون بتعقيد O(N log N) دون استخدام أي ذاكرة إضافية. ركزوا جيداً على كيفية حساب فهارس الأبناء في المصفوفة (2i+1 و 2i+2)، فهذا سؤال كلاسيكي في الامتحانات! بالتوفيق.</template>
+    <template class="content-en">Welcome, algorithm champions. In this module, we dive into Sorting. Imagine sorting playing cards in your hand; that's exactly 'Insertion Sort'. It's simple but slow O(N^2) for large arrays, unless they are presorted! Then comes 'Shellsort' as a clever upgrade, allowing far elements to swap to save effort. Its speed entirely depends on the 'increment sequence' you choose. Finally, the star of the show: 'Heapsort'. This genius algorithm turns the array into a tree (Max-heap), then repeatedly extracts the largest element to place it at the end. The result? A guaranteed O(N log N) sort without extra memory. Pay close attention to how child indices are calculated in the array (2i+1 and 2i+2)—that's a classic exam question! Good luck.</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نعتبر ترتيب الإدراج O(N) في أفضل الحالات؟</template>
+          <template class="content-en">Why is Insertion Sort O(N) in the best case?</template>
+          <span class="content-target">لماذا نعتبر ترتيب الإدراج O(N) في أفضل الحالات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنه إذا كانت المصفوفة مرتبة مسبقاً، فإن شرط المقارنة في الحلقة الداخلية يفشل فوراً في كل مرة، فلا تحدث أي إزاحات، وتمر الخوارزمية على العناصر مرة واحدة فقط.</template>
+          <template class="content-en">Because if the array is presorted, the comparison condition in the inner loop fails immediately every time. No shifts occur, and the algorithm just passes through the elements once.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الجوهري بين الخوارزميات التسلسلية واللوغاريتمية؟</template>
+          <template class="content-en">What is the fundamental difference between sequential and logarithmic sorts?</template>
+          <span class="content-target">ما هو الفرق الجوهري بين الخوارزميات التسلسلية واللوغاريتمية؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الخوارزميات التسلسلية (مثل الإدراج) تقارن العناصر بشكل متجاور تقريباً وتتطلب O(N^2) مقارنة، بينما اللوغاريتمية (مثل الكومة) تستخدم استراتيجيات تقسيم أو هياكل بيانات متقدمة لتقليل المقارنات إلى O(N log N).</template>
+          <template class="content-en">Sequential sorts (like Insertion) compare mostly adjacent elements requiring O(N^2) comparisons, while logarithmic sorts (like Heapsort) use divide-and-conquer or advanced data structures to reduce comparisons to O(N log N).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يحل ترتيب شيل مشكلة البطء في ترتيب الإدراج؟</template>
+          <template class="content-en">How does Shellsort solve the slowness of Insertion Sort?</template>
+          <span class="content-target">كيف يحل ترتيب شيل مشكلة البطء في ترتيب الإدراج؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">ترتيب الإدراج يحرك العناصر خطوة واحدة فقط في كل مرة. ترتيب شيل يسمح بتبادل العناصر المتباعدة (بناءً على فجوة Gap)، مما ينقل العناصر الصغيرة إلى بداية المصفوفة بسرعة كبيرة.</template>
+          <template class="content-en">Insertion sort moves elements only one step at a time. Shellsort allows swapping far-apart elements (based on a gap), moving small elements to the front of the array very quickly.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يعتبر تسلسل شيل الأصلي (N/2) خياراً سيئاً؟</template>
+          <template class="content-en">Why is Shell's original increment sequence (N/2) considered a poor choice?</template>
+          <span class="content-target">لماذا يعتبر تسلسل شيل الأصلي (N/2) خياراً سيئاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الفجوات الزوجية لا تقوم بخلط العناصر الموجودة في المواقع الفردية مع الزوجية حتى الخطوة الأخيرة (عندما تكون الفجوة 1)، مما يجعل الخطوة الأخيرة بطيئة جداً O(N^2).</template>
+          <template class="content-en">Because even gaps do not mix elements in odd and even positions until the very last pass (when gap=1), making that final pass very slow O(N^2).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي المرحلتان الأساسيتان في خوارزمية ترتيب الكومة (Heapsort)؟</template>
+          <template class="content-en">What are the two main phases in the Heapsort algorithm?</template>
+          <span class="content-target">ما هي المرحلتان الأساسيتان في خوارزمية ترتيب الكومة (Heapsort)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المرحلة الأولى: بناء الكومة (Build Heap) وتأخذ O(N). المرحلة الثانية: سحب الجذر مراراً وتكراراً ووضعه في نهاية المصفوفة وإعادة ترتيب الكومة، وتأخذ O(N log N).</template>
+          <template class="content-en">Phase 1: Build the heap, which takes O(N). Phase 2: Repeatedly extract the root, place it at the end of the array, and fix the heap, which takes O(N log N).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم Max-heap لترتيب المصفوفة تصاعدياً بدلاً من Min-heap؟</template>
+          <template class="content-en">Why do we use a Max-heap to sort an array in increasing order instead of a Min-heap?</template>
+          <span class="content-target">لماذا نستخدم Max-heap لترتيب المصفوفة تصاعدياً بدلاً من Min-heap؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأننا في كل خطوة نسحب أكبر عنصر (الجذر) ونضعه في المساحة الفارغة في نهاية المصفوفة. هذا يبني المصفوفة المرتبة من الأكبر للأصغر (من اليمين لليسار)، مما ينتج ترتيباً تصاعدياً في نفس المكان.</template>
+          <template class="content-en">Because at each step we extract the largest element (root) and place it in the vacated space at the end of the array. This builds the sorted array from largest to smallest (right to left), resulting in an in-place increasing sort.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نجد الابن الأيسر والأيمن لعقدة في الفهرس i داخل مصفوفة تبدأ من 0؟</template>
+          <template class="content-en">How do we find the left and right child of a node at index i in a 0-indexed array?</template>
+          <span class="content-target">كيف نجد الابن الأيسر والأيمن لعقدة في الفهرس i داخل مصفوفة تبدأ من 0؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الابن الأيسر يكون في الفهرس (2i + 1)، والابن الأيمن في الفهرس (2i + 2).</template>
+          <template class="content-en">The left child is at index (2i + 1), and the right child is at index (2i + 2).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا يحدث لحجم الكومة (Heap Size) أثناء المرحلة الثانية من ترتيب الكومة؟</template>
+          <template class="content-en">What happens to the heap size during the second phase of Heapsort?</template>
+          <span class="content-target">ماذا يحدث لحجم الكومة (Heap Size) أثناء المرحلة الثانية من ترتيب الكومة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يتقلص حجم الكومة بمقدار 1 في كل خطوة، لأننا نعتبر العنصر الأخير الذي تم تبديله جزءاً من المصفوفة المرتبة وليس جزءاً من الكومة بعد الآن.</template>
+          <template class="content-en">The heap size decreases by 1 at each step, because the swapped last element is now considered part of the sorted array and no longer part of the heap.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">هل يتطلب ترتيب الكومة ذاكرة إضافية (Extra Memory)؟</template>
+          <template class="content-en">Does Heapsort require extra memory?</template>
+          <span class="content-target">هل يتطلب ترتيب الكومة ذاكرة إضافية (Extra Memory)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لا، ترتيب الكومة يعمل في نفس المكان (In-place) ويحتاج فقط إلى مساحة إضافية O(1) للمتغيرات المؤقتة أثناء التبديل.</template>
+          <template class="content-en">No, Heapsort is an in-place sorting algorithm and only requires O(1) extra space for temporary variables during swapping.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التعقيد الزمني لترتيب الكومة في أسوأ حالة، ولماذا؟</template>
+          <template class="content-en">What is the worst-case time complexity of Heapsort, and why?</template>
+          <span class="content-target">ما هو التعقيد الزمني لترتيب الكومة في أسوأ حالة، ولماذا؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">التعقيد هو O(N log N). بناء الكومة يأخذ O(N)، ثم نقوم بسحب N عناصر، وكل عملية سحب تتطلب إعادة ترتيب الكومة (Percolate Down) والتي تأخذ O(log N).</template>
+          <template class="content-en">The complexity is O(N log N). Building the heap takes O(N), then we extract N elements, and each extraction requires fixing the heap (percolate down) which takes O(log N).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هو الترتيب (Sorting)؟",
+      "en": "What is Sorting?"
+    },
+    "back": {
+      "definition": {
+        "ar": "عملية ترتيب مجموعة من العناصر بنسق محدد بناءً على معيار معين.",
+        "en": "The process of arranging a group of items into a defined order based on a particular criteria."
+      },
+      "example": {
+        "ar": "ترتيب الأرقام تصاعدياً أو تنازلياً.",
+        "en": "Sorting numbers in increasing or decreasing order."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هو التعقيد الزمني النموذجي للخوارزميات التسلسلية (Sequential Sorts)؟",
+      "en": "What is the typical time complexity of Sequential Sorts?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تتطلب حوالي O(N^2) من المقارنات.",
+        "en": "They require approximately O(N^2) comparisons."
+      },
+      "example": {
+        "ar": "ترتيب الإدراج (Insertion Sort).",
+        "en": "Insertion Sort."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هو التعقيد الزمني النموذجي للخوارزميات اللوغاريتمية (Logarithmic Sorts)؟",
+      "en": "What is the typical time complexity of Logarithmic Sorts?"
+    },
+    "back": {
+      "definition": {
+        "ar": "تتطلب عادة O(N log N) من المقارنات.",
+        "en": "They typically require O(N log N) comparisons."
+      },
+      "example": {
+        "ar": "الترتيب السريع (Quick Sort).",
+        "en": "Quick Sort."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "كيف يعمل ترتيب الإدراج (Insertion Sort)؟",
+      "en": "How does Insertion Sort work?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يرتب القائمة عن طريق إدراج عنصر جديد بشكل متكرر في قائمة فرعية مرتبة مسبقاً.",
+        "en": "It sorts a list by repeatedly inserting a new element into a sorted sublist."
+      },
+      "example": {
+        "ar": "مثل ترتيب أوراق اللعب في اليد.",
+        "en": "Like sorting playing cards in your hand."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لترتيب الإدراج في أفضل حالة (Best Case)؟",
+      "en": "What is the best-case time complexity of Insertion Sort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N) عندما تكون المدخلات مرتبة مسبقاً.",
+        "en": "O(N) when the input is presorted."
+      },
+      "example": {
+        "ar": "لأن شرط الحلقة الداخلية يفشل فوراً ولا تحدث إزاحات.",
+        "en": "Because the test in the inner loop always fails immediately."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لترتيب الإدراج في أسوأ حالة (Worst Case)؟",
+      "en": "What is the worst-case time complexity of Insertion Sort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N^2) بسبب الحلقات المتداخلة.",
+        "en": "O(N^2) because of the nested loops."
+      },
+      "example": {
+        "ar": "عندما تكون المصفوفة مرتبة ترتيباً عكسياً.",
+        "en": "When the array is sorted in reverse order."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هي الميزة الرئيسية لترتيب شيل (Shellsort) مقارنة بترتيب الإدراج؟",
+      "en": "What is the main advantage of Shellsort over Insertion Sort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يسمح بتبادل العناصر المتباعدة بدلاً من تحريكها خطوة واحدة فقط.",
+        "en": "It allows the exchange of far items instead of moving elements only one position ahead."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هو تسلسل الزيادة (Increment Sequence) في ترتيب شيل؟",
+      "en": "What is the Increment Sequence in Shellsort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو تسلسل الفجوات (h1, h2, ..., ht) المستخدم لتحديد المسافة بين العناصر التي يتم مقارنتها.",
+        "en": "The sequence of gaps (h1, h2, ..., ht) used to determine the distance between compared elements."
+      },
+      "example": {
+        "ar": "تسلسل شيل الأصلي: N/2 ثم القسمة على 2.",
+        "en": "Shell's original sequence: N/2, then divide by 2."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لترتيب شيل في أسوأ حالة عند استخدام تسلسل شيل الأصلي؟",
+      "en": "What is the worst-case time complexity of Shellsort using Shell's increments?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N^2). يعتبر خياراً سيئاً.",
+        "en": "O(N^2). It is considered a poor choice."
+      },
+      "example": {
+        "ar": "لأنه لا يخلط العناصر الفردية والزوجية مبكراً.",
+        "en": "Because it doesn't mix odd and even elements early."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هو التعقيد الزمني لترتيب شيل في أسوأ حالة عند استخدام زيادات هيبارد (Hibbard's increments)؟",
+      "en": "What is the worst-case time complexity of Shellsort using Hibbard's increments?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N^{3/2}).",
+        "en": "O(N^{3/2})."
+      },
+      "example": {
+        "ar": "التسلسل هو (1, 3, 7, ..., 2^k - 1).",
+        "en": "The sequence is (1, 3, 7, ..., 2^k - 1)."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هي شروط بنية الكومة (Heap)؟",
+      "en": "What are the conditions for a Heap data structure?"
+    },
+    "back": {
+      "definition": {
+        "ar": "1) شجرة ممتلئة تقريباً. 2) تحقق خاصية الكومة (قيمة الأب أكبر/أصغر من أبنائه).",
+        "en": "1) It is a completely filled binary tree (with possible exceptions at the last level). 2) It fulfills the heap property."
+      },
+      "example": {
+        "ar": "Max-heap أو Min-heap.",
+        "en": "Max-heap or Min-heap."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هي خاصية كومة الحد الأقصى (Max-heap property)؟",
+      "en": "What is the Max-heap property?"
+    },
+    "back": {
+      "definition": {
+        "ar": "كل عقدة تحتوي على قيمة أكبر من أو تساوي قيم أبنائها، مما يضمن أن أكبر عنصر هو الجذر.",
+        "en": "All nodes store values at least as large as their descendants, ensuring the largest element is at the root."
+      },
+      "example": {
+        "ar": "الجذر 90، وأبناؤه 80 و 70.",
+        "en": "Root is 90, children are 80 and 70."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "كيف يتم حساب فهارس الأبناء في مصفوفة الكومة (بافتراض الفهرس يبدأ من 0)؟",
+      "en": "How are child indices calculated in a heap array (assuming 0-indexed)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الابن الأيسر: 2i + 1. الابن الأيمن: 2i + 2.",
+        "en": "Left child: 2i + 1. Right child: 2i + 2."
+      },
+      "example": {
+        "ar": "إذا كان الجذر في 0، أبناؤه في 1 و 2.",
+        "en": "If root is at 0, children are at 1 and 2."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي المرحلة الأولى في ترتيب الكومة (Heapsort) وكم عدد المقارنات التي تستخدمها؟",
+      "en": "What is the first phase of Heapsort and how many comparisons does it use?"
+    },
+    "back": {
+      "definition": {
+        "ar": "بناء الكومة (Build Heap)، وتستخدم أقل من 2N مقارنة.",
+        "en": "Building the heap, which uses less than 2N comparisons."
+      },
+      "example": {
+        "ar": "تحويل المصفوفة العشوائية إلى Max-heap.",
+        "en": "Converting the random array into a Max-heap."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "ما هو التعقيد الزمني الكلي لترتيب الكومة في أسوأ حالة؟",
+      "en": "What is the total worst-case time complexity of Heapsort?"
+    },
+    "back": {
+      "definition": {
+        "ar": "O(N log N).",
+        "en": "O(N log N)."
+      },
+      "example": {
+        "ar": "بناء الكومة O(N) + سحب العناصر O(N log N).",
+        "en": "Build heap O(N) + extracting elements O(N log N)."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من خوارزميات الترتيب التالية تعتبر خوارزمية تسلسلية (Sequential Sort)؟",
+      "en": "Which of the following sorting algorithms is considered a Sequential Sort?"
+    },
+    "options": {
+      "ar": [
+        "الترتيب السريع (Quick Sort)",
+        "ترتيب الكومة (Heap Sort)",
+        "ترتيب الإدراج (Insertion Sort)",
+        "ترتيب الدمج (Merge Sort)"
+      ],
+      "en": [
+        "Quick Sort",
+        "Heap Sort",
+        "Insertion Sort",
+        "Merge Sort"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "ترتيب الإدراج هو خوارزمية تسلسلية تتطلب حوالي O(N^2) مقارنة في أسوأ الحالات.",
+      "en": "Insertion Sort is a sequential algorithm that requires approximately O(N^2) comparisons in the worst case."
+    },
+    "hint": {
+      "ar": "ابحث عن الخوارزمية ذات التعقيد O(N^2).",
+      "en": "Look for the algorithm with O(N^2) complexity."
+    },
+    "difficulty": "easy",
+    "conceptId": "introduction-to-sorting"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو التعقيد الزمني لترتيب الإدراج إذا كانت المصفوفة المدخلة مرتبة مسبقاً؟",
+      "en": "What is the time complexity of Insertion Sort if the input array is already presorted?"
+    },
+    "options": {
+      "ar": [
+        "O(N^2)",
+        "O(N log N)",
+        "O(N)",
+        "O(1)"
+      ],
+      "en": [
+        "O(N^2)",
+        "O(N log N)",
+        "O(N)",
+        "O(1)"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "إذا كانت المصفوفة مرتبة، فإن شرط الحلقة الداخلية يفشل فوراً، مما يجعل الخوارزمية تمر على العناصر مرة واحدة فقط O(N).",
+      "en": "If the array is sorted, the inner loop condition fails immediately, making the algorithm pass through the elements only once O(N)."
+    },
+    "hint": {
+      "ar": "لا توجد حاجة لأي إزاحات (Shifts).",
+      "en": "No shifts are needed."
+    },
+    "difficulty": "medium",
+    "conceptId": "insertion-sort"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "أي خوارزمية تستخدم 'تسلسل الزيادة' (Increment Sequence) لتبادل العناصر المتباعدة؟",
+      "en": "Which algorithm uses an 'increment sequence' to exchange far items?"
+    },
+    "options": {
+      "ar": [
+        "ترتيب الإدراج",
+        "ترتيب شيل",
+        "ترتيب الكومة",
+        "الترتيب السريع"
+      ],
+      "en": [
+        "Insertion Sort",
+        "Shellsort",
+        "Heapsort",
+        "Quick Sort"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "ترتيب شيل هو الخوارزمية التي تستخدم تسلسل الزيادة (مثل N/2) لتقليل عدد الإزاحات.",
+      "en": "Shellsort is the algorithm that uses an increment sequence (like N/2) to reduce the number of shifts."
+    },
+    "hint": {
+      "ar": "هي نسخة مطورة من ترتيب الإدراج.",
+      "en": "It is an improved version of Insertion Sort."
+    },
+    "difficulty": "easy",
+    "conceptId": "shellsort"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هو التعقيد الزمني في أسوأ حالة لترتيب شيل عند استخدام تسلسل شيل الأصلي (N/2)؟",
+      "en": "What is the worst-case time complexity of Shellsort using Shell's original increments (N/2)?"
+    },
+    "options": {
+      "ar": [
+        "O(N)",
+        "O(N log N)",
+        "O(N^{3/2})",
+        "O(N^2)"
+      ],
+      "en": [
+        "O(N)",
+        "O(N log N)",
+        "O(N^{3/2})",
+        "O(N^2)"
+      ]
+    },
+    "correctIndex": 3,
+    "explanation": {
+      "ar": "تسلسل شيل الأصلي يعتبر خياراً سيئاً ويعطي تعقيداً O(N^2) في أسوأ الحالات.",
+      "en": "Shell's original sequence is a poor choice and yields O(N^2) in the worst case."
+    },
+    "hint": {
+      "ar": "إنه نفس تعقيد ترتيب الإدراج في أسوأ حالة.",
+      "en": "It's the same as Insertion Sort's worst case."
+    },
+    "difficulty": "medium",
+    "conceptId": "shellsort"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "لترتيب مصفوفة ترتيباً تصاعدياً (Increasing Order) باستخدام ترتيب الكومة، أي نوع من الكومة يجب استخدامه؟",
+      "en": "To sort an array in increasing order using Heapsort, which type of heap should be used?"
+    },
+    "options": {
+      "ar": [
+        "كومة الحد الأدنى (Min-heap)",
+        "كومة الحد الأقصى (Max-heap)",
+        "شجرة بحث ثنائية (BST)",
+        "لا يهم"
+      ],
+      "en": [
+        "Min-heap",
+        "Max-heap",
+        "Binary Search Tree (BST)",
+        "It doesn't matter"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "نستخدم Max-heap لأننا نستخرج العنصر الأكبر ونضعه في نهاية المصفوفة، مما يبني المصفوفة المرتبة تصاعدياً من اليمين لليسار.",
+      "en": "We use a Max-heap because we extract the largest element and place it at the end of the array, building the sorted array from right to left."
+    },
+    "hint": {
+      "ar": "أكبر عنصر يذهب إلى النهاية أولاً.",
+      "en": "The largest element goes to the end first."
+    },
+    "difficulty": "medium",
+    "conceptId": "heapsort"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "في تمثيل الكومة كمصفوفة (تبدأ من الفهرس 0)، ما هو فهرس الابن الأيسر للعقدة i؟",
+      "en": "In an array representation of a heap (0-indexed), what is the index of the left child of node i?"
+    },
+    "options": {
+      "ar": [
+        "2i",
+        "2i + 1",
+        "2i + 2",
+        "(i - 1) / 2"
+      ],
+      "en": [
+        "2i",
+        "2i + 1",
+        "2i + 2",
+        "(i - 1) / 2"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "في المصفوفة التي تبدأ من 0، الابن الأيسر هو 2i+1 والابن الأيمن هو 2i+2.",
+      "en": "In a 0-indexed array, the left child is 2i+1 and the right child is 2i+2."
+    },
+    "hint": {
+      "ar": "إذا كان الأب في 0، الابن الأيسر في 1.",
+      "en": "If parent is at 0, left child is at 1."
+    },
+    "difficulty": "hard",
+    "conceptId": "heapsort"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "كم عدد المقارنات المستخدمة في المرحلة الأولى (بناء الكومة) من خوارزمية ترتيب الكومة؟",
+      "en": "How many comparisons are used in the first phase (Building the heap) of Heapsort?"
+    },
+    "options": {
+      "ar": [
+        "أقل من N",
+        "أقل من 2N",
+        "O(N log N)",
+        "O(N^2)"
+      ],
+      "en": [
+        "Less than N",
+        "Less than 2N",
+        "O(N log N)",
+        "O(N^2)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "مرحلة بناء الكومة خطية وتستخدم أقل من 2N مقارنة.",
+      "en": "The build heap phase is linear and uses less than 2N comparisons."
+    },
+    "hint": {
+      "ar": "إنها عملية خطية O(N).",
+      "en": "It is a linear O(N) operation."
+    },
+    "difficulty": "hard",
+    "conceptId": "heapsort"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هو التعقيد الزمني الكلي لترتيب الكومة في أسوأ حالة؟",
+      "en": "What is the total worst-case time complexity of Heapsort?"
+    },
+    "options": {
+      "ar": [
+        "O(N)",
+        "O(N log N)",
+        "O(N^{3/2})",
+        "O(N^2)"
+      ],
+      "en": [
+        "O(N)",
+        "O(N log N)",
+        "O(N^{3/2})",
+        "O(N^2)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "ترتيب الكومة يضمن تعقيداً زمنياً O(N log N) في أسوأ الحالات.",
+      "en": "Heapsort guarantees an O(N log N) time complexity in the worst case."
+    },
+    "hint": {
+      "ar": "إنه ترتيب لوغاريتمي.",
+      "en": "It is a logarithmic sort."
+    },
+    "difficulty": "medium",
+    "conceptId": "heapsort"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "في المرحلة الثانية من ترتيب الكومة، ماذا نفعل بعد تبديل الجذر مع العنصر الأخير؟",
+      "en": "In the second phase of Heapsort, what do we do after swapping the root with the last element?"
+    },
+    "options": {
+      "ar": [
+        "نزيد حجم الكومة بمقدار 1",
+        "نفصل العنصر الأخير (نقلل حجم الكومة) ونعيد ترتيب الكومة",
+        "نعيد بناء الكومة من الصفر",
+        "نتوقف عن الخوارزمية"
+      ],
+      "en": [
+        "Increase the heap size by 1",
+        "Disconnect the last element (decrease heap size) and fix the heap",
+        "Rebuild the heap from scratch",
+        "Stop the algorithm"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "بعد التبديل، يصبح العنصر الأكبر في مكانه الصحيح، لذا نقلل حجم الكومة بمقدار 1 ونقوم بعملية Fix Heap (Percolate Down) للجذر الجديد.",
+      "en": "After swapping, the largest element is in its correct place, so we decrease the heap size by 1 and fix the heap (percolate down) for the new root."
+    },
+    "hint": {
+      "ar": "العنصر الأخير أصبح مرتباً ولا يجب المساس به.",
+      "en": "The last element is now sorted and shouldn't be touched."
+    },
+    "difficulty": "medium",
+    "conceptId": "heapsort"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "أي من تسلسلات الزيادة التالية يحسن وقت التشغيل لترتيب شيل إلى O(N^{3/2})؟",
+      "en": "Which of the following increment sequences improves Shellsort's running time to O(N^{3/2})?"
+    },
+    "options": {
+      "ar": [
+        "تسلسل شيل (N/2)",
+        "تسلسل هيبارد (Hibbard's increments)",
+        "تسلسل فيبوناتشي",
+        "تسلسل الأعداد الزوجية"
+      ],
+      "en": [
+        "Shell's sequence (N/2)",
+        "Hibbard's increments",
+        "Fibonacci sequence",
+        "Even numbers sequence"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تسلسل هيبارد (1, 3, 7, ..., 2^k - 1) يضمن خلطاً أفضل للعناصر ويحسن التعقيد إلى O(N^{3/2}).",
+      "en": "Hibbard's increments (1, 3, 7, ..., 2^k - 1) ensure better mixing and improve the complexity to O(N^{3/2})."
+    },
+    "hint": {
+      "ar": "يبدأ بـ 1، 3، 7...",
+      "en": "Starts with 1, 3, 7..."
+    },
+    "difficulty": "hard",
+    "conceptId": "shellsort"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن ترتيب الكومة (Heapsort) له تعقيد O(N^2) في أسوأ الحالات. الحقيقة أنه يضمن O(N log N) دائماً.</template>
+      <template class="content-en">Thinking Heapsort has an O(N^2) worst-case complexity. In reality, it strictly guarantees O(N log N).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">ترتيب الإدراج يكون سريعاً جداً (O(N)) إذا كانت المصفوفة شبه مرتبة، مما يجعله الخيار المفضل كجزء من خوارزميات الترتيب المتقدمة للمصفوفات الصغيرة.</template>
+      <template class="content-en">Insertion sort is incredibly fast (O(N)) if the array is nearly sorted, making it the preferred choice as a subroutine in advanced sorting algorithms for small arrays.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">ترتيب شيل هو ببساطة تعميم لترتيب الإدراج. بدلاً من مقارنة العناصر المتجاورة، يقارن العناصر التي تفصل بينها 'فجوة' تتناقص تدريجياً حتى تصل إلى 1.</template>
+      <template class="content-en">Shellsort is simply a generalization of Insertion Sort. Instead of comparing adjacent elements, it compares elements separated by a 'gap' that gradually decreases to 1.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">نسيان أن فهارس المصفوفة تبدأ من 0 عند برمجة الكومة. إذا بدأت من 0، الابن الأيسر هو 2i+1. إذا بدأت من 1، الابن الأيسر هو 2i.</template>
+      <template class="content-en">Forgetting that array indices start at 0 when implementing a heap. If 0-indexed, left child is 2i+1. If 1-indexed, left child is 2i.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">لترتيب مصفوفة تصاعدياً باستخدام Heapsort، يجب استخدام Max-heap وليس Min-heap، لأننا ننقل العنصر الأكبر إلى نهاية المصفوفة في كل خطوة.</template>
+      <template class="content-en">To sort an array in increasing order using Heapsort, you MUST use a Max-heap, not a Min-heap, because we move the largest element to the end of the array at each step.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M08.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M10.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

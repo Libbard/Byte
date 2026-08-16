@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS242" data-module="13">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الافتراضات والمحمولات (المنطق الرياضي) · CS242 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS242" data-page-title-en="CS242">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M12.html" data-gh-next="index.html" data-gh-card="../../hub/course.html?code=CS242"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#randomized-turing-machines" class="toc-link" data-bilingual>
+        <template class="content-ar">آلات تورنغ العشوائية وفئات التعقيد</template>
+        <template class="content-en">Randomized Turing Machines and Complexity Classes</template>
+        <span class="content-target">آلات تورنغ العشوائية وفئات التعقيد</span>
+      </a>
+      <a href="#propositions-and-logical-operators" class="toc-link" data-bilingual>
+        <template class="content-ar">الافتراضات والروابط المنطقية</template>
+        <template class="content-en">Propositions and Logical Operators</template>
+        <span class="content-target">الافتراضات والروابط المنطقية</span>
+      </a>
+      <a href="#conjunctive-normal-form" class="toc-link" data-bilingual>
+        <template class="content-ar">الصيغة الطبيعية العطفية (CNF)</template>
+        <template class="content-en">Conjunctive Normal Form (CNF)</template>
+        <span class="content-target">الصيغة الطبيعية العطفية (CNF)</span>
+      </a>
+      <a href="#rules-of-inference" class="toc-link" data-bilingual>
+        <template class="content-ar">قواعد الاستدلال</template>
+        <template class="content-en">Rules of Inference</template>
+        <span class="content-target">قواعد الاستدلال</span>
+      </a>
+      <a href="#predicate-calculus-quantifiers" class="toc-link" data-bilingual>
+        <template class="content-ar">حساب المحمولات والمُكَمِّمات</template>
+        <template class="content-en">Predicate Calculus and Quantifiers</template>
+        <span class="content-target">حساب المحمولات والمُكَمِّمات</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 13</template>
+      <template class="content-en">Module 13</template>
+      <span class="content-target">الوحدة 13</span>
+    </span> · CS242
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">الافتراضات والمحمولات (المنطق الرياضي)</h1>
+      <p class="hero-description">تغطي هذه الوحدة الفئات اللغوية المعتمدة على العشوائية (RP و ZPP)، واختبار الأولية، بالإضافة إلى أسس المنطق الرياضي بما في ذلك الافتراضات، الصيغ حسنة التكوين، قواعد الاستدلال، وحساب المحمولات.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Propositions and Predicates</h1>
+      <p class="hero-description">This module covers language classes based on randomization (RP and ZPP), primality testing, and the foundations of mathematical logic including propositions, well-formed formulas, rules of inference, and predicate calculus.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المنطق الرياضي</span>
+      <span class="tag">آلات تورنغ العشوائية</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Mathematical Logic</span>
+      <span class="tag">Randomized TM</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 45 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>فهم الفئات اللغوية المعتمدة على العشوائية مثل RP و ZPP.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل الافتراضات المنطقية واستخدام الروابط المنطقية وجداول الحقيقة.</span></li>
+      <li><span class="obj-icon">✦</span><span>تطبيق قواعد الاستدلال في حساب الافتراضات والمحمولات لإثبات صحة الحجج.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحويل الصيغ المنطقية إلى الصيغة الطبيعية العطفية (CNF).</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Understand language classes based on randomization such as RP and ZPP.</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze logical propositions and use logical connectives and truth tables.</span></li>
+      <li><span class="obj-icon">✦</span><span>Apply rules of inference in propositional and predicate calculus to prove argument validity.</span></li>
+      <li><span class="obj-icon">✦</span><span>Convert logical formulas into Conjunctive Normal Form (CNF).</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="randomized-turing-machines" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> آلات تورنغ العشوائية وفئات التعقيد</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Randomized Turing Machines and Complexity Classes</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>آلة تورنغ تستخدم أرقاماً عشوائية في حساباتها، تشبه خوارزمية تختار مسارها بناءً على رمي عملة معدنية.</p></template>
+    <template class="content-en"><p>A Turing machine that uses random numbers in its calculations, like an algorithm choosing its path based on a coin flip.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>آلة تورنغ العشوائية (RTM) تحتوي على شريط إدخال، وشريط عشوائي (مملوء بأصفار وآحاد باحتمال 1/2 لكل منهما)، وأشرطة مسودة. تُعرّف هذه الآلات فئات تعقيد مثل RP (Random Polynomial) و ZPP (Zero-error Probabilistic Polynomial).</p><ul><li><strong>آلة RP (تسمى <span class="smart-term" data-term-en="Monte-Carlo TM" data-ar="آلة مونت كارلو" data-en-def="A randomized TM that halts in polynomial time but may have a one-sided error (RP class).">آلة مونت كارلو<span class="smart-term-tooltip"></span></span>)</strong> تقبل الكلمات في اللغة باحتمال لا يقل عن النصف، وترفض الكلمات خارج اللغة باحتمال 100%.</li><li><strong>آلة ZPP (تسمى <span class="smart-term" data-term-en="Las-Vegas TM" data-ar="آلة لاس فيغاس" data-en-def="A randomized TM that always halts with the correct answer, with expected polynomial time (ZPP class).">آلة لاس فيغاس<span class="smart-term-tooltip"></span></span>)</strong> تتوقف دائماً وتعطي إجابة صحيحة، ووقت توقفها المتوقع هو كثير حدود.</li></ul></template>
+    <template class="content-en"><p>A Randomized Turing Machine (RTM) has an input tape, a random tape (covered with 0s and 1s with 1/2 probability each), and scratch tapes. These machines define complexity classes like RP (Random Polynomial) and ZPP (Zero-error Probabilistic Polynomial).</p><ul><li><strong>An RP machine (<span class="smart-term" data-term-en="Monte-Carlo TM" data-ar="آلة مونت كارلو" data-en-def="A randomized TM that halts in polynomial time but may have a one-sided error (RP class).">Monte-Carlo TM<span class="smart-term-tooltip"></span></span>)</strong> accepts words in the language with at least 1/2 probability and rejects words not in the language with 100% probability.</li><li><strong>A ZPP machine (<span class="smart-term" data-term-en="Las-Vegas TM" data-ar="آلة لاس فيغاس" data-en-def="A randomized TM that always halts with the correct answer, with expected polynomial time (ZPP class).">Las-Vegas TM<span class="smart-term-tooltip"></span></span>)</strong> always halts and gives the correct answer, with an expected polynomial halting time.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>العلاقة بين هذه الفئات هي أن ZPP = RP ∩ co-RP. كما أن P ⊆ ZPP و RP ⊆ NP.</p><p>هذا يعني أن الخوارزميات العشوائية يمكن أن تحل مشاكل قد تكون صعبة جداً على الآلات الحتمية، مثل اختبار الأولية الذي يستخدم خوارزميات عشوائية لتوليد أرقام أولية كبيرة للتشفير (مثل RSA).</p></template>
+    <template class="content-en"><p>The relationship between these classes is ZPP = RP ∩ co-RP. Also, P ⊆ ZPP and RP ⊆ NP.</p><p>This means randomized algorithms can efficiently solve problems that might be intractable for deterministic machines, such as primality testing, which uses randomized algorithms to generate large primes for cryptography (like RSA).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>فئة ZPP هي تقاطع فئة RP ومكملتها.</strong></template>
+      <template class="content-en"><strong>The ZPP class is the intersection of the RP class and its complement.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$ZPP = RP \cap co\text{-}RP$$</div>
+  </div>
+
+  <!-- DIAGRAM[1]: A Venn diagram showing complexity classes. P is the innermost circle, surrounded by ZPP. ZPP is the intersection of RP and co-RP. Both RP and co-RP are inside NP and co-NP respectively. Style: educational, dark background #0d1117, accent color #007acc, viewBox 0 0 800 400, Arabic + English labels. -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg viewBox="0 0 800 580" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+        </marker>
+        
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+    <!-- Title Section -->
+    <text x="400" y="45" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="24" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+        Complexity Classes / فئات التعقيد
+    </text>
+    <text x="400" y="75" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">
+        Relationships between P, ZPP, RP, co-RP, NP, and co-NP
+    </text>
+
+    <!-- Main Sets (NP and co-NP) -->
+    <ellipse cx="290" cy="290" rx="260" ry="220" fill="var(--bg-elevated)" fill-opacity="0.6" stroke="var(--border-color)" stroke-width="2" />
+    <ellipse cx="510" cy="290" rx="260" ry="220" fill="var(--bg-elevated)" fill-opacity="0.6" stroke="var(--border-color)" stroke-width="2" />
+
+    <!-- Subsets (RP and co-RP) -->
+    <circle cx="340" cy="290" r="150" fill="var(--brand-800)" fill-opacity="0.15" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,4" />
+    <circle cx="460" cy="290" r="150" fill="var(--brand-600)" fill-opacity="0.15" stroke="var(--brand-400)" stroke-width="2" stroke-dasharray="8,4" />
+
+    <!-- Intersection (ZPP = RP ∩ co-RP) -->
+    <path d="M 400 152.5 A 150 150 0 0 1 400 427.5 A 150 150 0 0 1 400 152.5 Z" fill="var(--brand-500)" fill-opacity="0.3" stroke="var(--brand-500)" stroke-width="2" />
+
+    <!-- Innermost Subset (P) -->
+    <circle cx="400" cy="290" r="65" fill="var(--brand-500)" fill-opacity="0.8" stroke="var(--text-primary)" stroke-width="2" filter="url(#glow)" />
+
+    <!-- Labels for NP -->
+    <text x="100" y="280" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">NP</text>
+    <text x="100" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">غير قطعي</text>
+    <text x="100" y="325" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">متعدد الحدود</text>
+
+    <!-- Labels for co-NP -->
+    <text x="700" y="280" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">co-NP</text>
+    <text x="700" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">مكمل NP</text>
+
+    <!-- Labels for RP -->
+    <text x="240" y="280" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">RP</text>
+    <text x="240" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">عشوائي</text>
+
+    <!-- Labels for co-RP -->
+    <text x="560" y="280" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="20" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">co-RP</text>
+    <text x="560" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-secondary)" text-anchor="middle">مكمل RP</text>
+
+    <!-- Labels for ZPP -->
+    <text x="400" y="185" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">ZPP</text>
+    <text x="400" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--text-primary)" text-anchor="middle">خطأ صفري</text>
+
+    <!-- Labels for P -->
+    <text x="400" y="285" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">P</text>
+    <text x="400" y="305" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="13" fill="var(--bg-surface)" text-anchor="middle">متعدد الحدود</text>
+
+    <!-- Educational Callouts & Equations -->
+    <!-- RP in NP -->
+    <text x="160" y="545" font-family="monospace, system-ui, sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">RP ⊆ NP</text>
+    <line x1="160" y1="520" x2="230" y2="430" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- ZPP Intersection -->
+    <text x="400" y="545" font-family="monospace, system-ui, sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">ZPP = RP ∩ co-RP</text>
+    <line x1="400" y1="520" x2="400" y2="440" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+    <!-- co-RP in co-NP -->
+    <text x="640" y="545" font-family="monospace, system-ui, sans-serif" font-size="16" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">co-RP ⊆ co-NP</text>
+    <line x1="640" y1="520" x2="570" y2="430" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow)" />
+
+</svg>
+</div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>RP (Monte-Carlo)</th><th>ZPP (Las-Vegas)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">احتمالية الخطأ</template>
+          <template class="content-en">Error Probability</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">خطأ من جانب واحد (قد يرفض مدخلاً صحيحاً)</template>
+          <template class="content-en">One-sided error (may reject valid input)</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">بدون أخطاء (Zero-error)</template>
+          <template class="content-en">Zero-error</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">وقت التوقف</template>
+          <template class="content-en">Halting Time</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">يتوقف دائماً في وقت كثير حدود محدد</template>
+          <template class="content-en">Always halts in bounded polynomial time</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">الوقت المتوقع كثير حدود (قد يستغرق وقتاً أطول)</template>
+          <template class="content-en">Expected time is polynomial (could take longer)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا تُعتبر آلة لاس فيغاس (ZPP) خالية من الأخطاء (Zero-error) مقارنة بآلة مونت كارلو (RP)؟</template>
+      <template class="content-en">Why is a Las-Vegas TM (ZPP) considered zero-error compared to a Monte-Carlo TM (RP)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن آلة لاس فيغاس تتوقف دائماً وتعطي الإجابة الصحيحة (أو تفشل في إعطاء إجابة ولكن لا تعطي إجابة خاطئة أبداً)، بينما آلة مونت كارلو قد ترفض مدخلاً صحيحاً (خطأ من جانب واحد).</p></template>
+      <template class="content-en"><p>Because a Las-Vegas TM always halts and gives the correct answer (or reports failure, but never an incorrect answer), whereas a Monte-Carlo TM might reject a valid input (one-sided error).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="propositions-and-logical-operators" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> الافتراضات والروابط المنطقية</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Propositions and Logical Operators</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>الافتراض هو جملة خبرية إما أن تكون صحيحة أو خاطئة، ولكن ليس كلاهما.</p></template>
+    <template class="content-en"><p>A proposition is a declarative statement that is either true or false, but not both.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تُبنى التعابير المنطقية باستخدام الروابط: النفي (¬)، العطف/و (∧)، الفصل/أو (∨)، الفصل الحصري (⊕)، الاستلزام (→)، والتكافؤ الثنائي (↔).</p><ul><li><strong>الاستلزام P → Q</strong> يكون خاطئاً في حالة واحدة فقط: عندما يكون الفرض P صحيحاً والنتيجة Q خاطئة.</li><li><strong>التكافؤ الثنائي P ↔ Q</strong> يكون صحيحاً عندما يكون لـ P و Q نفس قيمة الحقيقة.</li></ul></template>
+    <template class="content-en"><p>Logical expressions are built using connectives: Negation (¬), Conjunction/AND (∧), Disjunction/OR (∨), Exclusive OR (⊕), Implication (→), and Biconditional (↔).</p><ul><li><strong>The implication P → Q</strong> is false in only one case: when the hypothesis P is true and the conclusion Q is false.</li><li><strong>The biconditional P ↔ Q</strong> is true when P and Q have the same truth value.</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>من المفاهيم الهامة المرتبطة بالاستلزام P → Q هو</p><ul><li><strong>العكس (Converse)</strong> وهو Q → P،</li><li><strong>والمعاكس الإيجابي (Contrapositive)</strong> وهو ¬Q → ¬P.</li></ul><p>المعاكس الإيجابي يكافئ منطقياً الاستلزام الأصلي، وهو أساس للعديد من البراهين الرياضية (البرهان بالناقض).</p></template>
+    <template class="content-en"><p>Important concepts related to the implication P → Q are</p><ul><li><strong>the Converse</strong> (Q → P)</li><li><strong>and the Contrapositive</strong> (¬Q → ¬P).</li></ul><p>The contrapositive is logically equivalent to the original implication and forms the basis for many mathematical proofs (proof by contraposition).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الاستلزام يكافئ نفي الفرض أو إثبات النتيجة.</strong></template>
+      <template class="content-en"><strong>Implication is equivalent to NOT P OR Q.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$P \rightarrow Q \equiv \neg P \lor Q$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كانت الجملة 'إذا أمطرت السماء، سآخذ مظلتي' صحيحة، فهل الجملة 'إذا لم تمطر السماء، فلن آخذ مظلتي' صحيحة بالضرورة؟</template>
+      <template class="content-en">If the statement 'If it rains, I will take my umbrella' is true, is the statement 'If it does not rain, I will not take my umbrella' necessarily true?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لا، هذه الجملة هي المعكوس (Inverse) ولا تكافئ الاستلزام الأصلي. قد تأخذ المظلة لأسباب أخرى (مثل الحماية من الشمس).</p></template>
+      <template class="content-en"><p>No, this statement is the Inverse and is not logically equivalent to the original implication. You might take the umbrella for other reasons (like sun protection).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="conjunctive-normal-form" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> الصيغة الطبيعية العطفية (CNF)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Conjunctive Normal Form (CNF)</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>صيغة منطقية تتكون من مجموعة من الأقواس المضروبة (AND)، حيث يحتوي كل قوس على متغيرات مجموعة (OR).</p></template>
+    <template class="content-en"><p>A logical formula consisting of an AND of clauses, where each clause is an OR of literals.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تكون الصيغة البوليانية في الصيغة الطبيعية العطفية (CNF) إذا كانت عبارة عن عملية عطف (AND) لمجموعة من <span class="smart-term" data-term-en="Clause" data-ar="جملة / فقرة" data-en-def="A disjunction (OR) of literals.">الجمل<span class="smart-term-tooltip"></span></span> (Clauses).</p><ul><li><strong>كل جملة</strong> هي عبارة عن عملية فصل (OR) لمجموعة من الحرفيات (Literals).</li><li><strong><span class="smart-term" data-term-en="Literal" data-ar="حرفي" data-en-def="A variable or the negation of a variable.">الحرفي<span class="smart-term-tooltip"></span></span></strong> هو إما متغير أو نفي لمتغير.</li></ul><p>مثال: (x ∨ ¬y ∨ z) ∧ (¬x ∨ ¬w). مشكلة إرضاء الصيغ البوليانية (CSAT) تسأل عما إذا كانت هناك تعيينات للمتغيرات تجعل صيغة CNF صحيحة.</p></template>
+    <template class="content-en"><p>A Boolean formula is in Conjunctive Normal Form (CNF) if it is the AND of <span class="smart-term" data-term-en="Clause" data-ar="جملة / فقرة" data-en-def="A disjunction (OR) of literals.">clauses<span class="smart-term-tooltip"></span></span>.</p><ul><li><strong>Each clause</strong> is the OR of <span class="smart-term" data-term-en="Literal" data-ar="حرفي" data-en-def="A variable or the negation of a variable.">literal<span class="smart-term-tooltip"></span></span>s.</li><li><strong>A literal</strong> is either a variable or the negation of a variable.</li></ul><p>Example: (x ∨ ¬y ∨ z) ∧ (¬x ∨ ¬w). The CSAT problem asks whether a Boolean formula in CNF is satisfiable.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لتحويل أي صيغة إلى CNF، نستخدم التكافؤات المنطقية:</p><ol><li><strong>أولاً</strong> نتخلص من الاستلزامات باستخدام (P → Q ≡ ¬P ∨ Q)،</li><li><strong>ثم</strong> نطبق قوانين دي مورغان لدفع النفي إلى الداخل،</li><li><strong>وأخيراً</strong> نطبق قانون التوزيع لتوزيع الفصل (OR) على العطف (AND).</li></ol></template>
+    <template class="content-en"><p>To convert any formula to CNF, we use logical equivalences:</p><ol><li><strong>first</strong> eliminate implications using (P → Q ≡ ¬P ∨ Q),</li><li><strong>then</strong> apply De Morgan's laws to push negations inwards,</li><li><strong>and finally</strong> apply the distributive law to distribute OR over AND.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>مثال على صيغة CNF.</strong></template>
+      <template class="content-en"><strong>An example of a CNF formula.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$(x \lor \neg y \lor z) \land (\neg x \lor w)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">كيف تحول الصيغة P ∨ (Q ∧ R) إلى CNF؟</template>
+      <template class="content-en">How do you convert the formula P ∨ (Q ∧ R) to CNF?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>باستخدام قانون التوزيع: (P ∨ Q) ∧ (P ∨ R).</p></template>
+      <template class="content-en"><p>By using the distributive law: (P ∨ Q) ∧ (P ∨ R).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="rules-of-inference" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> قواعد الاستدلال</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Rules of Inference</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>قوالب منطقية جاهزة تضمن أن الاستنتاج صحيح طالما أن الافتراضات (المقدمات) صحيحة.</p></template>
+    <template class="content-en"><p>Pre-defined logical templates ensuring that the conclusion is true as long as the premises are true.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>قواعد الاستدلال هي <span class="smart-term" data-term-en="Tautology" data-ar="تحصيل حاصل (توتولوجي)" data-en-def="A compound proposition that is always true.">تحصيلات حاصل<span class="smart-term-tooltip"></span></span> (Tautologies) تُكتب على شكل استلزام. تُستخدم لاشتقاق استنتاجات من <span class="smart-term" data-term-en="Premise" data-ar="مقدمة / فرضية" data-en-def="A proposition assumed to be true in an argument.">مقدمات<span class="smart-term-tooltip"></span></span> مفترضة صحتها. من أهم القواعد:</p><ol><li><strong>1. Modus Ponens:</strong> إذا كان P → Q و P صحيحين، فإن Q صحيح.</li><li><strong>2. Modus Tollens:</strong> إذا كان P → Q و ¬Q صحيحين، فإن ¬P صحيح.</li><li><strong>3. Hypothetical Syllogism:</strong> إذا كان P → Q و Q → R، فإن P → R.</li><li><strong>4. Disjunctive Syllogism:</strong> إذا كان P ∨ Q و ¬P، فإن Q.</li></ol></template>
+    <template class="content-en"><p>Rules of inference are tautologies in the form of implications. They are used to derive conclusions from assumed premises. Key rules include:</p><ol><li><strong>1. Modus Ponens:</strong> If P → Q and P are true, then Q is true.</li><li><strong>2. Modus Tollens:</strong> If P → Q and ¬Q are true, then ¬P is true.</li><li><strong>3. Hypothetical Syllogism:</strong> If P → Q and Q → R, then P → R.</li><li><strong>4. Disjunctive Syllogism:</strong> If P ∨ Q and ¬P, then Q.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>الهدف الأساسي في <span class="smart-term" data-term-en="Valid Argument" data-ar="حجة صحيحة" data-en-def="An argument where the conclusion logically follows from the premises.">الحجة الصحيحة<span class="smart-term-tooltip"></span></span> (Valid Argument) ليس الحصول على الاستنتاج بحد ذاته، بل إثبات أن عملية الوصول إلى الاستنتاج سليمة منطقياً.</p><p>قاعدة القرار (Resolution) مثلاً تُستخدم بكثرة في الذكاء الاصطناعي وإثبات النظريات الآلي: من (P ∨ Q) و (¬P ∨ R) نستنتج (Q ∨ R).</p></template>
+    <template class="content-en"><p>The main concern in a valid argument is not just obtaining the conclusion, but proving that the process of arriving at it is logically sound.</p><p>The Resolution rule, for example, is heavily used in AI and automated theorem proving: from (P ∨ Q) and (¬P ∨ R), we infer (Q ∨ R).</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>قاعدة إثبات المقدم (Modus Ponens).</strong></template>
+      <template class="content-en"><strong>Modus Ponens rule.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\frac{P \rightarrow Q, \quad P}{\therefore Q}$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">إذا كان لدينا المقدمات: 'إذا درست، سأنجح' و 'لم أنجح'. ما هي القاعدة التي نستخدمها للاستنتاج وما هو الاستنتاج؟</template>
+      <template class="content-en">Given the premises: 'If I study, I will pass' and 'I did not pass'. What rule do we use and what is the conclusion?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نستخدم قاعدة Modus Tollens. الاستنتاج هو: 'لم أدرس'.</p></template>
+      <template class="content-en"><p>We use Modus Tollens. The conclusion is: 'I did not study'.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="predicate-calculus-quantifiers" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> حساب المحمولات والمُكَمِّمات</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Predicate Calculus and Quantifiers</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>توسيع للمنطق يسمح لنا بالتحدث عن خصائص الأشياء باستخدام المتغيرات (مثل x) والكميات (الكل أو البعض).</p></template>
+    <template class="content-en"><p>An extension of logic that allows us to talk about properties of objects using variables (like x) and quantities (all or some).</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يتعامل حساب المحمولات مع الجمل التي تحتوي على محمولات (خصائص) ومتغيرات، مثل P(x) التي تعني 'x طالب'. لتحويل هذه الجمل المفتوحة إلى افتراضات (لها قيمة حقيقة)، نستخدم المُكَمِّمات (Quantifiers).</p><ol><li><strong>1. <span class="smart-term" data-term-en="Universal Quantifier (∀)" data-ar="المُكَمِّم الكلي" data-en-def="A quantifier meaning 'for all' or 'for every'.">المُكَمِّم الكلي<span class="smart-term-tooltip"></span></span> (∀x):</strong> يعني 'لكل x'.</li><li><strong>2. <span class="smart-term" data-term-en="Existential Quantifier (∃)" data-ar="المُكَمِّم الوجودي" data-en-def="A quantifier meaning 'there exists at least one'.">المُكَمِّم الوجودي<span class="smart-term-tooltip"></span></span> (∃x):</strong> يعني 'يوجد على الأقل x واحد'.</li></ol></template>
+    <template class="content-en"><p>Predicate calculus deals with sentences involving predicates (properties) and variables, like P(x) meaning 'x is a student'. To turn these open sentences into propositions (with a truth value), we use Quantifiers.</p><ol><li><strong>1. Universal Quantifier (∀x):</strong> means 'for all x'.</li><li><strong>2. Existential Quantifier (∃x):</strong> means 'there exists at least one x'.</li></ol></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><ul><li><strong>تكون صيغة المحمولات صالحة (Valid)</strong> إذا كانت صحيحة لجميع التعيينات الممكنة للمتغيرات الحرة من أي مجال.</li><li><strong>وتكون قابلة للإرضاء (Satisfiable)</strong> إذا كانت صحيحة لتعيين واحد على الأقل.</li></ul><p>مشكلة QBF (الصيغة البوليانية المُكَمَّمة) هي مشكلة كاملة في فئة PSPACE، وتسأل عما إذا كانت صيغة بوليانية تحتوي على مكممات صحيحة أم لا.</p></template>
+    <template class="content-en"><ul><li><strong>A predicate formula is Valid</strong> if it is true for all possible assignments of values from any universe of discourse.</li><li><strong>It is Satisfiable</strong> if it is true for at least one assignment.</li></ul><p>The QBF (Quantified Boolean Formula) problem is PSPACE-complete and asks whether a given quantified boolean formula is true.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>مثال على صيغة تحتوي على مكممات كلية ووجودية.</strong></template>
+      <template class="content-en"><strong>An example of a formula with universal and existential quantifiers.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$\forall x \, P(x) \rightarrow \exists y \, Q(x, y)$$</div>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ما هو نفي الجملة ∀x P(x)؟</template>
+      <template class="content-en">What is the negation of the statement ∀x P(x)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نفيها هو ∃x ¬P(x) (يوجد على الأقل x واحد لا يحقق P).</p></template>
+      <template class="content-en"><p>Its negation is ∃x ¬P(x) (there exists at least one x that does not satisfy P).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا أصدقائي في هذه الوحدة الدسمة والمهمة جداً. اليوم نربط بين عالمين: عالم 'التعقيد الحسابي العشوائي' وعالم 'المنطق الرياضي'. في الجزء الأول، أريدكم أن تركزوا بشدة على الفرق بين آلة مونت كارلو (RP) التي قد تخطئ في اتجاه واحد، وآلة لاس فيغاس (ZPP) التي لا تخطئ أبداً (Zero-error). تذكروا دائماً أن ZPP هي تقاطع RP مع co-RP. في الجزء الثاني، ننتقل إلى أساسيات المنطق. في الامتحان، الأسئلة حول الاستلزام (P → Q) شائعة جداً؛ تذكروا الحالة الوحيدة التي يكون فيها خاطئاً! ولا تنسوا قوانين دي مورغان وكيفية تحويل أي صيغة إلى CNF (الصيغة الطبيعية العطفية)، فهي أساسية في مشاكل الإرضاء (SAT). أخيراً، قواعد الاستدلال مثل Modus Ponens و Modus Tollens هي أدواتكم لإثبات صحة الحجج. ادرسوا جداول الحقيقة جيداً، وتدربوا على تحويل الجمل إلى رموز منطقية باستخدام المُكَمِّمات (∀ و ∃). بالتوفيق!</template>
+    <template class="content-en">Welcome, my friends, to this dense and highly important module. Today we bridge two worlds: 'Randomized Computational Complexity' and 'Mathematical Logic'. In the first part, I want you to focus heavily on the difference between a Monte-Carlo TM (RP), which can make a one-sided error, and a Las-Vegas TM (ZPP), which is zero-error. Always remember that ZPP is the intersection of RP and co-RP. In the second part, we dive into logic fundamentals. On the exam, questions about Implication (P → Q) are extremely common; memorize the single case where it is false! Don't forget De Morgan's laws and how to convert formulas to CNF, as this is foundational for SAT problems. Finally, rules of inference like Modus Ponens and Modus Tollens are your tools for proving argument validity. Master your truth tables and practice translating sentences into logical symbols using quantifiers (∀ and ∃). Good luck!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الفرق الأساسي بين فئة RP وفئة ZPP؟</template>
+          <template class="content-en">What is the main difference between the RP and ZPP classes?</template>
+          <span class="content-target">ما هو الفرق الأساسي بين فئة RP وفئة ZPP؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">فئة RP (مونت كارلو) قد ترفض مدخلاً صحيحاً (خطأ من جانب واحد)، بينما فئة ZPP (لاس فيغاس) لا تخطئ أبداً وتتوقف دائماً بإجابة صحيحة.</template>
+          <template class="content-en">The RP class (Monte-Carlo) may reject a valid input (one-sided error), whereas the ZPP class (Las-Vegas) never makes an error and always halts with the correct answer.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نستخدم الخوارزميات العشوائية في اختبار الأولية (Primality Testing)؟</template>
+          <template class="content-en">Why do we use randomized algorithms in Primality Testing?</template>
+          <span class="content-target">لماذا نستخدم الخوارزميات العشوائية في اختبار الأولية (Primality Testing)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأنها تسمح بتوليد أرقام أولية كبيرة جداً (مثل تلك المستخدمة في تشفير RSA) بكفاءة عالية وباحتمال خطأ ضئيل جداً يمكن تجاهله.</template>
+          <template class="content-en">Because they allow the efficient generation of very large prime numbers (like those used in RSA cryptography) with an arbitrarily small, negligible chance of error.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يكون الاستلزام P → Q خاطئاً؟</template>
+          <template class="content-en">When is the implication P → Q false?</template>
+          <span class="content-target">متى يكون الاستلزام P → Q خاطئاً؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">في حالة واحدة فقط: عندما يكون الفرض P صحيحاً والنتيجة Q خاطئة.</template>
+          <template class="content-en">In exactly one case: when the hypothesis P is true and the conclusion Q is false.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو التكافؤ المنطقي للاستلزام P → Q؟</template>
+          <template class="content-en">What is the logical equivalence of the implication P → Q?</template>
+          <span class="content-target">ما هو التكافؤ المنطقي للاستلزام P → Q؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يكافئ ¬P ∨ Q (نفي P أو Q).</template>
+          <template class="content-en">It is equivalent to ¬P ∨ Q (NOT P OR Q).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو المعاكس الإيجابي (Contrapositive) ولماذا هو مهم؟</template>
+          <template class="content-en">What is the Contrapositive and why is it important?</template>
+          <span class="content-target">ما هو المعاكس الإيجابي (Contrapositive) ولماذا هو مهم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">المعاكس الإيجابي لـ P → Q هو ¬Q → ¬P. أهميته تكمن في أنه يكافئ منطقياً الاستلزام الأصلي، ويُستخدم بكثرة في البراهين الرياضية.</template>
+          <template class="content-en">The contrapositive of P → Q is ¬Q → ¬P. It is important because it is logically equivalent to the original implication and is heavily used in mathematical proofs.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف نميز الصيغة الطبيعية العطفية (CNF)؟</template>
+          <template class="content-en">How do we identify Conjunctive Normal Form (CNF)?</template>
+          <span class="content-target">كيف نميز الصيغة الطبيعية العطفية (CNF)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تكون الصيغة على شكل أقواس مضروبة ببعضها (AND)، وداخل كل قوس يوجد متغيرات أو نفيها تفصل بينها علامة (OR).</template>
+          <template class="content-en">The formula is in the form of clauses joined by AND, where inside each clause there are variables or their negations separated by OR.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي قاعدة Modus Tollens؟</template>
+          <template class="content-en">What is the Modus Tollens rule?</template>
+          <span class="content-target">ما هي قاعدة Modus Tollens؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هي قاعدة استدلال تقول: إذا كان P → Q صحيحاً، وعلمنا أن Q خاطئ (¬Q)، إذن حتماً P خاطئ (¬P).</template>
+          <template class="content-en">It is an inference rule stating: if P → Q is true, and we know Q is false (¬Q), then P must be false (¬P).</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما الفرق بين المُكَمِّم الكلي (∀) والمُكَمِّم الوجودي (∃)؟</template>
+          <template class="content-en">What is the difference between the Universal (∀) and Existential (∃) quantifiers?</template>
+          <span class="content-target">ما الفرق بين المُكَمِّم الكلي (∀) والمُكَمِّم الوجودي (∃)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">الكلي (∀) يشترط أن الخاصية تنطبق على 'جميع' العناصر. الوجودي (∃) يشترط وجود 'عنصر واحد على الأقل' يحقق الخاصية.</template>
+          <template class="content-en">Universal (∀) requires the property to hold for 'all' elements. Existential (∃) requires 'at least one' element to satisfy the property.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ماذا تعني 'صيغة قابلة للإرضاء' (Satisfiable) في حساب المحمولات؟</template>
+          <template class="content-en">What does a 'Satisfiable' formula mean in predicate calculus?</template>
+          <span class="content-target">ماذا تعني 'صيغة قابلة للإرضاء' (Satisfiable) في حساب المحمولات؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">تعني أنه يوجد على الأقل تعيين واحد للقيم يجعل الصيغة صحيحة.</template>
+          <template class="content-en">It means there is at least one assignment of values that makes the formula true.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي قاعدة القرار (Resolution)؟</template>
+          <template class="content-en">What is the Resolution rule?</template>
+          <span class="content-target">ما هي قاعدة القرار (Resolution)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">قاعدة تستنتج (Q ∨ R) من المقدمتين (P ∨ Q) و (¬P ∨ R)، وهي أساسية في الذكاء الاصطناعي.</template>
+          <template class="content-en">A rule that infers (Q ∨ R) from the premises (P ∨ Q) and (¬P ∨ R), fundamental in AI.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "ما هي آلة تورنغ العشوائية (RTM)؟",
+      "en": "What is a Randomized Turing Machine (RTM)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "آلة تورنغ تمتلك القدرة على استخدام أرقام مولدة عشوائياً في حساباتها عبر شريط عشوائي.",
+        "en": "A Turing machine with the capability of using randomly generated numbers in its calculation via a random tape."
+      },
+      "example": {
+        "ar": "استخدام العشوائية لاختيار محور (Pivot) في خوارزمية Quicksort.",
+        "en": "Using randomization for pivot selection in the Quicksort algorithm."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "ما هي فئة RP؟",
+      "en": "What is the RP class?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة اللغات التي تقبلها آلة مونت كارلو، حيث إذا كانت الكلمة في اللغة تُقبل باحتمال ≥ 1/2، وإذا لم تكن تُرفض باحتمال 100%.",
+        "en": "Random Polynomial class accepted by a Monte-Carlo TM. If w ∈ L, prob of acceptance ≥ 1/2. If w ∉ L, prob is 0."
+      },
+      "example": {
+        "ar": "اختبار الأرقام المركبة (Composite numbers are in RP).",
+        "en": "Testing for composite numbers (Composite numbers are in RP)."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "ما هي فئة ZPP؟",
+      "en": "What is the ZPP class?"
+    },
+    "back": {
+      "definition": {
+        "ar": "فئة اللغات التي تقبلها آلة لاس فيغاس، والتي تتوقف دائماً بدون أخطاء في وقت متوقع كثير حدود.",
+        "en": "Zero-error Probabilistic Polynomial class accepted by a Las-Vegas TM, which always halts without errors in expected polynomial time."
+      },
+      "example": {
+        "ar": "ZPP = RP ∩ co-RP",
+        "en": "ZPP = RP ∩ co-RP"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "ما هو الافتراض (Proposition)؟",
+      "en": "What is a Proposition?"
+    },
+    "back": {
+      "definition": {
+        "ar": "جملة خبرية إما أن تكون صحيحة (T) أو خاطئة (F)، ولكن ليس كلاهما.",
+        "en": "A declarative statement that is either true (T) or false (F), but not both."
+      },
+      "example": {
+        "ar": "مربع العدد 4 هو 16 (صحيح).",
+        "en": "Square of 4 is 16 (True)."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "متى يكون الاستلزام (P → Q) خاطئاً؟",
+      "en": "When is the Implication (P → Q) false?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يكون خاطئاً فقط عندما يكون الفرض (P) صحيحاً والنتيجة (Q) خاطئة.",
+        "en": "It is false ONLY when the hypothesis (P) is true and the conclusion (Q) is false."
+      },
+      "example": {
+        "ar": "T → F يعطي F. باقي الحالات تعطي T.",
+        "en": "T → F is F. All other cases are T."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "ما هو المعاكس الإيجابي (Contrapositive) لـ P → Q؟",
+      "en": "What is the Contrapositive of P → Q?"
+    },
+    "back": {
+      "definition": {
+        "ar": "هو الافتراض ¬Q → ¬P، وهو يكافئ منطقياً الاستلزام الأصلي.",
+        "en": "It is the proposition ¬Q → ¬P, which is logically equivalent to the original implication."
+      },
+      "example": {
+        "ar": "إذا كان P → Q، فإن ¬Q → ¬P.",
+        "en": "If P → Q, then ¬Q → ¬P."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "ما هو تحصيل الحاصل (Tautology)؟",
+      "en": "What is a Tautology?"
+    },
+    "back": {
+      "definition": {
+        "ar": "افتراض مركب يكون دائماً صحيحاً بغض النظر عن قيم الحقيقة لمكوناته.",
+        "en": "A compound proposition that is always true regardless of the truth values of its variables."
+      },
+      "example": {
+        "ar": "P ∨ ¬P",
+        "en": "P ∨ ¬P"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "ما هي الصيغة الطبيعية العطفية (CNF)؟",
+      "en": "What is Conjunctive Normal Form (CNF)?"
+    },
+    "back": {
+      "definition": {
+        "ar": "صيغة بوليانية تتكون من عملية عطف (AND) لمجموعة من الجمل، حيث كل جملة هي عملية فصل (OR) لحرفيات.",
+        "en": "A Boolean formula that is the AND of clauses, where each clause is the OR of literals."
+      },
+      "example": {
+        "ar": "(x ∨ y) ∧ (¬x ∨ z)",
+        "en": "(x ∨ y) ∧ (¬x ∨ z)"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "ما هي قاعدة Modus Ponens؟",
+      "en": "What is the Modus Ponens rule?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة استدلال تنص على أنه إذا كان P → Q صحيحاً و P صحيحاً، فإن Q يجب أن يكون صحيحاً.",
+        "en": "A rule of inference stating that if P → Q is true and P is true, then Q is true."
+      },
+      "example": {
+        "ar": "المقدمات: P → Q, P. الاستنتاج: Q.",
+        "en": "Premises: P → Q, P. Conclusion: Q."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "ما هي قاعدة Modus Tollens؟",
+      "en": "What is the Modus Tollens rule?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة استدلال تنص على أنه إذا كان P → Q صحيحاً و ¬Q صحيحاً، فإن ¬P يجب أن يكون صحيحاً.",
+        "en": "A rule of inference stating that if P → Q is true and ¬Q is true, then ¬P is true."
+      },
+      "example": {
+        "ar": "المقدمات: P → Q, ¬Q. الاستنتاج: ¬P.",
+        "en": "Premises: P → Q, ¬Q. Conclusion: ¬P."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "ما هو المُكَمِّم الكلي (Universal Quantifier)؟",
+      "en": "What is the Universal Quantifier?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يُرمز له بـ ∀، ويعني أن الخاصية تنطبق على 'كل' أو 'جميع' العناصر في المجال.",
+        "en": "Denoted by ∀, it means the phrase 'for all' or 'for every' element in the domain."
+      },
+      "example": {
+        "ar": "∀x P(x)",
+        "en": "∀x P(x)"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "ما هو المُكَمِّم الوجودي (Existential Quantifier)؟",
+      "en": "What is the Existential Quantifier?"
+    },
+    "back": {
+      "definition": {
+        "ar": "يُرمز له بـ ∃، ويعني أنه 'يوجد على الأقل عنصر واحد' في المجال يحقق الخاصية.",
+        "en": "Denoted by ∃, it means 'there exists' at least one element in the domain."
+      },
+      "example": {
+        "ar": "∃x P(x)",
+        "en": "∃x P(x)"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "ما هو التكافؤ المنطقي للاستلزام (Implication Equivalence)؟",
+      "en": "What is the logical equivalence of Implication?"
+    },
+    "back": {
+      "definition": {
+        "ar": "الاستلزام P → Q يكافئ منطقياً ¬P ∨ Q.",
+        "en": "The implication P → Q is logically equivalent to ¬P ∨ Q."
+      },
+      "example": {
+        "ar": "P → Q ≡ ¬P ∨ Q",
+        "en": "P → Q ≡ ¬P ∨ Q"
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "ما هي قاعدة القياس المنطقي الافتراضي (Hypothetical Syllogism)؟",
+      "en": "What is Hypothetical Syllogism?"
+    },
+    "back": {
+      "definition": {
+        "ar": "قاعدة استدلال تنص على أنه إذا كان P → Q و Q → R، فإن P → R.",
+        "en": "A rule of inference stating that if P → Q and Q → R, then P → R."
+      },
+      "example": {
+        "ar": "المقدمات: P → Q, Q → R. الاستنتاج: P → R.",
+        "en": "Premises: P → Q, Q → R. Conclusion: P → R."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "متى تكون صيغة المحمولات صالحة (Valid)؟",
+      "en": "When is a predicate formula Valid?"
+    },
+    "back": {
+      "definition": {
+        "ar": "إذا كانت صحيحة لجميع التعيينات الممكنة للقيم من أي مجال للمتغيرات الحرة.",
+        "en": "If for all possible assignments of values from any universe of discourse to free variables, the resulting propositions have the truth value T."
+      },
+      "example": {
+        "ar": "∀x (P(x) ∨ ¬P(x))",
+        "en": "∀x (P(x) ∨ ¬P(x))"
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من فئات التعقيد التالية تصف آلة لاس فيغاس التي تتوقف دائماً بدون أخطاء؟",
+      "en": "Which of the following complexity classes describes a Las-Vegas TM that always halts without errors?"
+    },
+    "options": {
+      "ar": [
+        "RP",
+        "NP",
+        "ZPP",
+        "PSPACE"
+      ],
+      "en": [
+        "RP",
+        "NP",
+        "ZPP",
+        "PSPACE"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "فئة ZPP (Zero-error Probabilistic Polynomial) تصف آلات لاس فيغاس التي لا تخطئ أبداً وتتوقف دائماً.",
+      "en": "The ZPP (Zero-error Probabilistic Polynomial) class describes Las-Vegas machines which never make an error and always halt."
+    },
+    "hint": {
+      "ar": "تذكر كلمة Zero-error.",
+      "en": "Remember the term Zero-error."
+    },
+    "difficulty": "easy",
+    "conceptId": "randomized-turing-machines"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "في آلة مونت كارلو (RP)، إذا كانت الكلمة لا تنتمي للغة (w ∉ L)، فما هو احتمال قبول الآلة لها؟",
+      "en": "In a Monte-Carlo TM (RP), if the word is not in the language (w ∉ L), what is the probability that the machine accepts it?"
+    },
+    "options": {
+      "ar": [
+        "1/2",
+        "1",
+        "0",
+        "غير محدد"
+      ],
+      "en": [
+        "1/2",
+        "1",
+        "0",
+        "Undefined"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "في فئة RP، إذا كانت الكلمة خارج اللغة، فإن الآلة ترفضها دائماً (احتمال القبول 0).",
+      "en": "In the RP class, if the word is not in the language, the machine always rejects it (probability of acceptance is 0)."
+    },
+    "hint": {
+      "ar": "الخطأ في RP يكون من جانب واحد فقط (عندما تكون الكلمة في اللغة).",
+      "en": "The error in RP is one-sided (only when the word is in the language)."
+    },
+    "difficulty": "medium",
+    "conceptId": "randomized-turing-machines"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "متى يكون الاستلزام P → Q خاطئاً؟",
+      "en": "When is the implication P → Q false?"
+    },
+    "options": {
+      "ar": [
+        "عندما يكون P خاطئاً و Q صحيحاً",
+        "عندما يكون P صحيحاً و Q خاطئاً",
+        "عندما يكون كلاهما خاطئاً",
+        "عندما يكون كلاهما صحيحاً"
+      ],
+      "en": [
+        "When P is false and Q is true",
+        "When P is true and Q is false",
+        "When both are false",
+        "When both are true"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الاستلزام يكون خاطئاً في حالة واحدة فقط: إذا تحقق الفرض (P صحيح) ولم تتحقق النتيجة (Q خاطئ).",
+      "en": "Implication is false in only one case: if the hypothesis is met (P is true) but the conclusion fails (Q is false)."
+    },
+    "hint": {
+      "ar": "فكر في وعد: 'إذا نجحت، سأعطيك هدية'. متى أكون قد أخلفت وعدي؟",
+      "en": "Think of a promise: 'If you pass, I will give you a gift'. When have I broken my promise?"
+    },
+    "difficulty": "easy",
+    "conceptId": "propositions-and-logical-operators"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "ما هو المعاكس الإيجابي (Contrapositive) للافتراض P → Q؟",
+      "en": "What is the contrapositive of the proposition P → Q?"
+    },
+    "options": {
+      "ar": [
+        "Q → P",
+        "¬P → ¬Q",
+        "¬Q → ¬P",
+        "P ↔ Q"
+      ],
+      "en": [
+        "Q → P",
+        "¬P → ¬Q",
+        "¬Q → ¬P",
+        "P ↔ Q"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المعاكس الإيجابي يعكس الاتجاه وينفي الطرفين: ¬Q → ¬P.",
+      "en": "The contrapositive reverses the direction and negates both sides: ¬Q → ¬P."
+    },
+    "hint": {
+      "ar": "اعكس وانفِ.",
+      "en": "Reverse and negate."
+    },
+    "difficulty": "medium",
+    "conceptId": "propositions-and-logical-operators"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "أي من القوانين التالية يمثل قانون دي مورغان (De Morgan's law)؟",
+      "en": "Which of the following represents De Morgan's law?"
+    },
+    "options": {
+      "ar": [
+        "P ∨ (Q ∧ R) ≡ (P ∨ Q) ∧ (P ∨ R)",
+        "¬(P ∧ Q) ≡ ¬P ∨ ¬Q",
+        "P ∨ (P ∧ Q) ≡ P",
+        "P → Q ≡ ¬P ∨ Q"
+      ],
+      "en": [
+        "P ∨ (Q ∧ R) ≡ (P ∨ Q) ∧ (P ∨ R)",
+        "¬(P ∧ Q) ≡ ¬P ∨ ¬Q",
+        "P ∨ (P ∧ Q) ≡ P",
+        "P → Q ≡ ¬P ∨ Q"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "قانون دي مورغان يوزع النفي ويقلب العطف إلى فصل (والعكس).",
+      "en": "De Morgan's law distributes the negation and flips AND to OR (and vice versa)."
+    },
+    "hint": {
+      "ar": "ابحث عن توزيع النفي (¬).",
+      "en": "Look for the distribution of negation (¬)."
+    },
+    "difficulty": "medium",
+    "conceptId": "propositions-and-logical-operators"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "أي من الصيغ التالية تعتبر في الصيغة الطبيعية العطفية (CNF)؟",
+      "en": "Which of the following formulas is in Conjunctive Normal Form (CNF)?"
+    },
+    "options": {
+      "ar": [
+        "(P ∧ Q) ∨ R",
+        "(P ∨ Q) ∧ (¬P ∨ R)",
+        "P → (Q ∧ R)",
+        "¬(P ∨ Q)"
+      ],
+      "en": [
+        "(P ∧ Q) ∨ R",
+        "(P ∨ Q) ∧ (¬P ∨ R)",
+        "P → (Q ∧ R)",
+        "¬(P ∨ Q)"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "الصيغة CNF هي عبارة عن أقواس مضروبة (AND) وكل قوس يحتوي على متغيرات مجموعة (OR).",
+      "en": "CNF is an AND of clauses, where each clause is an OR of literals."
+    },
+    "hint": {
+      "ar": "ابحث عن (OR) داخل الأقواس، و (AND) بين الأقواس.",
+      "en": "Look for (OR) inside the parentheses, and (AND) between them."
+    },
+    "difficulty": "hard",
+    "conceptId": "conjunctive-normal-form"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "إذا كان لدينا المقدمات: P → Q و P. ما هو الاستنتاج حسب قاعدة Modus Ponens؟",
+      "en": "Given the premises: P → Q and P. What is the conclusion according to Modus Ponens?"
+    },
+    "options": {
+      "ar": [
+        "¬P",
+        "¬Q",
+        "Q",
+        "P ∧ Q"
+      ],
+      "en": [
+        "¬P",
+        "¬Q",
+        "Q",
+        "P ∧ Q"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "قاعدة Modus Ponens تثبت النتيجة (Q) إذا تحقق الفرض (P).",
+      "en": "Modus Ponens affirms the conclusion (Q) if the hypothesis (P) is true."
+    },
+    "hint": {
+      "ar": "إثبات المُقَدَّم يثبت التالي.",
+      "en": "Affirming the antecedent affirms the consequent."
+    },
+    "difficulty": "easy",
+    "conceptId": "rules-of-inference"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "ما هي القاعدة التي تسمح لنا بالاستنتاج Q ∨ R من المقدمتين P ∨ Q و ¬P ∨ R؟",
+      "en": "Which rule allows us to infer Q ∨ R from the premises P ∨ Q and ¬P ∨ R?"
+    },
+    "options": {
+      "ar": [
+        "Modus Tollens",
+        "Resolution (القرار)",
+        "Addition (الإضافة)",
+        "Simplification (التبسيط)"
+      ],
+      "en": [
+        "Modus Tollens",
+        "Resolution",
+        "Addition",
+        "Simplification"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "قاعدة القرار (Resolution) تلغي المتغير ونفيه (P و ¬P) من جملتين مفصولتين وتدمج الباقي.",
+      "en": "The Resolution rule cancels out a literal and its negation (P and ¬P) from two disjunctive clauses and combines the rest."
+    },
+    "hint": {
+      "ar": "هذه القاعدة أساسية في إثبات النظريات الآلي.",
+      "en": "This rule is fundamental in automated theorem proving."
+    },
+    "difficulty": "hard",
+    "conceptId": "rules-of-inference"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "ماذا يعني المُكَمِّم الوجودي (∃x)؟",
+      "en": "What does the Existential Quantifier (∃x) mean?"
+    },
+    "options": {
+      "ar": [
+        "لكل x",
+        "لا يوجد x",
+        "يوجد على الأقل x واحد",
+        "يوجد x واحد فقط (بالضبط)"
+      ],
+      "en": [
+        "For all x",
+        "There is no x",
+        "There exists at least one x",
+        "There exists exactly one x"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "المكمم الوجودي ∃ يعني 'يوجد على الأقل عنصر واحد' يحقق الخاصية.",
+      "en": "The existential quantifier ∃ means 'there exists at least one element' that satisfies the property."
+    },
+    "hint": {
+      "ar": "الرمز يشبه حرف E مقلوب (Exists).",
+      "en": "The symbol looks like a backwards E (Exists)."
+    },
+    "difficulty": "easy",
+    "conceptId": "predicate-calculus-quantifiers"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "متى تكون صيغة المحمولات 'قابلة للإرضاء' (Satisfiable)؟",
+      "en": "When is a predicate formula 'Satisfiable'?"
+    },
+    "options": {
+      "ar": [
+        "إذا كانت صحيحة لجميع التعيينات الممكنة",
+        "إذا كانت صحيحة لتعيين واحد على الأقل",
+        "إذا كانت خاطئة لجميع التعيينات",
+        "إذا كانت لا تحتوي على متغيرات حرة"
+      ],
+      "en": [
+        "If it is true for all possible assignments",
+        "If it is true for at least one assignment",
+        "If it is false for all assignments",
+        "If it has no free variables"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تكون قابلة للإرضاء إذا وجدنا على الأقل حالة واحدة (تعيين واحد) يجعلها صحيحة.",
+      "en": "It is satisfiable if we can find at least one case (assignment) that makes it true."
+    },
+    "hint": {
+      "ar": "الفرق بين 'صالح' (Valid) و 'قابل للإرضاء' (Satisfiable) يشبه الفرق بين 'دائماً' و 'أحياناً'.",
+      "en": "The difference between Valid and Satisfiable is like 'always' vs 'sometimes'."
+    },
+    "difficulty": "medium",
+    "conceptId": "predicate-calculus-quantifiers"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الخلط بين العكس (Converse) والمعاكس الإيجابي (Contrapositive). تذكر أن P → Q يكافئ منطقياً ¬Q → ¬P (المعاكس الإيجابي)، ولكنه لا يكافئ Q → P (العكس).</template>
+      <template class="content-en">Confusing Converse and Contrapositive. Remember that P → Q is logically equivalent to ¬Q → ¬P (Contrapositive), but NOT equivalent to Q → P (Converse).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاستلزام P → Q يكون خاطئاً في حالة واحدة فقط: عندما يكون P صحيحاً و Q خاطئاً. في جميع الحالات الأخرى (حتى لو كان P خاطئاً)، يكون الاستلزام صحيحاً.</template>
+      <template class="content-en">The implication P → Q is false in exactly ONE case: when P is true and Q is false. In all other cases (even if P is false), the implication is true.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">فئة ZPP هي ببساطة تقاطع فئتي RP و co-RP. هذا يعني أن المشكلة في ZPP يمكن حلها بخوارزمية عشوائية لا تخطئ أبداً، ولكن وقتها المتوقع فقط هو كثير حدود.</template>
+      <template class="content-en">The ZPP class is simply the intersection of RP and co-RP. This means a problem in ZPP can be solved by a randomized algorithm that never errs, but only its expected time is polynomial.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الصيغة الطبيعية العطفية (CNF) هي 'AND لـ ORs'. أي أنها مجموعة من الأقواس المضروبة ببعضها (AND)، وداخل كل قوس يوجد متغيرات مجموعة (OR).</template>
+      <template class="content-en">Conjunctive Normal Form (CNF) is an 'AND of ORs'. It is a set of clauses joined by AND, where each clause contains literals joined by OR.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">الاعتقاد بأن آلة لاس فيغاس (ZPP) قد لا تتوقف أبداً. الحقيقة أنها تتوقف دائماً، ولكن 'الوقت المتوقع' للتوقف هو كثير حدود (قد تستغرق وقتاً أطول في أسوأ الحالات ولكنها ستتوقف).</template>
+      <template class="content-en">Believing that a Las-Vegas TM (ZPP) might never halt. In fact, it always halts, but its 'expected' halting time is polynomial (it might take longer in worst cases, but it will halt).</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M12.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>

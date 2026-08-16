@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark" data-subject="CS477" data-module="11">
+<head>
+<!-- garden-stage -->
+<meta name="robots" content="noindex,nofollow">
+<script>(function () {
+  var P = '__stage__';
+  function wrap(real) {
+    function keys() {
+      var o = [];
+      for (var i = 0; i < real.length; i++) {
+        var k = real.key(i);
+        if (k && k.indexOf(P) === 0) o.push(k.slice(P.length));
+      }
+      return o;
+    }
+    var api = {
+      getItem: function (k) { return real.getItem(P + k); },
+      setItem: function (k, v) { return real.setItem(P + k, v); },
+      removeItem: function (k) { return real.removeItem(P + k); },
+      clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
+      key: function (i) { var a = keys(); return i < a.length ? a[i] : null; }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',
+      { value: wrap(window.localStorage), configurable: true });
+    Object.defineProperty(window, 'sessionStorage',
+      { value: wrap(window.sessionStorage), configurable: true });
+  } catch (e) { window.__stageStorageFailed = true; }
+  try {
+    var db = window.indexedDB;
+    if (db) {
+      var op = db.open.bind(db), del = db.deleteDatabase.bind(db);
+      db.open = function (n, v) { return v === undefined ? op(P + n) : op(P + n, v); };
+      db.deleteDatabase = function (n) { return del(P + n); };
+    }
+  } catch (e) { window.__stageIdbFailed = true; }
+  window.__STAGE__ = true;
+})();</script>
+<script defer src="../../stage-banner.js"></script>
+<!-- /garden-stage -->
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HGTK36LR0M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HGTK36LR0M');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحسين الكود · CS477 · الحديقة الرقمية</title>
+
+  <!-- Anti-flash: MUST be first script -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('garden_theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      var l=localStorage.getItem('garden_lang')||'ar';
+      document.documentElement.setAttribute('lang',l);
+      document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');
+    })();
+  </script>
+
+  <script src="../../shared/subject-tint.js"></script>
+  <link rel="stylesheet" href="../../shared/garden.css">
+  <link rel="stylesheet" href="../../shared/garden-header.css">
+  <link rel="stylesheet" href="../../shared/skin.css">
+  <link rel="stylesheet" href="../../shared/vendor/fontawesome/css/all.min.css">
+
+  <!-- MathJax: ONLY include if json.concepts has ANY formula with latex !== null -->
+  <script>MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},chtml:{displayAlign:'left'}};</script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- data-garden-icons -->
+  <link rel="icon" type="image/svg+xml" href="../../shared/icons/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../shared/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../shared/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="../../shared/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../../manifest.json">
+  <meta name="theme-color" content="#a78bfa">
+  <!-- /data-garden-icons -->
+</head>
+<body data-page-title="CS477" data-page-title-en="CS477">
+
+<div class="reading-progress"></div>
+<div class="page-layout">
+
+<header data-gh data-gh-variant="module" data-gh-up="index.html" data-gh-prev="M10.html" data-gh-next="M12.html" data-gh-card="../../hub/course.html?code=CS477"></header>
+
+<div class="content-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-title" data-i18n="toc.title">محتويات الوحدة</div>
+    <nav class="toc-list">
+      <a href="#hero" class="toc-link" data-bilingual>
+        <template class="content-ar">مقدمة الوحدة</template>
+        <template class="content-en">Module Intro</template>
+        <span class="content-target">مقدمة الوحدة</span>
+      </a>
+      <a href="#objectives" class="toc-link" data-bilingual>
+        <template class="content-ar">أهداف التعلم</template>
+        <template class="content-en">Learning Objectives</template>
+        <span class="content-target">أهداف التعلم</span>
+      </a>
+
+      <a href="#code-optimization-basics" class="toc-link" data-bilingual>
+        <template class="content-ar">أساسيات تحسين الكود</template>
+        <template class="content-en">Code Optimization Basics</template>
+        <span class="content-target">أساسيات تحسين الكود</span>
+      </a>
+      <a href="#constant-folding" class="toc-link" data-bilingual>
+        <template class="content-ar">طي الثوابت</template>
+        <template class="content-en">Constant Folding</template>
+        <span class="content-target">طي الثوابت</span>
+      </a>
+      <a href="#strength-reduction" class="toc-link" data-bilingual>
+        <template class="content-ar">تقليل التكلفة (Strength Reduction)</template>
+        <template class="content-en">Strength Reduction</template>
+        <span class="content-target">تقليل التكلفة (Strength Reduction)</span>
+      </a>
+      <a href="#loop-unrolling" class="toc-link" data-bilingual>
+        <template class="content-ar">فك الحلقات (Loop Unrolling)</template>
+        <template class="content-en">Loop Unrolling</template>
+        <span class="content-target">فك الحلقات (Loop Unrolling)</span>
+      </a>
+      <a href="#code-hoisting" class="toc-link" data-bilingual>
+        <template class="content-ar">رفع الكود (Code Hoisting)</template>
+        <template class="content-en">Code Hoisting</template>
+        <span class="content-target">رفع الكود (Code Hoisting)</span>
+      </a>
+      <a href="#function-inlining" class="toc-link" data-bilingual>
+        <template class="content-ar">تضمين الدوال (Function Inlining)</template>
+        <template class="content-en">Function Inlining</template>
+        <span class="content-target">تضمين الدوال (Function Inlining)</span>
+      </a>
+      <a href="#dead-code-elimination" class="toc-link" data-bilingual>
+        <template class="content-ar">اكتشاف وإزالة الكود الميت</template>
+        <template class="content-en">Dead Code Detection and Elimination</template>
+        <span class="content-target">اكتشاف وإزالة الكود الميت</span>
+      </a>
+
+      <div class="toc-divider"></div>
+
+      <a href="#professor" class="toc-link" data-bilingual>
+        <template class="content-ar">حديث البروفيسور</template>
+        <template class="content-en">Professor's Narrative</template>
+        <span class="content-target">حديث البروفيسور</span>
+      </a>
+      <a href="#ask-professor" class="toc-link" data-bilingual>
+        <template class="content-ar">اسأل البروفيسور</template>
+        <template class="content-en">Ask the Professor</template>
+        <span class="content-target">اسأل البروفيسور</span>
+      </a>
+      <a href="#flashcards" class="toc-link" data-bilingual>
+        <template class="content-ar">البطاقات التعليمية</template>
+        <template class="content-en">Flashcards</template>
+        <span class="content-target">البطاقات التعليمية</span>
+      </a>
+      <a href="#quiz" class="toc-link" data-bilingual>
+        <template class="content-ar">اختبر نفسك</template>
+        <template class="content-en">Self Quiz</template>
+        <span class="content-target">اختبر نفسك</span>
+      </a>
+      <a href="#vault" class="toc-link" data-bilingual>
+        <template class="content-ar">خزنة الامتحان</template>
+        <template class="content-en">Exam Vault</template>
+        <span class="content-target">خزنة الامتحان</span>
+      </a>
+    </nav>
+    <div class="sidebar-widget">
+      <div class="widget-number" id="fc-due-count">0</div>
+      <div class="widget-label" data-i18n="fc.due">بطاقة للمراجعة اليوم</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<section id="hero" class="hero fade-up">
+  <div class="hero-eyebrow font-display">
+    ⬡ <span data-bilingual>
+      <template class="content-ar">الوحدة 11</template>
+      <template class="content-en">Module 11</template>
+      <span class="content-target">الوحدة 11</span>
+    </span> · CS477
+  </div>
+  <div data-bilingual>
+    <template class="content-ar">
+      <h1 class="text-gradient">تحسين الكود</h1>
+      <p class="hero-description">مقدمة في تقنيات تحسين الكود في المترجمات، تشمل طي الثوابت، تقليل التكلفة، فك الحلقات، رفع الكود، وتضمين الدوال.</p>
+    </template>
+    <template class="content-en">
+      <h1 class="text-gradient">Code Optimization</h1>
+      <p class="hero-description">Introduction to code optimization techniques in compilers, including constant folding, strength reduction, loop unrolling, code hoisting, and function inlining.</p>
+    </template>
+    <div class="content-target"></div>
+  </div>
+  <div class="tag-list" data-bilingual>
+    <template class="content-ar">
+      <span class="tag">المترجمات</span>
+      <span class="tag">تحسين الكود</span>
+      <span class="tag">طي الثوابت</span>
+      <span class="tag">فك الحلقات</span>
+      <span class="tag">إزالة الكود الميت</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 دقيقة</span>
+    </template>
+    <template class="content-en">
+      <span class="tag">Compilers</span>
+      <span class="tag">Code Optimization</span>
+      <span class="tag">Constant Folding</span>
+      <span class="tag">Loop Unrolling</span>
+      <span class="tag">Dead Code Elimination</span>
+      <span class="tag tag--accent"><i class="fa-regular fa-clock"></i> 35 min</span>
+    </template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="objectives" class="objectives-card glass-card fade-up">
+  <h2><i class="fa-solid fa-bullseye sec-icon" aria-hidden="true"></i> <span data-i18n="obj.title">أهداف التعلم</span></h2>
+  <ul class="objectives-list" data-bilingual>
+    <template class="content-ar">
+      <li><span class="obj-icon">✦</span><span>وصف أساسيات وقواعد تحسين الكود في المترجمات.</span></li>
+      <li><span class="obj-icon">✦</span><span>مناقشة وتطبيق تقنيات تحسين الكود عالية المستوى.</span></li>
+      <li><span class="obj-icon">✦</span><span>تحليل المفاضلات (Trade-offs) في تقنيات التحسين مثل فك الحلقات وتضمين الدوال.</span></li>
+    </template>
+    <template class="content-en">
+      <li><span class="obj-icon">✦</span><span>Describe Code Optimization basics and rules.</span></li>
+      <li><span class="obj-icon">✦</span><span>Discuss and apply high-level code optimization techniques.</span></li>
+      <li><span class="obj-icon">✦</span><span>Analyze trade-offs in optimization techniques like loop unrolling and function inlining.</span></li>
+    </template>
+    <div class="content-target"></div>
+  </ul>
+</section>
+
+<section id="code-optimization-basics" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">1</span> أساسيات تحسين الكود</h2></template>
+    <template class="content-en"><h2><span class="concept-number">1</span> Code Optimization Basics</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>عملية تحويل البرنامج لجعله يستهلك موارد أقل (معالج، ذاكرة) ويعمل بسرعة أكبر دون تغيير معناه.</p></template>
+    <template class="content-en"><p>A program transformation technique that improves code to consume fewer resources and run faster without changing its meaning.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يجب أن تتبع عملية تحسين الكود ثلاث قواعد أساسية:</p><ol><li>يجب ألا يغير الكود الناتج معنى البرنامج بأي شكل من الأشكال.</li><li>يجب أن يزيد التحسين من سرعة البرنامج ويقلل من استهلاك الموارد إن أمكن.</li><li>يجب أن تكون عملية التحسين نفسها سريعة ولا تؤخر عملية الترجمة الكلية.</li></ol><p>يمكن تطبيق التحسينات في مستويات مختلفة:</p><ul><li><strong>في البداية</strong> (تغيير الخوارزميات)،</li><li><strong>بعد توليد الكود الوسيط</strong> (تحسين الحلقات)،</li><li><strong>وأثناء توليد كود الآلة</strong> (استخدام السجلات).</li></ul></template>
+    <template class="content-en"><p>A code optimizing process must follow three fundamental rules:</p><ol><li>The output code must not change the meaning of the program in any way.</li><li>Optimization should increase the speed of the program and demand fewer resources.</li><li>Optimization should itself be fast and not delay the overall compiling process.</li></ol><p>Optimizations can be applied at multiple stages:</p><ul><li><strong>at the beginning</strong> (better algorithms),</li><li><strong>after generating intermediate code</strong> (improving loops),</li><li><strong>and while producing target machine code</strong> (using CPU registers).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>تاريخياً، كان يُنظر إلى الكود المولد بواسطة المترجمات على أنه أقل كفاءة من الكود المكتوب يدوياً. ومع ذلك، تمتلك المترجمات الحديثة معرفة دقيقة جداً بالبنية التحتية للمعالج، مما يجعل الكود المترجم غالباً يتفوق على الكود البشري.</p><p>تُصنف التحسينات حسب نطاقها:</p><ul><li><strong><span class="smart-term" data-term-en="Local Optimization" data-ar="التحسين المحلي" data-en-def="Changes limited to a single basic block without flow control.">التحسينات المحلية (Local)<span class="smart-term-tooltip"></span></span></strong> تقتصر على كتلة أساسية واحدة (Basic Block)،</li><li><strong><span class="smart-term" data-term-en="Global Optimization" data-ar="التحسين العالمي" data-en-def="Changes applied to an entire function body using a control-flow graph.">التحسينات العالمية (Global)<span class="smart-term-tooltip"></span></span></strong> تطبق على دالة كاملة باستخدام رسم بياني لتدفق التحكم (CFG)،</li><li><strong>والتحسينات بين الإجراءات (Inter-procedural)</strong> تأخذ في الاعتبار العلاقات بين الدوال المختلفة.</li></ul><p>كلما زاد نطاق التحسين، زادت صعوبته، ولكن زادت إمكاناته في تحسين أداء البرنامج بشكل جذري.</p></template>
+    <template class="content-en"><p>Historically, compiler-generated code was seen as inferior to hand-written assembly. However, modern compilers possess highly detailed knowledge of the underlying architecture, making compiled code usually superior to human-written code.</p><p>Optimizations are categorized by scope:</p><ul><li><strong><span class="smart-term" data-term-en="Local Optimization" data-ar="التحسين المحلي" data-en-def="Changes limited to a single basic block without flow control.">Local optimizations<span class="smart-term-tooltip"></span></span></strong> are limited to a single basic block (straight-line code).</li><li><strong><span class="smart-term" data-term-en="Global Optimization" data-ar="التحسين العالمي" data-en-def="Changes applied to an entire function body using a control-flow graph.">Global optimizations<span class="smart-term-tooltip"></span></span></strong> apply to an entire function body using a Control-Flow Graph (CFG).</li><li><strong>Inter-procedural optimizations</strong> consider relationships across different functions.</li></ul><p>Generally, optimizations at larger scopes are significantly more challenging to implement but offer much greater potential to improve program performance.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Local Optimization</th><th>Global Optimization</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">النطاق</template>
+          <template class="content-en">Scope</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">كتلة أساسية واحدة (Basic Block)</template>
+          <template class="content-en">Single basic block</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">جسم الدالة بالكامل (CFG)</template>
+          <template class="content-en">Entire function body (CFG)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التعقيد</template>
+          <template class="content-en">Complexity</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">منخفض</template>
+          <template class="content-en">Low</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">متوسط</template>
+          <template class="content-en">Medium</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">إمكانية تحسين الأداء</template>
+          <template class="content-en">Performance Improvement Potential</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">محدودة</template>
+          <template class="content-en">Limited</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">عالية</template>
+          <template class="content-en">High</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="comparison-table">
+    <thead><tr><th></th><th>Algorithmic Complexity</th><th>Low-level Optimization</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">التأثير على الأداء</template>
+          <template class="content-en">Performance Impact</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">هائل (مثال: O(n) إلى O(log n))</template>
+          <template class="content-en">Massive (e.g., O(n) to O(log n))</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-bad" data-bilingual>
+          <template class="content-ar">محدود (تحسينات طفيفة في السرعة)</template>
+          <template class="content-en">Marginal (minor speedups)</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+      <tr>
+        <td data-bilingual>
+          <template class="content-ar">المنفذ</template>
+          <template class="content-en">Executor</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">المبرمج</template>
+          <template class="content-en">Programmer</template>
+          <span class="content-target"></span>
+        </td>
+        <td class="td-good" data-bilingual>
+          <template class="content-ar">المترجم (Compiler)</template>
+          <template class="content-en">Compiler</template>
+          <span class="content-target"></span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يُعتبر التحسين بين الإجراءات (Inter-procedural) أصعب من التحسين المحلي؟</template>
+      <template class="content-en">Why is inter-procedural optimization more difficult than local optimization?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يتطلب تحليل تدفق البيانات والتحكم عبر حدود الدوال المتعددة، مما يزيد من تعقيد التحليل واستهلاك الذاكرة أثناء الترجمة.</p></template>
+      <template class="content-en"><p>Because it requires analyzing data and control flow across multiple function boundaries, significantly increasing analysis complexity and memory consumption during compilation.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="constant-folding" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">2</span> طي الثوابت</h2></template>
+    <template class="content-en"><h2><span class="concept-number">2</span> Constant Folding</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تقنية تحول التعبيرات التي تحتوي على ثوابت متعددة إلى ثابت واحد أثناء وقت الترجمة (Compile-time) بدلاً من وقت التنفيذ.</p></template>
+    <template class="content-en"><p>A technique that converts an expression with multiple constants into a single constant at compile-time rather than execution-time.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يقوم طي الثوابت بنقل جزء من عمل البرنامج من وقت التنفيذ إلى وقت الترجمة.</p><p>إذا كانت عقدة المعامل في شجرة البنية المجردة (AST) تحتوي على عقدتين فرعيتين ثابتتين، فيمكن تحويلها إلى عقدة واحدة تحتوي على نتيجة العملية المحسوبة مسبقاً.</p><p>يمكن أن تتصاعد هذه العملية (Cascade up) بحيث يتم تقليل التعبيرات المعقدة إلى ثابت واحد.</p></template>
+    <template class="content-en"><p>Constant folding moves some of the program's work from execution-time to compile-time.</p><p>An operator node in the AST with two constant child nodes can be converted into a single node with the result of the operation computed in advance.</p><p>This process can cascade up the tree so that complex expressions may be reduced entirely to a single constant.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يتم تنفيذ هذه التقنية عادةً باستخدام دالة عودية (Recursive) تقوم باجتياز شجرة التعبيرات ب<span class="smart-term" data-term-en="Post-order Traversal" data-ar="الاجتياز البعدي" data-en-def="A tree traversal method where children are processed before their parent node.">نمط (Post-order traversal)<span class="smart-term-tooltip"></span></span>، حيث يتم تقييم الأبناء قبل الآباء.</p><p>من التحديات الرئيسية في طي الثوابت ضرورة استخدام متغيرات بنفس الدقة (Precision) التي سيستخدمها البرنامج الهدف، والتعامل الحذر مع حالات الحافة (Boundary cases) مثل الطفحان (Overflow)، النقصان (Underflow)، والقسمة على صفر أثناء وقت الترجمة لتجنب انهيار المترجم.</p></template>
+    <template class="content-en"><p>This is typically implemented by a recursive function that performs a <span class="smart-term" data-term-en="Post-order Traversal" data-ar="الاجتياز البعدي" data-en-def="A tree traversal method where children are processed before their parent node.">post-order traversal<span class="smart-term-tooltip"></span></span> of the expression tree, ensuring children are evaluated before their parents.</p><p>A major challenge is that the compiler must use variables of the exact same precision as the target architecture and carefully handle boundary cases such as underflow, overflow, and division by zero during compile-time to prevent compiler crashes.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header"><span>Pseudocode</span><button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button></div>
+    <pre class="pseudo-block"><code>struct expr * expr_fold( struct expr *e )
+{
+    expr_fold( e-&gt;left )
+    expr_fold( e-&gt;right )
+    if( e-&gt;left and e-&gt;right are both constants ) {
+        f = expr_create( EXPR_CONSTANT );
+        f-&gt;value = e-&gt;operator applied to e-&gt;left-&gt;value and e-&gt;right-&gt;value
+        expr_delete(e-&gt;left);
+        expr_delete(e-&gt;right);
+        return f;
+    } else {
+        return e;
+    }
+}</code></pre>
+  </div>
+
+  <!-- DIAGRAM[2]: Create an AST (Abstract Syntax Tree) diagram showing Constant Folding. Before: A root node '+' with left child '3' and right child '4'. After: An arrow pointing to a single node '7'. Style: educational, dark background #0d1117, accent color #3b82f6, Arabic and English labels. -->
+<div class="svg-diagram" data-diagram-id="2">
+<svg viewBox="0 0 800 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--brand-600)" />
+      <stop offset="100%" stop-color="var(--brand-800)" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="400" y="35" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">
+    Constant Folding / طي الثوابت
+  </text>
+
+  <!-- ================= BEFORE SECTION ================= -->
+  <rect x="40" y="60" width="340" height="320" rx="16" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" />
+  
+  <text x="210" y="95" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+    Before / قبل
+  </text>
+
+  <!-- Edges -->
+  <line x1="210" y1="170" x2="130" y2="280" stroke="var(--border-color)" stroke-width="3" />
+  <line x1="210" y1="170" x2="290" y2="280" stroke="var(--border-color)" stroke-width="3" />
+
+  <!-- Root Node (+) -->
+  <text x="210" y="125" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Operator / معامل</text>
+  <circle cx="210" cy="170" r="35" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="3" />
+  <text x="210" y="182" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="32" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">+</text>
+
+  <!-- Left Child (3) -->
+  <circle cx="130" cy="280" r="35" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="3" />
+  <text x="130" y="292" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="28" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">3</text>
+  <text x="130" y="345" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Constant / ثابت</text>
+
+  <!-- Right Child (4) -->
+  <circle cx="290" cy="280" r="35" fill="var(--bg-elevated)" stroke="var(--border-color)" stroke-width="3" />
+  <text x="290" y="292" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="28" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">4</text>
+  <text x="290" y="345" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Constant / ثابت</text>
+
+
+  <!-- ================= TRANSFORMATION ARROW ================= -->
+  <line x1="400" y1="225" x2="495" y2="225" stroke="var(--brand-500)" stroke-width="4" marker-end="url(#arrow)" />
+  <text x="450" y="205" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Evaluate</text>
+  <text x="450" y="255" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">حساب القيمة</text>
+
+
+  <!-- ================= AFTER SECTION ================= -->
+  <rect x="520" y="60" width="240" height="320" rx="16" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="8,4" />
+  
+  <text x="640" y="95" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="18" font-weight="bold" fill="var(--text-secondary)" text-anchor="middle">
+    After / بعد
+  </text>
+
+  <!-- Folded Node (7) -->
+  <circle cx="640" cy="225" r="45" fill="url(#highlightGrad)" stroke="var(--brand-500)" stroke-width="2" filter="url(#glow)" />
+  <text x="640" y="240" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="42" font-weight="bold" fill="var(--bg-surface)" text-anchor="middle">7</text>
+  <text x="640" y="310" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-muted)" text-anchor="middle">Folded Constant / ثابت مطوي</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا يحدث إذا حاول المترجم طي التعبير (x = 10 / 0)؟</template>
+      <template class="content-en">What happens if the compiler attempts to fold the expression (x = 10 / 0)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>يجب أن يكتشف المترجم حالة القسمة على صفر ويصدر تحذيراً أو خطأ بدلاً من محاولة حسابها، لأن ذلك سيؤدي إلى انهيار المترجم نفسه.</p></template>
+      <template class="content-en"><p>The compiler must detect the division by zero and issue a warning or error instead of attempting to compute it, as doing so would crash the compiler itself.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="strength-reduction" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">3</span> تقليل التكلفة (Strength Reduction)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">3</span> Strength Reduction</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تقنية تحويل عملية حسابية باهظة التكلفة إلى عملية أخرى أقل تكلفة وأسرع في التنفيذ.</p></template>
+    <template class="content-en"><p>The technique of converting a special case of an expensive operation into a less expensive, faster operation.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تستبدل هذه التقنية العمليات المعقدة ببدائل أبسط. على سبيل المثال:</p><ul><li><strong>استبدال الأسس بالضرب:</strong> التعبير <code>x^2</code> يمكن استبداله بـ <code>x * x</code>، مما يتجنب تكلفة استدعاء دالة مثل <code>pow(x,y)</code>.</li><li><strong>استبدال الضرب/القسمة بالإزاحة:</strong> يمكن استبدال الضرب في قوى العدد 2 (مثل <code>x * 8</code>) بعملية <span class="smart-term" data-term-en="Bitwise Shift" data-ar="إزاحة البتات" data-en-def="Moving the bits of a binary number left or right, effectively multiplying or dividing by powers of two.">إزاحة البتات لليسار<span class="smart-term-tooltip"></span></span> (<code>x &lt;&lt; 3</code>).</li></ul></template>
+    <template class="content-en"><p>This technique replaces complex operations with simpler alternatives. For example:</p><ul><li><strong>Replacing exponentiation with multiplication:</strong> The expression <code>x^2</code> can be substituted with <code>x * x</code>, avoiding the overhead of a function call like <code>pow(x,y)</code>.</li><li><strong>Replacing multiplication/division with bitwise shifts:</strong> Multiplication by any power of two (e.g., <code>x * 8</code>) can be replaced with a <span class="smart-term" data-term-en="Bitwise Shift" data-ar="إزاحة البتات" data-en-def="Moving the bits of a binary number left or right, effectively multiplying or dividing by powers of two.">bitwise left shift<span class="smart-term-tooltip"></span></span> (<code>x &lt;&lt; 3</code>).</li></ul></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>لا يقتصر تقليل التكلفة على العمليات الحسابية الأساسية، بل يمتد إلى دوال المكتبات القياسية.</p><p>على سبيل المثال، تقوم الإصدارات الحديثة من مترجم <code>gcc</code> باستبدال استدعاء <code>printf(s)</code> (حيث s سلسلة نصية ثابتة) باستدعاء مكافئ لـ <code>puts(s)</code>.</p><p>يأتي تقليل التكلفة هنا من تقليل حجم الكود الذي يجب ربطه (Linked) بالبرنامج، حيث أن <code>puts</code> دالة بسيطة جداً، بينما <code>printf</code> تحتوي على ميزات معقدة وتبعيات كود إضافية.</p></template>
+    <template class="content-en"><p>Strength reduction is not limited to basic arithmetic; it extends to standard library operations.</p><p>For instance, recent versions of the <code>gcc</code> compiler will substitute a call to <code>printf(s)</code> (where s is a constant string) with the equivalent call to <code>puts(s)</code>.</p><p>In this case, the strength reduction comes from reducing the amount of code that must be linked into the program: <code>puts</code> is very simple, whereas <code>printf</code> has a large number of features and further code dependencies.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="formula-block">
+    <div data-bilingual>
+      <template class="content-ar"><strong>الضرب في قوى العدد 2 يكافئ إزاحة البتات لليسار بمقدار الأس.</strong></template>
+      <template class="content-en"><strong>Multiplication by a power of 2 is equivalent to a bitwise left shift by the exponent.</strong></template>
+      <div class="content-target"></div>
+    </div>
+    <div class="math-block">$$x \times 2^n \equiv x \ll n$$</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>// Before Optimization
+y = pow(x, 2);
+z = a * 8;
+printf("Hello World\n");
+
+// After Strength Reduction
+y = x * x;
+z = a &lt;&lt; 3;
+puts("Hello World");</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا لا يمكن دائماً استبدال القسمة على 2 بإزاحة لليمين (Right Shift) للأعداد الصحيحة السالبة في لغة C؟</template>
+      <template class="content-en">Why can't division by 2 always be replaced by a right shift for negative integers in C?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن الإزاحة لليمين للأعداد السالبة (Arithmetic Shift) تقرب النتيجة نحو سالب ما لا نهاية، بينما القسمة الصحيحة تقرب نحو الصفر، مما يؤدي إلى نتائج مختلفة.</p></template>
+      <template class="content-en"><p>Because an arithmetic right shift on negative numbers rounds towards negative infinity, whereas integer division rounds towards zero, leading to different results.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="loop-unrolling" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">4</span> فك الحلقات (Loop Unrolling)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">4</span> Loop Unrolling</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>تقنية تحول الحلقة إلى حلقة أخرى بتكرارات أقل، ولكنها تنجز عملاً أكبر في كل تكرار لتقليل العبء الإضافي للتحكم في الحلقة.</p></template>
+    <template class="content-en"><p>The technique of transforming a loop into another that has fewer iterations, but does more work per iteration to reduce loop control overhead.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>تستهلك تعليمات التحكم في الحلقة (مثل التحقق من الشرط والقفز إلى بداية الحلقة) جزءاً كبيراً من وقت التنفيذ.</p><p>من خلال زيادة العمل في كل تكرار (Unrolling factor)، يمكننا تقليل عدد مرات تقييم الشرط والقفز.</p><p>على سبيل المثال، حلقة تدور 400 مرة يمكن فكها لتدور 100 مرة فقط، مع تنفيذ 4 عمليات في كل تكرار.</p></template>
+    <template class="content-en"><p>Instructions to control a loop (checking the condition and branching back) consume a significant fraction of execution time.</p><p>By increasing the work per iteration (the <span class="smart-term" data-term-en="Unrolling Factor" data-ar="عامل الفك" data-en-def="The number of repetitions of the loop body combined into a single iteration.">unrolling factor<span class="smart-term-tooltip"></span></span>), we reduce the number of condition evaluations and branches.</p><p>For example, a loop running 400 times can be unrolled to run 100 times, performing 4 operations per iteration.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>بالإضافة إلى تقليل التقييمات غير الضرورية، يؤدي فك الحلقات إلى التخلص من التفرعات (Branches) في تدفق التعليمات، مما يتجنب <span class="smart-term" data-term-en="Pipeline Stall" data-ar="توقف خط الأنابيب" data-en-def="A delay in execution of an instruction in order to resolve a hazard, often caused by branches.">توقف خط الأنابيب (Pipeline stalls)<span class="smart-term-tooltip"></span></span> في المعالج الدقيق.</p><p><b>المفاضلة (Trade-off):</b> مع زيادة عامل الفك، يزداد حجم الكود.</p><p>بدلاً من قراءة نفس التعليمات مراراً، يضطر المعالج لتحميل تعليمات جديدة من الذاكرة.</p><p>إذا أدى فك الحلقة إلى مجموعة عمل (Working set) أكبر من ذاكرة التخزين المؤقت للتعليمات (Instruction Cache)، فقد يصبح الأداء أسوأ من الكود الأصلي.</p></template>
+    <template class="content-en"><p>Beyond saving unnecessary evaluations, loop unrolling eliminates branches from the instruction stream, which avoids <span class="smart-term" data-term-en="Pipeline Stall" data-ar="توقف خط الأنابيب" data-en-def="A delay in execution of an instruction in order to resolve a hazard, often caused by branches.">pipeline stalls<span class="smart-term-tooltip"></span></span> and other complexities within the microprocessor.</p><p><b>Trade-off:</b> As the unrolling factor increases, code size grows.</p><p>Instead of reading the same instructions repeatedly, the processor must load new instructions from memory.</p><p>If the unrolled loop results in a working set larger than the instruction cache, performance may end up worse than the original code.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>// Original Loop
+for(i = 0; i &lt; 400; i++) {
+    a[i] = i * 2 + 10;
+}
+
+// Unrolled Loop (Factor = 4)
+for(i = 0; i &lt; 400; i += 4) {
+    a[i] = i * 2 + 10;
+    a[i+1] = (i+1) * 2 + 10;
+    a[i+2] = (i+2) * 2 + 10;
+    a[i+3] = (i+3) * 2 + 10;
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">ماذا نفعل إذا كان عدد تكرارات الحلقة ليس من مضاعفات عامل الفك (مثلاً 402 تكرار وعامل الفك 4)؟</template>
+      <template class="content-en">What do we do if the loop iteration count is not a multiple of the unrolling factor (e.g., 402 iterations, factor 4)?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>نستخدم حلقة مفكوكة للتعامل مع المضاعفات (400 تكرار)، ثم نتبعها بحلقة عادية صغيرة (أو كود متسلسل) للتعامل مع التكرارات المتبقية (Epilogue loop).</p></template>
+      <template class="content-en"><p>We use the unrolled loop for the bulk of iterations (400), followed by a small regular loop or sequential code (epilogue) to handle the remainder (2 iterations).</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="code-hoisting" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">5</span> رفع الكود (Code Hoisting)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">5</span> Code Hoisting</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>نقل أجزاء الكود التي <span class="smart-term" data-term-en="Loop-invariant Code" data-ar="الكود الثابت في الحلقة" data-en-def="Code whose result does not change across the iterations of a loop.">لا تتغير قيمتها داخل الحلقة (Loop-invariant)<span class="smart-term-tooltip"></span></span> إلى خارج الحلقة لحسابها مرة واحدة فقط.</p></template>
+    <template class="content-en"><p>Moving code fragments that are <span class="smart-term" data-term-en="Loop-invariant Code" data-ar="الكود الثابت في الحلقة" data-en-def="Code whose result does not change across the iterations of a loop.">constant within each iteration<span class="smart-term-tooltip"></span></span> of a loop to the block preceding the loop.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>في بعض الأحيان، توجد تعبيرات داخل الحلقة تعطي نفس النتيجة في كل تكرار.</p><p>من غير الضروري إعادة حسابها في كل مرة. يمكن نقل هذا الكود إلى الكتلة التي تسبق الحلقة.</p><p>على سبيل المثال، إذا كان فهرس المصفوفة <code>x * y</code> ثابتاً طوال الحلقة، فيمكن حسابه مرة واحدة وتخزينه في متغير مؤقت قبل بدء الحلقة.</p></template>
+    <template class="content-en"><p>Sometimes, code fragments inside a loop are constant with each iteration.</p><p>It is unnecessary to recompute them every time. This code can be moved to the block preceding the loop.</p><p>For example, if an array index <code>x * y</code> is constant throughout the loop, it can be computed once and stored in a temporary variable before the loop body.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يُعتبر رفع الكود تحسيناً آمناً نسبياً (Benign) مقارنة بفك الحلقات.</p><p>التكلفة الوحيدة لهذا التحسين هي أن النتيجة المحسوبة يجب أن تشغل موقعاً مؤقتاً طوال مدة الحلقة.</p><p>هذا يعني زيادة طفيفة في <span class="smart-term" data-term-en="Register Pressure" data-ar="الضغط على السجلات" data-en-def="The state when a program needs more registers than are available in the CPU.">الضغط على السجلات (Register pressure)<span class="smart-term-tooltip"></span></span> أو استهلاك مساحة التخزين المحلية.</p><p>ومع ذلك، يتم تعويض هذه التكلفة بسهولة من خلال التخلص من العمليات الحسابية غير الضرورية المتكررة.</p></template>
+    <template class="content-en"><p>Code hoisting is a relatively benign optimization when compared to loop unrolling.</p><p>The only cost is that the computed result must occupy a temporary location for the duration of the loop.</p><p>This slightly increases either <span class="smart-term" data-term-en="Register Pressure" data-ar="الضغط على السجلات" data-en-def="The state when a program needs more registers than are available in the CPU.">register pressure<span class="smart-term-tooltip"></span></span> or local storage consumption.</p><p>However, this cost is easily offset by the elimination of unnecessary, repeated computation.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>// Before Hoisting
+for(i = 0; i &lt; 400; i++) {
+    a[x * y] += i;
+}
+
+// After Hoisting
+t = x * y;
+for(i = 0; i &lt; 400; i++) {
+    a[t] += i;
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">متى يكون رفع الكود ضاراً بالأداء؟</template>
+      <template class="content-en">When can code hoisting be detrimental to performance?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>إذا كان التعبير المرفوع يستهلك سجلاً حيوياً تحتاجه الحلقة بشدة، مما يجبر المعالج على نقل متغيرات أخرى إلى الذاكرة (Spilling)، وقد تكون تكلفة الوصول للذاكرة أعلى من تكلفة إعادة حساب التعبير.</p></template>
+      <template class="content-en"><p>If the hoisted expression consumes a critical register needed inside the loop, forcing the CPU to spill other variables to memory. The cost of memory access might exceed the cost of recomputing the expression.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="function-inlining" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">6</span> تضمين الدوال (Function Inlining)</h2></template>
+    <template class="content-en"><h2><span class="concept-number">6</span> Function Inlining</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>عملية استبدال استدعاء الدالة بجسم الدالة نفسه مباشرة في الكود لتجنب العبء الإضافي للاستدعاء.</p></template>
+    <template class="content-en"><p>The process of substituting a function call with the effect of that function call directly in the code to avoid call overhead.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يكون التضمين مفيداً بشكل خاص للدوال القصيرة التي تُستخدم لتحسين وضوح الكود ولكنها لا تقوم بعمليات حسابية كبيرة.</p><p>العبء الإضافي (Overhead) لإعداد المعاملات واستدعاء الدالة قد يتجاوز تكلفة تنفيذ العمليات البسيطة داخل الدالة.</p><p>من خلال تضمين كود الدالة داخل الحلقة، يمكن تحسين الأداء العام للبرنامج بشكل ملحوظ.</p></template>
+    <template class="content-en"><p>Inlining is particularly useful for brief functions that exist to improve code clarity but do not perform a large amount of computation.</p><p>The <span class="smart-term" data-term-en="Call Overhead" data-ar="العبء الإضافي للاستدعاء" data-en-def="The time and resources spent setting up the stack, passing parameters, and jumping to a function.">overhead<span class="smart-term-tooltip"></span></span> of setting up parameters and calling the function likely exceeds the cost of the operations within the function itself.</p><p>By inlining the function code into the loop, the overall performance of the program can be significantly improved.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>يُفضل تطبيق تضمين الدوال على <span class="smart-term" data-term-en="Leaf Function" data-ar="الدالة الطرفية" data-en-def="A function that does not call any other functions.">الدوال الطرفية (Leaf functions)<span class="smart-term-tooltip"></span></span> البسيطة التي يتم استدعاؤها بشكل متكرر.</p><p>ومع ذلك، فإن اتخاذ هذا القرار تلقائياً بواسطة المترجم يمثل تحدياً.</p><p>الفوائد واضحة، لكن التكاليف المتمثلة في زيادة حجم الكود (Code bloat) وتكرار التقييمات ليس من السهل قياسها.</p><p>بسبب هذا، توفر العديد من اللغات كلمة مفتاحية (مثل <code>inline</code> في C و C++) للسماح للمبرمج باتخاذ هذا القرار يدوياً.</p></template>
+    <template class="content-en"><p>Function inlining is best applied to simple <span class="smart-term" data-term-en="Leaf Function" data-ar="الدالة الطرفية" data-en-def="A function that does not call any other functions.">leaf functions<span class="smart-term-tooltip"></span></span> that are called frequently and do little work relative to the cost of invocation.</p><p>However, making this determination automatically is challenging for compilers.</p><p>While benefits are clear, the costs in terms of increased code size (code bloat) and duplicated evaluations are hard to quantify.</p><p>Due to this, many languages offer a keyword (like <code>inline</code> in C/C++) to allow programmers to make this determination manually.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>// Function Definition
+int quadratic(int a, int b, int x){
+    return a*x*x + b*x + 30;
+}
+
+// Before Inlining
+for(i=0; i&lt;1000; i++){
+    y = quadratic(10, 20, i*2);
+}
+
+// After Inlining (Conceptual)
+for(i=0; i&lt;1000; i++){
+    int temp_x = i*2;
+    y = 10*temp_x*temp_x + 20*temp_x + 30;
+}</code></pre>
+  </div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يمكن أن يؤدي الإفراط في استخدام التضمين (Inlining) إلى إبطاء البرنامج؟</template>
+      <template class="content-en">Why can excessive use of inlining slow down a program?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأنه يزيد من حجم الكود التنفيذي بشكل كبير، مما قد يؤدي إلى تجاوز سعة ذاكرة التخزين المؤقت للتعليمات (Instruction Cache Misses)، وبالتالي إبطاء جلب التعليمات من الذاكرة الرئيسية.</p></template>
+      <template class="content-en"><p>Because it significantly increases the executable code size, which can lead to instruction cache misses, thereby slowing down the fetching of instructions from main memory.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="dead-code-elimination" class="concept-card glass-card fade-up">
+  <div class="concept-header" data-bilingual>
+    <template class="content-ar"><h2><span class="concept-number">7</span> اكتشاف وإزالة الكود الميت</h2></template>
+    <template class="content-en"><h2><span class="concept-number">7</span> Dead Code Detection and Elimination</h2></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="depth-tabs">
+    <button class="depth-tab active" data-layer="flash"><i class="fa-solid fa-bolt" aria-hidden="true"></i> <span data-i18n="layer.flash">سريع</span></button>
+    <button class="depth-tab" data-layer="full"><i class="fa-solid fa-book-open" aria-hidden="true"></i> <span data-i18n="layer.full">كامل</span></button>
+    <button class="depth-tab" data-layer="deep"><i class="fa-solid fa-microscope" aria-hidden="true"></i> <span data-i18n="layer.deep">عميق</span></button>
+  </div>
+
+  <div class="depth-layer active" data-layer="flash" data-bilingual>
+    <template class="content-ar"><p>عملية تحديد وإزالة أجزاء من الكود التي لا يمكن الوصول إليها أو تنفيذها تحت أي مدخلات محتملة.</p></template>
+    <template class="content-en"><p>The process of identifying and removing code that is completely unreachable and will not be executed under any possible input.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="full" data-bilingual>
+    <template class="content-ar"><p>يمكن أن يحتوي البرنامج المترجم على كود لا يمكن الوصول إليه بسبب خطأ من المبرمج (مثل وضع جملة <code>return</code> قبل نهاية الدالة) أو كنتيجة لتطبيق تحسينات متعددة متتالية تجعل بعض الفروع غير قابلة للتنفيذ.</p><p>يتم إجراء اكتشاف الكود الميت عادةً على <span class="smart-term" data-term-en="Control Flow Graph (CFG)" data-ar="الرسم البياني لتدفق التحكم" data-en-def="A directed graph representing all paths that might be traversed through a program during its execution.">الرسم البياني لتدفق التحكم (CFG)<span class="smart-term-tooltip"></span></span> بعد إجراء طي الثوابت وتحسينات التعبيرات الأخرى.</p></template>
+    <template class="content-en"><p>A compiled program can contain unreachable code due to a programmer mistake (e.g., returning before the final statement) or due to the application of multiple optimizations in sequence that eventually result in a branch that will never be executed.</p><p>Dead code detection is typically performed on a <span class="smart-term" data-term-en="Control Flow Graph (CFG)" data-ar="الرسم البياني لتدفق التحكم" data-en-def="A directed graph representing all paths that might be traversed through a program during its execution.">Control Flow Graph (CFG)<span class="smart-term-tooltip"></span></span> after constant folding and other expression optimizations have been performed.</p></template>
+    <div class="content-target"></div>
+  </div>
+  <div class="depth-layer" data-layer="deep" data-bilingual>
+    <template class="content-ar"><p>بمجرد إنشاء الرسم البياني لتدفق التحكم (CFG)، يصبح تحديد <span class="smart-term" data-term-en="Reachability" data-ar="إمكانية الوصول" data-en-def="The ability to reach a specific node in a CFG from the entry node.">إمكانية الوصول<span class="smart-term-tooltip"></span></span> أمراً بسيطاً:</p><ol><li>يقوم المترجم باجتياز الـ CFG بدءاً من نقطة الدخول للدالة.</li><li>يتم وضع علامة (Mark) على كل عقدة يتم زيارتها.</li><li>بمجرد اكتمال الاجتياز، تُعتبر أي عقد غير معلمة كوداً غير قابل للوصول (Unreachable).</li></ol><p>يمكن للمترجم بعد ذلك إما إصدار رسالة خطأ/تحذير للمبرمج أو ببساطة عدم توليد كود آلة لهذا الجزء.</p></template>
+    <template class="content-en"><p>Once the control flow graph is created, determining <span class="smart-term" data-term-en="Reachability" data-ar="إمكانية الوصول" data-en-def="The ability to reach a specific node in a CFG from the entry node.">reachability<span class="smart-term-tooltip"></span></span> is simple:</p><ol><li>Perform a traversal of the CFG, starting from the entry point of the function.</li><li>Mark each node as it is visited.</li><li>Once the traversal is complete, any unmarked nodes are known to be unreachable.</li></ol><p>The compiler may either generate a suitable error message or simply not generate machine code for the unreachable portion.</p></template>
+    <div class="content-target"></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>c</span>
+      <button class="copy-btn"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy</button>
+    </div>
+    <pre><code>if ( x &lt; y ) {
+    return 10;
+} else {
+    return 20;
+}
+// The following code is DEAD CODE
+print "goodbye";
+return 30;</code></pre>
+  </div>
+
+  <!-- DIAGRAM[1]: Create a Control Flow Graph (CFG) diagram showing Dead Code. Node 1: 'if x&lt;y'. Two branches from Node 1: 'T' points to Node 2 ('return 10'), 'F' points to Node 3 ('return 20'). Node 4 ('print &quot;hello&quot;') and Node 5 ('return 30') are floating with no incoming arrows, clearly marked as Unreachable/Dead Code. Style: educational, dark background #0d1117, accent colors (green for reachable, red for unreachable). -->
+<div class="svg-diagram" data-diagram-id="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Arrowhead for reachable paths -->
+    <marker id="arrow-reachable" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--brand-500)" />
+    </marker>
+    <!-- Arrowhead for unreachable/dead paths -->
+    <marker id="arrow-dead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="var(--bg-surface)" />
+
+  <!-- Main Title -->
+  <text x="400" y="40" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="22" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Control Flow Graph: Dead Code</text>
+  <text x="400" y="65" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="16" fill="var(--text-secondary)" text-anchor="middle">رسم بياني للتحكم في التدفق: كود ميت (لا يمكن الوصول إليه)</text>
+
+  <!-- ========================================== -->
+  <!-- REACHABLE CODE SECTION (LEFT)              -->
+  <!-- ========================================== -->
+
+  <!-- Section Label -->
+  <text x="250" y="100" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">Reachable Code / كود يمكن الوصول إليه</text>
+
+  <!-- Entry Arrow -->
+  <path d="M 250 110 L 250 135" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-reachable)" />
+
+  <!-- Node 1: Condition (Diamond) -->
+  <polygon points="250,140 330,180 250,220 170,180" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="250" y="180" font-family="monospace" font-size="16" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">if x &lt; y</text>
+
+  <!-- Node 2: True Branch -->
+  <rect x="80" y="280" width="140" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="150" y="305" font-family="monospace" font-size="16" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">return 10</text>
+
+  <!-- Node 3: False Branch -->
+  <rect x="280" y="280" width="140" height="50" rx="8" fill="var(--bg-elevated)" stroke="var(--brand-500)" stroke-width="2" />
+  <text x="350" y="305" font-family="monospace" font-size="16" fill="var(--text-primary)" text-anchor="middle" dominant-baseline="middle">return 20</text>
+
+  <!-- Edges from Node 1 -->
+  <!-- True Path -->
+  <path d="M 170 180 L 150 270" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-reachable)" />
+  <text x="140" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">T</text>
+  
+  <!-- False Path -->
+  <path d="M 330 180 L 350 270" stroke="var(--brand-500)" stroke-width="2" marker-end="url(#arrow-reachable)" />
+  <text x="360" y="225" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--brand-500)" text-anchor="middle">F</text>
+
+
+  <!-- ========================================== -->
+  <!-- UNREACHABLE / DEAD CODE SECTION (RIGHT)    -->
+  <!-- ========================================== -->
+
+  <!-- Dead Code Bounding Box -->
+  <rect x="480" y="110" width="240" height="240" rx="12" fill="var(--bg-elevated)" fill-opacity="0.4" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="8 6" />
+  
+  <!-- Section Label -->
+  <text x="600" y="140" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="15" font-weight="bold" fill="var(--text-muted)" text-anchor="middle">Dead Code / كود ميت</text>
+
+  <!-- Node 4: Floating / Unreachable -->
+  <rect x="530" y="160" width="140" height="50" rx="8" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="2" />
+  <text x="600" y="185" font-family="monospace" font-size="16" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">print "hello"</text>
+
+  <!-- Node 5: Floating / Unreachable -->
+  <rect x="530" y="280" width="140" height="50" rx="8" fill="var(--bg-surface)" stroke="var(--text-muted)" stroke-width="2" />
+  <text x="600" y="305" font-family="monospace" font-size="16" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">return 30</text>
+
+  <!-- Edge from Node 4 to Node 5 -->
+  <path d="M 600 210 L 600 270" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrow-dead)" />
+
+
+  <!-- ========================================== -->
+  <!-- FOOTER EXPLANATION                         -->
+  <!-- ========================================== -->
+  <text x="400" y="395" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">The floating nodes have no incoming execution path, making them Dead Code.</text>
+  <text x="400" y="420" font-family="system-ui, 'Cairo', 'Inter', sans-serif" font-size="14" fill="var(--text-secondary)" text-anchor="middle">العقد العائمة ليس لها مسار تنفيذ وارد، مما يجعلها كود ميت لا يمكن الوصول إليه.</text>
+
+</svg>
+</div>
+
+  <details class="thinking-question">
+    <summary data-bilingual>
+      <template class="content-ar">لماذا يتم تنفيذ إزالة الكود الميت *بعد* طي الثوابت وليس قبله؟</template>
+      <template class="content-en">Why is dead code elimination performed *after* constant folding and not before?</template>
+      <span class="content-target"></span>
+    </summary>
+    <div data-bilingual>
+      <template class="content-ar"><p>لأن طي الثوابت قد يحول شرطاً متغيراً إلى شرط ثابت (مثل if(true))، مما يكشف عن فروع جديدة أصبحت ميتة ولم تكن واضحة قبل طي الثوابت.</p></template>
+      <template class="content-en"><p>Because constant folding might resolve a variable condition into a constant one (e.g., if(true)), exposing new branches as dead code that weren't obvious before folding.</p></template>
+      <div class="content-target"></div>
+    </div>
+  </details>
+</section>
+
+<section id="professor" class="professor-card glass-card fade-up">
+  <div class="professor-header">
+    <i class="fa-solid fa-user-graduate sec-icon" aria-hidden="true"></i>
+    <h2 data-i18n="prof.title">حديث البروفيسور</h2>
+  </div>
+  <div class="professor-text" data-bilingual>
+    <template class="content-ar">أهلاً بكم يا مهندسي المستقبل في عالم 'تحسين الكود'. تخيل أنك كتبت برنامجاً يعمل بشكل صحيح، لكنه يستهلك الكثير من الذاكرة والوقت. هنا يتدخل المترجم كساحر خفي. في هذه الوحدة، تعلمنا أن التحسين له قاعدة ذهبية: 'لا تغير المعنى أبداً'. بدأنا بتقنيات بسيطة مثل 'طي الثوابت' حيث نحسب (3*4) أثناء الترجمة بدلاً من وقت التنفيذ. ثم انتقلنا إلى 'تقليل التكلفة'، حيث نستبدل العمليات الباهظة مثل الضرب بإزاحة البتات (Bitwise shift). ركزوا جيداً في الامتحان على المفاضلات (Trade-offs)؛ فمثلاً 'فك الحلقات' يقلل من القفزات لكنه قد يدمر أداء الـ Cache إذا زاد حجم الكود. و'تضمين الدوال' يزيل عبء الاستدعاء لكنه يضخم حجم البرنامج. تذكروا دائماً: الخوارزمية الجيدة (O(log n)) تهزم دائماً الكود السيئ المحسن. بالتوفيق في دراستكم!</template>
+    <template class="content-en">Welcome, future engineers, to the world of 'Code Optimization'. Imagine writing a correct program that is just too slow or memory-hungry. Here, the compiler steps in like a hidden wizard. In this module, we learned the golden rule: 'Never change the meaning'. We started with 'Constant Folding', computing (3*4) at compile-time. Then 'Strength Reduction', replacing expensive math like multiplication with bitwise shifts. For the exam, focus heavily on trade-offs! 'Loop Unrolling' reduces branches but can thrash the Instruction Cache if overdone. 'Function Inlining' removes call overhead but causes code bloat. Always remember: a good algorithm (O(log n)) will always beat an optimized bad algorithm. Good luck studying!</template>
+    <div class="content-target"></div>
+  </div>
+</section>
+
+<section id="ask-professor" class="fade-up section-gap">
+  <h2><i class="fa-solid fa-circle-question sec-icon" aria-hidden="true"></i> <span data-i18n="ask.title">اسأل البروفيسور</span></h2>
+  <div class="accordion">
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا نادراً ما يتفوق الكود المكتوب يدوياً بلغة التجميع (Assembly) على المترجمات الحديثة؟</template>
+          <template class="content-en">Why does hand-written Assembly rarely outperform modern compilers?</template>
+          <span class="content-target">لماذا نادراً ما يتفوق الكود المكتوب يدوياً بلغة التجميع (Assembly) على المترجمات الحديثة؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن المترجمات الحديثة تمتلك معرفة دقيقة ومفصلة جداً بالبنية التحتية للمعالج (Architecture) وتستطيع تطبيق تحسينات معقدة بسرعة لا يمكن للبشر مجاراتها.</template>
+          <template class="content-en">Because modern compilers have highly detailed knowledge of the underlying CPU architecture and can apply complex optimizations at a scale and speed humans cannot match.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هي القواعد الثلاث الأساسية لتحسين الكود؟</template>
+          <template class="content-en">What are the three fundamental rules of code optimization?</template>
+          <span class="content-target">ما هي القواعد الثلاث الأساسية لتحسين الكود؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">1. عدم تغيير معنى البرنامج. 2. زيادة السرعة وتقليل الموارد. 3. أن تكون عملية التحسين نفسها سريعة.</template>
+          <template class="content-en">1. Do not change program meaning. 2. Increase speed and reduce resources. 3. The optimization process itself must be fast.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">متى يجب أن نركز على الخوارزمية بدلاً من تحسينات المترجم؟</template>
+          <template class="content-en">When should we focus on the algorithm rather than compiler optimizations?</template>
+          <span class="content-target">متى يجب أن نركز على الخوارزمية بدلاً من تحسينات المترجم؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">دائماً في البداية. تحسين التعقيد الخوارزمي (مثل الانتقال من بحث خطي إلى بحث ثنائي) يعطي نتائج أفضل بكثير من أي تحسين منخفض المستوى.</template>
+          <template class="content-en">Always at the beginning. Improving algorithmic complexity (e.g., linear to binary search) yields vastly greater benefits than any low-level optimization.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يتعامل 'طي الثوابت' مع القسمة على صفر؟</template>
+          <template class="content-en">How does 'Constant Folding' handle division by zero?</template>
+          <span class="content-target">كيف يتعامل 'طي الثوابت' مع القسمة على صفر؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يجب أن يكتشف المترجم حالات الحافة هذه أثناء وقت الترجمة ويصدر خطأ، وإلا فإن محاولة حسابها ستؤدي إلى انهيار المترجم نفسه.</template>
+          <template class="content-en">The compiler must detect these boundary cases at compile-time and issue an error; otherwise, attempting to compute it will crash the compiler.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يستبدل المترجم x * 8 بـ x &lt;&lt; 3؟</template>
+          <template class="content-en">Why does the compiler replace x * 8 with x &lt;&lt; 3?</template>
+          <span class="content-target">لماذا يستبدل المترجم x * 8 بـ x &lt;&lt; 3؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">هذا يسمى 'تقليل التكلفة'. عملية إزاحة البتات (Bitwise shift) أسرع بكثير وتستهلك دورات معالج أقل من عملية الضرب الرياضية.</template>
+          <template class="content-en">This is 'Strength Reduction'. A bitwise shift operation is much faster and consumes fewer CPU cycles than a mathematical multiplication.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">ما هو الخطر الأكبر لتقنية 'فك الحلقات' (Loop Unrolling)؟</template>
+          <template class="content-en">What is the biggest risk of 'Loop Unrolling'?</template>
+          <span class="content-target">ما هو الخطر الأكبر لتقنية 'فك الحلقات' (Loop Unrolling)؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">زيادة حجم الكود (Code bloat). إذا أصبح الكود أكبر من ذاكرة التخزين المؤقت للتعليمات (Instruction Cache)، سيضطر المعالج لجلب التعليمات من الذاكرة البطيئة، مما يقلل الأداء.</template>
+          <template class="content-en">Code bloat. If the unrolled code becomes larger than the Instruction Cache, the CPU must fetch instructions from slow main memory, degrading performance.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يؤثر 'رفع الكود' (Code Hoisting) على سجلات المعالج؟</template>
+          <template class="content-en">How does 'Code Hoisting' affect CPU registers?</template>
+          <span class="content-target">كيف يؤثر 'رفع الكود' (Code Hoisting) على سجلات المعالج؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">يزيد من الضغط على السجلات (Register pressure) لأن القيمة المحسوبة خارج الحلقة يجب الاحتفاظ بها في سجل مؤقت طوال فترة تنفيذ الحلقة.</template>
+          <template class="content-en">It increases register pressure because the value computed outside the loop must be kept in a temporary register for the entire duration of the loop.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">لماذا يصعب على المترجم أتمتة 'تضمين الدوال' (Function Inlining) بشكل مثالي؟</template>
+          <template class="content-en">Why is it difficult for the compiler to perfectly automate 'Function Inlining'?</template>
+          <span class="content-target">لماذا يصعب على المترجم أتمتة 'تضمين الدوال' (Function Inlining) بشكل مثالي؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن الموازنة بين الفوائد (إلغاء عبء الاستدعاء) والتكاليف (زيادة حجم الكود وتكرار التقييمات) صعبة القياس تلقائياً.</template>
+          <template class="content-en">Because balancing the benefits (removing call overhead) against the costs (code bloat and duplicated evaluations) is hard to quantify automatically.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">كيف يكتشف المترجم الكود الميت؟</template>
+          <template class="content-en">How does the compiler detect dead code?</template>
+          <span class="content-target">كيف يكتشف المترجم الكود الميت؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">عن طريق بناء الرسم البياني لتدفق التحكم (CFG) واجتيازه من نقطة البداية. أي عقدة لا يتم الوصول إليها تُعتبر كوداً ميتاً.</template>
+          <template class="content-en">By building a Control Flow Graph (CFG) and traversing it from the entry point. Any unreached node is considered dead code.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item">
+      <button class="accordion-trigger">
+        <span data-bilingual>
+          <template class="content-ar">عند قياس أداء كود سريع باستخدام حلقة، لماذا نطرح وقت 'الحلقة الفارغة'؟</template>
+          <template class="content-en">When timing fast code using a loop, why do we subtract the 'empty loop' time?</template>
+          <span class="content-target">عند قياس أداء كود سريع باستخدام حلقة، لماذا نطرح وقت 'الحلقة الفارغة'؟</span>
+        </span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-body-inner" data-bilingual>
+          <template class="content-ar">لأن المؤقت يحسب وقت تنفيذ الكود المراد قياسه بالإضافة إلى وقت تنفيذ تعليمات الحلقة نفسها (التحقق والقفز). الطرح يعطينا الوقت الصافي للعملية.</template>
+          <template class="content-en">Because the timer counts both the target code's execution time and the loop's own control instructions (checking and branching). Subtracting gives the net time of the operation.</template>
+          <div class="content-target"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flashcards" class="flashcard-section fade-up">
+  <h2><i class="fa-solid fa-clone sec-icon" aria-hidden="true"></i> <span data-i18n="fc.title">البطاقات التعليمية</span></h2>
+  <div id="fc-container"></div>
+</section>
+<script type="application/json" id="flashcard-data">
+[
+  {
+    "id": 1,
+    "front": {
+      "ar": "تحسين الكود (Code Optimization)",
+      "en": "Code Optimization"
+    },
+    "back": {
+      "definition": {
+        "ar": "تقنية تحويل البرنامج لجعله يستهلك موارد أقل ويعمل بسرعة أكبر دون تغيير معناه.",
+        "en": "A program transformation technique that improves code to consume fewer resources and run faster without changing its meaning."
+      },
+      "example": {
+        "ar": "تحويل x*8 إلى x<<3",
+        "en": "Converting x*8 to x<<3"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "front": {
+      "ar": "التحسين المحلي (Local Optimization)",
+      "en": "Local Optimization"
+    },
+    "back": {
+      "definition": {
+        "ar": "تغييرات تقتصر على كتلة أساسية واحدة (Basic Block) بدون أي تحكم في التدفق.",
+        "en": "Changes limited to a single basic block, which is a straight-line sequence of code without flow control."
+      },
+      "example": {
+        "ar": "طي الثوابت داخل سطر واحد.",
+        "en": "Constant folding within a single line."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "front": {
+      "ar": "التحسين العالمي (Global Optimization)",
+      "en": "Global Optimization"
+    },
+    "back": {
+      "definition": {
+        "ar": "تغييرات تطبق على جسم الدالة بالكامل باستخدام الرسم البياني لتدفق التحكم (CFG).",
+        "en": "Changes applied to the entire body of a function using a control-flow graph."
+      },
+      "example": {
+        "ar": "إزالة الكود الميت من دالة.",
+        "en": "Dead code elimination within a function."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "front": {
+      "ar": "التحسين بين الإجراءات (Inter-procedural Optimization)",
+      "en": "Inter-procedural Optimization"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحسينات تأخذ في الاعتبار العلاقات بين الدوال المختلفة.",
+        "en": "Optimizations that take into account the relationships between different functions."
+      },
+      "example": {
+        "ar": "تضمين الدوال (Function Inlining).",
+        "en": "Function Inlining."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "front": {
+      "ar": "طي الثوابت (Constant Folding)",
+      "en": "Constant Folding"
+    },
+    "back": {
+      "definition": {
+        "ar": "دمج ثوابت متعددة في ثابت واحد أثناء وقت الترجمة.",
+        "en": "Combining multiple constants into a single constant at compile-time."
+      },
+      "example": {
+        "ar": "تحويل 3 * 4 إلى 12 في شجرة AST.",
+        "en": "Converting 3 * 4 to 12 in the AST."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "front": {
+      "ar": "تقليل التكلفة (Strength Reduction)",
+      "en": "Strength Reduction"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل عملية باهظة التكلفة إلى عملية أقل تكلفة.",
+        "en": "Converting a special case of an expensive operation into a less expensive operation."
+      },
+      "example": {
+        "ar": "استبدال x^2 بـ x*x.",
+        "en": "Replacing x^2 with x*x."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "front": {
+      "ar": "فك الحلقات (Loop Unrolling)",
+      "en": "Loop Unrolling"
+    },
+    "back": {
+      "definition": {
+        "ar": "تحويل حلقة لتقليل عدد التكرارات مع زيادة العمل في كل تكرار.",
+        "en": "Transforming a loop into another that has fewer iterations, but does more work per iteration."
+      },
+      "example": {
+        "ar": "زيادة العداد بـ 4 بدلاً من 1 وتنفيذ 4 أسطر في التكرار.",
+        "en": "Incrementing by 4 instead of 1 and doing 4 statements per iteration."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "front": {
+      "ar": "عامل الفك (Unrolling Factor)",
+      "en": "Unrolling Factor"
+    },
+    "back": {
+      "definition": {
+        "ar": "عدد التكرارات المدمجة داخل جسم الحلقة المفكوكة.",
+        "en": "The number of repetitions within the loop body in an unrolled loop."
+      },
+      "example": {
+        "ar": "عامل فك 4 يعني تنفيذ 4 عمليات في كل دورة.",
+        "en": "An unrolling factor of 4 means doing 4 operations per cycle."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "front": {
+      "ar": "رفع الكود (Code Hoisting)",
+      "en": "Code Hoisting"
+    },
+    "back": {
+      "definition": {
+        "ar": "نقل الكود الثابت داخل الحلقة إلى خارجها لتجنب إعادة حسابه.",
+        "en": "Moving code fragments that are constant within each iteration to the block preceding the loop."
+      },
+      "example": {
+        "ar": "حساب x*y قبل الحلقة بدلاً من داخلها.",
+        "en": "Computing x*y before the loop instead of inside it."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "front": {
+      "ar": "تضمين الدوال (Function Inlining)",
+      "en": "Function Inlining"
+    },
+    "back": {
+      "definition": {
+        "ar": "استبدال استدعاء الدالة بجسم الدالة نفسه لتجنب عبء الاستدعاء.",
+        "en": "Substituting a function call with the effect of that function call directly in the code."
+      },
+      "example": {
+        "ar": "استخدام الكلمة المفتاحية inline في C++.",
+        "en": "Using the inline keyword in C++."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "front": {
+      "ar": "الكود الميت (Dead Code)",
+      "en": "Dead Code"
+    },
+    "back": {
+      "definition": {
+        "ar": "كود لا يمكن الوصول إليه أو تنفيذه تحت أي مدخلات محتملة.",
+        "en": "Code that is completely unreachable and will not be executed under any possible input."
+      },
+      "example": {
+        "ar": "كود مكتوب بعد جملة return.",
+        "en": "Code written after a return statement."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "front": {
+      "ar": "الرسم البياني لتدفق التحكم (CFG)",
+      "en": "Control Flow Graph (CFG)"
+    },
+    "back": {
+      "definition": {
+        "ar": "تمثيل رسومي لجميع المسارات المحتملة التي يمكن أن يسلكها البرنامج.",
+        "en": "A graph where each node is a basic block, representing control flow paths."
+      },
+      "example": {
+        "ar": "يستخدم لاكتشاف الكود الميت عبر اجتياز العقد.",
+        "en": "Used to detect dead code via node traversal."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "front": {
+      "ar": "أداة gprof",
+      "en": "gprof tool"
+    },
+    "back": {
+      "definition": {
+        "ar": "أداة قياس أداء (Profiling) تستخدم لمعرفة أين يقضي البرنامج معظم وقته.",
+        "en": "A standard profiling tool used to measure where exactly the program spends most of its time."
+      },
+      "example": {
+        "ar": "استخدام gprof قبل البدء في التحسين منخفض المستوى.",
+        "en": "Using gprof before starting low-level optimization."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "front": {
+      "ar": "دالة gettimeofday",
+      "en": "gettimeofday function"
+    },
+    "back": {
+      "definition": {
+        "ar": "دالة للحصول على الوقت الحالي بالثواني والميكروثانية، تستخدم لقياس أداء العمليات السريعة.",
+        "en": "A function to obtain current time in seconds and microseconds, used for timing fast operations."
+      },
+      "example": {
+        "ar": "قياس وقت تنفيذ حلقة.",
+        "en": "Measuring the execution time of a loop."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "front": {
+      "ar": "الكتلة الأساسية (Basic Block)",
+      "en": "Basic Block"
+    },
+    "back": {
+      "definition": {
+        "ar": "تسلسل خطي من الكود بدون أي تفرعات أو تحكم في التدفق.",
+        "en": "A straight-line sequence of code without any flow control."
+      },
+      "example": {
+        "ar": "مجموعة من عمليات التعيين المتتالية.",
+        "en": "A sequence of consecutive assignment statements."
+      }
+    }
+  }
+]
+</script>
+
+<section id="quiz" class="quiz-section fade-up">
+  <h2><i class="fa-solid fa-list-check sec-icon" aria-hidden="true"></i> <span data-i18n="quiz.title">اختبر نفسك</span></h2>
+  <div class="quiz-progress"><div class="quiz-progress-fill" id="quiz-progress-fill"></div></div>
+  <div id="quiz-content" class="quiz-card glass-card">
+    <div class="quiz-header">
+      <span id="quiz-counter">1 / 10</span>
+      <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i> <span data-i18n="quiz.score">نتيجتك</span>: <span id="quiz-score-live">0</span></span>
+    </div>
+    <div class="quiz-question" id="quiz-question-text"></div>
+    <div class="quiz-options" id="quiz-options-container"></div>
+    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="Garden.showQuizHint()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <span data-i18n="quiz.hint">تلميح</span></button>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div></div>
+      <button class="nav-btn hidden" id="quiz-next-btn" onclick="Garden.nextQ()">
+        <span data-i18n="quiz.next">التالي</span> <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results glass-card hidden">
+    <div class="score-emoji" id="quiz-score-emoji"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
+    <div class="score-display" id="quiz-score-display">0 / 10</div>
+    <button class="nav-btn" onclick="Garden.retryQuiz()" data-i18n="quiz.retry">إعادة الاختبار</button>
+  </div>
+</section>
+<script type="application/json" id="quiz-data">
+[
+  {
+    "id": 1,
+    "question": {
+      "ar": "أي من القواعد التالية تعتبر الأهم في عملية تحسين الكود؟",
+      "en": "Which of the following rules is the most important in the code optimization process?"
+    },
+    "options": {
+      "ar": [
+        "يجب أن يقلل الكود من استهلاك الذاكرة إلى النصف.",
+        "يجب ألا يغير الكود الناتج معنى البرنامج بأي شكل.",
+        "يجب أن تكون عملية الترجمة أبطأ لضمان الدقة.",
+        "يجب استخدام لغة التجميع (Assembly) دائماً."
+      ],
+      "en": [
+        "The code must reduce memory consumption by half.",
+        "The output code must not change the meaning of the program in any way.",
+        "The compilation process must be slower to ensure accuracy.",
+        "Assembly language must always be used."
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "القاعدة الذهبية للتحسين هي الحفاظ على دلالات (Semantics) البرنامج؛ يجب ألا يغير التحسين مخرجات البرنامج.",
+      "en": "The golden rule of optimization is preserving program semantics; optimization must never change the program's output."
+    },
+    "hint": {
+      "ar": "فكر في صحة البرنامج قبل سرعته.",
+      "en": "Think about program correctness before speed."
+    },
+    "difficulty": "easy",
+    "conceptId": "code-optimization-basics"
+  },
+  {
+    "id": 2,
+    "question": {
+      "ar": "ما هو النطاق الذي يغطيه 'التحسين المحلي' (Local Optimization)؟",
+      "en": "What scope does 'Local Optimization' cover?"
+    },
+    "options": {
+      "ar": [
+        "دالة كاملة",
+        "برنامج كامل",
+        "كتلة أساسية واحدة (Basic Block)",
+        "عبر دوال متعددة"
+      ],
+      "en": [
+        "An entire function",
+        "An entire program",
+        "A single basic block",
+        "Across multiple functions"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "التحسين المحلي يقتصر على كتلة أساسية واحدة، وهي تسلسل خطي من الكود بدون تفرعات.",
+      "en": "Local optimization is limited to a single basic block, which is a straight-line sequence of code without branches."
+    },
+    "hint": {
+      "ar": "أصغر وحدة للتحكم في التدفق.",
+      "en": "The smallest unit of flow control."
+    },
+    "difficulty": "easy",
+    "conceptId": "code-optimization-basics"
+  },
+  {
+    "id": 3,
+    "question": {
+      "ar": "أي نوع من اجتياز الأشجار (Tree Traversal) يُستخدم عادةً لتنفيذ طي الثوابت (Constant Folding)؟",
+      "en": "Which type of tree traversal is typically used to implement Constant Folding?"
+    },
+    "options": {
+      "ar": [
+        "الاجتياز القبلي (Pre-order)",
+        "الاجتياز الوسطي (In-order)",
+        "الاجتياز البعدي (Post-order)",
+        "اجتياز المستوى (Level-order)"
+      ],
+      "en": [
+        "Pre-order traversal",
+        "In-order traversal",
+        "Post-order traversal",
+        "Level-order traversal"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "يُستخدم الاجتياز البعدي (Post-order) لأنه يجب تقييم الأبناء (المعاملات) قبل الأب (العملية).",
+      "en": "Post-order traversal is used because the children (operands) must be evaluated before the parent (operator)."
+    },
+    "hint": {
+      "ar": "يجب حساب القيم السفلية قبل العلوية.",
+      "en": "Bottom values must be computed before top ones."
+    },
+    "difficulty": "medium",
+    "conceptId": "constant-folding"
+  },
+  {
+    "id": 4,
+    "question": {
+      "ar": "استبدال التعبير (x * 8) بـ (x << 3) هو مثال على أي تقنية تحسين؟",
+      "en": "Replacing the expression (x * 8) with (x << 3) is an example of which optimization technique?"
+    },
+    "options": {
+      "ar": [
+        "طي الثوابت (Constant Folding)",
+        "رفع الكود (Code Hoisting)",
+        "تقليل التكلفة (Strength Reduction)",
+        "فك الحلقات (Loop Unrolling)"
+      ],
+      "en": [
+        "Constant Folding",
+        "Code Hoisting",
+        "Strength Reduction",
+        "Loop Unrolling"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "تقليل التكلفة يستبدل العمليات الباهظة (الضرب) بعمليات أرخص (إزاحة البتات).",
+      "en": "Strength reduction replaces expensive operations (multiplication) with cheaper ones (bitwise shifts)."
+    },
+    "hint": {
+      "ar": "أنت تقلل من 'قوة' أو تكلفة العملية.",
+      "en": "You are reducing the 'strength' or cost of the operation."
+    },
+    "difficulty": "medium",
+    "conceptId": "strength-reduction"
+  },
+  {
+    "id": 5,
+    "question": {
+      "ar": "ما هو العيب المحتمل (Trade-off) الرئيسي لتقنية فك الحلقات (Loop Unrolling)؟",
+      "en": "What is the main potential trade-off of Loop Unrolling?"
+    },
+    "options": {
+      "ar": [
+        "زيادة الضغط على السجلات",
+        "زيادة حجم الكود مما قد يتجاوز سعة ذاكرة التخزين المؤقت (Instruction Cache)",
+        "تغيير معنى البرنامج",
+        "إبطاء عملية الترجمة بشكل كبير"
+      ],
+      "en": [
+        "Increased register pressure",
+        "Increased code size which may exceed the Instruction Cache",
+        "Changing the meaning of the program",
+        "Significantly slowing down compilation"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "فك الحلقات يزيد من حجم الكود. إذا أصبح الكود أكبر من ذاكرة التخزين المؤقت للتعليمات، سيضطر المعالج لجلب التعليمات من الذاكرة الرئيسية، مما يبطئ الأداء.",
+      "en": "Loop unrolling increases code size. If the code becomes larger than the instruction cache, the CPU must fetch instructions from main memory, slowing performance."
+    },
+    "hint": {
+      "ar": "فكر في المساحة التي تشغلها التعليمات المكررة.",
+      "en": "Think about the space occupied by duplicated instructions."
+    },
+    "difficulty": "hard",
+    "conceptId": "loop-unrolling"
+  },
+  {
+    "id": 6,
+    "question": {
+      "ar": "ما هي التقنية التي تقوم بنقل الكود الثابت (الذي لا يتغير) من داخل الحلقة إلى خارجها؟",
+      "en": "Which technique moves loop-invariant code from inside the loop to outside it?"
+    },
+    "options": {
+      "ar": [
+        "تضمين الدوال (Function Inlining)",
+        "رفع الكود (Code Hoisting)",
+        "إزالة الكود الميت (Dead Code Elimination)",
+        "طي الثوابت (Constant Folding)"
+      ],
+      "en": [
+        "Function Inlining",
+        "Code Hoisting",
+        "Dead Code Elimination",
+        "Constant Folding"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "رفع الكود (Code Hoisting) ينقل العمليات الحسابية التي لا تتغير قيمتها في كل تكرار إلى ما قبل الحلقة.",
+      "en": "Code Hoisting moves computations that do not change value in each iteration to the block preceding the loop."
+    },
+    "hint": {
+      "ar": "الكلمة تعني 'رفع' أو 'سحب' للأعلى.",
+      "en": "The word means 'lifting' or 'pulling' up."
+    },
+    "difficulty": "easy",
+    "conceptId": "code-hoisting"
+  },
+  {
+    "id": 7,
+    "question": {
+      "ar": "أي نوع من الدوال هو المرشح الأفضل لتقنية تضمين الدوال (Function Inlining)؟",
+      "en": "Which type of function is the best candidate for Function Inlining?"
+    },
+    "options": {
+      "ar": [
+        "الدوال العودية (Recursive functions) العميقة",
+        "الدوال التي تحتوي على حلقات معقدة",
+        "الدوال الطرفية (Leaf functions) البسيطة التي تُستدعى بكثرة",
+        "الدوال التي تتعامل مع الإدخال والإخراج (I/O)"
+      ],
+      "en": [
+        "Deep recursive functions",
+        "Functions containing complex loops",
+        "Simple leaf functions that are called frequently",
+        "Functions handling I/O"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "الدوال الطرفية البسيطة هي الأفضل لأن تكلفة استدعائها غالباً ما تكون أكبر من تكلفة تنفيذ الكود بداخلها.",
+      "en": "Simple leaf functions are best because the overhead of calling them is often greater than the cost of executing their body."
+    },
+    "hint": {
+      "ar": "دوال صغيرة لا تستدعي دوال أخرى.",
+      "en": "Small functions that do not call other functions."
+    },
+    "difficulty": "medium",
+    "conceptId": "function-inlining"
+  },
+  {
+    "id": 8,
+    "question": {
+      "ar": "كيف يكتشف المترجم الكود الميت (Dead Code) عادةً؟",
+      "en": "How does the compiler typically detect Dead Code?"
+    },
+    "options": {
+      "ar": [
+        "عن طريق تشغيل البرنامج ومراقبة المخرجات",
+        "عن طريق اجتياز الرسم البياني لتدفق التحكم (CFG) والبحث عن العقد غير المعلمة",
+        "عن طريق حساب حجم الملف التنفيذي",
+        "عن طريق البحث عن الكلمات المفتاحية غير المستخدمة"
+      ],
+      "en": [
+        "By running the program and observing outputs",
+        "By traversing the Control Flow Graph (CFG) and looking for unmarked nodes",
+        "By calculating the executable file size",
+        "By searching for unused keywords"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "يقوم المترجم باجتياز الـ CFG من نقطة البداية، وأي عقدة لا يمكن الوصول إليها (غير معلمة) تُعتبر كوداً ميتاً.",
+      "en": "The compiler traverses the CFG from the entry point, and any node that cannot be reached (unmarked) is considered dead code."
+    },
+    "hint": {
+      "ar": "يعتمد على إمكانية الوصول (Reachability).",
+      "en": "It relies on Reachability."
+    },
+    "difficulty": "medium",
+    "conceptId": "dead-code-elimination"
+  },
+  {
+    "id": 9,
+    "question": {
+      "ar": "إذا كان البرنامج بطيئاً، ما هي الخطوة الأولى التي يجب التفكير فيها قبل الاعتماد على تحسينات المترجم منخفضة المستوى؟",
+      "en": "If a program is slow, what is the first step to consider before relying on low-level compiler optimizations?"
+    },
+    "options": {
+      "ar": [
+        "زيادة عامل فك الحلقات إلى أقصى حد",
+        "فحص التعقيد الخوارزمي (Algorithmic complexity) للبرنامج",
+        "تضمين جميع الدوال في البرنامج",
+        "كتابة الكود بلغة التجميع (Assembly)"
+      ],
+      "en": [
+        "Maximize the loop unrolling factor",
+        "Examine the algorithmic complexity of the program",
+        "Inline all functions in the program",
+        "Write the code in Assembly"
+      ]
+    },
+    "correctIndex": 1,
+    "explanation": {
+      "ar": "تحسين الخوارزمية (مثلاً من O(n) إلى O(log n)) يعطي فوائد أكبر بكثير من أي تحسين منخفض المستوى يقوم به المترجم.",
+      "en": "Improving the algorithm (e.g., from O(n) to O(log n)) yields much greater benefits than any low-level compiler optimization."
+    },
+    "hint": {
+      "ar": "البحث الثنائي أسرع من البحث الخطي.",
+      "en": "Binary search is faster than linear search."
+    },
+    "difficulty": "easy",
+    "conceptId": "code-optimization-basics"
+  },
+  {
+    "id": 10,
+    "question": {
+      "ar": "استبدال المترجم لاستدعاء printf(s) بـ puts(s) يعتبر مثالاً على:",
+      "en": "The compiler replacing a call to printf(s) with puts(s) is an example of:"
+    },
+    "options": {
+      "ar": [
+        "تضمين الدوال (Function Inlining)",
+        "رفع الكود (Code Hoisting)",
+        "تقليل التكلفة (Strength Reduction)",
+        "إزالة الكود الميت (Dead Code Elimination)"
+      ],
+      "en": [
+        "Function Inlining",
+        "Code Hoisting",
+        "Strength Reduction",
+        "Dead Code Elimination"
+      ]
+    },
+    "correctIndex": 2,
+    "explanation": {
+      "ar": "هذا شكل من أشكال تقليل التكلفة، حيث يتم استبدال دالة معقدة (printf) بدالة أبسط وأسرع (puts) تؤدي نفس الغرض في هذه الحالة الخاصة.",
+      "en": "This is a form of strength reduction, where a complex function (printf) is replaced by a simpler, faster one (puts) that achieves the same result in this specific case."
+    },
+    "hint": {
+      "ar": "استبدال عملية باهظة بعملية أرخص.",
+      "en": "Replacing an expensive operation with a cheaper one."
+    },
+    "difficulty": "medium",
+    "conceptId": "strength-reduction"
+  }
+]
+</script>
+
+<section id="vault" class="vault-section glass-card fade-up">
+  <h2><i class="fa-solid fa-lock sec-icon" aria-hidden="true"></i> <span data-i18n="vault.title">خزنة الامتحان</span></h2>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">القاعدة الذهبية للتحسين: يجب ألا يغير التحسين معنى البرنامج أبداً. مهما كان الكود سريعاً، فهو بلا فائدة إذا كان يعطي نتائج خاطئة.</template>
+      <template class="content-en">The Golden Rule of Optimization: Optimization must NEVER change the meaning of the program. No matter how fast the code is, it's useless if it produces incorrect results.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">احذر من الاعتقاد بأن 'فك الحلقات' (Loop Unrolling) يحسن الأداء دائماً. إذا زاد حجم الكود عن سعة الـ Instruction Cache، سيصبح البرنامج أبطأ بكثير بسبب جلب التعليمات من الذاكرة الرئيسية.</template>
+      <template class="content-en">Beware of thinking that 'Loop Unrolling' always improves performance. If the code size exceeds the Instruction Cache, the program will become much slower due to fetching instructions from main memory.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--secret"><i class="fa-solid fa-user-secret" aria-hidden="true"></i> <span data-i18n="vault.secret">سر الامتحان</span></div>
+    <div data-bilingual>
+      <template class="content-ar">المترجمات الحديثة لا تكتفي بتحسين العمليات الحسابية، بل تعرف دوال المكتبات القياسية. استبدال printf بـ puts هو سر من أسرار المترجم لتقليل حجم الكود المربوط (Linked code).</template>
+      <template class="content-en">Modern compilers don't just optimize math; they know standard library functions. Replacing printf with puts is a compiler secret to reduce the size of linked code.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--trap"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span data-i18n="vault.trap">فخ امتحاني</span></div>
+    <div data-bilingual>
+      <template class="content-ar">عند قياس أداء عملية سريعة جداً باستخدام حلقة، لا تنسَ طرح وقت تنفيذ 'الحلقة الفارغة' من النتيجة النهائية، وإلا ستقيس العبء الإضافي للحلقة بدلاً من العملية نفسها.</template>
+      <template class="content-en">When timing a very fast operation using a loop, don't forget to subtract the execution time of an 'empty loop' from the final result, otherwise you are measuring loop overhead instead of the operation.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+  <div class="vault-entry">
+    <div class="vault-type vault-type--key"><i class="fa-solid fa-key" aria-hidden="true"></i> <span data-i18n="vault.key">مفهوم أساسي</span></div>
+    <div data-bilingual>
+      <template class="content-ar">إزالة الكود الميت تعتمد كلياً على 'إمكانية الوصول' (Reachability) في الرسم البياني لتدفق التحكم (CFG). إذا لم يكن هناك مسار من نقطة البداية إلى العقدة، فهي ميتة.</template>
+      <template class="content-en">Dead code elimination relies entirely on 'Reachability' in the Control Flow Graph (CFG). If there is no path from the entry point to a node, it is dead.</template>
+      <div class="content-target"></div>
+    </div>
+  </div>
+</section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="M10.html" class="footer-link" data-i18n="nav.prev">السابق</a>
+        <a href="index.html" class="footer-link" data-i18n="nav.home">الرئيسية</a>
+        <a href="M12.html" class="footer-link" data-i18n="nav.next">التالي</a>
+        <button class="footer-link" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+      </div>
+      <span class="footer-brand"><i class="fa-solid fa-seedling" aria-hidden="true"></i> CS Level 5 · Digital Garden</span>
+    </div>
+  </footer>
+</div>
+
+<script src="../../shared/garden.js"></script>
+<script src="../../shared/garden-header.js"></script>
+<script src="../../shared/firebase-sync.js"></script>
+</body>
+</html>
