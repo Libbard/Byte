@@ -2,8 +2,8 @@
 importScripts('shared/reminders-db.js');
 
 /*@0.SWJ.109*/
-var SW_VERSION = 'garden-1.0.0.52'; /*@0.SWJ.2*/
-var CACHE_NAME = 'stage-7c1c6a6f-garden-static';
+var SW_VERSION = 'garden-1.0.0.53'; /*@0.SWJ.2*/
+var CACHE_NAME = 'stage-976fbd5d-garden-static';
 var ADOPT_PREFIX = CACHE_NAME.replace(/static$/, '');
 /*@0.SWJ.110*/
 var MANIFEST_URL = 'shared/precache-manifest.json';
@@ -140,7 +140,7 @@ var PRECACHE_URLS = [
   'shared/data/courses_catalog.json',
   /*@0.SWJ.72*/
   'shared/vendor/confetti/confetti.browser.min.js',
-  'shared/vendor/fontawesome/css/all.min.css',
+  'shared/vendor/fontawesome/css/garden-icons.css',
   'shared/vendor/fontawesome/webfonts/fa-solid-900.woff2',
   'shared/vendor/fontawesome/webfonts/fa-regular-400.woff2',
   'shared/vendor/fontawesome/webfonts/fa-brands-400.woff2',
