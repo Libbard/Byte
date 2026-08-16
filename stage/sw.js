@@ -2,8 +2,8 @@
 importScripts('shared/reminders-db.js');
 
 /*@0.SWJ.109*/
-var SW_VERSION = 'garden-1.0.0.54'; /*@0.SWJ.2*/
-var CACHE_NAME = 'stage-46dd926a-garden-static';
+var SW_VERSION = 'garden-1.0.0.55'; /*@0.SWJ.2*/
+var CACHE_NAME = 'stage-5b10d76b-garden-static';
 var ADOPT_PREFIX = CACHE_NAME.replace(/static$/, '');
 /*@0.SWJ.110*/
 var MANIFEST_URL = 'shared/precache-manifest.json';
