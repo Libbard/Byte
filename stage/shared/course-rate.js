@@ -507,7 +507,8 @@
     var takeRated = function (d) { rated = (d && d.faculty) || []; join(); };
     if (window.GardenFaculty && GardenFaculty.load) GardenFaculty.load(takeRated);
     else {
-      fetch(API + '/v1/faculty.json', { cache: 'default' })
+      /*@3.CORJ.75*/
+      fetch(API + '/v1/faculty/cards.json', { cache: 'default' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(takeRated).catch(function () { takeRated(null); });
     }

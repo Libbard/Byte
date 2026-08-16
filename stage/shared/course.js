@@ -587,7 +587,7 @@
     var f = facultyOf(instructor());
     if (!f || !window.GardenFaculty) return;
     el('dlg-fac-t').textContent = GardenFaculty.nameOf(f);
-    el('dlg-fac-b').innerHTML = GardenFaculty.detailHtml(f, { base: '', full: 'faculty.html#' + encodeURIComponent(f.id) });
+    GardenFaculty.renderDetail(el('dlg-fac-b'), f, { base: '', full: 'faculty.html#' + encodeURIComponent(f.id) });
     GardenFaculty.wire(el('dlg-fac-b'), { onSent: function () { el('dlg-fac').close(); } });
     el('dlg-fac').showModal();
   }

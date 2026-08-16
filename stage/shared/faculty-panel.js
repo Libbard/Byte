@@ -29,7 +29,7 @@
 
   /*@3.FAPJ.2*/
   var DATA = null, LOADING = null, WAIT = [], FRESH = false, DATA_FAILED = false;
-
+  /*@3.FAPJ.76*/
   function load(cb) {
     if (DATA) { cb && cb(DATA); return; }
     if (cb) WAIT.push(cb);
@@ -37,8 +37,8 @@
     LOADING = true;
     /*@3.FAPJ.16*/
     var want = FRESH; FRESH = false;
-    (want ? fetch(API + '/v1/faculty.json', { cache: 'reload' })
-          : GardenFetch('/v1/faculty.json', { cache: 'default' }))
+    (want ? fetch(API + '/v1/faculty/cards.json', { cache: 'reload' })
+          : GardenFetch('/v1/faculty/cards.json', { cache: 'default' }))
       .then(function (r) { if (!r.ok) throw new Error('http_' + r.status); return r.json(); })
       .then(function (d) {
         DATA = d; LOADING = false;
@@ -55,6 +55,48 @@
         LOADING = false; DATA_FAILED = true;
         WAIT.splice(0).forEach(function (fn) { fn(null); });
       });
+  }
+
+  /*@3.FAPJ.77*/
+  var DET_WAIT = {};
+
+  function ensureDetail(f, cb) {
+    if (!f) { cb && cb(false); return; }
+    if (f._det) { cb && cb(true); return; }
+    var id = String(f.id);
+    if (DET_WAIT[id]) { if (cb) DET_WAIT[id].push(cb); return; }
+    DET_WAIT[id] = cb ? [cb] : [];
+    delete f._detFail;
+    function done(ok) {
+      var q = DET_WAIT[id] || [];
+      delete DET_WAIT[id];
+      q.splice(0).forEach(function (fn) { fn(ok); });
+    }
+    GardenFetch('/v1/faculty/cm/' + encodeURIComponent(id) + '.json')
+      .then(function (r) { if (!r.ok) throw new Error('http_' + r.status); return r.json(); })
+      .then(function (d) {
+        f.cm = d.cm || [];
+        f.ax = d.ax || null;
+        f._det = 1;
+        done(true);
+      })
+      .catch(function () { f._detFail = 1; done(false); });
+  }
+
+  /*@3.FAPJ.79*/
+  function renderDetail(host, f, o) {
+    if (!host || !f) return;
+    o = o || {};
+    host.setAttribute('data-gf-det', f.id);
+    host.__gfDetOpts = o;
+    if (!f._det) delete f._detFail;
+    host.innerHTML = detailHtml(f, o);
+    if (f._det) return;
+    ensureDetail(f, function () {
+      if (!host.isConnected) return;
+      if (host.getAttribute('data-gf-det') !== String(f.id)) return;
+      host.innerHTML = detailHtml(f, o);
+    });
   }
 
   /*@3.FAPJ.21*/
@@ -245,6 +287,19 @@
     return otherName({ ar: p.a, machine: p.s === 'ai', latin: p.n });
   }
 
+  /*@3.FAPJ.78*/
+  function detStrip(f) {
+    return f._detFail
+      ? '<div class="fc-note fc-note--err"><i class="fa-solid fa-triangle-exclamation"></i>' +
+          '<span>' + esc(t('تعذّر جلبُ محاورِ هذا الأستاذ وتعليقاتِه.',
+                           'Could not load this instructor’s axes and comments.')) + '</span>' +
+          '<button type="button" class="fc-go fc-redet" data-gf-redet="1">' +
+            '<i class="fa-solid fa-rotate-right"></i>' +
+            esc(t('أعِد المحاولة', 'Try again')) + '</button></div>'
+      : '<div class="fc-note"><i class="fa-solid fa-spinner fa-spin"></i>' +
+          esc(t('تُجلب المحاورُ والتعليقات…', 'Loading axes and comments…')) + '</div>';
+  }
+
   /*@3.FAPJ.4*/
   function detailHtml(f, o) {
     o = o || {};
@@ -334,8 +389,9 @@
     '</div>';
 
     return head + mail +
-      '<div class="fc-d-sec"><h4>' + t('المحاور', 'Axes') + '</h4>' + axes + '</div>' +
-      taught + banner + comments + acts;
+      '<div class="fc-d-sec"><h4>' + t('المحاور', 'Axes') + '</h4>' +
+        (f._det ? axes : detStrip(f)) + '</div>' +
+      taught + banner + (f._det ? comments : '') + acts;
   }
 
   /*@3.FAPJ.29*/
@@ -598,6 +654,14 @@
     if (root.__gfWired) return;
     root.__gfWired = true;
     root.addEventListener('click', function (e) {
+      /*@3.FAPJ.80*/
+      var rd = e.target.closest('[data-gf-redet]');
+      if (rd) {
+        var hostEl = rd.closest('[data-gf-det]');
+        var fr = hostEl && byId(hostEl.getAttribute('data-gf-det'));
+        if (fr) renderDetail(hostEl, fr, hostEl.__gfDetOpts || {});
+        return;
+      }
       var cp = e.target.closest('[data-copy]');
       if (cp) { copyText(cp.getAttribute('data-copy'), cp); return; }
       var crs = e.target.closest('[data-crs]');
@@ -900,6 +964,7 @@
             ? t('هذا التقييم مُسجَّلٌ سلفاً.', 'This rating was already recorded.')
             : t('شكراً — سُجِّل رأيُك.', 'Thanks — your rating is in.'))) + note;
         DATA = null; FRESH = true;         /*@3.FAPJ.13*/
+        DET_WAIT = {};
         /*@3.FAPJ.56*/
         draftDrop(DKEY);
         resetVals();
@@ -915,6 +980,7 @@
   window.GardenFaculty = {
     load: load, byEmail: byEmail, byId: byId, byBannerName: byBannerName,
     detailHtml: detailHtml, rateHtml: rateHtml, wire: wire,
+    ensureDetail: ensureDetail, renderDetail: renderDetail,
     resetVals: resetVals, nameOf: nameOf, tone: tone, ring: ring,
     pickName: pickName, otherName: otherName, altNameOf: altNameOf,
     dirNameOf: dirNameOf, dirAltOf: dirAltOf, latinOf: latinOf,

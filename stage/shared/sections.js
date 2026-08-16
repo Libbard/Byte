@@ -3504,7 +3504,7 @@
       _open = { kind: 'prof', arg: email || bannerName };
       if (f) {
         $('#sx-modal-title').textContent = GF.nameOf(f);
-        box.innerHTML = GF.detailHtml(f, { base: '', full: 1 });
+        GF.renderDetail(box, f, { base: '', full: 1 });
         return;
       }
       /*@3.SECJ.382*/

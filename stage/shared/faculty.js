@@ -426,7 +426,7 @@
     sub.textContent = (alt ? alt + ' · ' : '') +
       t(f.n + ' تقييماً من الطلاب', f.n + ' student ratings');
     sub.hidden = false;
-    $('#fc-modal-body').innerHTML = detail(f);
+    detail($('#fc-modal-body'), f);
     /*@3.FACJ.35*/
     GF.wire($('#fc-modal'), {});
     if (history.replaceState) history.replaceState(null, '', '#' + encodeURIComponent(f.id));
@@ -437,7 +437,7 @@
   }
 
   /*@3.FACJ.25*/
-  function detail(f) { return GF.detailHtml(f, { base: '' }); }
+  function detail(host, f) { GF.renderDetail(host, f, { base: '' }); }
 
   function openRate(id, dirName) {
     var f = id ? GF.byId(id) : null;
