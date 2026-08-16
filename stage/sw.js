@@ -1,7 +1,13 @@
 /*@0.SWJ.1*/
 importScripts('shared/reminders-db.js');
 
-var CACHE_NAME = 'stage-00d9b539-garden-1.0.0.49'; /*@0.SWJ.2*/
+/*@0.SWJ.109*/
+var SW_VERSION = 'garden-1.0.0.50'; /*@0.SWJ.2*/
+var CACHE_NAME = 'stage-1da05243-garden-static';
+var ADOPT_PREFIX = CACHE_NAME.replace(/static$/, '');
+/*@0.SWJ.110*/
+var MANIFEST_URL = 'shared/precache-manifest.json';
+var STATE_KEY = '__precache-state__';
 /*@0.SWJ.3*/ /*@0.SWJ.4*/ /*@0.SWJ.5*/ /*@0.SWJ.6*/ /*@0.SWJ.7*/ /*@0.SWJ.8*/ /*@0.SWJ.9*/ /*@0.SWJ.10*/ /*@0.SWJ.11*/ /*@0.SWJ.12*/ /*@0.SWJ.13*/ /*@0.SWJ.14*/ /*@0.SWJ.15*/ /*@0.SWJ.16*/ /*@0.SWJ.17*/ /*@0.SWJ.18*/ /*@0.SWJ.19*/ /*@0.SWJ.20*/ /*@0.SWJ.21*/ /*@0.SWJ.22*/ /*@0.SWJ.23*/ /*@0.SWJ.24*/ /*@0.SWJ.25*/ /*@0.SWJ.26*/ /*@0.SWJ.27*/ /*@0.SWJ.28*/ /*@0.SWJ.29*/ /*@0.SWJ.30*/ /*@0.SWJ.31*/ /*@0.SWJ.32*/ /*@0.SWJ.33*/ /*@0.SWJ.34*/ /*@0.SWJ.35*/ /*@0.SWJ.36*/ /*@0.SWJ.37*/ /*@0.SWJ.38*/ /*@0.SWJ.39*/ /*@0.SWJ.40*/ /*@0.SWJ.41*/ /*@0.SWJ.42*/
 var PRECACHE_URLS = [
   'shared/garden.css',
@@ -165,15 +171,122 @@ var PRECACHE_URLS = [
   /*@0.SWJ.73*/
 ];
 
+var PRE_SET = {};
+PRECACHE_URLS.forEach(function(u) { PRE_SET[u.split('?')[0].replace(/^\.\//, '')] = 1; });
+
+function relOf(url) {
+  var sc = self.registration ? self.registration.scope : self.location.origin + '/';
+  if (url.indexOf(sc) !== 0) return '';
+  return url.slice(sc.length).split('?')[0];
+}
+
+function digest12(buf) {
+  return crypto.subtle.digest('SHA-256', buf).then(function(h) {
+    var b = new Uint8Array(h), out = '';
+    for (var i = 0; i < 6; i++) out += ('0' + b[i].toString(16)).slice(-2);
+    return out;
+  });
+}
+
+function fullSync(cache) {
+  return Promise.all(PRECACHE_URLS.map(function(url) {
+    /*@0.SWJ.75*/
+    return cache.add(new Request(url, { cache: 'reload' }))
+                .catch(function() { /*@0.SWJ.76*/ });
+  }));
+}
+
+/*@0.SWJ.111*/
+function adopt(cache) {
+  return cache.keys().then(function(mine) {
+    if (mine.length) return null;
+    return caches.keys().then(function(names) {
+      var old = names.filter(function(n) {
+        return n !== CACHE_NAME && n.indexOf(ADOPT_PREFIX) === 0;
+      });
+      if (!old.length) return null;
+      return caches.open(old[0]).then(function(c) {
+        return c.keys().then(function(rs) {
+          return Promise.all(rs.map(function(rq) {
+            return c.match(rq).then(function(res) {
+              return res ? cache.put(rq, res.clone()) : null;
+            }).catch(function() { return null; });
+          }));
+        });
+      });
+    });
+  }).catch(function() { return null; });
+}
+
+function derive(cache, urls) {
+  var out = {};
+  return Promise.all(urls.map(function(u) {
+    return cache.match(u, { ignoreSearch: true }).then(function(res) {
+      if (!res) return null;
+      return res.clone().arrayBuffer().then(digest12).then(function(h) { out[u] = h; });
+    }).catch(function() { return null; });
+  })).then(function() { return out; });
+}
+
+function knownState(cache, next) {
+  var want = String(next.reset === undefined ? '0' : next.reset);
+  return cache.match(STATE_KEY).then(function(res) {
+    return res ? res.json().catch(function() { return null; }) : null;
+  }).then(function(st) {
+    /*@0.SWJ.115*/
+    if (st && String(st.reset) !== want) return null;
+    if (st && st.files) return st.files;
+    return derive(cache, Object.keys(next.files));
+  });
+}
+
+function applyDiff(cache, prev, next) {
+  var urls = Object.keys(next.files);
+  var keep = {};
+  if (prev) {
+    urls.forEach(function(u) { if (prev[u] && prev[u] === next.files[u]) keep[u] = 1; });
+  }
+  return cache.keys().then(function(existing) {
+    /*@0.SWJ.112*/
+    var drop = existing.filter(function(rq) {
+      var rel = relOf(rq.url);
+      return rel !== STATE_KEY && !keep[rel];
+    });
+    return Promise.all(drop.map(function(rq) { return cache.delete(rq); }));
+  }).then(function() {
+    var need = urls.filter(function(u) { return !keep[u]; });
+    return Promise.all(need.map(function(u) {
+      return cache.add(new Request(u, { cache: 'reload' })).catch(function() { /*@0.SWJ.118*/ });
+    }));
+  }).then(function() {
+    return cache.put(STATE_KEY, new Response(JSON.stringify({
+      version: next.version,
+      reset: String(next.reset === undefined ? '0' : next.reset),
+      files: next.files
+    }), { headers: { 'Content-Type': 'application/json' } }));
+  });
+}
+
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       /*@0.SWJ.74*/
-      return Promise.all(PRECACHE_URLS.map(function(url) {
-        /*@0.SWJ.75*/
-        return cache.add(new Request(url, { cache: 'reload' }))
-                    .catch(function() { /*@0.SWJ.76*/ });
-      }));
+      /*@0.SWJ.119*/
+      return fetch(MANIFEST_URL + '?v=' + encodeURIComponent(SW_VERSION),
+                   { cache: 'reload' }).then(function(r) {
+        if (!r.ok) throw new Error('manifest_' + r.status);
+        return r.json();
+      }).then(function(next) {
+        if (!next || !next.files || !Object.keys(next.files).length) throw new Error('manifest_empty');
+        return adopt(cache).then(function() {
+          return knownState(cache, next);
+        }).then(function(prev) {
+          return applyDiff(cache, prev, next);
+        });
+      }).catch(function() {
+        /*@0.SWJ.113*/
+        return fullSync(cache);
+      });
     })
   );
   /*@0.SWJ.77*/
@@ -520,6 +633,21 @@ self.addEventListener('fetch', function(event) {
   /*@0.SWJ.107*/
   event.respondWith(
     caches.open(CACHE_NAME).then(function(cache) {
+      /*@0.SWJ.114*/
+      var rel = relOf(event.request.url);
+      if (PRE_SET[rel]) {
+        return cache.match(event.request).then(function(hit) {
+          return hit || cache.match(event.request, { ignoreSearch: true });
+        }).then(function(hit) {
+          /*@0.SWJ.116*/
+          if (hit) return hit;
+          return fetch(event.request).then(function(res) {
+            /*@0.SWJ.117*/
+            if (res && res.ok) cache.put(new Request(rel), res.clone());
+            return res;
+          });
+        });
+      }
       return cache.match(event.request).then(function(cachedResponse) {
         var fetchPromise = fetch(event.request).then(function(networkResponse) {
           if (networkResponse && networkResponse.ok) {

@@ -640,11 +640,19 @@
     var dot = $('#a-dot'), ver = $('#a-ver');
     if (!('caches' in window)) { ver.textContent = L('لا نسخة محفوظة', 'No offline copy'); return; }
     caches.keys().then(function (ks) {
-      var mine = ks.filter(function (k) { return /^garden-v/.test(k); });
+      /*@3.SETJ.39*/
+      var mine = ks.filter(function (k) { return k.indexOf('garden') > -1; });
       if (!mine.length) { ver.textContent = L('لم تُحفظ بعد', 'Not stored yet'); return; }
-      ver.textContent = mine[0];
       ver.classList.add('ltr');
       if (navigator.serviceWorker && navigator.serviceWorker.controller) dot.classList.add('is-on');
+      return caches.open(mine[0]).then(function (c) {
+        return c.keys().then(function (rs) {
+          var k = rs.filter(function (r) { return r.url.indexOf('__precache-state__') > -1; })[0];
+          return k ? c.match(k) : null;
+        });
+      }).then(function (r) { return r ? r.json() : null; })
+        .then(function (st) { ver.textContent = (st && st.version) || mine[0]; })
+        .catch(function () { ver.textContent = mine[0]; });
     }).catch(function () { ver.textContent = '—'; });
   }
 

@@ -7021,6 +7021,11 @@ window.GardenEv = window.GardenEv || function (n, p) {
     (document.head || document.documentElement).appendChild(el);
   }
 
-  if (document.readyState === 'complete') inject();
-  else window.addEventListener('load', inject, { once: true });
+  /*@3.GARJ.568*/
+  function schedule() {
+    var idle = window.requestIdleCallback;
+    if (idle) idle(inject, { timeout: 300 }); else setTimeout(inject, 0);
+  }
+  if (document.readyState !== 'loading') schedule();
+  else document.addEventListener('DOMContentLoaded', schedule, { once: true });
 })();
