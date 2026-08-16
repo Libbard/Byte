@@ -2,8 +2,8 @@
 importScripts('shared/reminders-db.js');
 
 /*@0.SWJ.109*/
-var SW_VERSION = 'garden-1.0.0.53'; /*@0.SWJ.2*/
-var CACHE_NAME = 'stage-976fbd5d-garden-static';
+var SW_VERSION = 'garden-1.0.0.54'; /*@0.SWJ.2*/
+var CACHE_NAME = 'stage-46dd926a-garden-static';
 var ADOPT_PREFIX = CACHE_NAME.replace(/static$/, '');
 /*@0.SWJ.110*/
 var MANIFEST_URL = 'shared/precache-manifest.json';
@@ -141,9 +141,9 @@ var PRECACHE_URLS = [
   /*@0.SWJ.72*/
   'shared/vendor/confetti/confetti.browser.min.js',
   'shared/vendor/fontawesome/css/garden-icons.css',
-  'shared/vendor/fontawesome/webfonts/fa-solid-900.woff2',
-  'shared/vendor/fontawesome/webfonts/fa-regular-400.woff2',
-  'shared/vendor/fontawesome/webfonts/fa-brands-400.woff2',
+  'shared/vendor/fontawesome/webfonts/fa-solid-900-g.woff2',
+  'shared/vendor/fontawesome/webfonts/fa-regular-400-g.woff2',
+  'shared/vendor/fontawesome/webfonts/fa-brands-400-g.woff2',
   'shared/icons/logo-mark.svg',
   'shared/icons/favicon-32.png',
   'shared/icons/apple-touch-icon.png',
