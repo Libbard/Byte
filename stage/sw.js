@@ -2,8 +2,8 @@
 importScripts('shared/reminders-db.js');
 
 /*@0.SWJ.109*/
-var SW_VERSION = 'garden-1.0.0.55'; /*@0.SWJ.2*/
-var CACHE_NAME = 'stage-5b10d76b-garden-static';
+var SW_VERSION = 'garden-1.0.0.62'; /*@0.SWJ.2*/
+var CACHE_NAME = 'stage-81a3123e-garden-static';
 var ADOPT_PREFIX = CACHE_NAME.replace(/static$/, '');
 /*@0.SWJ.110*/
 var MANIFEST_URL = 'shared/precache-manifest.json';
@@ -147,26 +147,13 @@ var PRECACHE_URLS = [
   'shared/icons/logo-mark.svg',
   'shared/icons/favicon-32.png',
   'shared/icons/apple-touch-icon.png',
-  'tour.html',
-  'shared/tour.css',
-  'shared/tour.js',
-  'shared/data/tour-features.json',
-  'shared/tour-media/diagram.webp',
-  'shared/tour-media/flashcards.webp',
-  'shared/tour-media/gpa-levels.png',
-  'shared/tour-media/labs.webp',
-  'shared/tour-media/lesson.webp',
-  'shared/tour-media/levels.webp',
-  'shared/tour-media/schedule.webp',
-  'shared/tour-media/semester.webp',
-  'shared/vendor/fonts/tour/alexandria-arabic.woff2',
-  'shared/vendor/fonts/tour/alexandria-latin.woff2',
-  'shared/vendor/fonts/tour/dm-mono-latin.woff2',
+  /*@0.SWJ.120*/
   'shared/vendor/fonts/garden/garden-core.css',
   'shared/vendor/fonts/garden/cairo-arabic-400-900.woff2',
   'shared/vendor/fonts/garden/cairo-latin-400-900.woff2',
   'shared/vendor/fonts/garden/inter-latin-400-900.woff2',
   'shared/vendor/fonts/garden/jetbrains-mono-latin-400-800.woff2',
+  'offline.html',
   'manifest.json',
   /*@0.SWJ.73*/
 ];
@@ -618,6 +605,16 @@ self.addEventListener('notificationclose', function (event) {
   event.waitUntil(self.ReminderDB.markFired(data.id, 'dismissed').catch(function () {}));
 });
 
+/*@0.SWJ.121*/
+function offlineFallback(event, cache) {
+  if (event.request.mode === 'navigate') {
+    return cache.match('offline.html').then(function (page) {
+      return page || Response.error();
+    });
+  }
+  return Response.error();
+}
+
 /*@0.SWJ.103*/
 self.addEventListener('fetch', function(event) {
   /*@0.SWJ.104*/
@@ -654,7 +651,7 @@ self.addEventListener('fetch', function(event) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
-        }).catch(function() { return cachedResponse; });
+        }).catch(function() { return cachedResponse || offlineFallback(event, cache); });
 
         return cachedResponse || fetchPromise;
       });

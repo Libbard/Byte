@@ -11,8 +11,34 @@
     return isDark() ? '#0f1117' : '#ffffff';
   }
 
+  var ROOT = (function () {
+    var sc = document.currentScript;
+    return (sc && sc.src) ? sc.src.replace(/shared[/]export[.]js([?].*)?$/, '') : '';
+  })();
+  var LIBS = ['shared/vendor/html2canvas.min.js', 'shared/vendor/jspdf.umd.min.js'];
+
+  function hasLibs() {
+    return (typeof window.html2canvas === 'function') && !!(window.jspdf && window.jspdf.jsPDF);
+  }
+  function loadOne(rel) {
+    return new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = ROOT + rel;
+      s.onload = function () { res(true); };
+      s.onerror = function () { rej(new Error('load failed: ' + rel)); };
+      document.head.appendChild(s);
+    });
+  }
+  var _libsP = null;
   function ensureLibs() {
-    return (typeof window.html2canvas === 'function') && window.jspdf && window.jspdf.jsPDF;
+    if (hasLibs()) return Promise.resolve(true);
+    if (!_libsP) {
+      _libsP = Promise.all(LIBS.map(loadOne)).then(function () {
+        if (!hasLibs()) throw new Error('libs loaded but missing globals');
+        return true;
+      }).catch(function (e) { _libsP = null; throw e; });
+    }
+    return _libsP;
   }
 
   /*@3.EXPJ2.2*/
@@ -66,6 +92,7 @@
 
   async function capture(element, opts) {
     opts = opts || {};
+    await ensureLibs();
     if (typeof window.html2canvas !== 'function') {
       throw new Error('html2canvas غير محمّل');
     }
@@ -115,6 +142,7 @@
 
   async function toPDF(element, filename, opts) {
     opts = opts || {};
+    await ensureLibs();
     if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF غير محمّل');
     var canvas = await capture(element, opts);
     var JsPDF = window.jspdf.jsPDF;
@@ -162,5 +190,15 @@
     return true;
   }
 
-  window.Export = { toPNG: toPNG, toPDF: toPDF, capture: capture, ensureLibs: ensureLibs };
+  var WARM = '[data-act="png"],[data-act="pdf"],#btn-export-png,#btn-export-pdf';
+  function warm(e) {
+    if (e && e.target && e.target.closest && !e.target.closest(WARM)) return;
+    ensureLibs().catch(function () {});
+  }
+  ['pointerover', 'pointerdown', 'focusin'].forEach(function (t) {
+    document.addEventListener(t, warm, { passive: true, capture: true });
+  });
+
+  window.Export = { toPNG: toPNG, toPDF: toPDF, capture: capture,
+                    ensureLibs: ensureLibs, hasLibs: hasLibs, warm: warm };
 })();

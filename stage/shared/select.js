@@ -96,6 +96,15 @@
     if (lbl) btn.setAttribute('aria-labelledby', (lbl.id || (lbl.id = this.id + '-l')) + ' ' + btn.id);
     else if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
     else if (sel.title) btn.setAttribute('aria-label', sel.title);
+    /*@3.SELJ.49*/
+    else if (sel.getAttribute('data-gs-name-ar')) {
+      var nAr = sel.getAttribute('data-gs-name-ar');
+      var nEn = sel.getAttribute('data-gs-name-en') || nAr;
+      var isAr = (document.documentElement.lang || 'ar') === 'ar';
+      btn.setAttribute('aria-label', isAr ? nAr : nEn);
+      btn.setAttribute('data-ar-title', nAr);
+      btn.setAttribute('data-en-title', nEn);
+    }
 
     sel.parentNode.insertBefore(wrap, sel);
     wrap.appendChild(btn);
