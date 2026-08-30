@@ -1,0 +1,1180 @@
+;(function(){ 'use strict';
+
+/*@3.HUBJ.1*/
+
+/*@3.HUBJ.2*/
+const T = {
+  ar: {
+    pageTitle: 'فصلي الدراسي',
+    createSemester: 'إنشاء فصل جديد',
+    createHeroTitle: 'أنشئ فصلك الدراسي',
+    createHeroDesc: 'اختر موادك من أي مستوى وابدأ رحلتك',
+    semesterName: 'اسم الفصل',
+    semesterNamePlaceholder: 'مثال: خريف 2026',
+    create: 'إنشاء',
+    cancel: 'إلغاء',
+    addCourse: 'إضافة مادة',
+    addCustom: 'إضافة مادة يدوياً',
+    customNameAr: 'اسم المادة بالعربي',
+    customNameEn: 'Course name in English',
+    customCredits: 'الساعات المعتمدة',
+    add: 'إضافة',
+    removeCourse: 'إزالة',
+    removeConfirm: 'إزالة المادة من الفصل؟ (التقدم محفوظ ولن يُحذف)',
+    markComplete: 'اكتملت ✓',
+    markIncomplete: 'لم تكتمل',
+    openCourse: 'فتح المادة',
+    courseCard: 'ℹ️ بطاقة المادة',
+    archiveSemester: 'أرشفة الفصل',
+    archiveConfirm: 'هل تريد أرشفة هذا الفصل وإنشاء فصل جديد فارغ؟',
+    prevSemesters: '<i class="fa-solid fa-box-archive" aria-hidden="true"></i> الفصول السابقة',
+    courses: 'مواد',
+    credits: 'ساعة',
+    completed: 'مكتملة',
+    remaining: 'متبقية',
+    modules: 'وحدة',
+    progress: 'التقدم',
+    search: 'ابحث عن مادة...',
+    filterAll: 'الكل',
+    filterByLevel: 'حسب المستوى',
+    filterByCategory: 'حسب التصنيف',
+    alreadyAdded: 'مضافة ✓',
+    fcDue: 'بطاقة مستحقة',
+    fcMastered: 'متقنة',
+    close: 'إغلاق',
+    edit: 'تعديل',
+    renameSemester: 'تعديل اسم الفصل',
+    noResults: 'لا توجد نتائج',
+    back: 'العودة',
+    settings: 'إعدادات',
+    langBtn: 'EN',
+    dueNotification: 'لديك {count} بطاقة مستحقة للمراجعة',
+    completedCourses: 'مواد مكتملة',
+    totalCredits: 'إجمالي الساعات',
+    noArchive: 'لا توجد فصول مؤرشفة بعد',
+    gpaLabel: 'المعدل',
+    archivedOn: 'أرشف في',
+    customCourse: 'مادة يدوية',
+    levelOthers: 'مواد عامة',
+  },
+  en: {
+    pageTitle: 'My Semester',
+    createSemester: 'Create New Semester',
+    createHeroTitle: 'Create Your Semester',
+    createHeroDesc: 'Pick courses from any level and start your journey',
+    semesterName: 'Semester Name',
+    semesterNamePlaceholder: 'e.g., Fall 2026',
+    create: 'Create',
+    cancel: 'Cancel',
+    addCourse: 'Add Course',
+    addCustom: 'Add Custom Course',
+    customNameAr: 'Course name in Arabic',
+    customNameEn: 'Course name in English',
+    customCredits: 'Credit Hours',
+    add: 'Add',
+    removeCourse: 'Remove',
+    removeConfirm: 'Remove course from semester? (Progress is saved)',
+    markComplete: 'Completed ✓',
+    markIncomplete: 'Not completed',
+    openCourse: 'Open Course',
+    courseCard: 'ℹ️ Course Card',
+    archiveSemester: 'Archive Semester',
+    archiveConfirm: 'Archive this semester and create a new empty one?',
+    prevSemesters: '<i class="fa-solid fa-box-archive" aria-hidden="true"></i> Previous Semesters',
+    courses: 'Courses',
+    credits: 'Credits',
+    completed: 'Completed',
+    remaining: 'Remaining',
+    modules: 'Modules',
+    progress: 'Progress',
+    search: 'Search courses...',
+    filterAll: 'All',
+    filterByLevel: 'By Level',
+    filterByCategory: 'By Category',
+    alreadyAdded: 'Added ✓',
+    fcDue: 'cards due',
+    fcMastered: 'mastered',
+    close: 'Close',
+    edit: 'Edit',
+    renameSemester: 'Rename Semester',
+    noResults: 'No results found',
+    back: 'Back',
+    settings: 'Settings',
+    langBtn: 'AR',
+    dueNotification: 'You have {count} cards due for review',
+    completedCourses: 'Completed courses',
+    totalCredits: 'Total credits',
+    noArchive: 'No archived semesters yet',
+    gpaLabel: 'GPA',
+    archivedOn: 'Archived on',
+    customCourse: 'Custom course',
+    levelOthers: 'General Courses',
+  }
+};
+
+/*@3.HUBJ.3*/
+const GPA_SCALE = {
+  'A+': 4.00, 'A': 3.75, 'B+': 3.50, 'B': 3.00,
+  'C+': 2.50, 'C': 2.00, 'D+': 1.50, 'D': 1.00, 'F': 0.00
+};
+
+/*@3.HUBJ.4*/
+let catalog = null;
+let semester = null;
+let archive = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let _doneCache = {};   /*@3.HUBJ.5*/
+
+/*@3.HUBJ.6*/
+function t(key) {
+  const lang = document.documentElement.getAttribute('lang') || 'ar';
+  return T[lang]?.[key] || T.ar[key] || key;
+}
+function isAr() {
+  return (document.documentElement.getAttribute('lang') || 'ar') === 'ar';
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function darkenHex(hex, percent) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const f = 1 - percent / 100;
+  const toHex = v => Math.max(0, Math.min(255, Math.round(v * f))).toString(16).padStart(2, '0');
+  return '#' + toHex(r) + toHex(g) + toHex(b);
+}
+function gradientBg(color) {
+  return 'linear-gradient(135deg, ' + color + ', ' + darkenHex(color, 22) + ')';
+}
+
+/*@3.HUBJ.7*/
+function smartCount(n, arForms, enForms, isAdj) {
+  return window.Garden.smartCount(n, arForms, enForms, isAdj);
+}
+
+/*@3.HUBJ.8*/
+function getSemesterMeta() {
+  try {
+    const raw = localStorage.getItem('garden_semester_meta');
+    if (!raw) return { visits: 0, last_visit: 0 };
+    return JSON.parse(raw);
+  } catch (e) { return { visits: 0, last_visit: 0 }; }
+}
+function saveSemesterMeta(meta) {
+  try { localStorage.setItem('garden_semester_meta', JSON.stringify(meta)); } catch (e) {}
+}
+function isVisitedToday(meta) {
+  if (!meta.last_visit) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const last = new Date(meta.last_visit); last.setHours(0,0,0,0);
+  return today.getTime() === last.getTime();
+}
+function getActivityState() {
+  if (!semester) return 'none';
+  if (semester.is_active === true || semester.is_active === undefined) return 'active';
+  return 'inactive';
+}
+function getActivityTooltip() {
+  const state = getActivityState();
+  const meta = getSemesterMeta();
+  if (state === 'inactive') {
+    const visits = meta.visits || 0;
+    const remaining = Math.max(0, 3 - visits);
+    if (remaining > 0) {
+      return isAr()
+        ? 'زِر فصلك ' + remaining + ' ' + (remaining === 1 ? 'مرة' : (remaining === 2 ? 'مرتين' : 'مرات')) + ' لتفعيله · انقر للتثبيت'
+        : 'Visit ' + remaining + ' more time' + (remaining > 1 ? 's' : '') + ' to activate · Click to pin';
+    }
+    return isAr() ? 'انقر للتثبيت' : 'Click to pin';
+  }
+  if (semester.is_pinned === true) {
+    return isAr() ? 'مثبّت · انقر لإلغاء' : 'Pinned · Click to unpin';
+  }
+  return isAr() ? 'نشط · انقر للتثبيت' : 'Active · Click to pin';
+}
+function toggleActivity() {
+  if (!semester) return;
+  const isActive = semester.is_active === true || semester.is_active === undefined;
+  if (isActive) {
+    semester.is_active = false;
+    semester.is_pinned = false;
+  } else {
+    semester.is_active = true;
+    semester.is_pinned = true;
+    semester.was_activated = true;
+  }
+  save();
+  renderOverview();
+  renderActiveDot();
+}
+
+/*@3.HUBJ.9*/
+function animateNumber(el, target, suffix, duration) {
+  if (!el) return;
+  suffix = suffix || '';
+  duration = duration || 800;
+  /*@3.HUBJ.10*/
+  el.textContent = target + suffix;
+  if (document.visibilityState !== 'visible') return;
+
+  const start = 0;
+  const startTime = performance.now();
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const value = Math.round(start + (target - start) * eased);
+    el.textContent = value + suffix;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/*@3.HUBJ.11*/
+function renderProgressRing(percent) {
+  const fill = document.getElementById('progress-ring-fill');
+  if (!fill) return;
+  const circumference = 2 * Math.PI * 33;
+  const finalOffset = circumference - (percent / 100) * circumference;
+  fill.setAttribute('stroke-dasharray', circumference);
+
+  /*@3.HUBJ.12*/
+  if (percent > 0 && document.visibilityState === 'visible') {
+    fill.setAttribute('stroke-dashoffset', circumference);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        fill.setAttribute('stroke-dashoffset', finalOffset);
+      });
+    });
+  } else {
+    fill.setAttribute('stroke-dashoffset', finalOffset);
+  }
+}
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isAr()
+    ? d.toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric' })
+    : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/*@3.HUBJ.13*/
+async function init() {
+  try {
+    const res = await fetch('../shared/data/courses_catalog.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    catalog = await res.json();
+  } catch (e) {
+    console.error('[hub] courses_catalog.json fetch failed:', e);
+    return;
+  }
+
+  try { semester = JSON.parse(localStorage.getItem('my_semester')) || null; } catch (e) { semester = null; }
+  try { archive = JSON.parse(localStorage.getItem('semester_archive')) || []; } catch (e) { archive = []; }
+
+  bindEvents();
+  renderAll();
+  updateHeaderButtons();
+
+  document.addEventListener('garden:languageChanged', () => {
+    updateHeaderButtons();
+    if (catalog) renderAll();
+  });
+  document.addEventListener('garden:syncCompleted', () => {
+    try { semester = JSON.parse(localStorage.getItem('my_semester')) || null; } catch (e) { semester = null; }
+    try { archive = JSON.parse(localStorage.getItem('semester_archive')) || []; } catch (e) { archive = []; }
+    if (catalog) renderAll();
+  });
+  document.addEventListener('garden:semesterActivated', () => {
+    try { semester = JSON.parse(localStorage.getItem('my_semester')) || null; } catch (e) {}
+    renderActiveDot();
+    renderOverview();
+  });
+}
+
+/*@3.HUBJ.14*/
+function updateHeaderButtons() { /*@3.HUBJ.15*/ }
+
+/*@3.HUBJ.16*/
+function bindEvents() {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-action');
+    const code = btn.getAttribute('data-code') || '';
+
+    switch (action) {
+      case 'show-create': showCreateSemesterModal(); break;
+      case 'confirm-create': handleCreateSemester(); break;
+      case 'show-add': showAddCourseModal(); break;
+      case 'add-course': {
+        /*@3.HUBJ.17*/
+        const prevGrade = btn.getAttribute('data-completed-before');
+        if (prevGrade && !confirm(isAr()
+              ? `أتمَمْتَ ${code} سابقاً بدرجة ${prevGrade}. أتريد إضافتها لفصلك مجدداً؟`
+              : `You completed ${code} before with ${prevGrade}. Add it to your semester again?`)) break;
+        addCourse(code); break;
+      }
+      case 'add-custom': handleAddCustom(); break;
+      case 'remove-course': removeCourse(code); break;
+      case 'toggle-complete': toggleComplete(code); break;
+      case 'archive': archiveSemester(); break;
+      case 'restore-archived': restoreArchived(btn.getAttribute('data-id')); break;
+      case 'delete-archived': deleteArchived(btn.getAttribute('data-id')); break;
+      case 'remove-archived-course': removeArchivedCourse(btn.getAttribute('data-id'), btn.getAttribute('data-code')); break;
+      case 'show-rename': showRenameModal(); break;
+      case 'confirm-rename': handleRename(); break;
+      case 'toggle-activity': toggleActivity(); break;
+      case 'close-modal': closeAllModals(); break;
+      case 'filter': setActiveFilter(btn); break;
+      case 'notification-click': scrollToFirstDue(); break;
+      case 'back': window.location.href = '../index.html'; break;
+    }
+  }, true);
+
+  /*@3.HUBJ.18*/
+
+  /*@3.HUBJ.19*/
+  document.addEventListener('click', function(e) {
+    var card = e.target.closest('.hub-course-card');
+    if (!card) return;
+    if (e.target.closest('[data-action]') || e.target.closest('a') || e.target.closest('button')) return;
+    var path = card.getAttribute('data-path');
+    if (!path) return;
+    window.location.href = path;   /*@3.HUBJ.20*/
+  });
+
+  const searchEl = document.getElementById('hub-search');
+  if (searchEl) {
+    /*@3.HUBJ.21*/
+    let _searchRaf = 0;
+    searchEl.addEventListener('input', (e) => {
+      currentSearch = e.target.value.trim().toLowerCase();
+      if (_searchRaf) cancelAnimationFrame(_searchRaf);
+      _searchRaf = requestAnimationFrame(() => { _searchRaf = 0; renderCatalog(); });
+    });
+  }
+
+  /*@3.HUBJ.22*/
+  const suggestOpen = (el) => !!(el && el.parentNode &&
+    el.parentNode.querySelector('.bi-sugg-item.is-on'));
+
+  const nameInput = document.getElementById('semester-name-input');
+  if (nameInput) {
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || suggestOpen(e.target)) return;
+      e.preventDefault(); handleCreateSemester();
+    });
+  }
+  const nameInputEn = document.getElementById('semester-name-en');
+  if (nameInputEn) {
+    nameInputEn.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || suggestOpen(e.target)) return;
+      e.preventDefault(); handleCreateSemester();
+    });
+  }
+
+  ['rename-input', 'rename-input-en'].forEach((id) => {
+    const ri = document.getElementById(id);
+    if (!ri) return;
+    ri.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || suggestOpen(e.target)) return;
+      e.preventDefault(); handleRename();
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAllModals();
+  });
+
+  /*@3.HUBJ.23*/
+  document.addEventListener('change', (e) => {
+    const gs = e.target.closest && e.target.closest('.archive-grade-select');
+    if (gs) { setArchivedGrade(gs.getAttribute('data-id'), gs.getAttribute('data-code'), gs.value); return; }
+    const ri = e.target.closest && e.target.closest('.archive-rename');
+    if (ri) { renameArchived(ri.getAttribute('data-id'), ri.value); }
+  }, true);
+}
+
+/*@3.HUBJ.24*/
+function biNames(idAr, idEn) {
+  const ar = (document.getElementById(idAr)?.value || '').trim();
+  const en = (document.getElementById(idEn)?.value || '').trim();
+  if (window.GardenBiName) return window.GardenBiName.resolve(ar, en);
+  return (ar || en) ? { name_ar: ar || en, name_en: en || ar, name: ar || en } : null;
+}
+
+function handleCreateSemester() {
+  const v = biNames('semester-name-input', 'semester-name-en');
+  if (!v) { document.getElementById('semester-name-input')?.focus(); return; }
+  createSemester(v);
+  closeAllModals();
+}
+
+function createSemester(v) {
+  /*@3.HUBJ.25*/
+  if (typeof v === 'string') v = { name_ar: v, name_en: v, name: v };
+  const now = new Date().toISOString();
+  semester = {
+    id: 'sem_' + Date.now(),
+    name: v.name,
+    name_ar: v.name_ar,
+    name_en: v.name_en,
+    courses: [],
+    is_active: false,
+    is_pinned: false,
+    was_activated: false,
+    created_at: now,
+    updated_at: now
+  };
+  save();
+  saveSemesterMeta({ visits: 0, last_visit: 0 });
+  renderAll();
+}
+
+/*@3.HUBJ.26*/
+function addCourse(code) {
+  if (!semester) return;
+  if (semester.courses.some(c => c.code === code)) return;
+  semester.courses.push({
+    code: code,
+    added_at: new Date().toISOString(),
+    completed: false,
+    completed_at: null,
+    grade: null
+  });
+  save();
+  renderCourseGrid();
+  renderOverview();
+  renderNotification();
+  closeAllModals();
+}
+
+/*@3.HUBJ.27*/
+function handleAddCustom() {
+  /*@3.HUBJ.28*/
+  const nameInput = document.getElementById('custom-name');
+  const creditsInput = document.getElementById('custom-credits');
+  const name = (nameInput?.value || '').trim();
+  const credits = parseInt(creditsInput?.value || '3', 10) || 3;
+  if (!name) { nameInput?.focus(); return; }
+  addCustomCourse(name, name, credits);
+  closeAllModals();
+}
+
+function addCustomCourse(nameAr, nameEn, credits) {
+  if (!semester) return;
+  const code = '__CUSTOM_' + Date.now();
+  semester.courses.push({
+    code: code,
+    custom: true,
+    name_ar: nameAr,
+    name_en: nameEn,
+    credits: credits,
+    icon: 'fa-solid fa-book',
+    brand_color: '#64748b',
+    added_at: new Date().toISOString(),
+    completed: false,
+    completed_at: null,
+    grade: null
+  });
+  save();
+  renderCourseGrid();
+  renderOverview();
+  closeAllModals();
+}
+
+/*@3.HUBJ.29*/
+function removeCourse(code) {
+  if (!semester) return;
+  if (!confirm(t('removeConfirm'))) return;
+  semester.courses = semester.courses.filter(c => c.code !== code);
+  save();
+  renderCourseGrid();
+  renderOverview();
+  renderNotification();
+}
+
+/*@3.HUBJ.30*/
+function toggleComplete(code) {
+  if (!semester) return;
+  const entry = semester.courses.find(c => c.code === code);
+  if (!entry) return;
+  const wasIncomplete = !entry.completed;
+  entry.completed = !entry.completed;
+  entry.completed_at = entry.completed ? new Date().toISOString() : null;
+  save();
+  renderCourseGrid();
+  renderOverview();
+  if (wasIncomplete && entry.completed && window.Garden && typeof window.Garden.launchConfetti === 'function') {
+    try { window.Garden.launchConfetti(); } catch(e) {}
+    const card = document.querySelector('[data-code="' + CSS.escape(code) + '"]');
+    if (card) {
+      card.style.borderColor = '#34d399';
+      card.style.boxShadow = '0 0 20px -4px rgba(52,211,153,0.5)';
+      setTimeout(() => { card.style.borderColor = ''; card.style.boxShadow = ''; }, 2000);
+    }
+  }
+}
+
+/*@3.HUBJ.31*/
+function computeSemesterGpa(sem) {
+  let totalCredits = 0, weightedSum = 0, hasGrades = false;
+  (sem.courses || []).forEach(entry => {
+    const info = getCourseInfo(entry);
+    const credits = info?.credits || entry.credits || 3;
+    if (entry.grade && GPA_SCALE[entry.grade] !== undefined) {
+      weightedSum += GPA_SCALE[entry.grade] * credits;
+      totalCredits += credits;
+      hasGrades = true;
+    }
+  });
+  return { gpa: hasGrades ? (weightedSum / totalCredits) : null, totalCredits };
+}
+function saveArchive() {
+  try { localStorage.setItem('semester_archive', JSON.stringify(archive)); } catch (e) {}
+  /*@3.HUBJ.32*/
+  if (window.GardenData && window.GardenData.rebuildGrades) {
+    try { window.GardenData.rebuildGrades(); } catch (e) {}
+  }
+}
+function pushSemesterToArchive(sem) {
+  const { gpa, totalCredits } = computeSemesterGpa(sem);
+  archive.push({
+    id: sem.id,
+    name: sem.name,
+    /*@3.HUBJ.33*/
+    name_ar: sem.name_ar || sem.name,
+    name_en: sem.name_en || sem.name,
+    courses: sem.courses,
+    gpa: gpa,
+    total_credits: totalCredits,
+    created_at: sem.created_at,
+    archived_at: new Date().toISOString()
+  });
+  saveArchive();
+}
+
+/*@3.HUBJ.34*/
+function archiveSemester() {
+  if (!semester) return;
+  if (!confirm(t('archiveConfirm'))) return;
+  pushSemesterToArchive(semester);
+  localStorage.removeItem('my_semester');
+  localStorage.removeItem('garden_semester_meta');
+  semester = null;
+  renderAll();
+}
+
+/*@3.HUBJ.35*/
+function findArchived(id) { return archive.find(a => a.id === id); }
+
+function recomputeArchived(item) {
+  const { gpa, totalCredits } = computeSemesterGpa(item);
+  item.gpa = gpa;
+  item.total_credits = totalCredits;
+}
+
+function setArchivedGrade(id, code, grade) {
+  const item = findArchived(id);
+  if (!item) return;
+  const c = (item.courses || []).find(x => x.code === code);
+  if (!c) return;
+  c.grade = grade || null;
+  if (grade) { c.completed = true; c.completed_at = c.completed_at || new Date().toISOString(); }
+  recomputeArchived(item);
+  saveArchive();
+  renderArchive();
+}
+
+/*@3.HUBJ.36*/
+function dispSemName(item) {
+  return (window.GardenData && GardenData.dispName)
+    ? GardenData.dispName(item) : (item && item.name) || '';
+}
+
+/*@3.HUBJ.37*/
+function renameArchived(id, name) {
+  const item = findArchived(id);
+  if (!item) return;
+  name = (name || '').trim();
+  if (!name) return;
+  if (!item.name_ar) item.name_ar = item.name || name;
+  if (!item.name_en) item.name_en = item.name || name;
+  if (isAr()) { item.name_ar = name; item.name = name; }
+  else { item.name_en = name; }
+  saveArchive();
+}
+
+function removeArchivedCourse(id, code) {
+  const item = findArchived(id);
+  if (!item) return;
+  if (!confirm(t('removeConfirm'))) return;
+  item.courses = (item.courses || []).filter(c => c.code !== code);
+  recomputeArchived(item);
+  saveArchive();
+  renderArchive();
+}
+
+function deleteArchived(id) {
+  if (!confirm(isAr()
+      ? 'حذف هذا الفصل نهائياً من السجل؟ سيخرج من المعدل التراكمي.'
+      : 'Delete this semester permanently? It will be removed from your cumulative GPA.')) return;
+  archive = archive.filter(a => a.id !== id);
+  saveArchive();
+  renderArchive();
+}
+
+function restoreArchived(id) {
+  const item = findArchived(id);
+  if (!item) return;
+  if (!confirm(isAr()
+      ? 'استرجاع هذا الفصل ليصبح فصلك الحالي؟ (سيُؤرشف فصلك الحالي تلقائياً إن كان يحوي مواد)'
+      : 'Restore this semester as your current one? (Your current semester will be auto-archived if it has courses)')) return;
+  /*@3.HUBJ.38*/
+  if (semester && semester.courses && semester.courses.length > 0) {
+    pushSemesterToArchive(semester);
+  }
+  /*@3.HUBJ.39*/
+  semester = {
+    id: item.id,
+    name: item.name,
+    courses: item.courses || [],
+    is_active: true,
+    is_pinned: false,
+    was_activated: true,
+    created_at: item.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  archive = archive.filter(a => a.id !== id);
+  save();
+  saveArchive();
+  saveSemesterMeta({ visits: 0, last_visit: 0 });
+  renderAll();
+}
+
+/*@3.HUBJ.40*/
+function getCourseInfo(entry) {
+  if (!catalog || entry.custom) return null;
+  return catalog.courses.find(c => c.code === entry.code) || null;
+}
+
+/*@3.HUBJ.41*/
+function getCourseProgress(entry) {
+  const info = getCourseInfo(entry);
+  const totalModules = info?.modules || 13;
+  const result = { masteredCards: 0, dueCards: 0, quizzesDone: 0, totalQuizzes: totalModules, hasData: false };
+
+  for (let m = 1; m <= totalModules; m++) {
+    const fcKey = 'garden_' + entry.code + '_m' + m + '_fc';
+    const quizKey = 'garden_' + entry.code + '_m' + m + '_quiz';
+    const fcRaw = localStorage.getItem(fcKey);
+    if (fcRaw) {
+      try {
+        const sm2 = JSON.parse(fcRaw);
+        const states = Object.values(sm2);
+        states.forEach(state => {
+          if (state && typeof state === 'object') {
+            result.hasData = true;
+            if (state.interval && state.interval >= 21) result.masteredCards++;
+            if (state.nextReview && state.nextReview <= Date.now()) result.dueCards++;
+          }
+        });
+      } catch (e) {}
+    }
+    const quizRaw = localStorage.getItem(quizKey);
+    if (quizRaw !== null) result.quizzesDone++;
+  }
+  return result;
+}
+
+/*@3.HUBJ.42*/
+function getCoursePercent(progress) {
+  if (progress.totalQuizzes === 0) return 0;
+  return Math.round((progress.quizzesDone / progress.totalQuizzes) * 100);
+}
+
+/*@3.HUBJ.43*/
+function renderAll() {
+  const emptyState = document.getElementById('empty-state');
+  const activeState = document.getElementById('active-state');
+  if (!emptyState || !activeState) return;
+
+  if (!semester) {
+    emptyState.hidden = false;
+    activeState.hidden = true;
+    renderArchive();
+    return;
+  }
+  emptyState.hidden = true;
+  activeState.hidden = false;
+  renderOverview();
+  renderActiveDot();
+  renderNotification();
+  renderCourseGrid();
+  renderArchive();
+}
+
+/*@3.HUBJ.44*/
+function renderOverview() {
+  if (!semester) return;
+  const nameEl = document.getElementById('overview-name');
+  const statsEl = document.getElementById('overview-stats');
+  const percentEl = document.getElementById('progress-percent');
+  const detailEl = document.getElementById('progress-detail');
+  if (!nameEl) return;
+
+  /*@3.HUBJ.45*/
+  nameEl.textContent = (window.GardenData && GardenData.dispName)
+    ? GardenData.dispName(semester) : semester.name;
+
+  const total = semester.courses.length;
+  const done = semester.courses.filter(c => c.completed).length;
+  const totalCredits = semester.courses.reduce((sum, c) => {
+    const info = getCourseInfo(c);
+    return sum + (info?.credits || c.credits || 3);
+  }, 0);
+  const remaining = total - done;
+
+  /*@3.HUBJ.46*/
+  let totalPercent = 0;
+  semester.courses.forEach(entry => {
+    if (entry.custom) { totalPercent += entry.completed ? 100 : 0; return; }
+    if (entry.completed) { totalPercent += 100; return; }
+    const progress = getCourseProgress(entry);
+    totalPercent += getCoursePercent(progress);
+  });
+  const percent = total > 0 ? Math.round(totalPercent / total) : 0;
+  renderProgressRing(percent);
+  animateNumber(percentEl, percent, '%');
+  if (detailEl) detailEl.textContent = done + ' / ' + total + ' ' + t('completed');
+
+  if (statsEl) {
+    /*@3.HUBJ.47*/
+    const nounAr = ['مادة','مادتين','مواد'], nounEn = ['course','courses'];
+    const completedPhrase = smartCount(done, nounAr, nounEn) + ' ' + (isAr() ? 'مكتملة' : 'completed');
+    const remainingPhrase = smartCount(remaining, nounAr, nounEn) + ' ' + (isAr() ? 'متبقية' : 'remaining');
+    statsEl.innerHTML =
+      '<span class="stat-courses"><i class="fa-solid fa-book"></i> ' + smartCount(total, nounAr, nounEn) + '</span>' +
+      '<span class="stat-completed"><i class="fa-solid fa-circle-check"></i> ' + completedPhrase + '</span>' +
+      '<span class="stat-remaining"><i class="fa-solid fa-clock"></i> ' + remainingPhrase + '</span>' +
+      '<span class="stat-credits"><i class="fa-solid fa-scale-balanced"></i> ' + smartCount(totalCredits, ['ساعة','ساعتين','ساعات'], ['credit','credits']) + '</span>';
+  }
+}
+
+/*@3.HUBJ.48*/
+function renderActiveDot() {
+  const dot = document.getElementById('activity-dot');
+  if (!dot) return;
+  const state = getActivityState();
+  if (state === 'none') { dot.hidden = true; return; }
+  dot.hidden = false;
+  const meta = getSemesterMeta();
+  if (state === 'active') {
+    dot.classList.add('active');
+    dot.classList.remove('inactive');
+    if (isVisitedToday(meta)) dot.classList.add('today');
+    else dot.classList.remove('today');
+    dot.title = isAr() ? 'نشط — انقر للإلغاء' : 'Active — click to deactivate';
+  } else {
+    dot.classList.remove('active', 'today');
+    dot.classList.add('inactive');
+    dot.title = isAr() ? 'تفعيل' : 'Activate';
+  }
+}
+
+/*@3.HUBJ.49*/
+function renderNotification() {
+  const bar = document.getElementById('hub-notification');
+  const text = document.getElementById('hub-notification-text');
+  if (!bar) return;
+  if (!semester) { bar.hidden = true; return; }
+
+  let totalDue = 0;
+  semester.courses.forEach(entry => {
+    if (entry.custom) return;
+    const p = getCourseProgress(entry);
+    totalDue += p.dueCards;
+  });
+
+  if (totalDue === 0) {
+    bar.hidden = true;
+  } else {
+    bar.hidden = false;
+    if (text) text.innerHTML = t('dueNotification').replace('{count}', '<span class="due-count">' + totalDue + '</span>');
+  }
+}
+
+/*@3.HUBJ.50*/
+function scrollToFirstDue() {
+  if (!semester) return;
+  for (const entry of semester.courses) {
+    if (entry.custom) continue;
+    const p = getCourseProgress(entry);
+    if (p.dueCards > 0) {
+      const card = document.querySelector('[data-code="' + CSS.escape(entry.code) + '"]');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.outline = '2px solid #a78bfa';
+        setTimeout(() => { card.style.outline = ''; }, 2000);
+      }
+      return;
+    }
+  }
+}
+
+/*@3.HUBJ.51*/
+function renderCourseGrid() {
+  const grid = document.getElementById('hub-courses-grid');
+  if (!grid || !semester) return;
+
+  let html = '';
+  semester.courses.forEach(entry => {
+    html += buildCourseCard(entry);
+  });
+  html += '<button class="hub-add-btn" data-action="show-add">' +
+    '<i class="fa-solid fa-plus"></i> ' + escapeHtml(t('addCourse')) + '</button>';
+  grid.innerHTML = html;
+}
+
+/*@3.HUBJ.52*/
+function buildCourseCard(entry) {
+  const info = getCourseInfo(entry);
+  let icon, color, glow, name, levelLabel, credits, path, modules;
+
+  if (entry.custom) {
+    icon = entry.icon || 'fa-solid fa-book';
+    color = entry.brand_color || '#64748b';
+    glow = 'rgba(100,116,139,0.12)';    name = isAr() ? (entry.name_ar || entry.name_en) : (entry.name_en || entry.name_ar);
+    levelLabel = t('customCourse');
+    credits = entry.credits || 3;
+    path = null;
+    modules = 0;
+  } else if (info) {
+    icon = info.icon;
+    color = info.brand_color;
+    glow = info.brand_glow;
+    name = isAr() ? info.name_ar : info.name_en;
+    levelLabel = isAr() ? info.level_name_ar : info.level_name_en;
+    credits = info.credits;
+    path = info.path;
+    modules = info.modules;
+  } else {
+    return '';
+  }
+
+  const progress = entry.custom ? { masteredCards: 0, dueCards: 0, quizzesDone: 0, totalQuizzes: 0 } : getCourseProgress(entry);
+  const percent = entry.custom ? 0 : getCoursePercent(progress);
+  const completedClass = entry.completed ? ' completed' : '';
+  const cardPath = path ? ('../' + path + 'index.html') : '';
+  const pathAttr = cardPath ? ' data-path="' + escapeHtml(cardPath) + '"' : '';
+
+  let html = '<div class="hub-course-card' + completedClass + '" data-code="' + escapeHtml(entry.code) + '"' + pathAttr + ' style="--card-accent:' + color + '; --card-glow:' + glow + '">';
+  html += '<div class="hub-card-header">';
+  html += '<div class="hub-card-icon" style="background:' + gradientBg(color) + '"><i class="' + icon + '"></i></div>';
+  html += '<div class="hub-card-info">';
+  html += '<h3>' + escapeHtml(name) + '</h3>';
+  html += '<span class="hub-card-level">' + escapeHtml(levelLabel) + ' · ' + smartCount(credits, ['ساعة','ساعتين','ساعات'], ['credit','credits']) + '</span>';
+  html += '</div>';
+  if (progress.dueCards > 0) {
+    html += '<span class="hub-due-badge"><i class="fa-solid fa-clone" aria-hidden="true"></i> ' + progress.dueCards + '</span>';
+  }
+  html += '</div>';
+
+  if (!entry.custom) {
+    html += '<div class="hub-card-progress">';
+    html += '<div class="hub-progress-bar"><div class="hub-progress-fill" style="width:' + percent + '%"></div></div>';
+    html += '<span class="hub-progress-text">' + percent + '%</span>';
+    html += '</div>';
+    html += '<div class="hub-card-stats">';
+    html += '<span><i class="fa-solid fa-clone" aria-hidden="true"></i> ' + progress.masteredCards + ' ' + t('fcMastered') + '</span>';
+    html += '<span><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> ' + progress.quizzesDone + '/' + progress.totalQuizzes + '</span>';
+    html += '</div>';
+  }
+
+  html += '<div class="hub-card-actions">';
+  if (path) {
+    html += '<a href="../' + path + 'index.html" class="hub-card-btn hub-card-btn-primary">' + escapeHtml(t('openCourse')) + '</a>';
+  }
+  if (!entry.custom) {
+    html += '<a href="course.html?code=' + encodeURIComponent(entry.code) + '" class="hub-card-btn">' + escapeHtml(t('courseCard')) + '</a>';
+  }
+  html += '<button class="hub-card-btn" data-action="toggle-complete" data-code="' + escapeHtml(entry.code) + '">' + (entry.completed ? escapeHtml(t('markIncomplete')) : escapeHtml(t('markComplete'))) + '</button>';
+  html += '<button class="hub-card-btn hub-card-btn-danger" data-action="remove-course" data-code="' + escapeHtml(entry.code) + '">' + escapeHtml(t('removeCourse')) + '</button>';
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+/*@3.HUBJ.53*/
+function showCreateSemesterModal() {
+  const modal = document.getElementById('modal-create-semester');
+  if (!modal) return;
+  const input = document.getElementById('semester-name-input');
+  const inputEn = document.getElementById('semester-name-en');
+  modal.hidden = false;
+  if (input) input.value = '';
+  if (inputEn) inputEn.value = '';
+  bindBiName('semester-name-input', 'semester-name-en');
+  if (input) setTimeout(() => input.focus(), 50);
+}
+
+/*@3.HUBJ.54*/
+function showAddCourseModal() {
+  const modal = document.getElementById('modal-add-course');
+  if (!modal) return;
+  modal.hidden = false;
+  currentFilter = 'all';
+  currentSearch = '';
+  /*@3.HUBJ.55*/
+  _doneCache = (window.GardenData && window.GardenData.completedCourses)
+    ? window.GardenData.completedCourses() : {};
+  const searchEl = document.getElementById('hub-search');
+  if (searchEl) searchEl.value = '';
+  renderFilters();
+  renderCatalog();
+}
+
+/*@3.HUBJ.56*/
+function renderFilters() {
+  const container = document.getElementById('course-filters');
+  if (!container || !catalog) return;
+
+  const filters = [
+    { key: 'all', label: t('filterAll') },
+    { key: 'L3', label: 'L3' },
+    { key: 'L4', label: 'L4' },
+    { key: 'L5', label: 'L5' },
+    { key: 'L6', label: 'L6' },
+    { key: 'L7', label: 'L7' },
+    { key: 'L8', label: 'L8' },
+    { key: 'others', label: isAr() ? 'مواد عامة' : 'General' },
+  ];
+
+  container.innerHTML = filters.map(f =>
+    '<button class="course-filter-btn' + (f.key === currentFilter ? ' active' : '') + '" data-action="filter" data-filter="' + f.key + '">' + escapeHtml(f.label) + '</button>'
+  ).join('');
+}
+
+function setActiveFilter(btn) {
+  currentFilter = btn.getAttribute('data-filter') || 'all';
+  renderFilters();
+  renderCatalog();
+}
+
+/*@3.HUBJ.57*/
+function renderCatalog() {
+  const container = document.getElementById('course-catalog');
+  if (!container || !catalog) return;
+
+  const addedCodes = new Set(semester ? semester.courses.map(c => c.code) : []);
+  let courses = catalog.courses;
+
+  if (currentFilter !== 'all') {
+    courses = courses.filter(c => c.level === currentFilter);
+  }
+  if (currentSearch) {
+    courses = courses.filter(c =>
+      c.code.toLowerCase().includes(currentSearch) ||
+      (c.name_ar || '').toLowerCase().includes(currentSearch) ||
+      (c.name_en || '').toLowerCase().includes(currentSearch)
+    );
+  }
+
+  if (courses.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2rem">' + escapeHtml(t('noResults')) + '</p>';
+    return;
+  }
+
+  /*@3.HUBJ.58*/
+  const done = _doneCache;
+
+  function catalogItemHtml(c) {
+    const added = addedCodes.has(c.code);
+    const prev = done[c.code];
+    const cls = added ? ' disabled' : (prev ? ' is-completed-before' : '');
+    const badge = added
+      ? '<span class="catalog-item-badge">' + escapeHtml(t('alreadyAdded')) + '</span>'
+      : (prev ? '<span class="catalog-item-badge catalog-item-badge--done" title="' +
+                escapeHtml(prev.semester) + '"><i class="fa-solid fa-check" aria-hidden="true"></i> ' +
+                escapeHtml(isAr() ? 'أُتمّت سابقاً' : 'Completed before') +
+                ' (' + escapeHtml(prev.grade) + ')</span>' : '');
+    const action = added ? '' : 'data-action="add-course" data-code="' + c.code + '"' +
+                               (prev ? ' data-completed-before="' + escapeHtml(prev.grade) + '"' : '');
+    return '<div class="catalog-item' + cls + '" ' + action + '>' +
+      '<div class="catalog-item-icon" style="background:' + gradientBg(c.brand_color) + '"><i class="' + c.icon + '"></i></div>' +
+      '<div class="catalog-item-info">' +
+      '<div class="catalog-item-name">' + escapeHtml(isAr() ? c.name_ar : c.name_en) + ' <span style="color:var(--text-muted);font-weight:400">(' + c.code + ')</span></div>' +
+      '<div class="catalog-item-meta">' + escapeHtml(isAr() ? c.level_name_ar : c.level_name_en) + ' · ' + smartCount(c.credits, ['ساعة','ساعتين','ساعات'], ['credit','credits']) + '</div>' +
+      '</div>' +
+      badge +
+      '</div>';
+  }
+
+  /*@3.HUBJ.59*/
+  const mainList = courses.filter(c => addedCodes.has(c.code) || !done[c.code]);
+  const prevList = courses.filter(c => !addedCodes.has(c.code) && done[c.code]);
+
+  container.innerHTML = mainList.map(catalogItemHtml).join('') +
+    (prevList.length
+      ? '<button type="button" class="catalog-prev-toggle" id="catalog-prev-toggle">' +
+          escapeHtml(isAr() ? 'إظهار ما سبق دراسته' : 'Show previously studied') + ' (' + prevList.length + ') <span class="catalog-prev-caret">▾</span></button>' +
+        '<div class="catalog-prev-list" id="catalog-prev-list" style="display:none">' + prevList.map(catalogItemHtml).join('') + '</div>'
+      : '');
+
+  const tg = document.getElementById('catalog-prev-toggle');
+  if (tg) tg.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const l = document.getElementById('catalog-prev-list');
+    const caret = tg.querySelector('.catalog-prev-caret');
+    const open = l.style.display === 'none';
+    l.style.display = open ? '' : 'none';
+    if (caret) caret.innerHTML = open ? '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i>' : '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+  });
+}
+
+/*@3.HUBJ.60*/
+function gradeOptionsHtml(selected) {
+  /*@3.HUBJ.61*/
+  const grades = ['', 'A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F', 'TR'];
+  return grades.map(g => {
+    const label = g === '' ? '—' : g;
+    const sel = (selected || '') === g ? ' selected' : '';
+    return '<option value="' + g + '"' + sel + '>' + label + '</option>';
+  }).join('');
+}
+
+/*@3.HUBJ.62*/
+function renderArchive() {
+  const section = document.getElementById('hub-archive-section');
+  const list = document.getElementById('archive-list');
+  const divider = document.getElementById('glass-divider');
+  if (!section || !list) return;
+
+  if (!archive || archive.length === 0) {
+    section.hidden = true;
+    if (divider) divider.hidden = true;
+    return;
+  }
+  section.hidden = false;
+  if (divider) divider.hidden = false;
+
+  /*@3.HUBJ.63*/
+  const openIds = new Set(Array.from(list.querySelectorAll('.archive-item-card[open]')).map(d => d.getAttribute('data-id')));
+  list.innerHTML = archive.map(buildArchiveItem).join('');
+  openIds.forEach(id => {
+    const d = list.querySelector('.archive-item-card[data-id="' + CSS.escape(id) + '"]');
+    if (d) d.open = true;
+  });
+}
+
+/*@3.HUBJ.64*/
+function buildArchiveItem(item) {
+  const id = escapeHtml(item.id);
+  const gpaText = (item.gpa !== null && item.gpa !== undefined)
+    ? '<span class="archive-gpa">' + t('gpaLabel') + ': ' + item.gpa.toFixed(2) + '</span>'
+    : '<span class="archive-gpa" style="color:var(--text-muted)">—</span>';
+
+  let rows = '';
+  (item.courses || []).forEach(entry => {
+    const info = getCourseInfo(entry);
+    let name, credits;
+    if (entry.custom) {
+      name = isAr() ? (entry.name_ar || entry.name_en) : (entry.name_en || entry.name_ar);
+      credits = entry.credits || 3;
+    } else if (info) {
+      name = isAr() ? info.name_ar : info.name_en;
+      credits = info.credits;
+    } else {
+      name = entry.name_ar || entry.code;
+      credits = entry.credits || 3;
+    }
+    rows += '<div class="archive-course-row">' +
+      '<span class="archive-course-name" title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</span>' +
+      '<span class="archive-course-credits">' + credits + '</span>' +
+      '<select class="archive-grade-select" data-id="' + id + '" data-code="' + escapeHtml(entry.code) + '">' + gradeOptionsHtml(entry.grade) + '</select>' +
+      '<button class="archive-course-del" data-action="remove-archived-course" data-id="' + id + '" data-code="' + escapeHtml(entry.code) + '" title="' + escapeHtml(t('removeCourse')) + '"><i class="fa-solid fa-xmark"></i></button>' +
+      '</div>';
+  });
+  if (!rows) rows = '<div class="archive-empty-note">' + (isAr() ? 'لا مواد' : 'No courses') + '</div>';
+
+  return '<details class="archive-item-card" data-id="' + id + '">' +
+    '<summary class="archive-summary">' +
+      '<span class="archive-caret"><i class="fa-solid fa-chevron-down"></i></span>' +
+      '<span class="archive-summary-main">' +
+        '<span class="archive-item-name">' + escapeHtml(dispSemName(item)) + '</span>' +
+        '<span class="archive-item-meta">' + smartCount((item.total_credits || 0), ['ساعة','ساعتين','ساعات'], ['credit','credits']) + ' · ' + formatDate(item.archived_at) + '</span>' +
+      '</span>' +
+      gpaText +
+    '</summary>' +
+    '<div class="archive-body">' +
+      '<label class="archive-field-label">' + (isAr() ? 'اسم الفصل' : 'Semester name') + '</label>' +
+      '<input type="text" class="hub-input archive-rename" data-id="' + id + '" value="' + escapeHtml(dispSemName(item)) + '">' +
+      '<div class="archive-courses">' + rows + '</div>' +
+      '<div class="archive-actions">' +
+        '<button class="hub-btn hub-btn-secondary hub-btn-sm" data-action="restore-archived" data-id="' + id + '"><i class="fa-solid fa-rotate-left"></i> ' + (isAr() ? 'استرجاع' : 'Restore') + '</button>' +
+        '<button class="hub-btn hub-btn-danger hub-btn-sm" data-action="delete-archived" data-id="' + id + '"><i class="fa-solid fa-trash-can"></i> ' + (isAr() ? 'حذف' : 'Delete') + '</button>' +
+      '</div>' +
+    '</div>' +
+  '</details>';
+}
+
+/*@3.HUBJ.65*/
+function showRenameModal() {
+  const modal = document.getElementById('modal-rename');
+  if (!modal || !semester) return;
+  const input = document.getElementById('rename-input');
+  const inputEn = document.getElementById('rename-input-en');
+  modal.hidden = false;
+  const cur = window.GardenBiName ? window.GardenBiName.read(semester)
+    : { ar: semester.name || '', en: '' };
+  if (input) input.value = cur.ar;
+  if (inputEn) inputEn.value = cur.en;
+  bindBiName('rename-input', 'rename-input-en');
+  if (input) setTimeout(() => { input.focus(); input.select(); }, 50);
+}
+
+function handleRename() {
+  if (!semester) return;
+  const v = biNames('rename-input', 'rename-input-en');
+  if (!v) { document.getElementById('rename-input')?.focus(); return; }
+  semester.name = v.name;
+  semester.name_ar = v.name_ar;
+  semester.name_en = v.name_en;
+  save();
+  renderOverview();
+  closeAllModals();
+}
+
+/*@3.HUBJ.66*/
+function bindBiName(idAr, idEn) {
+  const a = document.getElementById(idAr), b = document.getElementById(idEn);
+  if (!a || !b || !window.GardenBiName || a.dataset.biBound) return;
+  a.dataset.biBound = '1';
+  window.GardenBiName.attach({ ar: a, en: b, suggest: true });
+}
+
+/*@3.HUBJ.67*/
+function closeAllModals() {
+  document.querySelectorAll('.hub-modal-overlay').forEach(m => { m.hidden = true; });
+}
+
+/*@3.HUBJ.68*/
+function save() {
+  if (!semester) return;
+  semester.updated_at = new Date().toISOString();
+  try { localStorage.setItem('my_semester', JSON.stringify(semester)); } catch (e) {}
+}
+
+/*@3.HUBJ.69*/
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
