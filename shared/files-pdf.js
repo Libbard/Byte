@@ -68,9 +68,11 @@
   }
 
   /*@3.FIPJ.5*/
-  function offer(root, h, name, getFile) {
+  function offer(root, h, name, getFile, src) {
     var f = F();
     if (!f || !h || !root) return;
+    /*@3.FIPJ.7*/
+    if (src === 'drive' || src === 'cloud') return;
     if (seen()[refIdOf(h)]) return;
 
     f.available().then(function (a) {
@@ -87,19 +89,18 @@
       el.innerHTML =
         '<i class="fa-solid fa-cloud-arrow-up nfo-i" aria-hidden="true"></i>' +
         '<div class="nfo-txt"><b>' +
-        esc(L('هذا الملفُّ على هذا الجهاز وحدَه.', 'This file is on this device only.')) +
+        esc(L('الملفُّ غيرُ محفوظٍ عندنا · ورسومُك عليه محفوظةٌ ومتزامنة.',
+              'The file is not saved with us · your drawings on it are saved and synced.')) +
         '</b> ' +
-        esc(L('ورسومُك عليه متزامنةٌ ومحفوظةٌ دائماً. ولفتحِه على أجهزتك الأخرى: ' +
-              'احفظْه في حسابك على جوجل درايف ليبقى دائماً، أو ارفعْه إلينا مؤقّتاً.',
-              'Your drawings on it are always synced and saved. To open it on your other ' +
-              'devices: keep it in your Google Drive permanently, or upload it to us ' +
-              'temporarily.')) +
+        esc(L('ولحفظِه مؤقّتاً لتفتحه وتحمّله على أجهزتك الأخرى:',
+              'To keep it temporarily so you can open and download it on your other devices:')) +
         '</div>' +
         '<div class="nfo-acts">' +
         '<button type="button" class="gsf-btn gsf-btn--go nfo-up">' +
-        esc(L('ارفعْه إلينا', 'Upload to us')) + '</button>' +
-        '<button type="button" class="gsf-btn gsf-btn--ghost nfo-no">' +
-        esc(L('لا، شكراً', 'No thanks')) + '</button></div>';
+        esc(L('ارفعْه', 'Upload')) + '</button>' +
+        '<button type="button" class="gsf-btn gsf-btn--ghost nfo-no" aria-label="' +
+        esc(L('إغلاق', 'Dismiss')) + '"><i class="fa-solid fa-xmark" aria-hidden="true"></i>' +
+        '</button></div>';
 
       el.querySelector('.nfo-no').addEventListener('click', function () {
         markSeen(h); close(root);
