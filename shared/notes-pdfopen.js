@@ -369,6 +369,12 @@
         st.h = h.handle;
         st.total = h.pages;
         build();
+        /*@3.NOPJ5.29*/
+        if (window.GardenFilesPdf && sp.h) {
+          window.GardenFilesPdf.offer(root, sp.h, sp.n || '', function () {
+            return file || (window.GardenPdfDoc ? window.GardenPdfDoc.get(sp.h) : null);
+          });
+        }
       }, function (e) {
         if (st.dead) return;
         if (e && e.cancelled) { ask(); return; }
@@ -529,8 +535,18 @@
       busy(L('يُفتح الملفّ…', 'Opening the file…'));
       window.GardenPdfDoc.get(sp.h).then(function (f) {
         if (st.dead) return;
-        if (f) show(f, null);
-        else ask();
+        if (f) { show(f, null); return; }
+        /*@3.NOPJ5.30*/
+        var C = window.GardenFilesPdf;
+        if (!C) { ask(); return; }
+        C.restore(sp.h, sp.n || '', function (at, of) {
+          var e = stage.querySelector('.npo-msg');
+          if (e && of) e.textContent = L('يُجلب من الحديقة… ', 'Fetching from the garden… ') +
+            Math.round(at * 100 / of) + '%';
+        }).then(function (got) {
+          if (st.dead) return;
+          if (got) show(got, null); else ask();
+        }, function () { if (!st.dead) ask(); });
       }, function () { if (!st.dead) ask(); });
     }
 
