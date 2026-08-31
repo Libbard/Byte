@@ -34,7 +34,8 @@
     sampleRate: 48000,
     echoCancellation: false,
     noiseSuppression: true,
-    autoGainControl: true
+    /*@3.AURJ.9*/
+    autoGainControl: false
   };
 
   function micStream() {
