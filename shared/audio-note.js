@@ -4,7 +4,7 @@
 
   /*@3.AUNJ.2*/
   /*@3.AUNJ.23*/
-  var DEFAULT_BPS = 16000;
+  var DEFAULT_BPS = 12000;
   var MAX_SEC     = 3 * 3600;
   var REF_PREFIX  = 'aud_';
 
