@@ -39,10 +39,19 @@
 
   function A() { return window.GardenAudioRec || null; }
   function F() { return window.GardenFiles || null; }
+  function D() { return window.GardenPdfDoc || null; }
   function App() { return window.GardenNotesApp || null; }
 
   function doc() { var a = App(); return (a && a.doc) ? a.doc() : null; }
-  function touch() { var a = App(); if (a && a.save) { try { a.save(); } catch (e) {} } }
+  function touch(quiet) {
+    var a = App();
+    if (a && a.save) { try { a.save(quiet); } catch (e) {} }
+    badge();
+  }
+  function badge() {
+    var b = document.getElementById('na-mic');
+    if (b) b.classList.toggle('na-icb--has', items().length > 0);
+  }
   function items() { var d = doc(); return (d && d.aud) || []; }
 
   /*@3.AUNJ.3*/
@@ -272,19 +281,51 @@
 
   /*@3.AUNJ.9*/
   function upload(out) {
-    var f = F();
     var refId = REF_PREFIX + Date.now().toString(36) + '_' +
                 Math.random().toString(36).slice(2, 8);
     var it = { i: refId, n: nameFor(out.sec), t: Date.now(),
                ms: Math.round(out.sec * 1000), b: out.blob.size,
                m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
-    if (!addItem(it)) return;
+    var st = D();
+    busy = true;
+    panel.className = 'nfo nrec nfo--busy';
+    msg('<b>' + esc(L('يُحفظ التسجيل…',
+                      'Saving the recording…')) + '</b>');
+    acts('');
+    /*@3.AUNJ.15*/
+    var keep = st
+      ? st.put(refId, out.blob, { name: it.n })['catch'](function () { return false; })
+      : Promise.resolve(false);
+    keep.then(function (okLocal) {
+      if (!okLocal && !F()) {
+        /*@3.AUNJ.16*/
+        busy = false;
+        panel.className = 'nfo nrec nfo--bad';
+        msg('<b>' + esc(L('ضاع التسجيل',
+                          'The recording was lost')) + '</b> ' +
+            esc(L('· لم يُحفظ على الجهازِ ولا سبيلَ للرفعِ الآن. ' +
+                  'أفرِغْ مساحةً ثمَّ أعِدْ التسجيل.',
+                  '· it was neither stored on this device nor uploadable. ' +
+                  'Free some space and record again.')));
+        acts(shutBtn());
+        bindShut();
+        return;
+      }
+      it.lo = okLocal ? 1 : 0;
+      if (!addItem(it)) { busy = false; return; }
+      send(it, out.blob);
+    });
+  }
 
-    if (!f) { render(); return; }
+  /*@3.AUNJ.17*/
+  function send(it, blob) {
+    var f = F();
+    var refId = it.i;
+    if (!f) { busy = false; render(); return; }
     busy = true;
     panel.className = 'nfo nrec nfo--busy';
     msg('<b>' + esc(L('يُرفع التسجيل…', 'Uploading the recording…')) + '</b> ' +
-        '<span class="nfo-dim">' + esc(size(out.blob.size)) + '</span>');
+        '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>');
     acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
 
     var on = function (e) {
@@ -295,29 +336,60 @@
     };
     window.addEventListener('garden:fileProgress', on);
 
-    f.upload(out.blob, { refId: refId, name: it.n + ext(it.m), mime: it.m })
+    f.upload(blob, { refId: refId, name: it.n + ext(it.m), mime: it.m })
       .then(function (r) {
         window.removeEventListener('garden:fileProgress', on);
         busy = false;
         it.aup = 1;
         it.b = r.bytes || it.b;
-        touch();
+        /*@3.AUNJ.18*/
+        var st = D();
+        if (st && it.lo) { st.drop(refId)['catch'](function () {}); it.lo = 0; }
+        touch(true);
         render();
       }, function (e) {
         window.removeEventListener('garden:fileProgress', on);
         busy = false;
         /*@3.AUNJ.10*/
         it.aup = 0;
-        touch();
+        touch(true);
         render();
         panel.className = 'nfo nrec nfo--bad';
         msg('<b>' + esc(L('لم يُرفع التسجيل', 'The recording was not uploaded')) + '</b> ' +
-            esc(L('· وهو محفوظٌ في الملاحظةِ على هذا الجهاز. أعِدِ الرفعَ متى شئت.',
-                  '· it is kept with the note on this device. Retry whenever you like.')) +
+            esc(it.lo
+              ? L('· وهو محفوظٌ على هذا الجهازِ وحدَه. أعِدِ الرفعَ متى شئت.',
+                  '· it is stored on this device only. Retry the upload whenever you like.')
+              : L('· ولم يُحفظ على الجهازِ أيضاً — التسجيلُ ضاع.',
+                  '· and it was not stored on this device either — the recording is lost.')) +
             (e && e.message ? ' <span class="nfo-dim">' + esc(e.message) + '</span>' : ''));
         acts(shutBtn());
         bindShut();
       });
+  }
+
+  /*@3.AUNJ.19*/
+  function retry(refId) {
+    var st = D();
+    var it = items().filter(function (x) { return x.i === refId; })[0];
+    if (!it) return;
+    if (!st || !it.lo) { gone(); return; }
+    st.get(refId).then(function (b) {
+      if (!b || !b.size) { it.lo = 0; touch(true); gone(); return; }
+      send(it, b);
+    })['catch'](function () { it.lo = 0; touch(true); gone(); });
+  }
+
+  function gone() {
+    render();
+    panel.className = 'nfo nrec nfo--bad';
+    msg('<b>' + esc(L('لا نسخةَ لهذا التسجيل',
+                      'No copy of this recording')) + '</b> ' +
+        esc(L('· مضت نسختُه من هذا الجهازِ ولم يصل الخادم. ' +
+              'احذفِ القيدَ أو سجِّلْ من جديد.',
+              '· the device copy is gone and it never reached the server. ' +
+              'Delete the entry or record again.')));
+    acts(shutBtn());
+    bindShut();
   }
 
   /*@3.AUNJ.11*/
@@ -339,13 +411,19 @@
             '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
         '</div>' +
         '<div class="nrec-row-p">' +
-          (x.aup
+          /*@3.AUNJ.20*/
+          (x.aup || x.lo
             ? '<button type="button" class="gsf-btn nrec-play">' +
               '<i class="fa-solid fa-play" aria-hidden="true"></i> ' +
               esc(L('استمعْ', 'Play')) + '</button>'
-            : '<span class="nfo-dim">' +
-              esc(L('على هذا الجهاز وحدَه — لم يُرفع.',
-                    'On this device only — not uploaded.')) + '</span>') +
+            : '') +
+          (x.aup ? '' :
+            '<button type="button" class="gsf-btn gsf-btn--go nrec-retry">' +
+            '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
+            esc(L('ارفعْه', 'Upload')) + '</button>' +
+            '<span class="nfo-dim">' +
+            esc(x.lo ? L('· على هذا الجهاز وحدَه.', '· on this device only.')
+                     : L('· لا نسخةَ له.', '· no copy left.')) + '</span>') +
         '</div></div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.nrec-row'), function (row) {
@@ -354,16 +432,33 @@
       if (del) del.addEventListener('click', function () { remove(ref, row); });
       var play = row.querySelector('.nrec-play');
       if (play) play.addEventListener('click', function () { play_(ref, row); });
+      var again = row.querySelector('.nrec-retry');
+      if (again) again.addEventListener('click', function () { retry(ref); });
     });
   }
 
   /*@3.AUNJ.12*/
   function play_(refId, row) {
-    var f = F();
     var slot = row.querySelector('.nrec-row-p');
-    if (!f || !slot) return;
+    if (!slot) return;
     if (urls[refId]) { mountAudio(slot, urls[refId]); return; }
     slot.innerHTML = '<span class="nfo-dim">' + esc(L('يُجهَّز…', 'Preparing…')) + '</span>';
+    var it = items().filter(function (x) { return x.i === refId; })[0];
+    var st = D();
+    /*@3.AUNJ.21*/
+    if (it && !it.aup && it.lo && st) {
+      st.get(refId).then(function (b) {
+        if (!b || !b.size) throw new Error('gone');
+        urls[refId] = URL.createObjectURL(b);
+        mountAudio(slot, urls[refId]);
+      })['catch'](function () {
+        slot.innerHTML = '<span class="nfo-dim">' +
+          esc(L('مضت نسختُه من هذا الجهاز.', 'The device copy is gone.')) + '</span>';
+      });
+      return;
+    }
+    var f = F();
+    if (!f) { slot.innerHTML = ''; return; }
     f.link(refId).then(function (l) {
       urls[refId] = l.url;
       mountAudio(slot, l.url);
@@ -387,9 +482,13 @@
     var f = F();
     var it = items().filter(function (x) { return x.i === refId; })[0];
     dropItem(refId);
+    if (urls[refId]) { try { URL.revokeObjectURL(urls[refId]); } catch (e0) {} }
     delete urls[refId];
     if (row && row.parentNode) row.parentNode.removeChild(row);
     if (f && it && it.aup) { try { f.remove(refId); } catch (e) {} }
+    /*@3.AUNJ.22*/
+    var st = D();
+    if (st && it && it.lo) st.drop(refId)['catch'](function () {});
     if (!items().length) drawList();
   }
 
@@ -414,9 +513,7 @@
 
   /*@3.AUNJ.14*/
   function sync() {
-    var b = document.getElementById('na-mic');
-    if (!b) return;
-    b.classList.toggle('na-icb--has', items().length > 0);
+    badge();
     if (panel && panel.parentNode && !rec && !busy) render();
   }
 
