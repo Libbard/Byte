@@ -84,7 +84,7 @@
   function Recorder(opts) {
     var o = opts || {};
     this.bps = o.bps || 24000;
-    this.source = o.source || 'mic';       // mic | system | both
+    this.source = o.source || 'mic';
     this.chunks = [];
     this.bytes = 0;
     this.rec = null;

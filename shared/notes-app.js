@@ -18,6 +18,8 @@
   var ribbon = null;
   var overlay = null;
   var pdfUi = null;
+  /*@3.NOAJ.254*/
+  var curDoc = null;
   var pdfPre = null;
   var pdfDial = null;
   var hist = window.GardenNotesHistory ? GardenNotesHistory.create() : null;
@@ -1155,6 +1157,12 @@
     /*@3.NOAJ.189*/
     var fb = document.getElementById('na-find-btn');
     if (fb) fb.disabled = !on;
+    /*@3.NOAJ.255*/
+    var mic = document.getElementById('na-mic');
+    if (mic) mic.disabled = !on;
+    if (window.GardenAudioNote) {
+      if (on) GardenAudioNote.sync(); else GardenAudioNote.close();
+    }
     if (!on && window.GardenNotesFind) GardenNotesFind.show(false);
   }
 
@@ -1163,6 +1171,7 @@
   var MORE = [
     { id: 'na-pin',      icon: 'fa-thumbtack',   ar: 'تثبيت',        en: 'Pin' },
     { id: 'na-remind-btn', icon: 'fa-bell',      ar: 'تنبيهٌ لهذه الملاحظة', en: 'Remind me' },
+    { id: 'na-mic',      icon: 'fa-microphone',  ar: 'تسجيلُ الصوت',  en: 'Record audio' },
     { id: 'na-export',   icon: 'fa-file-export', ar: 'تصدير واستيراد', en: 'Export & import' },
     { id: 'na-move-btn', icon: 'fa-folder-open', ar: 'نقل إلى مجلّد', en: 'Move to folder' },
     { id: 'na-del',      icon: 'fa-trash',       ar: 'حذف',          en: 'Delete', danger: 1 }
@@ -1381,7 +1390,8 @@
   var lastSaved = {};
   /*@3.NOAJ.196*/
   var lastSig = {};
-  var DERIVED = { eng: 1, fpv: 1 };
+  /*@3.NOAJ.256*/
+  var DERIVED = { eng: 1, fpv: 1, aup: 1 };
   function contentSig(doc) {
     try {
       return JSON.stringify(doc, function (k, v) {
@@ -2522,6 +2532,8 @@
       if (edId !== id) return;
       if (row && row.loadFail) { renderLoadError(id); return; }
       var doc = (row && row.doc) || { v: 1, blocks: [] };
+      curDoc = doc;
+      if (window.GardenAudioNote) GardenAudioNote.sync();
       lastSaved[id] = JSON.stringify(doc);
       lastSig[id] = contentSig(doc);
       /*@3.NOAJ.205*/
@@ -2729,6 +2741,7 @@
     if (ed && !gone) { try { ed.save(); } catch (e) {} }
     if (hist) { hist.onChange = null; hist.reset(); }
     dropEditor(); edId = null;
+    curDoc = null;
     if (els.app) els.app.removeAttribute('data-kind');
     docEmpty();
     history.replaceState(null, '', location.pathname);
@@ -6258,7 +6271,12 @@
     open: openNote,
     create: createNote,
     state: S,
-    folders: foldersRead
+    folders: foldersRead,
+    /*@3.NOAJ.257*/
+    doc: function () { return curDoc; },
+    save: function (quiet) {
+      if (edId && curDoc) persist(edId, curDoc, !!quiet);
+    }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
