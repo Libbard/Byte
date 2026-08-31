@@ -922,6 +922,50 @@
     b.innerHTML = '<i class="fa-solid ' + (cards ? 'fa-list' : 'fa-table-cells-large') + '" aria-hidden="true"></i>';
   }
 
+  /*@3.NOAJ.258*/
+  var upSet = null;
+  var upH = Object.create(null);
+  var upT = 0;
+
+  function upPaint() {
+    clearTimeout(upT);
+    upT = setTimeout(function () { renderList(); }, 60);
+  }
+
+  function upRefresh() {
+    var f = window.GardenFiles;
+    if (!f || !f.available) return;
+    f.available().then(function (a) {
+      return a && a.ok ? f.list() : null;
+    }).then(function (r) {
+      if (!r) return;
+      var s = Object.create(null);
+      (r.files || []).forEach(function (x) { s[x.ref_id] = 1; });
+      upSet = s;
+      upPaint();
+    })['catch'](function () {});
+  }
+
+  function upScan(list) {
+    var St = window.GardenNotesStore;
+    if (!St || !St.getDoc) return;
+    list.forEach(function (n) {
+      if (n.kind !== 'pdf' || (n.id in upH)) return;
+      upH[n.id] = null;
+      St.getDoc(n.id).then(function (d) {
+        var h = d && d.pdf && d.pdf.h;
+        if (!h) return;
+        upH[n.id] = String(h).slice(0, 40);
+        if (upSet) upPaint();
+      })['catch'](function () {});
+    });
+  }
+
+  function upHas(n) {
+    var h = upH[n.id];
+    return !!(upSet && h && upSet['pdf_' + h]);
+  }
+
   function rowHtml(n) {
     var cur = (n.src === 'rich' && n.id === edId);
     var badges = '';
@@ -930,6 +974,11 @@
     if (n.kind === 'ink' || n.kind === 'board') badges += '<i class="na-row-badge fa-solid fa-pen-nib" aria-hidden="true"></i>';
     /*@3.NOAJ.209*/
     if (n.kind === 'pdf') badges += '<i class="na-row-badge fa-solid fa-file-lines" aria-hidden="true"></i>';
+    if (upHas(n)) {
+      badges += '<i class="na-row-badge fa-solid fa-cloud" role="img"' +
+        ' aria-label="' + esc(L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '"' +
+        ' data-ar-title="نسخةٌ محفوظةٌ عندنا" data-en-title="A copy is kept with us"></i>';
+    }
     if (!n.editable) badges += '<i class="na-row-badge fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>';
 
     var org = (n.origin && n.origin.label) ? n.origin.label : '';
@@ -973,6 +1022,7 @@
       try { list = window.GardenNotesModel.search(list, S.q); } catch (e) {}
     }
     S.list = list;
+    upScan(list);
     if (els.vname) els.vname.textContent = vName(S.view);
     if (els.count) {
       /*@3.NOAJ.217*/
@@ -5649,6 +5699,14 @@
     els.quota = document.getElementById('na-quota');
     els.items = document.getElementById('na-items');
     els.find = document.getElementById('na-find');
+    upRefresh();
+    window.addEventListener('garden:fileUploaded', function (e) {
+      var d = (e && e.detail) || {};
+      if (!d.ref_id) { upRefresh(); return; }
+      if (!upSet) upSet = Object.create(null);
+      upSet[d.ref_id] = 1;
+      upPaint();
+    });
     var vmb = document.getElementById('na-vm');
     if (vmb) vmb.addEventListener('click', function () {
       uiSet('vm', vmode() === 'cards' ? 'rows' : 'cards');

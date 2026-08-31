@@ -155,14 +155,17 @@
         '<span class="nfo-dim">' +
         esc(L('· الصوتُ يُحفظ مع الملاحظةِ ويفتح على أجهزتك الأخرى.',
               '· the audio is saved with the note and opens on your other devices.')) +
-        '</span>');
+        '</span><span class="nrec-hint"></span>');
+    /*@3.AUNJ.24*/
     var srcPick = s.system
       ? '<span class="nrec-src" role="group" aria-label="' +
         esc(L('مصدرُ الصوت', 'Audio source')) + '">' +
         '<button type="button" class="gsf-chip on" data-src="mic">' +
           esc(L('الميكروفون', 'Microphone')) + '</button>' +
+        '<button type="button" class="gsf-chip" data-src="system">' +
+          esc(L('صوتُ الجهاز', 'Device audio')) + '</button>' +
         '<button type="button" class="gsf-chip" data-src="both">' +
-          esc(L('الميكروفون وصوتُ الجهاز', 'Mic + device audio')) + '</button>' +
+          esc(L('كلاهما', 'Both')) + '</button>' +
         '</span>'
       : '';
     acts(srcPick +
@@ -175,8 +178,28 @@
       c.addEventListener('click', function () {
         Array.prototype.forEach.call(chips, function (x) { x.classList.remove('on'); });
         c.classList.add('on');
+        srcHint(c.getAttribute('data-src'));
       });
     });
+
+    /*@3.AUNJ.25*/
+    function srcHint(src) {
+      var e = panel.querySelector('.nrec-hint');
+      if (!e) return;
+      if (src !== 'system' && src !== 'both') { e.innerHTML = ''; return; }
+      e.innerHTML = '<b>' +
+        esc(L('لتسجيلِ صوتِ الجهاز:', 'To record device audio:')) + '</b> ' +
+        esc(L('ستفتح نافذةُ المتصفّحِ لمشاركةِ الشاشة. اخترْ «الشاشةُ بأكملها» ' +
+              'ثمّ فعّلْ مربّعَ «مشاركةُ صوتِ النظام» قبل الموافقة — من دونه ' +
+              'يُشارَك الفيديو وحدَه ولا يصل صوت.',
+              'A screen-sharing dialog will open. Pick "Entire screen", then tick ' +
+              '"Share system audio" before you confirm — without it only video ' +
+              'is shared and no audio arrives.')) +
+        (s.systemLikely ? '' : ' <b>' +
+          esc(L('ومتصفّحُك لا يشارك صوتَ النظامِ حتى اليوم — استعملْ كروم أو إيدج.',
+                'Your browser cannot share system audio yet — use Chrome or Edge.')) +
+          '</b>');
+    }
     var go = panel.querySelector('.nrec-go');
     if (go) go.addEventListener('click', function () {
       var on = panel.querySelector('.nrec-src .gsf-chip.on');
@@ -231,18 +254,35 @@
       if (b) b.classList.add('na-icb--rec');
     })['catch'](function (e) {
       var why = String((e && e.message) || e || '');
+      /*@3.AUNJ.26*/
       var noSys = /no_system_audio/.test(why);
+      var cant = /system_audio_unsupported|no_display_media/.test(why);
+      var head, body;
+      if (cant) {
+        head = L('متصفّحُك لا يشارك صوتَ النظام',
+                 'Your browser cannot share system audio');
+        body = L('· هذا حدُّ المتصفّحِ لا حدُّنا. استعملْ كروم أو إيدج لتسجيلِ ' +
+                 'صوتِ الجهاز، أو سجّلِ الميكروفونَ هنا.',
+                 '· this is a browser limitation, not ours. Use Chrome or Edge for ' +
+                 'device audio, or record the microphone here.');
+      } else if (noSys) {
+        head = L('شاركتَ الشاشةَ بلا صوت', 'You shared the screen without audio');
+        body = L('· أعِدِ المحاولةَ وفعّلْ مربّعَ «مشاركةُ صوتِ النظام» في نافذةِ ' +
+                 'المتصفّحِ قبل الموافقة.',
+                 '· try again and tick "Share system audio" in the browser dialog ' +
+                 'before confirming.');
+      } else if (/NotAllowed|Permission/i.test(why)) {
+        head = L('الإذنُ مرفوض', 'Permission denied');
+        body = L('· اسمحْ للموقع بالميكروفون من إعداداتِ المتصفّح ثمّ أعِدِ المحاولة.',
+                 '· allow the microphone for this site in your browser settings, ' +
+                 'then try again.');
+      } else {
+        head = L('تعذّر فتحُ الميكروفون', 'The microphone could not be opened');
+        body = L('· تأكّدْ من وجودِ ميكروفونٍ موصول، أو سجّلْ صوتَ الجهازِ وحدَه.',
+                 '· check that a microphone is connected, or record device audio alone.');
+      }
       panel.className = 'nfo nrec nfo--bad';
-      msg('<b>' + esc(
-        noSys ? L('لم يُشارَك صوتُ الجهاز', 'The device audio was not shared')
-              : (/NotAllowed|Permission/i.test(why)
-                  ? L('الإذنُ مرفوض', 'Permission denied')
-                  : L('تعذّر فتحُ الميكروفون', 'The microphone could not be opened'))) + '</b> ' +
-        esc(noSys
-          ? L('· اختَرْ «مشاركةُ صوتِ النظام» في نافذةِ المتصفّح، أو سجّلِ الميكروفونَ وحدَه.',
-              '· tick "share system audio" in the browser dialog, or record the mic alone.')
-          : L('· اسمحْ للموقع بالميكروفون من إعداداتِ المتصفّح ثمّ أعِدِ المحاولة.',
-              '· allow the microphone for this site in your browser settings, then try again.')));
+      msg('<b>' + esc(head) + '</b> ' + esc(body));
       acts('<button type="button" class="gsf-btn gsf-btn--go nrec-again">' +
            esc(L('أعِدِ المحاولة', 'Try again')) + '</button>' + shutBtn());
       bindShut();

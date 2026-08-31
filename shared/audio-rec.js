@@ -22,6 +22,8 @@
     return {
       mic: !!md.getUserMedia,
       system: !!md.getDisplayMedia,
+      /*@3.AURJ.11*/
+      systemLikely: !!md.getDisplayMedia && !ffx(),
       recorder: !!window.MediaRecorder,
       type: pickType(),
       secure: window.isSecureContext !== false
@@ -42,21 +44,24 @@
     return navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS, video: false });
   }
 
+  /*@3.AURJ.10*/
+  function ffx() { return /Firefox\//.test(navigator.userAgent || ''); }
+
   /*@3.AURJ.4*/
   function systemStream() {
     if (!navigator.mediaDevices.getDisplayMedia) {
       return Promise.reject(new Error('no_display_media'));
     }
     return navigator.mediaDevices.getDisplayMedia({
-      video: true,
+      video: { displaySurface: 'monitor' },
       audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false,
                autoGainControl: false },
       systemAudio: 'include',
-      selfBrowserSurface: 'include'
+      selfBrowserSurface: 'exclude'
     }).then(function (s) {
       if (!s.getAudioTracks().length) {
         s.getTracks().forEach(function (t) { t.stop(); });
-        throw new Error('no_system_audio');
+        throw new Error(ffx() ? 'system_audio_unsupported' : 'no_system_audio');
       }
       /*@3.AURJ.8*/
       s.getVideoTracks().forEach(function (t) { t.stop(); });

@@ -79,7 +79,8 @@
       return f.list().then(function (r) {
         var mine = (r.files || []).filter(function (x) { return x.ref_id === refIdOf(h); })[0];
         /*@3.FIPJ.8*/
-        if (mine) { markSeen(h); saved(mine.stored_bytes); return; }
+        /*@3.FIPJ.11*/
+        if (mine) { markSeen(h); return; }
         if (seen()[refIdOf(h)]) return;
         draw();
       });
@@ -97,14 +98,6 @@
         '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>';
       el.querySelector('.nfo-no').addEventListener('click', function () { close(root); });
       return el;
-    }
-
-    function saved(bytes) {
-      line('fa-cloud', 'nfo--ok',
-        '<b>' + esc(L('محفوظٌ في الحديقة', 'Saved in the garden')) + '</b> ' +
-        esc(L('· يفتح على أجهزتك الأخرى.', '· it opens on your other devices.')) +
-        (bytes ? ' <span class="nfo-dim">' + esc(size(bytes)) + '</span>' : ''));
-      setTimeout(function () { close(root); }, 7000);
     }
 
     function draw() {
@@ -212,6 +205,10 @@
         .then(function (r) {
           window.removeEventListener('garden:fileProgress', on);
           markSeen(h);
+          try {
+            window.dispatchEvent(new CustomEvent('garden:fileUploaded',
+              { detail: { ref_id: refIdOf(h), h: h, bytes: r.bytes } }));
+          } catch (e) {}
           line('fa-cloud', 'nfo--ok',
             '<b>' + esc(r.deduped
               ? L('كان محفوظاً عندنا سلفاً', 'It was already saved with us')
