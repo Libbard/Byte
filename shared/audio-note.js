@@ -421,7 +421,7 @@
             '<button type="button" class="gsf-btn gsf-btn--go nrec-retry">' +
             '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
             esc(L('ارفعْه', 'Upload')) + '</button>' +
-            '<span class="nfo-dim">' +
+            ' <span class="nfo-dim">' +
             esc(x.lo ? L('· على هذا الجهاز وحدَه.', '· on this device only.')
                      : L('· لا نسخةَ له.', '· no copy left.')) + '</span>') +
         '</div></div>';
