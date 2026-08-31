@@ -18,7 +18,7 @@
     if (!(n > 0)) return '';
     var u = ['B', 'KB', 'MB'], i = 0, v = n;
     while (v >= 1024 && i < 2) { v /= 1024; i++; }
-    return (v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)) + ' ' + u[i];
+    return (i === 0 || v >= 100 ? Math.round(v) : v.toFixed(1)) + ' ' + u[i];
   }
 
   /*@3.FIPJ.2*/
