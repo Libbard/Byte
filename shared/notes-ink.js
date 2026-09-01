@@ -259,6 +259,14 @@
       var maxY = 0;
       for (var i = 0; i < st.pts.length; i++) maxY = Math.max(maxY, st.pts[i].y);
       if (!self.grow(maxY)) self.paintStroke(self.base.getContext('2d'), st);
+      /*@3.NOIJ.11*/
+      try {
+        var p0 = st.pts[0] || { x: 0, y: 0 };
+        window.dispatchEvent(new CustomEvent('garden:inkMark', { detail: {
+          t: Date.now(), x: Math.round(p0.x), y: Math.round(p0.y),
+          page: self.page || 0, tool: st.tool
+        } }));
+      } catch (e2) {}
       self.commit();
     }
 

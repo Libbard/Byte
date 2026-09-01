@@ -155,8 +155,7 @@
     panel.className = 'nfo nrec';
     msg('<b>' + esc(L('سجّلِ المحاضرة', 'Record the lecture')) + '</b> ' +
         '<span class="nfo-dim">' +
-        esc(L('· الصوتُ يُحفظ مع الملاحظةِ ويفتح على أجهزتك الأخرى.',
-              '· the audio is saved with the note and opens on your other devices.')) +
+        esc(L('· يُحفظ مع الملاحظة.', '· saved with the note.')) +
         '</span><span class="nrec-hint"></span>');
     /*@3.AUNJ.24*/
     var srcPick = s.system
@@ -284,6 +283,32 @@
     }
   }
 
+  /*@3.AUNJ.39*/
+  var MARK_MAX = 4000;
+  var marks = null;
+  var markOn = null;
+
+  function markStart(t0) {
+    marks = [];
+    markOn = function (e) {
+      var d = (e && e.detail) || {};
+      if (!marks || !d.t) return;
+      var at = Math.round((d.t - t0) / 1000);
+      if (at < 0) at = 0;
+      if (marks.length >= MARK_MAX) marks.splice(MARK_MAX / 2, 1);
+      marks.push([at, d.page | 0, d.x | 0, d.y | 0]);
+    };
+    window.addEventListener('garden:inkMark', markOn);
+  }
+
+  function markStop() {
+    if (markOn) window.removeEventListener('garden:inkMark', markOn);
+    markOn = null;
+    var out = marks;
+    marks = null;
+    return (out && out.length) ? out : null;
+  }
+
   /*@3.AUNJ.7*/
   function start(source) {
     var R = A();
@@ -297,6 +322,7 @@
       rec = r;
       hush = 0;
       rec.start();
+      markStart(rec.t0 || Date.now());
       render();
       timer = setInterval(beat, 500);
       var b = document.getElementById('na-mic');
@@ -348,7 +374,11 @@
     var b = document.getElementById('na-mic');
     if (b) b.classList.remove('na-icb--rec');
     r.stop().then(function (out) {
-      if (!keep || !out || !out.blob || out.blob.size < 1024) { render(); return; }
+      if (!keep || !out || !out.blob || out.blob.size < 1024) {
+        /*@3.AUNJ.40*/
+        markStop();
+        render(); return;
+      }
       upload(out);
     });
   }
@@ -374,8 +404,11 @@
     var refId = REF_PREFIX + Date.now().toString(36) + '_' +
                 Math.random().toString(36).slice(2, 8);
     /*@3.AUNJ.34*/
+    /*@3.AUNJ.41*/
+    var mk = markStop();
     var it = { i: refId, n: nameFor(out.sec), t: Date.now(),
                s0: Math.round(Date.now() - out.sec * 1000),
+               mk: mk,
                ms: Math.round(out.sec * 1000), b: out.blob.size,
                m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
     var st = D();
@@ -548,17 +581,19 @@
             ' nrec-row-i" aria-hidden="true"></i>' +
           '<span class="nrec-row-t">' + esc(clock((x.ms || 0) / 1000)) + '</span>' +
           '<span class="nfo-dim">' + esc(size(x.b)) + ' · ' + esc(stamp(x.t)) + '</span>' +
+          /*@3.AUNJ.20*/
+          (x.aup || x.lo
+            ? '<button type="button" class="gsf-btn nrec-play" aria-label="' +
+              esc(L('استمعْ', 'Play')) + '"' +
+              ' data-ar-title="استمعْ" data-en-title="Play">' +
+              '<i class="fa-solid fa-play" aria-hidden="true"></i></button>'
+            : '') +
           '<button type="button" class="gsf-btn gsf-btn--ghost nrec-del" aria-label="' +
-            esc(L('حذفُ التسجيل', 'Delete recording')) + '">' +
+            esc(L('حذفُ التسجيل', 'Delete recording')) + '"' +
+            ' data-ar-title="حذفُ التسجيل" data-en-title="Delete recording">' +
             '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
         '</div>' +
         '<div class="nrec-row-p">' +
-          /*@3.AUNJ.20*/
-          (x.aup || x.lo
-            ? '<button type="button" class="gsf-btn nrec-play">' +
-              '<i class="fa-solid fa-play" aria-hidden="true"></i> ' +
-              esc(L('استمعْ', 'Play')) + '</button>'
-            : '') +
           (x.aup ? '' :
             '<button type="button" class="gsf-btn gsf-btn--go nrec-retry">' +
             '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
