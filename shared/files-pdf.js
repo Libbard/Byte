@@ -67,6 +67,32 @@
     if (el && el.parentNode) el.parentNode.removeChild(el);
   }
 
+  /*@3.FIPJ.12*/
+  var last = null;
+
+  /*@3.FIPJ.11*/
+  function ask() {
+    if (!last) return false;
+    var f = F();
+    if (!f) return false;
+    var root = last.root, h = last.h;
+    f.available().then(function (a) {
+      if (!a.ok) { last.no(); return; }
+      return f.list().then(function (r) {
+        var mine = (r.files || []).filter(function (x) {
+          return x.ref_id === refIdOf(h);
+        })[0];
+        if (mine) { last.have(mine.stored_bytes); return; }
+        last.draw();
+      });
+    })['catch'](function () { last.no(); });
+    return true;
+  }
+
+  function state(h) {
+    return !!(last && last.h === h);
+  }
+
   /*@3.FIPJ.5*/
   function offer(root, h, name, getFile, src) {
     var f = F();
@@ -79,7 +105,7 @@
       return f.list().then(function (r) {
         var mine = (r.files || []).filter(function (x) { return x.ref_id === refIdOf(h); })[0];
         /*@3.FIPJ.8*/
-        /*@3.FIPJ.11*/
+        /*@3.FIPJ.14*/
         if (mine) { markSeen(h); return; }
         if (seen()[refIdOf(h)]) return;
         draw();
@@ -111,6 +137,24 @@
         esc(L('ارفعْه', 'Upload')) + '</button>')
         .querySelector('.nfo-up').addEventListener('click', function () { pick(false); });
     }
+
+    /*@3.FIPJ.13*/
+    last = {
+      root: root, h: h,
+      draw: draw,
+      have: function (b) {
+        line('fa-cloud', 'nfo--ok',
+          '<b>' + esc(L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '</b> ' +
+          esc(L('· يفتح على أجهزتك الأخرى.', '· it opens on your other devices.')) +
+          (b ? ' <span class="nfo-dim">' + esc(size(b)) + '</span>' : ''));
+      },
+      no: function () {
+        line('fa-triangle-exclamation', 'nfo--bad',
+          esc(L('رفعُ الملفّاتِ غيرُ مفعَّلٍ في حسابك بعد. يعمل الملفُّ على هذا الجهاز كما هو.',
+                'File upload is not enabled on your account yet. The file works on ' +
+                'this device as it is.')));
+      }
+    };
 
     function pick(over) {
       Promise.resolve(getFile()).then(function (file) {
@@ -249,5 +293,6 @@
     }
   }
 
-  window.GardenFilesPdf = { restore: restore, offer: offer, refIdOf: refIdOf };
+  window.GardenFilesPdf = { restore: restore, offer: offer, refIdOf: refIdOf,
+                            ask: ask, state: state };
 })();

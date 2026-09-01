@@ -373,7 +373,9 @@
   function upload(out) {
     var refId = REF_PREFIX + Date.now().toString(36) + '_' +
                 Math.random().toString(36).slice(2, 8);
+    /*@3.AUNJ.34*/
     var it = { i: refId, n: nameFor(out.sec), t: Date.now(),
+               s0: Math.round(Date.now() - out.sec * 1000),
                ms: Math.round(out.sec * 1000), b: out.blob.size,
                m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
     var st = D();
@@ -557,15 +559,94 @@
         esc(L('تعذّر جلبُ التسجيل.', 'The recording could not be fetched.')) + '</span>';
     });
   }
+  /*@3.AUNJ.33*/
+  var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  var SPEED_LS = '__audioRate';
+
+  function rateGet() {
+    var v = parseFloat(localStorage.getItem(SPEED_LS) || '1');
+    return (v > 0.2 && v <= 4) ? v : 1;
+  }
+  function rateSet(v) {
+    try { localStorage.setItem(SPEED_LS, String(v)); } catch (e) {}
+  }
+  function rateTxt(v) {
+    return (Math.round(v * 100) / 100).toString().replace(/\.00?$/, '') + '\u00d7';
+  }
+
   function mountAudio(slot, url) {
-    slot.innerHTML = '';
-    var a = document.createElement('audio');
-    a.controls = true;
+    slot.innerHTML =
+      '<div class="nrec-pl">' +
+        '<button type="button" class="nrec-pl-b nrec-pl-go" aria-label="' +
+          esc(L('تشغيل', 'Play')) + '"' +
+          ' data-ar-title="تشغيل" data-en-title="Play">' +
+          '<i class="fa-solid fa-play" aria-hidden="true"></i></button>' +
+        '<input type="range" class="nrec-pl-seek" value="0" min="0" max="1000"' +
+          ' step="1" aria-label="' + esc(L('موضعُ التشغيل', 'Playback position')) + '"' +
+          ' data-ar-title="موضعُ التشغيل" data-en-title="Playback position">' +
+        '<span class="nrec-pl-t">0:00 / 0:00</span>' +
+        '<button type="button" class="nrec-pl-x" aria-label="' +
+          esc(L('سرعةُ التشغيل', 'Playback speed')) + '"' +
+          ' data-ar-title="سرعةُ التشغيل" data-en-title="Playback speed">' +
+          esc(rateTxt(rateGet())) + '</button>' +
+      '</div>';
+    var a = new Audio();
     a.preload = 'metadata';
-    a.className = 'nrec-audio';
     a.src = url;
-    slot.appendChild(a);
-    try { a.play(); } catch (e) {}
+    /*@3.AUNJ.35*/
+    a.preservesPitch = true;
+    a.mozPreservesPitch = true;
+    a.webkitPreservesPitch = true;
+    a.playbackRate = rateGet();
+
+    var pl = slot.querySelector('.nrec-pl');
+    var go = pl.querySelector('.nrec-pl-go');
+    var seek = pl.querySelector('.nrec-pl-seek');
+    var lbl = pl.querySelector('.nrec-pl-t');
+    var xb = pl.querySelector('.nrec-pl-x');
+    var held = false;
+
+    function icon() {
+      go.innerHTML = '<i class="fa-solid fa-' + (a.paused ? 'play' : 'pause') +
+                     '" aria-hidden="true"></i>';
+    }
+    function time() {
+      var d = isFinite(a.duration) ? a.duration : 0;
+      lbl.textContent = clock(a.currentTime) + ' / ' + clock(d);
+      if (!held && d) seek.value = String(Math.round(a.currentTime / d * 1000));
+    }
+    go.addEventListener('click', function () {
+      if (a.paused) { a.play()['catch'](function () {}); } else { a.pause(); }
+    });
+    a.addEventListener('play', icon);
+    a.addEventListener('pause', icon);
+    a.addEventListener('timeupdate', time);
+    a.addEventListener('loadedmetadata', time);
+    a.addEventListener('ended', icon);
+    seek.addEventListener('input', function () { held = true; });
+    seek.addEventListener('change', function () {
+      held = false;
+      var d = isFinite(a.duration) ? a.duration : 0;
+      if (d) a.currentTime = d * (Number(seek.value) / 1000);
+    });
+    xb.addEventListener('click', function (ev) {
+      /*@3.AUNJ.36*/
+      if (ev.altKey) {
+        var v = parseFloat(window.prompt(L('سرعةٌ خاصّة (0.5 إلى 4):',
+                                           'Custom speed (0.5 to 4):'),
+                                         String(a.playbackRate)) || '');
+        if (!(v > 0.2 && v <= 4)) return;
+        a.playbackRate = v; rateSet(v); xb.textContent = rateTxt(v);
+        return;
+      }
+      var i = SPEEDS.indexOf(a.playbackRate);
+      var nv = SPEEDS[(i < 0 ? SPEEDS.indexOf(1) : i) + 1] || SPEEDS[0];
+      a.playbackRate = nv; rateSet(nv); xb.textContent = rateTxt(nv);
+    });
+    icon();
+    time();
+    slot._audio = a;
+    a.play()['catch'](function () {});
   }
 
   function remove(refId, row) {

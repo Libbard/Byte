@@ -1244,6 +1244,9 @@
     { id: 'na-pin',      icon: 'fa-thumbtack',   ar: 'تثبيت',        en: 'Pin' },
     { id: 'na-remind-btn', icon: 'fa-bell',      ar: 'تنبيهٌ لهذه الملاحظة', en: 'Remind me' },
     { id: 'na-mic',      icon: 'fa-microphone',  ar: 'تسجيلُ الصوت',  en: 'Record audio' },
+    /*@3.NOAJ.261*/
+    { id: 'na-cloud',    icon: 'fa-cloud-arrow-up', ar: 'احفظْ نسخةً عندنا',
+      en: 'Keep a copy with us' },
     { id: 'na-export',   icon: 'fa-file-export', ar: 'تصدير واستيراد', en: 'Export & import' },
     { id: 'na-move-btn', icon: 'fa-folder-open', ar: 'نقل إلى مجلّد', en: 'Move to folder' },
     { id: 'na-del',      icon: 'fa-trash',       ar: 'حذف',          en: 'Delete', danger: 1 }
@@ -5721,6 +5724,14 @@
     els.quota = document.getElementById('na-quota');
     els.items = document.getElementById('na-items');
     els.find = document.getElementById('na-find');
+    /*@3.NOAJ.262*/
+    var cb = document.getElementById('na-cloud');
+    if (cb) cb.addEventListener('click', function () {
+      var C = window.GardenFilesPdf;
+      if (C && C.ask && C.ask()) return;
+      saveState('error', L('افتحْ ملفَّ PDF أوّلاً ليُحفظ عندنا.',
+                           'Open a PDF file first to keep a copy with us.'));
+    });
     upLoad();
     upRefresh(true);
     document.addEventListener('visibilitychange', function () {
