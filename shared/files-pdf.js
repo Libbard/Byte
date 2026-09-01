@@ -70,6 +70,43 @@
   /*@3.FIPJ.12*/
   var last = null;
 
+  /*@3.FIPJ.16*/
+  var VOW_LS = '__filesVow';
+
+  function vowed() {
+    try { return localStorage.getItem(VOW_LS) === '1'; } catch (e) { return false; }
+  }
+
+  function promise(root, r) {
+    if (!last || !last.line) return;
+    var head = (r && r.deduped)
+      ? L('كان عندنا سلفاً — لم نحتج إلى رفعه',
+          'It was already here — no upload was needed')
+      : L('حُفظت نسخةٌ عندنا', 'A copy is now kept with us');
+    var said = vowed();
+    var el = last.line('fa-cloud', 'nfo--ok' + (said ? '' : ' nfo--vow'),
+      '<b>' + esc(head) + '</b> ' +
+      esc(L('· يفتح الآن على أجهزتك الأخرى.',
+            '· it now opens on your other devices.')) +
+      ((r && r.bytes) ? ' <span class="nfo-dim">' + esc(size(r.bytes)) + '</span>' : '') +
+      (said ? '' :
+        '<span class="nfo-vow">' +
+        '<b>' + esc(L('نضمن حفظَ الملفِّ ثلاثةَ أيّامٍ على الأقلّ.',
+                      'We guarantee this file for at least three days.')) + '</b> ' +
+        esc(L('وبعدها — إذا امتلأت مساحتُنا — نحذف الأقدمَ أوّلاً.',
+              'After that, if our space fills up, we remove the oldest first.')) +
+        '<br>' +
+        esc(L('أمّا رسومُك وملاحظاتُك فمحفوظةٌ باستمرارٍ إن شاء الله ولا تُحذف. ' +
+              'الملفُّ الأصلُ وحدَه هو ما قد يُحذف، وتستطيع اختيارَه من جهازك متى شئت.',
+              'Your drawings and notes are kept continuously and are never deleted. ' +
+              'Only the original file may be removed, and you can pick it again from ' +
+              'your device whenever you like.')) +
+        '</span>'));
+    if (said) { setTimeout(function () { close(root); }, 7000); return; }
+    try { localStorage.setItem(VOW_LS, '1'); } catch (e) {}
+    if (el) el.setAttribute('role', 'alert');
+  }
+
   /*@3.FIPJ.11*/
   function ask() {
     if (!last) return false;
@@ -142,6 +179,7 @@
     last = {
       root: root, h: h,
       draw: draw,
+      line: line,
       have: function (b) {
         line('fa-cloud', 'nfo--ok',
           '<b>' + esc(L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '</b> ' +
@@ -253,13 +291,8 @@
             window.dispatchEvent(new CustomEvent('garden:fileUploaded',
               { detail: { ref_id: refIdOf(h), h: h, bytes: r.bytes } }));
           } catch (e) {}
-          line('fa-cloud', 'nfo--ok',
-            '<b>' + esc(r.deduped
-              ? L('كان محفوظاً عندنا سلفاً', 'It was already saved with us')
-              : L('حُفظ في الحديقة', 'Saved to the garden')) + '</b> ' +
-            esc(L('· يفتح الآن على أجهزتك الأخرى.', '· it now opens on your other devices.')) +
-            (r.bytes ? ' <span class="nfo-dim">' + esc(size(r.bytes)) + '</span>' : ''));
-          setTimeout(function () { close(root); }, 7000);
+          /*@3.FIPJ.15*/
+          promise(root, r);
         }, function (e) {
           window.removeEventListener('garden:fileProgress', on);
           if (e && (e.error === 'too_large' || e.error === 'over_exhausted')) {

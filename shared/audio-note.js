@@ -405,7 +405,57 @@
       }
       it.lo = okLocal ? 1 : 0;
       if (!addItem(it)) { busy = false; return; }
-      send(it, out.blob);
+      /*@3.AUNJ.37*/
+      if (asked() || !F()) { send(it, out.blob); return; }
+      consent(it, out.blob);
+    });
+  }
+
+  /*@3.AUNJ.38*/
+  var ASK_LS = '__audioVow';
+
+  function asked() {
+    try { return localStorage.getItem(ASK_LS) === '1'; } catch (e) { return false; }
+  }
+  function markAsked() {
+    try { localStorage.setItem(ASK_LS, '1'); } catch (e) {}
+  }
+
+  function consent(it, blob) {
+    busy = false;
+    panel.className = 'nfo nrec nfo--vow';
+    msg('<b>' + esc(L('حُفظ التسجيلُ على هذا الجهاز',
+                      'The recording is saved on this device')) + '</b> ' +
+        '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>' +
+        '<span class="nfo-vow">' +
+        esc(L('أتريد حفظَ نسخةٍ عندنا ليفتح على أجهزتك الأخرى؟',
+              'Would you like a copy kept with us so it opens on your other devices?')) +
+        '<br><b>' +
+        esc(L('إن حفظتَه عندنا: نحتفظ به طوالَ هذا الفصلِ الدراسيّ، ثمّ يُحذف مع ' +
+              'بدايةِ الفصلِ الجديد — وننبّهك قبل الحذفِ بثلاثةِ أيّامٍ لتصدّر ' +
+              'بياناتِك كاملة.',
+              'If you keep it with us: we hold it for this whole term, then it is ' +
+              'removed when the new term starts — and we warn you three days before ' +
+              'so you can export everything.')) + '</b> ' +
+        esc(L('وإن اخترتَ هذا الجهازَ وحدَه، يبقى التسجيلُ عندك ولا يخرج منه، ' +
+              'ويمكنك رفعُه لاحقاً متى شئت.',
+              'If you choose this device only, the recording stays with you and ' +
+              'never leaves it — and you can upload it later whenever you like.')) +
+        '</span>');
+    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-vow-up">' +
+         '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
+         esc(L('احفظْ نسخةً عندنا', 'Keep a copy with us')) + '</button>' +
+         '<button type="button" class="gsf-btn gsf-btn--ghost nrec-vow-no">' +
+         esc(L('هذا الجهازُ وحدَه', 'This device only')) + '</button>');
+    panel.querySelector('.nrec-vow-up').addEventListener('click', function () {
+      markAsked();
+      send(it, blob);
+    });
+    panel.querySelector('.nrec-vow-no').addEventListener('click', function () {
+      markAsked();
+      it.aup = 0;
+      touch(true);
+      render();
     });
   }
 
