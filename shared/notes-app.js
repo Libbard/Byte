@@ -942,8 +942,33 @@
     try { localStorage.setItem(UP_LS, JSON.stringify(upSet || {})); } catch (e) {}
   }
 
+  /*@3.NOAJ.263*/
+  function cloudPaint() {
+    var b = document.getElementById('na-cloud');
+    if (!b) return;
+    var h = curDoc && curDoc.pdf && curDoc.pdf.h;
+    var up = !!(h && upSet && upSet['pdf_' + String(h).slice(0, 40)]);
+    b.classList.toggle('na-icb--up', up);
+    var i = b.querySelector('i');
+    if (i) i.className = 'fa-solid ' + (up ? 'fa-cloud' : 'fa-cloud-arrow-up');
+    var ar = up ? 'محفوظٌ عندنا · يفتح على أجهزتك' : 'احفظْ نسخةً عندنا';
+    var en = up ? 'Saved with us — opens on your devices' : 'Keep a copy with us';
+    b.setAttribute('data-ar-title', ar);
+    b.setAttribute('data-en-title', en);
+    b.setAttribute('aria-label', L(ar, en));
+    /*@3.NOAJ.264*/
+    for (var k = 0; k < MORE.length; k++) {
+      if (MORE[k].id !== 'na-cloud') continue;
+      MORE[k].ar = ar;
+      MORE[k].en = en;
+      MORE[k].icon = up ? 'fa-cloud' : 'fa-cloud-arrow-up';
+      MORE[k].on = up ? 1 : 0;
+    }
+  }
+
   function upPaint() {
     clearTimeout(upT);
+    cloudPaint();
     upT = setTimeout(function () { renderList(); }, 60);
   }
 
@@ -1235,6 +1260,7 @@
     if (window.GardenAudioNote) {
       if (on) GardenAudioNote.sync(); else GardenAudioNote.close();
     }
+    cloudPaint();
     if (!on && window.GardenNotesFind) GardenNotesFind.show(false);
   }
 

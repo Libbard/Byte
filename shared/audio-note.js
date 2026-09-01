@@ -74,58 +74,144 @@
   }
 
   var rec = null, timer = null, panel = null, busy = false, urls = {};
+  var cap = null, drawer = null, escOn = null;
 
   function host() { return document.getElementById('na-doc-body'); }
+  function micBtn() { return document.getElementById('na-mic'); }
+
+  /*@3.AUNJ.42*/
+  function anchorRect() {
+    var h = host();
+    return h ? h.getBoundingClientRect() : null;
+  }
+
+  function place(el, r, side) {
+    if (!el || !r) return;
+    var rtl = (document.documentElement.getAttribute('dir') || 'rtl') === 'rtl';
+    var pad = 12;
+    if (side === 'cap') {
+      /*@3.AUNJ.50*/
+      var side = window.innerWidth > 640;
+      var off = pad + ((side && drawer && drawer.offsetWidth) || 0);
+      el.style.top = (r.top + pad) + 'px';
+      if (rtl) { el.style.right = (window.innerWidth - r.right + off) + 'px'; el.style.left = 'auto'; }
+      else     { el.style.left = (r.left + off) + 'px'; el.style.right = 'auto'; }
+      return;
+    }
+    if (side === 'drawer') {
+      el.style.top = r.top + 'px';
+      el.style.height = r.height + 'px';
+      /*@3.AUNJ.51*/
+      if (rtl) { el.style.right = (window.innerWidth - r.right) + 'px'; el.style.left = 'auto'; }
+      else     { el.style.left = r.left + 'px'; el.style.right = 'auto'; }
+      return;
+    }
+    /*@3.AUNJ.49*/
+    var b = micBtn();
+    var br = b ? b.getBoundingClientRect() : r;
+    var w = el.offsetWidth || 256;
+    var room = Math.max(8, window.innerWidth - w - 8);
+    el.style.top = (br.bottom + 8) + 'px';
+    if (rtl) {
+      el.style.right = Math.min(room, Math.max(8, window.innerWidth - br.right)) + 'px';
+      el.style.left = 'auto';
+    } else {
+      el.style.left = Math.min(room, Math.max(8, br.left)) + 'px';
+      el.style.right = 'auto';
+    }
+  }
+
+  function reflow() {
+    var r = anchorRect();
+    if (!r) return;
+    if (cap) place(cap, r, 'cap');
+    if (drawer) place(drawer, r, 'drawer');
+    if (panel) place(panel, r, 'pop');
+  }
+  window.addEventListener('resize', reflow);
 
   function close() {
-    if (rec) return;
     if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
     panel = null;
-    var b = document.getElementById('na-mic');
+    var b = micBtn();
     if (b) b.setAttribute('aria-expanded', 'false');
   }
 
   /*@3.AUNJ.4*/
   function shell() {
-    var h = host();
-    if (!h) return null;
-    if (panel && panel.parentNode === h) return panel;
+    var r = anchorRect();
+    if (!r) return null;
+    if (panel && panel.parentNode) return panel;
     panel = document.createElement('div');
-    panel.className = 'nfo nrec';
-    panel.setAttribute('role', 'group');
+    panel.className = 'nrp';
+    panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', L('تسجيلُ الصوت', 'Voice recording'));
-    h.insertBefore(panel, h.firstChild);
+    panel.innerHTML =
+      '<div class="nrp-b"></div><div class="nrp-f"></div>';
+    document.body.appendChild(panel);
+    place(panel, r, 'pop');
+    var b = micBtn();
+    if (b) b.setAttribute('aria-expanded', 'true');
     return panel;
   }
 
+  /*@3.AUNJ.43*/
+  var awayOn = null;
+  function away() {
+    if (awayOn) return;
+    awayOn = function (e) {
+      if (!panel) return;
+      if (panel.contains(e.target)) return;
+      var b = micBtn();
+      if (b && b.contains(e.target)) return;
+      if (busy || rec) return;
+      close();
+    };
+    document.addEventListener('pointerdown', awayOn, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && panel && !busy && !rec) close();
+    });
+  }
+
   function render() {
+    if (rec) { drawLive(); drawList(); return; }
     var el = shell();
     if (!el) return;
-    el.innerHTML =
-      '<div class="nrec-head">' +
-        '<i class="fa-solid fa-microphone nfo-i" aria-hidden="true"></i>' +
-        '<div class="nfo-txt nrec-msg"></div>' +
-        '<div class="nfo-acts nrec-acts"></div>' +
-      '</div>' +
-      '<div class="nrec-list"></div>';
-    if (rec) drawLive(); else drawIdle();
+    away();
+    drawIdle();
     drawList();
   }
 
+  /*@3.AUNJ.45*/
+  function mode(cls) {
+    if (!panel) { shell(); away(); }
+    if (!panel) return;
+    panel.className = 'nrp' + (cls ? ' ' + cls : '');
+    /* @@AUN.A */
+    place(panel, anchorRect(), 'pop');
+  }
+
+  /* @@AUN.B */
+  function settled(refId) {
+    close();
+    openDrawer();
+    var row = drawer && drawer.querySelector('.nrr[data-ref="' + refId + '"]');
+    if (row) row.classList.add('on');
+  }
+
   function msg(html) {
-    var m = panel && panel.querySelector('.nrec-msg');
+    var m = panel && panel.querySelector('.nrp-b');
     if (m) m.innerHTML = html;
   }
   function acts(html) {
-    var a = panel && panel.querySelector('.nrec-acts');
+    var a = panel && panel.querySelector('.nrp-f');
     if (a) a.innerHTML = html;
     return a;
   }
 
   function shutBtn() {
-    return '<button type="button" class="gsf-btn gsf-btn--ghost nfo-no" aria-label="' +
-      esc(L('إغلاق', 'Dismiss')) + '">' +
-      '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+    return '<button type="button" class="gsf-btn gsf-btn--ghost nfo-no">' +
+      esc(L('حسناً', 'OK')) + '</button>';
   }
   function bindShut() {
     var x = panel && panel.querySelector('.nfo-no');
@@ -136,45 +222,56 @@
   function drawIdle() {
     var s = A() ? A().support() : { mic: false };
     if (!s.secure) {
-      panel.className = 'nfo nrec nfo--bad';
-      msg('<b>' + esc(L('التسجيلُ يحتاج اتّصالاً آمناً',
+      panel.className = 'nrp nrp--bad';
+      msg('<b class="nrp-t">' + esc(L('التسجيلُ يحتاج اتّصالاً آمناً',
                         'Recording needs a secure connection')) + '</b>');
       acts(shutBtn());
       bindShut();
       return;
     }
     if (!s.mic || !s.recorder || !s.type) {
-      panel.className = 'nfo nrec nfo--bad';
-      msg('<b>' + esc(L('هذا المتصفّحُ لا يسجّل الصوت',
-                        'This browser cannot record audio')) + '</b> ' +
-          esc(L('· جرّبْ كروم أو فَيَرفُكس.', '· try Chrome or Firefox.')));
+      panel.className = 'nrp nrp--bad';
+      msg('<b class="nrp-t">' + esc(L('هذا المتصفّحُ لا يسجّل الصوت',
+                        'This browser cannot record audio')) + '</b>' +
+          '<span class="nrp-s">' +
+          esc(L('جرّبْ كروم أو فَيَرفُكس.', 'Try Chrome or Firefox.')) + '</span>');
       acts(shutBtn());
       bindShut();
       return;
     }
-    panel.className = 'nfo nrec';
-    msg('<b>' + esc(L('سجّلِ المحاضرة', 'Record the lecture')) + '</b> ' +
-        '<span class="nfo-dim">' +
-        esc(L('· يُحفظ مع الملاحظة.', '· saved with the note.')) +
-        '</span><span class="nrec-hint"></span>');
+    panel.className = 'nrp';
     /*@3.AUNJ.24*/
     var srcPick = s.system
-      ? '<span class="nrec-src" role="group" aria-label="' +
+      ? '<div class="nrp-seg" role="group" aria-label="' +
         esc(L('مصدرُ الصوت', 'Audio source')) + '">' +
-        '<button type="button" class="gsf-chip on" data-src="mic">' +
+        '<button type="button" class="on" data-src="mic">' +
+          '<i class="fa-solid fa-microphone" aria-hidden="true"></i>' +
           esc(L('الميكروفون', 'Microphone')) + '</button>' +
-        '<button type="button" class="gsf-chip" data-src="system">' +
+        '<button type="button" data-src="system">' +
+          '<i class="fa-solid fa-display" aria-hidden="true"></i>' +
           esc(L('صوتُ الجهاز', 'Device audio')) + '</button>' +
-        '<button type="button" class="gsf-chip" data-src="both">' +
+        '<button type="button" data-src="both">' +
+          '<i class="fa-solid fa-sliders" aria-hidden="true"></i>' +
           esc(L('كلاهما', 'Both')) + '</button>' +
-        '</span>'
+        '</div>'
       : '';
-    acts(srcPick +
-      '<button type="button" class="gsf-btn gsf-btn--go nrec-go">' +
-      '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i> ' +
-      esc(L('ابدأ', 'Start')) + '</button>' + shutBtn());
-    bindShut();
-    var chips = panel.querySelectorAll('.nrec-src .gsf-chip');
+    msg('<b class="nrp-t">' + esc(L('سجّلِ المحاضرة', 'Record the lecture')) + '</b>' +
+        '<span class="nrp-s">' +
+        esc(L('يُحفظ مع الملاحظةِ حتى نهايةِ الفصل.',
+              'Kept with the note until the term ends.')) + '</span>' +
+        srcPick +
+        '<span class="nrp-hint"></span>');
+    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-go nrp-go">' +
+         '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i> ' +
+         esc(L('ابدأِ التسجيل', 'Start recording')) + '</button>' + listLink() +
+         '<button type="button" class="gsf-btn gsf-btn--ghost nrp-file" aria-label="' +
+         esc(L('أضِفْ تسجيلاً من جهازك', 'Add a recording from your device')) + '"' +
+         ' data-ar-title="أضِفْ تسجيلاً من جهازك" data-en-title="Add a recording from your device">' +
+         '<i class="fa-solid fa-file-import" aria-hidden="true"></i></button>');
+    bindList();
+    var fb = panel.querySelector('.nrp-file');
+    if (fb) fb.addEventListener('click', pickExternal);
+    var chips = panel.querySelectorAll('.nrp-seg button');
     Array.prototype.forEach.call(chips, function (c) {
       c.addEventListener('click', function () {
         Array.prototype.forEach.call(chips, function (x) { x.classList.remove('on'); });
@@ -185,66 +282,92 @@
 
     /*@3.AUNJ.25*/
     function srcHint(src) {
-      var e = panel.querySelector('.nrec-hint');
+      var e = panel.querySelector('.nrp-hint');
       if (!e) return;
       if (src !== 'system' && src !== 'both') { e.innerHTML = ''; return; }
-      e.innerHTML = '<b>' +
-        esc(L('لتسجيلِ صوتِ الجهاز:', 'To record device audio:')) + '</b> ' +
-        esc(L('ستفتح نافذةُ المتصفّحِ لمشاركةِ الشاشة. اخترْ «الشاشةُ بأكملها» ' +
-              'ثمّ فعّلْ مربّعَ «مشاركةُ صوتِ النظام» قبل الموافقة — من دونه ' +
-              'يُشارَك الفيديو وحدَه ولا يصل صوت.',
-              'A screen-sharing dialog will open. Pick "Entire screen", then tick ' +
-              '"Share system audio" before you confirm — without it only video ' +
-              'is shared and no audio arrives.')) +
+      e.innerHTML = '<i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>' +
+        esc(L('ستفتح نافذةُ مشاركةِ الشاشة. اخترْ «الشاشةُ بأكملها» ثمّ فعّلْ ' +
+              '«مشاركةُ صوتِ النظام» قبل الموافقة.',
+              'A screen-sharing dialog opens. Pick "Entire screen", then tick ' +
+              '"Share system audio" before you confirm.')) +
         (s.systemLikely ? '' : ' <b>' +
-          esc(L('ومتصفّحُك لا يشارك صوتَ النظامِ حتى اليوم — استعملْ كروم أو إيدج.',
-                'Your browser cannot share system audio yet — use Chrome or Edge.')) +
-          '</b>');
+          esc(L('ومتصفّحُك لا يشاركه حتى اليوم — استعملْ كروم أو إيدج.',
+                'Your browser cannot share it yet — use Chrome or Edge.')) +
+          '</b>') + '</span>';
     }
-    var go = panel.querySelector('.nrec-go');
+    var go = panel.querySelector('.nrp-go');
     if (go) go.addEventListener('click', function () {
-      var on = panel.querySelector('.nrec-src .gsf-chip.on');
+      var on = panel.querySelector('.nrp-seg button.on');
       start(on ? on.getAttribute('data-src') : 'mic');
     });
   }
 
+  function listLink() {
+    var n = items().length;
+    if (!n) return '';
+    return '<button type="button" class="gsf-btn gsf-btn--ghost nrp-list">' +
+      esc(L('التسجيلات', 'Recordings')) + ' <b>' + n + '</b></button>';
+  }
+  function bindList() {
+    var b = panel && panel.querySelector('.nrp-list');
+    if (b) b.addEventListener('click', function () { openDrawer(); close(); });
+  }
+
   /*@3.AUNJ.6*/
   /*@3.AUNJ.28*/
+  /*@3.AUNJ.44*/
   function drawLive() {
-    panel.className = 'nfo nrec nfo--busy nrec--live';
+    close();
+    var r = anchorRect();
+    if (!r) return;
+    if (!cap) {
+      cap = document.createElement('div');
+      cap.className = 'nrc';
+      cap.setAttribute('role', 'status');
+      cap.setAttribute('aria-label', L('يجري التسجيل', 'Recording'));
+      document.body.appendChild(cap);
+    }
+    place(cap, r, 'cap');
     var st = rec.stats();
     var i, bars = '';
-    for (i = 0; i < 14; i++) bars += '<i style="--h:.12"></i>';
-    msg('<span class="nrec-dot" aria-hidden="true"></span>' +
-        '<b class="nrec-clock">' + esc(clock(st.sec)) + '</b>' +
-        '<span class="nrec-wave" role="img" aria-label="' +
+    for (i = 0; i < 14; i++) bars += '<i style="--h:.10"></i>';
+    cap.innerHTML =
+      '<span class="nrc-dot" aria-hidden="true"></span>' +
+      '<b class="nrec-clock">' + esc(clock(st.sec)) + '</b>' +
+      '<span class="nrec-wave" role="img" aria-label="' +
         esc(L('مستوى الصوت', 'Audio level')) + '"' +
         ' data-ar-title="مستوى الصوت" data-en-title="Audio level">' + bars + '</span>' +
+      '<span class="nrc-more">' +
+        '<span class="nrc-sep"></span>' +
+        '<span class="nrec-say">' + esc(srcName()) + '</span>' +
         '<span class="nfo-dim nrec-meta">' + esc(size(st.bytes)) + '</span>' +
-        '<span class="nfo-dim nrec-say">' +
-        esc(L('· تابعْ كتابتَك، فالتسجيلُ يجري في الخلفيّة.',
-              '· keep working — recording continues in the background.')) +
-        '</span>');
-    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-stop" aria-label="' +
-         esc(L('أوقفْ واحفظْ', 'Stop and save')) + '"' +
-         ' data-ar-title="أوقفْ واحفظْ" data-en-title="Stop and save">' +
-         '<i class="fa-solid fa-stop" aria-hidden="true"></i>' +
-         '<span class="nrec-lbl">' + esc(L('أوقفْ واحفظْ', 'Stop &amp; save')) +
-         '</span></button>' +
-         '<button type="button" class="gsf-btn gsf-btn--ghost nrec-kill" aria-label="' +
-         esc(L('ألغِ التسجيل', 'Discard recording')) + '"' +
-         ' data-ar-title="ألغِ التسجيل" data-en-title="Discard recording">' +
-         '<i class="fa-solid fa-xmark" aria-hidden="true"></i>' +
-         '<span class="nrec-lbl">' + esc(L('ألغِ', 'Discard')) + '</span></button>');
-    panel.querySelector('.nrec-stop').addEventListener('click', function () { stop(true); });
-    panel.querySelector('.nrec-kill').addEventListener('click', function () { stop(false); });
+        '<span class="nrc-sep"></span>' +
+        '<button type="button" class="gsf-btn gsf-btn--ghost nrec-kill">' +
+          esc(L('ألغِ', 'Discard')) + '</button>' +
+        '<button type="button" class="gsf-btn gsf-btn--go nrec-stop">' +
+          esc(L('أوقفْ واحفظ', 'Stop & save')) + '</button>' +
+      '</span>';
+    cap.querySelector('.nrec-stop').addEventListener('click', function () { stop(true); });
+    cap.querySelector('.nrec-kill').addEventListener('click', function () { stop(false); });
+  }
+
+  function srcName() {
+    var s = rec && rec.source;
+    if (s === 'system') return L('صوتُ الجهاز', 'Device audio');
+    if (s === 'both') return L('كلاهما', 'Both');
+    return L('الميكروفون', 'Microphone');
+  }
+
+  function capGone() {
+    if (cap && cap.parentNode) cap.parentNode.removeChild(cap);
+    cap = null;
   }
 
   function beat() {
-    if (!rec || !panel) return;
+    if (!rec || !cap) return;
     var st = rec.stats();
-    var c = panel.querySelector('.nrec-clock');
-    var m = panel.querySelector('.nrec-meta');
+    var c = cap.querySelector('.nrec-clock');
+    var m = cap.querySelector('.nrec-meta');
     if (c) c.textContent = clock(st.sec);
     if (m) m.textContent = size(st.bytes);
     wave();
@@ -254,7 +377,7 @@
   /*@3.AUNJ.32*/
   var hush = 0;
   function wave() {
-    var w = panel && panel.querySelector('.nrec-wave');
+    var w = cap && cap.querySelector('.nrec-wave');
     if (!w || !rec || !rec.level) return;
     var lv = rec.level();
     if (!lv || lv === -1) { w.setAttribute('data-off', '1'); return; }
@@ -264,24 +387,25 @@
     var bars = w.children, i;
     for (i = bars.length - 1; i > 0; i--) {
       bars[i].style.setProperty('--h',
-        bars[i - 1].style.getPropertyValue('--h') || '.12');
+        bars[i - 1].style.getPropertyValue('--h') || '.10');
     }
-    if (bars[0]) bars[0].style.setProperty('--h', (0.12 + v * 0.88).toFixed(3));
+    if (bars[0]) bars[0].style.setProperty('--h', (0.10 + v * 0.90).toFixed(3));
     /*@3.AUNJ.31*/
     hush = lv.peak < 0.008 ? hush + 1 : 0;
-    w.setAttribute('data-hush', hush > 24 ? '1' : '0');
-    var say = panel.querySelector('.nrec-say');
+    var quiet = hush > 24;
+    w.setAttribute('data-hush', quiet ? '1' : '0');
+    cap.setAttribute('data-hush', quiet ? '1' : '0');
+    var say = cap.querySelector('.nrec-say');
     if (!say) return;
-    if (hush > 24) {
-      say.textContent = L('· لا يصل صوتٌ منذ عشرِ ثوانٍ — تحقّقْ من المصدر.',
-                          '· no sound for ten seconds — check the source.');
+    if (quiet) {
+      say.textContent = L('لا أسمع شيئاً', 'No sound');
       say.setAttribute('data-warn', '1');
     } else if (say.getAttribute('data-warn')) {
-      say.textContent = L('· تابعْ كتابتَك، فالتسجيلُ يجري في الخلفيّة.',
-                          '· keep working — recording continues in the background.');
+      say.textContent = srcName();
       say.removeAttribute('data-warn');
     }
   }
+
 
   /*@3.AUNJ.39*/
   var MARK_MAX = 4000;
@@ -313,7 +437,7 @@
   function start(source) {
     var R = A();
     if (!R || rec) return;
-    panel.className = 'nfo nrec nfo--busy';
+    mode('nrp--busy');
     msg('<b>' + esc(L('يُطلب إذنُ الميكروفون…', 'Asking for microphone permission…')) + '</b>');
     acts('');
     /*@3.AUNJ.29*/
@@ -325,7 +449,7 @@
       markStart(rec.t0 || Date.now());
       render();
       timer = setInterval(beat, 500);
-      var b = document.getElementById('na-mic');
+      var b = micBtn();
       if (b) b.classList.add('na-icb--rec');
     })['catch'](function (e) {
       var why = String((e && e.message) || e || '');
@@ -356,7 +480,7 @@
         body = L('· تأكّدْ من وجودِ ميكروفونٍ موصول، أو سجّلْ صوتَ الجهازِ وحدَه.',
                  '· check that a microphone is connected, or record device audio alone.');
       }
-      panel.className = 'nfo nrec nfo--bad';
+      mode('nrp--bad');
       msg('<b>' + esc(head) + '</b> ' + esc(body));
       acts('<button type="button" class="gsf-btn gsf-btn--go nrec-again">' +
            esc(L('أعِدِ المحاولة', 'Try again')) + '</button>' + shutBtn());
@@ -371,8 +495,9 @@
     var r = rec;
     rec = null;
     if (timer) { clearInterval(timer); timer = null; }
-    var b = document.getElementById('na-mic');
+    var b = micBtn();
     if (b) b.classList.remove('na-icb--rec');
+    capGone();
     r.stop().then(function (out) {
       if (!keep || !out || !out.blob || out.blob.size < 1024) {
         /*@3.AUNJ.40*/
@@ -393,10 +518,92 @@
     return (base ? base + '_' : 'rec_') + when + '_' + Math.round(sec) + 's';
   }
 
-  function ext(mime) {
+  function ext(mime, it) {
+    if (it && it.x) return '.' + it.x;
     if (/ogg/.test(mime)) return '.ogg';
     if (/mp4/.test(mime)) return '.m4a';
     return '.webm';
+  }
+
+  /* @@AUN.C */
+  var EXT_MIME = { m4a: 'audio/x-m4a', mp3: 'audio/mpeg', wav: 'audio/wav', aac: 'audio/aac',
+                   amr: 'audio/amr', '3gp': 'audio/3gpp', ogg: 'audio/ogg', opus: 'audio/opus',
+                   oga: 'audio/ogg', webm: 'audio/webm', mp4: 'video/mp4', flac: 'audio/flac',
+                   mkv: 'video/webm', mov: 'video/mp4' };
+  var EXT_MAX = 250 * 1024 * 1024;
+
+  function pickExternal() {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'audio/*,video/*,.m4a,.mp3,.wav,.aac,.amr,.3gp,.ogg,.opus,.webm,.mp4,.flac';
+    inp.style.display = 'none';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      if (inp.parentNode) inp.parentNode.removeChild(inp);
+      if (f) fromFile(f);
+    });
+    inp.click();
+  }
+
+  function extOf(name) {
+    var m = /\.([a-z0-9]{2,4})$/i.exec(String(name || ''));
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  function durationOf(blob) {
+    return new Promise(function (ok) {
+      var a = document.createElement('audio');
+      var url = URL.createObjectURL(blob);
+      var done = false;
+      var fin = function (ms) {
+        if (done) return;
+        done = true;
+        try { URL.revokeObjectURL(url); } catch (e) {}
+        ok(ms);
+      };
+      a.preload = 'metadata';
+      a.addEventListener('loadedmetadata', function () {
+        fin(isFinite(a.duration) ? Math.round(a.duration * 1000) : 0);
+      });
+      a.addEventListener('error', function () { fin(0); });
+      setTimeout(function () { fin(0); }, 4000);
+      a.src = url;
+    });
+  }
+
+  function fromFile(file) {
+    if (!doc()) return;
+    var x = extOf(file.name);
+    var mime = (file.type || '').split(';')[0] || EXT_MIME[x] || '';
+    if (!mime || !(/^audio\//.test(mime) || /^video\//.test(mime))) {
+      mode('nrp--bad');
+      msg('<b>' + esc(L('هذه ليست صيغةَ صوتٍ نعرفها', 'This is not an audio format we know')) +
+          '</b> ' + esc(L('· جرّبْ m4a أو mp3 أو wav أو تسجيلَ شاشة.',
+                          '· try m4a, mp3, wav, or a screen recording.')));
+      acts(shutBtn()); bindShut();
+      return;
+    }
+    if (file.size > EXT_MAX) {
+      mode('nrp--bad');
+      msg('<b>' + esc(L('الملفُّ أكبرُ من الحدّ', 'The file is over the limit')) + '</b> ' +
+          esc(L('· ' + size(file.size) + ' والحدُّ ' + size(EXT_MAX) + '.',
+                '· ' + size(file.size) + '; the limit is ' + size(EXT_MAX) + '.')));
+      acts(shutBtn()); bindShut();
+      return;
+    }
+    var refId = REF_PREFIX + Date.now().toString(36) + '_' +
+                Math.random().toString(36).slice(2, 8);
+    var base = String(file.name || '').replace(/\.[a-z0-9]{2,4}$/i, '') || L('تسجيل', 'Recording');
+    busy = true;
+    mode('nrp--busy');
+    msg('<b>' + esc(L('يُقرأ التسجيل…', 'Reading the recording…')) + '</b>');
+    acts('');
+    durationOf(file).then(function (ms) {
+      var it = { i: refId, n: base, t: Date.now(), s0: 0, mk: null, x: x,
+                 ms: ms, b: file.size, m: mime, aup: 0, ext: 1 };
+      keep(it, file);
+    });
   }
 
   /*@3.AUNJ.9*/
@@ -411,21 +618,26 @@
                mk: mk,
                ms: Math.round(out.sec * 1000), b: out.blob.size,
                m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
+    keep(it, out.blob);
+  }
+
+  function keep(it, blob) {
+    var refId = it.i;
     var st = D();
     busy = true;
-    panel.className = 'nfo nrec nfo--busy';
+    mode('nrp--busy');
     msg('<b>' + esc(L('يُحفظ التسجيل…',
                       'Saving the recording…')) + '</b>');
     acts('');
     /*@3.AUNJ.15*/
-    var keep = st
-      ? st.put(refId, out.blob, { name: it.n })['catch'](function () { return false; })
+    var held = st
+      ? st.put(refId, blob, { name: it.n })['catch'](function () { return false; })
       : Promise.resolve(false);
-    keep.then(function (okLocal) {
+    held.then(function (okLocal) {
       if (!okLocal && !F()) {
         /*@3.AUNJ.16*/
         busy = false;
-        panel.className = 'nfo nrec nfo--bad';
+        mode('nrp--bad');
         msg('<b>' + esc(L('ضاع التسجيل',
                           'The recording was lost')) + '</b> ' +
             esc(L('· لم يُحفظ على الجهازِ ولا سبيلَ للرفعِ الآن. ' +
@@ -439,8 +651,8 @@
       it.lo = okLocal ? 1 : 0;
       if (!addItem(it)) { busy = false; return; }
       /*@3.AUNJ.37*/
-      if (asked() || !F()) { send(it, out.blob); return; }
-      consent(it, out.blob);
+      if (asked() || !F()) { send(it, blob); return; }
+      consent(it, blob);
     });
   }
 
@@ -456,7 +668,7 @@
 
   function consent(it, blob) {
     busy = false;
-    panel.className = 'nfo nrec nfo--vow';
+    mode('nrp--vow');
     msg('<b>' + esc(L('حُفظ التسجيلُ على هذا الجهاز',
                       'The recording is saved on this device')) + '</b> ' +
         '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>' +
@@ -488,7 +700,7 @@
       markAsked();
       it.aup = 0;
       touch(true);
-      render();
+      settled(it.i);
     });
   }
 
@@ -498,7 +710,7 @@
     var refId = it.i;
     if (!f) { busy = false; render(); return; }
     busy = true;
-    panel.className = 'nfo nrec nfo--busy';
+    mode('nrp--busy');
     msg('<b>' + esc(L('يُرفع التسجيل…', 'Uploading the recording…')) + '</b> ' +
         '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>');
     acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
@@ -511,7 +723,7 @@
     };
     window.addEventListener('garden:fileProgress', on);
 
-    f.upload(blob, { refId: refId, name: it.n + ext(it.m), mime: it.m })
+    f.upload(blob, { refId: refId, name: it.n + ext(it.m, it), mime: it.m })
       .then(function (r) {
         window.removeEventListener('garden:fileProgress', on);
         busy = false;
@@ -521,7 +733,7 @@
         var st = D();
         if (st && it.lo) { st.drop(refId)['catch'](function () {}); it.lo = 0; }
         touch(true);
-        render();
+        settled(refId);
       }, function (e) {
         window.removeEventListener('garden:fileProgress', on);
         busy = false;
@@ -529,7 +741,7 @@
         it.aup = 0;
         touch(true);
         render();
-        panel.className = 'nfo nrec nfo--bad';
+        mode('nrp--bad');
         msg('<b>' + esc(L('لم يُرفع التسجيل', 'The recording was not uploaded')) + '</b> ' +
             esc(it.lo
               ? L('· وهو محفوظٌ على هذا الجهازِ وحدَه. أعِدِ الرفعَ متى شئت.',
@@ -556,7 +768,7 @@
 
   function gone() {
     render();
-    panel.className = 'nfo nrec nfo--bad';
+    mode('nrp--bad');
     msg('<b>' + esc(L('لا نسخةَ لهذا التسجيل',
                       'No copy of this recording')) + '</b> ' +
         esc(L('· مضت نسختُه من هذا الجهازِ ولم يصل الخادم. ' +
@@ -567,50 +779,112 @@
     bindShut();
   }
 
+  /*@3.AUNJ.48*/
+  function shortName(n) {
+    var v = String(n || '').replace(/_\d{4}-\d{2}-\d{2}_\d{4}_\d+s$/, '');
+    return v || L('تسجيل', 'Recording');
+  }
+
+  /*@3.AUNJ.46*/
+  function openDrawer() {
+    var r = anchorRect();
+    if (!r) return;
+    if (!drawer) {
+      drawer = document.createElement('aside');
+      drawer.className = 'nrd';
+      drawer.setAttribute('role', 'dialog');
+      drawer.setAttribute('aria-label', L('تسجيلاتُ الملاحظة', 'Note recordings'));
+      drawer.innerHTML =
+        '<div class="nrd-h">' +
+          '<b>' + esc(L('تسجيلاتُ هذه الملاحظة', 'Recordings in this note')) + '</b>' +
+          '<span class="nrd-n"></span>' +
+          '<button type="button" class="nrd-x" aria-label="' +
+            esc(L('إغلاق', 'Close')) + '"' +
+            ' data-ar-title="إغلاق" data-en-title="Close">' +
+            '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+        '</div><div class="nrd-b nrec-list"></div>';
+      document.body.appendChild(drawer);
+      drawer.querySelector('.nrd-x').addEventListener('click', shutDrawer);
+      if (!escOn) {
+        escOn = function (e) { if (e.key === 'Escape' && drawer) shutDrawer(); };
+        document.addEventListener('keydown', escOn);
+      }
+    }
+    place(drawer, r, 'drawer');
+    drawList();
+    reflow();
+  }
+
+  function shutDrawer() {
+    if (drawer && drawer.parentNode) drawer.parentNode.removeChild(drawer);
+    drawer = null;
+    reflow();
+  }
+
   /*@3.AUNJ.11*/
   function drawList() {
-    var box = panel && panel.querySelector('.nrec-list');
+    var box = drawer && drawer.querySelector('.nrd-b');
+    var n = drawer && drawer.querySelector('.nrd-n');
     if (!box) return;
     var list = items();
-    if (!list.length) { box.innerHTML = ''; box.hidden = true; return; }
-    box.hidden = false;
+    if (n) n.textContent = String(list.length);
+    if (!list.length) {
+      box.innerHTML = '<p class="nrd-e">' +
+        esc(L('لا تسجيلَ بعد. ابدأْ من زرِّ الميكروفون.',
+              'No recordings yet — start from the microphone button.')) + '</p>';
+      return;
+    }
     box.innerHTML = list.slice().reverse().map(function (x) {
-      return '<div class="nrec-row" data-ref="' + esc(x.i) + '">' +
-        '<div class="nrec-row-h">' +
+      /*@3.AUNJ.20*/
+      var can = x.aup || x.lo;
+      return '<div class="nrr" data-ref="' + esc(x.i) + '">' +
+        (can
+          ? '<button type="button" class="nrr-p nrec-play" aria-label="' +
+            esc(L('استمعْ', 'Play')) + '"' +
+            ' data-ar-title="استمعْ" data-en-title="Play">' +
+            '<i class="fa-solid fa-play" aria-hidden="true"></i></button>'
+          : '<span class="nrr-p nrr-p--no" aria-hidden="true">' +
+            '<i class="fa-solid fa-link-slash"></i></span>') +
+        '<span class="nrr-d">' + esc(clock((x.ms || 0) / 1000)) + '</span>' +
+        '<span class="nrr-n" title="' + esc(x.n || '') + '">' +
+          esc(shortName(x.n)) + '</span>' +
+        '<button type="button" class="nrr-x nrec-del" aria-label="' +
+          esc(L('حذفُ التسجيل', 'Delete recording')) + '"' +
+          ' data-ar-title="حذفُ التسجيل" data-en-title="Delete recording">' +
+          '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
+        '<span class="nrr-m">' +
           '<i class="fa-solid ' + (x.aup ? 'fa-cloud' : 'fa-mobile-screen') +
-            ' nrec-row-i" aria-hidden="true"></i>' +
-          '<span class="nrec-row-t">' + esc(clock((x.ms || 0) / 1000)) + '</span>' +
-          '<span class="nfo-dim">' + esc(size(x.b)) + ' · ' + esc(stamp(x.t)) + '</span>' +
-          /*@3.AUNJ.20*/
-          (x.aup || x.lo
-            ? '<button type="button" class="gsf-btn nrec-play" aria-label="' +
-              esc(L('استمعْ', 'Play')) + '"' +
-              ' data-ar-title="استمعْ" data-en-title="Play">' +
-              '<i class="fa-solid fa-play" aria-hidden="true"></i></button>'
-            : '') +
-          '<button type="button" class="gsf-btn gsf-btn--ghost nrec-del" aria-label="' +
-            esc(L('حذفُ التسجيل', 'Delete recording')) + '"' +
-            ' data-ar-title="حذفُ التسجيل" data-en-title="Delete recording">' +
-            '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
-        '</div>' +
-        '<div class="nrec-row-p">' +
+            '" aria-hidden="true"></i> ' +
+          esc(size(x.b)) + ' · ' + esc(stamp(x.t)) + '</span>' +
+        '<div class="nrr-s nrec-row-p">' +
           (x.aup ? '' :
-            '<button type="button" class="gsf-btn gsf-btn--go nrec-retry">' +
+            '<button type="button" class="gsf-btn gsf-btn--go gsf-btn--sm nrec-retry">' +
             '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
             esc(L('ارفعْه', 'Upload')) + '</button>' +
-            ' <span class="nfo-dim">' +
-            esc(x.lo ? L('· على هذا الجهاز وحدَه.', '· on this device only.')
-                     : L('· لا نسخةَ له.', '· no copy left.')) + '</span>') +
+            '<span class="nfo-dim">' +
+            esc(x.lo ? L('على هذا الجهاز وحدَه.', 'On this device only.')
+                     : L('لا نسخةَ له.', 'No copy left.')) + '</span>') +
         '</div></div>';
     }).join('');
-    Array.prototype.forEach.call(box.querySelectorAll('.nrec-row'), function (row) {
+    Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (row) {
       var ref = row.getAttribute('data-ref');
       var del = row.querySelector('.nrec-del');
-      if (del) del.addEventListener('click', function () { remove(ref, row); });
+      if (del) del.addEventListener('click', function (e) {
+        e.stopPropagation(); remove(ref, row);
+      });
       var play = row.querySelector('.nrec-play');
-      if (play) play.addEventListener('click', function () { play_(ref, row); });
+      if (play) play.addEventListener('click', function (e) {
+        e.stopPropagation();
+        Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (o) {
+          if (o !== row) o.classList.remove('on');
+        });
+        row.classList.add('on');
+        play_(ref, row);
+      });
       var again = row.querySelector('.nrec-retry');
-      if (again) again.addEventListener('click', function () { retry(ref); });
+      if (again) again.addEventListener('click', function (e) {
+        e.stopPropagation(); retry(ref);
+      });
     });
   }
 
@@ -749,19 +1023,20 @@
   }
 
   /*@3.AUNJ.13*/
+  /*@3.AUNJ.47*/
   function toggle() {
+    /*@3.AUNJ.52*/
+    if (rec) { if (drawer) shutDrawer(); else openDrawer(); return; }
     if (panel && panel.parentNode) {
-      if (rec || busy) return;
+      if (busy) return;
       close();
       return;
     }
     render();
-    var b = document.getElementById('na-mic');
-    if (b) b.setAttribute('aria-expanded', 'true');
   }
 
   function wire() {
-    var b = document.getElementById('na-mic');
+    var b = micBtn();
     if (!b || b.getAttribute('data-wired')) return;
     b.setAttribute('data-wired', '1');
     b.addEventListener('click', toggle);
@@ -771,6 +1046,7 @@
   function sync() {
     badge();
     if (panel && panel.parentNode && !rec && !busy) render();
+    if (drawer) drawList();
   }
 
   if (document.readyState === 'loading') {
@@ -780,6 +1056,8 @@
   window.GardenAudioNote = {
     toggle: toggle,
     close: close,
+    openDrawer: openDrawer,
+    shutDrawer: shutDrawer,
     sync: sync,
     recording: function () { return !!rec; }
   };
