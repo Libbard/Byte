@@ -923,27 +923,49 @@
   }
 
   /*@3.NOAJ.258*/
+  /*@3.NOAJ.259*/
+  var UP_LS = '__filesUp';
   var upSet = null;
   var upH = Object.create(null);
   var upT = 0;
+  var upAsk = 0;
+  var upBusy = false;
+
+  function upLoad() {
+    try {
+      var o = JSON.parse(localStorage.getItem(UP_LS) || 'null');
+      if (o && typeof o === 'object') upSet = o;
+    } catch (e) {}
+  }
+
+  function upSave() {
+    try { localStorage.setItem(UP_LS, JSON.stringify(upSet || {})); } catch (e) {}
+  }
 
   function upPaint() {
     clearTimeout(upT);
     upT = setTimeout(function () { renderList(); }, 60);
   }
 
-  function upRefresh() {
+  function upRefresh(force) {
     var f = window.GardenFiles;
-    if (!f || !f.available) return;
+    if (!f || !f.available || upBusy) return;
+    var now = Date.now();
+    if (!force && now - upAsk < 60000) return;
+    upAsk = now;
+    upBusy = true;
     f.available().then(function (a) {
       return a && a.ok ? f.list() : null;
     }).then(function (r) {
+      upBusy = false;
+      /*@3.NOAJ.260*/
       if (!r) return;
       var s = Object.create(null);
       (r.files || []).forEach(function (x) { s[x.ref_id] = 1; });
       upSet = s;
+      upSave();
       upPaint();
-    })['catch'](function () {});
+    }, function () { upBusy = false; });
   }
 
   function upScan(list) {
@@ -5699,12 +5721,17 @@
     els.quota = document.getElementById('na-quota');
     els.items = document.getElementById('na-items');
     els.find = document.getElementById('na-find');
-    upRefresh();
+    upLoad();
+    upRefresh(true);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) upRefresh();
+    });
     window.addEventListener('garden:fileUploaded', function (e) {
       var d = (e && e.detail) || {};
       if (!d.ref_id) { upRefresh(); return; }
       if (!upSet) upSet = Object.create(null);
       upSet[d.ref_id] = 1;
+      upSave();
       upPaint();
     });
     var vmb = document.getElementById('na-vm');

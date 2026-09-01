@@ -113,6 +113,43 @@
   };
 
   /*@3.AURJ.6*/
+  /*@3.AURJ.12*/
+  /*@3.AURJ.13*/
+  Recorder.prototype.listen = function () {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !this.stream || this._an) return this;
+    try {
+      var ctx = new AC();
+      var an = ctx.createAnalyser();
+      an.fftSize = 512;
+      an.smoothingTimeConstant = 0.25;
+      ctx.createMediaStreamSource(this.stream).connect(an);
+      this._ac = ctx;
+      this._an = an;
+      this._buf = new Uint8Array(an.fftSize);
+    } catch (e) {}
+    return this;
+  };
+
+  /*@3.AURJ.14*/
+  Recorder.prototype.level = function () {
+    if (!this._an) return -1;
+    this._an.getByteTimeDomainData(this._buf);
+    var i, v, sum = 0, peak = 0;
+    for (i = 0; i < this._buf.length; i++) {
+      v = (this._buf[i] - 128) / 128;
+      sum += v * v;
+      if (v > peak) peak = v;
+      else if (-v > peak) peak = -v;
+    }
+    return { rms: Math.sqrt(sum / this._buf.length), peak: peak };
+  };
+
+  Recorder.prototype.deafen = function () {
+    if (this._ac) { try { this._ac.close(); } catch (e) {} }
+    this._ac = null; this._an = null; this._buf = null;
+  };
+
   Recorder.prototype.start = function (onTick) {
     var self = this;
     var type = pickType();
@@ -129,6 +166,7 @@
     };
     this.t0 = Date.now();
     mr.start(5000);
+    this.listen();
     return this;
   };
 
@@ -162,6 +200,7 @@
   };
 
   Recorder.prototype.release = function () {
+    this.deafen();
     (this.raw || []).forEach(function (s) {
       try { s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     });

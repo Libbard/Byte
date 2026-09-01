@@ -4,7 +4,9 @@
 
   /*@3.AUNJ.2*/
   /*@3.AUNJ.23*/
-  var DEFAULT_BPS = 12000;
+  /*@3.AUNJ.27*/
+  var BPS = { mic: 12000, system: 32000, both: 32000 };
+  function bpsFor(src) { return BPS[src] || BPS.mic; }
   var MAX_SEC     = 3 * 3600;
   var REF_PREFIX  = 'aud_';
 
@@ -208,21 +210,33 @@
   }
 
   /*@3.AUNJ.6*/
+  /*@3.AUNJ.28*/
   function drawLive() {
     panel.className = 'nfo nrec nfo--busy nrec--live';
     var st = rec.stats();
+    var i, bars = '';
+    for (i = 0; i < 14; i++) bars += '<i style="--h:.12"></i>';
     msg('<span class="nrec-dot" aria-hidden="true"></span>' +
-        '<b class="nrec-clock">' + esc(clock(st.sec)) + '</b> ' +
-        '<span class="nfo-dim nrec-meta">' + esc(size(st.bytes)) + '</span> ' +
-        '<span class="nfo-dim">' +
-        esc(L('· تابعْ كتابتَك ورسمَك، فالتسجيلُ يجري في الخلفيّة.',
-              '· keep writing and drawing — recording continues in the background.')) +
+        '<b class="nrec-clock">' + esc(clock(st.sec)) + '</b>' +
+        '<span class="nrec-wave" role="img" aria-label="' +
+        esc(L('مستوى الصوت', 'Audio level')) + '"' +
+        ' data-ar-title="مستوى الصوت" data-en-title="Audio level">' + bars + '</span>' +
+        '<span class="nfo-dim nrec-meta">' + esc(size(st.bytes)) + '</span>' +
+        '<span class="nfo-dim nrec-say">' +
+        esc(L('· تابعْ كتابتَك، فالتسجيلُ يجري في الخلفيّة.',
+              '· keep working — recording continues in the background.')) +
         '</span>');
-    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-stop">' +
-         '<i class="fa-solid fa-stop" aria-hidden="true"></i> ' +
-         esc(L('أوقفْ واحفظْ', 'Stop &amp; save')) + '</button>' +
-         '<button type="button" class="gsf-btn gsf-btn--ghost nrec-kill">' +
-         esc(L('ألغِ', 'Discard')) + '</button>');
+    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-stop" aria-label="' +
+         esc(L('أوقفْ واحفظْ', 'Stop and save')) + '"' +
+         ' data-ar-title="أوقفْ واحفظْ" data-en-title="Stop and save">' +
+         '<i class="fa-solid fa-stop" aria-hidden="true"></i>' +
+         '<span class="nrec-lbl">' + esc(L('أوقفْ واحفظْ', 'Stop &amp; save')) +
+         '</span></button>' +
+         '<button type="button" class="gsf-btn gsf-btn--ghost nrec-kill" aria-label="' +
+         esc(L('ألغِ التسجيل', 'Discard recording')) + '"' +
+         ' data-ar-title="ألغِ التسجيل" data-en-title="Discard recording">' +
+         '<i class="fa-solid fa-xmark" aria-hidden="true"></i>' +
+         '<span class="nrec-lbl">' + esc(L('ألغِ', 'Discard')) + '</span></button>');
     panel.querySelector('.nrec-stop').addEventListener('click', function () { stop(true); });
     panel.querySelector('.nrec-kill').addEventListener('click', function () { stop(false); });
   }
@@ -234,7 +248,40 @@
     var m = panel.querySelector('.nrec-meta');
     if (c) c.textContent = clock(st.sec);
     if (m) m.textContent = size(st.bytes);
+    wave();
     if (st.sec >= MAX_SEC) stop(true);
+  }
+
+  /*@3.AUNJ.32*/
+  var hush = 0;
+  function wave() {
+    var w = panel && panel.querySelector('.nrec-wave');
+    if (!w || !rec || !rec.level) return;
+    var lv = rec.level();
+    if (!lv || lv === -1) { w.setAttribute('data-off', '1'); return; }
+    /*@3.AUNJ.30*/
+    var db = 20 * Math.log10(Math.max(lv.rms, 1e-5));
+    var v = Math.max(0, Math.min(1, (db + 55) / 50));
+    var bars = w.children, i;
+    for (i = bars.length - 1; i > 0; i--) {
+      bars[i].style.setProperty('--h',
+        bars[i - 1].style.getPropertyValue('--h') || '.12');
+    }
+    if (bars[0]) bars[0].style.setProperty('--h', (0.12 + v * 0.88).toFixed(3));
+    /*@3.AUNJ.31*/
+    hush = lv.peak < 0.008 ? hush + 1 : 0;
+    w.setAttribute('data-hush', hush > 24 ? '1' : '0');
+    var say = panel.querySelector('.nrec-say');
+    if (!say) return;
+    if (hush > 24) {
+      say.textContent = L('· لا يصل صوتٌ منذ عشرِ ثوانٍ — تحقّقْ من المصدر.',
+                          '· no sound for ten seconds — check the source.');
+      say.setAttribute('data-warn', '1');
+    } else if (say.getAttribute('data-warn')) {
+      say.textContent = L('· تابعْ كتابتَك، فالتسجيلُ يجري في الخلفيّة.',
+                          '· keep working — recording continues in the background.');
+      say.removeAttribute('data-warn');
+    }
   }
 
   /*@3.AUNJ.7*/
@@ -244,9 +291,11 @@
     panel.className = 'nfo nrec nfo--busy';
     msg('<b>' + esc(L('يُطلب إذنُ الميكروفون…', 'Asking for microphone permission…')) + '</b>');
     acts('');
-    var r = new R.Recorder({ bps: DEFAULT_BPS, source: source || 'mic' });
+    /*@3.AUNJ.29*/
+    var r = new R.Recorder({ bps: bpsFor(source), source: source || 'mic' });
     r.open().then(function () {
       rec = r;
+      hush = 0;
       rec.start();
       render();
       timer = setInterval(beat, 500);
