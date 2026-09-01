@@ -138,8 +138,10 @@
     if (pre.url) { try { URL.revokeObjectURL(pre.url); } catch (e2) {} }
   }
 
-  function spec(r, file, pages) {
-    return { h: r.hash, n: (file && file.name) || '', sz: r.size, pg: pages };
+  function spec(r, file, pages, gd) {
+    var o = { h: r.hash, n: (file && file.name) || '', sz: r.size, pg: pages };
+    if (gd) o.gd = String(gd);
+    return o;
   }
 
   /*@3.NOPJ5.9*/
@@ -231,19 +233,37 @@
                'You will be asked to pick it every time.');
     }
 
+    /*@3.NOPJ5.31*/
+    function driveDoor() {
+      var GD = window.GardenDrive;
+      if (!GD || !GD.enabled()) return '';
+      if (!sp.gd && !GD.pickerEnabled()) return '';
+      return '<button type="button" class="gsf-btn gsf-btn--go npo-drive">' +
+        '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+        esc(sp.gd ? L('افتحْ من درايف', 'Open from Drive')
+                  : L('من قوقل درايف', 'From Google Drive')) + '</button> ';
+    }
+
     function ask(note) {
+      var dd = driveDoor();
       card('fa-file-lines',
         esc(sp.n || L('ملفُّ PDF', 'PDF file')),
         (note ? esc(note) + '<br>' : '') +
-        esc(L('هذا الملفُّ ليس على هذا الجهاز — اخترْه من جهازك ليُفتح.',
+        esc(sp.gd
+          ? L('هذا الملفُّ ليس على هذا الجهاز — وهو في درايفك.',
+              'This file is not on this device — it is in your Drive.')
+          : L('هذا الملفُّ ليس على هذا الجهاز — اخترْه من جهازك ليُفتح.',
               'This file is not on this device — pick it to open it.')) +
         (sp.sz ? '<br>' + num(size(sp.sz)) +
           (sp.pg ? ' · ' + num(String(sp.pg)) + ' ' + esc(L('صفحة', 'pages')) : '') : ''),
-        '<button type="button" class="gsf-btn gsf-btn--go npo-pick">' +
+        dd +
+        '<button type="button" class="gsf-btn ' + (dd ? '' : 'gsf-btn--go') + ' npo-pick">' +
         '<i class="fa-solid fa-file-import" aria-hidden="true"></i> ' +
-        esc(L('اخترِ الملفّ', 'Choose the file')) + '</button>');
+        esc(L('من جهازي', 'From my device')) + '</button>');
       var b = stage.querySelector('.npo-pick');
       if (b) b.addEventListener('click', take);
+      var g = stage.querySelector('.npo-drive');
+      if (g) g.addEventListener('click', takeDrive);
       if (!note && window.GardenPdfDoc) {
         window.GardenPdfDoc.available().then(function (a) {
           if (st.dead || a.ok) return;
@@ -316,7 +336,7 @@
         if (st.dead) { drop(pre); return; }
         if (a === 'no') { drop(pre); ask(); return; }
         if (a === 'link' && o.onRelink) {
-          sp = spec(got, file, pre.pages);
+          sp = spec(got, file, pre.pages, lastGd);
           o.onRelink(sp, (want && want.h) || null);
         }
         show(file, pre);
@@ -329,33 +349,70 @@
       try { dlg.showModal(); } catch (e2) { close('once'); }
     }
 
+    var lastGd = null;
+
     function take() {
       pickFile().then(function (file) {
         if (!file || st.dead) return;
-        var D = window.GardenPdfDoc;
-        if (!D) { fail(broken()); return; }
-        busy(L('تُقرأ بصمةُ الملفّ…', 'Reading the file fingerprint…'));
-        D.hash(file, function (at, of) {
-          if (of) step(Math.round(at * 100 / of));
-        }).then(function (r) {
-          if (st.dead) return null;
-          return unlock(file).then(function (pre) {
-            if (st.dead) { drop(pre); return null; }
-            if (pre.pages > MAX_PAGES) { drop(pre); fail(tooMany(pre.pages)); return null; }
-            D.put(r.hash, file, { name: file.name || '' });
-            if (sp.h && r.hash !== sp.h) { warn(r, file, pre); return null; }
-            if (!sp.h && o.onRelink) {
-              sp = spec(r, file, pre.pages);
-              o.onRelink(sp, null);
-            }
-            show(file, pre);
-            return null;
-          });
-        })['catch'](function (e) {
+        adoptFile(file, null);
+      });
+    }
+
+    /*@3.NOPJ5.32*/
+    function takeDrive() {
+      var GD = window.GardenDrive;
+      if (!GD) return;
+      var pull = function (id, name) {
+        busy(L('يُنزَّل من درايف…', 'Downloading from Drive…'));
+        return GD.download(id, function (at, of) {
+          var e = stage.querySelector('.npo-msg');
+          if (e && of) e.textContent = L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
+            Math.round(at * 100 / of) + '%';
+        }).then(function (blob) {
           if (st.dead) return;
-          if (e && e.cancelled) { ask(); return; }
-          fail(locked(e) ? sealed() : broken());
+          adoptFile(new File([blob], name || sp.n || 'file.pdf',
+                             { type: 'application/pdf' }), id);
         });
+      };
+      var go = sp.gd
+        ? GD.token(true).then(function () { return pull(sp.gd, sp.n); })
+        : GD.pick().then(function (p) {
+            if (st.dead) return;
+            if (!p) { ask(); return; }
+            return pull(p.id, p.name);
+          });
+      go['catch'](function (e) {
+        if (st.dead) return;
+        fail(GD.reason(e));
+      });
+    }
+
+    function adoptFile(file, gd) {
+      var D = window.GardenPdfDoc;
+      if (!D) { fail(broken()); return; }
+      lastGd = gd || null;
+      busy(L('تُقرأ بصمةُ الملفّ…', 'Reading the file fingerprint…'));
+      D.hash(file, function (at, of) {
+        if (of) step(Math.round(at * 100 / of));
+      }).then(function (r) {
+        if (st.dead) return null;
+        return unlock(file).then(function (pre) {
+          if (st.dead) { drop(pre); return null; }
+          if (pre.pages > MAX_PAGES) { drop(pre); fail(tooMany(pre.pages)); return null; }
+          D.put(r.hash, file, { name: file.name || '' });
+          if (sp.h && r.hash !== sp.h) { warn(r, file, pre); return null; }
+          /*@3.NOPJ5.33*/
+          if (o.onRelink && (!sp.h || (gd && sp.gd !== gd))) {
+            sp = spec(r, file, pre.pages, gd || sp.gd);
+            o.onRelink(sp, null);
+          }
+          show(file, pre);
+          return null;
+        });
+      })['catch'](function (e) {
+        if (st.dead) return;
+        if (e && e.cancelled) { ask(); return; }
+        fail(locked(e) ? sealed() : broken());
       });
     }
 
@@ -538,15 +595,37 @@
         if (f) { show(f, null); return; }
         /*@3.NOPJ5.30*/
         var C = window.GardenFilesPdf;
-        if (!C) { ask(); return; }
-        C.restore(sp.h, sp.n || '', function (at, of) {
-          var e = stage.querySelector('.npo-msg');
-          if (e && of) e.textContent = L('يُجلب من الحديقة… ', 'Fetching from the garden… ') +
-            Math.round(at * 100 / of) + '%';
-        }).then(function (got) {
+        var GD = window.GardenDrive;
+        /*@3.NOPJ5.34*/
+        var fromDrive = (sp.gd && GD && GD.enabled())
+          ? GD.download(sp.gd, function (at, of) {
+              var e = stage.querySelector('.npo-msg');
+              if (e && of) e.textContent = L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
+                Math.round(at * 100 / of) + '%';
+            }).then(function (blob) {
+              if (st.dead || !blob) return null;
+              var D = window.GardenPdfDoc;
+              return D.hash(blob).then(function (r) {
+                if (r.hash !== sp.h) return null;
+                var file = new File([blob], sp.n || 'file.pdf', { type: 'application/pdf' });
+                D.put(sp.h, file, { name: file.name });
+                return file;
+              });
+            })['catch'](function () { return null; })
+          : Promise.resolve(null);
+        fromDrive.then(function (got) {
           if (st.dead) return;
-          if (got) show(got, null); else ask();
-        }, function () { if (!st.dead) ask(); });
+          if (got) { show(got, null); return; }
+          if (!C) { ask(); return; }
+          C.restore(sp.h, sp.n || '', function (at, of) {
+            var e = stage.querySelector('.npo-msg');
+            if (e && of) e.textContent = L('يُجلب من الحديقة… ', 'Fetching from the garden… ') +
+              Math.round(at * 100 / of) + '%';
+          }).then(function (got2) {
+            if (st.dead) return;
+            if (got2) show(got2, null); else ask();
+          }, function () { if (!st.dead) ask(); });
+        });
       }, function () { if (!st.dead) ask(); });
     }
 

@@ -5754,6 +5754,12 @@
     var cb = document.getElementById('na-cloud');
     if (cb) cb.addEventListener('click', function () {
       var C = window.GardenFilesPdf;
+      /*@3.NOAJ.265*/
+      if (cb.classList.contains('na-icb--up')) {
+        saveState('', L('محفوظٌ عندنا — يفتح على أجهزتك الأخرى.',
+                        'Saved with us — it opens on your other devices.'));
+        return;
+      }
       if (C && C.ask && C.ask()) return;
       saveState('error', L('افتحْ ملفَّ PDF أوّلاً ليُحفظ عندنا.',
                            'Open a PDF file first to keep a copy with us.'));

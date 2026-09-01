@@ -74,7 +74,7 @@
   }
 
   var rec = null, timer = null, panel = null, busy = false, urls = {};
-  var cap = null, drawer = null, escOn = null;
+  var cap = null, drawer = null, escOn = null, settleOn = null;
 
   function host() { return document.getElementById('na-doc-body'); }
   function micBtn() { return document.getElementById('na-mic'); }
@@ -91,8 +91,8 @@
     var pad = 12;
     if (side === 'cap') {
       /*@3.AUNJ.50*/
-      var side = window.innerWidth > 640;
-      var off = pad + ((side && drawer && drawer.offsetWidth) || 0);
+      var wide = window.innerWidth > 640;
+      var off = pad + ((wide && drawer && drawer.offsetWidth) || 0);
       el.style.top = (r.top + pad) + 'px';
       if (rtl) { el.style.right = (window.innerWidth - r.right + off) + 'px'; el.style.left = 'auto'; }
       else     { el.style.left = (r.left + off) + 'px'; el.style.right = 'auto'; }
@@ -111,7 +111,9 @@
     var br = b ? b.getBoundingClientRect() : r;
     var w = el.offsetWidth || 256;
     var room = Math.max(8, window.innerWidth - w - 8);
-    el.style.top = (br.bottom + 8) + 'px';
+    /*@3.AUNJ.57*/
+    if (!br.width && !br.height) return;
+    el.style.top = Math.max(8, br.bottom + 8) + 'px';
     if (rtl) {
       el.style.right = Math.min(room, Math.max(8, window.innerWidth - br.right)) + 'px';
       el.style.left = 'auto';
@@ -150,6 +152,14 @@
       '<div class="nrp-b"></div><div class="nrp-f"></div>';
     document.body.appendChild(panel);
     place(panel, r, 'pop');
+    /*@3.AUNJ.56*/
+    [0, 120, 300, 600, 1000].forEach(function (ms) {
+      setTimeout(function () { if (panel) place(panel, anchorRect(), 'pop'); }, ms);
+    });
+    if (!settleOn) {
+      settleOn = function () { if (panel) place(panel, anchorRect(), 'pop'); };
+      document.addEventListener('transitionend', settleOn, true);
+    }
     var b = micBtn();
     if (b) b.setAttribute('aria-expanded', 'true');
     return panel;
@@ -187,11 +197,11 @@
     if (!panel) { shell(); away(); }
     if (!panel) return;
     panel.className = 'nrp' + (cls ? ' ' + cls : '');
-    /* @@AUN.A */
+    /*@3.AUNJ.53*/
     place(panel, anchorRect(), 'pop');
   }
 
-  /* @@AUN.B */
+  /*@3.AUNJ.54*/
   function settled(refId) {
     close();
     openDrawer();
@@ -264,10 +274,9 @@
     acts('<button type="button" class="gsf-btn gsf-btn--go nrec-go nrp-go">' +
          '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i> ' +
          esc(L('ابدأِ التسجيل', 'Start recording')) + '</button>' + listLink() +
-         '<button type="button" class="gsf-btn gsf-btn--ghost nrp-file" aria-label="' +
-         esc(L('أضِفْ تسجيلاً من جهازك', 'Add a recording from your device')) + '"' +
-         ' data-ar-title="أضِفْ تسجيلاً من جهازك" data-en-title="Add a recording from your device">' +
-         '<i class="fa-solid fa-file-import" aria-hidden="true"></i></button>');
+         '<button type="button" class="gsf-btn gsf-btn--ghost nrp-file">' +
+         '<i class="fa-solid fa-file-import" aria-hidden="true"></i> ' +
+         esc(L('من جهازك', 'From your device')) + '</button>');
     bindList();
     var fb = panel.querySelector('.nrp-file');
     if (fb) fb.addEventListener('click', pickExternal);
@@ -525,7 +534,7 @@
     return '.webm';
   }
 
-  /* @@AUN.C */
+  /*@3.AUNJ.55*/
   var EXT_MIME = { m4a: 'audio/x-m4a', mp3: 'audio/mpeg', wav: 'audio/wav', aac: 'audio/aac',
                    amr: 'audio/amr', '3gp': 'audio/3gpp', ogg: 'audio/ogg', opus: 'audio/opus',
                    oga: 'audio/ogg', webm: 'audio/webm', mp4: 'video/mp4', flac: 'audio/flac',

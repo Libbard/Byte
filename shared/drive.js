@@ -1,7 +1,7 @@
 ;(function () {
   'use strict';
 
-  /* @@DRV.1 */
+  /*@3.DRIJ.1*/
   var SCOPE = 'https://www.googleapis.com/auth/drive.file';
   var API = 'https://www.googleapis.com/drive/v3';
   var UP = 'https://www.googleapis.com/upload/drive/v3';
@@ -24,7 +24,7 @@
   function enabled() { return !!clientId(); }
   function pickerEnabled() { return enabled() && !!pickerKey(); }
 
-  /* @@DRV.2 */
+  /*@3.DRIJ.2*/
   var scripts = {};
   function script(src, ready) {
     if (ready()) return Promise.resolve(true);
@@ -47,7 +47,7 @@
     return !!(window.google && window.google.picker && window.gapi);
   }
 
-  /* @@DRV.3 */
+  /*@3.DRIJ.3*/
   var tok = null, exp = 0, client = null;
 
   function fresh() { return !!(tok && Date.now() < exp - SLACK_MS); }
@@ -103,7 +103,7 @@
     return e;
   }
 
-  /* @@DRV.4 */
+  /*@3.DRIJ.4*/
   function call(method, url, body, t, extra) {
     var h = { Authorization: 'Bearer ' + t };
     var o = { method: method, headers: h };
@@ -127,7 +127,7 @@
     return call(method, url, body, t).then(function (r) { return r.json(); });
   }
 
-  /* @@DRV.5 */
+  /*@3.DRIJ.5*/
   function meta(id) {
     return token(false).then(function (t) {
       return json('GET', API + '/files/' + encodeURIComponent(id) +
@@ -156,7 +156,7 @@
     });
   }
 
-  /* @@DRV.6 */
+  /*@3.DRIJ.6*/
   var folderId = null;
   function folder() {
     if (folderId) return Promise.resolve(folderId);
@@ -176,7 +176,7 @@
     }).then(function (id) { folderId = id; return id; });
   }
 
-  /* @@DRV.7 */
+  /*@3.DRIJ.7*/
   function upload(blob, opts) {
     var o = opts || {};
     var name = String(o.name || 'file');
@@ -226,7 +226,7 @@
     });
   }
 
-  /* @@DRV.8 */
+  /*@3.DRIJ.8*/
   function pick(opts) {
     var o = opts || {};
     if (!pickerEnabled()) return Promise.reject(err('picker_disabled'));
@@ -267,7 +267,7 @@
     });
   }
 
-  /* @@DRV.9 */
+  /*@3.DRIJ.9*/
   function reason(e) {
     var k = (e && e.code) || '';
     if (k === 'drive_disabled' || k === 'picker_disabled') {
