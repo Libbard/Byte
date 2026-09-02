@@ -975,19 +975,18 @@
     upT = setTimeout(function () { renderList(); }, 60);
   }
 
+  /*@3.NOAJ.268*/
   function upRefresh(force) {
     var f = window.GardenFiles;
-    if (!f || !f.available || upBusy) return;
+    if (!f || !f.state || upBusy) return;
     var now = Date.now();
     if (!force && now - upAsk < 60000) return;
     upAsk = now;
     upBusy = true;
-    f.available().then(function (a) {
-      return a && a.ok ? f.list() : null;
-    }).then(function (r) {
+    f.state().then(function (r) {
       upBusy = false;
       /*@3.NOAJ.260*/
-      if (!r) return;
+      if (!r || !r.ok) return;
       var s = Object.create(null);
       (r.files || []).forEach(function (x) { s[x.ref_id] = 1; });
       upSet = s;
@@ -2879,6 +2878,10 @@
     if (!pdfUi) return;
     try { pdfUi.destroy(); } catch (e) {}
     pdfUi = null;
+    /*@3.NOAJ.269*/
+    if (window.GardenFilesPdf && GardenFilesPdf.forget) {
+      try { GardenFilesPdf.forget(); } catch (eF) {}
+    }
     updatePgNav();
     paintPdfBtns();
     syncTitleWord();

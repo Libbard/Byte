@@ -841,6 +841,7 @@
     this.relayer();
   };
 
+  /*@3.NOPJ3.62*/
   View.prototype.setScale = function (v, opts) {
     if (!(v > 0) || Math.abs(v - this.scale) < 0.0005) return;
     var o = opts || {};

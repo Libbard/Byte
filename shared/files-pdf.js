@@ -52,6 +52,52 @@
     })['catch'](function () { return null; });
   }
 
+  /*@3.FIPJ.17*/
+  var liveRoot = null, liveT = 0, liveOn = null;
+
+  function clearT() { if (liveT) { clearTimeout(liveT); liveT = 0; } }
+
+  /*@3.FIPJ.18*/
+  function ttl(el, ms) {
+    clearT();
+    if (!el || !(ms > 0)) return;
+    var left = ms, from = Date.now();
+    var tick = function () { liveT = setTimeout(function () { close(liveRoot); }, left); };
+    var hold = function () {
+      left = Math.max(1200, left - (Date.now() - from));
+      clearT();
+    };
+    var go = function () { from = Date.now(); tick(); };
+    el.addEventListener('pointerenter', hold);
+    el.addEventListener('focusin', hold);
+    el.addEventListener('pointerleave', go);
+    el.addEventListener('focusout', go);
+    tick();
+  }
+
+  function watch(root) {
+    liveRoot = root;
+    if (liveOn) return;
+    liveOn = {
+      key: function (e) {
+        if (e.key !== 'Escape' || !liveRoot) return;
+        var el = liveRoot.querySelector('.nfo');
+        if (!el || el.classList.contains('nfo--busy')) return;
+        e.stopPropagation();
+        close(liveRoot);
+      },
+      out: function (e) {
+        if (!liveRoot) return;
+        var el = liveRoot.querySelector('.nfo');
+        if (!el || el.contains(e.target)) return;
+        if (el.classList.contains('nfo--busy')) return;
+        close(liveRoot);
+      }
+    };
+    document.addEventListener('keydown', liveOn.key, true);
+    document.addEventListener('pointerdown', liveOn.out, true);
+  }
+
   function bar(root) {
     var el = root.querySelector('.nfo');
     if (el) return el;
@@ -59,10 +105,13 @@
     el.className = 'nfo';
     el.setAttribute('role', 'status');
     root.insertBefore(el, root.firstChild);
+    watch(root);
     return el;
   }
 
   function close(root) {
+    clearT();
+    if (!root) return;
     var el = root.querySelector('.nfo');
     if (el && el.parentNode) el.parentNode.removeChild(el);
   }
@@ -102,28 +151,74 @@
               'Only the original file may be removed, and you can pick it again from ' +
               'your device whenever you like.')) +
         '</span>'));
-    if (said) { setTimeout(function () { close(root); }, 7000); return; }
+    /*@3.FIPJ.29*/
+    if (said) { ttl(el, 7000); return; }
     try { localStorage.setItem(VOW_LS, '1'); } catch (e) {}
-    if (el) el.setAttribute('role', 'alert');
+    if (el) { el.setAttribute('role', 'alert'); ttl(el, 20000); }
+  }
+
+  /*@3.FIPJ.23*/
+  function excuse(why) {
+    if (why === 'no_vault') {
+      return L('فعّلِ المزامنةَ أوّلاً — من ⚙ الإعدادات ← المزامنة. عندها يُحفظ الملفُّ '
+               + 'عندنا ويفتح على بقيّةِ أجهزتك.',
+               'Turn sync on first — Settings ⚙ → Sync. Then the file is kept with us '
+               + 'and opens on your other devices.');
+    }
+    if (why === 'locked') {
+      return L('خزنتُك مقفلةٌ على هذا الجهاز. افتحْها من المزامنةِ ثمَّ أعِدْ المحاولة.',
+               'Your vault is locked on this device. Unlock it from Sync, then try again.');
+    }
+    if (why === 'not_enrolled') {
+      return L('حفظُ الملفّاتِ عندنا ما زال في التجربةِ ولم يُفتح لحسابك بعد. '
+               + 'ورسومُك وملاحظاتُك تُزامَن كالمعتاد.',
+               'Keeping files with us is still in testing and is not open to your '
+               + 'account yet. Your drawings and notes sync as usual.');
+    }
+    if (why === 'not_configured') {
+      return L('خدمةُ الملفّاتِ متوقّفةٌ الآن عندنا — لا عندك. جرّبْ بعد قليل.',
+               'Our file service is down right now — not yours. Try again shortly.');
+    }
+    if (why === 'rate_limited') {
+      return L('محاولاتٌ كثيرةٌ في وقتٍ قصير. انتظرْ دقيقةً ثمَّ أعِدْ المحاولة.',
+               'Too many attempts in a short time. Wait a minute, then try again.');
+    }
+    if (why === 'offline') {
+      return L('لا اتّصالَ بالشبكةِ الآن. عملُك محفوظٌ على هذا الجهازِ ويُرفع حين تعود.',
+               'You are offline. Your work is saved on this device and will upload '
+               + 'when you are back.');
+    }
+    return L('تعذّر الوصولُ إلى خدمةِ الملفّات', 'The file service could not be reached') +
+           (why ? ' (' + why + ')' : '') + '.';
   }
 
   /*@3.FIPJ.11*/
+  /*@3.FIPJ.24*/
   function ask() {
     if (!last) return false;
     var f = F();
     if (!f) return false;
-    var root = last.root, h = last.h;
-    f.available().then(function (a) {
-      if (!a.ok) { last.no(); return; }
-      return f.list().then(function (r) {
-        var mine = (r.files || []).filter(function (x) {
-          return x.ref_id === refIdOf(h);
-        })[0];
-        if (mine) { last.have(mine.stored_bytes); return; }
-        last.draw();
-      });
-    })['catch'](function () { last.no(); });
+    var h = last.h, mine = last;
+    mine.wait();
+    f.state().then(function (a) {
+      if (mine !== last) return;
+      if (!a.ok) { mine.no(a.why); return; }
+      var row = (a.files || []).filter(function (x) {
+        return x.ref_id === refIdOf(h);
+      })[0];
+      if (row) { mine.have(row.stored_bytes); return; }
+      mine.draw();
+    })['catch'](function (e) {
+      if (mine === last) mine.no((e && e.message) || '');
+    });
     return true;
+  }
+
+  /*@3.FIPJ.25*/
+  function forget() {
+    if (last && last.root) close(last.root);
+    last = null;
+    liveRoot = null;
   }
 
   function state(h) {
@@ -131,24 +226,22 @@
   }
 
   /*@3.FIPJ.5*/
-  function offer(root, h, name, getFile, src) {
+  /*@3.FIPJ.26*/
+  function offer(root, h, name, getFile) {
     var f = F();
     if (!f || !h || !root) return;
-    /*@3.FIPJ.7*/
-    if (src === 'drive' || src === 'cloud') return;
 
-    f.available().then(function (a) {
+    f.state().then(function (a) {
       if (!a.ok) return;
-      return f.list().then(function (r) {
-        var mine = (r.files || []).filter(function (x) { return x.ref_id === refIdOf(h); })[0];
-        /*@3.FIPJ.8*/
-        /*@3.FIPJ.14*/
-        if (mine) { markSeen(h); return; }
-        if (seen()[refIdOf(h)]) return;
-        draw();
-      });
+      var mine = (a.files || []).filter(function (x) { return x.ref_id === refIdOf(h); })[0];
+      /*@3.FIPJ.8*/
+      /*@3.FIPJ.14*/
+      if (mine) { markSeen(h); return; }
+      if (seen()[refIdOf(h)]) return;
+      draw();
     })['catch'](function () {});
 
+    /*@3.FIPJ.19*/
     function line(icon, cls, html, acts, label) {
       var el = bar(root);
       el.className = 'nfo' + (cls ? ' ' + cls : '');
@@ -160,6 +253,11 @@
         esc(label || L('إغلاق', 'Dismiss')) + '">' +
         '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>';
       el.querySelector('.nfo-no').addEventListener('click', function () { close(root); });
+      /*@3.FIPJ.20*/
+      var asks = !!(acts && acts.indexOf('<button') >= 0);
+      var busyNow = /nfo--busy/.test(cls || '');
+      if (!asks && !busyNow) ttl(el, /nfo--bad/.test(cls || '') ? 12000 : 6000);
+      else clearT();
       return el;
     }
 
@@ -180,18 +278,19 @@
       root: root, h: h,
       draw: draw,
       line: line,
+      /*@3.FIPJ.21*/
+      wait: function () {
+        line('fa-circle-notch fa-spin', 'nfo--wait',
+             '<span class="nfo-msg">' + esc(L('يُسأل عنه…', 'Checking…')) + '</span>');
+      },
       have: function (b) {
         line('fa-cloud', 'nfo--ok',
           '<b>' + esc(L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '</b> ' +
           esc(L('· يفتح على أجهزتك الأخرى.', '· it opens on your other devices.')) +
           (b ? ' <span class="nfo-dim">' + esc(size(b)) + '</span>' : ''));
       },
-      no: function () {
-        line('fa-triangle-exclamation', 'nfo--bad',
-          esc(L('رفعُ الملفّاتِ غيرُ مفعَّلٍ في حسابك بعد. يعمل الملفُّ على هذا الجهاز كما هو.',
-                'File upload is not enabled on your account yet. The file works on ' +
-                'this device as it is.')));
-      }
+      /*@3.FIPJ.22*/
+      no: function (why) { line('fa-triangle-exclamation', 'nfo--bad', esc(excuse(why))); }
     };
 
     function pick(over) {
@@ -282,7 +381,9 @@
       }
       window.addEventListener('garden:fileProgress', on);
 
+      /*@3.FIPJ.27*/
       F().upload(file, { refId: refIdOf(h), name: name || file.name || 'file.pdf',
+                         mime: 'application/pdf',
                          over: !!over, signal: ac ? ac.signal : null })
         .then(function (r) {
           window.removeEventListener('garden:fileProgress', on);
@@ -315,9 +416,24 @@
                  'What arrived differs from what was sent — please try again.');
       }
       if (k === 'not_found' || k === 'files_not_configured') {
-        return L('رفعُ الملفّات غيرُ متاحٍ في حسابك بعد.',
-                 'File upload is not available on your account yet.');
+        return excuse(k === 'not_found' ? 'not_enrolled' : 'not_configured');
       }
+      /*@3.FIPJ.28*/
+      if (k === 'no_vault') return excuse('no_vault');
+      if (k === 'bad_mime') {
+        return L('هذه الصيغةُ لا نقبلها بعد' + (e && e.mime ? ' (' + e.mime + ')' : '') + '.',
+                 'We do not accept this format yet' +
+                 (e && e.mime ? ' (' + e.mime + ')' : '') + '.');
+      }
+      if (k === 'vault_full') {
+        return L('امتلأت مساحتُك عندنا. احذفْ ملفّاً قديماً ثمَّ أعِدْ المحاولة.',
+                 'Your space with us is full. Remove an old file, then try again.');
+      }
+      if (k === 'not_uploaded') {
+        return L('انقطع الرفعُ قبل أن يصل شيء — أعِدْ المحاولة.',
+                 'The upload stopped before anything arrived — please try again.');
+      }
+      if (k === 'rate_limited') return excuse('rate_limited');
       if (/^put_/.test(k)) {
         return L('انقطع الاتّصالُ أثناء الرفع — أعِدْ المحاولة.',
                  'The connection dropped during upload — please try again.');
@@ -327,5 +443,5 @@
   }
 
   window.GardenFilesPdf = { restore: restore, offer: offer, refIdOf: refIdOf,
-                            ask: ask, state: state };
+                            ask: ask, state: state, forget: forget };
 })();

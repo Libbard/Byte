@@ -4,6 +4,38 @@
 
   var PUT_RETRY = 2;
 
+  /*@3.FISJ2.6*/
+  var MIMES = [
+    'application/pdf',
+    'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/opus',
+    'audio/x-m4a', 'audio/aac', 'audio/mpeg', 'audio/wav', 'audio/x-wav',
+    'audio/3gpp', 'audio/amr', 'audio/flac', 'audio/x-caf',
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska', 'video/3gpp'
+  ];
+
+  /*@3.FISJ2.7*/
+  var ALIAS = {
+    'audio/mp3': 'audio/mpeg', 'audio/mpeg3': 'audio/mpeg',
+    'audio/x-mpeg': 'audio/mpeg', 'audio/x-mp3': 'audio/mpeg',
+    'audio/m4a': 'audio/x-m4a', 'audio/mp4a-latm': 'audio/mp4',
+    'audio/wave': 'audio/wav', 'audio/vnd.wave': 'audio/wav',
+    'audio/x-pn-wav': 'audio/wav',
+    'audio/x-aac': 'audio/aac', 'audio/x-hx-aac-adts': 'audio/aac',
+    'audio/aacp': 'audio/aac', 'audio/vnd.dlna.adts': 'audio/aac',
+    'audio/oga': 'audio/ogg', 'audio/vorbis': 'audio/ogg',
+    'audio/x-vorbis+ogg': 'audio/ogg', 'audio/x-ogg': 'audio/ogg',
+    'audio/x-flac': 'audio/flac', 'audio/3gpp2': 'audio/3gpp',
+    'audio/amr-wb': 'audio/amr', 'audio/3gpp2': 'audio/3gpp',
+    'video/3gpp2': 'video/3gpp', 'video/mp4v-es': 'video/mp4'
+  };
+
+  /*@3.FISJ2.8*/
+  function normMime(m) {
+    var v = String(m || '').split(';')[0].trim().toLowerCase();
+    if (ALIAS[v]) v = ALIAS[v];
+    return MIMES.indexOf(v) >= 0 ? v : '';
+  }
+
   function endpoint() {
     var e = window.GardenEndpoints;
     return (e && e.sync) || '';
@@ -78,13 +110,20 @@
     var refId = o.refId || ('f_' + Date.now().toString(36) + '_' +
                             Math.random().toString(36).slice(2, 8));
     var name = String(o.name || 'file.pdf');
-    var mime = blob.type || 'application/pdf';
+    /*@3.FISJ2.9*/
+    var mime = normMime(o.mime) || normMime(blob.type);
     var stage = function (s, extra) {
       emit('garden:fileProgress', Object.assign({ ref_id: refId, stage: s }, extra || {}));
     };
 
     return vaultId().then(function (id) {
       if (!id) throw new Error('no_vault');
+      /*@3.FISJ2.10*/
+      if (!mime) {
+        stage('error', { error: 'bad_mime' });
+        throw Object.assign(new Error('bad_mime'),
+                            { error: 'bad_mime', mime: o.mime || blob.type || '' });
+      }
 
       stage('hash', { at: 0, of: blob.size });
       return hashOf(blob, function (at, of) { stage('hash', { at: at, of: of }); })
@@ -185,18 +224,34 @@
     });
   }
 
-  function available() {
+  /*@3.FISJ2.11*/
+  var WHY = { 404: 'not_enrolled', 503: 'not_configured', 401: 'locked',
+              429: 'rate_limited', 403: 'origin', 400: 'bad_vault' };
+
+  /*@3.FISJ2.12*/
+  function state() {
     return vaultId().then(function (id) {
-      if (!id) return { ok: false, why: 'no_vault' };
+      if (!id) return { ok: false, why: 'no_vault', files: [] };
       return jreq('GET', base(id), id).then(function (r) {
-        if (r.status === 404) return { ok: false, why: 'not_enrolled' };
-        if (r.status === 503) return { ok: false, why: 'not_configured' };
-        return { ok: r.ok, why: r.ok ? '' : (r.body.error || 'error') };
-      });
+        if (r.ok) {
+          return { ok: true, why: '', files: r.body.files || [],
+                   used: Number(r.body.used || 0), max: Number(r.body.max || 0),
+                   max_audio: Number(r.body.max_audio || 0),
+                   max_vault: Number(r.body.max_vault || 0) };
+        }
+        return { ok: false, status: r.status, files: [],
+                 why: WHY[r.status] || (r.body && r.body.error) || ('http_' + r.status),
+                 pw: !!(r.body && r.body.pw), google: !!(r.body && r.body.google) };
+      }, function () { return { ok: false, why: 'offline', files: [] }; });
     });
   }
 
+  function available() { return state(); }
+
   window.GardenFiles = {
+    mimes: MIMES,
+    normMime: normMime,
+    state: state,
     upload: upload,
     list: list,
     link: link,
