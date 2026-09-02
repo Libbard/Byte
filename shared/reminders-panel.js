@@ -215,6 +215,25 @@
       <div class="rem-chan-lead" data-lead-for="tasks"></div>
     </div>
 
+    <!--@3.REPJ.14-->
+    <div class="rem-chan" data-chan="study">
+      <div class="rem-chan-head">
+        <span class="rem-chan-icon"><i class="fa-solid fa-book-open"></i></span>
+        <div class="rem-chan-name" data-ar="قبل المذاكرة وجلسات الخطّة" data-en="Before study &amp; plan sessions">قبل المذاكرة وجلسات الخطّة</div>
+        <button class="rem-switch" role="switch" data-chan-switch="study" aria-checked="true"></button>
+      </div>
+      <div class="rem-chan-lead" data-lead-for="study"></div>
+    </div>
+
+    <div class="rem-chan" data-chan="events">
+      <div class="rem-chan-head">
+        <span class="rem-chan-icon"><i class="fa-solid fa-bookmark"></i></span>
+        <div class="rem-chan-name" data-ar="قبل الأحداث العامّة" data-en="Before events">قبل الأحداث العامّة</div>
+        <button class="rem-switch" role="switch" data-chan-switch="events" aria-checked="true"></button>
+      </div>
+      <div class="rem-chan-lead" data-lead-for="events"></div>
+    </div>
+
     <!--@3.REPJ.10-->
 
     <div class="rem-chan" data-chan="review">

@@ -381,10 +381,15 @@
       return bits.join(' · ');
     }
 
-    var n = 0, courses = {};
+    var n = 0, courses = {}, termStart = '';
     (secs || []).forEach(function (sec) {
       if (!sec || !sec.crn) return;
       var crn = String(sec.crn);
+      (sec.mg || []).forEach(function (m) {
+        if (!m || (m.type !== 'CLAS' && m.type !== 'VRTL')) return;
+        var ds = iso(m.start_date);
+        if (ds && (!termStart || ds < termStart)) termStart = ds;
+      });
       /*@3.SXLJ.45*/
       /*@3.SXLJ.55*/
       /*@3.SXLJ.53*/
@@ -397,6 +402,11 @@
       if (noEx) { rows.exams = []; if (!noLec) rep.blocked.push(crn); }
       rows.lectures.forEach(function (l) {
         var cur = pick(d.lectures, ladder(l, crn, function (r) { return r.day === l.day; }));
+        /*@3.SXLJ.64*/
+        if (cur) {
+          if (l.start_date && cur.start_date !== l.start_date) { cur.start_date = l.start_date; snapStamped = true; }
+          if (l.end_date && cur.end_date !== l.end_date) { cur.end_date = l.end_date; snapStamped = true; }
+        }
         var verdict = reconcile(cur, l, lecSnap, function (c, fresh) {
           c.day = fresh.day;
           c.start_time = fresh.start_time; c.end_time = fresh.end_time;
@@ -445,6 +455,12 @@
       if (touched) { n++; courses[sec.c] = { sec: sec, crn: crn }; }
       mergeInstructors(sec.c, sec.f);
     });
+
+    /*@3.SXLJ.65*/
+    if (termStart) {
+      var stx = d.settings || (d.settings = {});
+      if (stx.sx_term_start !== termStart) { stx.sx_term_start = termStart; snapStamped = true; }
+    }
 
     /*@3.SXLJ.28*/
     var dirty = rep.added || rep.updated || rep.adopted || exAdded || snapStamped;

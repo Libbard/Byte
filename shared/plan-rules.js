@@ -83,7 +83,58 @@
     }
     return ix[code] || null;
   }
-  function dropIndex() { _byCode = {}; }
+  function dropIndex() { _byCode = {}; _owned = null; _subs = {}; }
+
+  function courseTitle(slug, code, lang) {
+    var c = courseBy(slug, code);
+    if (!c) return '';
+    var ar = (c.ta != null ? c.ta : c.title_ar) || '';
+    var en = (c.t != null ? c.t : c.title) || '';
+    return (lang === 'en') ? (en || ar) : (ar || en);
+  }
+  function courseCh(slug, code) { return fCh(courseBy(slug, code)); }
+
+  var _owned = null, _subs = {};
+  function ownedBy(code) {
+    if (!_owned) {
+      _owned = {};
+      programs().forEach(function (p) {
+        (p.courses || []).forEach(function (c) {
+          var k = fCode(c); if (!k) return;
+          (_owned[k] = _owned[k] || {})[p.slug] = 1;
+        });
+      });
+    }
+    return _owned[code] || null;
+  }
+  /*@3.PLRJ.7*/
+  function planSubjects(slug) {
+    if (_subs[slug || ''] !== undefined) return _subs[slug || ''];
+    var cs = courses(slug);
+    if (!cs.length) return (_subs[slug || ''] = null);
+    var cnt = {}, tot = 0;
+    cs.forEach(function (c) {
+      var m = /^([A-Za-z]+)/.exec(String(fCode(c) || ''));
+      if (!m) return;
+      var s = m[1].toUpperCase();
+      cnt[s] = (cnt[s] || 0) + 1; tot++;
+    });
+    var own = Math.max(3, Math.ceil(tot * 0.15)), out = {};
+    Object.keys(cnt).forEach(function (s) { if (cnt[s] >= own) out[s] = 1; });
+    return (_subs[slug || ''] = out);
+  }
+  /*@3.PLRJ.8*/
+  function inProgram(slug, code) {
+    if (!code) return null;
+    if (!courses(slug).length) return null;
+    if (courseBy(slug, code)) return true;
+    var own = ownedBy(code);
+    /*@3.PLRJ.9*/
+    if (own) return false;
+    var m = /^([A-Za-z]+)/.exec(String(code));
+    var subs = planSubjects(slug);
+    return !!(m && subs && subs[m[1].toUpperCase()]);
+  }
 
   /*@3.PLRJ.5*/
   function levelSpan(slug) {
@@ -318,6 +369,10 @@
     program: program,
     courses: courses,
     courseBy: courseBy,
+    courseTitle: courseTitle,
+    courseCh: courseCh,
+    inProgram: inProgram,
+    planSubjects: planSubjects,
     dropIndex: dropIndex,
     fCode: fCode,
     fCh: fCh,

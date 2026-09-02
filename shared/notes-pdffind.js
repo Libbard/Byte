@@ -161,7 +161,7 @@
       if (st.dead || !view) return;
       var host = view.marks ? view.marks(i) : null;
       if (!host) return;
-      host.innerHTML = '';
+      wipeMine(host);
       if (!st.q || !td) return;
       var slot = view.slots && view.slots[i];
       if (!slot) return;
@@ -189,11 +189,17 @@
       if (st.want && st.want.p === i) reveal(st.want);
     }
 
+    /*@3.NOPJ7.7*/
+    function wipeMine(host) {
+      var old = host.querySelectorAll('.gpv-mark');
+      for (var q = 0; q < old.length; q++) old[q].remove();
+    }
+
     function repaintAll() {
       if (!view || !view.slots) return;
       for (var k in view.slots) {
         var s = view.slots[k];
-        if (s.hl) s.hl.innerHTML = '';
+        if (s.hl) wipeMine(s.hl);
         if (s.td) paint(+k, s.td);
       }
     }

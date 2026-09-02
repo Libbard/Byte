@@ -18,8 +18,6 @@
   var ribbon = null;
   var overlay = null;
   var pdfUi = null;
-  /*@3.NOAJ.254*/
-  var curDoc = null;
   var pdfPre = null;
   var pdfDial = null;
   var hist = window.GardenNotesHistory ? GardenNotesHistory.create() : null;
@@ -922,99 +920,6 @@
     b.innerHTML = '<i class="fa-solid ' + (cards ? 'fa-list' : 'fa-table-cells-large') + '" aria-hidden="true"></i>';
   }
 
-  /*@3.NOAJ.258*/
-  /*@3.NOAJ.259*/
-  var UP_LS = '__filesUp';
-  var upSet = null;
-  var upH = Object.create(null);
-  var upT = 0;
-  var upAsk = 0;
-  var upBusy = false;
-
-  function upLoad() {
-    try {
-      var o = JSON.parse(localStorage.getItem(UP_LS) || 'null');
-      if (o && typeof o === 'object') upSet = o;
-    } catch (e) {}
-  }
-
-  function upSave() {
-    try { localStorage.setItem(UP_LS, JSON.stringify(upSet || {})); } catch (e) {}
-  }
-
-  /*@3.NOAJ.263*/
-  function cloudPaint() {
-    var b = document.getElementById('na-cloud');
-    if (!b) return;
-    var h = curDoc && curDoc.pdf && curDoc.pdf.h;
-    /*@3.NOAJ.267*/
-    b.disabled = !h;
-    var up = !!(h && upSet && upSet['pdf_' + String(h).slice(0, 40)]);
-    b.classList.toggle('na-icb--up', up);
-    /*@3.NOAJ.266*/
-    var i = b.querySelector('i');
-    if (i) i.className = 'fa-solid fa-cloud' + (up ? '' : ' na-hollow');
-    var ar = up ? 'محفوظٌ عندنا · يفتح على أجهزتك' : 'احفظْ نسخةً عندنا';
-    var en = up ? 'Saved with us — opens on your devices' : 'Keep a copy with us';
-    b.setAttribute('data-ar-title', ar);
-    b.setAttribute('data-en-title', en);
-    b.setAttribute('aria-label', L(ar, en));
-    /*@3.NOAJ.264*/
-    for (var k = 0; k < MORE.length; k++) {
-      if (MORE[k].id !== 'na-cloud') continue;
-      MORE[k].ar = ar;
-      MORE[k].en = en;
-      MORE[k].icon = up ? 'fa-cloud' : 'fa-cloud na-hollow';
-      MORE[k].on = up ? 1 : 0;
-    }
-  }
-
-  function upPaint() {
-    clearTimeout(upT);
-    cloudPaint();
-    upT = setTimeout(function () { renderList(); }, 60);
-  }
-
-  /*@3.NOAJ.268*/
-  function upRefresh(force) {
-    var f = window.GardenFiles;
-    if (!f || !f.state || upBusy) return;
-    var now = Date.now();
-    if (!force && now - upAsk < 60000) return;
-    upAsk = now;
-    upBusy = true;
-    f.state().then(function (r) {
-      upBusy = false;
-      /*@3.NOAJ.260*/
-      if (!r || !r.ok) return;
-      var s = Object.create(null);
-      (r.files || []).forEach(function (x) { s[x.ref_id] = 1; });
-      upSet = s;
-      upSave();
-      upPaint();
-    }, function () { upBusy = false; });
-  }
-
-  function upScan(list) {
-    var St = window.GardenNotesStore;
-    if (!St || !St.getDoc) return;
-    list.forEach(function (n) {
-      if (n.kind !== 'pdf' || (n.id in upH)) return;
-      upH[n.id] = null;
-      St.getDoc(n.id).then(function (d) {
-        var h = d && d.pdf && d.pdf.h;
-        if (!h) return;
-        upH[n.id] = String(h).slice(0, 40);
-        if (upSet) upPaint();
-      })['catch'](function () {});
-    });
-  }
-
-  function upHas(n) {
-    var h = upH[n.id];
-    return !!(upSet && h && upSet['pdf_' + h]);
-  }
-
   function rowHtml(n) {
     var cur = (n.src === 'rich' && n.id === edId);
     var badges = '';
@@ -1023,11 +928,6 @@
     if (n.kind === 'ink' || n.kind === 'board') badges += '<i class="na-row-badge fa-solid fa-pen-nib" aria-hidden="true"></i>';
     /*@3.NOAJ.209*/
     if (n.kind === 'pdf') badges += '<i class="na-row-badge fa-solid fa-file-lines" aria-hidden="true"></i>';
-    if (upHas(n)) {
-      badges += '<i class="na-row-badge fa-solid fa-cloud" role="img"' +
-        ' aria-label="' + esc(L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '"' +
-        ' data-ar-title="نسخةٌ محفوظةٌ عندنا" data-en-title="A copy is kept with us"></i>';
-    }
     if (!n.editable) badges += '<i class="na-row-badge fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>';
 
     var org = (n.origin && n.origin.label) ? n.origin.label : '';
@@ -1071,7 +971,6 @@
       try { list = window.GardenNotesModel.search(list, S.q); } catch (e) {}
     }
     S.list = list;
-    upScan(list);
     if (els.vname) els.vname.textContent = vName(S.view);
     if (els.count) {
       /*@3.NOAJ.217*/
@@ -1256,13 +1155,6 @@
     /*@3.NOAJ.189*/
     var fb = document.getElementById('na-find-btn');
     if (fb) fb.disabled = !on;
-    /*@3.NOAJ.255*/
-    var mic = document.getElementById('na-mic');
-    if (mic) mic.disabled = !on;
-    if (window.GardenAudioNote) {
-      if (on) GardenAudioNote.sync(); else GardenAudioNote.close();
-    }
-    cloudPaint();
     if (!on && window.GardenNotesFind) GardenNotesFind.show(false);
   }
 
@@ -1271,10 +1163,6 @@
   var MORE = [
     { id: 'na-pin',      icon: 'fa-thumbtack',   ar: 'تثبيت',        en: 'Pin' },
     { id: 'na-remind-btn', icon: 'fa-bell',      ar: 'تنبيهٌ لهذه الملاحظة', en: 'Remind me' },
-    { id: 'na-mic',      icon: 'fa-microphone',  ar: 'تسجيلُ الصوت',  en: 'Record audio' },
-    /*@3.NOAJ.261*/
-    { id: 'na-cloud',    icon: 'fa-cloud-arrow-up', ar: 'احفظْ نسخةً عندنا',
-      en: 'Keep a copy with us' },
     { id: 'na-export',   icon: 'fa-file-export', ar: 'تصدير واستيراد', en: 'Export & import' },
     { id: 'na-move-btn', icon: 'fa-folder-open', ar: 'نقل إلى مجلّد', en: 'Move to folder' },
     { id: 'na-del',      icon: 'fa-trash',       ar: 'حذف',          en: 'Delete', danger: 1 }
@@ -1493,8 +1381,7 @@
   var lastSaved = {};
   /*@3.NOAJ.196*/
   var lastSig = {};
-  /*@3.NOAJ.256*/
-  var DERIVED = { eng: 1, fpv: 1, aup: 1 };
+  var DERIVED = { eng: 1, fpv: 1 };
   function contentSig(doc) {
     try {
       return JSON.stringify(doc, function (k, v) {
@@ -2635,8 +2522,6 @@
       if (edId !== id) return;
       if (row && row.loadFail) { renderLoadError(id); return; }
       var doc = (row && row.doc) || { v: 1, blocks: [] };
-      curDoc = doc;
-      if (window.GardenAudioNote) GardenAudioNote.sync();
       lastSaved[id] = JSON.stringify(doc);
       lastSig[id] = contentSig(doc);
       /*@3.NOAJ.205*/
@@ -2844,7 +2729,6 @@
     if (ed && !gone) { try { ed.save(); } catch (e) {} }
     if (hist) { hist.onChange = null; hist.reset(); }
     dropEditor(); edId = null;
-    curDoc = null;
     if (els.app) els.app.removeAttribute('data-kind');
     docEmpty();
     history.replaceState(null, '', location.pathname);
@@ -2878,10 +2762,6 @@
     if (!pdfUi) return;
     try { pdfUi.destroy(); } catch (e) {}
     pdfUi = null;
-    /*@3.NOAJ.269*/
-    if (window.GardenFilesPdf && GardenFilesPdf.forget) {
-      try { GardenFilesPdf.forget(); } catch (eF) {}
-    }
     updatePgNav();
     paintPdfBtns();
     syncTitleWord();
@@ -2930,6 +2810,9 @@
       h += ctxItem('pcopy', 'fa-copy', L('انسخِ المحدَّد', 'Copy selection'));
       h += ctxItem('pfind', 'fa-magnifying-glass',
         L('ابحثْ عن «' + cut + '»', 'Search for “' + cut + '”'));
+      /*@3.NOAJ.255*/
+      h += ctxItem('pcover', 'fa-pen-to-square',
+        L('غطِّ النصَّ واكتبْ مكانَه', 'Cover the text and rewrite it'));
       h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
     }
     h += ctxItem('pinv', pdfInverted() ? 'fa-sun' : 'fa-moon',
@@ -2939,9 +2822,12 @@
       inkHidden() ? L('أظهرِ الرسم', 'Show drawings') : L('أخفِ الرسم', 'Hide drawings'));
     h += ctxItem('ppen', 'fa-pen-nib',
       pdfUi.drawing() ? L('أغلقِ القلم', 'Close the pen') : L('افتحِ القلم', 'Open the pen'));
+    h += ctxItem('ptext', 'fa-i-cursor', L('أضِفْ حقلَ نصّ', 'Add a text field'));
     h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
     h += ctxItem('pgoto', 'fa-hashtag', L('اذهبْ إلى صفحة…', 'Go to page…'));
     h += ctxItem('pfit', 'fa-expand', L('لائمِ الصفحةَ كاملةً', 'Fit whole page'));
+    h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
+    h += pdfMarksItems();
     openMenuAt(x, y, h, pdfMenuAct);
     return true;
   }
@@ -2976,12 +2862,175 @@
     if (act === 'pinv') { togglePdfInv(); return; }
     if (act === 'pink') { uiSet('inkOff', inkHidden() ? 0 : 1); applyInkHidden(); return; }
     if (act === 'ppen') { pdfDraw(!pdfUi.drawing()); return; }
+    /*@3.NOAJ.254*/
+    if (act === 'ptext') {
+      if (!pdfUi.drawing()) pdfDraw(true);
+      var ik2 = pdfUi.ink();
+      if (ik2 && ik2.bar) ik2.bar().setTool('text');
+      if (pdfDial) pdfDial.sync();
+      return;
+    }
     if (act === 'pgoto') {
       var cur = document.getElementById('na-pgnav-cur');
       if (cur) cur.click();
       return;
     }
     if (act === 'pfit') { pdfUi.refit('page'); applyFs(); return; }
+    /*@3.NOAJ.256*/
+    if (act === 'pcover') {
+      if (!pdfUi.drawing()) pdfDraw(true);
+      var ik3 = pdfUi.ink();
+      if (ik3 && ik3.coverSel && ik3.coverSel() < 0) {
+        toast(L('حدِّدْ نصّاً من الملفِّ أوّلاً.', 'Select some text in the file first.'));
+      }
+      if (pdfDial) pdfDial.sync();
+      return;
+    }
+    if (act === 'pmexp') { pdfMarksOut(); return; }
+    if (act === 'pmimp') { pdfMarksIn(); return; }
+    if (act === 'pmpdf') { pdfAnnotated('save'); return; }
+    if (act === 'pmprint') { pdfAnnotated('print'); return; }
+  }
+
+  /*@3.NOAJ.266*/
+  function pdfAnnotated(how) {
+    var A = window.GardenPdfAnnot;
+    var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    var v = pdfUi ? pdfUi.view() : null;
+    if (!A || !ik || !v || !v.h) { toast(L('الملفُّ لم يُفتح بعد.', 'The file is not open yet.')); return; }
+    saveState('saving', L(how === 'print' ? 'يُجهَّز للطباعة…' : 'يُكتب الملفُّ بتعليقاته…',
+                          how === 'print' ? 'Preparing to print…' : 'Writing the file with its annotations…'));
+    ik.dump().then(function (data) {
+      var pages = (data && data.pages) || {};
+      return A.build(v.h, pages);
+    }).then(function (r) {
+      saveState('', '');
+      var blob = new Blob([r.bytes], { type: 'application/pdf' });
+      var url = URL.createObjectURL(blob);
+      if (how === 'print') {
+        var fr = document.getElementById('na-pdf-print');
+        if (fr) fr.remove();
+        fr = document.createElement('iframe');
+        fr.id = 'na-pdf-print';
+        fr.setAttribute('aria-hidden', 'true');
+        fr.style.cssText = 'position:fixed;inset-inline-end:0;inset-block-end:0;inline-size:1px;block-size:1px;opacity:0;border:0;';
+        fr.onload = function () {
+          setTimeout(function () {
+            try { fr.contentWindow.focus(); fr.contentWindow.print(); }
+            catch (e) { window.open(url, '_blank'); }
+          }, 250);
+        };
+        fr.src = url;
+        document.body.appendChild(fr);
+        toast(L('فُتحت نافذةُ الطباعة — اخترِ الصفحاتِ منها.',
+                'The print dialog is open — pick the pages there.'));
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = pdfMarksName().replace(/-marks\.json$/, '') + '-annotated.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 6000);
+      toast(L('حُفظ الملفُّ كاملاً ومعه ' + r.count + ' تعليقاً كطبقةٍ يقرؤها أيُّ قارئ.',
+              'Saved the whole file with ' + r.count + ' annotations as a layer any reader shows.'));
+    })['catch'](function (e) {
+      saveState('', '');
+      toast(L('تعذّرت كتابةُ الملفّ. ', 'Could not write the file. ') + (e && e.message ? e.message : ''));
+    });
+  }
+
+  function toast(msg) {
+    if (window.Garden && Garden.toast) { try { Garden.toast(msg); return; } catch (e) {} }
+    impMsg('', msg);
+  }
+
+  /*@3.NOAJ.257*/
+  function pdfMarksItems() {
+    return ctxItem('pmpdf', 'fa-file-export',
+      L('احفظِ الملفَّ بتعليقاته (PDF)', 'Save the file with its annotations (PDF)')) +
+      ctxItem('pmprint', 'fa-print', L('اطبعِ الملفَّ بتعليقاته', 'Print with annotations')) +
+      '<div class="na-ctx-sep" aria-hidden="true"></div>' +
+      ctxItem('pmexp', 'fa-file-arrow-down',
+        L('صدِّرِ التعليقاتِ وحدَها (JSON)', 'Export annotations only (JSON)')) +
+      ctxItem('pmimp', 'fa-file-arrow-up',
+        L('استوردْ تعليقاتٍ (JSON)', 'Import annotations (JSON)'));
+  }
+
+  function pdfMarksName() {
+    var it = idxFind(edId) || {};
+    var base = String(it.t || 'pdf').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 48);
+    return base + '-marks.json';
+  }
+
+  function pdfMarksOut() {
+    var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    if (!ik || !ik.dump) return;
+    ik.dump().then(function (data) {
+      var pages = data ? Object.keys(data.pages || {}) : [];
+      if (!pages.length) {
+        toast(L('لا تعليقاتٍ في هذا الملفِّ بعد.', 'This file has no annotations yet.'));
+        return;
+      }
+      var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = pdfMarksName();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      toast(L('صُدِّرت تعليقاتُ ' + pages.length + ' صفحة.',
+        'Exported annotations from ' + pages.length + ' pages.'));
+    })['catch'](function () {
+      toast(L('تعذّر التصدير.', 'Export failed.'));
+    });
+  }
+
+  function pdfMarksIn() {
+    var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    if (!ik || !ik.restore) return;
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'application/json,.json';
+    inp.style.cssText = 'position:fixed;inset-block-start:-100px;opacity:0';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', function () {
+      var file = inp.files && inp.files[0];
+      inp.remove();
+      if (!file) return;
+      if (file.size > 12 * 1024 * 1024) {
+        toast(L('الملفُّ أكبر من ١٢ ميجابايت.', 'The file is larger than 12 MB.'));
+        return;
+      }
+      var fr = new FileReader();
+      fr.onerror = function () {
+        toast(L('تعذّرت قراءةُ الملفّ.', 'The file could not be read.'));
+      };
+      fr.onload = function () {
+        var data = null;
+        try { data = JSON.parse(String(fr.result || '')); } catch (e) { data = null; }
+        if (!data || data.kind !== 'garden-pdf-marks') {
+          toast(L('هذا ليس ملفَّ تعليقاتٍ صُدِّر من هنا.',
+            'This is not an annotations file exported from here.'));
+          return;
+        }
+        ik.restore(data, 'merge').then(function (got) {
+          if (got > 0) {
+            toast(L('أُضيف ' + got + ' عنصراً — والتراجعُ يردُّ صفحتَك الحاليّة.',
+              'Added ' + got + ' items — undo restores the current page.'));
+          } else {
+            toast(L('لا تعليقاتٍ في هذا الملفّ.', 'That file has no annotations.'));
+          }
+        })['catch'](function () {
+          toast(L('تعذّر الاستيراد.', 'Import failed.'));
+        });
+      };
+      fr.readAsText(file);
+    });
+    inp.click();
   }
 
   /*@3.NOAJ.252*/
@@ -2993,6 +3042,7 @@
       if (!pdfOn()) return;
       if (e.target.closest && e.target.closest('.na-ctx, .ndl, dialog[open]')) return;
       e.preventDefault();
+      if (pdfPenBusy()) return;
       pdfMenu(e.clientX, e.clientY);
     });
     var hold = null, hx = 0, hy = 0;
@@ -3022,11 +3072,31 @@
     }, { passive: true });
   }
 
+  function pdfPenBusy() {
+    if (!pdfUi || !pdfUi.drawing()) return false;
+    var ik = pdfUi.ink();
+    var f = ik && ik.face;
+    if (!f) return true;
+    if (f.tool === 'sel' || f.tool === 'lasso') return false;
+    /*@3.NOAJ.269*/
+    if (f.tool === 'text') return false;
+    return true;
+  }
+
   function pdfActions() {
     setDocActions(true);
     /*@3.NOAJ.218*/
     var shb2 = document.getElementById('na-share-btn');
-    if (shb2) shb2.disabled = true;
+    /*@3.NOAJ.258*/
+    if (shb2) {
+      shb2.disabled = true;
+      shb2.title = L('ملفُّ الـPDF يبقى على جهازك ولا يُرفع — فلا رابطَ مشاركةٍ له.',
+        'The PDF stays on your device and is never uploaded, so it has no share link.');
+      shb2.setAttribute('data-ar-title',
+        'ملفُّ الـPDF يبقى على جهازك ولا يُرفع — فلا رابطَ مشاركةٍ له.');
+      shb2.setAttribute('data-en-title',
+        'The PDF stays on your device and is never uploaded, so it has no share link.');
+    }
     /*@3.NOAJ.253*/
     var ihb = document.getElementById('na-inkhide');
     if (ihb) ihb.disabled = false;
@@ -3035,7 +3105,7 @@
     applyPdfInkOff();
     var fpb = document.getElementById('na-find-btn');
     if (fpb) fpb.disabled = false;
-    if (els.naPdf) els.naPdf.disabled = true;
+    if (els.naPdf) els.naPdf.disabled = false;
     if (els.naPage) els.naPage.disabled = true;
     if (window.GardenNotesFind) { try { GardenNotesFind.show(false); } catch (e) {} }
   }
@@ -3065,6 +3135,19 @@
       order: pos0 && pos0.r,
       side: (pos0 && pos0.sd) || '',
       flow: pos0 && pos0.fl,
+      /*@3.NOAJ.264*/
+      marks: doc.marks || null,
+      /*@3.NOAJ.268*/
+      dockH: function () {
+        var d = document.querySelector('#na-favs .ndl-dock');
+        return (d && !d.hidden) ? d.getBoundingClientRect().height : 0;
+      },
+      onInkDirty: function () { if (edId === id) marksDirty(id, doc); },
+      /*@3.NOAJ.267*/
+      onInkField: function (on) {
+        if (!pdfDial) return;
+        try { pdfDial.show(!on, !on); } catch (eF) {}
+      },
       /*@3.NOAJ.229*/
       stamp: function (n, of) { return isAr() ? (n + ' من ' + of) : (n + ' of ' + of); },
       onAsk: function () {
@@ -3096,6 +3179,23 @@
         persist(id, doc, true);
       }
     });
+  }
+
+  /*@3.NOAJ.265*/
+  var marksT = 0;
+
+  function marksDirty(id, doc) {
+    if (marksT) clearTimeout(marksT);
+    marksT = setTimeout(function () {
+      marksT = 0;
+      var ik = (pdfUi && edId === id) ? pdfUi.ink() : null;
+      if (!ik || !ik.bundle) return;
+      ik.bundle().then(function (b) {
+        if (!b || edId !== id) return;
+        doc.marks = b;
+        persist(id, doc);
+      });
+    }, 1400);
   }
 
   function createPdf() {
@@ -3155,16 +3255,23 @@
         if (e && e.cancelled) { saveState('', ''); docEmpty(); setReading(false); setMob('list'); return; }
         var many = e && e.pages;
         var heavy = e && e.bytes;
-        saveState('error', many
+        var why = many
           ? L('هذا الملفُّ ' + many + ' صفحةً، والحدُّ المدعوم ' + O.MAX_PAGES + '.',
               'This file has ' + many + ' pages; the supported limit is ' + O.MAX_PAGES + '.')
           : (heavy
             ? L('هذا الملفُّ ' + O.size(heavy) + '، والحدُّ المدعوم ' + O.size(O.HARD_BYTES) + '.',
                 'This file is ' + O.size(heavy) + '; the supported limit is ' + O.size(O.HARD_BYTES) + '.')
-            : L('تعذّر قراءةُ هذا الملفّ.', 'Could not read this file.')));
+            : L('تعذّر قراءةُ هذا الملفّ — قد يكون تالفاً أو ليس PDF.',
+                'Could not read this file — it may be damaged or not a PDF.'));
         docEmpty();
         setReading(false);
         setMob('list');
+        /*@3.NOAJ.263*/
+        saveState('error', why);
+        toast(why);
+        setTimeout(function () {
+          if (els.save && els.save.getAttribute('data-s') === 'error') saveState('', '');
+        }, 9000);
       });
     }(file));
   }
@@ -5576,13 +5683,6 @@
       if (e.key === '0') resetFs(); else stepFs((e.key === '-' || e.key === '_') ? -1 : 1);
       return true;
     }
-    /*@3.NOAJ.225*/
-    /*@3.NOAJ.230*/
-    if (e.key === 'Escape' && pdfUi.focused && pdfUi.focused()) {
-      e.preventDefault();
-      pdfUi.unfocus();
-      return true;
-    }
     if (mod && (e.key === 'a' || e.key === 'A' || e.code === 'KeyA')) {
       if (pdfUi.selectPage && pdfUi.selectPage()) { e.preventDefault(); return true; }
       return false;
@@ -5756,28 +5856,6 @@
     els.quota = document.getElementById('na-quota');
     els.items = document.getElementById('na-items');
     els.find = document.getElementById('na-find');
-    /*@3.NOAJ.262*/
-    var cb = document.getElementById('na-cloud');
-    if (cb) cb.addEventListener('click', function () {
-      var C = window.GardenFilesPdf;
-      /*@3.NOAJ.265*/
-      if (C && C.ask && C.ask()) return;
-      saveState('error', L('افتحْ ملفَّ PDF أوّلاً ليُحفظ عندنا.',
-                           'Open a PDF file first to keep a copy with us.'));
-    });
-    upLoad();
-    upRefresh(true);
-    document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) upRefresh();
-    });
-    window.addEventListener('garden:fileUploaded', function (e) {
-      var d = (e && e.detail) || {};
-      if (!d.ref_id) { upRefresh(); return; }
-      if (!upSet) upSet = Object.create(null);
-      upSet[d.ref_id] = 1;
-      upSave();
-      upPaint();
-    });
     var vmb = document.getElementById('na-vm');
     if (vmb) vmb.addEventListener('click', function () {
       uiSet('vm', vmode() === 'cards' ? 'rows' : 'cards');
@@ -5852,7 +5930,12 @@
       });
     }
     if (els.naPage) els.naPage.addEventListener('click', openPageDlg);
-    if (els.naPdf) els.naPdf.addEventListener('click', openExport);
+    if (els.naPdf) els.naPdf.addEventListener('click', function (e) {
+      /*@3.NOAJ.259*/
+      if (!pdfOn()) { openExport(); return; }
+      var r = e.currentTarget.getBoundingClientRect();
+      openMenuAt(r.left + r.width / 2, r.bottom, pdfMarksItems(), pdfMenuAct);
+    });
     var xDlg = document.getElementById('na-exp');
     if (xDlg) xDlg.addEventListener('click', function (e) {
       /*@3.NOAJ.142*/
@@ -6090,6 +6173,7 @@
       renderRail();
       renderList();
       renderQuota();
+      if (pdfUi && pdfUi.view() && pdfUi.view().restamp) { try { pdfUi.view().restamp(); } catch (eS) {} }
       /*@3.NOAJ.111*/
       syncTitleDir();
       syncTitleWord();
@@ -6400,12 +6484,7 @@
     open: openNote,
     create: createNote,
     state: S,
-    folders: foldersRead,
-    /*@3.NOAJ.257*/
-    doc: function () { return curDoc; },
-    save: function (quiet) {
-      if (edId && curDoc) persist(edId, curDoc, !!quiet);
-    }
+    folders: foldersRead
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

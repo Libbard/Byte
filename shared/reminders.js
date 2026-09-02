@@ -4,8 +4,8 @@
 
   var LS_KEY = 'garden_reminders';
   var TICK_MS = 30 * 1000;
-  var HORIZON_DAYS = 14;      /*@3.REMJ.2*/
-  var MAX_QUEUE = 200;
+  var HORIZON_DAYS = 28;      /*@3.REMJ.2*/ /*@3.REMJ.99*/
+  var MAX_QUEUE = 300;
   var MAX_PREVIEW = 8;        /*@3.REMJ.3*/
   var MAX_TRIGGERS = 30;      /*@3.REMJ.4*/
   var GRACE_MS = 5 * 60 * 1000; /*@3.REMJ.5*/
@@ -28,13 +28,17 @@
         lectures: true,     /*@3.REMJ.8*/
         exams: true,        /*@3.REMJ.9*/
         tasks: true,        /*@3.REMJ.10*/
+        study: true,
+        events: true,
         review: false       /*@3.REMJ.11*/
       },
       /*@3.REMJ.12*/
       lead: {
         lectures: 15,
         exams: 1440,        /*@3.REMJ.13*/
-        tasks: 720          /*@3.REMJ.14*/
+        tasks: 720,         /*@3.REMJ.14*/
+        study: 10,
+        events: 30
       },
       reviewTime: '20:00',
       quiet: { on: false, from: '00:00', to: '07:00' },
@@ -205,12 +209,13 @@
     catch (e) { return {}; }
   }
 
+  /*@3.REMJ.97*/
   function courseName(code) {
     if (!code) return '';
     try {
-      if (window.GardenData && GardenData.dispName) return GardenData.dispName(code) || code;
+      if (window.GardenData && GardenData.courseTitle) return GardenData.courseTitle(code);
     } catch (e) {}
-    return code;
+    return String(code).indexOf('__CUSTOM_') === 0 ? '' : code;
   }
 
   /*@3.REMJ.31*/
@@ -265,6 +270,9 @@
         /*@3.REMJ.89*/
         var day0 = new Date(d); day0.setHours(0, 0, 0, 0);
         if (R && !R.lectureOn(l, day0).on) continue;
+        /*@3.REMJ.92*/
+        if (R && R.isDone && R.fmtLocalDate &&
+            R.isDone({ src: 'lecture', id: l.id, date: R.fmtLocalDate(day0) })) continue;
         d.setHours(hm.h, hm.m, 0, 0);
         var startMs = d.getTime();
         if (!R && startMs > endMs) continue;
@@ -280,7 +288,8 @@
         out.push({
           id: 'lec:' + (l.id || l.course_code + l.day + l.start_time) + ':' + stamp(startMs),
           kind: 'lectures',
-          title: tx('محاضرة ', 'Lecture · ') + cname,
+          title: cname ? tx('محاضرة ', 'Lecture · ') + cname
+                       : tx('محاضرة', 'Lecture'),
           body: tx('تبدأ ', 'Starts ') + fmtWhen(startMs) + where,
           fireAt: applyQuiet(fireAt),
           eventAt: startMs,
@@ -323,7 +332,7 @@
 
       var cname = t.course ? courseName(t.course) : '';
       var head = typeLabel(t.type) + (cname ? tx(' · ', ' · ') + cname : '');
-      var titleTxt = (t.title || '').trim();
+      var titleTxt = (t.title || t.label || '').trim();
 
       out.push({
         id: 'dl:' + t.source + ':' + t.id + ':' + stamp(eventMs),
@@ -337,6 +346,99 @@
           ? ('hub/notes.html?id=' + encodeURIComponent(t.origin.uid))
           : 'index.html#tasks',
         course: t.course || null
+      });
+    });
+    return out;
+  }
+
+  /*@3.REMJ.93*/
+  function studyOccurrences(now, horizon) {
+    var s = load();
+    var sch = scheduleRaw();
+    var R = window.GardenScheduleRules;
+    var out = [];
+
+    (sch.study_blocks || []).forEach(function (b) {
+      if (!b || !b.day || !b.start_time) return;
+      var dayIdx = DAYS_ORDER.indexOf(b.day);
+      if (dayIdx < 0) return;
+      var hm = parseHM(b.start_time);
+
+      for (var i = 0; i <= HORIZON_DAYS; i++) {
+        var d = new Date(now);
+        d.setDate(d.getDate() + i);
+        if (d.getDay() !== dayIdx) continue;
+        var day0 = new Date(d); day0.setHours(0, 0, 0, 0);
+        if (R && R.blockOn && !R.blockOn(b, day0).on) continue;
+        if (R && R.isDone && R.fmtLocalDate &&
+            R.isDone({ src: 'study', id: b.id, date: R.fmtLocalDate(day0) })) continue;
+        d.setHours(hm.h, hm.m, 0, 0);
+        var startMs = d.getTime();
+        var fireAt = startMs - (s.lead.study || 0) * 60000;
+        if (fireAt > horizon) continue;
+        var nm = b.custom_label || courseName(b.course_code) || tx('مذاكرة', 'Study');
+        out.push({
+          id: 'stu:' + (b.id || b.day + b.start_time) + ':' + stamp(startMs),
+          kind: 'study',
+          title: nm ? tx('مذاكرة · ', 'Study · ') + nm : tx('مذاكرة', 'Study'),
+          body: tx('تبدأ ', 'Starts ') + fmtWhen(startMs),
+          fireAt: applyQuiet(fireAt),
+          eventAt: startMs,
+          url: 'hub/schedule.html',
+          course: b.course_code || null
+        });
+      }
+    });
+
+    var it = sch.intensive;
+    var plan = (it && it.active && it.plans) ? it.plans[it.active] : null;
+    ((plan && plan.sessions) || []).forEach(function (ss) {
+      if (!ss || !ss.date || !ss.start_time) return;
+      if (R && R.isDone && R.isDone({ src: 'intensive', id: ss.id, date: ss.date })) return;
+      var when = toLocalTime(ss.date + 'T' + ss.start_time);
+      if (!when) return;
+      var fireAt = when.ms - (s.lead.study || 0) * 60000;
+      if (fireAt > horizon) return;
+      out.push({
+        id: 'stu:plan:' + ss.id + ':' + stamp(when.ms),
+        kind: 'study',
+        title: tx('جلسة خطّة · ', 'Plan session · ') + (courseName(ss.course) || ''),
+        body: tx('تبدأ ', 'Starts ') + fmtWhen(when.ms),
+        fireAt: applyQuiet(fireAt),
+        eventAt: when.ms,
+        url: 'hub/schedule.html',
+        course: ss.course || null
+      });
+    });
+    return out;
+  }
+
+  /*@3.REMJ.94*/
+  function eventReminders(now, horizon) {
+    var s = load();
+    var sch = scheduleRaw();
+    var R = window.GardenScheduleRules;
+    var out = [];
+    (sch.general_events || []).forEach(function (g) {
+      if (!g || !g.date || !g.start_time) return;
+      if (R && R.isDone && R.isDone({ src: 'general', id: g.id, date: g.date })) return;
+      var when = toLocalTime(g.date + 'T' + g.start_time);
+      if (!when) return;
+      var gname = courseName(g.course_code);
+      var fireAt = when.ms - (s.lead.events || 0) * 60000;
+      if (fireAt > horizon) return;
+      out.push({
+        id: 'gen:' + g.id + ':' + stamp(when.ms),
+        kind: 'events',
+        /*@3.REMJ.98*/
+        title: g.title || (gname ? tx('حدث · ', 'Event · ') + gname
+                                 : tx('حدث', 'Event')),
+        body: tx('يبدأ ', 'Starts ') + fmtWhen(when.ms) +
+              (gname && g.title ? tx(' · ', ' · ') + gname : ''),
+        fireAt: applyQuiet(fireAt),
+        eventAt: when.ms,
+        url: 'hub/schedule.html',
+        course: g.course_code || null
       });
     });
     return out;
@@ -387,6 +489,8 @@
     var out = [];
 
     if (s.channels.lectures) out = out.concat(lectureOccurrences(now, horizon));
+    if (s.channels.study) out = out.concat(studyOccurrences(now, horizon));
+    if (s.channels.events) out = out.concat(eventReminders(now, horizon));
     out = out.concat(deadlineReminders(now, horizon));
     out = out.concat(reviewReminders(now, horizon));
 
@@ -513,27 +617,6 @@
     }).join('|');
   }
 
-  function rulesSnapshot() {
-    var R = window.GardenScheduleRules;
-    if (!R) return null;
-    var st = R.settings() || {};
-    var fp = st.focus_periods || {};
-    var shown = [];
-    try {
-      var wo = (scheduleRaw() || {}).week_overrides || {};
-      Object.keys(wo).forEach(function (w) { if (wo[w] && wo[w].show_lectures) shown.push(w); });
-    } catch (e) {}
-    return {
-      termStart: st.term_start_date || '',
-      termEnd: st.semester_end_date || '',
-      focus: [fp.midterm || null, fp.final || null].filter(function (p) {
-        return p && p.start && p.end;
-      }).map(function (p) { return { start: p.start, end: p.end }; }),
-      shownWeeks: shown,
-      at: Date.now()
-    };
-  }
-
   /*@3.REMJ.53*/
   function refreshQueue() {
     if (!window.GardenData || !GardenData.allDeadlines) return Promise.resolve(false);
@@ -541,7 +624,6 @@
     var sig = signature(items);
     if (sig === lastSig) return Promise.resolve(false);
     /*@3.REMJ.54*/
-    try { ReminderDB.setMeta('rules', rulesSnapshot()); } catch (e) {}
     return ReminderDB.replaceQueue(items).then(function () {
       lastSig = sig;
       /*@3.REMJ.55*/
@@ -633,8 +715,14 @@
     }
 
     lastSig = null;                    /*@3.REMJ.67*/
-    if (self.GardenPush) { try { GardenPush.subscribe(); } catch (e) {} }
-    syncing = refreshQueue()
+    /*@3.REMJ.96*/
+    var ready = Promise.resolve(null);
+    if (self.GardenPush) {
+      try { ready = Promise.resolve(GardenPush.subscribe()).catch(function () { return null; }); }
+      catch (e) { ready = Promise.resolve(null); }
+    }
+    syncing = ready
+      .then(refreshQueue)
       .then(function () { return ReminderDB.getQueue(); })
       .then(function (q) { return armTriggers(q); })
       .then(function () { startTicking(); return fireDue(); })
@@ -776,7 +864,17 @@
     var s = load();
     var cap = capability();
     var built = 0, err = null;
-    try { built = buildQueue().length; } catch (e) { err = String(e); }
+    var by = null;
+    try {
+      var q = buildQueue();
+      built = q.length;
+      by = { lectures: 0, exams: 0, tasks: 0, study: 0, events: 0, review: 0 };
+      q.forEach(function (i) {
+        var k = i.kind || 'tasks';
+        if (by[k] === undefined) by[k] = 0;
+        by[k]++;
+      });
+    } catch (e) { err = String(e); }
     var reason = 'ok';
     if (!cap.supported) reason = 'unsupported';
     else if (cap.needsInstall) reason = 'needs-install';
@@ -790,9 +888,36 @@
       permission: cap.permission,
       background: !!cap.background,
       built: built,
+      byKind: by,
+      lectureSilence: (by && by.lectures) ? null : lectureSilence(),
       buildError: err,
       hasData: !!(window.GardenData && GardenData.allDeadlines)
     };
+  }
+
+  /*@3.REMJ.95*/
+  function lectureSilence() {
+    var s = load();
+    var lecs = scheduleRaw().lectures || [];
+    if (!lecs.length) return 'no-lectures';
+    if (!(s.channels && s.channels.lectures)) return 'channel-off';
+    var R = window.GardenScheduleRules;
+    if (!R || !R.lectureOn) return null;
+    var now = Date.now(), tally = {}, any = false;
+    for (var li = 0; li < lecs.length && !any; li++) {
+      for (var i = 0; i <= HORIZON_DAYS; i++) {
+        var d = new Date(now);
+        d.setDate(d.getDate() + i);
+        d.setHours(0, 0, 0, 0);
+        var v = R.lectureOn(lecs[li], d);
+        if (v.on) { any = true; break; }
+        if (v.why && v.why !== 'day') tally[v.why] = (tally[v.why] || 0) + 1;
+      }
+    }
+    if (any) return 'done-or-past';
+    var top = null, n = 0;
+    Object.keys(tally).forEach(function (k) { if (tally[k] > n) { n = tally[k]; top = k; } });
+    return top || 'none';
   }
 
   /*@3.REMJ.81*/

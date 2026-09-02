@@ -1,7 +1,7 @@
 ;(function () {
   'use strict';
 
-  var MAX_PAGES = 900;
+  var MAX_PAGES = 9000;
   var SOFT_BYTES = 150 * 1024 * 1024;
   var HARD_BYTES = 500 * 1024 * 1024;
 
@@ -138,10 +138,8 @@
     if (pre.url) { try { URL.revokeObjectURL(pre.url); } catch (e2) {} }
   }
 
-  function spec(r, file, pages, gd) {
-    var o = { h: r.hash, n: (file && file.name) || '', sz: r.size, pg: pages };
-    if (gd) o.gd = String(gd);
-    return o;
+  function spec(r, file, pages) {
+    return { h: r.hash, n: (file && file.name) || '', sz: r.size, pg: pages };
   }
 
   /*@3.NOPJ5.9*/
@@ -233,37 +231,19 @@
                'You will be asked to pick it every time.');
     }
 
-    /*@3.NOPJ5.31*/
-    function driveDoor() {
-      var GD = window.GardenDrive;
-      if (!GD || !GD.enabled()) return '';
-      if (!sp.gd && !GD.pickerEnabled()) return '';
-      return '<button type="button" class="gsf-btn gsf-btn--go npo-drive">' +
-        '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
-        esc(sp.gd ? L('افتحْ من درايف', 'Open from Drive')
-                  : L('من قوقل درايف', 'From Google Drive')) + '</button> ';
-    }
-
     function ask(note) {
-      var dd = driveDoor();
       card('fa-file-lines',
         esc(sp.n || L('ملفُّ PDF', 'PDF file')),
         (note ? esc(note) + '<br>' : '') +
-        esc(sp.gd
-          ? L('هذا الملفُّ ليس على هذا الجهاز — وهو في درايفك.',
-              'This file is not on this device — it is in your Drive.')
-          : L('هذا الملفُّ ليس على هذا الجهاز — اخترْه من جهازك ليُفتح.',
+        esc(L('هذا الملفُّ ليس على هذا الجهاز — اخترْه من جهازك ليُفتح.',
               'This file is not on this device — pick it to open it.')) +
         (sp.sz ? '<br>' + num(size(sp.sz)) +
           (sp.pg ? ' · ' + num(String(sp.pg)) + ' ' + esc(L('صفحة', 'pages')) : '') : ''),
-        dd +
-        '<button type="button" class="gsf-btn ' + (dd ? '' : 'gsf-btn--go') + ' npo-pick">' +
+        '<button type="button" class="gsf-btn gsf-btn--go npo-pick">' +
         '<i class="fa-solid fa-file-import" aria-hidden="true"></i> ' +
-        esc(L('من جهازي', 'From my device')) + '</button>');
+        esc(L('اخترِ الملفّ', 'Choose the file')) + '</button>');
       var b = stage.querySelector('.npo-pick');
       if (b) b.addEventListener('click', take);
-      var g = stage.querySelector('.npo-drive');
-      if (g) g.addEventListener('click', takeDrive);
       if (!note && window.GardenPdfDoc) {
         window.GardenPdfDoc.available().then(function (a) {
           if (st.dead || a.ok) return;
@@ -336,7 +316,7 @@
         if (st.dead) { drop(pre); return; }
         if (a === 'no') { drop(pre); ask(); return; }
         if (a === 'link' && o.onRelink) {
-          sp = spec(got, file, pre.pages, lastGd);
+          sp = spec(got, file, pre.pages);
           o.onRelink(sp, (want && want.h) || null);
         }
         show(file, pre);
@@ -349,70 +329,33 @@
       try { dlg.showModal(); } catch (e2) { close('once'); }
     }
 
-    var lastGd = null;
-
     function take() {
       pickFile().then(function (file) {
         if (!file || st.dead) return;
-        adoptFile(file, null);
-      });
-    }
-
-    /*@3.NOPJ5.32*/
-    function takeDrive() {
-      var GD = window.GardenDrive;
-      if (!GD) return;
-      var pull = function (id, name) {
-        busy(L('يُنزَّل من درايف…', 'Downloading from Drive…'));
-        return GD.download(id, function (at, of) {
-          var e = stage.querySelector('.npo-msg');
-          if (e && of) e.textContent = L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
-            Math.round(at * 100 / of) + '%';
-        }).then(function (blob) {
-          if (st.dead) return;
-          adoptFile(new File([blob], name || sp.n || 'file.pdf',
-                             { type: 'application/pdf' }), id);
-        });
-      };
-      var go = sp.gd
-        ? GD.token(true).then(function () { return pull(sp.gd, sp.n); })
-        : GD.pick().then(function (p) {
-            if (st.dead) return;
-            if (!p) { ask(); return; }
-            return pull(p.id, p.name);
+        var D = window.GardenPdfDoc;
+        if (!D) { fail(broken()); return; }
+        busy(L('تُقرأ بصمةُ الملفّ…', 'Reading the file fingerprint…'));
+        D.hash(file, function (at, of) {
+          if (of) step(Math.round(at * 100 / of));
+        }).then(function (r) {
+          if (st.dead) return null;
+          return unlock(file).then(function (pre) {
+            if (st.dead) { drop(pre); return null; }
+            if (pre.pages > MAX_PAGES) { drop(pre); fail(tooMany(pre.pages)); return null; }
+            D.put(r.hash, file, { name: file.name || '' });
+            if (sp.h && r.hash !== sp.h) { warn(r, file, pre); return null; }
+            if (!sp.h && o.onRelink) {
+              sp = spec(r, file, pre.pages);
+              o.onRelink(sp, null);
+            }
+            show(file, pre);
+            return null;
           });
-      go['catch'](function (e) {
-        if (st.dead) return;
-        fail(GD.reason(e));
-      });
-    }
-
-    function adoptFile(file, gd) {
-      var D = window.GardenPdfDoc;
-      if (!D) { fail(broken()); return; }
-      lastGd = gd || null;
-      busy(L('تُقرأ بصمةُ الملفّ…', 'Reading the file fingerprint…'));
-      D.hash(file, function (at, of) {
-        if (of) step(Math.round(at * 100 / of));
-      }).then(function (r) {
-        if (st.dead) return null;
-        return unlock(file).then(function (pre) {
-          if (st.dead) { drop(pre); return null; }
-          if (pre.pages > MAX_PAGES) { drop(pre); fail(tooMany(pre.pages)); return null; }
-          D.put(r.hash, file, { name: file.name || '' });
-          if (sp.h && r.hash !== sp.h) { warn(r, file, pre); return null; }
-          /*@3.NOPJ5.33*/
-          if (o.onRelink && (!sp.h || (gd && sp.gd !== gd))) {
-            sp = spec(r, file, pre.pages, gd || sp.gd);
-            o.onRelink(sp, null);
-          }
-          show(file, pre);
-          return null;
+        })['catch'](function (e) {
+          if (st.dead) return;
+          if (e && e.cancelled) { ask(); return; }
+          fail(locked(e) ? sealed() : broken());
         });
-      })['catch'](function (e) {
-        if (st.dead) return;
-        if (e && e.cancelled) { ask(); return; }
-        fail(locked(e) ? sealed() : broken());
       });
     }
 
@@ -426,12 +369,6 @@
         st.h = h.handle;
         st.total = h.pages;
         build();
-        /*@3.NOPJ5.29*/
-        if (window.GardenFilesPdf && sp.h) {
-          window.GardenFilesPdf.offer(root, sp.h, sp.n || '', function () {
-            return file || (window.GardenPdfDoc ? window.GardenPdfDoc.get(sp.h) : null);
-          });
-        }
       }, function (e) {
         if (st.dead) return;
         if (e && e.cancelled) { ask(); return; }
@@ -463,7 +400,6 @@
             side: st.side || guessSide(),
             stamp: o.stamp || null,
             onAsk: o.onAsk || null,
-            onFocus: onFocus,
             /*@3.NOPJ5.20*/
             onLayer: function (n, el, geo) {
               if (st.ink) st.ink.layer(n, el, geo);
@@ -474,10 +410,20 @@
               if (o.offLayer) o.offLayer(n, el);
             },
             onText: function (n, td) { if (st.find) st.find.paint(n, td); },
+            /*@3.NOPJ5.29*/
+            annots: function (n, list) {
+              var A = window.GardenPdfAnnot;
+              if (!A || !list || !list.length) return false;
+              var got = A.harvest(list);
+              if (!got.mine) return false;
+              if (st.ink && got.els.length && !o.marks) st.ink.absorb(n, got.els);
+              return true;
+            },
             onPinch: function (n) {
               /*@3.NOPJ5.18*/
               /*@3.NOPJ5.27*/
               if (st.fitT) { clearTimeout(st.fitT); st.fitT = 0; }
+              st.tapBack = null;
               st.zm = ''; st.scale = n;
               save();
               if (o.onZoom) o.onZoom(n, '');
@@ -592,40 +538,8 @@
       busy(L('يُفتح الملفّ…', 'Opening the file…'));
       window.GardenPdfDoc.get(sp.h).then(function (f) {
         if (st.dead) return;
-        if (f) { show(f, null); return; }
-        /*@3.NOPJ5.30*/
-        var C = window.GardenFilesPdf;
-        var GD = window.GardenDrive;
-        /*@3.NOPJ5.34*/
-        var fromDrive = (sp.gd && GD && GD.enabled())
-          ? GD.download(sp.gd, function (at, of) {
-              var e = stage.querySelector('.npo-msg');
-              if (e && of) e.textContent = L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
-                Math.round(at * 100 / of) + '%';
-            }).then(function (blob) {
-              if (st.dead || !blob) return null;
-              var D = window.GardenPdfDoc;
-              return D.hash(blob).then(function (r) {
-                if (r.hash !== sp.h) return null;
-                var file = new File([blob], sp.n || 'file.pdf', { type: 'application/pdf' });
-                D.put(sp.h, file, { name: file.name });
-                return file;
-              });
-            })['catch'](function () { return null; })
-          : Promise.resolve(null);
-        fromDrive.then(function (got) {
-          if (st.dead) return;
-          if (got) { show(got, null); return; }
-          if (!C) { ask(); return; }
-          C.restore(sp.h, sp.n || '', function (at, of) {
-            var e = stage.querySelector('.npo-msg');
-            if (e && of) e.textContent = L('يُجلب من الحديقة… ', 'Fetching from the garden… ') +
-              Math.round(at * 100 / of) + '%';
-          }).then(function (got2) {
-            if (st.dead) return;
-            if (got2) show(got2, null); else ask();
-          }, function () { if (!st.dead) ask(); });
-        });
+        if (f) show(f, null);
+        else ask();
       }, function () { if (!st.dead) ask(); });
     }
 
@@ -640,14 +554,14 @@
     }
 
     /*@3.NOPJ5.11*/
-    function refit(mode) {
+    function refit(mode, snap) {
       if (st.dead || !st.view) return Promise.resolve(st.scale);
       if (mode === 'page' || mode === 'fit') st.zm = mode;
       else if (!st.zm) st.zm = 'page';
       /*@3.NOPJ5.28*/
       return window.GardenPdfView
         .fitScale(st.h, room(), st.mode, tall(), st.zm === 'page', st.view.grid())
-        .then(function (n) { return apply(n, { fit: 1 }); });
+        .then(function (n) { return apply(n, { fit: 1, snap: snap ? 1 : 0 }); });
     }
 
     /*@3.NOPJ5.22*/
@@ -662,7 +576,9 @@
         if (seen > 80 && seen < h) h = seen;
       }
       var cs = getComputedStyle(s);
-      return Math.max(0, h - (parseFloat(cs.paddingTop) || 0) -
+      /*@3.NOPJ5.30*/
+      var extra = (o.dockH ? o.dockH() : 0) || 0;
+      return Math.max(0, h + extra - (parseFloat(cs.paddingTop) || 0) -
         (parseFloat(cs.paddingBottom) || 0) - 14);
     }
 
@@ -689,12 +605,14 @@
       st.ink = K.create({
         id: sp.h || '',
         view: st.view,
+        seed: o.marks || null,
         t0: Date.now(),
         onState: function (s2) { if (o.onInk) o.onInk(s2); },
         onZoom: function (z) { setScale(z); },
         onFit: function () { refit('page'); },
         onExpand: function (on) { if (o.onExpand) o.onExpand(on); },
         onDirty: function () { if (o.onInkDirty) o.onInkDirty(); },
+        onField: function (on) { if (o.onInkField) o.onInkField(on); },
         /*@3.NOPJ5.23*/
         onGesture: function (phase, g) { if (o.onInkGesture) o.onInkGesture(phase, g); }
       });
@@ -721,48 +639,11 @@
       if (!st.view) return st.mode;
       st.view.setView(st.mode, st.order);
       /*@3.NOPJ5.19*/
-      if (was !== st.mode + st.order) refit('page');
+      if (was !== st.mode + st.order) refit('page', 1);
       else if (st.zm) refit(); else save();
       if (o.onView) o.onView(st.mode, st.order, st.flow, st.side);
       return st.mode;
     }
-
-    /*@3.NOPJ5.17*/
-    /*@3.NOPJ5.26*/
-    function onFocus(on, page, was) {
-      if (!st.view) return;
-      if (on) {
-        st.back = { mode: st.mode, order: st.order, zm: st.zm, scale: st.scale,
-                    flow: st.flow, where: (was && was.where) || st.view.where() };
-        st.mode = 1;
-        st.view.setView(1, st.order);
-        return window.GardenPdfView
-          .fitScale(st.h, room(), 1, tall(), false)
-          .then(function (n2) {
-            if (st.dead || !st.view) return;
-            st.zm = '';
-            apply(n2, (was && was.grip) ? { grip: was.grip } : { keep: 1 });
-            if (!(was && was.grip)) st.view.goTo(page, 0);
-            tell();
-            if (o.onView) o.onView(st.mode, st.order, st.flow, st.side);
-          });
-      }
-      var b = st.back || { mode: 2, order: st.order, zm: 'page',
-                           scale: st.scale, flow: st.flow, where: null };
-      st.back = null;
-      st.mode = b.mode;
-      st.view.setView(b.mode, b.order);
-      st.zm = b.zm;
-      apply(b.scale, { keep: 1 });
-      if (b.where) st.view.goTo(b.where.p, b.where.f);
-      else st.view.goTo(page, 0);
-      tell();
-      if (o.onView) o.onView(st.mode, st.order, st.flow, st.side);
-    }
-
-    function focused() { return !!(st.view && st.view.focus); }
-
-    function unfocus() { return st.view ? st.view.unfocus() : false; }
 
     /*@3.NOPJ5.16*/
     function setFlow(f) {
@@ -782,19 +663,34 @@
 
     function setScale(n, at) {
       st.zm = '';
+      st.tapBack = null;
       return apply(n, at || null);
     }
 
     /*@3.NOPJ5.24*/
     function tapZoom(cx, cy) {
       if (st.dead || !st.view) return st.scale;
-      if (st.zm) {
-        var want = Math.min(4, Math.max((st.scale || 1) * 2.4, 1));
-        if (want <= (st.scale || 1) * 1.05) want = Math.min(4, (st.scale || 1) * 2);
-        return setScale(want, { cx: cx, cy: cy });
+      var back = st.tapBack;
+      var sc = scroller();
+      if (back && Math.abs((st.scale || 1) - back.to) < 0.02) {
+        st.tapBack = null;
+        st.zm = back.zm;
+        var land = function () {
+          if (st.dead || !st.view) return;
+          st.view.goTo(back.where.p, back.where.f);
+          if (sc) sc.scrollLeft = back.x;
+        };
+        if (back.zm) { refit(back.zm).then(land); return st.scale; }
+        apply(back.scale, { keep: 1 });
+        land();
+        return st.scale;
       }
-      refit('page');
-      return st.scale;
+      var cur = st.scale || 1;
+      var want = cur < 0.97 ? 1 : Math.min(4, cur * 2);
+      st.tapBack = { zm: st.zm, scale: cur, to: want, where: st.view.where(),
+                     x: sc ? sc.scrollLeft : 0 };
+      st.zm = '';
+      return apply(want, { cx: cx, cy: cy });
     }
 
     return {
@@ -807,8 +703,6 @@
       zoomMode: function () { return st.zm; },
       isFit: function () { return !!st.zm; },
       side: function () { return st.side || guessSide(); },
-      focused: focused,
-      unfocus: unfocus,
       selectPage: function (n) { return st.view ? st.view.selectPage(n) : false; },
       setSide: setSide,
       find: function () { return st.find; },
@@ -825,7 +719,7 @@
       flow: function () { return st.flow; },
       setView: setView,
       setFlow: setFlow,
-      refit: refit,
+      refit: function (m) { return refit(m, 1); },
       setScale: setScale,
       spec: function () { return sp; },
       pick: take

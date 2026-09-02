@@ -208,7 +208,7 @@
   }
 
   var PALETTE = ['ink', 'amber', 'rose', 'violet', 'emerald', 'sky', 'lime', 'orange', 'red', 'pink', 'teal', 'indigo',
-                 'yellow', 'brown'];
+                 'yellow', 'brown', 'white', 'black'];
   var HEX_MARK = 63;
   var HEX_RE = /^#[0-9a-fA-F]{6}$/;
 

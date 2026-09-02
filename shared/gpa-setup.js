@@ -373,7 +373,10 @@
     /*@3.GPSJ.33*/
     $('#gs-body').addEventListener('scroll', closeGrade, { passive: true });
     /*@3.GPSJ.34*/
+    /*@3.GPSJ.153*/
+    ov.addEventListener('pointerdown', plPointerDown);
     ov.addEventListener('dragstart', function (e) {
+      if (MODE === 'planner') { e.preventDefault(); return; }
       var card = e.target.closest && e.target.closest('.gs-card[draggable]');
       if (!card) return;
       MOVING = card.getAttribute('data-code');
@@ -381,6 +384,7 @@
       card.classList.add('is-moving');
     });
     ov.addEventListener('dragover', function (e) {
+      if (MODE === 'planner') return;
       var z = e.target.closest && e.target.closest('[data-drop]');
       if (!z || !MOVING) return;
       e.preventDefault();
@@ -388,17 +392,22 @@
       z.classList.add('is-drop');
     });
     ov.addEventListener('dragleave', function (e) {
+      if (MODE === 'planner') return;
       var z = e.target.closest && e.target.closest('[data-drop]');
       if (z) z.classList.remove('is-drop');
     });
     ov.addEventListener('drop', function (e) {
+      if (MODE === 'planner') return;
       var z = e.target.closest && e.target.closest('[data-drop]');
       if (!z || !MOVING) return;
       e.preventDefault();
       moveTo(MOVING, z.getAttribute('data-drop'));
       MOVING = null; saveDraft(); paint();
     });
-    ov.addEventListener('dragend', function () { MOVING = null; paint(); });
+    ov.addEventListener('dragend', function () {
+      if (MODE === 'planner') return;
+      MOVING = null; paint();
+    });
   }
 
   /*@3.GPSJ.35*/
@@ -1692,24 +1701,82 @@
   }
 
   /*@3.GPSJ.125*/
-  var PC = null, PQ = '', PL_FOCUS = null, RULES_STATE = 'idle';
+  var PC = null, PQ = '', PMOVE = null, RULES_STATE = 'idle';
 
   function R() { return window.GardenPlanRules || null; }
 
+  function plUid() {
+    return 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+  }
+  var BOARD = 'plan';
+  function onArch() { return BOARD === 'arch'; }
+  function plKey() { return onArch() ? ARCH : PLANK; }
+
   function plRead() {
-    var p = readJSON(PLANK, null);
-    if (!p || !Array.isArray(p.semesters)) p = { semesters: [] };
-    var seen = {}, n = 0;
+    var p, fresh;
+    if (onArch()) {
+      var list = readJSON(ARCH, null);
+      fresh = !Array.isArray(list);
+      p = { semesters: Array.isArray(list) ? list : [] };
+    } else {
+      p = readJSON(PLANK, null);
+      fresh = !p || !Array.isArray(p.semesters);
+      if (fresh) p = { semesters: [] };
+    }
+    var seen = {}, n = 0, uids = {};
     p.semesters.forEach(function (s) {
       s.courses = Array.isArray(s.courses) ? s.courses : [];
-      if (!s.id || seen[s.id]) s.id = 'pt' + (Date.now() % 1e7) + '_' + (n++);
+      if (!s.id || seen[s.id]) { s.id = 'pt' + (Date.now() % 1e7) + '_' + (n++); fresh = true; }
       seen[s.id] = 1;
+      s.courses.forEach(function (c) {
+        if (!c.uid || uids[c.uid]) { c.uid = plUid() + (n++); fresh = true; }
+        uids[c.uid] = 1;
+      });
     });
+    /*@3.GPSJ.144*/
+    if (fresh) plStore(p);
     return p;
   }
+  /*@3.GPSJ.155*/
+  function plStore(p) {
+    if (!onArch()) { writeJSON(PLANK, p); return; }
+    writeJSON(ARCH, p.semesters);
+    try { localStorage.setItem('__syncT_semester_archive', String(Date.now())); } catch (e) {}
+  }
   function plWrite(p) {
-    writeJSON(PLANK, p);
+    plStore(p);
+    plAfter();
+  }
+  /*@3.GPSJ.156*/
+  function plAfter() {
+    if (onArch()) {
+      try { if (window.GardenData && GardenData.rebuildGrades) GardenData.rebuildGrades(); } catch (e) {}
+      try { document.dispatchEvent(new CustomEvent('garden:gradesChanged', { detail: { source: 'archive' } })); } catch (e) {}
+      return;
+    }
     try { document.dispatchEvent(new CustomEvent('garden:planChanged')); } catch (e) {}
+  }
+
+  /*@3.GPSJ.145*/
+  var PSNAP = null, PUNDO = [];
+  /*@3.GPSJ.157*/
+  function plRaw(p) { return JSON.stringify(onArch() ? p.semesters : p); }
+  function plMark(p) {
+    try { PUNDO.push(plRaw(p)); } catch (e) { return; }
+    if (PUNDO.length > 40) PUNDO.shift();
+  }
+  function plRestore(raw) {
+    if (raw == null) return false;
+    try { localStorage.setItem(plKey(), raw); } catch (e) { return false; }
+    if (onArch()) { try { localStorage.setItem('__syncT_semester_archive', String(Date.now())); } catch (e) {} }
+    plAfter();
+    return true;
+  }
+  function plDirty() {
+    if (PSNAP == null) return false;
+    var now = null;
+    try { now = localStorage.getItem(plKey()); } catch (e) { return false; }
+    return String(now || '') !== String(PSNAP);
   }
 
   function plCtx() {
@@ -1738,20 +1805,57 @@
     return (isAr() ? (ar || en) : (en || ar)) || '';
   }
   function plCourse(code) { return R() ? R().courseBy(PC.slug, code) : null; }
+  /*@3.GPSJ.163*/
+  function plRowName(c) {
+    if (!c) return '';
+    if (onArch()) {
+      var b = isAr() ? (c.name_ar || c.name_en) : (c.name_en || c.name_ar);
+      if (b) return b;
+      var t = plTitle(plCourse(c.code));
+      if (t) return t;
+      var i = null;
+      try { i = (window.GardenData && GardenData.courseInfo) ? GardenData.courseInfo(c.code) : null; }
+      catch (e) { i = null; }
+      if (i) return (isAr() ? (i.name_ar || i.name_en) : (i.name_en || i.name_ar)) || c.code;
+      return c.name || c.code || '';
+    }
+    return c.name || plName(c.code, '');
+  }
   function plName(code, fallback) {
     var c = plCourse(code);
     return plTitle(c) || fallback || code || '';
   }
 
+  /*@3.GPSJ.128*/
   function plTermName(s, i) {
-    if (s.name) return s.name;
+    if (onArch()) {
+      var b = isAr() ? (s.name_ar || s.name) : (s.name_en || s.name);
+      if (b) return b;
+      if (s.summer) return L('فصل صيفيّ', 'Summer term');
+      if (s.level != null && s.level !== '') return levelName(s.level);
+      return L('فصلٌ مؤرشف ' + (i + 1), 'Archived term ' + (i + 1));
+    }
+    if (s.renamed && s.name) return s.name;
     if (s.summer) return L('فصل صيفيّ', 'Summer term');
     if (s.level != null) return levelName(s.level);
-    return L('فصل مخطّط ' + (i + 1), 'Planned term ' + (i + 1));
+    return s.name || L('فصل مخطّط ' + (i + 1), 'Planned term ' + (i + 1));
   }
   function plCap(s) { return s && s.summer ? CAP_SUM : CAP_REG; }
   function plCr(s) {
     return (s.courses || []).reduce(function (a, c) { return a + (+c.credits || 0); }, 0);
+  }
+  /*@3.GPSJ.165*/
+  function plTermGpa(s) {
+    var pts = 0, cr = 0;
+    (s.courses || []).forEach(function (c) {
+      if (!c || !c.grade || GPA_SCALE[c.grade] === undefined) return;
+      var h = +c.credits || 0;
+      pts += GPA_SCALE[c.grade] * h; cr += h;
+    });
+    return cr ? (pts / cr) : null;
+  }
+  function plUngraded(s) {
+    return (s.courses || []).filter(function (c) { return c && !c.grade; }).length;
   }
 
   /*@3.GPSJ.126*/
@@ -1766,6 +1870,8 @@
   }
 
   function plIssues(p, si, course) {
+    /*@3.GPSJ.159*/
+    if (onArch()) return [];
     if (!R() || !course || !course.code) return [];
     var s = p.semesters[si];
     return R().check({
@@ -1776,20 +1882,18 @@
   }
 
   function plIssueText(v) {
-    if (v.k === 'pre') {
-      var names = v.groups.map(function (g) {
-        return g.join(isAr() ? ' أو ' : ' or ');
-      }).join(isAr() ? ' و' : ', ');
-      return L('متطلّبها السابق غير مُنجَزٍ قبل هذا الفصل: ' + names,
-               'Prerequisite not done before this term: ' + names);
-    }
+    if (v.k === 'pre') return L('يلزمها قبلها: ' + plGroupWord(v.groups), 'Needs first: ' + plGroupWord(v.groups));
     if (v.k === 'level') return levelWord(v.code, v.at);
     return '';
   }
+  function plGroupWord(groups) {
+    return groups.map(function (g) { return g.join(isAr() ? ' أو ' : ' or '); })
+                 .join(isAr() ? ' و' : ', ');
+  }
 
   function levelWord(code, at) {
-    var R = window.GardenPlanRules;
-    var n = R && R.levelNote(code, PC ? PC.span : null);
+    var Rr = window.GardenPlanRules;
+    var n = Rr && Rr.levelNote(code, PC ? PC.span : null);
     if (!n) return '';
     if (n.tail) {
       return L('بانر لا يفتحها قبل ' + levelName(n.min) + ' — وهذا الفصل عند المستوى ' + at + '.',
@@ -1799,7 +1903,55 @@
              'Banner limits it to levels ' + n.list.join(', ') + ' — this term sits at level ' + at + '.');
   }
 
+  /*@3.GPSJ.129*/
+  function plGeneral(c) {
+    if (!c) return false;
+    var k = c.k || c.category;
+    return k === 'university' || R().planLevel(c) === null;
+  }
+
+  /*@3.GPSJ.160*/
+  function arPool(p) {
+    var have = {};
+    p.semesters.forEach(function (s) {
+      (s.courses || []).forEach(function (c) { if (c && c.code) have[c.code] = 1; });
+    });
+    var seen = {}, out = [];
+    function add(code, ar, en, ch, lv) {
+      if (!code || have[code] || seen[code]) return;
+      seen[code] = 1;
+      out.push({ c: code, ta: ar || '', t: en || '', h: (+ch || 3), l: (lv == null ? '' : lv) });
+    }
+    if (R() && PC.slug) {
+      R().courses(PC.slug).forEach(function (c) {
+        var code = R().fCode(c);
+        add(code, R().courseTitle(PC.slug, code, 'ar'), R().courseTitle(PC.slug, code, 'en'),
+            R().fCh(c), R().planLevel(c));
+      });
+    }
+    /*@3.GPSJ.161*/
+    var cat = [];
+    try { cat = (window.GardenData && GardenData.catalogList && GardenData.catalogList()) || []; }
+    catch (e) { cat = []; }
+    cat.forEach(function (c) {
+      if (!c || !c.code) return;
+      if (R() && PC.slug && R().inProgram(PC.slug, c.code) === false) return;
+      var m = /^L(\d+)$/.exec(String(c.level || ''));
+      add(c.code, c.name_ar, c.name_en, c.credits, m ? +m[1] : null);
+    });
+    var sem = readJSON(SEM, null);
+    ((sem && sem.courses) || []).forEach(function (c) {
+      if (c && c.code) add(c.code, c.name_ar, c.name_en, c.credits, null);
+    });
+    out.sort(function (a, b) {
+      var la = (a.l === '' ? 99 : +a.l), lb = (b.l === '' ? 99 : +b.l);
+      return la - lb || (a.c < b.c ? -1 : (a.c > b.c ? 1 : 0));
+    });
+    return out;
+  }
+
   function plRemaining(p) {
+    if (onArch()) return arPool(p);
     if (!R()) return [];
     var inPlan = {};
     p.semesters.forEach(function (s) {
@@ -1835,6 +1987,64 @@
     return lv === null ? (PC.level || plNextLevel(p) - 1) : lv;
   }
 
+  /*@3.GPSJ.175*/
+  var PT = null, PSHEET = null, PSEL = {}, PGUARD = null, PAUTO = null;
+
+  function plActive(p) {
+    if (PT && plIndex(p, PT) >= 0) return PT;
+    PT = p.semesters.length ? p.semesters[0].id : null;
+    return PT;
+  }
+  function plGo(id) { PT = id; PGUARD = null; }
+  function plOpenSheet(k, extra) {
+    PSHEET = Object.assign({ k: k }, extra || {});
+    if (k === 'pick') { PSEL = {}; PQ = ''; }
+  }
+  function plCloseSheet() { PSHEET = null; PSEL = {}; PAUTO = null; PQ = ''; }
+
+  function plStrip(p) {
+    var cur = plActive(p);
+    var h = p.semesters.map(function (s, i) {
+      var cr = plCr(s), cap = plCap(s);
+      return '<button type="button" class="gpp-tab' + (s.id === cur ? ' is-now' : '') + (s.summer ? ' is-summer' : '') +
+        '" data-gs="pl-go" data-v="' + esc(s.id) + '" data-pdrop="' + esc(s.id) + '" role="tab" aria-selected="' + (s.id === cur ? 'true' : 'false') + '">' +
+        '<span class="gpp-tab-n">' + esc(plTermName(s, i)) + '</span>' +
+        '<small class="gp-num">' + cr + (onArch() ? '' : '/' + cap) + '</small></button>';
+    }).join('');
+    h += '<button type="button" class="gpp-tab gpp-tab--add" data-gs="pl-newmenu" title="' +
+      esc(L('فصلٌ جديد', 'New term')) + '"><span class="gpp-tab-n"><i class="fa-solid fa-plus" aria-hidden="true"></i> ' +
+      esc(L('فصل', 'Term')) + '</span><small>&nbsp;</small></button>';
+    if (p.semesters.length > 1) {
+      h += '<button type="button" class="gp-ico gpp-tab-more" data-gs="pl-order" aria-label="' +
+        esc(L('رتّب الفصول', 'Reorder terms')) + '" title="' + esc(L('رتّب الفصول', 'Reorder terms')) +
+        '"><i class="fa-solid fa-arrow-down-1-9" aria-hidden="true"></i></button>';
+    }
+    return h;
+  }
+
+  function arHeadBar(p) {
+    var nT = p.semesters.length, cr = 0, pts = 0, gcr = 0, noG = 0;
+    p.semesters.forEach(function (s) {
+      (s.courses || []).forEach(function (c) {
+        var h = +c.credits || 0;
+        cr += h;
+        if (c.grade && GPA_SCALE[c.grade] !== undefined) { pts += GPA_SCALE[c.grade] * h; gcr += h; }
+        else if (!c.grade) noG++;
+      });
+    });
+    return '<div class="gpp-sum">' +
+      '<span><b>' + nT + '</b>' + esc(L(nT === 1 ? ' فصلٌ مؤرشف' : ' فصولٌ مؤرشفة',
+                                        nT === 1 ? ' archived term' : ' archived terms')) + '</span>' +
+      '<span><b>' + cr + '</b>' + esc(L(' ساعة مكتسبة', cr === 1 ? ' credit earned' : ' credits earned')) + '</span>' +
+      (gcr ? '<span><b>' + (pts / gcr).toFixed(2) + '</b>' + esc(L(' معدّلُ المؤرشف', ' archived GPA')) + '</span>' : '') +
+      (noG ? '<span class="is-warn"><b>' + noG + '</b>' +
+        esc(L(noG === 1 ? ' مادةٌ بلا تقدير' : ' مواد بلا تقدير',
+              noG === 1 ? ' course ungraded' : ' ungraded')) + '</span>'
+           : '<span class="is-done"><i class="fa-solid fa-circle-check"></i>' +
+        esc(L(' كلُّ موادّك مقدَّرة', ' every course graded')) + '</span>') +
+    '</div>';
+  }
+
   function plHeadBar(p) {
     var rest = plRemaining(p);
     var restCr = rest.reduce(function (a, c) { return a + (R().fCh(c) || 3); }, 0);
@@ -1844,19 +2054,14 @@
       '<span><b>' + nT + '</b>' + esc(L(' ' + arCount(nT, 'فصلٌ مخطّط', 'فصلان مخطّطان', 'فصولٍ مخطّطة', 'فصلاً مخطّطاً').replace(/^\d+\s/, ''),
                                         nT === 1 ? ' planned term' : ' planned terms')) + '</span>' +
       '<span><b>' + planCr + '</b>' + esc(L(' ساعة مجدولة', planCr === 1 ? ' credit scheduled' : ' credits scheduled')) + '</span>' +
-      '<span' + (rest.length ? ' class="is-warn"' : '') + '><b>' + rest.length + '</b>' +
-        esc(L(' مادة لم تُجدوَل (' + restCr + ' ساعة)', rest.length === 1 ? ' course unscheduled (' + restCr + ' cr)'
-                                                                          : ' unscheduled (' + restCr + ' cr)')) + '</span>' +
+      (rest.length
+        ? '<span class="is-warn"><b>' + rest.length + '</b>' +
+          esc(L(' مادة لم تُجدوَل (' + restCr + ' ساعة)',
+                rest.length === 1 ? ' course unscheduled (' + restCr + ' cr)'
+                                  : ' unscheduled (' + restCr + ' cr)')) + '</span>'
+        : '<span class="is-done"><i class="fa-solid fa-circle-check"></i>' +
+          esc(L(' لا مادةَ خارج الجدول', ' nothing left unscheduled')) + '</span>') +
     '</div>';
-    if (PC.span && PC.span.known) {
-      h += '<p class="gs-hint">' + esc(L(
-        'خطّتك تمتدّ من ' + levelName(PC.span.lo) + ' إلى ' + levelName(PC.span.hi) +
-          (PC.span.prep ? ' وقبلها السنة التحضيرية' : '') +
-          '. والفصلُ الصيفيُّ ليس مستوًى — يجلس بين مستويين ولا يرفع رقمَك.',
-        'Your plan runs from level ' + PC.span.lo + ' to ' + PC.span.hi +
-          (PC.span.prep ? ', preceded by the preparatory year' : '') +
-          '. A summer term is not a level — it sits between two and never raises your number.')) + '</p>';
-    }
     if (RULES_STATE === 'loading') {
       h += '<div class="gs-warn is-soft"><i class="fa-solid fa-cloud-arrow-down"></i><div>' +
         esc(L('نجلب قيودَ بانر (المتطلبات السابقة وقيود المستوى)… التنبيهات تظهر حين تصل.',
@@ -1871,165 +2076,160 @@
     return h;
   }
 
-  function plTermCard(p, s, si) {
-    var last = p.semesters.length - 1;
-    var cr = plCr(s), cap = plCap(s), over = cr > cap;
-    var thin = !s.summer && cr > 0 && cr < 11;
-    var bad = 0;
-    (s.courses || []).forEach(function (c) { if (plIssues(p, si, c).length) bad++; });
+  function plGeneralPending(p) {
+    if (!R()) return 0;
+    var n = plRemaining(p).filter(plGeneral).length;
+    p.semesters.forEach(function (s) {
+      if (s.summer) return;
+      (s.courses || []).forEach(function (c) {
+        if (c.code && plGeneral(plCourse(c.code))) n++;
+      });
+    });
+    return n;
+  }
 
-    var h = '<div class="gpp-term' + (s.summer ? ' is-summer' : '') + '" data-pt="' + esc(s.id) + '">' +
-      '<div class="gpp-term-h">' +
-        (s.summer ? '<i class="fa-solid fa-sun gpp-sun" aria-hidden="true"></i>'
-                  : '<i class="fa-solid fa-layer-group gpp-sun" aria-hidden="true"></i>') +
-        '<input class="gs-inp gpp-name" data-gs="pl-name" data-v="' + esc(s.id) + '"' +
-          ' value="' + esc(plTermName(s, si)) + '" aria-label="' + esc(L('اسم الفصل', 'Term name')) + '">' +
-        '<span class="gpp-cr' + (over ? ' is-over' : '') + '">' +
-          '<span class="gp-num">' + cr + '/' + cap + '</span>' + esc(L(' ساعة', ' cr')) + '</span>' +
-        (bad ? '<span class="gpp-badge" title="' + esc(L('تنبيهات', 'warnings')) + '">' +
-            '<i class="fa-solid fa-triangle-exclamation"></i><span class="gp-num">' + bad + '</span></span>' : '') +
-        '<span class="gpp-acts">' +
-          '<button class="gp-ico" data-gs="pl-up" data-v="' + esc(s.id) + '"' + (si === 0 ? ' disabled' : '') +
-            ' aria-label="' + esc(L('قدّم ' + plTermName(s, si), 'Move ' + plTermName(s, si) + ' earlier')) +
-            '"><i class="fa-solid fa-arrow-up"></i></button>' +
-          '<button class="gp-ico" data-gs="pl-down" data-v="' + esc(s.id) + '"' + (si === last ? ' disabled' : '') +
-            ' aria-label="' + esc(L('أخّر ' + plTermName(s, si), 'Move ' + plTermName(s, si) + ' later')) +
-            '"><i class="fa-solid fa-arrow-down"></i></button>' +
-          '<button class="gp-ico gp-ico--danger" data-gs="pl-del" data-v="' + esc(s.id) + '"' +
-            ' aria-label="' + esc(L('حذف ' + plTermName(s, si), 'Delete ' + plTermName(s, si))) +
-            '"><i class="fa-solid fa-trash-can"></i></button>' +
-        '</span>' +
-      '</div>' +
-      '<div class="gpp-term-m">' +
-        '<span class="gs-chips">' +
-          '<button class="gp-chip' + (!s.summer ? ' is-on' : '') + '" data-gs="pl-kind" data-v="' + esc(s.id) + ':r">' +
-            esc(L('عاديّ', 'Regular')) + '</button>' +
-          '<button class="gp-chip' + (s.summer ? ' is-on' : '') + '" data-gs="pl-kind" data-v="' + esc(s.id) + ':s">' +
-            esc(L('صيفيّ', 'Summer')) + '</button>' +
-        '</span>' +
-        '<label class="gpp-lv">' + esc(L('المستوى', 'Level')) +
-          '<input class="gs-inp" type="number" min="1" max="' + MAX_LEVEL + '" data-gs="pl-lv" data-v="' + esc(s.id) + '"' +
-            ' value="' + (s.level == null ? '' : esc(s.level)) + '" placeholder="—"></label>' +
-      '</div>';
-
-    if (over) {
-      h += '<div class="gs-warn is-soft"><i class="fa-solid fa-triangle-exclamation"></i><div>' +
-        esc(L('تجاوزتَ سقفَ الفصل: ' + cr + ' ساعةً والسقفُ ' + cap + '. لك أن تُبقيه إن كنتَ تعرف حالتك.',
-              'Over the term cap: ' + cr + ' credits against ' + cap + '. Keep it if you know your case.')) + '</div></div>';
-    }
-    if (thin) {
-      h += '<div class="gs-warn is-soft"><i class="fa-solid fa-circle-info"></i><div>' +
-        esc(L('دون الحدِّ الأدنى للفصل النظاميّ: ' + cr + ' ساعةً والحدُّ ١١.',
-              'Below the regular-term minimum: ' + cr + ' credits against 11.')) + '</div></div>';
-    }
-
-    h += '<div class="gpp-rows">';
-    (s.courses || []).forEach(function (c, ci) {
-      var iss = plIssues(p, si, c);
-      var free = !c.code;
-      h += '<div class="gpp-row' + (iss.length ? ' is-bad' : '') + (free ? ' is-free' : '') + '">' +
+  function plRow(p, s, si, c, ci) {
+    var iss = plIssues(p, si, c);
+    var free = !c.code;
+    var label = c.code || c.name || '';
+    var h = '<div class="gpp-row' + (iss.length ? ' is-bad' : '') + '" data-uid="' + esc(c.uid) + '">' +
+      '<i class="fa-solid fa-grip-vertical gpp-grip" aria-hidden="true"></i>' +
+      '<span class="gpp-row-m">' +
         (free ? '' : '<span class="gs-card-code">' + esc(c.code) + '</span>') +
         (free
           ? '<input class="gs-inp gpp-row-in" data-gs="pl-cname" data-v="' + esc(s.id) + ':' + ci + '"' +
             ' value="' + esc(c.name || '') + '" placeholder="' + esc(L('اسم المادة', 'Course name')) +
             '" aria-label="' + esc(L('اسم المادة', 'Course name')) + '">'
-          : '<span class="gpp-row-n">' + esc(c.name || plName(c.code, '')) + '</span>') +
-        (free
-          ? '<input class="gs-inp gpp-row-cr" type="number" min="1" max="12" data-gs="pl-ccr" data-v="' +
-            esc(s.id) + ':' + ci + '" value="' + (+c.credits || 3) + '" aria-label="' +
-            esc(L('ساعات المادة', 'Course credits')) + '">'
-          : '<span class="gs-card-ch">' + (+c.credits || 0) + esc(L(' ساعة', ' cr')) + '</span>') +
-        gradeBtn('pl:' + s.id + ':' + ci, c.grade || '', c.code || c.name) +
-        '<button class="gp-ico" data-gs="pl-mv" data-v="' + esc(s.id) + ':' + ci + ':-1"' + (si === 0 ? ' disabled' : '') +
-          ' aria-label="' + esc(L('قدّمها فصلاً', 'Pull one term earlier')) + '"><i class="fa-solid fa-angles-up"></i></button>' +
-        '<button class="gp-ico" data-gs="pl-mv" data-v="' + esc(s.id) + ':' + ci + ':1"' + (si === last ? ' disabled' : '') +
-          ' aria-label="' + esc(L('أجّلها فصلاً', 'Defer one term')) + '"><i class="fa-solid fa-angles-down"></i></button>' +
-        '<button class="gp-ico gp-ico--danger" data-gs="pl-rm" data-v="' + esc(s.id) + ':' + ci + '"' +
-          ' aria-label="' + esc(L('حذف المادة', 'Remove course')) + '"><i class="fa-solid fa-xmark"></i></button>' +
-      '</div>';
-      if (iss.length) {
-        h += '<div class="gpp-flags">' + iss.map(function (v) {
-          return '<span class="gpp-flag" data-k="' + v.k + '"><i class="fa-solid ' +
-            (v.k === 'level' ? 'fa-stairs' : 'fa-diagram-project') + '"></i>' + esc(plIssueText(v)) + '</span>';
-        }).join('') + '</div>';
-      }
-    });
-    if (!(s.courses || []).length) {
-      h += '<p class="gs-hint gpp-empty">' + esc(L('لا مواد بعد — أضِف من المتبقّي أدناه.',
-                                                   'No courses yet — add from what remains below.')) + '</p>';
+          : '<span class="gpp-row-n">' + esc(plRowName(c)) + '</span>') +
+        (free ? '' : '<small class="gpp-row-chm">' + (+c.credits || 0) + esc(L(' ساعة', ' cr')) + '</small>') +
+      '</span>' +
+      (free
+        ? '<input class="gs-inp gpp-row-cr" type="number" min="1" max="12" data-gs="pl-ccr" data-v="' +
+          esc(s.id) + ':' + ci + '" value="' + (+c.credits || 3) + '" aria-label="' +
+          esc(L('ساعات المادة', 'Course credits')) + '">'
+        : '<span class="gpp-row-ch">' + (+c.credits || 0) + esc(L(' ساعة', ' cr')) + '</span>') +
+      gradeBtn('pl:' + s.id + ':' + ci, c.grade || '', label) +
+      '<span class="gpp-row-a">' +
+        '<button type="button" class="gp-btn gp-btn--sm gpp-mv" data-gs="pl-move-open" data-v="' + esc(c.uid) + '"' +
+          ' aria-label="' + esc(L('انقل ' + label + ' إلى فصلٍ آخر', 'Move ' + label + ' to another term')) + '">' +
+          '<i class="fa-solid fa-arrows-up-down-left-right" aria-hidden="true"></i><span>' + esc(L('انقل', 'Move')) + '</span></button>' +
+        '<button type="button" class="gp-btn gp-btn--sm gpp-rm" data-gs="pl-rm" data-v="' + esc(c.uid) + '"' +
+          ' aria-label="' + esc(onArch() ? L('أزل ' + label + ' من سجلّك', 'Remove ' + label + ' from your record')
+                                          : L('أعِد ' + label + ' إلى المتبقّي', 'Return ' + label + ' to the pool')) + '">' +
+          '<span>' + esc(L('أزل', 'Remove')) + '</span></button>' +
+        '<button type="button" class="gp-ico gpp-more" data-gs="pl-menu" data-v="' + esc(c.uid) + '"' +
+          ' aria-label="' + esc(L('خيارات ' + label, 'Options for ' + label)) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>' +
+      '</span>';
+    if (iss.length) {
+      h += '<div class="gpp-flags">' + iss.map(function (v) {
+        return '<span class="gpp-flag" data-k="' + v.k + '"><i class="fa-solid ' +
+          (v.k === 'level' ? 'fa-stairs' : 'fa-diagram-project') + '"></i>' + esc(plIssueText(v)) + '</span>';
+      }).join('') + '</div>';
     }
-    h += '</div>';
-
-    h += '<div class="gpp-term-a">' +
-      '<button class="gp-btn gp-btn--sm" data-gs="pl-fill" data-v="' + esc(s.id) + '">' +
-        '<i class="fa-solid fa-wand-magic-sparkles"></i><span>' + esc(L('املأه من المتبقّي', 'Fill from remaining')) + '</span></button>' +
-      '<button class="gp-btn gp-btn--sm" data-gs="pl-free" data-v="' + esc(s.id) + '">' +
-        '<i class="fa-solid fa-plus"></i><span>' + esc(L('مادة خارج الخطة', 'Course outside the plan')) + '</span></button>' +
-    '</div>';
-
     return h + '</div>';
   }
 
-  function plPickList(p) {
-    var rest = plRemaining(p);
-    var q = normPl(PQ);
-    var hit = !q ? rest : rest.filter(function (c) {
-      return normPl(R().fCode(c) + ' ' + plTitle(c)).indexOf(q) > -1;
-    });
-    var opts = p.semesters.map(function (s, i) {
-      return '<option value="' + esc(s.id) + '">' + esc(plTermName(s, i)) + '</option>';
-    }).join('');
+  function plTermPanel(p, s, si) {
+    var cr = plCr(s), cap = plCap(s), over = cr > cap;
+    var thin = !s.summer && cr > 0 && cr < 11;
+    var bad = 0;
+    (s.courses || []).forEach(function (c) { if (plIssues(p, si, c).length) bad++; });
+    var name = plTermName(s, si), n = (s.courses || []).length;
+    var pct = cap ? Math.min(100, Math.round(cr / cap * 100)) : 0;
 
-    var h = '<div class="gpp-sec"><h4 class="gpp-sec-h">' +
-      esc(L('المواد المتبقّية حسب الخطة', 'What your plan still owes you')) +
-      ' <span class="gpp-sec-n">' + rest.length + '</span></h4>';
-    if (!R() || !R().courses(PC.slug).length) {
-      h += '<div class="gs-warn is-err"><i class="fa-solid fa-cloud-arrow-down"></i><div class="gs-warn-t"><b>' +
-        esc(L('لم تصل مقرّراتُ خطتك', 'Your plan’s courses did not load')) + '</b>' +
-        esc(L('اختر برنامجك من المعالج، أو أعد المحاولة حين تعود الشبكة — ويبقى بناءُ الفصول يدويّاً متاحاً.',
-              'Pick your programme in the wizard, or retry when the network returns — building terms by hand still works.')) +
-        '</div></div></div>';
-      return h;
+    var h = '<div class="gpp-term' + (s.summer ? ' is-summer' : '') + '" data-pt="' + esc(s.id) + '">' +
+      '<div class="gpp-th">' +
+        '<i class="fa-solid ' + (s.summer ? 'fa-sun' : 'fa-layer-group') + ' gpp-sun" aria-hidden="true"></i>' +
+        '<input class="gs-inp gpp-tname" data-gs="pl-name" data-v="' + esc(s.id) + '"' +
+          ' value="' + esc(name) + '" placeholder="' + esc(L('اسم الفصل', 'Term name')) +
+          '" aria-label="' + esc(L('اسم الفصل', 'Term name')) + '">' +
+        '<span class="gs-chips gpp-kind">' +
+          '<button type="button" class="gp-chip' + (!s.summer ? ' is-on' : '') + '" data-gs="pl-kind" data-v="' + esc(s.id) + ':r">' +
+            esc(L('عاديّ', 'Regular')) + '</button>' +
+          '<button type="button" class="gp-chip' + (s.summer ? ' is-on' : '') + '" data-gs="pl-kind" data-v="' + esc(s.id) + ':s">' +
+            esc(L('صيفيّ', 'Summer')) + '</button>' +
+        '</span>' +
+        (s.summer && onArch()
+          ? '<label class="gpp-lv">' + esc(L('بعد المستوى', 'After level')) +
+            '<input class="gs-inp" type="number" min="0" max="' + MAX_LEVEL + '" data-gs="pl-after" data-v="' + esc(s.id) + '"' +
+              ' value="' + (s.after == null ? '' : esc(s.after)) + '" placeholder="—"></label>'
+          : '<label class="gpp-lv">' + esc(L('المستوى', 'Level')) +
+            '<input class="gs-inp" type="number" min="1" max="' + MAX_LEVEL + '" data-gs="pl-lv" data-v="' + esc(s.id) + '"' +
+              ' value="' + (s.level == null ? '' : esc(s.level)) + '" placeholder="—"></label>') +
+        '<span class="gpp-cap' + (over ? ' is-over' : '') + '">' +
+          (onArch()
+            ? '<span class="gp-num">' + cr + '</span>' + esc(L(' ساعة', ' cr')) +
+              (plTermGpa(s) === null ? '' : ' · <span class="gp-num">' + plTermGpa(s).toFixed(2) + '</span>')
+            : '<span class="gpp-bar" aria-hidden="true"><i style="inline-size:' + pct + '%"></i></span>' +
+              '<span class="gp-num">' + cr + '/' + cap + '</span>') +
+        '</span>' +
+        (onArch() && plUngraded(s)
+          ? '<span class="gpp-badge" title="' + esc(L('بلا تقدير', 'ungraded')) + '">' +
+            '<i class="fa-solid fa-circle-question"></i><span class="gp-num">' + plUngraded(s) + '</span></span>' : '') +
+        (bad ? '<span class="gpp-badge" title="' + esc(L('تنبيهات', 'warnings')) + '">' +
+            '<i class="fa-solid fa-triangle-exclamation"></i><span class="gp-num">' + bad + '</span></span>' : '') +
+      '</div>';
+
+    if (over && !onArch()) {
+      h += '<div class="gs-warn is-soft"><i class="fa-solid fa-triangle-exclamation"></i><div>' +
+        esc(L('تجاوزتَ سقفَ الفصل: ' + cr + ' ساعةً والسقفُ ' + cap + '. لك أن تُبقيه إن كنتَ تعرف حالتك.',
+              'Over the term cap: ' + cr + ' credits against ' + cap + '. Keep it if you know your case.')) + '</div></div>';
     }
-    if (!rest.length) {
-      h += '<div class="gs-warn is-soft"><i class="fa-solid fa-circle-check"></i><div>' +
-        esc(L('كلُّ ما تبقّى من خطتك مجدولٌ في فصولك أعلاه.',
-              'Everything your plan still owes you is scheduled above.')) + '</div></div></div>';
-      return h;
-    }
-    if (!p.semesters.length) {
+    if (thin && !onArch()) {
       h += '<div class="gs-warn is-soft"><i class="fa-solid fa-circle-info"></i><div>' +
-        esc(L('أنشئ فصلاً أوّلاً لتضيف إليه.', 'Create a term first so there is somewhere to add.')) + '</div></div>';
+        esc(L('دون الحدِّ الأدنى للفصل النظاميّ: ' + cr + ' ساعةً والحدُّ ١١.',
+              'Below the regular-term minimum: ' + cr + ' credits against 11.')) + '</div></div>';
     }
-    h += '<div class="gpp-pick-h">' +
-      '<input class="gs-inp" id="gpp-q" value="' + esc(PQ) + '" placeholder="' +
-        esc(L('ابحث برمزٍ أو اسم', 'Search by code or name')) + '" aria-label="' +
-        esc(L('بحث في المتبقّي', 'Search what remains')) + '">' +
-      (p.semesters.length ? '<label class="gpp-to">' + esc(L('إلى', 'into')) +
-        '<select class="gs-inp" id="gpp-to" aria-label="' + esc(L('الفصل الهدف', 'Target term')) + '">' +
-        opts + '</select></label>' : '') +
+
+    h += '<div class="gpp-rows">' +
+      (s.courses || []).map(function (c, ci) { return plRow(p, s, si, c, ci); }).join('') + '</div>';
+    if (!n) {
+      h += '<p class="gs-hint gpp-empty">' + esc(onArch()
+        ? L('فصلٌ فارغ — أضِف إليه ما درستَه فيه.', 'Empty term — add what you studied in it.')
+        : L('فصلٌ فارغ — أضِف إليه من المتبقّي، أو اسحب إليه بطاقةً من فصلٍ آخر.',
+            'Empty term — add from what remains, or drag a card here from another term.')) + '</p>';
+    }
+
+    h += '<div class="gpp-term-f">' +
+      '<button type="button" class="gpp-cta" data-gs="pl-pick-open" data-v="' + esc(s.id) + '">' +
+        '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>' + esc(L('أضِف موادَّ إلى هذا الفصل', 'Add courses to this term')) + '</span>' +
+        (onArch() ? '' : '<small>' + esc(L('— مستواك أوّلاً، ثمّ الباقي', '— your level first, then the rest')) + '</small>') +
+      '</button>' +
+      '<div class="gpp-term-a">' +
+        (onArch() ? '' :
+          '<button type="button" class="gp-btn gp-btn--sm" data-gs="pl-fill" data-v="' + esc(s.id) + '">' +
+          '<i class="fa-solid fa-wand-magic-sparkles"></i><span>' + esc(L('املأه ممّا تبقّى', 'Fill from remaining')) + '</span></button>') +
+        '<span class="gs-foot-sp"></span>' +
+        '<button type="button" class="gp-btn gp-btn--sm" data-gs="pl-clear" data-v="' + esc(s.id) + '"' + (n ? '' : ' disabled') + '>' +
+          '<i class="fa-solid fa-broom"></i><span>' + esc(L('فرّغ الفصل', 'Empty the term')) + '</span></button>' +
+        '<button type="button" class="gp-btn gp-btn--sm gp-btn--danger" data-gs="pl-del" data-v="' + esc(s.id) + '">' +
+          '<i class="fa-solid fa-trash-can"></i><span>' + esc(L('احذف الفصل', 'Delete the term')) + '</span></button>' +
+      '</div>' +
     '</div>';
 
-    h += '<div class="gs-cards gpp-cards">' + hit.map(function (c) {
-      var code = R().fCode(c), lv = R().planLevel(c);
-      var win = R().levelWindow(code);
-      return '<div class="gs-card gpp-avail">' +
-        '<div class="gs-card-main">' +
-          '<span class="gs-card-code">' + esc(code) + '</span>' +
-          '<span class="gs-card-name">' + esc(plTitle(c)) + '</span>' +
-        '</div>' +
-        '<div class="gs-card-foot">' +
-          '<span class="gs-card-ch">' + (R().fCh(c) || 3) + esc(L(' ساعة', ' cr')) + '</span>' +
-          '<em class="gs-card-from">' + esc(levelName(lv)) +
-            (win ? esc(L(' · بانر: ' + win.join('، '), ' · Banner: ' + win.join(', '))) : '') + '</em>' +
-          '<button class="gp-btn gp-btn--sm gpp-add" data-gs="pl-add" data-v="' + esc(code) + '">' +
-            '<i class="fa-solid fa-plus"></i><span>' + esc(L('أضِف', 'Add')) + '</span></button>' +
-        '</div></div>';
-    }).join('') + '</div>';
-    if (!hit.length) {
-      h += '<p class="gs-hint">' + esc(L('لا نتيجة لبحثك.', 'Nothing matches your search.')) + '</p>';
+    if (PGUARD === s.id) {
+      h += '<div class="gpp-guard" role="alert">' +
+        '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>' +
+        '<span>' + esc(onArch()
+          ? L('تحذف «' + name + '» بـ' + plCW(n) + ' ودرجاتِها — و«تراجع» يبقى متاحاً بعد الحذف.',
+              'This deletes “' + name + '” with ' + plCW(n) + ' and their grades — Undo stays available afterwards.')
+          : L('تحذف «' + name + '» وتعود ' + plCW(n) + ' إلى المتبقّي — و«تراجع» يبقى متاحاً بعد الحذف.',
+              'This deletes “' + name + '” and returns ' + plCW(n) + ' to the pool — Undo stays available afterwards.')) + '</span>' +
+        '<button type="button" class="gp-btn gp-btn--sm" data-gs="pl-guard-off">' + esc(L('أبقِه', 'Keep it')) + '</button>' +
+        '<button type="button" class="gp-btn gp-btn--sm gp-btn--danger" data-gs="pl-del-yes" data-v="' + esc(s.id) + '">' +
+          '<i class="fa-solid fa-trash-can"></i><span>' + esc(L('احذف', 'Delete')) + '</span></button>' +
+      '</div>';
     }
     return h + '</div>';
+  }
+
+  function plReady(code) {
+    if (!R()) return null;
+    var m = {};
+    Object.keys(PC.passed).forEach(function (k) { m[k] = 1; });
+    PC.cur.forEach(function (k) { m[k] = 1; });
+    var miss = R().prereqMissing(PC.slug, code, m);
+    return miss.length ? miss : null;
   }
 
   function normPl(s) {
@@ -2039,72 +2239,543 @@
       .replace(/\s+/g, ' ').trim();
   }
 
+  /*@3.GPSJ.176*/
+  function plPickItems(p) {
+    if (onArch()) {
+      return arPool(p).map(function (c) {
+        return { c: c.c, n: (isAr() ? (c.ta || c.t) : (c.t || c.ta)) || c.c, h: +c.h || 3,
+                 l: (c.l === '' ? null : +c.l), miss: null };
+      });
+    }
+    if (!R()) return [];
+    return plRemaining(p).map(function (c) {
+      var code = R().fCode(c);
+      return { c: code, n: plTitle(c) || code, h: R().fCh(c) || 3, l: R().planLevel(c),
+               miss: plReady(code), gen: plGeneral(c) };
+    });
+  }
+
+  function plPickGroups(p, s) {
+    var all = plPickItems(p), q = normPl(PQ);
+    if (q) {
+      return [{ t: L('نتائج البحث', 'Search results'),
+                items: all.filter(function (x) { return normPl(x.c + ' ' + x.n).indexOf(q) > -1; }) }];
+    }
+    var lv = (s.level == null || s.level === '') ? null : +s.level;
+    var g1 = [], g2 = [], g3 = [];
+    all.forEach(function (x) {
+      if (s.summer && !onArch() ? x.gen : (lv !== null && x.l === lv)) g1.push(x);
+      else if (x.miss) g3.push(x);
+      else g2.push(x);
+    });
+    var out = [];
+    if (g1.length) {
+      out.push({ t: s.summer && !onArch() ? L('موادُّ عامّةٌ تناسب الصيفيّ', 'General courses that suit a summer term')
+                                            : L('من مستواك', 'From your level'),
+                 n: g1.length, sub: (s.summer || onArch()) ? '' : L('الخطّة تضعها في ' + levelName(lv), 'The plan puts them in ' + levelName(lv)),
+                 items: g1 });
+    }
+    if (g2.length) {
+      out.push({ t: onArch() ? L('من مستوياتٍ أخرى', 'From other levels')
+                             : L('تستطيع تقديمَها', 'You can take these'),
+                 n: g2.length, sub: onArch() ? '' : L('متطلّبها متحقّق', 'prerequisites met'), items: g2 });
+    }
+    if (g3.length) out.push({ t: L('ليست بعد', 'Not yet'), n: g3.length, sub: '', items: g3, dim: true });
+    return out;
+  }
+
+  function plPickList(p, s) {
+    var groups = plPickGroups(p, s), shown = 0, total = 0;
+    var h = groups.map(function (g) {
+      if (!g.items.length) return '';
+      var items = g.items.slice(0, Math.max(0, 240 - shown));
+      shown += items.length; total += g.items.length;
+      return '<div class="gpp-grp"><span>' + esc(g.t) + '</span>' +
+        (g.n ? '<b class="gp-num">' + g.n + '</b>' : '') +
+        (g.sub ? '<em>— ' + esc(g.sub) + '</em>' : '') + '</div>' +
+        '<div class="gpp-pick' + (g.dim ? ' is-dim' : '') + '">' + items.map(function (x) {
+          var on = !!PSEL[x.c];
+          return '<button type="button" class="gpp-pk' + (on ? ' is-on' : '') + '" data-gs="pl-sel" data-v="' + esc(x.c) + '"' +
+            ' role="checkbox" aria-checked="' + (on ? 'true' : 'false') + '">' +
+            '<span class="gpp-pk-box" aria-hidden="true"><i class="fa-solid fa-check"></i></span>' +
+            '<span class="gpp-row-m"><span class="gs-card-code">' + esc(x.c) + '</span><span class="gpp-row-n">' + esc(x.n) + '</span></span>' +
+            '<span class="gpp-row-ch">' + x.h + esc(L(' ساعة', ' cr')) + '</span>' +
+            (x.l === null || x.l === undefined ? '' : '<em class="gpp-pk-lv">' + esc(levelName(x.l)) + '</em>') +
+            (x.miss ? '<span class="gpp-flag" data-k="wait"><i class="fa-solid fa-hourglass-half"></i>' +
+                      esc(L('بعد ' + plGroupWord(x.miss), 'After ' + plGroupWord(x.miss))) + '</span>' : '') +
+          '</button>';
+        }).join('') + '</div>';
+    }).join('');
+    if (!total) {
+      h += '<p class="gs-hint">' + esc(PQ
+        ? L('لا نتيجة — وإن كانت مادّةً لا نعرفها فأضِفها بزرِّ «مادة خارج الخطة».',
+            'Nothing matches — if we do not know the course, add it with “Course outside the plan”.')
+        : (onArch() ? L('لا مادّةَ متاحةً للإضافة.', 'Nothing available to add.')
+                    : L('كلُّ ما تبقّى من خطتك مجدولٌ في فصولك.', 'Everything your plan still owes you is scheduled.'))) + '</p>';
+    } else if (total > shown) {
+      h += '<p class="gs-hint">' + esc(L('نعرض ' + shown + ' من ' + total + ' — ضيّقْ بحثَك.',
+                                         'Showing ' + shown + ' of ' + total + ' — narrow your search.')) + '</p>';
+    }
+    return h;
+  }
+
+  function plPickFoot(p, s) {
+    var sel = Object.keys(PSEL), items = plPickItems(p), hrs = 0;
+    items.forEach(function (x) { if (PSEL[x.c]) hrs += x.h; });
+    var n = sel.length;
+    return '<button type="button" class="gp-btn gp-btn--primary" data-gs="pl-pick-add" data-v="' + esc(s.id) + '"' + (n ? '' : ' disabled') + '>' +
+      '<i class="fa-solid fa-check"></i><span>' + esc(n
+        ? L('أضِف ' + (n === 1 ? 'مادّةً واحدة' : (n === 2 ? 'مادّتين' : plCW(n))) + ' (' + hrs + ' ساعة)', 'Add ' + plCW(n) + ' (' + hrs + ' cr)')
+        : L('حدّد ما تريد إضافته', 'Pick what to add')) + '</span></button>' +
+      '<button type="button" class="gp-btn" data-gs="pl-free" data-v="' + esc(s.id) + '">' +
+        '<i class="fa-solid fa-plus"></i><span>' + esc(L('مادة خارج الخطة', 'Course outside the plan')) + '</span></button>' +
+      '<span class="gs-foot-sp"></span>' +
+      '<button type="button" class="gp-btn" data-gs="pl-sheet-x">' + esc(L('إلغاء', 'Cancel')) + '</button>';
+  }
+
+  function plMoveNote(p, at, s, si) {
+    if (onArch()) return '';
+    var q = JSON.parse(JSON.stringify(p));
+    var moved = q.semesters[at.si].courses.splice(at.ci, 1)[0];
+    var ti = plIndex(q, s.id);
+    q.semesters[ti].courses.push(moved);
+    var iss = plIssues(q, ti, moved);
+    if (iss.length) return '<em class="gpp-mv-note is-warn">' + esc(plIssueText(iss[0])) + '</em>';
+    var lv = R() && at.c.code ? R().planLevel(plCourse(at.c.code)) : null;
+    if (lv !== null && lv !== undefined && !s.summer && String(s.level) === String(lv)) {
+      return '<em class="gpp-mv-note is-ok">' + esc(L('مستواها في الخطّة', 'its plan level')) + '</em>';
+    }
+    return '';
+  }
+
+  function plSheetHtml(p) {
+    if (!PSHEET) return '';
+    var k = PSHEET.k, cur = plActive(p), s = cur ? p.semesters[plIndex(p, cur)] : null;
+    var title = '', body = '', foot = '', extra = '', cls = '';
+
+    if (k === 'new') {
+      title = L('فصلٌ جديد', 'New term');
+      var nl = plNextLevel(p), ll = plLastLevel(p);
+      body = '<div class="gpp-opts">' +
+        '<button type="button" class="gpp-opt" data-gs="pl-new" data-v="r"><i class="fa-solid fa-layer-group"></i><span><b>' +
+          esc(L('فصل عاديّ', 'Regular term')) + '</b><small>' + esc(levelName(nl)) + '</small></span></button>' +
+        '<button type="button" class="gpp-opt" data-gs="pl-new" data-v="s"><i class="fa-solid fa-sun"></i><span><b>' +
+          esc(L('فصل صيفيّ', 'Summer term')) + '</b><small>' + esc(onArch()
+            ? L('بعد ' + levelName(ll), 'after ' + levelName(ll))
+            : L('ليس مستوًى — يجلس بين مستويين ولا يرفع رقمَك', 'not a level — sits between two and never raises your number')) +
+          '</small></span></button>' +
+      '</div>';
+      cls = ' gpp-sheet--sm';
+    } else if (k === 'pick' && s) {
+      var selH = 0; plPickItems(p).forEach(function (x) { if (PSEL[x.c]) selH += x.h; });
+      title = L('أضِف إلى ' + plTermName(s, plIndex(p, s.id)), 'Add to ' + plTermName(s, plIndex(p, s.id)));
+      extra = onArch() ? '' : '<span class="gpp-sh-cap"><span class="gp-num">' + plCr(s) + '/' + plCap(s) + '</span>' +
+        (selH ? ' → <span class="gp-num">' + (plCr(s) + selH) + '/' + plCap(s) + '</span>' : '') + '</span>';
+      body = '<div class="gpp-pick-q"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>' +
+        '<input class="gs-inp" id="gpp-pq" value="' + esc(PQ) + '" placeholder="' +
+          esc(L('ابحث برمزٍ أو اسم', 'Search by code or name')) + '" aria-label="' + esc(L('بحث', 'Search')) + '"></div>' +
+        '<div id="gpp-pick-list">' + plPickList(p, s) + '</div>';
+      foot = plPickFoot(p, s);
+    } else if (k === 'move' || k === 'menu') {
+      var at = plFind(p, PSHEET.uid);
+      if (!at) return '';
+      var lbl = at.c.code || at.c.name || '';
+      title = (k === 'menu' ? '' : L('انقل ', 'Move ')) + lbl + (at.c.code ? ' · ' + plRowName(at.c) : '');
+      if (k === 'menu') {
+        body = '<div class="gpp-opts">' +
+          '<button type="button" class="gpp-opt" data-gs="pl-move-open" data-v="' + esc(at.c.uid) + '"><i class="fa-solid fa-arrows-up-down-left-right"></i><span><b>' +
+            esc(L('انقل إلى فصلٍ آخر…', 'Move to another term…')) + '</b></span></button>' +
+          '<button type="button" class="gpp-opt is-danger" data-gs="pl-rm" data-v="' + esc(at.c.uid) + '"><i class="fa-solid fa-xmark"></i><span><b>' +
+            esc(onArch() ? L('أزل من سجلّك', 'Remove from your record') : L('أعِد إلى المتبقّي', 'Return to the pool')) + '</b></span></button>' +
+        '</div>';
+        cls = ' gpp-sheet--sm';
+      } else {
+        body = '<div class="gpp-opts">' + p.semesters.map(function (t, i) {
+          var here = i === at.si;
+          return '<button type="button" class="gpp-opt' + (here ? ' is-here' : '') + (t.summer ? ' is-summer' : '') +
+            '" data-gs="pl-move-to" data-v="' + esc(at.c.uid) + ':' + esc(t.id) + '"' + (here ? ' disabled' : '') + '>' +
+            '<i class="fa-solid ' + (t.summer ? 'fa-sun' : 'fa-layer-group') + '"></i>' +
+            '<span><b>' + esc(plTermName(t, i)) + '</b>' +
+              (here ? '<small>' + esc(L('الحاليّ', 'current')) + '</small>' : plMoveNote(p, at, t, i)) + '</span>' +
+            '<small class="gp-num">' + plCr(t) + (onArch() ? '' : '/' + plCap(t)) + '</small></button>';
+        }).join('') +
+          '<button type="button" class="gpp-opt is-new" data-gs="pl-move-new" data-v="' + esc(at.c.uid) + ':r"><i class="fa-solid fa-plus"></i><span><b>' +
+            esc(L('فصلٌ عاديٌّ جديد', 'A new regular term')) + '</b><small>' + esc(levelName(plNextLevel(p))) + '</small></span></button>' +
+          '<button type="button" class="gpp-opt is-new" data-gs="pl-move-new" data-v="' + esc(at.c.uid) + ':s"><i class="fa-solid fa-sun"></i><span><b>' +
+            esc(L('فصلٌ صيفيٌّ جديد', 'A new summer term')) + '</b></span></button>' +
+          '<button type="button" class="gpp-opt is-danger" data-gs="pl-rm" data-v="' + esc(at.c.uid) + '"><i class="fa-solid fa-xmark"></i><span><b>' +
+            esc(onArch() ? L('أزلها من سجلّك', 'Remove it from your record') : L('أعِدها إلى المتبقّي', 'Return it to the pool')) + '</b></span></button>' +
+        '</div>';
+      }
+    } else if (k === 'order') {
+      title = L('رتّب الفصول', 'Reorder terms');
+      body = '<div class="gpp-opts gpp-order">' + p.semesters.map(function (t, i) {
+        return '<div class="gpp-opt is-row' + (t.summer ? ' is-summer' : '') + '">' +
+          '<b class="gp-num gpp-ord-n">' + (i + 1) + '</b>' +
+          '<i class="fa-solid ' + (t.summer ? 'fa-sun' : 'fa-layer-group') + '"></i>' +
+          '<span><b>' + esc(plTermName(t, i)) + '</b><small class="gp-num">' + plCr(t) + (onArch() ? '' : '/' + plCap(t)) +
+            esc(L(' ساعة', ' cr')) + '</small></span>' +
+          '<span class="gpp-ord-a">' +
+            '<button type="button" class="gp-ico" data-gs="pl-up" data-v="' + esc(t.id) + '"' + (i === 0 ? ' disabled' : '') +
+              ' aria-label="' + esc(L('قدّم ' + plTermName(t, i), 'Move ' + plTermName(t, i) + ' earlier')) + '"><i class="fa-solid fa-arrow-up"></i></button>' +
+            '<button type="button" class="gp-ico" data-gs="pl-down" data-v="' + esc(t.id) + '"' + (i === p.semesters.length - 1 ? ' disabled' : '') +
+              ' aria-label="' + esc(L('أخّر ' + plTermName(t, i), 'Move ' + plTermName(t, i) + ' later')) + '"><i class="fa-solid fa-arrow-down"></i></button>' +
+          '</span></div>';
+      }).join('') + '</div>';
+      foot = (onArch()
+        ? '<button type="button" class="gp-btn" data-gs="pl-auto-open" data-v="chrono"><i class="fa-solid fa-arrow-down-1-9"></i><span>' +
+          esc(L('رتّب زمنيّاً (معاينة)', 'Sort chronologically (preview)')) + '</span></button>' : '') +
+        '<span class="gs-foot-sp"></span>' +
+        '<button type="button" class="gp-btn gp-btn--primary" data-gs="pl-sheet-x">' + esc(L('تمّ', 'Done')) + '</button>';
+    } else if (k === 'auto' && PAUTO) {
+      title = onArch() ? L('ترتيبٌ زمنيّ', 'Chronological order') : L('اقتراحُ ترتيبٍ لما تبقّى', 'A suggested arrangement');
+      var on = PAUTO.changes.filter(function (c) { return c.on; }).length;
+      body = '<p class="gs-lead">' + esc(onArch()
+        ? L('لا يتغيّر شيءٌ حتى تضغط «طبّق». العاديُّ برقمه، والصيفيُّ بعد المستوى المكتوب فيه.',
+            'Nothing changes until you press Apply. Regular terms by level; each summer term after the level set on it.')
+        : L('لا يتغيّر شيءٌ حتى تضغط «طبّق». ألغِ التحديدَ عن أيِّ سطرٍ لا تريده — والباقي يُطبَّق كما هو.',
+            'Nothing changes until you press Apply. Untick any line you do not want — the rest applies as shown.')) + '</p>';
+      if (!onArch()) {
+        body += '<div class="gs-chips gpp-auto-m">' + [
+          ['byplan', 'fa-list-check', L('حسب مستوى الخطة', 'By plan level')],
+          ['fill', 'fa-wand-magic-sparkles', L('املأ حتى السقف', 'Fill to the cap')],
+          ['summer', 'fa-sun', L('العامّةُ في الصيفيّ', 'General into summer')]
+        ].map(function (m) {
+          return '<button type="button" class="gp-chip' + (PAUTO.mode === m[0] ? ' is-on' : '') + '" data-gs="pl-auto-open" data-v="' + m[0] + '">' +
+            '<i class="fa-solid ' + m[1] + '"></i> ' + esc(m[2]) + '</button>';
+        }).join('') + '</div>';
+      }
+      if (PAUTO.mode === 'chrono') {
+        body += '<div class="gpp-opts gpp-order">' + PAUTO.order.map(function (id, i) {
+          var t = p.semesters[plIndex(p, id)], was = plIndex(p, id);
+          return '<div class="gpp-opt is-row' + (t.summer ? ' is-summer' : '') + '"><b class="gp-num gpp-ord-n">' + (i + 1) + '</b>' +
+            '<i class="fa-solid ' + (t.summer ? 'fa-sun' : 'fa-layer-group') + '"></i>' +
+            '<span><b>' + esc(plTermName(t, was)) + '</b>' +
+            (was !== i ? '<small>' + esc(L('كان في الموضع ' + (was + 1), 'was at position ' + (was + 1))) + '</small>' : '') +
+            '</span></div>';
+        }).join('') + '</div>';
+        foot = '<button type="button" class="gp-btn gp-btn--primary" data-gs="pl-auto-apply"' + (PAUTO.moved ? '' : ' disabled') + '>' +
+          '<i class="fa-solid fa-check"></i><span>' + esc(PAUTO.moved ? L('طبّق الترتيب', 'Apply this order') : L('مرتّبٌ سلفاً', 'Already in order')) + '</span></button>';
+      } else {
+        if (!PAUTO.changes.length) {
+          body += '<div class="gs-warn is-soft"><i class="fa-solid fa-circle-info"></i><div>' + esc(PAUTO.empty ||
+            L('لا شيءَ يقترحه هذا الخيار الآن.', 'This option has nothing to suggest right now.')) + '</div></div>';
+        } else {
+          body += '<div class="gpp-diffs"><div class="gpp-grp"><span>' + esc(L(PAUTO.changes.length + ' تغييراً مقترحاً', PAUTO.changes.length + ' suggested changes')) + '</span></div>' +
+            PAUTO.changes.map(function (c, i) {
+              return '<button type="button" class="gpp-diff' + (c.on ? ' is-on' : '') + '" data-gs="pl-auto-tog" data-v="' + i + '" role="checkbox" aria-checked="' + (c.on ? 'true' : 'false') + '">' +
+                '<span class="gpp-pk-box" aria-hidden="true"><i class="fa-solid fa-check"></i></span>' +
+                '<span class="gpp-diff-m"><span><span class="gs-card-code">' + esc(c.code) + '</span> ' + esc(c.name) + '</span>' +
+                  (c.note ? '<span class="gpp-flag" data-k="' + c.noteK + '"><i class="fa-solid ' + (c.noteK === 'level' ? 'fa-stairs' : 'fa-diagram-project') + '"></i>' + esc(c.note) + '</span>' : '') + '</span>' +
+                '<span class="gpp-diff-w"><em>' + esc(c.fromName) + '</em><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><b>' + esc(c.toName) + '</b></span>' +
+              '</button>';
+            }).join('') + '</div>';
+          body += '<p class="gs-hint">' + esc(L('بعد التطبيق: ', 'After applying: ') + PAUTO.after.join(' · ') +
+            L(' — و«تراجع» يعيدها دفعةً واحدة.', ' — and Undo reverts them all at once.')) + '</p>';
+        }
+        foot = '<button type="button" class="gp-btn gp-btn--primary" data-gs="pl-auto-apply"' + (on ? '' : ' disabled') + '>' +
+          '<i class="fa-solid fa-check"></i><span>' + esc(on ? L('طبّق ' + on + (on === 1 ? ' تغييراً' : (on === 2 ? ' تغييرين' : (on <= 10 ? ' تغييرات' : ' تغييراً'))), 'Apply ' + on + (on === 1 ? ' change' : ' changes'))
+                                                                 : L('لا شيءَ محدَّد', 'Nothing selected')) + '</span></button>';
+      }
+      foot += '<span class="gs-foot-sp"></span><button type="button" class="gp-btn" data-gs="pl-sheet-x">' + esc(L('ألغِ', 'Cancel')) + '</button>';
+    } else return '';
+
+    return '<div class="gpp-sheet-ov" data-gs="pl-sheet-x">' +
+      '<div class="gpp-sheet' + cls + '" role="dialog" aria-modal="true" aria-labelledby="gpp-sheet-t">' +
+        '<div class="gpp-sheet-h"><h4 id="gpp-sheet-t">' + esc(title) + '</h4>' + extra +
+          '<button type="button" class="gp-ico" data-gs="pl-sheet-x" aria-label="' + esc(L('إغلاق', 'Close')) + '"><i class="fa-solid fa-xmark"></i></button></div>' +
+        '<div class="gpp-sheet-b">' + body + '</div>' +
+        (foot ? '<div class="gpp-sheet-f">' + foot + '</div>' : '') +
+      '</div></div>';
+  }
+
+  /*@3.GPSJ.177*/
+  function plAutoCompute(p, mode) {
+    var q = JSON.parse(JSON.stringify(p));
+    var before = {}, names = {};
+    p.semesters.forEach(function (t, i) {
+      names[t.id] = plTermName(t, i);
+      (t.courses || []).forEach(function (c) { before[c.uid] = t.id; });
+    });
+    var out = { mode: mode, changes: [], newTerms: [], order: [], moved: false, after: [], empty: '' };
+    if (mode === 'chrono') {
+      arSortLevel(q);
+      out.order = q.semesters.map(function (t) { return t.id; });
+      out.moved = out.order.join('|') !== p.semesters.map(function (t) { return t.id; }).join('|');
+      return out;
+    }
+    if (mode === 'byplan') plByPlan(q);
+    else if (mode === 'summer') plGeneralToSummer(q);
+    else plAutoPlan(q);
+    q.semesters.forEach(function (t, i) {
+      if (plIndex(p, t.id) < 0) {
+        var meta = JSON.parse(JSON.stringify(t)); meta.courses = [];
+        out.newTerms.push(meta);
+        names[t.id] = plTermName(t, i);
+      }
+      (t.courses || []).forEach(function (c) {
+        var from = before[c.uid];
+        if (from === t.id) return;
+        var iss = plIssues(q, i, c);
+        out.changes.push({
+          uid: from ? c.uid : null, code: c.code || '', name: plRowName(c),
+          fromId: from || null, fromName: from ? names[from] : L('المتبقّي', 'the pool'),
+          toId: t.id, toName: names[t.id], on: true,
+          note: iss.length ? plIssueText(iss[0]) : '', noteK: iss.length ? iss[0].k : ''
+        });
+      });
+    });
+    out.after = q.semesters.map(function (t, i) {
+      return plTermName(t, i) + ' ' + plCr(t) + '/' + plCap(t);
+    });
+    if (!out.changes.length) {
+      out.empty = mode === 'summer'
+        ? L('لا مادّةَ عامّةً تنتظر.', 'No general course is pending.')
+        : L('لا شيءَ متبقٍّ ليُوزَّع.', 'Nothing left to place.');
+    }
+    return out;
+  }
+
+  function plAutoApply(p) {
+    if (!PAUTO) return 0;
+    if (PAUTO.mode === 'chrono') {
+      if (!PAUTO.moved) return 0;
+      arSortLevel(p); return 1;
+    }
+    var n = 0;
+    PAUTO.changes.forEach(function (c) {
+      if (!c.on) return;
+      if (plIndex(p, c.toId) < 0) {
+        var meta = PAUTO.newTerms.filter(function (t) { return t.id === c.toId; })[0];
+        if (!meta) return;
+        p.semesters.push(JSON.parse(JSON.stringify(meta)));
+      }
+      if (c.uid) {
+        var at = plFind(p, c.uid);
+        if (!at) return;
+        var moved = p.semesters[at.si].courses.splice(at.ci, 1)[0];
+        p.semesters[plIndex(p, c.toId)].courses.push(moved); n++;
+      } else if (plAdd(p, c.code, c.toId)) n++;
+    });
+    if (PAUTO.mode === 'byplan') plOrder(p);
+    return n;
+  }
+
   function plPaint() {
     var p = plRead();
     var body = $('#gs-body');
     if (!body) return;
     var ttl = $('#gs-title');
-    if (ttl) ttl.textContent = L('معالج الفصول المخطّطة', 'Planned terms');
+    if (ttl) {
+      ttl.textContent = onArch() ? L('معالج الفصول المؤرشفة', 'Archived terms')
+                                 : L('معالج الفصول المخطّطة', 'Planned terms');
+    }
     var done = $('[data-gs="close"] span');
     if (done) done.textContent = L('تمّ', 'Done');
-    var q = $('#gpp-q'), keepFocus = q && document.activeElement === q;
-    var selTo = $('#gpp-to') ? $('#gpp-to').value : '';
-    body.innerHTML =
-      '<p class="gs-lead">' + esc(L(
-        'هذه فصولُك القادمة. أنشئها واحذفها ورتّبها، وانقل المواد بينها — ونقول لك متى خالفتَ متطلّباً أو قيدَ مستوًى، ولا نمنعك.',
-        'These are your terms to come. Create, delete and reorder them, move courses between them — we flag a broken prerequisite or level limit, and never block you.')) + '</p>' +
-      plHeadBar(p) +
-      '<div class="gpp-terms">' + p.semesters.map(function (s, i) { return plTermCard(p, s, i); }).join('') + '</div>' +
-      '<div class="gpp-add-row">' +
-        '<button class="gp-btn" data-gs="pl-new" data-v="r"><i class="fa-solid fa-plus"></i><span>' +
-          esc(L('فصل عاديّ', 'Regular term')) + '</span></button>' +
-        '<button class="gp-btn" data-gs="pl-new" data-v="s"><i class="fa-solid fa-sun"></i><span>' +
-          esc(L('فصل صيفيّ', 'Summer term')) + '</span></button>' +
-      '</div>' +
-      plPickList(p);
-    var t2 = $('#gpp-to');
-    if (t2 && selTo) t2.value = selTo;
-    if (keepFocus) { var q2 = $('#gpp-q'); if (q2) { q2.focus(); q2.selectionStart = q2.value.length; } }
+    var rev = $('#gs-overlay [data-gs="pl-revert"]');
+    if (rev) {
+      var dirty = plDirty();
+      rev.style.display = dirty ? '' : 'none';
+      var rs = rev.querySelector('span');
+      if (rs) rs.textContent = L('ألغِ تغييراتي', 'Discard my changes');
+    }
+    var ub = $('#gs-overlay .gs-foot [data-gs="pl-undo"]');
+    if (ub) { ub.disabled = !PUNDO.length; var us = ub.querySelector('span'); if (us) us.textContent = L('تراجع', 'Undo'); }
+    var ab = $('#gs-overlay .gs-foot [data-gs="pl-auto-open"]');
+    if (ab) {
+      var rest = onArch() ? 0 : plRemaining(p).length;
+      ab.style.display = onArch() ? 'none' : '';
+      ab.disabled = !rest;
+      var as = ab.querySelector('span'); if (as) as.textContent = L('اقترح ترتيباً', 'Suggest an arrangement');
+    }
+
+    var strip = $('#gpp-strip');
+    if (strip) {
+      strip.innerHTML = plStrip(p);
+      strip.hidden = false;
+      var now = strip.querySelector('.gpp-tab.is-now');
+      if (now && now.scrollIntoView) { try { now.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) {} }
+    }
+
+    var cur = plActive(p), si = cur ? plIndex(p, cur) : -1;
+    var h = '<p class="gs-lead">' + esc(onArch()
+      ? L('هذه فصولُك التي مضت — فصلٌ واحدٌ أمامك، والباقي في الشريط أعلاه. وما تكتبه هنا هو سجلُّك في صفحة المعدّل.',
+          'These are the terms you have finished — one term at a time, the rest in the strip above. What you write here is your record on the GPA page.')
+      : L('هذه فصولُك القادمة — فصلٌ واحدٌ أمامك، والباقي في الشريط أعلاه. ونقول لك متى خالفتَ متطلّباً أو قيدَ مستوًى، ولا نمنعك.',
+          'These are your terms to come — one term at a time, the rest in the strip above. We flag a broken prerequisite or level limit, and never block you.')) + '</p>' +
+      (onArch() ? arHeadBar(p) : plHeadBar(p));
+    if (si >= 0) h += plTermPanel(p, p.semesters[si], si);
+    else {
+      h += '<div class="gpp-none"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><p>' +
+        esc(onArch() ? L('لا فصلَ مؤرشفاً بعد.', 'No archived term yet.')
+                     : L('لا فصلَ مخطّطاً بعد.', 'No planned term yet.')) + '</p>' +
+        '<div class="gs-chips">' +
+          '<button type="button" class="gp-btn" data-gs="pl-new" data-v="r"><i class="fa-solid fa-plus"></i><span>' + esc(L('فصل عاديّ', 'Regular term')) + '</span></button>' +
+          '<button type="button" class="gp-btn" data-gs="pl-new" data-v="s"><i class="fa-solid fa-sun"></i><span>' + esc(L('فصل صيفيّ', 'Summer term')) + '</span></button>' +
+          (onArch() || !plRemaining(p).length ? '' :
+            '<button type="button" class="gp-btn" data-gs="pl-auto-open" data-v="fill"><i class="fa-solid fa-wand-magic-sparkles"></i><span>' +
+            esc(L('اقترح فصولاً لما تبقّى', 'Suggest terms for what remains')) + '</span></button>') +
+        '</div></div>';
+    }
+    var sheet = $('#gs-overlay .gpp-sheet-ov');
+    var focusQ = sheet && document.activeElement && document.activeElement.id === 'gpp-pq';
+    body.innerHTML = h;
+    if (sheet) sheet.remove();
+    if (PSHEET) {
+      var ov = $('#gs-overlay');
+      var sh = plSheetHtml(p);
+      if (sh && ov) {
+        ov.insertAdjacentHTML('beforeend', sh);
+        if (focusQ) { var q2 = $('#gpp-pq'); if (q2) { q2.focus(); q2.selectionStart = q2.selectionEnd = q2.value.length; } }
+      } else PSHEET = null;
+    }
   }
 
-  function plTargetId(p) {
-    var sel = $('#gpp-to');
-    if (sel && sel.value) return sel.value;
-    return p.semesters.length ? p.semesters[p.semesters.length - 1].id : null;
+  /*@3.GPSJ.178*/
+  function plPaintPickList() {
+    var p = plRead(), cur = plActive(p);
+    if (!cur) return;
+    var s = p.semesters[plIndex(p, cur)];
+    var list = $('#gpp-pick-list'); if (list) list.innerHTML = plPickList(p, s);
+    var f = $('#gs-overlay .gpp-sheet-f'); if (f) f.innerHTML = plPickFoot(p, s);
+    var cap = $('#gs-overlay .gpp-sh-cap');
+    if (cap && !onArch()) {
+      var selH = 0; plPickItems(p).forEach(function (x) { if (PSEL[x.c]) selH += x.h; });
+      cap.innerHTML = '<span class="gp-num">' + plCr(s) + '/' + plCap(s) + '</span>' +
+        (selH ? ' → <span class="gp-num">' + (plCr(s) + selH) + '/' + plCap(s) + '</span>' : '');
+    }
   }
-  /*@3.GPSJ.127*/
+
   function plIndex(p, id) {
     for (var i = 0; i < p.semesters.length; i++) if (p.semesters[i].id === id) return i;
     return -1;
+  }
+  function plFind(p, uid) {
+    for (var i = 0; i < p.semesters.length; i++) {
+      var cs = p.semesters[i].courses || [];
+      for (var j = 0; j < cs.length; j++) if (cs[j].uid === uid) return { si: i, ci: j, c: cs[j] };
+    }
+    return null;
   }
 
   function plAdd(p, code, termId) {
     var i = plIndex(p, termId);
     if (i < 0) return false;
+    if (onArch()) {
+      var e = null;
+      arPool(p).forEach(function (x) { if (x.c === code) e = x; });
+      var row = { uid: plUid(), code: code, grade: null, credits: (e && +e.h) || 3 };
+      if (!knownCode(code)) {
+        row.name_ar = (e && (e.ta || e.t)) || code;
+        row.name_en = (e && (e.t || e.ta)) || code;
+        row.custom = true;
+      }
+      p.semesters[i].courses.push(row);
+      return true;
+    }
     var c = plCourse(code);
     p.semesters[i].courses.push({
-      code: code, name: plTitle(c) || code,
+      uid: plUid(), code: code, name: plTitle(c) || code,
       credits: (c ? R().fCh(c) : 0) || 3, grade: 'B+'
     });
     return true;
   }
+  function knownCode(code) {
+    if (R() && PC.slug && R().courseBy(PC.slug, code)) return true;
+    try { return !!(window.GardenData && GardenData.courseInfo && GardenData.courseInfo(code)); }
+    catch (e) { return false; }
+  }
 
-  function plNewTerm(p, summer) {
-    var lv = summer ? plLastLevel(p) : plNextLevel(p);
-    p.semesters.push({
-      id: 'pt' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
-      level: lv, summer: !!summer,
-      name: summer ? L('صيفيُّ ' + levelName(lv), 'Summer after level ' + lv) : levelName(lv),
-      courses: []
+  function plDrop(p, token, dest) {
+    if (!token) return false;
+    if (token.from === 'pool') {
+      if (dest === 'pool') return false;
+      return plAdd(p, token.code, dest);
+    }
+    var at = plFind(p, token.uid);
+    if (!at) return false;
+    if (dest !== 'pool' && p.semesters[at.si].id === dest) return false;
+    var moved = p.semesters[at.si].courses.splice(at.ci, 1)[0];
+    if (dest === 'pool') return true;
+    var i = plIndex(p, dest);
+    if (i < 0) { p.semesters[at.si].courses.splice(at.ci, 0, moved); return false; }
+    p.semesters[i].courses.push(moved);
+    return true;
+  }
+
+  function plNewTerm(p, summer, level) {
+    var lv = (level != null) ? level : (summer ? plLastLevel(p) : plNextLevel(p));
+    var id = 'pt' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    if (onArch()) {
+      var nm = summer ? L('فصل صيفيّ', 'Summer term') : levelName(lv);
+      var t2 = {
+        id: 'arc' + id, level: summer ? null : lv, summer: !!summer,
+        after: summer ? lv : undefined,
+        term: summer ? 'summer' : 'regular',
+        name: nm, name_ar: summer ? 'فصل صيفيّ' : levelNameIn(lv, 'ar'),
+        name_en: summer ? 'Summer term' : levelNameIn(lv, 'en'),
+        courses: [], archived_at: new Date().toISOString()
+      };
+      if (t2.after === undefined) delete t2.after;
+      p.semesters.push(t2);
+      return t2;
+    }
+    var t = { id: id, level: lv, summer: !!summer, courses: [] };
+    p.semesters.push(t);
+    return t;
+  }
+  function arSortLevel(p) {
+    /*@3.GPSJ.180*/
+    var list = p.semesters.slice();
+    list.sort(function (x, y) { return String(x.archived_at || '').localeCompare(String(y.archived_at || '')); });
+    function fixed(s) {
+      if (s.summer) {
+        var af = (s.after == null || s.after === '') ? null : +s.after;
+        return (af == null || isNaN(af)) ? null : af + 0.5;
+      }
+      var lv = (s.level == null || s.level === '') ? null : +s.level;
+      return (lv == null || isNaN(lv)) ? null : lv;
+    }
+    var rank = {}, i, r;
+    for (i = 0; i < list.length; i++) rank[list[i].id] = fixed(list[i]);
+    for (r = null, i = 0; i < list.length; i++) {
+      if (rank[list[i].id] != null) { r = rank[list[i].id]; continue; }
+      if (r != null) rank[list[i].id] = r + 0.5;
+    }
+    for (r = null, i = list.length - 1; i >= 0; i--) {
+      if (rank[list[i].id] != null) { r = rank[list[i].id]; continue; }
+      if (r != null) rank[list[i].id] = r - 0.5;
+    }
+    p.semesters.forEach(function (s, k) { s._i = k; });
+    p.semesters.sort(function (x, y) {
+      var rx = rank[x.id] == null ? 99 : rank[x.id], ry = rank[y.id] == null ? 99 : rank[y.id];
+      return rx - ry || x._i - y._i;
+    });
+    p.semesters.forEach(function (s) { delete s._i; });
+  }
+
+  function plTermFor(p, level, summer) {
+    for (var i = 0; i < p.semesters.length; i++) {
+      var s = p.semesters[i];
+      if (!!s.summer === !!summer && String(s.level) === String(level)) return s;
+    }
+    return plNewTerm(p, summer, level);
+  }
+  function plOrder(p) {
+    p.semesters.sort(function (a, b) {
+      var la = (a.level == null) ? 99 : +a.level, lb = (b.level == null) ? 99 : +b.level;
+      if (la !== lb) return la - lb;
+      return (a.summer ? 1 : 0) - (b.summer ? 1 : 0);
     });
   }
 
-  function plRenumber(p) {
-    p.semesters.forEach(function (s) {
-      if (s.renamed) return;
-      s.name = s.summer ? L('صيفيُّ ' + levelName(s.level), 'Summer after level ' + s.level)
-                        : levelName(s.level);
-    });
+  function plUndo() {
+    if (!PUNDO.length) return false;
+    plRestore(PUNDO.pop());
+    PGUARD = null;
+    plPaint();
+    plToast(L('رجعت خطوةً.', 'Stepped back.'));
+    return true;
   }
 
   function plClick(e) {
@@ -2115,104 +2786,291 @@
 
     if (a === 'close') { plClose(); return true; }
     if (a === 'grade') { openGrade(b, v); return true; }
+    if (a === 'pl-sheet-x') {
+      /*@3.GPSJ.179*/
+      if (b.classList.contains('gpp-sheet-ov') && e.target !== b) return true;
+      plCloseSheet(); plPaint(); return true;
+    }
 
-    var p = plRead(), ix, si;
-    if (a === 'pl-new') { plNewTerm(p, v === 's'); plWrite(p); PL_FOCUS = null; plPaint(); return true; }
+    var p = plRead(), ix, si, n, at, t, name;
+    if (PL_MUT[a]) plMark(p);
+    if (a === 'pl-undo') { plUndo(); return true; }
+    if (a === 'pl-revert') {
+      if (!plDirty()) { plToast(L('لا تغييرَ لإلغائه.', 'Nothing to discard.')); return true; }
+      plRestore(PSNAP); PUNDO = []; PGUARD = null; plCloseSheet();
+      plPaint();
+      plToast(onArch()
+        ? L('رجع سجلُّك كما كان حين فتحتَ المعالج.', 'Your record is back to how it was when you opened this.')
+        : L('رجعت خطّتُك كما كانت حين فتحتَ المعالج.', 'Your plan is back to how it was when you opened this.'));
+      return true;
+    }
+    if (a === 'pl-go') { plGo(v); plPaint(); return true; }
+    if (a === 'pl-newmenu') { plOpenSheet('new'); plPaint(); return true; }
+    if (a === 'pl-order') { plOpenSheet('order'); plPaint(); return true; }
+    if (a === 'pl-new') {
+      t = plNewTerm(p, v === 's'); plWrite(p); plGo(t.id); plCloseSheet(); plPaint();
+      return true;
+    }
     if (a === 'pl-del') {
       ix = plIndex(p, v); if (ix < 0) return true;
-      var lost = (p.semesters[ix].courses || []).length;
-      p.semesters.splice(ix, 1); plWrite(p); plPaint();
-      if (lost) plToast(L('حُذف الفصل ورجعت ' + lost + ' مادةً إلى المتبقّي.',
-                          'Term deleted — ' + lost + ' course(s) returned to what remains.'));
+      n = (p.semesters[ix].courses || []).length;
+      if (n) { PUNDO.pop(); PGUARD = v; plPaint(); return true; }
+      name = plTermName(p.semesters[ix], ix);
+      p.semesters.splice(ix, 1); plWrite(p);
+      plGo(p.semesters.length ? p.semesters[Math.max(0, ix - 1)].id : null); plPaint();
+      plToast(L('حُذف «' + name + '» (كان فارغاً).', 'Deleted “' + name + '” (it was empty).'), true);
+      return true;
+    }
+    if (a === 'pl-guard-off') { PGUARD = null; plPaint(); return true; }
+    if (a === 'pl-del-yes') {
+      ix = plIndex(p, v); if (ix < 0) return true;
+      n = (p.semesters[ix].courses || []).length; name = plTermName(p.semesters[ix], ix);
+      PGUARD = null;
+      p.semesters.splice(ix, 1); plWrite(p);
+      plGo(p.semesters.length ? p.semesters[Math.max(0, ix - 1)].id : null); plPaint();
+      plToast(onArch()
+        ? L('حُذف «' + name + '» و' + plCW(n) + ' معه.', 'Deleted “' + name + '” with ' + plCW(n) + '.')
+        : L('حُذف «' + name + '» ورجعت ' + plCW(n) + ' إلى المتبقّي.', 'Deleted “' + name + '” — ' + plCW(n) + ' returned to the pool.'), true);
       return true;
     }
     if (a === 'pl-up' || a === 'pl-down') {
       ix = plIndex(p, v); if (ix < 0) return true;
       var to = ix + (a === 'pl-up' ? -1 : 1);
-      if (to < 0 || to >= p.semesters.length) return true;
+      if (to < 0 || to >= p.semesters.length) { PUNDO.pop(); return true; }
       p.semesters.splice(to, 0, p.semesters.splice(ix, 1)[0]);
       plWrite(p); plPaint(); return true;
     }
     if (a === 'pl-kind') {
       var pr = v.split(':'); ix = plIndex(p, pr[0]); if (ix < 0) return true;
       p.semesters[ix].summer = (pr[1] === 's');
-      plRenumber(p); plWrite(p); plPaint(); return true;
-    }
-    if (a === 'pl-mv') {
-      var m = v.split(':'); si = plIndex(p, m[0]);
-      if (si < 0) return true;
-      var ci = +m[1], step = +m[2], dst = si + step;
-      if (dst < 0 || dst >= p.semesters.length) return true;
-      var moved = p.semesters[si].courses.splice(ci, 1)[0];
-      p.semesters[dst].courses.push(moved);
-      plWrite(p); plPaint();
-      plToast(L('نُقلت إلى ' + plTermName(p.semesters[dst], dst),
-                'Moved to ' + plTermName(p.semesters[dst], dst)));
-      return true;
-    }
-    if (a === 'pl-rm') {
-      var r = v.split(':'); si = plIndex(p, r[0]); if (si < 0) return true;
-      p.semesters[si].courses.splice(+r[1], 1);
       plWrite(p); plPaint(); return true;
     }
-    if (a === 'pl-add') {
-      var tid = plTargetId(p);
-      if (!tid) { plToast(L('أنشئ فصلاً أوّلاً.', 'Create a term first.')); return true; }
-      if (plAdd(p, v, tid)) {
-        plWrite(p); plPaint();
-        var t = p.semesters[plIndex(p, tid)];
-        plToast(L('أُضيفت إلى ' + plTermName(t, plIndex(p, tid)),
-                  'Added to ' + plTermName(t, plIndex(p, tid))));
-      }
+    if (a === 'pl-rm') {
+      at = plFind(p, v); if (!at) { PUNDO.pop(); return true; }
+      var lbl = at.c.code || at.c.name || '';
+      name = plTermName(p.semesters[at.si], at.si);
+      p.semesters[at.si].courses.splice(at.ci, 1);
+      plCloseSheet(); plWrite(p); plPaint();
+      plToast(onArch()
+        ? L('أُزيلت ' + lbl + ' من «' + name + '».', 'Removed ' + lbl + ' from “' + name + '”.')
+        : L('أُعيدت ' + lbl + ' إلى المتبقّي.', lbl + ' returned to the pool.'), true);
+      return true;
+    }
+    if (a === 'pl-menu') { plOpenSheet('menu', { uid: v }); plPaint(); return true; }
+    if (a === 'pl-move-open') { plOpenSheet('move', { uid: v }); plPaint(); return true; }
+    if (a === 'pl-move-to' || a === 'pl-move-new') {
+      var mv = v.split(':'); at = plFind(p, mv[0]);
+      if (!at) { PUNDO.pop(); plCloseSheet(); plPaint(); return true; }
+      var dest = (a === 'pl-move-new') ? plNewTerm(p, mv[1] === 's').id : mv[1];
+      if (!plDrop(p, { from: 'term', uid: mv[0] }, dest)) { PUNDO.pop(); plCloseSheet(); plPaint(); return true; }
+      ix = plIndex(p, dest);
+      plCloseSheet(); plWrite(p); plPaint();
+      plToast(L('نُقلت ' + (at.c.code || at.c.name || '') + ' إلى «' + plTermName(p.semesters[ix], ix) + '».',
+                'Moved ' + (at.c.code || at.c.name || '') + ' to “' + plTermName(p.semesters[ix], ix) + '”.'), true);
+      return true;
+    }
+    if (a === 'pl-pick-open') { plGo(v); plOpenSheet('pick'); plPaint(); return true; }
+    if (a === 'pl-sel') {
+      if (PSEL[v]) delete PSEL[v]; else PSEL[v] = 1;
+      plPaintPickList(); return true;
+    }
+    if (a === 'pl-pick-add') {
+      ix = plIndex(p, v);
+      var codes = Object.keys(PSEL);
+      if (ix < 0 || !codes.length) { PUNDO.pop(); return true; }
+      n = 0; codes.forEach(function (c) { if (plAdd(p, c, v)) n++; });
+      name = plTermName(p.semesters[ix], ix);
+      plCloseSheet(); plWrite(p); plPaint();
+      plToast(L('أُضيفت ' + plCW(n) + ' إلى «' + name + '».', plCW(n) + ' added to “' + name + '”.'), true);
+      return true;
+    }
+    if (a === 'pl-free') {
+      ix = plIndex(p, v); if (ix < 0) { PUNDO.pop(); return true; }
+      var fn = L('مادة خارج الخطة', 'Course outside the plan');
+      var row = { uid: plUid(), code: '', name: fn, credits: 3, grade: onArch() ? null : 'B+' };
+      if (onArch()) { row.custom = true; row.name_ar = fn; row.name_en = fn; }
+      p.semesters[ix].courses.push(row);
+      plCloseSheet(); plWrite(p); plPaint();
+      var fin = $('#gs-body .gpp-row:last-child .gpp-row-in'); if (fin) { fin.focus(); fin.select(); }
       return true;
     }
     if (a === 'pl-fill') {
       ix = plIndex(p, v); if (ix < 0) return true;
-      var s = p.semesters[ix], cap = plCap(s), have = plCr(s), n = 0;
-      plRemaining(p).forEach(function (c) {
-        var h = R().fCh(c) || 3;
-        if (have + h > cap) return;
-        var lv = R().planLevel(c);
-        if (lv !== null && s.level != null && lv > s.level) return;
-        plAdd(p, R().fCode(c), v); have += h; n++;
-      });
+      n = plFillTerm(p, p.semesters[ix]);
+      if (!n) { PUNDO.pop(); plToast(L('لا مادةَ تناسب هذا الفصل ضمن سقفه.', 'Nothing from the remainder fits this term.')); return true; }
       plWrite(p); plPaint();
-      plToast(n ? L('أُضيفت ' + n + ' مادةً حتى سقف الفصل.', n + ' course(s) added up to the cap.')
-                : L('لا مادةَ تناسب هذا الفصل ضمن سقفه.', 'Nothing from the remainder fits this term.'));
+      plToast(L('أُضيفت ' + plCW(n) + ' حتى سقف الفصل.', plCW(n) + ' added up to the cap.'), true);
       return true;
     }
-    if (a === 'pl-free') {
+    if (a === 'pl-clear') {
       ix = plIndex(p, v); if (ix < 0) return true;
-      p.semesters[ix].courses.push({ code: '', name: L('مادة خارج الخطة', 'Course outside the plan'),
-                                     credits: 3, grade: 'B+' });
-      plWrite(p); plPaint(); return true;
+      n = (p.semesters[ix].courses || []).length;
+      if (!n) { PUNDO.pop(); return true; }
+      p.semesters[ix].courses = [];
+      plWrite(p); plPaint();
+      plToast(onArch()
+        ? L('أُزيلت ' + plCW(n) + ' من هذا الفصل.', plCW(n) + ' removed from this term.')
+        : L('رجعت ' + plCW(n) + ' إلى المتبقّي.', plCW(n) + ' returned to the pool.'), true);
+      return true;
+    }
+    if (a === 'pl-auto-open') {
+      var mode = v || (onArch() ? 'chrono' : 'byplan');
+      PAUTO = plAutoCompute(p, mode);
+      PSHEET = { k: 'auto' }; plPaint(); return true;
+    }
+    if (a === 'pl-auto-tog') {
+      if (PAUTO && PAUTO.changes[+v]) PAUTO.changes[+v].on = !PAUTO.changes[+v].on;
+      plPaint(); return true;
+    }
+    if (a === 'pl-auto-apply') {
+      n = plAutoApply(p);
+      if (!n) { PUNDO.pop(); plCloseSheet(); plPaint(); return true; }
+      var chrono = PAUTO && PAUTO.mode === 'chrono';
+      plCloseSheet(); plWrite(p); plPaint();
+      plToast(chrono ? L('رُتّبت فصولُك زمنيّاً.', 'Terms sorted chronologically.')
+                     : L('طُبّق ' + n + (n === 1 ? ' تغييرٌ' : (n === 2 ? ' تغييران' : (n <= 10 ? ' تغييرات' : ' تغييراً'))) + '.',
+                         'Applied ' + n + (n === 1 ? ' change.' : ' changes.')), true);
+      return true;
     }
     return false;
   }
 
+  function plCW(n) {
+    return L(arCount(n, 'مادّةٌ واحدة', 'مادّتان', 'مواد', 'مادّةً'),
+             n === 1 ? '1 course' : n + ' courses');
+  }
+
+  /*@3.GPSJ.148*/
+  var PL_MUT = { 'pl-new': 1, 'pl-del': 1, 'pl-del-yes': 1, 'pl-up': 1, 'pl-down': 1, 'pl-kind': 1,
+                 'pl-rm': 1, 'pl-move-to': 1, 'pl-move-new': 1, 'pl-pick-add': 1, 'pl-fill': 1,
+                 'pl-clear': 1, 'pl-free': 1, 'pl-auto-apply': 1 };
+
+  function plToken(p, v) {
+    if (String(v).indexOf('pool:') === 0) {
+      var code = String(v).slice(5);
+      return { key: 'p:' + code, from: 'pool', code: code, label: code };
+    }
+    var at = plFind(p, v);
+    if (!at) return null;
+    return { key: 'c:' + v, from: 'term', uid: v, label: at.c.code || at.c.name || '' };
+  }
+
+  /*@3.GPSJ.137*/
+  function plFillTerm(p, s) {
+    var cap = plCap(s), have = plCr(s), n = 0;
+    plRemaining(p).forEach(function (c) {
+      var h = R().fCh(c) || 3;
+      if (have + h > cap) return;
+      var lv = R().planLevel(c);
+      if (lv !== null && s.level != null && lv > s.level) return;
+      plAdd(p, R().fCode(c), s.id); have += h; n++;
+    });
+    return n;
+  }
+
+  function plAutoPlan(p) {
+    var rest = plRemaining(p);
+    if (!rest.length) return 0;
+    var placed = 0, guard = 0;
+    while (plRemaining(p).length && guard++ < 24) {
+      var moved = 0;
+      for (var i = 0; i < p.semesters.length; i++) moved += plFillTerm(p, p.semesters[i]);
+      placed += moved;
+      if (!plRemaining(p).length) break;
+      if (!moved) {
+        var lvl = plNextLevel(p);
+        plNewTerm(p, false, lvl);
+        if (plNextLevel(p) - 1 >= MAX_LEVEL && !moved && guard > 12) break;
+      }
+    }
+    return placed;
+  }
+
+  /*@3.GPSJ.138*/
+  function plByPlan(p) {
+    var rest = plRemaining(p), n = 0;
+    if (!rest.length) return 0;
+    rest.forEach(function (c) {
+      var lv = R().planLevel(c);
+      if (lv === null) lv = plNextLevel(p);
+      var t = plTermFor(p, lv, false);
+      plAdd(p, R().fCode(c), t.id); n++;
+    });
+    plOrder(p);
+    return n;
+  }
+
+  function plGeneralToSummer(p) {
+    /*@3.GPSJ.141*/
+    var pool = plRemaining(p).filter(plGeneral).map(function (c) {
+      return { uid: plUid(), code: R().fCode(c), name: plTitle(c) || R().fCode(c),
+               credits: R().fCh(c) || 3, grade: 'B+' };
+    });
+    var pull = [];
+    p.semesters.forEach(function (s) {
+      if (s.summer) return;
+      s.courses = (s.courses || []).filter(function (c) {
+        if (!c.code || !plGeneral(plCourse(c.code))) return true;
+        pull.push(c); return false;
+      });
+    });
+    var all = pull.concat(pool);
+    if (!all.length) return 0;
+    var n = 0, t = null;
+    all.forEach(function (c) {
+      var h = +c.credits || 3;
+      if (!t || plCr(t) + h > CAP_SUM) {
+        t = null;
+        for (var i = 0; i < p.semesters.length; i++) {
+          if (p.semesters[i].summer && plCr(p.semesters[i]) + h <= CAP_SUM) { t = p.semesters[i]; break; }
+        }
+        if (!t) t = plNewTerm(p, true, plLastLevel(p));
+      }
+      t.courses.push(c); n++;
+    });
+    return n;
+  }
+
   function plInput(e) {
     var s = e.target, a = s.getAttribute && s.getAttribute('data-gs');
-    if (s.id === 'gpp-q') { PQ = s.value || ''; plPaint(); return true; }
+    if (s.id === 'gpp-pq') { PQ = s.value || ''; plPaintPickList(); return true; }
     if (a === 'pl-cname' || a === 'pl-ccr') {
       var pr = String(s.getAttribute('data-v')).split(':');
       var pc = plRead(), pi = plIndex(pc, pr[0]);
       if (pi < 0) return true;
       var cc = pc.semesters[pi].courses[+pr[1]];
       if (!cc) return true;
-      if (a === 'pl-cname') cc.name = s.value;
-      else cc.credits = Math.max(1, Math.min(12, parseInt(s.value, 10) || 3));
+      if (a === 'pl-cname') {
+        cc.name = s.value;
+        /*@3.GPSJ.174*/
+        if (onArch()) { cc.name_ar = s.value; cc.name_en = s.value; }
+      } else cc.credits = Math.max(1, Math.min(12, parseInt(s.value, 10) || 3));
       plWrite(pc);
       clearTimeout(plInput._t);
       plInput._t = setTimeout(plPaint, 500);
       return true;
     }
-    if (a !== 'pl-name' && a !== 'pl-lv') return false;
+    if (a !== 'pl-name' && a !== 'pl-lv' && a !== 'pl-after') return false;
     var p = plRead(), ix = plIndex(p, s.getAttribute('data-v'));
     if (ix < 0) return true;
-    if (a === 'pl-name') { p.semesters[ix].name = s.value; p.semesters[ix].renamed = true; plWrite(p); return true; }
-    var n = parseInt(s.value, 10);
-    p.semesters[ix].level = (isNaN(n) || n < 1) ? null : Math.min(n, MAX_LEVEL);
-    plRenumber(p);
+    if (a === 'pl-name') {
+      p.semesters[ix].name = s.value;
+      p.semesters[ix].renamed = !!s.value;
+      /*@3.GPSJ.158*/
+      if (onArch()) { p.semesters[ix].name_ar = s.value; p.semesters[ix].name_en = s.value; }
+      plWrite(p);
+      return true;
+    }
+    if (a === 'pl-after') {
+      var an = parseInt(s.value, 10);
+      p.semesters[ix].after = (isNaN(an) || an < 0) ? null : Math.min(an, MAX_LEVEL);
+      plWrite(p);
+      clearTimeout(plInput._t);
+      plInput._t = setTimeout(plPaint, 400);
+      return true;
+    }
+    var nn = parseInt(s.value, 10);
+    p.semesters[ix].level = (isNaN(nn) || nn < 1) ? null : Math.min(nn, MAX_LEVEL);
     plWrite(p);
     clearTimeout(plInput._t);
     plInput._t = setTimeout(plPaint, 400);
@@ -2236,35 +3094,159 @@
     plWrite(p); plPaint();
   }
 
-  function plToast(msg) {
+  function plPointerCancelQuiet() {
+    if (!PDRAG) return;
+    if (PDRAG.ghost && PDRAG.ghost.parentNode) PDRAG.ghost.parentNode.removeChild(PDRAG.ghost);
+    PDRAG = null; PMOVE = null;
+  }
+
+  function plToast(msg, undo) {
     var t = $('#gs-toast');
     if (!t) {
       t = document.createElement('div');
       t.id = 'gs-toast'; t.className = 'gpp-toast';
+      t.setAttribute('role', 'status');
+      t.addEventListener('click', function (e) {
+        if (!e.target.closest('.gpp-toast-b')) return;
+        t.classList.remove('is-on'); clearTimeout(t._h);
+        plUndo();
+      });
       document.body.appendChild(t);
     }
-    t.textContent = msg; t.classList.add('is-on');
+    t.innerHTML = '<span></span>' + (undo && PUNDO.length
+      ? '<button type="button" class="gpp-toast-b">' + esc(L('تراجع', 'Undo')) + '</button>' : '');
+    t.firstChild.textContent = msg; t.classList.add('is-on');
     clearTimeout(t._h);
-    t._h = setTimeout(function () { t.classList.remove('is-on'); }, 2400);
+    t._h = setTimeout(function () { t.classList.remove('is-on'); }, undo ? 5200 : 2400);
+  }
+
+  /*@3.GPSJ.139*/
+  var PDRAG = null;
+
+  function plCardAt(t) {
+    return t && t.closest ? t.closest('.gpp-row[data-uid], .gs-card[data-uid], .gs-card[data-code]') : null;
+  }
+  function plZoneAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    return (el && el.closest) ? el.closest('[data-pdrop]') : null;
+  }
+  function plLit(z) {
+    $$('#gs-overlay [data-pdrop].is-drop').forEach(function (n) {
+      if (n !== z) n.classList.remove('is-drop');
+    });
+    if (z) z.classList.add('is-drop');
+  }
+
+  /*@3.GPSJ.150*/
+  function plPointerDown(e) {
+    if (MODE !== 'planner' || PDRAG) return;
+    if (e.button != null && e.button > 0) return;
+    var card = plCardAt(e.target);
+    if (!card || !card.closest('#gs-overlay')) return;
+    if (e.target.closest('button, input, select, textarea, a, .gs-gr-btn')) return;
+    var grip = !!e.target.closest('.gpp-grip');
+    /*@3.GPSJ.151*/
+    if (e.pointerType && e.pointerType !== 'mouse' && !grip) return;
+    var p = plRead();
+    var v = card.hasAttribute('data-uid') ? card.getAttribute('data-uid')
+                                          : 'pool:' + card.getAttribute('data-code');
+    var tok = plToken(p, v);
+    if (!tok) return;
+    PDRAG = { tok: tok, card: card, x0: e.clientX, y0: e.clientY, on: false, id: e.pointerId, ghost: null };
+    try { card.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+
+  function plPointerMove(e) {
+    if (!PDRAG || (PDRAG.id != null && e.pointerId !== PDRAG.id)) return;
+    var dx = e.clientX - PDRAG.x0, dy = e.clientY - PDRAG.y0;
+    if (!PDRAG.on) {
+      if (dx * dx + dy * dy < 64) return;      /*@3.GPSJ.152*/
+      PDRAG.on = true;
+      PMOVE = PDRAG.tok;
+      var r = PDRAG.card.getBoundingClientRect();
+      var g = PDRAG.card.cloneNode(true);
+      g.className += ' gpp-ghost';
+      g.style.inlineSize = r.width + 'px';
+      g.style.insetBlockStart = r.top + 'px';
+      g.style.insetInlineStart = '0';
+      g.style.left = r.left + 'px';
+      document.body.appendChild(g);
+      PDRAG.ghost = g;
+      PDRAG.gx = e.clientX - r.left; PDRAG.gy = e.clientY - r.top;
+      PDRAG.card.classList.add('is-moving');
+      $$('#gs-overlay [data-pdrop]').forEach(function (n) { n.classList.add('is-target'); });
+    }
+    e.preventDefault();
+    if (PDRAG.ghost) {
+      PDRAG.ghost.style.left = (e.clientX - PDRAG.gx) + 'px';
+      PDRAG.ghost.style.top = (e.clientY - PDRAG.gy) + 'px';
+    }
+    plLit(plZoneAt(e.clientX, e.clientY));
+  }
+
+  function plPointerUp(e) {
+    if (!PDRAG || (PDRAG.id != null && e.pointerId !== PDRAG.id)) return;
+    var d = PDRAG; PDRAG = null;
+    if (d.ghost && d.ghost.parentNode) d.ghost.parentNode.removeChild(d.ghost);
+    if (!d.on) { PMOVE = null; return; }
+    var z = plZoneAt(e.clientX, e.clientY);
+    PMOVE = null;
+    if (!z) { plPaint(); return; }
+    var p = plRead(), was = JSON.stringify(p);
+    if (plDrop(p, d.tok, z.getAttribute('data-pdrop'))) { plMark(JSON.parse(was)); plWrite(p); }
+    plPaint();
+  }
+
+  function plPointerCancel() {
+    if (!PDRAG) return;
+    if (PDRAG.ghost && PDRAG.ghost.parentNode) PDRAG.ghost.parentNode.removeChild(PDRAG.ghost);
+    PDRAG = null; PMOVE = null;
+    plPaint();
   }
 
   function plClose() {
+    plPointerCancelQuiet();
     closeGrade();
     var ov = $('#gs-overlay'); if (ov) ov.remove();
     var t = $('#gs-toast'); if (t) t.remove();
-    MODE = 'setup';
+    PMOVE = null; PUNDO = []; PSNAP = null;
+    PT = null; PSHEET = null; PSEL = {}; PGUARD = null; PAUTO = null;
+    MODE = 'setup'; BOARD = 'plan';
+  }
+
+  /*@3.GPSJ.172*/
+  function openArchive() {
+    if ($('#gs-overlay')) return;
+    BOARD = 'arch';
+    openPlanner();
   }
 
   function openPlanner() {
-    if ($('#gs-overlay')) return;
+    if ($('#gs-overlay')) { BOARD = 'plan'; return; }
     MODE = 'planner';
-    PC = plCtx(); PQ = ''; PL_FOCUS = null;
+    PC = plCtx(); PQ = ''; PMOVE = null; PUNDO = [];
+    PT = null; PSHEET = null; PSEL = {}; PGUARD = null; PAUTO = null;
+    /*@3.GPSJ.149*/
+    plRead();
+    try { PSNAP = localStorage.getItem(plKey()); } catch (e) { PSNAP = null; }
     mount();
     var box = $('#gs-overlay .gs-box'); if (box) box.classList.add('gpp-box');
     var st = $('#gs-steps'); if (st) st.hidden = true;
-    var back = $('[data-gs="back"]'); if (back) back.style.display = 'none';
-    var nx = $('[data-gs="next"]');
-    if (nx) { nx.setAttribute('data-gs', 'close'); nx.querySelector('span').textContent = L('تمّ', 'Done'); }
+    var bodyEl = $('#gs-body');
+    if (bodyEl && !$('#gpp-strip')) {
+      var strip = document.createElement('div');
+      strip.id = 'gpp-strip'; strip.className = 'gpp-strip'; strip.setAttribute('role', 'tablist');
+      bodyEl.parentNode.insertBefore(strip, bodyEl);
+    }
+    var foot = $('#gs-overlay .gs-foot');
+    if (foot) {
+      foot.innerHTML =
+        '<button class="gp-btn gp-btn--primary" data-gs="close"><i class="fa-solid fa-check"></i><span>' + esc(L('تمّ', 'Done')) + '</span></button>' +
+        '<button class="gp-btn" data-gs="pl-undo" disabled><i class="fa-solid fa-rotate-left"></i><span>' + esc(L('تراجع', 'Undo')) + '</span></button>' +
+        '<button class="gp-btn" data-gs="pl-revert" style="display:none"><i class="fa-solid fa-arrow-rotate-left"></i><span>' + esc(L('ألغِ تغييراتي', 'Discard my changes')) + '</span></button>' +
+        '<span class="gs-foot-sp"></span>' +
+        '<button class="gp-btn" data-gs="pl-auto-open"><i class="fa-solid fa-wand-magic-sparkles"></i><span>' + esc(L('اقترح ترتيباً', 'Suggest an arrangement')) + '</span></button>';
+    }
     if (!R()) { plPaint(); return; }
     R().loadPlans(function () {
       R().dropIndex(); PC = plCtx();
@@ -2278,13 +3260,18 @@
   }
 
   /*@3.GPSJ.106*/
-  window.GardenSetup = { open: open, close: close, openPlanner: openPlanner };
+  window.GardenSetup = { open: open, close: close, openPlanner: openPlanner, openArchive: openArchive };
   /*@3.GPSJ.107*/
   window.Onboarding = window.Onboarding || {};
   window.Onboarding.open = function () {
     if (/hub\/gpa\.html/.test(location.pathname)) open();
     else location.href = (/\/hub\//.test(location.pathname) ? 'gpa.html' : 'hub/gpa.html') + '#setup';
   };
+
+  /*@3.GPSJ.154*/
+  document.addEventListener('pointermove', plPointerMove, { passive: false });
+  document.addEventListener('pointerup', plPointerUp);
+  document.addEventListener('pointercancel', plPointerCancel);
 
   document.addEventListener('garden:languageChanged', function () {
     if (!$('#gs-overlay')) return;
@@ -2296,7 +3283,10 @@
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     if ($('#gs-gpop')) { closeGrade(); return; }
-    if (MODE === 'planner') { if ($('#gs-overlay')) plClose(); return; }
+    if (MODE === 'planner') {
+      if (PSHEET) { plCloseSheet(); plPaint(); return; }
+      if ($('#gs-overlay')) plClose(); return;
+    }
     if ($('#gs-move')) { closeMove(); if (W) paint(); return; }
     if ($('#gs-overlay')) close(true);
   });

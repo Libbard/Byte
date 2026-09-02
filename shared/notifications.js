@@ -4,8 +4,10 @@
 
   var HOSTS = [];          /*@3.NOTJ.2*/
   var TAB = 'log';         /*@3.NOTJ.3*/
-  var CACHE = { log: null, at: 0 };
+  var CACHE = { log: null, at: 0, push: null, pushAt: 0 };
   var BUSY = false;
+  var PBUSY = false;
+  var LAST_PERM = null;
 
   /*@3.NOTJ.4*/
 
@@ -168,6 +170,12 @@
     /*@3.NOTJ.12*/
     if (!s.enabled) return null;
 
+    if (cap.needsInstall) {
+      return { code: 'needs-install',
+               ar: 'آيفون يمنح إذنَ الإشعارات للتطبيق المثبَّت وحدَه — ثبّتْه على شاشتك الرئيسية ثمّ فعّلْها من داخله.',
+               en: 'iOS grants notification permission only to the installed app — add it to your Home Screen, then turn reminders on there.',
+               fix: null };
+    }
     if (cap.permission === 'denied') {
       return { code: 'denied',
                ar: 'أوقف المتصفّحُ إشعاراتِ الموقع — رُفض الإذن.',
@@ -198,6 +206,33 @@
 
   /*@3.NOTJ.13*/
 
+  function permState(code) {
+    if (code === 'needs-install') {
+      return { tone: 'warn', ico: 'fa-arrow-up-from-bracket',
+        t: L('آيفون يطلب تثبيتَ التطبيق أوّلاً', 'iPhone needs the app installed first'),
+        sub: L('من زرِّ المشاركة اختَرْ «إضافة إلى الشاشة الرئيسية»، ثمّ افتحِ التطبيقَ المثبَّت وفعِّلِ التنبيهاتِ من داخله — إذنُ الإشعارات في آيفون منفصلٌ لكلِّ تطبيق.',
+               'Use Share then Add to Home Screen, open the installed app, and turn reminders on there. iOS grants notification permission per installed app.') };
+    }
+    if (code === 'denied') {
+      return { tone: 'danger', ico: 'fa-bell-slash',
+        t: L('أوقف المتصفّحُ إشعاراتِ الموقع', 'The browser blocked notifications'),
+        sub: L('لا يُعاد الإذنُ من داخل الصفحة — افتحِ الإعداداتِ ثمّ الإشعارات ثمّ الحديقة الرقمية، واسمحْ بها.',
+               'A page cannot restore that. Open Settings, then Notifications, then Digital Garden, and allow them.') };
+    }
+    if (code === 'unsupported') {
+      return { tone: 'danger', ico: 'fa-ban',
+        t: L('هذا المتصفّحُ لا يدعم الإشعارات', 'This browser does not support notifications'),
+        sub: L('جرّبْ متصفّحاً آخرَ، أو ثبّتِ التطبيقَ على شاشتك الرئيسية.',
+               'Try another browser, or install the app to your home screen.') };
+    }
+    /*@3.NOTJ.55*/
+    return { tone: 'warn', ico: 'fa-bell-slash',
+      t: L('لم يُمنح الإذنُ بعد', 'Permission was not granted'),
+      sub: L('لم تُحفظ التنبيهاتُ مفعَّلة — فلا يصلك شيء. اضغطْ لتُسأل مرّةً أخرى.',
+             'Reminders were not switched on, so nothing will arrive. Tap to be asked again.'),
+      act: 'enable', label: L('اسمحْ بالإشعارات', 'Allow notifications') };
+  }
+
   /*@3.NOTJ.14*/
   function ctaHtml() {
     var R = window.Reminders, s = null, cap = capability();
@@ -205,7 +240,14 @@
     var b = breakage();
     var tone, ico, t, sub, act = '';
 
-    if (b) {
+    if (LAST_PERM && LAST_PERM !== 'granted') {
+      var ps = permState(LAST_PERM);
+      tone = ps.tone; ico = ps.ico; t = ps.t; sub = ps.sub;
+      act = ps.act
+        ? '<button type="button" class="nt-btn is-primary" data-act="' + ps.act + '">' +
+          '<i class="fa-solid fa-bell" aria-hidden="true"></i>' + esc(ps.label) + '</button>'
+        : '';
+    } else if (b) {
       tone = 'danger'; ico = 'fa-bell-slash';
       t = L('تنبيهاتُك متوقّفة', 'Your reminders are off');
       sub = L(b.ar, b.en);
@@ -442,13 +484,205 @@
     return '<input class="nt-time" type="time" value="' + esc(v || '') + '" data-time="' + k + '">';
   }
 
+  function chainRow(state, title, sub, val) {
+    var tone = state === 'ok' ? 'ok' : state === 'bad' ? 'danger'
+             : state === 'warn' ? 'warn' : 'mute';
+    var ico = state === 'ok' ? 'fa-check' : state === 'bad' ? 'fa-xmark'
+            : state === 'warn' ? 'fa-exclamation' : 'fa-question';
+    return '<div class="nt-chain" data-tone="' + tone + '">' +
+      '<span class="nt-chain-d"><i class="fa-solid ' + ico + '" aria-hidden="true"></i></span>' +
+      '<div class="nt-chain-t"><b>' + esc(title) + '</b>' +
+      (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>' +
+      (val ? '<span class="nt-chain-v">' + esc(val) + '</span>' : '') +
+      '</div>';
+  }
+
+  /*@3.NOTJ.56*/
+  function silenceText(code) {
+    return code === 'channel-off'
+        ? L('قناةُ المحاضرات مطفأةٌ في خياراتك أدناه.', 'The lectures channel is off in your options below.')
+      : code === 'term'
+        ? L('تواريخُ الفصل في جدولك لا تشمل الأيامَ القادمة.', 'Your term dates do not cover the coming days.')
+      : code === 'focus'
+        ? L('أسبوعُ اختباراتٍ يخفي المحاضرات — أظهِرْها من الجدول.', 'An exam week hides lectures. Show them from the schedule.')
+      : code === 'range'
+        ? L('تواريخُ بدء محاضراتك أو انتهائها لا تشمل الأيامَ القادمة.', 'The start or end dates on your lectures do not cover the coming days.')
+      : code === 'cancelled'
+        ? L('محاضراتُ الأسبوع مؤشَّرٌ عليها ملغاة.', 'This weeks lectures are marked cancelled.')
+      : code === 'no-lectures'
+        ? L('لا محاضرةَ في جدولك بعد.', 'No lectures in your schedule yet.')
+      : code === 'done-or-past'
+        ? L('محاضراتُك القادمةُ مؤشَّرٌ عليها «أُتمّت».', 'Your upcoming lectures are all marked done.')
+      : '';
+  }
+
+  /*@3.NOTJ.57*/
+  var KIND_ICO = { apple: 'fa-mobile-screen', google: 'fa-desktop',
+                   mozilla: 'fa-desktop', microsoft: 'fa-desktop',
+                   other: 'fa-circle-question' };
+  function kindName(k) {
+    return k === 'apple' ? L('آبل · آيفون أو سفاري', 'Apple, iPhone or Safari')
+      : k === 'google' ? L('قوقل · كروم أو أندرويد', 'Google, Chrome or Android')
+      : k === 'mozilla' ? L('فايرفوكس', 'Firefox')
+      : k === 'microsoft' ? L('إيدج', 'Edge')
+      : L('متصفّحٌ آخر', 'Another browser');
+  }
+  function deviceRow(x) {
+    var stale = x.last_ok_at && (Date.now() - x.last_ok_at > 7 * 86400000);
+    var tone = x.fail_count >= 3 ? 'danger'
+             : x.self ? 'ok'
+             : (!x.last_ok_at || stale) ? 'warn' : 'mute';
+    return '<div class="nt-dev" data-tone="' + tone + '">' +
+      '<span class="nt-dev-ic"><i class="fa-solid ' + (KIND_ICO[x.kind] || KIND_ICO.other) + '" aria-hidden="true"></i></span>' +
+      '<div class="nt-dev-t"><b>' + esc(kindName(x.kind) + (x.ua ? ' · ' + x.ua : '')) + '</b>' +
+      '<span>' + esc((x.last_ok_at
+          ? L('آخرُ تسليمٍ نجح ', 'last delivery ') + when(x.last_ok_at)
+          : L('لم يُسلَّم إليه شيءٌ بعد', 'nothing delivered yet')) +
+        (x.fail_count ? ' · ' + L('إخفاقات: ', 'failures: ') + x.fail_count : '')) + '</span></div>' +
+      (x.self ? '<span class="nt-chip">' + esc(L('هذا الجهاز', 'this device')) + '</span>' : '') +
+      '</div>';
+  }
+
+  /*@3.NOTJ.60*/
+  var VERDICT = null;
+  function verdictHtml() {
+    var v = VERDICT;
+    if (!v) return '';
+    var h = '';
+    if (v.state === 'sending') {
+      h = chainRow('unknown', L('أُرسلت التجربة — ننتظر جهازَك', 'Test sent — waiting for your device'),
+        L('حتى دقيقتين: المؤقّتُ يدقّ كلَّ دقيقة، ثمّ يشهد جهازُك أنه عرض.',
+          'Up to two minutes: the timer fires every minute, then your device reports it showed it.'), '');
+    } else if (v.state === 'shown') {
+      h = chainRow('ok', L('وصل جهازَك وعُرض ✓', 'Reached your device and was shown ✓'),
+        L('إن لم تره على الشاشة فالسببُ في إعدادات إشعارات جهازك: التسليمُ الفوريّ لا الملخّصُ المجدول، وشاشةُ القفل، ووضعُ التركيز.',
+          'If you did not see it on screen, the cause is in your device notification settings: immediate delivery rather than scheduled summary, lock screen, and focus modes.'), '');
+    } else if (v.state === 'accepted') {
+      h = chainRow('warn', L('قبلته خدمةُ الدفع ولم يعرضه جهازُك', 'The push service accepted it, but your device did not show it'),
+        L('على آيفون: تأكّدْ أن التطبيقَ مفتوحٌ من الشاشة الرئيسية لا من سفاري، وأن إشعاراتِه «مسموحة» و«تسليمٌ فوريّ». وعلى أندرويد: لا تكن الحديقةُ في قائمة «تقييد البطارية».',
+          'On iPhone: make sure the app is opened from the Home Screen, not Safari, and its notifications are allowed with immediate delivery. On Android: make sure the Garden is not battery-restricted.'), '');
+    } else if (v.state === 'silent') {
+      h = chainRow('bad', L('لم يصل جهازَك خلال دقيقتين', 'Nothing reached your device within two minutes'),
+        L('تأكّدْ من اتّصالك، ثمّ أطفئِ التنبيهاتِ وأعِد تفعيلَها — يُعاد الاشتراكُ من جديد. وإن تكرّر فأخبرنا.',
+          'Check your connection, then turn reminders off and on again to re-subscribe. If it keeps happening, tell us.'), '');
+    } else if (v.state === 'rate') {
+      h = chainRow('warn', L('تجاوزتَ حدَّ التجربة (٥ في الساعة)', 'You hit the test limit (5 per hour)'),
+        L('ليس عطلاً — انتظر قليلاً.', 'Not a fault. Wait a little.'), '');
+    } else if (v.state === 'fail') {
+      h = chainRow('bad', L('لم تُرسَل التجربة', 'The test was not sent'), v.reason || '', '');
+    }
+    return h ? '<div class="nt-health nt-verdict">' + h + '</div>' : '';
+  }
+
+  /*@3.NOTJ.52*/
+  function healthHtml() {
+    var R = window.Reminders, PU = window.GardenPush;
+    if (!R || !R.diagnose) return '';
+    var d = null;
+    try { d = R.diagnose(); } catch (e) { return ''; }
+    if (!d.enabled) return '';
+
+    var h = '<p class="nt-sec-t">' + esc(L('سلسلةُ تنبيهاتك', 'Your reminder chain')) + '</p>';
+    var by = d.byKind || {};
+    var parts = [];
+    if (by.lectures) parts.push(by.lectures + ' ' + L('محاضرة', 'lectures'));
+    if (by.exams) parts.push(by.exams + ' ' + L('اختبار', 'exams'));
+    if (by.tasks) parts.push(by.tasks + ' ' + L('مهمّة', 'tasks'));
+    if (by.study) parts.push(by.study + ' ' + L('مذاكرة', 'study'));
+    if (by.events) parts.push(by.events + ' ' + L('موعد', 'events'));
+    var sil = d.lectureSilence ? silenceText(d.lectureSilence) : '';
+    h += chainRow(d.built ? (sil ? 'warn' : 'ok') : 'bad',
+      L('جهازُك بنى الطابور', 'Your device built the queue'),
+      sil || parts.join(' · ') || L('لا شيءَ مستحقٌّ خلال أربعة أسابيع.', 'Nothing due within four weeks.'),
+      String(d.built));
+
+    if (!PU || !PU.supported || !PU.supported()) {
+      h += chainRow('bad', L('رُفعت إلى الخادم', 'Uploaded to the server'),
+        L('الدفعُ غيرُ مدعومٍ هنا — التنبيهاتُ تصلك والموقعُ مفتوحٌ فقط.',
+          'Push is not available here. Reminders arrive only while the site is open.'), '');
+      return '<div class="nt-health">' + h + '</div>';
+    }
+    var p = CACHE.push;
+    if (!p) {
+      h += '<div class="nt-skel"></div><div class="nt-skel"></div>';
+      return '<div class="nt-health">' + h + '</div>';
+    }
+    if (!p.ok) {
+      h += chainRow('warn', L('رُفعت إلى الخادم', 'Uploaded to the server'),
+        L('لم يُجب الخادمُ الآن — أعِدِ الفتحَ بعد قليل.',
+          'The server did not answer just now. Try again shortly.'), '');
+      return '<div class="nt-health">' + h + '</div>';
+    }
+
+    h += chainRow(p.reminders_pending ? 'ok' : (d.built ? 'warn' : 'mute'),
+      L('رُفعت إلى الخادم', 'Uploaded to the server'),
+      p.reminders_uploading_devices
+        ? (p.reminders_uploading_devices + ' ' + L('جهازٌ يرفع طابورَه', 'device(s) uploading'))
+        : L('لم يرفع أيُّ جهازٍ طابورَه بعد.', 'No device has uploaded its queue yet.'),
+      String(p.reminders_pending || 0));
+
+    var nxt = p.next_reminder_at ? ahead(p.next_reminder_at) : '';
+    var fresh = (p.cron_last_run_ago_sec != null && p.cron_last_run_ago_sec < 600 && !p.cron_last_error);
+    h += chainRow(fresh ? 'ok' : 'warn',
+      L('المؤقّتُ يُطلق في موعده', 'The timer fires on time'),
+      (p.reminders_sent_24h
+        ? L('أُرسل في يوم: ', 'sent in 24h: ') + p.reminders_sent_24h
+        : L('لم يُرسَل شيءٌ في يوم.', 'nothing sent in 24h.')) +
+      (nxt ? ' · ' + L('التالي ', 'next ') + nxt : ''),
+      String(p.reminders_sent_24h || 0));
+
+    var list = p.devices_list || [];
+    var mine = null;
+    list.forEach(function (x) { if (x.self) mine = x; });
+    h += chainRow(!p.devices ? 'bad' : (!mine ? 'warn' : (mine.last_ok_at ? 'ok' : 'warn')),
+      L('خدمةُ الدفع تقبل', 'The push service accepts'),
+      !p.devices
+        ? L('لا جهازَ مشترِكٌ في خزنتك.', 'No device is subscribed to your vault.')
+        : !mine
+          ? L('هذا الجهازُ ليس منها — فعّلِ التنبيهاتِ عليه.', 'This device is not one of them. Turn reminders on here.')
+          : mine.last_ok_at
+            ? L('آخرُ تسليمٍ نجح ', 'last successful delivery ') + when(mine.last_ok_at)
+            : L('لم يُسلَّم إليه شيءٌ بعد.', 'Nothing delivered to it yet.'),
+      String(p.devices || 0));
+
+    /*@3.NOTJ.58*/ /*@3.NOTJ.59*/
+    var shownAt = mine && mine.last_shown_at;
+    var okAt = mine && mine.last_ok_at;
+    var ackLag = (okAt && (!shownAt || shownAt < okAt - 600000) && (Date.now() - okAt) > 600000);
+    h += chainRow(shownAt ? 'ok' : (ackLag ? 'warn' : 'unknown'),
+      L('جهازُك يعرضه', 'Your device shows it'),
+      shownAt
+        ? L('آخرُ تنبيهٍ عرضه هذا الجهازُ ', 'Last reminder this device showed ') + when(shownAt)
+        : ackLag
+          ? L('قبلته خدمةُ الدفع ولم يشهد جهازُك أنه عرضه. إن كان تطبيقُك محدَّثاً فراجعْ إعداداتِ إشعاراته — التسليمَ الفوريّ لا الملخّصَ المجدول، ووضعَ التركيز.',
+              'The push service accepted it, but this device never reported showing it. If your app is up to date, check its notification settings: immediate delivery rather than scheduled summary, and focus modes.')
+          : L('لم يُسلَّم إلى هذا الجهاز شيءٌ بعدُ — جرّبْ «كلُّ أجهزتي» أدناه وسنخبرك بما وقع.',
+              'Nothing has been delivered to this device yet. Try “All my devices” below and we will tell you what happened.'),
+      shownAt ? '' : '');
+    var tail = p.queue_tail_at ? Math.round((p.queue_tail_at - Date.now()) / 86400000) : null;
+    if (tail !== null && tail <= 3) {
+      h += chainRow(tail <= 0 ? 'bad' : 'warn',
+        L('الطابورُ يوشك أن يجفّ', 'Your queue is about to run dry'),
+        L('آخرُ تنبيهٍ مرفوعٍ بعد ' + (tail <= 0 ? 'أقلَّ من يوم' : tail + (tail === 1 ? ' يوم' : ' أيام')) + ' — فتحُ الحديقة يجدّده تلقائيّاً، وسنذكّرك بذلك على جهازك.',
+          'The last uploaded reminder is ' + (tail <= 0 ? 'less than a day' : tail + (tail === 1 ? ' day' : ' days')) + ' away. Opening the Garden refreshes it automatically, and we will remind you on your device.'),
+        '');
+    }
+
+    if (list.length) {
+      h += '<p class="nt-sec-t">' + esc(L('الأجهزةُ التي تصلها تنبيهاتك', 'Devices your reminders reach')) + '</p>';
+      list.forEach(function (x) { h += deviceRow(x); });
+    }
+    return '<div class="nt-health">' + h + '</div>';
+  }
+
   function optionsHtml() {
     var R = window.Reminders, s = null;
     try { s = R ? R.settings() : null; } catch (e) {}
     if (!s) return emptyHtml('fa-triangle-exclamation', L('محرّكُ التنبيهات غيرُ محمَّلٍ في هذه الصفحة.', 'The reminders engine is not loaded on this page.'));
     var off = !s.enabled;
 
-    var h = '<p class="nt-sec-t">' + esc(L('ما الذي يُنبَّه عنه', 'What you get reminded of')) + '</p>' +
+    var h = healthHtml() +
+      '<p class="nt-sec-t">' + esc(L('ما الذي يُنبَّه عنه', 'What you get reminded of')) + '</p>' +
       optRow('enabled', L('التنبيهاتُ المحلية', 'Device reminders'),
              L('تذكيرٌ قبل المحاضرة والاختبار والمهمّة.', 'Reminders before lectures, exams and tasks.'),
              !!s.enabled, false) +
@@ -458,6 +692,11 @@
              !!(s.channels && s.channels.exams), off, leadSel('exams', s.lead.exams)) +
       optRow('ch.tasks', L('المهامُّ والمواعيد', 'Tasks and due dates'), '',
              !!(s.channels && s.channels.tasks), off, leadSel('tasks', s.lead.tasks)) +
+      /*@3.NOTJ.51*/
+      optRow('ch.study', L('قبل المذاكرة وجلسات الخطّة', 'Before study and plan sessions'), '',
+             !!(s.channels && s.channels.study), off, leadSel('study', s.lead.study)) +
+      optRow('ch.events', L('قبل الأحداث العامّة', 'Before events'), '',
+             !!(s.channels && s.channels.events), off, leadSel('events', s.lead.events)) +
       optRow('ch.review', L('نداءُ المراجعة اليوميّ', 'Daily review call'),
              L('نداءٌ واحدٌ كلَّ يومٍ لمراجعة بطاقاتك المستحقّة.',
                'One call a day to review your due cards.'),
@@ -498,7 +737,8 @@
             esc(L('هذا الجهاز', 'This device')) + '</button>' +
           '<button type="button" class="nt-btn" data-act="test-all"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>' +
             esc(L('كلُّ أجهزتي', 'All my devices')) + '</button>' +
-        '</div></div>';
+        '</div></div>' +
+        verdictHtml();
     }
 
     /*@3.NOTJ.28*/
@@ -668,10 +908,16 @@
   function act(what) {
     if (what === 'enable') {
       if (!window.Reminders) return;
-      Reminders.requestPermission().then(function () {
-        Reminders.save({ enabled: true });
-        try { muteBreak(''); } catch (e) {}
-        Reminders.refresh && Reminders.refresh();
+      /*@3.NOTJ.53*/
+      Reminders.requestPermission().then(function (p) {
+        LAST_PERM = p;
+        if (p === 'granted') {
+          LAST_PERM = null;
+          Reminders.save({ enabled: true });
+          try { muteBreak(''); } catch (e) {}
+          Reminders.refresh && Reminders.refresh();
+          CACHE.push = null;
+        }
         refresh();
       });
     } else if (what === 'test') {
@@ -680,17 +926,29 @@
       /*@3.NOTJ.44*/
       var P = window.GardenPush;
       if (!P || !P.serverTest) return;
+      if (VERDICT && VERDICT.state === 'sending') return;
       note(L('جارٍ الإيقاظ…', 'Waking your devices…'));
+      VERDICT = { state: 'sending' };
+      HOSTS.forEach(function (x) { paint(x, []); });
       P.serverTest().then(function (r) {
         if (r && r.ok) {
-          note(L('أُرسل إلى ' + (r.devices || 0) + ' جهاز — انتظر دقيقةً أو دقيقتين.',
-                 'Sent to ' + (r.devices || 0) + ' device(s) — allow a minute or two.'));
-        } else if (r && r.reason === 'rate_limited') {
-          note(L('تجاوزتَ حدَّ التجربة (٥ في الساعة) — وليس عطلاً.',
-                 'You hit the test limit (5/hour) — this is not a fault.'));
+          note(L('أُرسل إلى ' + (r.devices || 0) + ' جهاز — ننتظر شهادةَ جهازك.',
+                 'Sent to ' + (r.devices || 0) + ' device(s) — waiting for your device to report.'));
+          /*@3.NOTJ.61*/
+          var since = r.fireAt || Date.now();
+          var wait = P.awaitShown ? P.awaitShown(since) : Promise.resolve({ verdict: 'silent' });
+          wait.then(function (v) {
+            VERDICT = { state: (v && v.verdict) || 'silent' };
+            CACHE.push = null;
+            HOSTS.forEach(function (x) { paint(x, []); });
+            refresh();
+          });
+        } else if (r && (r.reason === 'rate_limited' || r.reason === 'test_rate_limited')) {
+          VERDICT = { state: 'rate' };
+          HOSTS.forEach(function (x) { paint(x, []); });
         } else {
-          note(L('لم تنجح: ' + ((r && r.reason) || 'غير معروف'),
-                 'Failed: ' + ((r && r.reason) || 'unknown')));
+          VERDICT = { state: 'fail', reason: (r && r.reason) || L('غير معروف', 'unknown') };
+          HOSTS.forEach(function (x) { paint(x, []); });
         }
       });
     } else if (what === 'seen') {
@@ -752,6 +1010,19 @@
 
   function refresh() {
     if (!HOSTS.length) return;
+    /*@3.NOTJ.54*/
+    if (TAB === 'opt' && !PBUSY && window.GardenPush && GardenPush.status &&
+        GardenPush.supported && GardenPush.supported() &&
+        (!CACHE.push || Date.now() - CACHE.pushAt > 60000)) {
+      PBUSY = true;
+      var done = function (r) {
+        CACHE.push = (r && typeof r === 'object') ? r : { ok: false };
+        CACHE.pushAt = Date.now();
+        PBUSY = false;
+        HOSTS.forEach(function (x) { paint(x, []); });
+      };
+      GardenPush.status().then(done, function () { done(null); });
+    }
     var needLog = TAB === 'log' && (!CACHE.log || Date.now() - CACHE.at > 60000);
     var pendP = TAB === 'pend' && window.Reminders
       ? Reminders.upcoming(20).catch(function () { return []; })
