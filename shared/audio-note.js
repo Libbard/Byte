@@ -74,7 +74,8 @@
   }
 
   var rec = null, timer = null, panel = null, busy = false, urls = {};
-  var cap = null, drawer = null, escOn = null, settleOn = null;
+  var cap = null, escOn = null, settleOn = null;
+  var view = 'main';
 
   function host() { return document.getElementById('na-doc-body'); }
   function micBtn() { return document.getElementById('na-mic'); }
@@ -91,19 +92,9 @@
     var pad = 12;
     if (side === 'cap') {
       /*@3.AUNJ.50*/
-      var wide = window.innerWidth > 640;
-      var off = pad + ((wide && drawer && drawer.offsetWidth) || 0);
       el.style.top = (r.top + pad) + 'px';
-      if (rtl) { el.style.right = (window.innerWidth - r.right + off) + 'px'; el.style.left = 'auto'; }
-      else     { el.style.left = (r.left + off) + 'px'; el.style.right = 'auto'; }
-      return;
-    }
-    if (side === 'drawer') {
-      el.style.top = r.top + 'px';
-      el.style.height = r.height + 'px';
-      /*@3.AUNJ.51*/
-      if (rtl) { el.style.right = (window.innerWidth - r.right) + 'px'; el.style.left = 'auto'; }
-      else     { el.style.left = r.left + 'px'; el.style.right = 'auto'; }
+      if (rtl) { el.style.right = (window.innerWidth - r.right + pad) + 'px'; el.style.left = 'auto'; }
+      else     { el.style.left = (r.left + pad) + 'px'; el.style.right = 'auto'; }
       return;
     }
     /*@3.AUNJ.49*/
@@ -127,7 +118,6 @@
     var r = anchorRect();
     if (!r) return;
     if (cap) place(cap, r, 'cap');
-    if (drawer) place(drawer, r, 'drawer');
     if (panel) place(panel, r, 'pop');
   }
   window.addEventListener('resize', reflow);
@@ -135,6 +125,7 @@
   function close() {
     if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
     panel = null;
+    view = 'main';
     var b = micBtn();
     if (b) b.setAttribute('aria-expanded', 'false');
   }
@@ -150,6 +141,9 @@
     panel.setAttribute('aria-label', L('تسجيلُ الصوت', 'Voice recording'));
     panel.innerHTML =
       '<div class="nrp-b"></div><div class="nrp-f"></div>';
+    panel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !busy) { e.stopPropagation(); close(); }
+    });
     document.body.appendChild(panel);
     place(panel, r, 'pop');
     /*@3.AUNJ.56*/
@@ -184,12 +178,11 @@
   }
 
   function render() {
-    if (rec) { drawLive(); drawList(); return; }
+    if (rec) { drawLive(); if (panel && view === 'list') drawList(); return; }
     var el = shell();
     if (!el) return;
     away();
-    drawIdle();
-    drawList();
+    if (view === 'list' && items().length) drawList(); else drawIdle();
   }
 
   /*@3.AUNJ.45*/
@@ -203,9 +196,9 @@
 
   /*@3.AUNJ.54*/
   function settled(refId) {
-    close();
+    busy = false;
     openDrawer();
-    var row = drawer && drawer.querySelector('.nrr[data-ref="' + refId + '"]');
+    var row = panel && panel.querySelector('.nrr[data-ref="' + refId + '"]');
     if (row) row.classList.add('on');
   }
 
@@ -796,51 +789,39 @@
 
   /*@3.AUNJ.46*/
   function openDrawer() {
-    var r = anchorRect();
-    if (!r) return;
-    if (!drawer) {
-      drawer = document.createElement('aside');
-      drawer.className = 'nrd';
-      drawer.setAttribute('role', 'dialog');
-      drawer.setAttribute('aria-label', L('تسجيلاتُ الملاحظة', 'Note recordings'));
-      drawer.innerHTML =
-        '<div class="nrd-h">' +
-          '<b>' + esc(L('تسجيلاتُ هذه الملاحظة', 'Recordings in this note')) + '</b>' +
-          '<span class="nrd-n"></span>' +
-          '<button type="button" class="nrd-x" aria-label="' +
-            esc(L('إغلاق', 'Close')) + '"' +
-            ' data-ar-title="إغلاق" data-en-title="Close">' +
-            '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
-        '</div><div class="nrd-b nrec-list"></div>';
-      document.body.appendChild(drawer);
-      drawer.querySelector('.nrd-x').addEventListener('click', shutDrawer);
-      if (!escOn) {
-        escOn = function (e) { if (e.key === 'Escape' && drawer) shutDrawer(); };
-        document.addEventListener('keydown', escOn);
-      }
-    }
-    place(drawer, r, 'drawer');
+    view = 'list';
+    if (!panel) { shell(); away(); }
     drawList();
     reflow();
   }
 
-  function shutDrawer() {
-    if (drawer && drawer.parentNode) drawer.parentNode.removeChild(drawer);
-    drawer = null;
-    reflow();
-  }
+  function shutDrawer() { if (view === 'list') { view = 'main'; render(); } }
 
   /*@3.AUNJ.11*/
+  /*@3.AUNJ.59*/
   function drawList() {
-    var box = drawer && drawer.querySelector('.nrd-b');
-    var n = drawer && drawer.querySelector('.nrd-n');
-    if (!box) return;
+    if (!panel) { shell(); away(); }
+    if (!panel) return;
+    view = 'list';
+    panel.className = 'nrp nrp--list';
     var list = items();
-    if (n) n.textContent = String(list.length);
+    msg('<div class="nrp-head">' +
+        '<button type="button" class="nrp-back" aria-label="' +
+          esc(L('رجوع', 'Back')) + '"' +
+          ' data-ar-title="رجوع" data-en-title="Back">' +
+          '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>' +
+        '<b class="nrp-t">' + esc(L('تسجيلاتُ هذه الملاحظة', 'Recordings in this note')) +
+        '</b><span class="nrp-n">' + list.length + '</span></div>' +
+        '<div class="nrp-list-box"></div>');
+    acts('');
+    var back = panel.querySelector('.nrp-back');
+    if (back) back.addEventListener('click', function () { view = 'main'; render(); });
+    var box = panel.querySelector('.nrp-list-box');
+    if (!box) return;
     if (!list.length) {
       box.innerHTML = '<p class="nrd-e">' +
-        esc(L('لا تسجيلَ بعد. ابدأْ من زرِّ الميكروفون.',
-              'No recordings yet — start from the microphone button.')) + '</p>';
+        esc(L('لا تسجيلَ بعد.', 'No recordings yet.')) + '</p>';
+      reflow();
       return;
     }
     box.innerHTML = list.slice().reverse().map(function (x) {
@@ -867,7 +848,7 @@
           esc(size(x.b)) + ' · ' + esc(stamp(x.t)) + '</span>' +
         '<div class="nrr-s nrec-row-p">' +
           (x.aup ? '' :
-            '<button type="button" class="gsf-btn gsf-btn--go gsf-btn--sm nrec-retry">' +
+            '<button type="button" class="gsf-btn gsf-btn--sm nrec-retry">' +
             '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
             esc(L('ارفعْه', 'Upload')) + '</button>' +
             '<span class="nfo-dim">' +
@@ -875,6 +856,7 @@
                      : L('لا نسخةَ له.', 'No copy left.')) + '</span>') +
         '</div></div>';
     }).join('');
+    reflow();
     Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (row) {
       var ref = row.getAttribute('data-ref');
       var del = row.querySelector('.nrec-del');
@@ -1028,19 +1010,21 @@
     /*@3.AUNJ.22*/
     var st = D();
     if (st && it && it.lo) st.drop(refId)['catch'](function () {});
-    if (!items().length) drawList();
+    if (panel && view === 'list') drawList();
   }
 
   /*@3.AUNJ.13*/
   /*@3.AUNJ.47*/
   function toggle() {
     /*@3.AUNJ.52*/
-    if (rec) { if (drawer) shutDrawer(); else openDrawer(); return; }
     if (panel && panel.parentNode) {
       if (busy) return;
+      /*@3.AUNJ.58*/
+      if (rec && view !== 'list') { openDrawer(); return; }
       close();
       return;
     }
+    if (rec) { openDrawer(); return; }
     render();
   }
 
@@ -1055,7 +1039,6 @@
   function sync() {
     badge();
     if (panel && panel.parentNode && !rec && !busy) render();
-    if (drawer) drawList();
   }
 
   if (document.readyState === 'loading') {

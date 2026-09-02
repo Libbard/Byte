@@ -947,10 +947,13 @@
     var b = document.getElementById('na-cloud');
     if (!b) return;
     var h = curDoc && curDoc.pdf && curDoc.pdf.h;
+    /*@3.NOAJ.267*/
+    b.disabled = !h;
     var up = !!(h && upSet && upSet['pdf_' + String(h).slice(0, 40)]);
     b.classList.toggle('na-icb--up', up);
+    /*@3.NOAJ.266*/
     var i = b.querySelector('i');
-    if (i) i.className = 'fa-solid ' + (up ? 'fa-cloud' : 'fa-cloud-arrow-up');
+    if (i) i.className = 'fa-solid fa-cloud' + (up ? '' : ' na-hollow');
     var ar = up ? 'محفوظٌ عندنا · يفتح على أجهزتك' : 'احفظْ نسخةً عندنا';
     var en = up ? 'Saved with us — opens on your devices' : 'Keep a copy with us';
     b.setAttribute('data-ar-title', ar);
@@ -961,7 +964,7 @@
       if (MORE[k].id !== 'na-cloud') continue;
       MORE[k].ar = ar;
       MORE[k].en = en;
-      MORE[k].icon = up ? 'fa-cloud' : 'fa-cloud-arrow-up';
+      MORE[k].icon = up ? 'fa-cloud' : 'fa-cloud na-hollow';
       MORE[k].on = up ? 1 : 0;
     }
   }
@@ -5755,11 +5758,6 @@
     if (cb) cb.addEventListener('click', function () {
       var C = window.GardenFilesPdf;
       /*@3.NOAJ.265*/
-      if (cb.classList.contains('na-icb--up')) {
-        saveState('', L('محفوظٌ عندنا — يفتح على أجهزتك الأخرى.',
-                        'Saved with us — it opens on your other devices.'));
-        return;
-      }
       if (C && C.ask && C.ask()) return;
       saveState('error', L('افتحْ ملفَّ PDF أوّلاً ليُحفظ عندنا.',
                            'Open a PDF file first to keep a copy with us.'));
