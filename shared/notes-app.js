@@ -3171,7 +3171,8 @@
       if (a === 'device') { fromDevice(); return; }
       if (a !== 'gd') return;
       GD.pick().then(function (pk) {
-        if (!pk) return;
+        /*@3.NOAJ.274*/
+        if (!pk) { createPdf(); return; }
         saveState('saving', L('يُنزَّل من درايف…', 'Downloading from Drive…'));
         return GD.download(pk.id, function (at, of) {
           if (!of) return;

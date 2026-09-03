@@ -7,7 +7,8 @@
   var UP = 'https://www.googleapis.com/upload/drive/v3';
   var GSI = 'https://accounts.google.com/gsi/client';
   var GAPI = 'https://apis.google.com/js/api.js';
-  var FOLDER = 'الحديقة الرقمية';
+  /*@3.DRIJ.12*/
+  var FOLDER = 'Digital Garden';
   var MARK = { garden: '1' };
   var SLACK_MS = 60 * 1000;
 
@@ -186,7 +187,15 @@
       return json('GET', API + '/files?q=' + encodeURIComponent(q) +
                   '&fields=files(id,name)&pageSize=1&spaces=drive', null, t)
         .then(function (r) {
-          if (r.files && r.files.length) return r.files[0].id;
+          var got = (r.files && r.files[0]) || null;
+          if (got) {
+            if (got.name !== FOLDER) {
+              return json('PATCH', API + '/files/' + encodeURIComponent(got.id) +
+                          '?fields=id', { name: FOLDER }, t)
+                .then(function () { return got.id; }, function () { return got.id; });
+            }
+            return got.id;
+          }
           return json('POST', API + '/files?fields=id', {
             name: FOLDER,
             mimeType: 'application/vnd.google-apps.folder',
@@ -254,6 +263,33 @@
     }).then(function () { return true; }, function () { return false; });
   }
 
+  /*@3.DRIJ.13*/
+  function wayOut(shut) {
+    var tries = 0;
+    var t = setInterval(function () {
+      var dlg = document.querySelector('.picker-dialog');
+      if (!dlg) { if (++tries > 60) clearInterval(t); return; }
+      clearInterval(t);
+      if (dlg.getAttribute('data-garden-out')) return;
+      dlg.setAttribute('data-garden-out', '1');
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.setAttribute('aria-label', L('إغلاق', 'Close'));
+      x.setAttribute('data-ar-title', 'إغلاق');
+      x.setAttribute('data-en-title', 'Close');
+      x.textContent = '✕';
+      x.style.cssText = 'position:absolute;top:6px;z-index:3;width:2rem;height:2rem;' +
+        'border-radius:50%;border:1px solid rgba(0,0,0,.18);background:#fff;color:#3c4043;' +
+        'font:700 14px/1 system-ui,sans-serif;cursor:pointer;display:grid;place-items:center;' +
+        (isAr() ? 'left:6px' : 'right:6px');
+      x.addEventListener('click', shut);
+      dlg.appendChild(x);
+      var bg = document.querySelector('.picker-dialog-bg');
+      if (bg) bg.addEventListener('click', shut);
+    }, 50);
+    return function () { clearInterval(t); };
+  }
+
   /*@3.DRIJ.8*/
   function pick(opts) {
     var o = opts || {};
@@ -268,6 +304,7 @@
       }).then(function () {
         if (!pickerReady()) throw err('picker_unavailable');
         return new Promise(function (res, rej) {
+          var fin = res;
           var P = window.google.picker;
           var view = new P.DocsView(P.ViewId.DOCS);
           view.setMimeTypes(o.mime || 'application/pdf');
@@ -281,15 +318,37 @@
             .setTitle(o.title || L('اخترْ ملفّاً من درايف', 'Pick a file from Drive'))
             .setCallback(function (d) {
               if (!d || !d.action) return;
-              if (d.action === P.Action.CANCEL) { res(null); return; }
+              if (d.action === P.Action.CANCEL) { fin(null); return; }
               if (d.action !== P.Action.PICKED) return;
               var f = (d.docs || [])[0];
-              if (!f) { res(null); return; }
-              res({ id: f.id, name: f.name, size: Number(f.sizeBytes) || 0,
+              if (!f) { fin(null); return; }
+              fin({ id: f.id, name: f.name, size: Number(f.sizeBytes) || 0,
                     mime: f.mimeType || '' });
             });
-          try { b.build().setVisible(true); }
-          catch (e) { rej(err('picker_failed', e && e.message)); }
+          /*@3.DRIJ.14*/
+          var pk = null, shut = null, stop = null, gone = false;
+          var onKey = function (e) {
+            if (e.key === 'Escape' && shut) { e.stopPropagation(); shut(); }
+          };
+          fin = function (v) {
+            if (gone) return;
+            gone = true;
+            document.removeEventListener('keydown', onKey, true);
+            if (stop) stop();
+            try { if (pk) { pk.setVisible(false); pk.dispose(); } } catch (e2) {}
+            res(v);
+          };
+          shut = function () { fin(null); };
+          try {
+            pk = b.build();
+            document.addEventListener('keydown', onKey, true);
+            stop = wayOut(shut);
+            pk.setVisible(true);
+          } catch (e) {
+            if (stop) stop();
+            document.removeEventListener('keydown', onKey, true);
+            rej(err('picker_failed', e && e.message));
+          }
         });
       });
     });
