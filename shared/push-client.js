@@ -9,7 +9,7 @@
   var DEVICE_LS = 'garden_push_device';
   var STATE_LS = 'garden_push_state';   /*@3.PUCJ.3*/
   var KEY_LS = 'garden_push_serverkey'; /*@3.PUCJ.4*/
-  var MAX_WAKES = 100;                  /*@3.PUCJ.34*/
+  var MAX_WAKES = 60;
 
   /*@3.PUCJ.5*/
 
@@ -285,10 +285,7 @@
     return subscribe().then(function (s) {
       if (!s.ok) return { ok: false, reason: s.reason };
       return post('/v1/test', { vault_id: vaultId(), device_id: deviceId() })
-        .then(function (r) {
-          return { ok: !!(r && r.ok), devices: r && r.devices, reason: r && r.error,
-                   fireAt: (r && r.fire_at) || Date.now() };
-        })
+        .then(function (r) { return { ok: !!(r && r.ok), devices: r && r.devices, reason: r && r.error }; })
         /*@3.PUCJ.31*/
         .catch(function (e) {
           return {
@@ -306,40 +303,6 @@
       .catch(function (e) { return { ok: false, reason: String(e && e.message || e) }; });
   }
 
-  /*@3.PUCJ.35*/
-  function awaitShown(sinceMs, opts) {
-    var o = opts || {};
-    var every = o.every || 6000;
-    var limit = o.limit || 100000;
-    var t0 = Date.now();
-    var since = Number(sinceMs) || t0;
-    function verdictOf(r) {
-      var me = null;
-      ((r && r.devices_list) || []).forEach(function (x) { if (x.self) me = x; });
-      if (!me) return null;
-      if (me.last_shown_at && me.last_shown_at >= since - 1000) return { verdict: 'shown', at: me.last_shown_at };
-      if (me.last_ok_at && me.last_ok_at >= since - 1000) return { verdict: 'accepted', at: me.last_ok_at, pending: true };
-      return null;
-    }
-    return new Promise(function (resolve) {
-      var lastAccepted = null;
-      function tick() {
-        status().then(function (r) {
-          var v = r && r.ok ? verdictOf(r) : null;
-          if (v && v.verdict === 'shown') { resolve(v); return; }
-          if (v && v.verdict === 'accepted') lastAccepted = v;
-          if (Date.now() - t0 >= limit) {
-            resolve(lastAccepted ? { verdict: 'accepted', at: lastAccepted.at }
-                                 : { verdict: 'silent', at: null });
-            return;
-          }
-          setTimeout(tick, every);
-        }, function () { setTimeout(tick, every); });
-      }
-      tick();
-    });
-  }
-
   window.GardenPush = {
     supported: supported,
     status: status,
@@ -347,7 +310,6 @@
     unsubscribe: unsubscribe,
     syncWakes: syncWakes,
     serverTest: serverTest,
-    awaitShown: awaitShown,
     vaultId: vaultId,
     deviceId: deviceId,
     /*@3.PUCJ.33*/

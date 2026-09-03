@@ -394,8 +394,7 @@
     });
 
     /*@3.REUJ.26*/
-    /*@3.REUJ.46*/
-    ['lectures', 'exams', 'tasks', 'study', 'events'].forEach(function (k) {
+    ['lectures', 'exams', 'tasks'].forEach(function (k) {
       renderLead(k, s.lead[k]);
     });
 

@@ -196,44 +196,46 @@
     today: {
       ar: 'اليوم', en: 'Today',
       render: function () {
-        /*@3.DASJ.144*/
-        /*@3.DASJ.19*/
-        var all = (D.todayEvents ? D.todayEvents() : []);
-        var live = [], doneN = 0, pastN = 0;
-        all.forEach(function (e) {
-          if (e.done) { doneN++; return; }
-          if (e.past) { pastN++; return; }
-          live.push(e);
+        var s = D.todaySchedule();
+        var items = [];
+
+        s.exams.forEach(function (e) {
+          items.push({ t: e.start_time || '', n: (e.course_code || '') + ' · ' + tx('اختبار', 'Exam'), c: 'var(--st-danger)' });
         });
-        var ICO = '<i class="fa-solid fa-calendar-day"></i>';
-        var HD = head(ICO, tx('اليوم', 'Today'), 'hub/schedule.html');
+        s.lectures.forEach(function (l) {
+          items.push({ t: l.start_time || '', n: (l.course_code || '') + (l.room ? ' · ' + l.room : ''), c: 'var(--st-accent)' });
+        });
+        s.blocks.forEach(function (b) {
+          items.push({ t: b.start_time || '', n: (b.course_code || '') + ' · ' + tx('مذاكرة', 'Study'), c: 'var(--st-ok)' });
+        });
+        /*@3.DASJ.18*/
+        intensiveToday().forEach(function (x) {
+          items.push({ t: x.start_time || '', n: x.label, c: 'var(--st-accent)', done: x.done });
+        });
+        /*@3.DASJ.19*/
+        items.sort(function (a, b) { return String(a.t).localeCompare(String(b.t)); });
 
         /*@3.DASJ.20*/
-        if (!live.length) {
-          var note = hiddenNote(D.todaySchedule());
-          var msg = note ? note
-            : (doneN && !pastN) ? tx('أنهيتَ كلَّ المهام 🎉', 'You finished every task 🎉')
-            : (doneN || pastN) ? tx('انقضى اليوم', 'The day is over')
-            : tx('لا شيء مجدول اليوم', 'Nothing scheduled today');
-          return HD + ((doneN || pastN)
-            ? emptyState(ICO, msg, tx('تفاصيل اليوم', 'Day details'), 'day-open')
-            : emptyState(ICO, msg, tx('افتح الجدول', 'Open schedule'), 'go-schedule'));
-        }
 
-        /*@3.DASJ.148*/
-        var list = live.slice(0, TODAY_ROWS).map(todayRow).join('');
-        var bits = [];
-        if (live.length > TODAY_ROWS) {
-          bits.push('+' + (live.length - TODAY_ROWS) + ' ' + tx('أخرى', 'more'));
+        if (!items.length) {
+          var note = hiddenNote(s);
+          return head('<i class="fa-solid fa-calendar-day"></i>', tx('اليوم', 'Today'), 'hub/schedule.html') +
+            emptyState('<i class="fa-solid fa-calendar-day"></i>',
+                       note || tx('لا شيء مجدول اليوم', 'Nothing scheduled today'),
+                       tx('افتح الجدول', 'Open schedule'), 'go-schedule');
         }
-        if (pastN) bits.push(pastN + ' ' + tx('مضت', 'passed'));
-        if (doneN) bits.push(doneN + ' ' + tx('أُتمّت', 'done'));
-        var foot = '<div class="dash-today-foot">' +
-          '<span class="dash-today-cnt">' + esc(bits.join(' · ')) + '</span>' +
-          '<button type="button" class="dash-today-more" data-act="day-open">' +
-            esc(tx('تفاصيل اليوم', 'Day details')) + '</button>' +
-          '</div>';
-        return HD + '<div class="widget-body"><div class="widget-list">' + list + '</div>' + foot + '</div>';
+        var list = items.slice(0, 4).map(function (i) {
+          return '<a class="widget-item" href="hub/schedule.html"' + (i.done ? ' style="opacity:.5"' : '') + '>' +
+            '<span class="widget-item-dot" style="background:' + i.c + '"></span>' +
+            '<span class="widget-item-time">' + esc(i.t) + '</span>' +
+            '<span class="widget-item-name">' + esc(i.n) + '</span>' +
+            (i.done ? '<span class="widget-item-done" style="color:var(--st-ok);font-weight:800"><i class="fa-solid fa-check" aria-hidden="true"></i></span>' : '') +
+            '</a>';
+        }).join('');
+        var more = items.length > 4
+          ? '<div class="widget-sub" style="margin-top:.3rem">+' + (items.length - 4) + ' ' + esc(tx('أخرى', 'more')) + '</div>' : '';
+        return head('<i class="fa-solid fa-calendar-day"></i>', tx('اليوم', 'Today'), 'hub/schedule.html') +
+          '<div class="widget-body"><div class="widget-list">' + list + '</div>' + more + '</div>';
       }
     },
 
@@ -374,192 +376,23 @@
     return n ? n.text : '';
   }
 
-  var TODAY_ROWS = 3;
-  var TODAY_COLOUR = {
-    exam: 'var(--st-danger)', lecture: 'var(--st-accent)', study: 'var(--st-ok)',
-    intensive: 'var(--st-accent)', general: 'var(--st-warn)', task: 'var(--st-warn)'
-  };
-  function todayName(e) {
-    var code = e.code || '';
-    /*@3.DASJ.147*/
-    if (e.kind === 'lecture') return code + ' · ' + tx('محاضرة', 'Lecture');
-    if (e.kind === 'exam') return code + ' · ' + tx('اختبار', 'Exam');
-    if (e.kind === 'study') return code + ' · ' + (e.label || tx('مذاكرة', 'Study'));
-    /*@3.DASJ.18*/
-    if (e.kind === 'intensive') {
-      var num = parseInt(String(e.module || '').replace('M', ''), 10);
-      var what = e.sub === 'buffer' ? tx('مراجعة ما قبل الاختبار', 'Pre-exam review')
-               : e.sub === 'spaced' ? tx('مراجعة متباعدة', 'Spaced review')
-               : (tx('الوحدة ', 'Module ') + (num || '—') +
-                  (e.total_parts > 1 ? ' (' + e.part + '/' + e.total_parts + ')' : ''));
-      return code + ' · ' + what;
-    }
-    var t = e.label || tx('حدث', 'Event');
-    return code ? (code + ' · ' + t) : t;
-  }
-  /*@3.DASJ.146*/
-  function todayRow(e) {
-    var name = todayName(e);
-    var lbl = tx('إتمام', 'Mark done') + ' — ' + name;
-    var cont = e.spill
-      ? '<i class="fa-solid fa-arrow-turn-down widget-item-cont" aria-hidden="true"></i>' : '';
-    var when = e.spill ? minToHM(e.spill_start) : (e.time || tx('طوال اليوم', 'All day'));
-    var from = e.spill
-      ? (tx('بدأ أمسِ ', 'Started yesterday ') + minToHM(e.spill_start) + ' — ') : '';
-    return '<div class="widget-item widget-item--act' + (e.spill ? ' is-spill' : '') + '">' +
-      '<a class="widget-item-go" href="hub/schedule.html"' +
-        (e.spill ? ' title="' + esc(from + name) + '"' : '') + '>' +
-        '<span class="widget-item-dot" style="background:' + (TODAY_COLOUR[e.kind] || 'var(--st-accent)') + '"></span>' +
-        '<span class="widget-item-time">' + esc(when) + '</span>' +
-        cont +
-        '<span class="widget-item-name">' + esc(name) + '</span>' +
-      '</a>' +
-      '<button type="button" class="widget-item-check" data-act="today-done"' +
-        ' data-src="' + esc(e.src) + '" data-id="' + esc(e.id) + '" data-code="' + esc(e.code || '') + '"' +
-        ' data-date="' + esc(e.src_date || e.date || '') + '"' +
-        ' title="' + esc(from + lbl) + '" aria-label="' + esc(from + lbl) + '">' +
-        '<i class="fa-solid fa-check" aria-hidden="true"></i></button>' +
-      '</div>';
-  }
-  function minToHM(m) {
-    var h = Math.floor((m || 0) / 60), n = (m || 0) % 60;
-    return String(h).padStart(2, '0') + ':' + String(n).padStart(2, '0');
-  }
+  function intensiveToday() {
+    var sch = null;
+    try { sch = JSON.parse(localStorage.getItem('weekly_schedule') || 'null'); } catch (e) { return []; }
+    var it = sch && sch.intensive;
+    var plan = (it && it.active && it.plans) ? it.plans[it.active] : null;
+    if (!plan || !plan.sessions || !plan.sessions.length) return [];
 
-  /*@3.DASJ.149*/
-  var dayScope = 'all';
-
-  function dayIsOpen() { var m = el('day-modal'); return !!(m && !m.hidden); }
-  function closeDay() { var m = el('day-modal'); if (m) m.hidden = true; }
-  function openDay() {
-    var m = el('day-modal');
-    if (!m) return;
-    dayScope = 'all';
-    m.hidden = false;
-    renderDay();
-  }
-
-  function courseNameOf(code, list) {
-    if (!code) return '';
-    for (var i = 0; i < list.length; i++) {
-      if (list[i] && list[i].code === code) {
-        return isAr() ? (list[i].name_ar || list[i].name_en || '')
-                      : (list[i].name_en || list[i].name_ar || '');
-      }
-    }
-    var info = D.courseInfo ? D.courseInfo(code) : null;
-    if (!info) return '';
-    return isAr() ? (info.name_ar || info.name_en || '') : (info.name_en || info.name_ar || '');
-  }
-
-  function gapText(mins) {
-    var h = Math.round(mins / 60);
-    if (!isAr()) return h === 1 ? '1 hour gap' : (h + ' hours gap');
-    if (h === 1) return 'فجوةُ ساعة';
-    if (h === 2) return 'فجوةُ ساعتين';
-    return 'فجوةُ ' + h + ' ساعات';
-  }
-
-  function dayStart(e) {
-    if (e.allDay || e.start === null || e.start === undefined) return null;
-    return e.start;
-  }
-
-  function dayRow(e, names) {
-    var cls = 'dash-day-r' + ((e.done || e.past) ? ' is-off' : '') + (e.done ? ' is-done' : '');
-    var col = TODAY_COLOUR[e.kind] || 'var(--st-accent)';
-    var st = dayStart(e);
-    var when = (st === null) ? tx('طوال اليوم', 'All day')
-                             : minToHM(e.spill ? e.spill_start : st);
-    var name = todayName(e);
-    var meta = [];
-    var cn = courseNameOf(e.code, names);
-    if (cn) meta.push('<span>' + esc(cn) + '</span>');
-    if (e.kind === 'lecture' && e.label) {
-      meta.push('<span class="dash-day-tag">' + esc(e.label) + '</span>');
-    }
-    if (st !== null && e.end !== null && e.end !== undefined && e.end !== st) {
-      meta.push('<span class="dash-day-tag">' +
-        esc(tx('حتى ', 'until ') + minToHM(e.end % 1440)) + '</span>');
-    }
-    if (e.spill) {
-      meta.push('<span class="dash-day-tag">' + esc(tx('بدأ أمسِ', 'Started yesterday')) + '</span>');
-    }
-    if (e.past && !e.done) {
-      meta.push('<span class="dash-day-tag">' + esc(tx('مضت', 'passed')) + '</span>');
-    }
-    var lbl = (e.done ? tx('إلغاء الإتمام', 'Undo done') : tx('إتمام', 'Mark done')) + ' — ' + name;
-    return '<div class="' + cls + '" style="--ev-color:' + col + '">' +
-      '<div class="dash-day-h"><b>' + esc(when) + '</b></div>' +
-      '<div class="dash-day-l"></div>' +
-      '<div class="dash-day-c"><div class="dash-day-card">' +
-        '<div class="dash-day-b">' +
-          '<span class="dash-day-n">' + esc(name) + '</span>' +
-          (meta.length ? '<span class="dash-day-m">' + meta.join('') + '</span>' : '') +
-        '</div>' +
-        '<button type="button" class="dash-day-x2" data-act="today-done"' +
-          ' data-src="' + esc(e.src) + '" data-id="' + esc(e.id) + '"' +
-          ' data-code="' + esc(e.code || '') + '"' +
-          ' data-date="' + esc(e.src_date || e.date || '') + '"' +
-          ' data-on="' + (e.done ? '0' : '1') + '"' +
-          ' title="' + esc(lbl) + '" aria-label="' + esc(lbl) + '">' +
-          '<i class="fa-solid fa-check" aria-hidden="true"></i></button>' +
-      '</div></div></div>';
-  }
-
-  function renderDay() {
-    var body = el('day-modal-body');
-    if (!body) return;
-    var all = (D.todayEvents ? D.todayEvents() : []);
-    var left = all.filter(function (e) { return !e.done && !e.past; });
-
-    var sub = el('day-modal-sub');
-    if (sub) {
-      var loc = isAr() ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB';
-      var when = new Date().toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' });
-      sub.textContent = when + ' — ' + (isAr()
-        ? (left.length + ' متبقّية من ' + all.length)
-        : (left.length + ' left of ' + all.length));
-    }
-
-    var segs = document.querySelectorAll('#day-modal-seg [data-scope]');
-    for (var i = 0; i < segs.length; i++) {
-      segs[i].setAttribute('aria-pressed',
-        segs[i].getAttribute('data-scope') === dayScope ? 'true' : 'false');
-    }
-
-    var rows = (dayScope === 'left') ? left : all;
-    if (!rows.length) {
-      body.innerHTML = '<div class="dash-day-none">' + esc(dayScope === 'left'
-        ? tx('لا شيء متبقٍّ اليوم', 'Nothing left today')
-        : tx('لا شيء مجدول اليوم', 'Nothing scheduled today')) + '</div>';
-      return;
-    }
-
-    var sem = D.semester ? D.semester() : null;
-    var names = (sem && sem.courses) || [];
-    var n = new Date();
-    var nowMin = n.getHours() * 60 + n.getMinutes();
-    var nowLine = '<div class="dash-day-now"><b>' + esc(minToHM(nowMin)) + '</b><i></i></div>';
-    var html = '', shownNow = false, prevEnd = null;
-
-    rows.forEach(function (e) {
-      var st = dayStart(e);
-      if (st !== null && prevEnd !== null && st - prevEnd >= 60) {
-        html += '<div class="dash-day-gap"><span></span><b>' +
-          esc(gapText(st - prevEnd)) + '</b><i></i></div>';
-      }
-      if (!shownNow && st !== null && st > nowMin) { html += nowLine; shownNow = true; }
-      html += dayRow(e, names);
-      if (st !== null) {
-        var en = (e.end === null || e.end === undefined) ? st : Math.min(e.end, 1440);
-        prevEnd = (prevEnd === null) ? en : Math.max(prevEnd, en);
-      }
+    var now = new Date();
+    var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    return plan.sessions.filter(function (s) { return s.date === today; }).map(function (s) {
+      var num = parseInt(String(s.module || '').replace('M', ''), 10);
+      var what = s.kind === 'buffer' ? tx('مراجعة ما قبل الاختبار', 'Pre-exam review')
+               : s.kind === 'spaced' ? tx('مراجعة متباعدة', 'Spaced review')
+               : (tx('الوحدة ', 'Module ') + (num || '—') + (s.total_parts > 1 ? ' (' + s.part + '/' + s.total_parts + ')' : ''));
+      return { start_time: s.start_time || '', done: !!s.done, label: (s.course || '') + ' · ' + what };
     });
-    if (!shownNow) html += nowLine;
-    body.innerHTML = html;
   }
-
   /*@3.DASJ.34*/
   function clearIntensiveSlot() {
     var slot = el('ip-home-slot');
@@ -1701,33 +1534,6 @@
     var act = t.getAttribute('data-act');
     var id = t.getAttribute('data-id');
 
-    /*@3.DASJ.145*/
-    if (act === 'today-done') {
-      e.preventDefault();
-      var tsrc = t.getAttribute('data-src') || '';
-      var tid = t.getAttribute('data-id') || '';
-      var tcode = t.getAttribute('data-code') || '';
-      var tdate = t.getAttribute('data-date') || D.todayStr();
-      var ton = t.getAttribute('data-on') !== '0';
-      if (tsrc === 'task') { if (D.toggleTask) D.toggleTask(tid); }
-      else if (tsrc === 'course') { if (D.toggleCourseDate) D.toggleCourseDate(tcode, tid); }
-      else if (window.GardenScheduleRules && GardenScheduleRules.setDone) {
-        GardenScheduleRules.setDone({ src: tsrc, id: tid, date: tdate }, ton);
-      }
-      renderWidgets();
-      if (dayIsOpen()) renderDay();
-      return;
-    }
-
-    if (act === 'day-open') { e.preventDefault(); openDay(); return; }
-    if (act === 'day-close') { e.preventDefault(); closeDay(); return; }
-    if (act === 'day-scope') {
-      e.preventDefault();
-      dayScope = (t.getAttribute('data-scope') === 'left') ? 'left' : 'all';
-      renderDay();
-      return;
-    }
-
     /*@3.DASJ.108*/
     if (act === 'wizard') {
       if (window.GardenFirstRun && GardenFirstRun.launch) GardenFirstRun.launch();
@@ -1923,7 +1729,6 @@
       var sh = el('tk-sheet'); if (sh && !sh.hidden) { e.preventDefault(); closeTaskSheet(); return; }
       var nm = el('note-modal'); if (nm && !nm.hidden) { e.preventDefault(); closeNoteModal(); return; }
       var nl = el('notes-list-modal'); if (nl && !nl.hidden) { e.preventDefault(); closeNotesList(); return; }
-      var dm = el('day-modal'); if (dm && !dm.hidden) { e.preventDefault(); closeDay(); return; }
     });
     /*@3.DASJ.127*/
     var tm = el('tk-modal');
@@ -1934,8 +1739,6 @@
     if (nmod) nmod.addEventListener('click', function (e) { if (e.target === nmod) closeNoteModal(); });
     var nlmod = el('notes-list-modal');
     if (nlmod) nlmod.addEventListener('click', function (e) { if (e.target === nlmod) closeNotesList(); });
-    var dmod = el('day-modal');
-    if (dmod) dmod.addEventListener('click', function (e) { if (e.target === dmod) closeDay(); });
 
     /*@3.DASJ.128*/
 

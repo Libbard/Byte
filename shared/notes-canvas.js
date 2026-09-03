@@ -18,9 +18,7 @@
     pink:    { dark: '#ff85c0', light: '#cc177a' },
     brown:   { dark: '#c99274', light: '#8a5230' },
     amber:   { dark: '#fbbf24', light: '#b45309' },
-    rose:    { dark: '#fb7185', light: '#be123c' },
-    white:   { dark: '#ffffff', light: '#ffffff' },
-    black:   { dark: '#000000', light: '#000000' }
+    rose:    { dark: '#fb7185', light: '#be123c' }
   };
 
   /*@3.NOCJ.80*/
@@ -70,28 +68,6 @@
 
   var _paperOverride = null;
 
-  /*@3.NOCJ.101*/
-  var PAL_KEY = 'garden_ink_palette';
-  var _palette = null;
-
-  function paletteMode() {
-    if (_palette === null) {
-      var v = '';
-      try { v = localStorage.getItem(PAL_KEY) || ''; } catch (e) {}
-      _palette = (v === 'day' || v === 'night') ? v : '';
-    }
-    return _palette;
-  }
-
-  function setPalette(m) {
-    var v = (m === 'day' || m === 'night') ? m : '';
-    if (v === paletteMode()) return false;
-    _palette = v;
-    try { if (v) localStorage.setItem(PAL_KEY, v); else localStorage.removeItem(PAL_KEY); } catch (e) {}
-    _lightCache = null;
-    return true;
-  }
-
   /*@3.NOCJ.34*/
   function setPaper(hex) {
     var v = (typeof hex === 'string' && hex.charAt(0) === '#') ? hex : null;
@@ -140,8 +116,6 @@
 
   function isLight() {
     if (_lightCache !== null) return _lightCache;
-    var pm = paletteMode();
-    if (pm) { _lightCache = (pm === 'day'); return _lightCache; }
     var out = false;
     try {
       var lum = paperLum();
@@ -185,7 +159,7 @@
 
   function hexOf(name) {
     if (typeof name === 'string' && name.charAt(0) === '#' && name.length === 7) {
-      return name.toLowerCase();
+      return adaptHex(name.toLowerCase());
     }
     var c = TONES[name] || TONES.ink;
     return isLight() ? c.light : c.dark;
@@ -347,11 +321,6 @@
 
   function eachPoint(el, fn) {
     dropBox(el);
-    if (el.ty === 'tx') {
-      var m2 = fn(el.x + el.w / 2, el.y + el.h / 2);
-      el.x = m2[0] - el.w / 2; el.y = m2[1] - el.h / 2;
-      return;
-    }
     if (el.ty === 'hl') {
       for (var q = 0; q < (el.r || []).length; q++) {
         var b = el.r[q];
@@ -800,7 +769,7 @@
     return pts;
   }
 
-  /*@3.NOCJ.114*/
+  /*@3.NOCJ.101*/
   function widthAt(base, nib, pr, ang, pt) {
     var w = base * nib.scale * (nib.min + nib.resp * pr);
     var lean = (pt && pt.ln) || 0;
@@ -2248,8 +2217,6 @@
     inkEmit: inkEmit,
     isLight: isLight,
     setPaper: setPaper,
-    setPalette: setPalette,
-    paletteMode: paletteMode,
     /*@3.NOCJ.113*/
     paperHex: function () { return _paperOverride; },
     themeIsLight: themeIsLight,

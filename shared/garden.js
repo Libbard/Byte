@@ -375,22 +375,8 @@
 
   /*@3.GARJ.18*/
   const THEME_META_COLOR = { light: '#ffffff', dark: '#1f2937', dim: '#171923' };
-  /*@3.GARJ.646*/
-  const APP_SHELL_COLOR = '#1f2937';
-  const INSTALLED_MODES = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'];
-  function isInstalledShell() {
-    try {
-      if (window.navigator && window.navigator.standalone === true) return true;
-      if (!window.matchMedia) return false;
-      return INSTALLED_MODES.some(function (m) {
-        return window.matchMedia('(display-mode: ' + m + ')').matches;
-      });
-    } catch (e) { return false; }
-  }
   function updateThemeColorMeta(theme) {
-    const color = isInstalledShell()
-      ? APP_SHELL_COLOR
-      : (THEME_META_COLOR[theme] || THEME_META_COLOR.dark);
+    const color = THEME_META_COLOR[theme] || THEME_META_COLOR.dark;
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -4974,22 +4960,6 @@
 - Never copy card text verbatim
 - No intro or closing sentence`;
 
-  /*@3.GARJ.647*/
-  function aiField(cat, name, L) {
-    return String((cat && cat[name + '_' + (L === 'ar' ? 'ar' : 'en')]) || '').trim();
-  }
-
-  /*@3.GARJ.648*/
-  const _RULE_WHOLE_AR = '- اذكر شروط أي تعريف كاملة، وإن بسّطته فصرّح بأنه مبسّط';
-  const _RULE_WHOLE_EN = '- State every condition of any definition; if you simplify one, say that you did';
-
-  /*@3.GARJ.649*/
-  function withDomainRules(rules, guard, L) {
-    const lines = [rules, L === 'ar' ? _RULE_WHOLE_AR : _RULE_WHOLE_EN];
-    if (guard) lines.push('- ' + guard);
-    return lines.join('\n');
-  }
-
   /*@3.GARJ.318*/
   function trimAtSentence(text, limit, L) {
     const t = (text || '').trim();
@@ -5033,41 +5003,41 @@
   /*@3.GARJ.325*/
   const AI_STYLES = {
     simplify: {
-      ar: `مهمتك الآن: اجعل الفكرة بديهية لطالب تاه في المصطلحات. اشرح في 3 أقسام مرقمة:
-🪄 التشبيه: تشبيه واحد ممتد يطابق الفكرة بدقة، مأخوذ من {{ANALOGY}} — ابنِ الصورة كاملة (3-4 جمل)
+      ar: `أستاذ CS بارع في التبسيط، مهمتك جعل الفكرة بديهية لطالب تاه في المصطلحات. اشرح في 3 أقسام مرقمة:
+🪄 التشبيه: تشبيه واحد ممتد من الحياة اليومية يطابق الفكرة بدقة — ابنِ الصورة كاملة (3-4 جمل)
 🔁 من التشبيه إلى المفهوم: اربط كل عنصر في تشبيهك بمقابله التقني الصحيح واحداً واحداً
 📌 الجملة الدقيقة: صياغة تقنية صحيحة واحدة يحفظها الطالب بعد أن فهم`,
-      en: `Your task now: make the idea intuitive for a student lost in jargon. Explain in 3 numbered sections:
-🪄 The Analogy: one extended analogy that precisely mirrors the idea, drawn from {{ANALOGY}} — build the full picture (3-4 sentences)
+      en: `CS professor who excels at simplification; make the idea intuitive for a student lost in jargon. Explain in 3 numbered sections:
+🪄 The Analogy: one extended everyday-life analogy that precisely mirrors the idea — build the full picture (3-4 sentences)
 🔁 Analogy to Concept: map each element of your analogy to its correct technical counterpart, one by one
 📌 The Precise Sentence: one technically correct formulation to keep after understanding`,
     },
     example: {
-      ar: `مهمتك الآن: اشرح بالمثال لا بالتنظير، عبر مثال واحد صغير محسوس. في 3 أقسام مرقمة:
-🧮 المثال: {{EXAMPLE}}
+      ar: `أستاذ CS يشرح بالأمثلة لا بالتنظير. اشرح عبر مثال واحد صغير محسوس في 3 أقسام مرقمة:
+🧮 المثال: معطيات صغيرة محددة (أرقام أو جدول مصغر أو حالة واقعية مصغرة)
 ⚙️ الحل خطوة بخطوة: طبّق المفهوم على المثال خطوة خطوة واذكر ناتج كل خطوة
 📌 التعميم: جملة واحدة تحوّل ما حدث في المثال إلى القاعدة العامة`,
-      en: `Your task now: teach by example, not theory, through one small concrete worked example. In 3 numbered sections:
-🧮 The Example: {{EXAMPLE}}
+      en: `CS professor who teaches by example, not theory. Explain through one small concrete worked example in 3 numbered sections:
+🧮 The Example: small specific inputs (numbers, a mini table, or a miniature real case)
 ⚙️ Step-by-step Solution: apply the concept to the example step by step, stating each step's result
 📌 Generalization: one sentence turning what happened in the example into the general rule`,
     },
     why: {
-      ar: `مهمتك الآن: أجب عن سؤال الطالب الخفي: "لماذا يوجد هذا أصلاً؟". اشرح في 3 أقسام مرقمة:
+      ar: `أستاذ CS يجيب عن سؤال الطالب الخفي: "لماذا يوجد هذا أصلاً؟". اشرح في 3 أقسام مرقمة:
 ❓ المشكلة قبل الحل: ما الذي كان ينكسر أو يستحيل قبل وجود هذا المفهوم
 💡 لماذا هذا التصميم تحديداً: المنطق الذي جعل الحل بهذا الشكل وليس بشكل آخر أبسط
 ⚖️ الثمن المدفوع: جملة واحدة عمّا نخسره أو نعقّده مقابل هذه الفائدة`,
-      en: `Your task now: answer the student's hidden question — "why does this even exist?". Explain in 3 numbered sections:
+      en: `CS professor answering the student's hidden question: "why does this even exist?". Explain in 3 numbered sections:
 ❓ The Problem Before: what used to break or be impossible before this concept existed
 💡 Why This Design: the reasoning that made the solution take this exact shape and not a simpler one
 ⚖️ The Price Paid: one sentence on what we lose or complicate in exchange for this benefit`,
     },
     exam: {
-      ar: `مهمتك الآن: جهّز الطالب لأسئلة الامتحان في هذا الموضوع تحديداً. في 3 أقسام مرقمة:
+      ar: `أستاذ CS خبير بأسئلة امتحانات الجامعة. جهّز الطالب لهذا الموضوع تحديداً في 3 أقسام مرقمة:
 📋 أشكال السؤال المتوقعة: صيغتان مختلفتان يُسأل بهما هذا الموضوع (تعريف/مقارنة/سيناريو)
 ✍️ الإجابة النموذجية: سطران جاهزان للكتابة حرفياً في ورقة الإجابة
 ⚠️ الفخ: الخطأ الذي يخسر به الطلاب درجاتهم في هذا الموضوع بالذات`,
-      en: `Your task now: prepare the student for university exam questions on this exact topic. In 3 numbered sections:
+      en: `CS professor expert in university exam questions. Prepare the student for this exact topic in 3 numbered sections:
 📋 Expected Question Forms: two different phrasings this topic is asked in (definition/comparison/scenario)
 ✍️ Model Answer: two lines ready to write verbatim on the answer sheet
 ⚠️ The Trap: the exact mistake students lose marks on for this specific topic`,
@@ -5115,16 +5085,6 @@
         : `\nCourse textbook (authoritative reference — align terminology and approach with it): ${textbook}`;
     }
 
-    /*@3.GARJ.650*/
-    const personaLine = aiField(cat, 'persona', L)
-      || (L === 'ar' ? 'أستاذ جامعي متخصص في هذه المادة' : 'A university professor specialised in this course');
-    const analogySrc = aiField(cat, 'analogy', L)
-      || (L === 'ar' ? 'شيء يعرفه الطالب من حياته' : 'something the student knows from daily life');
-    const exampleKind = aiField(cat, 'example', L)
-      || (L === 'ar' ? 'معطيات صغيرة محددة (أرقام أو جدول مصغر أو حالة واقعية مصغرة)'
-        : 'small specific inputs (numbers, a mini table, or a miniature real case)');
-    const domainGuard = aiField(cat, 'guard', L);
-
     /*@3.GARJ.331*/
     const FOCUS_LIMIT = 2000;
     const TOTAL_LIMIT = 2600;
@@ -5143,9 +5103,9 @@
     /*@3.GARJ.333*/
     const isComplex = cardData.hasAlgo || cardData.svgOnly ||
       cardData.activeLayer === 'deep' || rawContent.length > 900;
-    const baseRules = withDomainRules(L === 'ar'
+    const baseRules = L === 'ar'
       ? (isComplex ? _BASE_RULES_AR_XL : _BASE_RULES_AR)
-      : (isComplex ? _BASE_RULES_EN_XL : _BASE_RULES_EN), domainGuard, L);
+      : (isComplex ? _BASE_RULES_EN_XL : _BASE_RULES_EN);
 
     /*@3.GARJ.334*/
     const regenSuffix = regenVariant
@@ -5159,8 +5119,7 @@
     /*@3.GARJ.335*/
     const styleTpl = (opts.style && opts.style !== 'auto') ? AI_STYLES[opts.style] : null;
     if (styleTpl) {
-      systemPrompt = personaLine + '\n' + (L === 'ar' ? styleTpl.ar : styleTpl.en)
-        + '\n' + baseRules + regenSuffix;
+      systemPrompt = (L === 'ar' ? styleTpl.ar : styleTpl.en) + '\n' + baseRules + regenSuffix;
       userMsg = L === 'ar'
         ? `${ctxLine}\nالموضوع: ${cardData.title}\n\n${content}`
         : `${ctxLine}\nTopic: ${cardData.title}\n\n${content}`;
@@ -5168,14 +5127,12 @@
     /*@3.GARJ.336*/
     } else if (cardData.type === 'selection') {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: الطالب ظلّل هذا المقطع تحديداً من صفحة الدرس لأنه لم يفهمه. اشرح المقطع نفسه لا الموضوع العام. 3 أقسام مرقمة:
+        ? `أستاذ CS. الطالب ظلّل هذا المقطع تحديداً من صفحة الدرس لأنه لم يفهمه. اشرح المقطع نفسه لا الموضوع العام. 3 أقسام مرقمة:
 🔍 المعنى المباشر: ماذا يقول هذا المقطع بالضبط بكلمات أبسط
 💡 لماذا يهم: دور هذه الجزئية في الفكرة الأكبر للدرس
 📌 الخلاصة: جملة واحدة يستبدل بها الطالب المقطع في ذهنه
 ${baseRules}`
-        : `${personaLine}
-Your task now: the student highlighted this exact passage because they did not understand it. Explain the passage itself, not the general topic. 3 numbered sections:
+        : `CS professor. The student highlighted this exact passage from the lesson because they didn't understand it. Explain the passage itself, not the general topic. 3 numbered sections:
 🔍 Direct Meaning: what exactly this passage says, in simpler words
 💡 Why it Matters: this piece's role in the lesson's bigger idea
 📌 Takeaway: one sentence the student can mentally substitute for the passage
@@ -5188,16 +5145,14 @@ ${baseRules}`) + regenSuffix;
     /*@3.GARJ.337*/
     } else if (cardData.svgOnly) {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: الطالب يرى الرسمة أمامه مباشرةً — لا تعد وصف عناصرها البصرية مطلقاً.
+        ? `أستاذ CS متخصص. الطالب يرى الرسمة أمامه مباشرةً — لا تعد وصف عناصرها البصرية مطلقاً.
 استخدم سياق الرسمة المرفق كمرجع فقط لتبني عليه الشرح المفاهيمي.
 اشرح في 3 أقسام مرقمة:
 💡 المفهوم الجوهري: ما المشكلة التي تحلها هذه الرسمة أو ما الفكرة التي تجسّدها (جملتان)
 🔄 الآلية بكلماتك: اشرح كيف تعمل بمثال بسيط أو تشبيه واقعي — لا تصف الأشكال أو الأسهم
 📌 نقطة الامتحان: جملة واحدة دقيقة جاهزة تُكتب في ورقة المراجعة
 ${baseRules}`
-        : `${personaLine}
-Your task now: the student sees this diagram directly — do NOT redescribe its visual elements.
+        : `CS professor. The student sees this diagram directly — do NOT redescribe its visual elements.
 Use the diagram context only as a reference to build a conceptual explanation.
 Explain in 3 numbered sections:
 💡 Core Concept: what problem this diagram solves or what idea it embodies (2 sentences)
@@ -5212,14 +5167,12 @@ ${baseRules}`) + regenSuffix;
     /*@3.GARJ.338*/
     } else if (cardData.hasAlgo || cardData.type === 'algo') {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: اشرح هذه الخوارزمية في 3 أقسام مرقمة:
+        ? `أستاذ خوارزميات CS. اشرح في 3 أقسام مرقمة:
 ⚙️ الآلية: خطوتان بمثال رقمي صغير مناسب للخوارزمية
 📊 التعقيد: جملة واحدة تفسر لماذا هذا الـ Big-O بالتحديد
 ⚡ متى تستخدم: ميزة وعيب واحد مقارنة ببديل واحد
 ${baseRules}`
-        : `${personaLine}
-Your task now: explain this algorithm in 3 numbered sections:
+        : `CS algorithms professor. Explain in 3 numbered sections:
 ⚙️ Mechanism: 2 steps with a small numerical example appropriate to the algorithm
 📊 Complexity: 1 sentence explaining why exactly this Big-O
 ⚡ When to use: 1 advantage and 1 drawback compared to one alternative
@@ -5232,14 +5185,12 @@ ${baseRules}`) + regenSuffix;
     /*@3.GARJ.339*/
     } else if (cardData.type === 'professor') {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: هذا نص سردي امتحاني من أستاذ الوحدة. اشرح في 3 أقسام مرقمة:
+        ? `أستاذ CS. هذا النص سردي امتحاني من أستاذ الوحدة. اشرح في 3 أقسام مرقمة:
 🎯 الفكرة المحورية: ما النقطة الأهم التي يريد البروفيسور ترسيخها في ذهن الطالب (جملة واحدة)
 🔗 السبب والمنطق: لماذا هذه النقطة مهمة من منظور الامتحان والتطبيق العملي
 📌 نصيحة الامتحان: صِغ في جملة واحدة ما يجب أن يكتبه الطالب لو سُئل عن هذا
 ${baseRules}`
-        : `${personaLine}
-Your task now: this is a narrative exam-oriented text from the module's professor. Explain in 3 numbered sections:
+        : `CS professor. This is a narrative exam-oriented text from the module's professor. Explain in 3 numbered sections:
 🎯 Central Point: what key idea the professor most wants to cement in the student's mind (1 sentence)
 🔗 Why it Matters: why this is important from an exam and practical application perspective
 📌 Exam Tip: formulate in one sentence what the student should write if asked about this
@@ -5251,16 +5202,14 @@ ${baseRules}`) + regenSuffix;
 
     /*@3.GARJ.340*/
     } else if (cardData.type === 'vault') {
-      const baseRulesVault = withDomainRules(L === 'ar' ? _BASE_RULES_AR_RICH : _BASE_RULES_EN_RICH, domainGuard, L);
+      const baseRulesVault = L === 'ar' ? _BASE_RULES_AR_RICH : _BASE_RULES_EN_RICH;
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: هذه مادة من خزنة الامتحان (فخ أو مفهوم أساسي أو سر)، وأنت خبير بأخطاء الطلاب فيها. اشرح كل نقطة في 3 أقسام مرقمة:
+        ? `أستاذ CS متخصص في أخطاء الطلاب. هذه مادة من خزنة الامتحان (فخ أو مفهوم أساسي أو سر). اشرح كل نقطة في 3 أقسام مرقمة:
 ⚠️ لماذا هذا مهم: ما الذي يجعل هذا فخاً أو نقطةً حرجة بالتحديد (جملتان)
 🔍 الخطأ الشائع: كيف يقع الطالب المتوسط في هذا الخطأ بالضبط — صِف سيناريو الوقوع فيه
 ✅ القاعدة الذهبية: جملة واحدة واضحة تصحح الفهم وتُثبَّت في الذاكرة
 ${baseRulesVault}`
-        : `${personaLine}
-Your task now: this is from the exam vault (trap, key concept, or secret) and you know where students slip. Explain each point in 3 numbered sections:
+        : `CS professor specializing in student mistakes. This is from the exam vault (trap, key concept, or secret). Explain each point in 3 numbered sections:
 ⚠️ Why it Matters: what makes this a trap or critical point specifically (2 sentences)
 🔍 The Common Mistake: how exactly an average student falls into this — describe the scenario
 ✅ The Golden Rule: one clear sentence that corrects the understanding and sticks in memory
@@ -5273,14 +5222,12 @@ ${baseRulesVault}`) + regenSuffix;
     /*@3.GARJ.341*/
     } else if (cardData.type === 'accordion') {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: هذا سؤال وإجابته من قسم "اسأل البروفيسور". لا تعد كتابة الإجابة. اشرح في 3 أقسام مرقمة:
+        ? `أستاذ CS. هذا سؤال وإجابته من قسم "اسأل البروفيسور". لا تعد كتابة الإجابة. اشرح في 3 أقسام مرقمة:
 🤔 لماذا هذا السؤال يُطرح: ما الإشكالية الحقيقية وراء السؤال (جملة واحدة)
 💡 منطق الإجابة: لماذا الإجابة هي ما هي — الخطوات المنطقية وليس الحفظ
 📌 كيف تكتبها في الامتحان: أعد صياغة الإجابة في جملة جاهزة للكتابة مباشرة
 ${baseRules}`
-        : `${personaLine}
-Your task now: this is a Q&A from "Ask the Professor". Do not rewrite the answer. Explain in 3 numbered sections:
+        : `CS professor. This is a Q&A from "Ask the Professor". Do not rewrite the answer. Explain in 3 numbered sections:
 🤔 Why this question is asked: what the real underlying problem is (1 sentence)
 💡 Logic of the Answer: why the answer is what it is — reasoning steps, not memorization
 📌 How to write it in an exam: rephrase the answer in one sentence ready to write directly
@@ -5292,16 +5239,14 @@ ${baseRules}`) + regenSuffix;
 
     /*@3.GARJ.342*/
     } else if (cardData.type === 'objectives') {
-      const baseRulesObj = withDomainRules(L === 'ar' ? _BASE_RULES_AR_RICH : _BASE_RULES_EN_RICH, domainGuard, L);
+      const baseRulesObj = L === 'ar' ? _BASE_RULES_AR_RICH : _BASE_RULES_EN_RICH;
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: هذه أهداف تعلم الوحدة. ساعد الطالب على فهم ما يجب إتقانه. اشرح في 3 أقسام مرقمة:
+        ? `أستاذ CS. هذه أهداف تعلم الوحدة. ساعد الطالب على فهم ما يجب إتقانه. اشرح في 3 أقسام مرقمة:
 🗺️ خريطة الوحدة: جملتان تربطان كل الأهداف تحت فكرة واحدة تجمعها
 ⚡ الأهداف الأصعب: حدد أي الأهداف تحتاج جهداً أكبر ولماذا
 📋 اختبار الإتقان: لكل هدف، سؤال واحد يعرف الطالب به أنه أتقن الهدف
 ${baseRulesObj}`
-        : `${personaLine}
-Your task now: these are the module's learning objectives. Help the student understand what to master. Explain in 3 numbered sections:
+        : `CS professor. These are the module's learning objectives. Help the student understand what to master. Explain in 3 numbered sections:
 🗺️ Module Map: 2 sentences connecting all objectives under one unifying idea
 ⚡ Hardest Objectives: identify which objectives need the most effort and why
 📋 Mastery Test: for each objective, one question the student can use to verify mastery
@@ -5314,14 +5259,12 @@ ${baseRulesObj}`) + regenSuffix;
     /*@3.GARJ.343*/
     } else if (rawContent.length > 900) {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: اشرح في 3 أقسام مرقمة:
+        ? `أستاذ CS. اشرح في 3 أقسام مرقمة:
 🏗️ الصورة الكبيرة: جملتان تجمعان كل النقاط تحت فكرة واحدة
 🔗 الترابط: جملة توضح كيف تفترض النقطة A معرفة B لتعمل
 📌 للمراجعة: 3 نقاط بصيغة "إذا... فـ" بترتيب منطقي
 ${baseRules}`
-        : `${personaLine}
-Your task now: explain in 3 numbered sections:
+        : `CS professor. Explain in 3 numbered sections:
 🏗️ Big Picture: 2 sentences uniting all points under one idea
 🔗 Connection: how point A requires knowing B to function
 📌 For Review: 3 bullet points using "If...then" logic
@@ -5334,16 +5277,14 @@ ${baseRules}`) + regenSuffix;
     /*@3.GARJ.344*/
     } else {
       systemPrompt = (L === 'ar'
-        ? `${personaLine}
-مهمتك الآن: اشرح في 3 أقسام مرقمة:
+        ? `أستاذ CS. اشرح في 3 أقسام مرقمة:
 💡 الفكرة الجوهرية: جملتان بلغتك أنت كأنك تشرح لزميلك (ابتعد تماماً عن الحفظ الحرفي)
-🔗 ربط بالواقع: جملة تربط هذا بـ{{ANALOGY}} أو بمادة سابقة درسها الطالب
+🔗 ربط بالواقع: جملة تربط هذا بشيء يعرفه الطالب من حياته أو من مادة سابقة
 📌 نقطة الامتحان: جملة واحدة جاهزة للكتابة في ورقة مراجعة
 ${baseRules}`
-        : `${personaLine}
-Your task now: explain in 3 numbered sections:
+        : `CS professor. Explain in 3 numbered sections:
 💡 Core Idea: 2 sentences as if explaining to a classmate (no rote rephrasing)
-🔗 Connect: one sentence linking this to {{ANALOGY}} or to a prior concept
+🔗 Connect: one sentence linking this to real life or a prior concept
 📌 Exam Note: one concise exam-ready sentence
 ${baseRules}`) + regenSuffix;
 
@@ -5351,11 +5292,6 @@ ${baseRules}`) + regenSuffix;
         ? `${ctxLine}\nالموضوع: ${cardData.title}\n\n${content}`
         : `${ctxLine}\nTopic: ${cardData.title}\n\n${content}`;
     }
-
-    /*@3.GARJ.651*/
-    systemPrompt = systemPrompt
-      .split('{{ANALOGY}}').join(analogySrc)
-      .split('{{EXAMPLE}}').join(exampleKind);
 
     /*@3.GARJ.345*/
     if (opts.question) {
@@ -5375,7 +5311,7 @@ ${baseRules}`) + regenSuffix;
   }
 
   /*@3.GARJ.583*/
-  const AI_PROMPT_VER = 2;
+  const AI_PROMPT_VER = 1;
   const AI_ID_SEP = '\u0000';
 
   /*@3.GARJ.579*/
@@ -6785,8 +6721,7 @@ ${baseRules}`) + regenSuffix;
     /*@3.GARJ.618*/
     aiCadence: AI_CADENCE,
     moduleVisits: moduleVisits,
-    noteModuleVisit: noteModuleVisit,
-    toast: notesToast
+    noteModuleVisit: noteModuleVisit
   };
 
   /*@3.GARJ.448*/
@@ -7507,17 +7442,6 @@ ${baseRules}`) + regenSuffix;
     var tint = document.createElement('script');
     tint.src = root + 'shared/subject-tint.js';
     (document.head || document.documentElement).appendChild(tint);
-  }
-
-  /*@3.GARJ.652*/
-  var remSet = null;
-  try { remSet = JSON.parse(localStorage.getItem('garden_reminders') || 'null'); } catch (e) {}
-  if (remSet && remSet.enabled && !window.GardenNotifyGuard &&
-      !(('Notification' in window) && Notification.permission === 'granted')) {
-    var ng = document.createElement('script');
-    ng.src = root + 'shared/notify-guard.js';
-    ng.async = true;
-    (document.head || document.documentElement).appendChild(ng);
   }
 
   if (window.Reminders) return;                   /*@3.GARJ.535*/

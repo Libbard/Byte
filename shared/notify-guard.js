@@ -20,17 +20,6 @@
     var s = null;
     try { s = JSON.parse(ls('garden_reminders') || 'null'); } catch (e) { return null; }
     if (!s || !s.enabled) return null;                    /*@3.NOGJ.5*/
-    /*@3.NOGJ.18*/
-    var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    var standalone = !!(window.matchMedia &&
-                        window.matchMedia('(display-mode: standalone)').matches) ||
-                     navigator.standalone === true;
-    if (iOS && !standalone) {
-      return { code: 'needs-install', fixable: false, ev: 'iOS: not installed',
-        ar: 'آيفون يمنح إذنَ الإشعارات للتطبيق المثبَّت وحدَه. من زرِّ المشاركة اختَرْ «إضافة إلى الشاشة الرئيسية»، ثمّ افتحِ التطبيقَ المثبَّت وفعِّلِ التنبيهاتِ من داخله.',
-        en: 'iOS grants notification permission only to the installed app. Use Share then Add to Home Screen, open the installed app, and turn reminders on there.' };
-    }
     if (!('Notification' in window)) {
       return { code: 'unsupported', fixable: false, ev: 'Notification: unsupported',
         ar: 'هذا المتصفّحُ لا يدعم الإشعاراتِ أصلاً، فما فعّلتَه لا يصل إليك.',

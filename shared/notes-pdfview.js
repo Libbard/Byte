@@ -46,20 +46,6 @@
     return d > top ? top : (d < 1 ? 1 : d);
   }
 
-  /*@3.NOPJ3.66*/
-  var BUDGET_TOUCH = 4e6, BUDGET_DESK = 16e6;
-  function budget() {
-    var coarse = false;
-    try { coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
-    return coarse ? BUDGET_TOUCH : BUDGET_DESK;
-  }
-  function ratioFor(w, h, cap) {
-    var r = ratio(cap);
-    var px = (w > 0 && h > 0) ? w * h : 0;
-    if (px > 0 && px * r * r > budget()) r = Math.max(1, Math.sqrt(budget() / px));
-    return r;
-  }
-
   var GAP = 12;
   var CELL = 8;
 
@@ -362,9 +348,13 @@
     this.host.addEventListener('copy', this.onCopy);
     /*@3.NOPJ3.36*/
     this.onDbl = function (e) {
-      /*@3.NOPJ3.64*/
-      if (self.touchZoomAt && (e.timeStamp || Date.now()) - self.touchZoomAt < 700) return;
+      /*@3.NOPJ3.40*/
       var pg = e.target && e.target.closest ? e.target.closest('.gpv-page') : null;
+      if (pg && (self.mode !== 1 || self.focus)) {
+        e.preventDefault();
+        self.zoomPage(+pg.getAttribute('data-p'), e.clientX, e.clientY);
+        return;
+      }
       var sp = e.target;
       var inText = sp && sp.tagName === 'SPAN' && sp.parentNode &&
         sp.parentNode.classList && sp.parentNode.classList.contains('gpv-text');
@@ -374,43 +364,28 @@
       /*@3.NOPJ3.57*/
       if (pg && !inText && self.o.onTapZoom) {
         e.preventDefault();
-        self.o.onTapZoom(e.clientX, e.clientY, +pg.getAttribute('data-p'));
+        self.o.onTapZoom(e.clientX, e.clientY);
       }
     };
     this.host.addEventListener('dblclick', this.onDbl);
     /*@3.NOPJ3.41*/
-    this.tapAt = 0; this.tapOn = 0; this.tapDown = null; this.multiAt = 0;
-    this.onTapDown = function (e) {
-      if (e.pointerType !== 'touch') return;
-      self.tapDown = (self.tapDown && self.tapDown.id !== e.pointerId)
-        ? null
-        : { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp || Date.now() };
-      if (self.tapDown === null) self.multiAt = e.timeStamp || Date.now();
-    };
+    this.tapAt = 0; this.tapOn = 0;
     this.onTap = function (e) {
       if (e.pointerType !== 'touch') return;
-      var now = e.timeStamp || Date.now();
-      var d = self.tapDown;
-      self.tapDown = null;
-      if (!d || d.id !== e.pointerId) { self.multiAt = now; self.tapAt = 0; return; }
-      if (now - self.multiAt < 450) { self.tapAt = 0; return; }
-      if (Math.abs(e.clientX - d.x) > 12 || Math.abs(e.clientY - d.y) > 12 || now - d.t > 320) {
-        self.tapAt = 0; return;
-      }
       var pg = e.target && e.target.closest ? e.target.closest('.gpv-page') : null;
-      if (!pg) { self.tapAt = 0; return; }
+      if (!pg) return;
       var n = +pg.getAttribute('data-p');
+      var now = e.timeStamp || Date.now();
       if (self.tapOn === n && now - self.tapAt < 340) {
         self.tapAt = 0; self.tapOn = 0;
-        self.touchZoomAt = now;
-        if (self.o.onTapZoom) self.o.onTapZoom(e.clientX, e.clientY, n);
+        if (self.mode !== 1 || self.focus) self.zoomPage(n, e.clientX, e.clientY);
+        /*@3.NOPJ3.58*/
+        else if (self.o.onTapZoom) self.o.onTapZoom(e.clientX, e.clientY);
         return;
       }
       self.tapAt = now; self.tapOn = n;
     };
-    this.host.addEventListener('pointerdown', this.onTapDown, { passive: true });
     this.host.addEventListener('pointerup', this.onTap, { passive: true });
-    this.host.addEventListener('pointercancel', function () { self.tapDown = null; self.tapAt = 0; }, { passive: true });
     /*@3.NOPJ3.43*/
     this.onTagClick = function (e) {
       var b = e.target && e.target.closest ? e.target.closest('.gpv-tag') : null;
@@ -546,22 +521,10 @@
       if (n < a - this.keep || n > b + this.keep) this.free(n);
       else if (n < a || n > b) this.blank(n);
     }
-    /*@3.NOPJ3.67*/
-    for (n = sa; n <= sb; n++) this.paint(n);
-    this.ahead(a, b, sa, sb);
+    for (n = a; n <= b; n++) this.paint(n);
     for (n = a; n <= b; n++) if ((n < sa || n > sb) && !keep[n]) this.untext(n);
     this.later(sa, sb);
     if (this.o.onView) this.o.onView(this.mid(), this.n);
-  };
-
-  View.prototype.ahead = function (a, b, sa, sb) {
-    var self = this;
-    if (this.aheadT) clearTimeout(this.aheadT);
-    this.aheadT = setTimeout(function () {
-      self.aheadT = 0;
-      if (self.dead) return;
-      for (var n = a; n <= b; n++) if ((n < sa || n > sb) && self.slots[n]) self.paint(n);
-    }, 160);
   };
 
   /*@3.NOPJ3.9*/
@@ -683,20 +646,10 @@
     var gen = this.gen;
     this.h.doc.getPage(n).then(function (page) {
       if (self.dead || gen !== self.gen || !self.slots[n]) { try { page.cleanup(); } catch (e) {} return; }
-      /*@3.NOPJ3.65*/
-      if (s.ahide == null && self.o.annots) {
-        return page.getAnnotations().then(function (list) {
-          s.ahide = !!self.o.annots(n, list);
-        }, function () { s.ahide = false; }).then(function () { return page; });
-      }
-      return page;
-    }).then(function (page) {
-      if (!page) return;
-      if (self.dead || gen !== self.gen || !self.slots[n]) { try { page.cleanup(); } catch (e) {} return; }
       s.page = page;
       var vp = page.getViewport({ scale: self.scale });
       self.fix(n, page);
-      var r = ratioFor(vp.width, vp.height, self.o.maxRatio);
+      var r = ratio(self.o.maxRatio);
       var cv = document.createElement('canvas');
       cv.className = 'gpv-cv';
       cv.width = Math.round(vp.width * r);
@@ -708,8 +661,7 @@
         canvasContext: ctx,
         viewport: vp,
         transform: r !== 1 ? [r, 0, 0, r, 0, 0] : null,
-        background: '#ffffff',
-        annotationMode: s.ahide ? 0 : 1
+        background: '#ffffff'
       });
       s.task = task;
       return task.promise.then(function () {
@@ -767,33 +719,10 @@
     b.type = 'button';
     b.className = 'gpv-tag';
     b.setAttribute('data-p', String(n));
-    this.stampOne(b, n);
+    b.textContent = this.o.stamp ? this.o.stamp(n, this.n) : (n + ' / ' + this.n);
+    b.setAttribute('aria-label', b.textContent);
     s.el.appendChild(b);
     s.tag = b;
-  };
-
-  View.prototype.stampOne = function (b, n) {
-    var txt = this.o.stamp ? this.o.stamp(n, this.n) : (n + ' / ' + this.n);
-    var rtl = /[\u0600-\u06FF]/.test(txt);
-    b.setAttribute('dir', rtl ? 'rtl' : 'ltr');
-    b.textContent = '';
-    var parts = String(txt).split(/(\d+)/);
-    for (var i = 0; i < parts.length; i++) {
-      if (!parts[i]) continue;
-      if (/^\d+$/.test(parts[i])) {
-        var bd = document.createElement('bdi');
-        bd.textContent = parts[i];
-        b.appendChild(bd);
-      } else b.appendChild(document.createTextNode(parts[i]));
-    }
-    b.setAttribute('aria-label', txt);
-  };
-
-  View.prototype.restamp = function () {
-    for (var k in this.slots) {
-      var s = this.slots[k];
-      if (s && s.tag) this.stampOne(s.tag, +k);
-    }
   };
 
   /*@3.NOPJ3.24*/
@@ -807,31 +736,6 @@
       s.hl = el;
     }
     return s.hl;
-  };
-
-  View.prototype.inkMarks = function (n) {
-    var s = this.slots[n];
-    if (!s) return null;
-    if (!s.ihl) {
-      var el = document.createElement('div');
-      el.className = 'gpv-ihl';
-      s.el.insertBefore(el, s.hl || s.td || s.lay || null);
-      s.ihl = el;
-    }
-    return s.ihl;
-  };
-
-  /*@3.NOPJ3.63*/
-  View.prototype.fields = function (n) {
-    var s = this.slots[n];
-    if (!s) return null;
-    if (!s.fld) {
-      var el = document.createElement('div');
-      el.className = 'gpv-fld';
-      s.el.appendChild(el);
-      s.fld = el;
-    }
-    return s.fld;
   };
 
   /*@3.NOPJ3.6*/
@@ -891,7 +795,6 @@
     }
     s.stale = 0;
     if (s.hl) { s.hl.remove(); s.hl = null; }
-    if (s.ihl) { s.ihl.remove(); s.ihl = null; }
     if (s.sel) { s.sel.remove(); s.sel = null; }
     if (s.tag) { s.tag.remove(); s.tag = null; }
     if (s.page) { try { s.page.cleanup(); } catch (e) {} }
@@ -938,12 +841,12 @@
     this.relayer();
   };
 
+  /*@3.NOPJ3.62*/
   View.prototype.setScale = function (v, opts) {
     if (!(v > 0) || Math.abs(v - this.scale) < 0.0005) return;
     var o = opts || {};
     var g = (o.keep || o.fit) ? null : (o.grip || this.grip(o.cx, o.cy));
-    this.relay(function (self) { self.scale = v; },
-               { keep: o.keep, grip: g, snap: o.snap });
+    this.relay(function (self) { self.scale = v; }, { keep: o.keep, grip: g });
   };
 
   /*@3.NOPJ3.17*/
@@ -962,10 +865,8 @@
     else if (w) {
       /*@3.NOPJ3.52*/
       var s2 = this.sheetOf(w.p);
-      var fits = this.slotH(s2) <= this.vh() + 2;
-      /*@3.NOPJ3.62*/
-      if (o.snap && fits) this.goTo(this.firstOf(s2), 0);
-      else this.goTo(w.p, (this.flow === 'page' && fits) ? 0 : w.f);
+      var flat = this.flow === 'page' && this.slotH(s2) <= this.vh() + 2;
+      this.goTo(w.p, flat ? 0 : w.f);
     } else this.sync();
   };
 
@@ -1135,6 +1036,25 @@
     return true;
   };
 
+  /*@3.NOPJ3.59*/
+  View.prototype.zoomPage = function (n, cx, cy) {
+    if (this.focus) { this.unfocus(); return true; }
+    if (!(n > 0)) return false;
+    this.focus = { mode: this.mode, order: this.order, scale: this.scale, page: n,
+                   flow: this.flow, where: this.where(),
+                   grip: this.grip(cx, cy) };
+    if (this.o.onFocus) this.o.onFocus(true, n, this.focus);
+    return true;
+  };
+
+  View.prototype.unfocus = function () {
+    var f = this.focus;
+    if (!f) return false;
+    this.focus = null;
+    if (this.o.onFocus) this.o.onFocus(false, f.page, f);
+    return true;
+  };
+
   View.prototype.copy = function (e) {
     var t = this.selText();
     if (!t || !e.clipboardData) return;
@@ -1168,7 +1088,6 @@
     if (this.onCopy) { this.host.removeEventListener('copy', this.onCopy); this.onCopy = null; }
     if (this.onDbl) { this.host.removeEventListener('dblclick', this.onDbl); this.onDbl = null; }
     if (this.onTap) { this.host.removeEventListener('pointerup', this.onTap); this.onTap = null; }
-    if (this.onTapDown) { this.host.removeEventListener('pointerdown', this.onTapDown); this.onTapDown = null; }
     if (this.onTagClick) { this.host.removeEventListener('click', this.onTagClick); this.onTagClick = null; }
     if (this.ro) { try { this.ro.disconnect(); } catch (e) {} this.ro = null; }
     for (var k in this.slots) this.free(+k);
@@ -1187,9 +1106,9 @@
 
   /*@3.NOPJ3.18*/
   /*@3.NOPJ3.31*/
-  function fitScale(handle, width, mode, height, whole, use) {
+  function fitScale(handle, width, mode, height, whole) {
     /*@3.NOPJ3.56*/
-    var g = use || grid(mode, width, height);
+    var g = grid(mode, width, height);
     var cols = g.cols, rws = g.rows;
     return handle.doc.getPage(1).then(function (p) {
       var vp = p.getViewport({ scale: 1 });
@@ -1203,7 +1122,6 @@
   }
 
   window.GardenPdfView = {
-    ratioFor: ratioFor,
     load: load,
     mount: mount,
     fitScale: fitScale,

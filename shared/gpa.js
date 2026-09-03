@@ -79,56 +79,6 @@
   }
 
   /*@3.GPAJ.6*/
-  var _slug;
-  function mySlug() {
-    if (_slug !== undefined) return _slug;
-    try {
-      var p = JSON.parse(localStorage.getItem('student_profile') || 'null');
-      _slug = (p && p.program) || '';
-    } catch (e) { _slug = ''; }
-    return _slug;
-  }
-  function planInfo(code) {
-    var R = window.GardenPlanRules, s = mySlug();
-    if (!R || !s || !R.courseBy(s, code)) return null;
-    return { name_ar: R.courseTitle(s, code, 'ar') || code,
-             name_en: R.courseTitle(s, code, 'en') || code,
-             credits: R.courseCh(s, code) || 3 };
-  }
-
-  /*@3.GPAJ.116*/
-  function coursePool() {
-    var R = window.GardenPlanRules, s = mySlug(), ar = isAr();
-    var seen = {}, out = [];
-    function add(code, nm) {
-      if (!code || seen[code]) return;
-      seen[code] = 1;
-      out.push({ code: code, name: nm || code });
-    }
-    /*@3.GPAJ.117*/
-    (archive || []).forEach(function (a) {
-      ((a && a.courses) || []).forEach(function (c) {
-        if (!c || !c.code) return;
-        var i = getCourseInfo(c);
-        add(c.code, ar ? i.name_ar : i.name_en);
-      });
-    });
-    if (R && s) {
-      R.courses(s).forEach(function (c) {
-        var code = R.fCode(c);
-        add(code, R.courseTitle(s, code, ar ? 'ar' : 'en'));
-      });
-    }
-    /*@3.GPAJ.118*/
-    catalogArr.forEach(function (c) {
-      if (!c || !c.code) return;
-      if (R && s && R.inProgram(s, c.code) === false) return;
-      add(c.code, (ar ? c.name_ar : c.name_en) || c.code);
-    });
-    out.sort(function (x, y) { return x.code < y.code ? -1 : (x.code > y.code ? 1 : 0); });
-    return out;
-  }
-
   function getCourseInfo(sc) {
     if (sc.custom) {
       return { name_ar: sc.name_ar || sc.name_en || 'مادة مخصصة',
@@ -140,16 +90,9 @@
       return { name_ar: info.name_ar || sc.code, name_en: info.name_en || sc.code,
                credits: (sc.credits != null) ? sc.credits : ((info.credits != null) ? info.credits : 3) };
     }
-    if (sc.name_ar || sc.name_en) {
-      return { name_ar: sc.name_ar || sc.name_en, name_en: sc.name_en || sc.name_ar,
-               credits: sc.credits || 3 };
-    }
-    var pl = planInfo(sc.code);
-    if (pl) {
-      return { name_ar: pl.name_ar, name_en: pl.name_en,
-               credits: (sc.credits != null) ? sc.credits : pl.credits };
-    }
-    return { name_ar: sc.code, name_en: sc.code, credits: sc.credits || 3 };
+    return { name_ar: sc.name_ar || sc.name_en || sc.code,
+             name_en: sc.name_en || sc.name_ar || sc.code,
+             credits: sc.credits || 3 };
   }
 
   function currentSemesterId() {
@@ -275,48 +218,23 @@
     return a.name || a.id;
   }
   /*@3.GPAJ.14*/
-  function archiveRanks() {
-    var list = (archive || []).filter(function (a) { return a && a.id; }).slice();
-    list.sort(function (x, y) {
-      return String(x.archived_at || '').localeCompare(String(y.archived_at || ''));
-    });
-    function fixed(a) {
-      if (a.after != null && a.after !== '' && !isNaN(+a.after)) return +a.after + 0.5;
-      if (!a.summer && a.level != null && a.level !== '' && !isNaN(+a.level)) return +a.level;
-      return null;
-    }
-    var out = {}, i, r;
-    for (i = 0; i < list.length; i++) out[list[i].id] = fixed(list[i]);
-    for (r = null, i = 0; i < list.length; i++) {
-      if (out[list[i].id] != null) { r = out[list[i].id]; continue; }
-      if (r != null) out[list[i].id] = r + 0.5;
-    }
-    for (r = null, i = list.length - 1; i >= 0; i--) {
-      if (out[list[i].id] != null) { r = out[list[i].id]; continue; }
-      if (r != null) out[list[i].id] = r - 0.5;
-    }
-    return out;
-  }
-
   function archivedByLevel() {
     /*@3.GPAJ.15*/
     /*@3.GPAJ.100*/
     var meta = {};
     (archive || []).forEach(function (a) { if (a && a.id) meta[a.id] = a; });
-    var rank = archiveRanks();
 
     var buckets = {};
     gradesData.semesters.filter(function (s) { return !s.is_current; }).forEach(function (s) {
       var a = meta[s.id] || {};
-      var own = !!meta[s.id] || !!a.summer || !!s.summer || a.level != null;
+      var own = !!a.summer || !!s.summer || a.level != null;
       if (own) {
         var key = 'sem:' + s.id;
-        var lvA = (a.level != null && a.level !== '') ? +a.level : null;
-        if (lvA !== null && isNaN(lvA)) lvA = null;
+        var lvA = (a.level != null) ? +a.level : null;
         buckets[key] = {
           lv: lvA,
           summer: !!(a.summer || s.summer),
-          sort: (rank[s.id] != null) ? rank[s.id] : (lvA != null ? lvA : null),
+          sort: (a.after != null) ? (+a.after + 0.5) : (lvA != null ? lvA : null),
           name: archName(a.id ? a : s) || semName(s),
           at: a.archived_at || '',
           courses: (s.courses || []).slice()
@@ -751,21 +669,9 @@
 
     /*@3.GPAJ.38*/
     var editable = (archive || []).filter(function (a) { return a && a.id; });
-    /*@3.GPAJ.119*/
-    if (window.GardenSetup && GardenSetup.openArchive) {
-      html += '<div class="gp-rec-edit"><span class="gp-eyebrow">' +
-        esc(L('فصولُك المؤرشفة', 'Your archived terms')) + '</span>' +
-        '<button class="gp-btn gp-btn--primary gp-btn--sm" data-act="archwiz">' +
-          '<i class="fa-solid fa-wand-magic-sparkles"></i><span>' +
-          esc(L('افتح معالج الفصول المؤرشفة', 'Open the archived-terms wizard')) + '</span></button>' +
-        '<span class="gp-hint-inline">' + esc(L(
-          'ترتيبٌ وسحبُ موادَّ بين الفصول ومستوًى واسمٌ وتقدير — بمفردات معالج الفصول المخطّطة نفسِها.',
-          'Reorder, drag courses between terms, set level, name and grade — in the same vocabulary as the planner.')) + '</span>' +
-      '</div>';
-    }
     if (editable.length) {
       html += '<div class="gp-rec-edit"><span class="gp-eyebrow">' +
-        esc(L('تعديل سجلٍّ واحد', 'Edit a single record')) + '</span>' +
+        esc(L('تعديل سجلّاتك المؤرشفة', 'Edit your archived records')) + '</span>' +
         editable.map(function (a) {
           return '<button class="gp-btn gp-btn--sm" data-edit="' + esc(a.id) + '">' +
             '<i class="fa-solid fa-pen"></i><span>' + esc(archName(a)) + '</span></button>';
@@ -1463,22 +1369,15 @@
   }
   function saveEditor() {
     var a = findArchive(editingId); if (!a) { $('#modal-edit').hidden = true; return; }
-    var nm = ($('#ed-name').value || '').trim();
-    /*@3.GPAJ.114*/
-    if (nm && nm !== archName(a)) { a.name = nm; a.name_ar = nm; a.name_en = nm; }
-    var was = {};
-    (a.courses || []).forEach(function (c) { if (c && c.code) was[c.code] = c; });
-    /*@3.GPAJ.115*/
+    a.name = ($('#ed-name').value || '').trim() || a.name;
     a.courses = $$('#ed-rows .gp-ed-row').map(function (row) {
       var code = row.getAttribute('data-code');
       var grade = row.getAttribute('data-grade') || null;
       var cr = parseInt($('.gp-ed-cr', row).value, 10);
-      var e = was[code] || { code: code };
-      e.grade = grade;
+      var e = { code: code, grade: grade };
       var info = catalogMap[code];
       var cc = info && info.credits != null ? info.credits : null;
       if (!isNaN(cr) && (cc == null || cr !== cc)) e.credits = cr;
-      else if (!isNaN(cr) && cc != null && cr === cc) delete e.credits;
       return e;
     });
     if (!a.courses.length) archive = archive.filter(function (x) { return x && x.id !== editingId; });
@@ -1732,10 +1631,10 @@
     if (kind === 'edadd') {
       var have = {};
       $$('#ed-rows .gp-ed-row').forEach(function (r) { have[r.getAttribute('data-code')] = true; });
-      var pool = coursePool().filter(function (c) { return !have[c.code]; }).map(function (c) {
-        return { v: c.code, k: c.code, d: c.name };
+      var pool = catalogArr.filter(function (c) { return c && !have[c.code]; }).map(function (c) {
+        return { v: c.code, k: c.code, d: (isAr() ? c.name_ar : c.name_en) || c.code };
       });
-      if (!pool.length) { toast(L('كلُّ ما نعرفه مضافٌ هنا', 'Everything we know is already here')); return; }
+      if (!pool.length) { toast(L('كلُّ مواد الخطة مضافةٌ هنا', 'Every catalogue course is already here')); return; }
       return openMenu(btn, pool, addEditorRow,
         { search: L('ابحث برمز المادة أو باسمها…', 'Search by code or name…'), wide: true });
     }
@@ -1860,11 +1759,6 @@
       }
       if ((el = e.target.closest('[data-act="planner"]'))) {
         if (window.GardenSetup && GardenSetup.openPlanner) GardenSetup.openPlanner();
-        else toast(L('المعالج غير متاح', 'Wizard unavailable'));
-        return;
-      }
-      if ((el = e.target.closest('[data-act="archwiz"]'))) {
-        if (window.GardenSetup && GardenSetup.openArchive) GardenSetup.openArchive();
         else toast(L('المعالج غير متاح', 'Wizard unavailable'));
         return;
       }

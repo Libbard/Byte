@@ -353,17 +353,9 @@
     if (!startStr) return '';
     return addMonthsStr(startStr, type === 'summer' ? 3 : 4);
   }
-  /*@3.SCHJ.313*/
-  function termSpanBad() {
-    var w = null;
-    try { w = GardenData.termWindow(schedule.settings || {}); } catch (e) { return null; }
-    return (w && !w.ok && w.why !== 'missing') ? w : null;
-  }
-
   function studyWeekNumber(date) {
     var st = schedule.settings || {};
     if (!st.term_start_date) return null;
-    if (termSpanBad()) return null;
     var termStart = getWeekStartDate(parseLocalDate(st.term_start_date));
     var n = Math.round((getWeekStartDate(date) - termStart) / (7 * 86400000)) + 1;
     if (n < 1) return null;
@@ -513,7 +505,7 @@
   }
 
   /*@3.SCHJ.52*/
-  function beginPass() { pass = { byDate: null, ov: {}, byDay: {} }; }
+  function beginPass() { pass = { byDate: null, ov: {} }; }
   function endPass() { pass = null; }
 
   function overrideFor(weekId) {
@@ -555,41 +547,11 @@
     return o;
   }
 
-  /*@3.SCHJ.317*/
-  /*@3.SCHJ.324*/
-  var MINS_PER_DAY = 24 * 60;
-  function spillFrom(dateObj, dstr, weekId) {
-    var prev = new Date(dateObj);
-    prev.setDate(prev.getDate() - 1);
-    var out = [];
-    eventsOnDate(prev, { noSpill: true }).forEach(function (e) {
-      if (e.allDay || e.start === null || e.end === null || e.end <= MINS_PER_DAY) return;
-      /*@3.SCHJ.318*/
-      if (e.synthetic_span) return;
-      var o = {};
-      Object.keys(e).forEach(function (k) { o[k] = e[k]; });
-      o.uid = e.uid + ':spill';
-      o.spill = true;
-      o.spill_start = e.start;
-      o.spill_end = e.end;
-      o.start = 0;
-      o.end = Math.min(e.end - MINS_PER_DAY, MINS_PER_DAY);
-      o.date = dstr;
-      o.weekId = weekId;
-      o.recurring = false;
-      out.push(o);
-    });
-    return out;
-  }
-
   /*@3.SCHJ.56*/
   function eventsOnDate(dateObj, opts) {
     opts = opts || {};
     counters.weekEvents++;
     var dstr = fmtLocalDate(dateObj);
-    /*@3.SCHJ.321*/
-    var memoKey = pass ? (dstr + '|' + (opts.ignoreFilter ? 1 : 0) + '|' + (opts.noSpill ? 1 : 0)) : null;
-    if (memoKey && pass.byDay[memoKey]) return pass.byDay[memoKey].slice();
     var dayName = DAYS_ORDER[dateObj.getDay()];
     var weekStart = getWeekStartDate(dateObj);
     var weekId = getWeekId(weekStart);
@@ -716,15 +678,11 @@
         uid: 'mirror:' + d.source + ':' + d.id, id: d.id, src: d.source, kind: 'general',
         sub: 'task', course_code: d.course || '',
         title: d.title || courseShort(d.course) || L(GEN_KIND.task),
-        /*@3.SCHJ.322*/
-        start: s, end: (s === null ? null : s + 60), synthetic_span: (s !== null),
-        allDay: (s === null),
+        start: s, end: (s === null ? null : s + 60), allDay: (s === null),
         room: '', notes: d.note || '', youtube: '', date: dstr, weekId: weekId,
         done: !!d.done, editable: !!d.editable, recurring: false, raw: d
       }));
     });
-
-    if (!opts.noSpill) spillFrom(dateObj, dstr, weekId).forEach(function (e) { out.push(e); });
 
     if (!opts.ignoreFilter) {
       out = out.filter(function (e) { return !isCourseHidden(e.course_code); });
@@ -733,7 +691,6 @@
       if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
       return (a.start || 0) - (b.start || 0);
     });
-    if (memoKey) pass.byDay[memoKey] = out.slice();
     return out;
   }
 
@@ -749,21 +706,40 @@
   }
 
   /*@3.SCHJ.67*/
-  /*@3.SCHJ.323*/
   function isExpired(ev) {
-    var R = window.GardenScheduleRules;
-    return !!(R && R.isPast && R.isPast(ev));
+    if (ev.start === null) return false;
+    var d = parseLocalDate(ev.date);
+    d.setMinutes(d.getMinutes() + (ev.end != null ? ev.end : ev.start + 60));
+    return d.getTime() < Date.now();
   }
   function toggleDone(ev) {
-    var R = window.GardenScheduleRules;
-    if (ev.src === 'task') {
+    if (ev.src === 'exam') {
+      var x = (schedule.exams || []).filter(function (e) { return e.id === ev.id; })[0];
+      if (x) x.completed_at = x.completed_at ? null : new Date().toISOString();
+      save();
+    } else if (ev.src === 'general') {
+      var g = (schedule.general_events || []).filter(function (e) { return e.id === ev.id; })[0];
+      if (g) g.done = !g.done;
+      save();
+    } else if (ev.src === 'task') {
       if (window.GardenData && window.GardenData.toggleTask) window.GardenData.toggleTask(ev.id);
     } else if (ev.src === 'course') {
       /*@3.SCHJ.68*/
       if (window.GardenData && window.GardenData.toggleCourseDate) {
         window.GardenData.toggleCourseDate(ev.course_code, ev.id);
       }
-    } else if (R && R.setDone && R.setDone(ev, !ev.done, schedule)) {
+    } else if (ev.src === 'intensive') {
+      var p = activePlan();
+      if (p) {
+        var ss = p.sessions.filter(function (x) { return x.id === ev.id; })[0];
+        if (ss) ss.done = !ss.done;
+      }
+      save();
+    } else if (ev.src === 'lecture' || ev.src === 'study') {
+      var ovv = schedule.week_overrides[ev.weekId] || (schedule.week_overrides[ev.weekId] = {});
+      ovv.completed_events = ovv.completed_events || [];
+      var i = ovv.completed_events.indexOf(ev.id);
+      if (i === -1) ovv.completed_events.push(ev.id); else ovv.completed_events.splice(i, 1);
       save();
     }
     render();
@@ -828,14 +804,6 @@
     var clipped = ev.start < axis.startH * 60;
     if (top < 0) { h += top; top = 0; clipped = true; }
     if (h < MIN_EV_PX) h = MIN_EV_PX;
-    if (ev.synthetic_span && axis.hourPx > h) h = axis.hourPx;
-    /*@3.SCHJ.316*/
-    var floorPx = axis.totalH || 0;
-    if (floorPx > 0 && top + h > floorPx) {
-      if (h > floorPx) h = floorPx;
-      top = Math.max(0, floorPx - h);
-      clipped = true;
-    }
 
     var cols = ev._cols || 1, col = ev._col || 0;
     var tier = (h < 34 || cols >= 3) ? 'xs' : (h < 62 ? 'sm' : 'md');
@@ -851,8 +819,7 @@
     var el = document.createElement('div');
     el.className = 'sch-ev k-' + ev.kind + ' is-' + tier +
       (done ? ' is-done' : '') + (expired ? ' is-expired' : '') +
-      (isNow ? ' is-now' : '') + (clipped ? ' is-clipped' : '') +
-      (ev.spill ? ' is-spill' : '');
+      (isNow ? ' is-now' : '') + (clipped ? ' is-clipped' : '');
     el.style.top = top + 'px';
     el.style.height = h + 'px';
     el.style.insetInlineStart = 'calc(' + (col * 100 / cols) + '% + 2px)';
@@ -865,38 +832,25 @@
     }
 
     var noteMark = (ev.notes || ev.youtube) ? '<span class="sch-ev-note"><i class="fa-solid fa-note-sticky" aria-hidden="true"></i></span>' : '';
-    /*@3.SCHJ.319*/
-    var contMark = ev.spill
-      ? '<i class="fa-solid fa-arrow-turn-down sch-ev-cont" aria-hidden="true"></i>' : '';
     var html = '<div class="sch-ev-head">' +
-      '<i class="fa-solid ' + kindIcon(ev) + ' sch-ev-ico"></i>' + contMark +
+      '<i class="fa-solid ' + kindIcon(ev) + ' sch-ev-ico"></i>' +
       /*@3.SCHJ.78*/
       '<span class="sch-ev-title' + codeCls(ev) + '"><span class="sch-ev-tx">' +
       escapeH(evTitle(ev)) + '</span></span>' + noteMark + '</div>';
     /*@3.SCHJ.79*/
     if (tier !== 'xs') {
-      var shownA = ev.spill ? ev.spill_start : ev.start;
-      var shownB = ev.spill ? (ev.spill_end - MINS_PER_DAY) : ev.end;
-      html += '<div class="sch-ev-time"><span class="sch-ev-start">' + escapeH(fmtMin12(shownA)) +
-              '</span><span class="sch-ev-end"> – ' + escapeH(fmtMin12(shownB)) + '</span></div>';
+      html += '<div class="sch-ev-time"><span class="sch-ev-start">' + escapeH(fmtMin12(ev.start)) +
+              '</span><span class="sch-ev-end"> – ' + escapeH(fmtMin12(ev.end)) + '</span></div>';
     }
     if (tier === 'md') html += '<div class="sch-ev-meta">' + escapeH(evMeta(ev)) + '</div>';
-    if (!ev.spill) {
-      html += '<button class="sch-ev-check' + (done ? ' is-done' : '') + '" type="button" aria-pressed="' + (done ? 'true' : 'false') +
+    html += '<button class="sch-ev-check' + (done ? ' is-done' : '') + '" type="button" aria-pressed="' + (done ? 'true' : 'false') +
             '" title="' + escapeH(done ? (isAr() ? 'إلغاء الإتمام' : 'Mark undone') : (isAr() ? 'إتمام' : 'Mark done')) + '"><i class="fa-solid fa-check" aria-hidden="true"></i></button>';
-    }
     el.innerHTML = html;
 
-    if (!ev.spill) {
-      el.querySelector('.sch-ev-check').addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleDone(ev);
-      });
-    }
-    if (ev.spill) {
-      el.setAttribute('aria-label', escapeH(evTitle(ev)) + ' — ' +
-        (isAr() ? 'تكملةُ حدثٍ بدأ أمس ' : 'continues from yesterday ') + fmtMin12(ev.spill_start));
-    }
+    el.querySelector('.sch-ev-check').addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleDone(ev);
+    });
     el.setAttribute('data-uid', ev.uid);
     el.setAttribute('data-span', String(Math.max(5, (ev.end || 0) - (ev.start || 0))));
     if (canDragEv(ev)) el.setAttribute('data-drag', '1');
@@ -914,7 +868,7 @@
   var EV_BY_UID = {};
 
   function canDragEv(ev) {
-    if (!ev || ev.allDay || ev.start == null || ev.spill) return false;
+    if (!ev || ev.allDay || ev.start == null) return false;
     if (ev.kind === 'intensive' || ev.src === 'intensive') return false;
     return ev.src === 'lecture' || ev.src === 'study' ||
            ev.src === 'exam' || ev.src === 'general';
@@ -1391,20 +1345,10 @@
   }
 
   /*@3.SCHJ.81*/
-  function baseRange() {
+  function effectiveRange() {
     var st = schedule.settings;
     if (st.span_mode === 'full') return { startH: 0, endH: 24 };
     return { startH: st.day_start_hour, endH: st.day_end_hour };
-  }
-  /*@3.SCHJ.314*/
-  var drawnRange = null;
-  function effectiveRange() { return drawnRange || baseRange(); }
-  function widenRange(lo, hi, ev) {
-    if (!ev || ev.allDay || ev.start === null) return;
-    var a = Math.floor(Math.max(0, ev.start) / 60);
-    var b = Math.ceil(Math.min(ev.end == null ? ev.start : ev.end, 24 * 60) / 60);
-    if (a < lo.h) lo.h = a;
-    if (b > hi.h) hi.h = b;
   }
   /*@3.SCHJ.310*/
   function spanLabel() {
@@ -1968,9 +1912,8 @@
     var wrap = document.getElementById('grid-wrap');
     /*@3.SCHJ.107*/
     wrap.style.display = '';
-    var range = baseRange();
+    var range = effectiveRange();
     var startH = range.startH, endH = range.endH;
-    var loH = { h: startH }, hiH = { h: endH };
     var activeDays = schedule.settings.active_days || [];
     var cols = GUT_PX + 'px repeat(' + dates.length + ', minmax(0,1fr))';
 
@@ -1992,7 +1935,6 @@
       /*@3.SCHJ.109*/
       var busyMin = 0;
       eventsOnDate(d).forEach(function (e) {
-        widenRange(loH, hiH, e);
         if (e.allDay || e.start === null) return;
         busyMin += Math.max(0, e.end - e.start);
       });
@@ -2005,10 +1947,6 @@
             '<span class="sch-dh-load"><i style="width:' + loadPct + '%"></i></span></button>';
     });
     head.innerHTML = hh;
-    /*@3.SCHJ.315*/
-    startH = Math.max(0, Math.min(loH.h, 23));
-    endH = Math.min(24, Math.max(hiH.h, startH + 1));
-    drawnRange = { startH: startH, endH: endH };
     head.querySelectorAll('.sch-day-head').forEach(function (b) {
       b.addEventListener('click', function () { openDayAgenda(parseLocalDate(this.getAttribute('data-date'))); });
     });
@@ -2664,18 +2602,6 @@
   }
 
   function openSheet(ev) {
-    /*@3.SCHJ.320*/
-    if (ev && ev.spill) {
-      var org = {};
-      Object.keys(ev).forEach(function (k) { org[k] = ev[k]; });
-      org.uid = String(ev.uid).replace(/:spill$/, '');
-      org.start = ev.spill_start;
-      org.end = ev.spill_end;
-      org.spill = false;
-      var back = parseLocalDate(ev.date);
-      if (back) { back.setDate(back.getDate() - 1); org.date = fmtLocalDate(back); }
-      ev = org;
-    }
     sheetEvent = ev;
     var ov = document.getElementById('modal-sheet');
     var sheet = ov.querySelector('.sch-sheet');
@@ -4479,9 +4405,7 @@
     } else {
       var wn = studyWeekNumber(currentWeekStart);
       numEl.textContent = wn ? (isAr() ? 'الأسبوع ' + wn : 'Week ' + wn)
-                             : (termSpanBad()
-                                ? (isAr() ? 'تاريخا فصلك غير صحيحين' : 'Term dates look wrong')
-                                : (isAr() ? 'خارج الفصل' : 'Outside term'));
+                             : (isAr() ? 'خارج الفصل' : 'Outside term');
       var e = new Date(currentWeekStart); e.setDate(e.getDate() + 6);
       dateEl.textContent = currentWeekStart.getDate() + ' – ' + e.getDate() + ' ' +
         MONTH_NAMES[lang][e.getMonth()] + ' ' + e.getFullYear();

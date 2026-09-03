@@ -140,16 +140,8 @@
 
   /*@3.SEMJ.20*/
 
-  function termSpan() {
-    var st = (S.sched && S.sched.settings) || {};
-    try { return GardenData.termWindow(st); } catch (e) { return null; }
-  }
-
-  /*@3.SEMJ.209*/
   function termArc() {
     var st = (S.sched && S.sched.settings) || {};
-    var w = termSpan();
-    if (!w || !w.ok) return null;
     var a = parseD(st.term_start_date), b = parseD(st.semester_end_date);
     if (!a || !b || b <= a) return null;
     var now = new Date(); now.setHours(0, 0, 0, 0);
@@ -174,33 +166,6 @@
       before: gone < 0, after: gone > total,
       flags: flags
     };
-  }
-
-  /*@3.SEMJ.210*/
-  function renderTermBad() {
-    var host = el('sem-term-bad');
-    if (!host) return;
-    var w = termSpan();
-    if (!w || w.ok || w.why === 'missing') { host.hidden = true; host.innerHTML = ''; return; }
-    var msg;
-    if (w.why === 'reversed') {
-      msg = L('نهايةُ فصلك قبل بدايته.', 'Your term ends before it starts.');
-    } else if (w.why === 'short') {
-      msg = L('تاريخا فصلك يصنعان ' + w.days + ' يوماً — أقصرُ من أيِّ فصل.',
-              'Your term dates span ' + w.days + ' days — shorter than any term.');
-    } else {
-      msg = L('تاريخا فصلك يصنعان ' + w.weeks + ' أسبوعاً — والفصلُ لا يتجاوز ' +
-                Math.floor(w.max / 7) + '، فأحدُهما من فصلٍ قديم.',
-              'Your term dates span ' + w.weeks + ' weeks — no term exceeds ' +
-                Math.floor(w.max / 7) + ', so one of them belongs to an older term.');
-    }
-    host.hidden = false;
-    host.style.setProperty('--tint', 'var(--st-warn, #f59e0b)');
-    host.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>' +
-      '<span>' + esc(msg) + ' ' +
-      esc(L('المحفوظ: ', 'Saved: ')) +
-      '<span class="gsf-code">' + esc(w.start) + ' → ' + esc(w.end) + '</span>' +
-      '</span>';
   }
 
   function renderTermClash() {
@@ -238,7 +203,6 @@
     var arc = termArc();
     var box = el('sem-arc'), empty = el('sem-arc-empty');
     renderTermClash();
-    renderTermBad();
     if (!arc) { box.hidden = true; empty.hidden = false; return; }
     box.hidden = false; empty.hidden = true;
 
@@ -1048,67 +1012,8 @@
   }
   /*@3.SEMJ.60*/
   /*@3.SEMJ.190*/
-  /*@3.SEMJ.215*/
-  var ARCH_ASSETS = ['../shared/gpa.css', '../shared/gpa-setup.css',
-                     '../shared/plan-rules.js', '../shared/gpa-setup.js'];
-  var archLoading = false;
-  function loadOne(src) {
-    return new Promise(function (done, fail) {
-      var css = /\.css$/.test(src);
-      var sel = css ? 'link[href^="' + src + '"]' : 'script[src^="' + src + '"]';
-      if (document.querySelector(sel)) { done(); return; }
-      var el2 = document.createElement(css ? 'link' : 'script');
-      if (css) { el2.rel = 'stylesheet'; el2.href = src; }
-      else { el2.src = src; el2.async = false; }
-      el2.onload = function () { done(); };
-      el2.onerror = function () { fail(new Error(src)); };
-      document.head.appendChild(el2);
-    });
-  }
-  /*@3.SEMJ.216*/
-  function openArchWizard() {
-    if (window.GardenSetup && GardenSetup.openArchive) { GardenSetup.openArchive(); return; }
-    if (archLoading) return;
-    archLoading = true;
-    var btn = el('sem-arch-wiz');
-    if (btn) btn.disabled = true;
-    ARCH_ASSETS.reduce(function (chain, src) {
-      return chain.then(function () { return loadOne(src); });
-    }, Promise.resolve()).then(function () {
-      archLoading = false;
-      if (btn) btn.disabled = false;
-      if (window.GardenSetup && GardenSetup.openArchive) GardenSetup.openArchive();
-      else toast(L('تعذّر فتحُ المعالج', 'The wizard could not open'));
-    }, function () {
-      archLoading = false;
-      if (btn) btn.disabled = false;
-      toast(L('تعذّر جلبُ المعالج — تحقّقْ من شبكتك.', 'Could not fetch the wizard — check your connection.'));
-    });
-  }
-
-  /*@3.SEMJ.212*/
-  function afterLevel(sem) {
-    if (sem.after != null && sem.after !== '' && !isNaN(+sem.after)) return +sem.after;
-    var mx = null;
-    (GardenData.archive() || []).forEach(function (a) {
-      if (!a || a.summer) return;
-      var n = parseInt(a.level, 10);
-      if (!isNaN(n) && (mx === null || n > mx)) mx = n;
-    });
-    if (mx !== null) return mx;
-    var n2 = parseInt(sem.level, 10);
-    if (!isNaN(n2)) return n2;
-    try {
-      var p = JSON.parse(localStorage.getItem('student_profile') || '{}') || {};
-      var n3 = parseInt(p.level, 10);
-      if (!isNaN(n3)) return n3;
-    } catch (e) {}
-    return null;
-  }
-
   function archiveRecord(sem) {
     var st = archiveStats({ courses: sem.courses });
-    var after = sem.summer ? afterLevel(sem) : null;
     return {
       id: sem.id,
       name: sem.name || sem.name_ar || sem.name_en,
@@ -1116,21 +1021,11 @@
       name_ar: sem.name_ar || sem.name,
       name_en: sem.name_en || sem.name,
       level: sem.level, term: sem.term, summer: !!sem.summer,
-      /*@3.SEMJ.213*/
-      after: after,
       courses: sem.courses,
       gpa: st.gpa, total_credits: st.credits,
       created_at: sem.created_at,
       archived_at: new Date().toISOString()
     };
-  }
-
-  /*@3.SEMJ.211*/
-  function endTermWindow() {
-    var cleared = false;
-    try { cleared = GardenData.clearTermWindow(); } catch (e) { cleared = false; }
-    if (cleared) { try { S.sched = GardenData.scheduleRaw(); } catch (e) {} }
-    return cleared;
   }
 
   function saveArchive(list) {
@@ -2264,13 +2159,9 @@
     var arch = GardenData.archive() || [];
     arch.push(archiveRecord(S.sem));
     saveArchive(arch);
-    var wiped = endTermWindow();
     newSemester(r.pair, r.key);
-    toast(wiped
-      ? L('أُرشف فصلُك السابق وبدأ «' + r.pair.ar + '» — وتاريخا الفصل صُفِّرا',
-          'Your past term is archived — “' + r.pair.en + '” has begun, and its dates were cleared')
-      : L('أُرشف فصلُك السابق، وبدأ «' + r.pair.ar + '»',
-          'Your past term is archived — “' + r.pair.en + '” has begun'));
+    toast(L('أُرشف فصلُك السابق، وبدأ «' + r.pair.ar + '»',
+            'Your past term is archived — “' + r.pair.en + '” has begun'));
   }
 
   /*@3.SEMJ.98*/
@@ -2473,7 +2364,6 @@
       try { localStorage.removeItem('garden_semester_meta'); } catch (e) {}
       S.sem = null;
       saveArchive(arch);
-      endTermWindow();
       /*@3.SEMJ.193*/
       var moved = 0;
       try {
@@ -2511,8 +2401,7 @@
         name: a.name || a.name_ar || a.name_en,
         name_ar: a.name_ar || a.name,
         name_en: a.name_en || a.name,
-        /*@3.SEMJ.214*/
-        level: a.level, term: a.term, summer: !!a.summer, after: a.after,
+        level: a.level, term: a.term,
         courses: a.courses || [],
         is_active: true, is_pinned: false, was_activated: false,
         created_at: a.created_at || new Date().toISOString(),
@@ -2792,7 +2681,6 @@
       crnLookup(String(el('crn-n').value || '').trim());
     });
     on('crn-ok', 'click', doCrnLink);
-    on('sem-arch-wiz', 'click', openArchWizard);
     on('crn-unlink', 'click', doCrnUnlink);
     /*@3.SEMJ.131*/
     ['nm-ar', 'nm-en'].forEach(function (id) {
@@ -2860,7 +2748,6 @@
       try { localStorage.removeItem('garden_semester_meta'); } catch (e) {}
       S.sem = null;
       saveArchive(arch);
-      endTermWindow();
       refresh();
       toast(L('أُرشف «' + nm + '» — تجده في الفصول السابقة',
               '“' + nm + '” is archived — find it under past semesters'));

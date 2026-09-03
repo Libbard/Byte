@@ -6427,8 +6427,7 @@
       e.preventDefault();
       if (!self.pasteRun(e.clipboardData, host) && clipAny()) self.pasteBlocks();
     };
-    /*@3.NOEJ.355*/
-    if (!this.opts.noDocPaste) document.addEventListener('paste', this._onDocPaste);
+    document.addEventListener('paste', this._onDocPaste);
 
     /*@3.NOEJ.143*/
     root.addEventListener('dragover', function (e) {

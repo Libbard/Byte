@@ -27,50 +27,21 @@
     ink: 'الحبر', red: 'أحمر', orange: 'برتقالي', yellow: 'أصفر',
     lime: 'ليموني', emerald: 'أخضر', teal: 'فيروزي', sky: 'أزرق',
     indigo: 'نيلي', violet: 'بنفسجي', pink: 'زهري', brown: 'بنّي',
-    amber: 'كهرماني', rose: 'وردي', white: 'أبيض', black: 'أسود'
+    amber: 'كهرماني', rose: 'وردي'
   };
   var TONE_EN = {
     ink: 'Ink', red: 'Red', orange: 'Orange', yellow: 'Yellow',
     lime: 'Lime', emerald: 'Green', teal: 'Teal', sky: 'Blue',
     indigo: 'Indigo', violet: 'Violet', pink: 'Pink', brown: 'Brown',
-    amber: 'Amber', rose: 'Rose', white: 'White', black: 'Black'
+    amber: 'Amber', rose: 'Rose'
   };
 
   /*@3.NODJ.54*/
   var MAIN_TONES = ['ink', 'red', 'sky', 'emerald'];
-  /*@3.NODJ.66*/
   var EDGE_TONES = [
-    { k: 'white', ar: 'أبيض', en: 'White' },
-    { k: 'black', ar: 'أسود', en: 'Black' }
+    { k: '#ffffff', ar: 'أبيض', en: 'White' },
+    { k: '#000000', ar: 'أسود', en: 'Black' }
   ];
-  var ALL_TONES = TONES.concat(['white', 'black']);
-  var ORDER_KEY = 'garden_ink_tone_order', PIN_KEY = 'garden_ink_pin_colors';
-
-  function toneOrder() {
-    var out = [], seen = {};
-    try {
-      var a = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
-      if (Array.isArray(a)) {
-        a.forEach(function (t) {
-          if (ALL_TONES.indexOf(t) >= 0 && !seen[t]) { seen[t] = 1; out.push(t); }
-        });
-      }
-    } catch (e) {}
-    ALL_TONES.forEach(function (t) { if (!seen[t]) { seen[t] = 1; out.push(t); } });
-    return out;
-  }
-
-  function setToneOrder(a) {
-    try { localStorage.setItem(ORDER_KEY, JSON.stringify(a)); } catch (e) {}
-  }
-
-  function colorsPinned() {
-    try { return localStorage.getItem(PIN_KEY) === '1'; } catch (e) { return false; }
-  }
-
-  function setColorsPinned(on) {
-    try { localStorage.setItem(PIN_KEY, on ? '1' : '0'); } catch (e) {}
-  }
 
   var PEN_W = [1.2, 2.4, 4, 7, 12];
   /*@3.NODJ.55*/
@@ -114,9 +85,6 @@
     { k: 'hi',    icon: 'fa-highlighter',   ar: 'فسفوري',     en: 'Highlighter', tool: 'hi',    ring: 'hiw' },
     { k: 'era',   html: ICONS.eraser,       ar: 'ممحاة',      en: 'Eraser',      tool: 'era', ring: 'era' },
     { k: 'shape', icon: 'fa-shapes',        ar: 'أشكال',      en: 'Shapes',      ring: 'shape' },
-    /*@3.NODJ.63*/
-    { k: 'text',  icon: 'fa-i-cursor',      ar: 'حقلُ نصّ',    en: 'Text field',  tool: 'text',
-      cap: 'canText' },
     /*@3.NODJ.9*/
     { k: 'lasso', html: LASSO_SVG,          ar: 'لاسو حرّ',   en: 'Free lasso',  tool: 'lasso' },
     { k: 'sel',   icon: 'fa-arrow-pointer', ar: 'تحديد',      en: 'Select',      tool: 'sel' },
@@ -348,43 +316,17 @@
   /*@3.NODJ.11*/
   Dial.prototype.buildFavs = function () {
     if (!this.favHost) return;
-    var dock = document.createElement('div');
-    dock.className = 'ndl-dock';
-    dock.hidden = true;
     var bar = document.createElement('div');
     bar.className = 'ndl-favs';
     bar.hidden = true;
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', L('مفضّلة القلم', 'Pen favourites'));
-    dock.appendChild(bar);
-    /*@3.NODJ.67*/
-    var cbar = document.createElement('div');
-    cbar.className = 'ndl-favs ndl-favs--colors';
-    cbar.hidden = !colorsPinned();
-    cbar.setAttribute('role', 'toolbar');
-    cbar.setAttribute('aria-label', L('ألوانُ القلم', 'Pen colours'));
-    dock.appendChild(cbar);
-    this.favHost.appendChild(dock);
-    this.dock = dock;
+    this.favHost.appendChild(bar);
     this.favBar = bar;
-    this.colorBar = cbar;
     this.paintFavs();
-    this.paintColors();
 
     var self = this;
-    cbar.addEventListener('click', function (e) {
-      if (self._justSorted) return;
-      var cv = self.getCv();
-      var sw = e.target.closest('[data-tone]');
-      if (sw && cv) { cv.setColor(sw.getAttribute('data-tone')); self.sync(); return; }
-      if (e.target.closest('[data-pal]')) { self.cyclePalette(); return; }
-      if (e.target.closest('[data-custom]')) { self.pickCustom(e.target.closest('[data-custom]')); }
-    });
-    this.bindSort();
-
     bar.addEventListener('click', function (e) {
-      if (self._justSorted) return;
-      if (e.target.closest('[data-pincol]')) { self.togglePin(); return; }
       var star = e.target.closest('[data-fav-star]');
       if (star) { self.toggleFav(); return; }
       var hb = e.target.closest('[data-hist]');
@@ -441,7 +383,6 @@
       if (hold) clearTimeout(hold);
       hold = setTimeout(function () {
         hold = null;
-        if (self._sorting) return;
         self.favPop(chip, hx, hy);
       }, 520);
     }, { passive: true });
@@ -667,181 +608,12 @@
     h += '<button type="button" class="ndl-fav ndl-fav-opt" data-penbtn="1"' +
       ' aria-label="' + esc(L('أزرارُ القلم', 'Pen buttons')) + '"' +
       ' title="' + esc(L('أزرارُ القلم', 'Pen buttons')) + '">' + ICONS.penBtn + '</button>';
-    h += '<button type="button" class="ndl-fav ndl-fav-opt" data-pincol="1"' +
-      ' aria-pressed="' + (colorsPinned() ? 'true' : 'false') + '"' +
-      ' aria-label="' + esc(L('شريطُ الألوان', 'Colour strip')) + '"' +
-      ' title="' + esc(L('شريطُ الألوان — يثبت تحت المفضّلة', 'Colour strip — pinned under favourites')) + '">' +
-      '<i class="fa-solid fa-palette" aria-hidden="true"></i></button>';
     h += '<button type="button" class="ndl-fav-star" data-fav-star="1"' +
       ' aria-pressed="false" aria-label="' + esc(L('أضِف للمفضّلة', 'Add to favourites')) + '"' +
       ' title="' + esc(L('أضِف للمفضّلة', 'Add to favourites')) + '">' +
       ICONS.star + '</button></span>';
     this.favBar.innerHTML = h;
     i18n(this.favBar);
-  };
-
-  /*@3.NODJ.68*/
-  Dial.prototype.paintColors = function () {
-    if (!this.colorBar) return;
-    var cv = this.getCv();
-    var K = window.GardenCanvas;
-    var pm = (K && K.paletteMode) ? K.paletteMode() : '';
-    var h = toneOrder().map(function (t) {
-      var hx = (cv && cv.tool === 'hi' && K && K.hiHexOf) ? K.hiHexOf(t) : hexOf(t);
-      var nm = L(TONE_AR[t] || t, TONE_EN[t] || t);
-      return '<button type="button" class="ndl-fav ndl-fav-sw" data-tone="' + t + '"' +
-        ' style="--t:' + hx + '"' +
-        ' aria-pressed="' + (cv && cv.color === t ? 'true' : 'false') + '"' +
-        ' aria-label="' + esc(nm) + '" title="' + esc(nm) + '"></button>';
-    }).join('');
-    h += '<span class="ndl-fav-sep" aria-hidden="true"></span>';
-    var pal = pm === 'night'
-      ? ['ألوانُ الليل — اضغط لألوانِ النهار', 'Night colours — tap for day colours', 'fa-moon']
-      : (pm === 'day'
-        ? ['ألوانُ النهار — اضغط للتلقائيّ', 'Day colours — tap for automatic', 'fa-sun']
-        : ['الألوانُ تتبع الورقةَ — اضغط لألوانِ الليل', 'Colours follow the paper — tap for night colours',
-           'fa-circle-half-stroke']);
-    h += '<button type="button" class="ndl-fav ndl-fav-opt" data-pal="1"' +
-      ' aria-pressed="' + (pm ? 'true' : 'false') + '"' +
-      ' aria-label="' + esc(L(pal[0], pal[1])) + '" title="' + esc(L(pal[0], pal[1])) + '">' +
-      '<i class="fa-solid ' + pal[2] + '" aria-hidden="true"></i></button>';
-    h += '<button type="button" class="ndl-fav ndl-fav-opt" data-custom="1"' +
-      ' aria-label="' + esc(L('لون مخصّص', 'Custom colour')) + '"' +
-      ' title="' + esc(L('لون مخصّص', 'Custom colour')) + '">' +
-      '<i class="fa-solid fa-eye-dropper" aria-hidden="true"></i></button>';
-    this.colorBar.innerHTML = h;
-  };
-
-  Dial.prototype.cyclePalette = function () {
-    var K = window.GardenCanvas;
-    if (!K || !K.setPalette) return;
-    var pm = K.paletteMode();
-    K.setPalette(pm === '' ? 'night' : (pm === 'night' ? 'day' : ''));
-    var cv = this.getCv();
-    if (cv && cv.paint) { try { cv.paint(); } catch (e) {} }
-    this.paintFavs();
-    this.paintColors();
-    this.sync();
-  };
-
-  Dial.prototype.togglePin = function () {
-    var on = !colorsPinned();
-    setColorsPinned(on);
-    if (this.colorBar) this.colorBar.hidden = !on;
-    var b = this.favBar ? this.favBar.querySelector('[data-pincol]') : null;
-    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  };
-
-  /*@3.NODJ.69*/
-  Dial.prototype.bindSort = function () {
-    var self = this;
-    function wire(bar, sel, onDrop) {
-      var st = null, hold = null;
-      function start() {
-        if (!st || !st.it || st.on) return;
-        st.on = true;
-        self._sorting = true;
-        try { bar.setPointerCapture(st.id); } catch (e2) {}
-        var r = st.it.getBoundingClientRect();
-        var g = st.it.cloneNode(true);
-        g.className += ' ndl-ghost';
-        g.style.inlineSize = r.width + 'px';
-        g.style.blockSize = r.height + 'px';
-        g.style.left = r.left + 'px';
-        g.style.top = r.top + 'px';
-        document.body.appendChild(g);
-        st.g = g;
-        st.it.classList.add('is-lifted');
-        bar.classList.add('is-sorting');
-      }
-      function mark(to) {
-        var items = [].slice.call(bar.querySelectorAll(sel));
-        for (var i = 0; i < items.length; i++) items[i].classList.toggle('is-drop', i === to);
-      }
-      bar.addEventListener('pointerdown', function (e) {
-        if (e.button > 0) return;
-        var it = e.target.closest(sel);
-        var items = [].slice.call(bar.querySelectorAll(sel));
-        st = { id: e.pointerId, it: it, from: it ? items.indexOf(it) : -1,
-               x: e.clientX, y: e.clientY, sx: bar.scrollLeft, on: false,
-               touch: e.pointerType !== 'mouse', to: null };
-        if (hold) clearTimeout(hold);
-        hold = null;
-        /*@3.NODJ.70*/
-        if (it && st.touch) hold = setTimeout(function () { hold = null; if (st) st.armed = true; }, 320);
-      });
-      bar.addEventListener('pointermove', function (e) {
-        if (!st || e.pointerId !== st.id) return;
-        var dx = e.clientX - st.x, dy = e.clientY - st.y;
-        if (!st.on) {
-          if (st.touch) {
-            if (st.armed && st.it && !self._fvPop && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) { start(); }
-            else {
-              if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                if (hold) { clearTimeout(hold); hold = null; }
-                st.armed = false;
-                bar.scrollLeft = st.sx - dx;
-              }
-              return;
-            }
-          } else {
-            if (!st.it || Math.abs(dx) + Math.abs(dy) < 6) return;
-            start();
-          }
-        }
-        e.preventDefault();
-        st.g.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-        var items = [].slice.call(bar.querySelectorAll(sel));
-        var rtl = getComputedStyle(bar).direction === 'rtl';
-        var to = items.length;
-        for (var i = 0; i < items.length; i++) {
-          var q = items[i].getBoundingClientRect();
-          var mid = q.left + q.width / 2;
-          if (rtl ? e.clientX > mid : e.clientX < mid) { to = i; break; }
-        }
-        st.to = to;
-        mark(to);
-      });
-      function end(e) {
-        if (!st || e.pointerId !== st.id) return;
-        if (hold) { clearTimeout(hold); hold = null; }
-        var was = st;
-        st = null;
-        try { bar.releasePointerCapture(was.id); } catch (e2) {}
-        if (!was.on) return;
-        self._sorting = false;
-        if (was.g && was.g.parentNode) was.g.parentNode.removeChild(was.g);
-        bar.classList.remove('is-sorting');
-        var items = [].slice.call(bar.querySelectorAll(sel));
-        for (var i = 0; i < items.length; i++) items[i].classList.remove('is-drop', 'is-lifted');
-        self._justSorted = true;
-        setTimeout(function () { self._justSorted = false; }, 0);
-        if (e.type !== 'pointerup' || was.to == null) return;
-        var to = was.to > was.from ? was.to - 1 : was.to;
-        if (to !== was.from) onDrop(was.from, to);
-      }
-      bar.addEventListener('pointerup', end);
-      bar.addEventListener('pointercancel', end);
-    }
-    if (this.favBar) {
-      wire(this.favBar, '[data-fav]', function (from, to) {
-        var list = favs();
-        var it = list.splice(from, 1)[0];
-        list.splice(to, 0, it);
-        setFavs(list);
-        self.paintFavs();
-        self.sync();
-      });
-    }
-    if (this.colorBar) {
-      wire(this.colorBar, '[data-tone]', function (from, to) {
-        var list = toneOrder();
-        var it = list.splice(from, 1)[0];
-        list.splice(to, 0, it);
-        setToneOrder(list);
-        self.paintColors();
-      });
-    }
   };
 
   /*@3.NODJ.46*/
@@ -911,7 +683,7 @@
       }).join('') +
       EDGE_TONES.map(function (t) {
         return '<button type="button" class="ndl-clb" data-tone="' + t.k + '"' +
-          ' style="--t:' + hexOf(t.k) + '"' +
+          ' style="--t:' + t.k + '"' +
           ' aria-pressed="' + (cv.color === t.k ? 'true' : 'false') + '"' +
           ' aria-label="' + esc(L(t.ar, t.en)) + '"' +
           ' title="' + esc(L(t.ar, t.en)) + '"></button>';
@@ -1306,12 +1078,6 @@
       tmp2.innerHTML = sizeChip(cur);
       sb.replaceWith(tmp2.firstChild);
     }
-    if (this.colorBar) {
-      var sws = this.colorBar.querySelectorAll('[data-tone]');
-      for (i = 0; i < sws.length; i++) {
-        sws[i].setAttribute('aria-pressed', sws[i].getAttribute('data-tone') === cur.color ? 'true' : 'false');
-      }
-    }
     var star = this.favBar.querySelector('[data-fav-star]');
     if (star) star.hidden = isFixed(cur);
     if (star && !star.hidden) {
@@ -1355,7 +1121,6 @@
     var self = this;
     this._themeObs = new MutationObserver(function () {
       self.paintFavs();
-      self.paintColors();
       var sub = self.sub;
       if (sub) { self.sub = null; self.openSub(sub); }
       self.sync();
@@ -1383,12 +1148,8 @@
     if (cls) host.setAttribute('data-kind', cls);
   };
 
-  /*@3.NODJ.64*/
   Dial.prototype.paintRing1 = function () {
-    var cv = this.getCv();
-    this.arc(this.r1, RING1.filter(function (t) {
-      return !t.cap || !!(cv && cv[t.cap]);
-    }).map(function (t) {
+    this.arc(this.r1, RING1.map(function (t) {
       return { k: t.k, icon: t.icon, html: t.html, ar: t.ar, en: t.en,
                cls: t.k === 'exit' ? 'ndl-i--danger' : '' };
     }), R1);
@@ -1748,9 +1509,8 @@
   Dial.prototype.show = function (on, drawing) {
     this.el.hidden = !on;
     this.el.setAttribute('data-drawing', drawing ? '1' : '0');
-    if (this.dock) this.dock.hidden = !on;
     if (this.favBar) this.favBar.hidden = !on;
-    if (on) { this.paintRing1(); this.paintColors(); this.clamp(); this.sync(); }
+    if (on) { this.clamp(); this.sync(); }
     else { this.setOpen(false); }
   };
 
@@ -1777,8 +1537,7 @@
     window.removeEventListener('resize', this._onRz);
     document.removeEventListener('garden:languageChanged', this._onLang);
     if (this.el && this.el.parentNode) this.el.remove();
-    if (this.dock && this.dock.parentNode) this.dock.remove();
-    else if (this.favBar && this.favBar.parentNode) this.favBar.remove();
+    if (this.favBar && this.favBar.parentNode) this.favBar.remove();
   };
 
   window.GardenNotesDial = {

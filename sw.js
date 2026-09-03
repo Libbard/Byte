@@ -2,7 +2,7 @@
 importScripts('shared/reminders-db.js');
 
 /*@0.SWJ.109*/
-var SW_VERSION = 'garden-1.0.4.21'; /*@0.SWJ.2*/
+var SW_VERSION = 'garden-1.0.4.12'; /*@0.SWJ.2*/
 var CACHE_NAME = 'garden-static';
 var ADOPT_PREFIX = CACHE_NAME.replace(/static$/, '');
 /*@0.SWJ.110*/
@@ -58,7 +58,6 @@ var PRECACHE_URLS = [
   'shared/notes-pdftext.js',
   'shared/notes-pdffind.js',
   'shared/notes-pdfink.js',
-  'shared/notes-pdfannot.js',
   'shared/notes-pdfopen.js',
   'shared/notes-overlay.js',
   'shared/notes-find.js',
@@ -426,57 +425,11 @@ self.addEventListener('push', function (event) {
   var payload = null;
   try { payload = event.data ? event.data.json() : null; } catch (e) { payload = null; }
   event.waitUntil(
-    (payload && payload.k === 'dry')
-      ? showDry(payload).catch(function () { return handleWake(); })
-    : (payload && payload.r && payload.r.length)
+    (payload && payload.r && payload.r.length)
       ? showFromPayload(payload).catch(function () { return handleWake(); })
       : handleWake()
   );
 });
-
-/*@0.SWJ.130*/
-function ackShown(ids) {
-  var list = (ids || []).filter(Boolean).slice(0, 10);
-  if (!list.length) return Promise.resolve(null);
-  return self.ReminderDB.getMeta('push').then(function (m) {
-    if (!m || !m.endpoint || !m.vault || !m.device) return null;
-    return fetch(String(m.endpoint).replace(/\/+$/, '') + '/v1/ack', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vault_id: m.vault, device_id: m.device, ids: list, at: Date.now() })
-    });
-  }).catch(function () { return null; });
-}
-
-/*@0.SWJ.131*/
-function showDry(p) {
-  var now = Date.now();
-  return Promise.all([
-    self.ReminderDB.getMeta('lang'),
-    self.ReminderDB.getMeta('root')
-  ]).then(function (m) {
-    var lang = m[0] || 'ar';
-    var root = m[1] || '/';
-    var d = Number(p && p.d) || 0;
-    var ar = d > 0
-      ? 'تنبيهاتُك تنتهي بعد ' + (d === 1 ? 'يوم' : d === 2 ? 'يومين' : d + ' أيام') + ' — افتح الحديقة لتجديدها.'
-      : 'انتهت تنبيهاتُك المجدولة — افتح الحديقة لتجديدها.';
-    var en = d > 0
-      ? 'Your reminders run out in ' + d + (d === 1 ? ' day' : ' days') + '. Open the Garden to refresh them.'
-      : 'Your scheduled reminders have run out. Open the Garden to refresh them.';
-    return self.registration.showNotification(
-      swTx('الحديقة الرقمية', 'Digital Garden', lang),
-      {
-        body: swTx(ar, en, lang),
-        tag: 'rem-dry', renotify: true,
-        icon: root + 'shared/icons/icon-192.png',
-        badge: root + 'shared/icons/favicon-32.png',
-        dir: lang === 'ar' ? 'rtl' : 'ltr', lang: lang,
-        data: { id: 'rem-dry', url: 'index.html', root: root, fireAt: now }
-      }
-    ).then(function () { return ackShown(['__dry__']); });
-  });
-}
 
 /*@0.SWJ.84*/
 function showFromPayload(p) {
@@ -504,16 +457,12 @@ function showFromPayload(p) {
 
     if (!items.length) return Promise.reject(new Error('empty-payload'));
 
-    var shown = [];
     return Promise.all(items.map(function (item) {
       return self.registration
         .showNotification(item.title, rebuildOptions(item, lang, snoozeOpts, root))
-        .then(function () { shown.push(item.id); return self.ReminderDB.markFired(item.id, 'push-payload'); })
+        .then(function () { return self.ReminderDB.markFired(item.id, 'push-payload'); })
         .catch(function () {});
     })).then(function () {
-      /*@0.SWJ.132*/
-      return ackShown(shown);
-    }).then(function () {
       var extra = (p.n || items.length) - items.length;
       if (extra <= 0) return;
       return self.registration.showNotification(
@@ -571,8 +520,36 @@ function swB64ToU8(b64) {
   return out;
 }
 
+function swDayKey(ms) {
+  var d = new Date(ms);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+         '-' + String(d.getDate()).padStart(2, '0');
+}
 
-/*@0.SWJ.129*/
+function swWeekId(ms) {
+  var d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  var w1 = new Date(d.getFullYear(), 0, 4);
+  var n = 1 + Math.round(((d - w1) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
+  return d.getFullYear() + '-W' + String(n).padStart(2, '0');
+}
+
+function lectureStillOn(item, rules) {
+  if (!item || item.kind !== 'lectures') return true;
+  if (!rules) return true;
+  var key = swDayKey(item.eventAt || item.fireAt);
+  if (rules.termStart && key < rules.termStart) return false;
+  if (rules.termEnd && key > rules.termEnd) return false;
+  var focus = rules.focus || [];
+  for (var i = 0; i < focus.length; i++) {
+    if (key >= focus[i].start && key <= focus[i].end) {
+      var wid = swWeekId(item.eventAt || item.fireAt);
+      if ((rules.shownWeeks || []).indexOf(wid) === -1) return false;
+    }
+  }
+  return true;
+}
 
 function handleWake() {
   var now = Date.now();
@@ -584,32 +561,32 @@ function handleWake() {
     self.ReminderDB.getMeta('snooze'),
     self.ReminderDB.getMeta('root'),
     self.ReminderDB.getQueue(),
-    self.ReminderDB.firedMap()
+    self.ReminderDB.firedMap(),
+    self.ReminderDB.getMeta('rules')
   ]).then(function (r) {
     lang = r[0] || 'ar';
     snoozeOpts = r[1];
     root = r[2] || '/';
     var queue = r[3] || [];
     var fired = r[4] || {};
+    var rules = r[5] || null;
 
     /*@0.SWJ.90*/
     var due = queue.filter(function (i) {
       return i && typeof i.fireAt === 'number'
         && i.fireAt <= now && i.fireAt > now - GRACE
-        && !fired[i.id];
+        && !fired[i.id]
+        && lectureStillOn(i, rules);
     }).sort(function (a, b) { return a.fireAt - b.fireAt; });
 
     if (!due.length) return fallbackNotice(lang, root, queue, now);
 
-    var shown = [];
     return Promise.all(due.slice(0, 3).map(function (item) {
       return self.registration
         .showNotification(item.title, rebuildOptions(item, lang, snoozeOpts, root))
-        .then(function () { shown.push(item.id); return self.ReminderDB.markFired(item.id, 'push'); })
+        .then(function () { return self.ReminderDB.markFired(item.id, 'push'); })
         .catch(function () {});
     })).then(function () {
-      return ackShown(shown);
-    }).then(function () {
       /*@0.SWJ.91*/
       if (due.length > 3) {
         var n = due.length - 3;
@@ -655,7 +632,7 @@ function fallbackNotice(lang, root, queue, now) {
       dir: lang === 'ar' ? 'rtl' : 'ltr', lang: lang,
       data: { id: 'rem-wake', url: 'index.html', root: root, fireAt: now }
     }
-  ).then(function () { return ackShown(['__wake__']); }).catch(function () {});
+  ).catch(function () {});
 }
 
 self.addEventListener('notificationclick', function (event) {

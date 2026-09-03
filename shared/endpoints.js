@@ -25,6 +25,9 @@ window.GardenEndpoints = {
   telemetry: 'https://byte-telemetry.xxli50xx.workers.dev/t/b',
   
   googleClientId: '838935058358-3qst06d1o6acoocb4l2e9nk2d9ggk68i.apps.googleusercontent.com',
+
+  /*@3.ENDJ.14*/
+  googlePickerKey: 'AIzaSyB1n7OkTaZbGkJjETggpQDzmJHawgzlO3s', // public-browser-key
 };
 
 /*@3.ENDJ.7*/
