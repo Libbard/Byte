@@ -50,6 +50,10 @@
 
   function A() { return window.GardenAudioRec || null; }
   function F() { return window.GardenFiles || null; }
+  function GDx() {
+    var g = window.GardenDrive;
+    return (g && g.enabled()) ? g : null;
+  }
   function D() { return window.GardenPdfDoc || null; }
   function App() { return window.GardenNotesApp || null; }
 
@@ -82,7 +86,7 @@
   }
 
   var rec = null, timer = null, panel = null, busy = false, urls = {};
-  var cap = null, escOn = null, settleOn = null;
+  var cap = null, guard = null, unsettle = null;
   var view = 'main';
 
   function host() { return document.getElementById('na-doc-body'); }
@@ -98,6 +102,10 @@
     if (!el || !r) return;
     var rtl = (document.documentElement.getAttribute('dir') || 'rtl') === 'rtl';
     var pad = 12;
+    if (side !== 'cap') {
+      var P = window.GardenPop;
+      if (P) { P.place(el, micBtn(), host()); return; }
+    }
     if (side === 'cap') {
       /*@3.AUNJ.50*/
       el.style.top = (r.top + pad) + 'px';
@@ -137,6 +145,8 @@
   window.addEventListener('resize', reflow);
 
   function close() {
+    if (guard) { guard.off(); guard = null; }
+    if (unsettle) { unsettle(); unsettle = null; }
     if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
     panel = null;
     view = 'main';
@@ -150,66 +160,45 @@
     if (!r) return null;
     if (panel && panel.parentNode) return panel;
     panel = document.createElement('div');
-    panel.className = 'nrp';
+    panel.className = 'gsf-pop nrp';
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', L('تسجيلُ الصوت', 'Voice recording'));
     panel.innerHTML =
       '<div class="nrp-b"></div><div class="nrp-f"></div>';
-    /*@3.AUNJ.61*/
-    panel.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape' || busy) return;
-      e.stopPropagation();
-      if (view === 'list' && !rec) { view = 'main'; render(); return; }
-      close();
-    });
     document.body.appendChild(panel);
-    place(panel, r, 'pop');
-    /*@3.AUNJ.56*/
-    [0, 120, 300, 600, 1000].forEach(function (ms) {
-      setTimeout(function () { if (panel) place(panel, anchorRect(), 'pop'); }, ms);
-    });
-    if (!settleOn) {
-      settleOn = function () { if (panel) place(panel, anchorRect(), 'pop'); };
-      document.addEventListener('transitionend', settleOn, true);
-    }
+    var P = window.GardenPop;
     var b = micBtn();
+    /*@3.AUNJ.56*/
+    /*@3.AUNJ.61*/
+    /*@3.AUNJ.43*/
+    if (P) {
+      P.place(panel, b, host());
+      unsettle = P.settle(panel, b, host());
+      guard = P.watch(panel, {
+        locked: function () { return busy || !!rec; },
+        skip: function (x) { return !!(b && b.contains(x)); },
+        close: function () {
+          if (view === 'list' && !rec) { view = 'main'; render(); return; }
+          close();
+        }
+      });
+    }
     if (b) b.setAttribute('aria-expanded', 'true');
     return panel;
-  }
-
-  /*@3.AUNJ.43*/
-  var awayOn = null;
-  function away() {
-    if (awayOn) return;
-    awayOn = function (e) {
-      if (!panel) return;
-      if (panel.contains(e.target)) return;
-      var b = micBtn();
-      if (b && b.contains(e.target)) return;
-      if (busy || rec) return;
-      close();
-    };
-    document.addEventListener('pointerdown', awayOn, true);
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape' || !panel || busy || rec) return;
-      if (view === 'list') { view = 'main'; render(); return; }
-      close();
-    });
   }
 
   function render() {
     if (rec) { drawLive(); if (panel && view === 'list') drawList(); return; }
     var el = shell();
     if (!el) return;
-    away();
     if (view === 'list' && items().length) drawList(); else drawIdle();
   }
 
   /*@3.AUNJ.45*/
   function mode(cls) {
-    if (!panel) { shell(); away(); }
+    if (!panel) shell();
     if (!panel) return;
-    panel.className = 'nrp' + (cls ? ' ' + cls : '');
+    panel.className = 'gsf-pop nrp' + (cls ? ' ' + cls : '');
     /*@3.AUNJ.53*/
     place(panel, anchorRect(), 'pop');
   }
@@ -245,7 +234,7 @@
   function drawIdle() {
     var s = A() ? A().support() : { mic: false };
     if (!s.secure) {
-      panel.className = 'nrp nrp--bad';
+      panel.className = 'gsf-pop nrp nrp--bad';
       msg('<b class="nrp-t">' + esc(L('التسجيلُ يحتاج اتّصالاً آمناً',
                         'Recording needs a secure connection')) + '</b>');
       acts(shutBtn());
@@ -253,7 +242,7 @@
       return;
     }
     if (!s.mic || !s.recorder || !s.type) {
-      panel.className = 'nrp nrp--bad';
+      panel.className = 'gsf-pop nrp nrp--bad';
       msg('<b class="nrp-t">' + esc(L('هذا المتصفّحُ لا يسجّل الصوت',
                         'This browser cannot record audio')) + '</b>' +
           '<span class="nrp-s">' +
@@ -262,7 +251,7 @@
       bindShut();
       return;
     }
-    panel.className = 'nrp';
+    panel.className = 'gsf-pop nrp';
     /*@3.AUNJ.24*/
     var srcPick = s.system
       ? '<div class="nrp-seg" role="group" aria-label="' +
@@ -284,8 +273,8 @@
               'Kept with the note until the term ends.')) + '</span>' +
         srcPick +
         '<span class="nrp-hint"></span>');
-    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-go nrp-go">' +
-         '<i class="fa-solid fa-circle-dot" aria-hidden="true"></i> ' +
+    acts('<button type="button" class="gsf-btn gsf-btn--pri nrec-go nrp-go">' +
+         '<span class="nrp-live" aria-hidden="true"></span> ' +
          esc(L('ابدأِ التسجيل', 'Start recording')) + '</button>' + listLink() +
          '<button type="button" class="gsf-btn gsf-btn--ghost nrp-file">' +
          '<i class="fa-solid fa-file-import" aria-hidden="true"></i> ' +
@@ -367,7 +356,7 @@
         '<span class="nrc-sep"></span>' +
         '<button type="button" class="gsf-btn gsf-btn--ghost nrec-kill">' +
           esc(L('ألغِ', 'Discard')) + '</button>' +
-        '<button type="button" class="gsf-btn gsf-btn--go nrec-stop">' +
+        '<button type="button" class="gsf-btn gsf-btn--pri nrec-stop">' +
           esc(L('أوقفْ واحفظ', 'Stop & save')) + '</button>' +
       '</span>';
     cap.querySelector('.nrec-stop').addEventListener('click', function () { stop(true); });
@@ -505,7 +494,7 @@
       }
       mode('nrp--bad');
       msg('<b>' + esc(head) + '</b> ' + esc(body));
-      acts('<button type="button" class="gsf-btn gsf-btn--go nrec-again">' +
+      acts('<button type="button" class="gsf-btn gsf-btn--pri nrec-again">' +
            esc(L('أعِدِ المحاولة', 'Try again')) + '</button>' + shutBtn());
       bindShut();
       panel.querySelector('.nrec-again').addEventListener('click', render);
@@ -688,53 +677,72 @@
       it.lo = okLocal ? 1 : 0;
       if (!addItem(it)) { busy = false; return; }
       /*@3.AUNJ.37*/
-      if (asked() || !F()) { send(it, blob); return; }
+      /*@3.AUNJ.77*/
+      var pref = homePref();
+      if (!F() && !GDx()) { busy = false; settled(it.i); return; }
+      if (pref === 'us' && F()) { send(it, blob); return; }
+      if (pref === 'gd' && GDx()) { sendDrive(it, blob, null); return; }
+      if (pref === 'here') { busy = false; it.aup = 0; touch(true); settled(it.i); return; }
       consent(it, blob);
     });
   }
 
   /*@3.AUNJ.38*/
   var ASK_LS = '__audioVow';
+  var HOME_LS = '__audioHome';
 
-  function asked() {
-    try { return localStorage.getItem(ASK_LS) === '1'; } catch (e) { return false; }
+  function homePref() {
+    try {
+      var v = localStorage.getItem(HOME_LS);
+      if (v === 'us' || v === 'gd' || v === 'here') return v;
+      return localStorage.getItem(ASK_LS) === '1' ? 'us' : '';
+    } catch (e) { return ''; }
   }
-  function markAsked() {
-    try { localStorage.setItem(ASK_LS, '1'); } catch (e) {}
+  function homeSet(v) {
+    try { localStorage.setItem(HOME_LS, v); localStorage.setItem(ASK_LS, '1'); } catch (e) {}
   }
 
   function consent(it, blob) {
+    var gd = GDx();
+    var us = !!F();
     busy = false;
     mode('nrp--vow');
     msg('<b>' + esc(L('حُفظ التسجيلُ على هذا الجهاز',
                       'The recording is saved on this device')) + '</b> ' +
-        '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>' +
+        '<span class="nfo-dim" dir="ltr">' + esc(size(blob.size)) + '</span>' +
         '<span class="nfo-vow">' +
-        esc(L('أتريد حفظَ نسخةٍ عندنا ليفتح على أجهزتك الأخرى؟',
-              'Would you like a copy kept with us so it opens on your other devices?')) +
+        esc(L('أين تريد نسخةً تفتح على أجهزتك؟ نسألك مرّةً واحدة، وتغيّره لكلِّ ' +
+              'تسجيلٍ من قائمتِه.',
+              'Where would you like a copy that opens on your devices? We ask once, ' +
+              'and you can change it per recording from its list.')) +
         '<br><b>' +
-        esc(L('إن حفظتَه عندنا: نحتفظ به طوالَ هذا الفصلِ الدراسيّ، ثمّ يُحذف مع ' +
-              'بدايةِ الفصلِ الجديد — وننبّهك قبل الحذفِ بثلاثةِ أيّامٍ لتصدّر ' +
-              'بياناتِك كاملة.',
-              'If you keep it with us: we hold it for this whole term, then it is ' +
-              'removed when the new term starts — and we warn you three days before ' +
-              'so you can export everything.')) + '</b> ' +
-        esc(L('وإن اخترتَ هذا الجهازَ وحدَه، يبقى التسجيلُ عندك ولا يخرج منه، ' +
-              'ويمكنك رفعُه لاحقاً متى شئت.',
-              'If you choose this device only, the recording stays with you and ' +
-              'never leaves it — and you can upload it later whenever you like.')) +
-        '</span>');
-    acts('<button type="button" class="gsf-btn gsf-btn--go nrec-vow-up">' +
-         '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
-         esc(L('احفظْ نسخةً عندنا', 'Keep a copy with us')) + '</button>' +
+        esc(L('عندنا: يبقى هذا الفصلَ الدراسيَّ ثمّ يُحذف مع بدايةِ الفصلِ الجديد، ' +
+              'وننبّهك قبلَه بثلاثةِ أيّام. وفي درايفك: في مجلّد «الحديقة الرقمية» ' +
+              'بحسابك، بلا حدٍّ منّا.',
+              'With us: it stays for this term, then is removed when the new term ' +
+              'starts — we warn you three days before. In your Drive: in the ' +
+              '"Digital Garden" folder in your account, with no limit from us.')) +
+        '</b></span>');
+    acts((us ? '<button type="button" class="gsf-btn gsf-btn--pri nrec-vow-up">' +
+               '<i class="fa-solid fa-cloud" aria-hidden="true"></i> ' +
+               esc(L('عندنا', 'With us')) + '</button>' : '') +
+         (gd ? '<button type="button" class="gsf-btn nrec-vow-gd">' +
+               '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+               esc(L('في درايفي', 'In my Drive')) + '</button>' : '') +
          '<button type="button" class="gsf-btn gsf-btn--ghost nrec-vow-no">' +
          esc(L('هذا الجهازُ وحدَه', 'This device only')) + '</button>');
-    panel.querySelector('.nrec-vow-up').addEventListener('click', function () {
-      markAsked();
+    var bUs = panel.querySelector('.nrec-vow-up');
+    if (bUs) bUs.addEventListener('click', function () {
+      homeSet('us');
       send(it, blob);
     });
+    var bGd = panel.querySelector('.nrec-vow-gd');
+    if (bGd) bGd.addEventListener('click', function () {
+      homeSet('gd');
+      sendDrive(it, blob, null);
+    });
     panel.querySelector('.nrec-vow-no').addEventListener('click', function () {
-      markAsked();
+      homeSet('here');
       it.aup = 0;
       touch(true);
       settled(it.i);
@@ -793,7 +801,7 @@
               : L('ولم يُحفظ على الجهازِ أيضاً — التسجيلُ ضاع.',
                   'And it was not stored on this device either — the recording is lost.')));
         acts((it.lo
-              ? '<button type="button" class="gsf-btn gsf-btn--go nrec-again2">' +
+              ? '<button type="button" class="gsf-btn gsf-btn--pri nrec-again2">' +
                 '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> ' +
                 esc(L('أعِدِ الرفع', 'Retry')) + '</button>'
               : '') + shutBtn());
@@ -801,6 +809,87 @@
         var ag = panel && panel.querySelector('.nrec-again2');
         if (ag) ag.addEventListener('click', function () { retry(refId); });
       });
+  }
+
+  /*@3.AUNJ.78*/
+  function sendDrive(it, blob, after) {
+    var gd = GDx();
+    if (!gd) { busy = false; render(); return; }
+    busy = true;
+    mode('nrp--busy');
+    msg('<b>' + esc(L('يُرفع إلى درايفك…', 'Uploading to your Drive…')) + '</b> ' +
+        '<span class="nfo-dim" dir="ltr">' + esc(size(blob.size)) + '</span>');
+    acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
+    gd.upload(blob, {
+      name: it.n + ext(it.m, it),
+      mime: it.m,
+      tag: 'aud',
+      onProgress: function (at, of) {
+        var fill = panel && panel.querySelector('.nrec-fill');
+        if (fill && of) fill.style.width = Math.round((at / of) * 100) + '%';
+      }
+    }).then(function (r) {
+      busy = false;
+      it.gd = (r && r.id) || '';
+      it.aup = 0;
+      touch(true);
+      if (after) { after(); return; }
+      settled(it.i);
+    }, function (e) {
+      busy = false;
+      touch(true);
+      render();
+      mode('nrp--bad');
+      msg('<b>' + esc(L('لم يُرفع إلى درايف', 'It was not uploaded to Drive')) + '</b> ' +
+          esc(gd.reason(e)) + ' ' +
+          esc(it.lo ? L('وهو محفوظٌ على هذا الجهازِ — أعِدِ الرفعَ متى شئت.',
+                        'It is stored on this device — retry whenever you like.')
+                    : L('ولم يُحفظ على الجهازِ أيضاً — التسجيلُ ضاع.',
+                        'And it was not stored on this device either — it is lost.')));
+      acts((it.lo ? '<button type="button" class="gsf-btn gsf-btn--pri nrec-again3">' +
+                    '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> ' +
+                    esc(L('أعِدِ الرفع', 'Retry')) + '</button>' : '') + shutBtn());
+      bindShut();
+      var ag = panel && panel.querySelector('.nrec-again3');
+      if (ag) ag.addEventListener('click', function () { retryDrive(it.i); });
+    });
+  }
+
+  function retryDrive(refId) {
+    var st = D();
+    var it = items().filter(function (x) { return x.i === refId; })[0];
+    if (!it) return;
+    if (!st || !it.lo) { gone(); return; }
+    st.get(refId).then(function (b) {
+      if (!b || !b.size) { it.lo = 0; touch(true); gone(); return; }
+      sendDrive(it, b, null);
+    })['catch'](function () { it.lo = 0; touch(true); gone(); });
+  }
+
+  /*@3.AUNJ.80*/
+  function pullDrive(refId, then) {
+    var gd = GDx();
+    var it = items().filter(function (x) { return x.i === refId; })[0];
+    if (!gd || !it || !it.gd) { if (then) then(null); return; }
+    gd.download(it.gd).then(function (blob) {
+      if (!blob || !blob.size) throw new Error('empty');
+      var st = D();
+      var held = st ? st.put(refId, blob, { name: it.n })['catch'](function () { return false; })
+                    : Promise.resolve(false);
+      return held.then(function (okLocal) {
+        it.lo = okLocal ? 1 : 0;
+        it.b = blob.size || it.b;
+        touch(true);
+        if (then) then(blob);
+      });
+    })['catch'](function (e) {
+      if (then) then(null);
+      mode('nrp--bad');
+      msg('<b>' + esc(L('تعذّر جلبُه من درايف', 'It could not be fetched from Drive')) +
+          '</b> ' + esc(gd.reason(e)));
+      acts(shutBtn());
+      bindShut();
+    });
   }
 
   /*@3.AUNJ.66*/
@@ -866,7 +955,7 @@
   /*@3.AUNJ.46*/
   function openList() {
     view = 'list';
-    if (!panel) { shell(); away(); }
+    if (!panel) shell();
     drawList();
     reflow();
   }
@@ -876,10 +965,10 @@
   /*@3.AUNJ.11*/
   /*@3.AUNJ.59*/
   function drawList() {
-    if (!panel) { shell(); away(); }
+    if (!panel) shell();
     if (!panel) return;
     view = 'list';
-    panel.className = 'nrp nrp--list';
+    panel.className = 'gsf-pop nrp nrp--list';
     var list = items();
     msg('<div class="nrp-head">' +
         '<button type="button" class="nrp-back" aria-label="' +
@@ -897,9 +986,10 @@
     /*@3.AUNJ.67*/
     if (!list.length) {
       box.innerHTML = '<p class="nrp-empty">' +
+        '<i class="fa-solid fa-microphone" aria-hidden="true"></i>' +
         esc(L('لا تسجيلَ في هذه الملاحظةِ بعد.',
               'No recordings in this note yet.')) + '</p>';
-      acts('<button type="button" class="gsf-btn gsf-btn--go nrp-back2">' +
+      acts('<button type="button" class="gsf-btn gsf-btn--pri nrp-back2">' +
            esc(L('سجّلْ الآن', 'Record now')) + '</button>');
       var b2 = panel.querySelector('.nrp-back2');
       if (b2) b2.addEventListener('click', function () { view = 'main'; render(); });
@@ -908,31 +998,21 @@
     }
     /*@3.AUNJ.68*/
     box.innerHTML = list.slice().reverse().map(function (x) {
-      /*@3.AUNJ.20*/
-      var can = x.aup || x.lo;
-      var where = x.aup
-        ? { i: 'fa-cloud', s: L('عندنا', 'With us'),
-            t: L('محفوظٌ عندنا · يفتح على أجهزتك جميعاً',
-                 'Kept with us — opens on all your devices') }
-        : (x.lo ? { i: 'fa-mobile-screen', s: L('هذا الجهاز', 'This device'),
-                    t: L('على هذا الجهازِ وحدَه — لا يفتح على غيره',
-                         'On this device only — will not open elsewhere') }
-                : { i: 'fa-link-slash', s: L('لا نسخة', 'No copy'),
-                    t: L('مضت نسختُه من هذا الجهازِ ولم يصل الخادم',
-                         'The device copy is gone and it never reached the server') });
+      var w = whereOf(x);
+      var can = !!(x.aup || x.lo || x.gd);
       return '<div class="nrr' + (can ? '' : ' nrr--gone') + '" data-ref="' + esc(x.i) + '">' +
         '<button type="button" class="nrr-hit nrec-play"' + (can ? '' : ' disabled') +
-          ' aria-label="' + esc(can ? L('استمعْ إلى ', 'Play ') + shortName(x.n)
-                                    : where.t) + '"' +
-          ' title="' + esc(shortName(x.n) + ' — ' + where.t + ' · ' +
+          ' aria-label="' + esc(can ? L('شغّلْ أو أوقفْ ', 'Play or pause ') + shortName(x.n)
+                                    : w.t) + '"' +
+          ' title="' + esc(shortName(x.n) + ' — ' + w.t + ' · ' +
                             size(x.b) + ' · ' + stamp(x.t)) + '">' +
           '<span class="nrr-p" aria-hidden="true">' +
             '<i class="fa-solid ' + (can ? 'fa-play' : 'fa-link-slash') + '"></i></span>' +
           '<span class="nrr-txt">' +
             '<span class="nrr-n">' + esc(shortName(x.n)) + '</span>' +
             '<span class="nrr-m">' +
-              '<i class="fa-solid ' + where.i + '" aria-hidden="true"></i> ' +
-              esc(where.s) + ' · ' + esc(size(x.b)) +
+              '<i class="' + w.i + '" aria-hidden="true"></i>' +
+              esc(w.s) + ' · <span dir="ltr">' + esc(size(x.b)) + '</span>' +
               ' · <span dir="ltr">' + esc(shortStamp(x.t)) + '</span></span>' +
           '</span>' +
           '<span class="nrr-d">' + esc(clock((x.ms || 0) / 1000)) + '</span>' +
@@ -943,17 +1023,24 @@
           '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
         '<div class="nrr-s nrec-row-p">' +
           /*@3.AUNJ.76*/
-          ((x.aup || !x.lo) ? '' :
+          ((x.aup || x.gd || !x.lo) ? '' :
             '<button type="button" class="gsf-btn gsf-btn--sm nrec-retry">' +
             '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
-            esc(L('احفظْه عندنا', 'Keep it with us')) + '</button>') +
+            esc(L('احفظْه عندنا', 'Keep it with us')) + '</button>' +
+            (GDx() ? '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrec-togd">' +
+                     '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+                     esc(L('في درايفي', 'In my Drive')) + '</button>' : '')) +
+          ((x.gd && !x.lo && !x.aup)
+            ? '<button type="button" class="gsf-btn gsf-btn--sm nrec-link">' +
+              '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+              esc(L('اربطْ درايف هنا', 'Link Drive here')) + '</button>' : '') +
         '</div></div>';
     }).join('');
 
     /*@3.AUNJ.69*/
-    var up = list.filter(function (x) { return !x.aup && x.lo; }).length;
+    var up = list.filter(function (x) { return !x.aup && !x.gd && x.lo; }).length;
     var tot = list.reduce(function (a, x) { return a + (Number(x.b) || 0); }, 0);
-    var upn = list.filter(function (x) { return x.aup; }).length;
+    var upn = list.filter(function (x) { return x.aup || x.gd; }).length;
     acts('<span class="nrp-sum">' +
          esc(L('على أجهزتك جميعاً ', 'On all your devices ')) +
          '<b dir="ltr">' + upn + '/' + list.length + '</b>' +
@@ -978,17 +1065,62 @@
       if (play) play.addEventListener('click', function (e) {
         e.stopPropagation();
         if (play.disabled) return;
-        Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (o) {
-          if (o !== row) { o.classList.remove('on'); stopRow(o); }
-        });
-        row.classList.add('on');
-        play_(ref, row);
+        hit(ref, row, box);
       });
       var again = row.querySelector('.nrec-retry');
       if (again) again.addEventListener('click', function (e) {
         e.stopPropagation(); retry(ref);
       });
+      var togd = row.querySelector('.nrec-togd');
+      if (togd) togd.addEventListener('click', function (e) {
+        e.stopPropagation(); retryDrive(ref);
+      });
+      var link = row.querySelector('.nrec-link');
+      if (link) link.addEventListener('click', function (e) {
+        e.stopPropagation();
+        link.disabled = true;
+        link.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ' +
+                         esc(L('يُجلب…', 'Fetching…'));
+        pullDrive(ref, function (blob) { if (blob) drawList(); });
+      });
     });
+  }
+
+  /*@3.AUNJ.20*/
+  function whereOf(x) {
+    if (x.aup) {
+      return { i: 'fa-solid fa-cloud', s: L('عندنا', 'With us'),
+               t: L('محفوظٌ عندنا · يفتح على أجهزتك جميعاً',
+                    'Kept with us — opens on all your devices') };
+    }
+    if (x.gd) {
+      return { i: 'fa-brands fa-google-drive', s: L('في درايفك', 'In your Drive'),
+               t: x.lo ? L('في درايفك وعلى هذا الجهاز', 'In your Drive and on this device')
+                       : L('في درايفك — على جهازٍ آخر', 'In your Drive — on another device') };
+    }
+    if (x.lo) {
+      return { i: 'fa-solid fa-mobile-screen', s: L('هذا الجهاز', 'This device'),
+               t: L('على هذا الجهازِ وحدَه — لا يفتح على غيره',
+                    'On this device only — will not open elsewhere') };
+    }
+    return { i: 'fa-solid fa-link-slash', s: L('لا نسخة', 'No copy'),
+             t: L('مضت نسختُه من هذا الجهازِ ولم يصل الخادم',
+                  'The device copy is gone and it never reached the server') };
+  }
+
+  /*@3.AUNJ.82*/
+  function hit(ref, row, box) {
+    var slot = row.querySelector('.nrec-row-p');
+    if (slot && slot._audio && row.classList.contains('on')) {
+      var a = slot._audio;
+      if (a.paused) { a.play()['catch'](function () {}); } else { a.pause(); }
+      return;
+    }
+    Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (o) {
+      if (o !== row) { o.classList.remove('on'); stopRow(o); }
+    });
+    row.classList.add('on');
+    play_(ref, row);
   }
 
   /*@3.AUNJ.72*/
@@ -1030,7 +1162,7 @@
 
   /*@3.AUNJ.73*/
   function sendRest() {
-    var rest = items().filter(function (x) { return !x.aup && x.lo; });
+    var rest = items().filter(function (x) { return !x.aup && !x.gd && x.lo; });
     if (!rest.length || busy) return;
     var i = 0;
     var next = function () {
@@ -1066,6 +1198,16 @@
       });
       return;
     }
+    if (it && it.gd && !it.aup) {
+      slot.innerHTML = '<span class="nfo-dim">' +
+        esc(L('يُجلب من درايف…', 'Fetching from Drive…')) + '</span>';
+      pullDrive(refId, function (blob) {
+        if (!blob) { slot.innerHTML = ''; return; }
+        urls[refId] = URL.createObjectURL(blob);
+        mountAudio(slot, urls[refId]);
+      });
+      return;
+    }
     var f = F();
     if (!f) { slot.innerHTML = ''; return; }
     f.link(refId).then(function (l) {
@@ -1091,6 +1233,7 @@
     return (Math.round(v * 100) / 100).toString().replace(/\.00?$/, '') + '\u00d7';
   }
 
+  /*@3.AUNJ.79*/
   function mountAudio(slot, url) {
     slot.innerHTML =
       '<div class="nrec-pl">' +
@@ -1163,8 +1306,30 @@
     icon();
     time();
     slot._audio = a;
+    live = a;
     a.play()['catch'](function () {});
   }
+
+  /*@3.AUNJ.81*/
+  var live = null;
+
+  function typing(el) {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    var n = (el.tagName || '').toLowerCase();
+    return n === 'input' || n === 'textarea' || n === 'select' || n === 'button';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!live || !live.src) return;
+    if (typing(e.target) || typing(document.activeElement)) return;
+    var sel = window.getSelection && window.getSelection();
+    if (sel && String(sel).length) return;
+    e.preventDefault();
+    if (live.paused) { live.play()['catch'](function () {}); } else { live.pause(); }
+  });
 
   function remove(refId, row) {
     var f = F();
@@ -1174,6 +1339,7 @@
     delete urls[refId];
     if (row && row.parentNode) row.parentNode.removeChild(row);
     if (f && it && it.aup) { try { f.remove(refId); } catch (e) {} }
+    if (it && it.gd) { var g = GDx(); if (g && g.trash) { try { g.trash(it.gd); } catch (e2) {} } }
     /*@3.AUNJ.22*/
     var st = D();
     if (st && it && it.lo) st.drop(refId)['catch'](function () {});

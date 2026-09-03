@@ -238,7 +238,11 @@
       var GD = window.GardenDrive;
       if (!GD || !GD.enabled()) return '';
       if (!sp.gd && !GD.pickerEnabled()) return '';
-      return '<button type="button" class="gsf-btn gsf-btn--go npo-drive">' +
+      /*@3.NOPJ5.35*/
+      /*@3.NOPJ5.36*/
+      if (GD.warm) { try { GD.warm(); } catch (eW) {} }
+      return '<button type="button" class="gsf-btn' +
+        (sp.gd ? ' gsf-btn--pri' : '') + ' npo-drive">' +
         '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
         esc(sp.gd ? L('افتحْ من درايف', 'Open from Drive')
                   : L('من قوقل درايف', 'From Google Drive')) + '</button> ';
@@ -257,7 +261,7 @@
         (sp.sz ? '<br>' + num(size(sp.sz)) +
           (sp.pg ? ' · ' + num(String(sp.pg)) + ' ' + esc(L('صفحة', 'pages')) : '') : ''),
         dd +
-        '<button type="button" class="gsf-btn ' + (dd ? '' : 'gsf-btn--go') + ' npo-pick">' +
+        '<button type="button" class="gsf-btn' + (dd ? '' : ' gsf-btn--pri') + ' npo-pick">' +
         '<i class="fa-solid fa-file-import" aria-hidden="true"></i> ' +
         esc(L('من جهازي', 'From my device')) + '</button>');
       var b = stage.querySelector('.npo-pick');
@@ -430,7 +434,7 @@
         if (window.GardenFilesPdf && sp.h) {
           window.GardenFilesPdf.offer(root, sp.h, sp.n || '', function () {
             return file || (window.GardenPdfDoc ? window.GardenPdfDoc.get(sp.h) : null);
-          });
+          }, sp.gd || null);
         }
       }, function (e) {
         if (st.dead) return;

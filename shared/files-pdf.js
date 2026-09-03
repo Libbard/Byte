@@ -3,6 +3,7 @@
   'use strict';
 
   var SEEN_LS = '__filesOffer';
+  var VOW_LS = '__filesVow';
 
   function isAr() {
     return (document.documentElement.lang ||
@@ -20,11 +21,18 @@
     while (v >= 1024 && i < 2) { v /= 1024; i++; }
     return (i === 0 || v >= 100 ? Math.round(v) : v.toFixed(1)) + ' ' + u[i];
   }
+  function day(t) {
+    var d = new Date(t);
+    if (!d.getTime()) return '';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
 
   /*@3.FIPJ.2*/
   function refIdOf(h) { return 'pdf_' + String(h || '').slice(0, 40); }
 
   function F() { return window.GardenFiles || null; }
+  function GD() { return window.GardenDrive || null; }
+  function P() { return window.GardenPop || null; }
 
   function seen() {
     try { return JSON.parse(localStorage.getItem(SEEN_LS) || '{}') || {}; }
@@ -35,6 +43,9 @@
       var o = seen(); o[refIdOf(h)] = 1;
       localStorage.setItem(SEEN_LS, JSON.stringify(o));
     } catch (e) {}
+  }
+  function vowed() {
+    try { return localStorage.getItem(VOW_LS) === '1'; } catch (e) { return false; }
   }
 
   /*@3.FIPJ.3*/
@@ -52,109 +63,107 @@
     })['catch'](function () { return null; });
   }
 
-  /*@3.FIPJ.17*/
-  var liveRoot = null, liveT = 0, liveOn = null;
+  /*@3.FIPJ.13*/
+  var cur = null;
+  var pop = null;
+  var guard = null;
+  var unsettle = null;
+  var busy = false;
+  var prog = 0;
+  var ac = null;
+  var doneT = 0;
 
-  function clearT() { if (liveT) { clearTimeout(liveT); liveT = 0; } }
+  function anchor() { return document.getElementById('na-cloud'); }
 
-  /*@3.FIPJ.18*/
-  function ttl(el, ms) {
-    clearT();
-    if (!el || !(ms > 0)) return;
-    var left = ms, from = Date.now();
-    var tick = function () { liveT = setTimeout(function () { close(liveRoot); }, left); };
-    var hold = function () {
-      left = Math.max(1200, left - (Date.now() - from));
-      clearT();
-    };
-    var go = function () { from = Date.now(); tick(); };
-    el.addEventListener('pointerenter', hold);
-    el.addEventListener('focusin', hold);
-    el.addEventListener('pointerleave', go);
-    el.addEventListener('focusout', go);
-    tick();
+  function repaint() {
+    var A = window.GardenNotesApp;
+    if (A && A.repaintCloud) { try { A.repaintCloud(); } catch (e) {} }
   }
 
-  function watch(root) {
-    liveRoot = root;
-    if (liveOn) return;
-    liveOn = {
-      key: function (e) {
-        if (e.key !== 'Escape' || !liveRoot) return;
-        var el = liveRoot.querySelector('.nfo');
-        if (!el || el.classList.contains('nfo--busy')) return;
-        e.stopPropagation();
-        close(liveRoot);
-      },
-      out: function (e) {
-        if (!liveRoot) return;
-        var el = liveRoot.querySelector('.nfo');
-        if (!el || el.contains(e.target)) return;
-        if (el.classList.contains('nfo--busy')) return;
-        close(liveRoot);
-      }
-    };
-    document.addEventListener('keydown', liveOn.key, true);
-    document.addEventListener('pointerdown', liveOn.out, true);
+  /*@3.FIPJ.34*/
+  function flash() {
+    var b = anchor();
+    if (!b) return;
+    clearTimeout(doneT);
+    b.setAttribute('data-done', '1');
+    doneT = setTimeout(function () {
+      var c = anchor();
+      if (c) c.removeAttribute('data-done');
+    }, 3000);
   }
 
-  function bar(root) {
-    var el = root.querySelector('.nfo');
-    if (el) return el;
-    el = document.createElement('div');
-    el.className = 'nfo';
-    el.setAttribute('role', 'status');
-    root.insertBefore(el, root.firstChild);
-    watch(root);
+  function shut() {
+    if (guard) { guard.off(); guard = null; }
+    if (unsettle) { unsettle(); unsettle = null; }
+    if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+    pop = null;
+    var b = anchor();
+    if (b) b.setAttribute('aria-expanded', 'false');
+  }
+
+  function open() {
+    if (pop && pop.parentNode) return pop;
+    pop = document.createElement('div');
+    pop.className = 'gsf-pop nfp';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', L('نسخةُ الملفّ', 'File copy'));
+    document.body.appendChild(pop);
+    var b = anchor();
+    var fb = (cur && cur.root) || null;
+    var pp = P();
+    if (pp) {
+      pp.place(pop, b, fb);
+      unsettle = pp.settle(pop, b, fb);
+    }
+    if (b) b.setAttribute('aria-expanded', 'true');
+    return pop;
+  }
+
+  /*@3.FIPJ.30*/
+  function paint(cls, html, ttl) {
+    var el = open();
+    el.className = 'gsf-pop nfp ' + cls;
+    el.innerHTML = html;
+    var b = anchor();
+    var pp = P();
+    if (pp) pp.place(el, b, (cur && cur.root) || null);
+    if (guard) { guard.off(); guard = null; }
+    if (pp) {
+      guard = pp.watch(el, {
+        close: shut,
+        ttl: ttl || 0,
+        skip: function (t) { return !!(b && b.contains(t)); }
+      });
+    }
+    var x = el.querySelector('.nfp-no');
+    if (x) x.addEventListener('click', shut);
     return el;
   }
 
-  function close(root) {
-    clearT();
-    if (!root) return;
-    var el = root.querySelector('.nfo');
-    if (el && el.parentNode) el.parentNode.removeChild(el);
+  function shutBtn(label) {
+    return '<button type="button" class="gsf-btn gsf-btn--ghost nfp-no" aria-label="' +
+      esc(label || L('إغلاق', 'Dismiss')) + '"' +
+      ' data-ar-title="إغلاق" data-en-title="Dismiss">' +
+      '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
   }
 
-  /*@3.FIPJ.12*/
-  var last = null;
-
-  /*@3.FIPJ.16*/
-  var VOW_LS = '__filesVow';
-
-  function vowed() {
-    try { return localStorage.getItem(VOW_LS) === '1'; } catch (e) { return false; }
-  }
-
-  function promise(root, r) {
-    if (!last || !last.line) return;
-    var head = (r && r.deduped)
-      ? L('كان عندنا سلفاً — لم نحتج إلى رفعه',
-          'It was already here — no upload was needed')
-      : L('حُفظت نسخةٌ عندنا', 'A copy is now kept with us');
-    var said = vowed();
-    var el = last.line('fa-cloud', 'nfo--ok' + (said ? '' : ' nfo--vow'),
-      '<b>' + esc(head) + '</b> ' +
-      esc(L('· يفتح الآن على أجهزتك الأخرى.',
-            '· it now opens on your other devices.')) +
-      ((r && r.bytes) ? ' <span class="nfo-dim">' + esc(size(r.bytes)) + '</span>' : '') +
-      (said ? '' :
-        '<span class="nfo-vow">' +
-        '<b>' + esc(L('نضمن حفظَ الملفِّ ثلاثةَ أيّامٍ على الأقلّ.',
-                      'We guarantee this file for at least three days.')) + '</b> ' +
-        esc(L('وبعدها — إذا امتلأت مساحتُنا — نحذف الأقدمَ أوّلاً.',
-              'After that, if our space fills up, we remove the oldest first.')) +
-        '<br>' +
-        esc(L('أمّا رسومُك وملاحظاتُك فمحفوظةٌ باستمرارٍ إن شاء الله ولا تُحذف. ' +
-              'الملفُّ الأصلُ وحدَه هو ما قد يُحذف، وتستطيع اختيارَه من جهازك متى شئت.',
-              'Your drawings and notes are kept continuously and are never deleted. ' +
-              'Only the original file may be removed, and you can pick it again from ' +
-              'your device whenever you like.')) +
-        '</span>'));
-    /*@3.FIPJ.29*/
-    if (said) { ttl(el, 7000); return; }
-    try { localStorage.setItem(VOW_LS, '1'); } catch (e) {}
-    if (el) { el.setAttribute('role', 'alert'); ttl(el, 20000); }
+  function markIcon(kind) {
+    if (kind === 'us') {
+      return '<i class="fa-solid fa-cloud nfp-i" aria-hidden="true"></i>';
+    }
+    if (kind === 'drive') {
+      return '<i class="fa-brands fa-google-drive nfp-i" aria-hidden="true"></i>';
+    }
+    if (kind === 'up') {
+      return '<i class="fa-solid fa-cloud-arrow-up nfp-i" aria-hidden="true"></i>';
+    }
+    if (kind === 'bad') {
+      return '<i class="fa-solid fa-triangle-exclamation nfp-i" aria-hidden="true"></i>';
+    }
+    if (kind === 'wait') {
+      return '<i class="fa-solid fa-circle-notch fa-spin nfp-i" aria-hidden="true"></i>';
+    }
+    return '<i class="fa-solid fa-cloud nfp-i na-hollow" aria-hidden="true"></i>';
   }
 
   /*@3.FIPJ.23*/
@@ -192,256 +201,433 @@
            (why ? ' (' + why + ')' : '') + '.';
   }
 
+  /*@3.FIPJ.19*/
+  function sayDevice() {
+    var gd = GD();
+    var can = !!(gd && gd.enabled());
+    if (can && gd.warm) { try { gd.warm(); } catch (e) {} }
+    paint('nfp--say',
+      markIcon('here') +
+      '<div class="nfp-txt"><b>' +
+      esc(L('على هذا الجهازِ وحدَه', 'On this device only')) + '</b>' +
+      '<span>' + esc(L('احفظْ نسخةً لتفتحه على أجهزتك',
+                       'Keep a copy to open it on your devices')) + '</span></div>' +
+      '<button type="button" class="gsf-btn gsf-btn--pri nfp-us">' +
+      esc(L('احفظْ عندنا', 'Keep with us')) + '</button>' +
+      (can ? '<button type="button" class="gsf-btn nfp-gd" aria-label="' +
+             esc(L('احفظْ في درايفي', 'Save to my Drive')) + '"' +
+             ' data-ar-title="احفظْ في درايفي" data-en-title="Save to my Drive">' +
+             '<i class="fa-brands fa-google-drive" aria-hidden="true"></i></button>' : '') +
+      shutBtn());
+    bind('.nfp-us', function () { toUs(false); });
+    bind('.nfp-gd', toDrive);
+  }
+
   /*@3.FIPJ.11*/
+  function sayUp() {
+    var pc = Math.round(prog * 100);
+    var el = paint('nfp--say nfp--prog',
+      markIcon('up') +
+      '<div class="nfp-txt"><b>' +
+      esc(L('يُرفع ', 'Uploading ')) + '<span dir="ltr">' + pc + '%</span></b>' +
+      '<span>' + esc(L('واصِلْ عملَك — رسومُك مستقلّةٌ عن أصلِ الملفّ.',
+                       'Keep working — your drawings are independent of the file.')) +
+      '</span></div>' +
+      '<button type="button" class="gsf-btn gsf-btn--ghost nfp-kill">' +
+      esc(L('ألغِ', 'Cancel')) + '</button>');
+    el.style.setProperty('--p', pc + '%');
+    bind('.nfp-kill', function () {
+      if (ac) { try { ac.abort(); } catch (e) {} }
+      busy = false;
+      repaint();
+      shut();
+    });
+    return el;
+  }
+
+  function tick() {
+    if (!pop || !busy) return;
+    var pc = Math.round(prog * 100);
+    pop.style.setProperty('--p', pc + '%');
+    var b = pop.querySelector('.nfp-txt b span');
+    if (b) b.textContent = pc + '%';
+  }
+
+  /*@3.FIPJ.33*/
+  function cardUs(bytes, when, both) {
+    paint('nfp--card',
+      '<div class="nfp-head">' + markIcon(both ? 'us' : 'us') + '<b>' +
+      esc(both ? L('محفوظٌ عندنا وفي درايفك', 'Kept with us and in your Drive')
+               : L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '</b>' +
+      shutBtn() + '</div>' +
+      '<span class="nfp-sub">' +
+      (bytes ? '<span dir="ltr">' + esc(size(bytes)) + '</span> · ' : '') +
+      (when ? esc(L('منذ ', 'since ')) + '<span dir="ltr">' + esc(day(when)) + '</span> · ' : '') +
+      esc(L('يفتح على أجهزتك جميعاً.', 'it opens on all your devices.')) + '</span>' +
+      '<div class="nfp-acts">' +
+      '<button type="button" class="gsf-btn nfp-swap">' +
+      '<i class="fa-solid fa-rotate" aria-hidden="true"></i> ' +
+      esc(L('استبدلْه', 'Replace it')) + '</button>' +
+      '<button type="button" class="gsf-btn gsf-btn--ghost nfp-drop">' +
+      esc(L('احذفِ النسخة', 'Delete the copy')) + '</button></div>');
+    bind('.nfp-swap', swap);
+    bind('.nfp-drop', askDrop);
+  }
+
+  function cardDrive() {
+    paint('nfp--card',
+      '<div class="nfp-head">' + markIcon('drive') + '<b>' +
+      esc(L('نسخةٌ في درايفك', 'A copy is in your Drive')) + '</b>' + shutBtn() + '</div>' +
+      '<span class="nfp-sub">' +
+      esc(L('في مجلّد «الحديقة الرقمية» بحسابك — ولا نرى من درايفك إلا ما أنشأناه.',
+            'In the "Digital Garden" folder in your account — we only ever see what '
+            + 'we created there.')) + '</span>' +
+      '<div class="nfp-acts">' +
+      '<button type="button" class="gsf-btn gsf-btn--pri nfp-us">' +
+      '<i class="fa-solid fa-cloud" aria-hidden="true"></i> ' +
+      esc(L('احفظْ عندنا أيضاً', 'Keep with us too')) + '</button>' +
+      '<button type="button" class="gsf-btn gsf-btn--ghost nfp-swap">' +
+      esc(L('استبدلْه', 'Replace it')) + '</button></div>');
+    bind('.nfp-us', function () { toUs(false); });
+    bind('.nfp-swap', swap);
+  }
+
+  /*@3.FIPJ.22*/
+  function bad(why) {
+    paint('nfp--card',
+      '<div class="nfp-head">' + markIcon('bad') + '<b>' +
+      esc(L('لم تُحفظِ النسخة', 'The copy was not saved')) + '</b>' + shutBtn() + '</div>' +
+      '<span class="nfp-sub">' + esc(why) + '</span>', 12000);
+  }
+
+  /*@3.FIPJ.21*/
+  function wait() {
+    paint('nfp--say', markIcon('wait') +
+      '<div class="nfp-txt"><b>' + esc(L('يُسأل عنه…', 'Checking…')) + '</b></div>');
+  }
+
+  function bind(sel, fn) {
+    var b = pop && pop.querySelector(sel);
+    if (b) b.addEventListener('click', fn);
+  }
+
+  /*@3.FIPJ.15*/
+  /*@3.FIPJ.16*/
+  function vow() {
+    if (vowed()) return false;
+    try { localStorage.setItem(VOW_LS, '1'); } catch (e) {}
+    paint('nfp--card',
+      '<div class="nfp-head">' + markIcon('us') + '<b>' +
+      esc(L('حُفظت نسخةٌ عندنا', 'A copy is now kept with us')) + '</b>' +
+      shutBtn() + '</div>' +
+      '<span class="nfp-sub">' +
+      '<b>' + esc(L('نضمن حفظَ الملفِّ ثلاثةَ أيّامٍ على الأقلّ.',
+                    'We guarantee this file for at least three days.')) + '</b> ' +
+      esc(L('وبعدها — إذا امتلأت مساحتُنا — نحذف الأقدمَ أوّلاً. أمّا رسومُك وملاحظاتُك '
+            + 'فمحفوظةٌ باستمرارٍ ولا تُحذف، والأصلُ وحدَه هو ما قد يُحذف وتختاره من '
+            + 'جهازك متى شئت.',
+            'After that, if our space fills up, we remove the oldest first. Your '
+            + 'drawings and notes are kept continuously and are never deleted — only '
+            + 'the original file may go, and you can pick it again any time.')) +
+      '</span>', 20000);
+    return true;
+  }
+
+  function grab() {
+    if (!cur || !cur.getFile) return Promise.resolve(null);
+    try { return Promise.resolve(cur.getFile())['catch'](function () { return null; }); }
+    catch (e) { return Promise.resolve(null); }
+  }
+
+  /*@3.FIPJ.27*/
+  function toUs(over) {
+    grab().then(function (file) {
+      if (!file) {
+        bad(L('تعذّرت قراءةُ الملفِّ من هذا الجهاز.',
+              'The file could not be read from this device.'));
+        return;
+      }
+      run(file, over);
+    });
+  }
+
+  function run(file, over) {
+    var h = cur.h;
+    var refId = refIdOf(h);
+    busy = true; prog = 0;
+    repaint();
+    shut();
+    ac = window.AbortController ? new AbortController() : null;
+
+    /*@3.FIPJ.10*/
+    function on(e) {
+      var d = e.detail || {};
+      if (d.ref_id !== refId) return;
+      if (d.of) prog = Math.max(0, Math.min(1, d.at / d.of));
+      if (d.stage === 'deduped' || d.stage === 'commit') prog = 1;
+      tick();
+    }
+    window.addEventListener('garden:fileProgress', on);
+
+    F().upload(file, { refId: refId, name: cur.name || file.name || 'file.pdf',
+                       mime: 'application/pdf',
+                       over: !!over, signal: ac ? ac.signal : null })
+      .then(function (r) {
+        window.removeEventListener('garden:fileProgress', on);
+        busy = false;
+        markSeen(h);
+        try {
+          window.dispatchEvent(new CustomEvent('garden:fileUploaded',
+            { detail: { ref_id: refId, h: h, bytes: r.bytes, to: 'us' } }));
+        } catch (e) {}
+        repaint();
+        flash();
+        if (!vow()) shut();
+      }, function (e) {
+        window.removeEventListener('garden:fileProgress', on);
+        busy = false;
+        repaint();
+        if (e && (e.error === 'too_large' || e.error === 'over_exhausted')) {
+          big(e, file); return;
+        }
+        if (e && /aborted/.test(e.message || '')) { shut(); return; }
+        bad(reason(e));
+      });
+  }
+
+  /*@3.FIPJ.32*/
+  function toDrive() {
+    var gd = GD();
+    if (!gd || !gd.enabled()) return;
+    grab().then(function (file) {
+      if (!file) {
+        bad(L('تعذّرت قراءةُ الملفِّ من هذا الجهاز.',
+              'The file could not be read from this device.'));
+        return;
+      }
+      var h = cur.h;
+      busy = true; prog = 0;
+      repaint();
+      shut();
+      ac = window.AbortController ? new AbortController() : null;
+      gd.upload(file, {
+        name: cur.name || file.name || 'file.pdf',
+        mime: 'application/pdf',
+        sha: h,
+        tag: 'pdf',
+        signal: ac ? ac.signal : null,
+        onProgress: function (at, of) {
+          if (of) { prog = Math.max(0, Math.min(1, at / of)); tick(); }
+        }
+      }).then(function (r) {
+        busy = false;
+        if (cur && cur.h === h) cur.gd = (r && r.id) || null;
+        try {
+          window.dispatchEvent(new CustomEvent('garden:fileDrive',
+            { detail: { h: h, id: r && r.id, name: r && r.name } }));
+        } catch (e) {}
+        repaint();
+        flash();
+        shut();
+      }, function (e) {
+        busy = false;
+        repaint();
+        var k = (e && (e.code || e.message)) || '';
+        if (/aborted/.test(k)) { shut(); return; }
+        bad(gd.reason(e));
+      });
+    });
+  }
+
+  /*@3.FIPJ.31*/
+  function swap() {
+    var A = window.GardenNotesApp;
+    shut();
+    if (A && A.relinkPdf) { try { A.relinkPdf(); return; } catch (e) {} }
+    var O = window.GardenPdfOpen;
+    if (!O) return;
+    O.pickFile().then(function (f) { if (f) toUs(true); });
+  }
+
+  function askDrop() {
+    paint('nfp--card',
+      '<div class="nfp-head">' + markIcon('us') + '<b>' +
+      esc(L('تُحذف النسخةُ من عندنا؟', 'Delete the copy kept with us?')) + '</b>' +
+      shutBtn() + '</div>' +
+      '<span class="nfp-sub">' +
+      esc(L('يبقى الملفُّ على هذا الجهازِ ورسومُك كما هي — ولن يفتح على أجهزتك الأخرى.',
+            'The file stays on this device and your drawings are untouched — it just '
+            + 'will not open on your other devices.')) + '</span>' +
+      '<div class="nfp-acts">' +
+      '<button type="button" class="gsf-btn nfp-yes">' +
+      esc(L('احذفْ', 'Delete')) + '</button>' +
+      '<button type="button" class="gsf-btn gsf-btn--ghost nfp-nope">' +
+      esc(L('تراجعْ', 'Keep')) + '</button></div>');
+    bind('.nfp-nope', function () { ask(true); });
+    bind('.nfp-yes', function () {
+      var f = F();
+      var h = cur && cur.h;
+      if (!f || !h) { shut(); return; }
+      wait();
+      f.remove(refIdOf(h)).then(function () {
+        try {
+          window.dispatchEvent(new CustomEvent('garden:fileDropped',
+            { detail: { ref_id: refIdOf(h), h: h } }));
+        } catch (e) {}
+        repaint();
+        if (cur && cur.gd) cardDrive(); else sayDevice();
+      }, function (e) { bad(reason(e)); });
+    });
+  }
+
+  /*@3.FIPJ.9*/
+  function big(e, file) {
+    if (e.error === 'too_large' && !e.over_max) {
+      bad(L('حجمُ الملفِّ ' + size(e.bytes) + ' ويتجاوز الحدَّ الأقصى ' + size(e.max) + '.',
+            'The file is ' + size(e.bytes) + ', over the hard limit of ' + size(e.max) + '.'));
+      return;
+    }
+    if (e.error === 'over_exhausted' || !(e.over_left > 0)) {
+      bad(L('حجمُ الملفِّ ' + size(e.bytes) + ' والحدُّ ' + size(e.max) +
+            ' · وقد استنفدتَ تجاوزاتِ هذا الفصل.',
+            'The file is ' + size(e.bytes) + ' and the limit is ' + size(e.max) +
+            ' · you have used all of this term’s exceptions.'));
+      return;
+    }
+    paint('nfp--card',
+      '<div class="nfp-head">' + markIcon('bad') + '<b>' +
+      esc(L('حجمُ الملفِّ ' + size(e.bytes) + ' والحدُّ ' + size(e.max),
+            'The file is ' + size(e.bytes) + '; the limit is ' + size(e.max))) + '</b>' +
+      shutBtn() + '</div>' +
+      '<span class="nfp-sub">' +
+      esc(L('ولك في كلِّ فصلٍ ' + e.over_of + ' ملفّاتٍ حتى ' + size(e.over_max) +
+            '، بقي لك ' + e.over_left + '.',
+            'Each term you may upload ' + e.over_of + ' files up to ' + size(e.over_max) +
+            '; ' + e.over_left + ' left.')) + '</span>' +
+      '<div class="nfp-acts">' +
+      '<button type="button" class="gsf-btn gsf-btn--pri nfp-go">' +
+      esc(L('ارفعْه واحسبْها', 'Use one and upload')) + '</button></div>');
+    bind('.nfp-go', function () { run(file, true); });
+  }
+
+  /*@3.FIPJ.6*/
+  function reason(e) {
+    var k = (e && (e.error || e.message)) || '';
+    if (k === 'too_many_files') {
+      return L('بلغتَ عددَ الملفّاتِ المسموحِ في حسابك.',
+               'You have reached the file count limit on your account.');
+    }
+    if (k === 'hash_mismatch') {
+      return L('ما وصلنا يخالف ما أُرسل — أعِدْ المحاولة.',
+               'What arrived differs from what was sent — please try again.');
+    }
+    if (k === 'not_found' || k === 'files_not_configured') {
+      return excuse(k === 'not_found' ? 'not_enrolled' : 'not_configured');
+    }
+    /*@3.FIPJ.28*/
+    if (k === 'no_vault') return excuse('no_vault');
+    if (k === 'bad_mime') {
+      return L('هذه الصيغةُ لا نقبلها بعد' + (e && e.mime ? ' (' + e.mime + ')' : '') + '.',
+               'We do not accept this format yet' +
+               (e && e.mime ? ' (' + e.mime + ')' : '') + '.');
+    }
+    if (k === 'vault_full') {
+      return L('امتلأت مساحتُك عندنا. احذفْ ملفّاً قديماً ثمَّ أعِدْ المحاولة.',
+               'Your space with us is full. Remove an old file, then try again.');
+    }
+    if (k === 'not_uploaded') {
+      return L('انقطع الرفعُ قبل أن يصل شيء — أعِدْ المحاولة.',
+               'The upload stopped before anything arrived — please try again.');
+    }
+    if (k === 'rate_limited') return excuse('rate_limited');
+    if (/^put_/.test(k)) {
+      return L('انقطع الاتّصالُ أثناء الرفع — أعِدْ المحاولة.',
+               'The connection dropped during upload — please try again.');
+    }
+    return L('تعذّر الرفع.', 'Upload failed.');
+  }
+
   /*@3.FIPJ.24*/
-  function ask() {
-    if (!last) return false;
+  function ask(force) {
+    if (!cur) return false;
+    if (pop && pop.parentNode && !force) { shut(); return true; }
+    if (busy) { sayUp(); return true; }
     var f = F();
-    if (!f) return false;
-    var h = last.h, mine = last;
-    mine.wait();
+    var gdId = cur.gd || null;
+    if (!f) {
+      if (gdId) cardDrive(); else sayDevice();
+      return true;
+    }
+    var mine = cur;
+    wait();
     f.state().then(function (a) {
-      if (mine !== last) return;
-      if (!a.ok) { mine.no(a.why); return; }
+      /*@3.FIPJ.12*/
+      if (mine !== cur || !pop) return;
+      if (!a.ok) {
+        if (gdId) { cardDrive(); return; }
+        bad(excuse(a.why));
+        return;
+      }
       var row = (a.files || []).filter(function (x) {
-        return x.ref_id === refIdOf(h);
+        return x.ref_id === refIdOf(mine.h);
       })[0];
-      if (row) { mine.have(row.stored_bytes); return; }
-      mine.draw();
+      if (row) { cardUs(row.stored_bytes, row.created_at, !!gdId); return; }
+      if (gdId) { cardDrive(); return; }
+      sayDevice();
     })['catch'](function (e) {
-      if (mine === last) mine.no((e && e.message) || '');
+      if (mine !== cur || !pop) return;
+      bad(reason(e));
     });
     return true;
   }
 
   /*@3.FIPJ.25*/
   function forget() {
-    if (last && last.root) close(last.root);
-    last = null;
-    liveRoot = null;
+    shut();
+    cur = null;
+    busy = false;
+    prog = 0;
+    clearTimeout(doneT);
+    var b = anchor();
+    if (b) b.removeAttribute('data-done');
   }
 
-  function state(h) {
-    return !!(last && last.h === h);
-  }
+  function state(h) { return !!(cur && cur.h === h); }
 
   /*@3.FIPJ.5*/
+  /*@3.FIPJ.8*/
+  /*@3.FIPJ.14*/
   /*@3.FIPJ.26*/
-  function offer(root, h, name, getFile) {
+  function offer(root, h, name, getFile, gd) {
     var f = F();
-    if (!f || !h || !root) return;
+    if (!h) return;
+    cur = { root: root || null, h: h, name: name || '', getFile: getFile, gd: gd || null };
+    busy = false;
+    prog = 0;
+    repaint();
+    if (!f) return;
 
     f.state().then(function (a) {
+      if (!cur || cur.h !== h) return;
       if (!a.ok) return;
       var mine = (a.files || []).filter(function (x) { return x.ref_id === refIdOf(h); })[0];
-      /*@3.FIPJ.8*/
-      /*@3.FIPJ.14*/
-      if (mine) { markSeen(h); return; }
+      if (mine) { markSeen(h); repaint(); return; }
+      if (cur.gd) return;
       if (seen()[refIdOf(h)]) return;
-      draw();
-    })['catch'](function () {});
-
-    /*@3.FIPJ.19*/
-    function line(icon, cls, html, acts, label) {
-      var el = bar(root);
-      el.className = 'nfo' + (cls ? ' ' + cls : '');
-      el.innerHTML =
-        '<i class="fa-solid ' + icon + ' nfo-i" aria-hidden="true"></i>' +
-        '<div class="nfo-txt">' + html + '</div>' +
-        '<div class="nfo-acts">' + (acts || '') +
-        '<button type="button" class="gsf-btn gsf-btn--ghost nfo-no" aria-label="' +
-        esc(label || L('إغلاق', 'Dismiss')) + '">' +
-        '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>';
-      el.querySelector('.nfo-no').addEventListener('click', function () { close(root); });
+      markSeen(h);
+      /*@3.FIPJ.18*/
       /*@3.FIPJ.20*/
-      var asks = !!(acts && acts.indexOf('<button') >= 0);
-      var busyNow = /nfo--busy/.test(cls || '');
-      if (!asks && !busyNow) ttl(el, /nfo--bad/.test(cls || '') ? 12000 : 6000);
-      else clearT();
-      return el;
-    }
-
-    function draw() {
-      line('fa-cloud-arrow-up', '',
-        '<b>' + esc(L('الملفُّ على هذا الجهاز وحدَه',
-                      'This file is on this device only')) + '</b> ' +
-        esc(L('· ورسومُك عليه محفوظةٌ ومتزامنة. ولتفتحه وتحمّله على أجهزتك الأخرى، ارفعْه إلينا.',
-              '· your drawings on it are saved and synced. To open and download it on your ' +
-              'other devices, upload it to us.')),
-        '<button type="button" class="gsf-btn gsf-btn--go nfo-up">' +
-        esc(L('ارفعْه', 'Upload')) + '</button>')
-        .querySelector('.nfo-up').addEventListener('click', function () { pick(false); });
-    }
-
-    /*@3.FIPJ.13*/
-    last = {
-      root: root, h: h,
-      draw: draw,
-      line: line,
-      /*@3.FIPJ.21*/
-      wait: function () {
-        line('fa-circle-notch fa-spin', 'nfo--wait',
-             '<span class="nfo-msg">' + esc(L('يُسأل عنه…', 'Checking…')) + '</span>');
-      },
-      have: function (b) {
-        line('fa-cloud', 'nfo--ok',
-          '<b>' + esc(L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '</b> ' +
-          esc(L('· يفتح على أجهزتك الأخرى.', '· it opens on your other devices.')) +
-          (b ? ' <span class="nfo-dim">' + esc(size(b)) + '</span>' : ''));
-      },
-      /*@3.FIPJ.22*/
-      no: function (why) { line('fa-triangle-exclamation', 'nfo--bad', esc(excuse(why))); }
-    };
-
-    function pick(over) {
-      Promise.resolve(getFile()).then(function (file) {
-        if (!file) {
-          line('fa-triangle-exclamation', 'nfo--bad',
-               esc(L('تعذّرت قراءةُ الملفِّ من هذا الجهاز.',
-                     'The file could not be read from this device.')));
-          return;
-        }
-        run(file, over);
-      });
-    }
-
-    /*@3.FIPJ.9*/
-    function big(e, file) {
-      if (e.error === 'too_large' && !e.over_max) {
-        line('fa-triangle-exclamation', 'nfo--bad',
-          esc(L('حجمُ الملفِّ ' + size(e.bytes) + ' ويتجاوز الحدَّ الأقصى ' + size(e.max) + '.',
-                'The file is ' + size(e.bytes) + ', over the hard limit of ' +
-                size(e.max) + '.')));
-        return;
-      }
-      if (e.error === 'over_exhausted' || !(e.over_left > 0)) {
-        line('fa-triangle-exclamation', 'nfo--bad',
-          esc(L('حجمُ الملفِّ ' + size(e.bytes) + ' والحدُّ ' + size(e.max) +
-                ' · وقد استنفدتَ تجاوزاتِ هذا الفصل.',
-                'The file is ' + size(e.bytes) + ' and the limit is ' + size(e.max) +
-                ' · you have used all of this term’s exceptions.')));
-        return;
-      }
-      line('fa-circle-question', '',
-        '<b>' + esc(L('حجمُ الملفِّ ' + size(e.bytes) + ' والحدُّ ' + size(e.max),
-                      'The file is ' + size(e.bytes) + '; the limit is ' + size(e.max))) +
-        '</b> ' +
-        esc(L('· ولك في كلِّ فصلٍ ' + e.over_of + ' ملفّاتٍ حتى ' + size(e.over_max) +
-              '، بقي لك ' + e.over_left + '.',
-              '· each term you may upload ' + e.over_of + ' files up to ' + size(e.over_max) +
-              '; ' + e.over_left + ' left.')),
-        '<button type="button" class="gsf-btn gsf-btn--go nfo-up">' +
-        esc(L('ارفعْه واحسبْها', 'Use one and upload')) + '</button>')
-        .querySelector('.nfo-up').addEventListener('click', function () { run(file, true); });
-    }
-
-    function run(file, over) {
-      var el = bar(root);
-      el.className = 'nfo nfo--busy';
-      el.innerHTML =
-        '<i class="fa-solid fa-cloud-arrow-up nfo-i" aria-hidden="true"></i>' +
-        '<div class="nfo-txt"><span class="nfo-msg">' +
-        esc(L('يُهيَّأ…', 'Preparing…')) + '</span> ' +
-        '<span class="nfo-dim">' +
-        esc(L('واصِلْ عملَك — رسومُك وتعديلاتُك مستقلّةٌ عن أصلِ الملفّ، ويمكن استبدالُه متى شئت.',
-              'Keep working — your drawings and edits are independent of the original file, ' +
-              'which you can replace at any time.')) + '</span></div>' +
-        '<span class="nfo-track"><span class="nfo-fill"></span></span>' +
-        '<div class="nfo-acts"><button type="button" class="gsf-btn gsf-btn--ghost nfo-no" ' +
-        'aria-label="' + esc(L('إلغاء الرفع', 'Cancel upload')) + '">' +
-        '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>';
-      var msg = el.querySelector('.nfo-msg');
-      var fill = el.querySelector('.nfo-fill');
-      var ac = window.AbortController ? new AbortController() : null;
-      el.querySelector('.nfo-no').addEventListener('click', function () {
-        if (ac) { try { ac.abort(); } catch (e) {} }
-        close(root);
-      });
-
-      function on(e) {
-        var d = e.detail || {};
-        if (d.ref_id !== refIdOf(h)) return;
-        var pct = d.of ? Math.round(d.at * 100 / d.of) : null;
-        if (fill && pct != null) fill.style.width = pct + '%';
-        if (!msg) return;
-        if (d.stage === 'hash') {
-          msg.textContent = L('تُقرأ بصمةُ الملفّ ', 'Reading fingerprint ') + (pct || 0) + '%';
-        } else if (d.stage === 'probe') {
-          msg.textContent = L('يُسأل عنه…', 'Checking…');
-        } else if (d.stage === 'deduped') {
-          if (fill) fill.style.width = '100%';
-          msg.textContent = L('موجودٌ عندنا سلفاً', 'Already here');
-        } else if (d.stage === 'upload') {
-          msg.textContent = L('يُرفع ', 'Uploading ') + (pct || 0) + '%';
-        } else if (d.stage === 'commit') {
-          /*@3.FIPJ.10*/
-          if (fill) fill.style.width = '100%';
-          msg.textContent = L('يُتحقَّق من سلامةِ ما وصل…', 'Verifying what arrived…');
-        }
-      }
-      window.addEventListener('garden:fileProgress', on);
-
-      /*@3.FIPJ.27*/
-      F().upload(file, { refId: refIdOf(h), name: name || file.name || 'file.pdf',
-                         mime: 'application/pdf',
-                         over: !!over, signal: ac ? ac.signal : null })
-        .then(function (r) {
-          window.removeEventListener('garden:fileProgress', on);
-          markSeen(h);
-          try {
-            window.dispatchEvent(new CustomEvent('garden:fileUploaded',
-              { detail: { ref_id: refIdOf(h), h: h, bytes: r.bytes } }));
-          } catch (e) {}
-          /*@3.FIPJ.15*/
-          promise(root, r);
-        }, function (e) {
-          window.removeEventListener('garden:fileProgress', on);
-          if (e && (e.error === 'too_large' || e.error === 'over_exhausted')) {
-            big(e, file); return;
-          }
-          if (e && /aborted/.test(e.message || '')) { close(root); return; }
-          line('fa-triangle-exclamation', 'nfo--bad', esc(reason(e)));
-        });
-    }
-
-    /*@3.FIPJ.6*/
-    function reason(e) {
-      var k = (e && (e.error || e.message)) || '';
-      if (k === 'too_many_files') {
-        return L('بلغتَ عددَ الملفّاتِ المسموحِ في حسابك.',
-                 'You have reached the file count limit on your account.');
-      }
-      if (k === 'hash_mismatch') {
-        return L('ما وصلنا يخالف ما أُرسل — أعِدْ المحاولة.',
-                 'What arrived differs from what was sent — please try again.');
-      }
-      if (k === 'not_found' || k === 'files_not_configured') {
-        return excuse(k === 'not_found' ? 'not_enrolled' : 'not_configured');
-      }
-      /*@3.FIPJ.28*/
-      if (k === 'no_vault') return excuse('no_vault');
-      if (k === 'bad_mime') {
-        return L('هذه الصيغةُ لا نقبلها بعد' + (e && e.mime ? ' (' + e.mime + ')' : '') + '.',
-                 'We do not accept this format yet' +
-                 (e && e.mime ? ' (' + e.mime + ')' : '') + '.');
-      }
-      if (k === 'vault_full') {
-        return L('امتلأت مساحتُك عندنا. احذفْ ملفّاً قديماً ثمَّ أعِدْ المحاولة.',
-                 'Your space with us is full. Remove an old file, then try again.');
-      }
-      if (k === 'not_uploaded') {
-        return L('انقطع الرفعُ قبل أن يصل شيء — أعِدْ المحاولة.',
-                 'The upload stopped before anything arrived — please try again.');
-      }
-      if (k === 'rate_limited') return excuse('rate_limited');
-      if (/^put_/.test(k)) {
-        return L('انقطع الاتّصالُ أثناء الرفع — أعِدْ المحاولة.',
-                 'The connection dropped during upload — please try again.');
-      }
-      return L('تعذّر الرفع.', 'Upload failed.');
-    }
+      /*@3.FIPJ.29*/
+      sayDevice();
+      if (guard) guard.ttl(9000);
+    })['catch'](function () {});
   }
 
-  window.GardenFilesPdf = { restore: restore, offer: offer, refIdOf: refIdOf,
-                            ask: ask, state: state, forget: forget };
+  /*@3.FIPJ.17*/
+  window.GardenFilesPdf = {
+    restore: restore, offer: offer, refIdOf: refIdOf,
+    ask: ask, state: state, forget: forget, close: shut,
+    busy: function () { return busy; },
+    drive: function (id) { if (cur) cur.gd = id || null; }
+  };
 })();

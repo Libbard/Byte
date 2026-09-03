@@ -22,6 +22,23 @@
   function L(a, b) { return isAr() ? a : b; }
 
   function enabled() { return !!clientId(); }
+
+  /*@3.DRIJ.10*/
+  function warm() {
+    if (!enabled()) return Promise.resolve(false);
+    var a = script(GSI, gsiReady);
+    var b = pickerKey()
+      ? script(GAPI, function () { return !!window.gapi; }).then(function (ok) {
+          if (!ok || pickerReady()) return ok;
+          return new Promise(function (res) {
+            try { window.gapi.load('picker', { callback: function () { res(true); },
+                                               onerror: function () { res(false); } }); }
+            catch (e) { res(false); }
+          });
+        })
+      : Promise.resolve(true);
+    return Promise.all([a, b]).then(function (r) { return r[0] && r[1]; });
+  }
   function pickerEnabled() { return enabled() && !!pickerKey(); }
 
   /*@3.DRIJ.2*/
@@ -81,8 +98,11 @@
         client.error_callback = function (e) {
           if (done) return;
           done = true;
-          rej(err(e && e.type === 'popup_closed' ? 'consent_closed' : 'no_token',
-                  e && e.message));
+          /*@3.DRIJ.11*/
+          var t = (e && e.type) || '';
+          var code = t === 'popup_closed' ? 'consent_closed'
+                   : t === 'popup_failed_to_open' ? 'popup_blocked' : 'no_token';
+          rej(err(code, e && e.message));
         };
         try {
           client.requestAccessToken({ prompt: interactive ? 'consent' : '' });
@@ -226,6 +246,14 @@
     });
   }
 
+  function trash(id) {
+    if (!id) return Promise.resolve(false);
+    return token(false).then(function (t) {
+      return json('PATCH', API + '/files/' + encodeURIComponent(id) + '?fields=id',
+                  { trashed: true }, t);
+    }).then(function () { return true; }, function () { return false; });
+  }
+
   /*@3.DRIJ.8*/
   function pick(opts) {
     var o = opts || {};
@@ -273,6 +301,10 @@
     if (k === 'drive_disabled' || k === 'picker_disabled') {
       return L('ربطُ قوقل درايف غيرُ مفعَّلٍ بعد.', 'Google Drive is not enabled yet.');
     }
+    if (k === 'popup_blocked') {
+      return L('منع المتصفّحُ نافذةَ قوقل. اضغطْ مرّةً أخرى — أو اسمحْ بالنوافذِ المنبثقةِ لهذا الموقع.',
+               'The browser blocked the Google window. Tap again — or allow pop-ups for this site.');
+    }
     if (k === 'consent_denied' || k === 'consent_closed') {
       return L('لم يُمنح الإذنُ لدرايف — أعِدِ المحاولةَ واسمحْ بالوصول.',
                'Drive access was not granted — try again and allow access.');
@@ -293,6 +325,7 @@
 
   window.GardenDrive = {
     enabled: enabled,
+    warm: warm,
     pickerEnabled: pickerEnabled,
     token: token,
     forget: forget,
@@ -301,6 +334,7 @@
     download: download,
     folder: folder,
     upload: upload,
+    trash: trash,
     reason: reason
   };
 })();
