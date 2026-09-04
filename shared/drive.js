@@ -14,7 +14,10 @@
 
   function E() { return window.GardenEndpoints || {}; }
   function clientId() { return E().googleClientId || ''; }
-  function pickerKey() { return E().googlePickerKey || ''; }
+  /*@3.DRIJ.15*/
+  function pickerKey() {
+    return E().googlePickerKeyOn ? (E().googlePickerKey || '') : '';
+  }
   function appId() { return String(clientId()).split('-')[0] || ''; }
 
   function isAr() {
@@ -28,19 +31,18 @@
   function warm() {
     if (!enabled()) return Promise.resolve(false);
     var a = script(GSI, gsiReady);
-    var b = pickerKey()
-      ? script(GAPI, function () { return !!window.gapi; }).then(function (ok) {
+    var b = script(GAPI, function () { return !!window.gapi; }).then(function (ok) {
           if (!ok || pickerReady()) return ok;
           return new Promise(function (res) {
             try { window.gapi.load('picker', { callback: function () { res(true); },
                                                onerror: function () { res(false); } }); }
             catch (e) { res(false); }
           });
-        })
-      : Promise.resolve(true);
+        });
     return Promise.all([a, b]).then(function (r) { return r[0] && r[1]; });
   }
-  function pickerEnabled() { return enabled() && !!pickerKey(); }
+  /*@3.DRIJ.16*/
+  function pickerEnabled() { return enabled(); }
 
   /*@3.DRIJ.2*/
   var scripts = {};
@@ -305,13 +307,14 @@
         if (!pickerReady()) throw err('picker_unavailable');
         return new Promise(function (res, rej) {
           var fin = res;
+          var b0key = '';
           var P = window.google.picker;
+          if (pickerKey()) b0key = pickerKey();
           var view = new P.DocsView(P.ViewId.DOCS);
           view.setMimeTypes(o.mime || 'application/pdf');
           view.setIncludeFolders(true);
           var b = new P.PickerBuilder()
             .setOAuthToken(t)
-            .setDeveloperKey(pickerKey())
             .setAppId(appId())
             .setLocale(isAr() ? 'ar' : 'en')
             .addView(view)
@@ -340,6 +343,7 @@
           };
           shut = function () { fin(null); };
           try {
+            if (b0key) b.setDeveloperKey(b0key);
             pk = b.build();
             document.addEventListener('keydown', onKey, true);
             stop = wayOut(shut);
