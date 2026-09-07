@@ -249,7 +249,10 @@
     busy = false;
     openList();
     var row = panel && panel.querySelector('.nrr[data-ref="' + refId + '"]');
-    if (row) row.classList.add('on');
+    if (!row) return;
+    row.classList.add('on');
+    /*@3.AUNJ.107*/
+    askName(row, refId);
   }
 
   function msg(html) {
@@ -411,17 +414,15 @@
           esc(L('أوقفْ مؤقّتاً', 'Pause')) + '"' +
           ' data-ar-title="أوقفْ مؤقّتاً" data-en-title="Pause">' +
           '<i class="fa-solid fa-pause" aria-hidden="true"></i></button>' +
-        '<button type="button" class="nrc-ic nrec-kill" aria-label="' +
-          esc(L('ألغِ التسجيل', 'Discard the recording')) + '"' +
-          ' data-ar-title="ألغِ التسجيل" data-en-title="Discard the recording">' +
-          '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
-        '<span class="nrc-gap"></span>' +
         '<button type="button" class="nrc-ic nrc-ic--stop nrec-stop" aria-label="' +
           esc(L('أنهِ التسجيلَ واحفظْ', 'End the recording and save')) + '"' +
           ' data-ar-title="أنهِ التسجيلَ واحفظْ"' +
           ' data-en-title="End the recording and save">' +
           '<i class="fa-solid fa-stop" aria-hidden="true"></i></button>' +
-        '<span class="nrc-gap"></span>' +
+        '<button type="button" class="nrc-ic nrec-kill" aria-label="' +
+          esc(L('ألغِ التسجيل', 'Discard the recording')) + '"' +
+          ' data-ar-title="ألغِ التسجيل" data-en-title="Discard the recording">' +
+          '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
         '<button type="button" class="nrc-ic nrec-list" aria-label="' +
           esc(L('تسجيلاتُ هذه الملاحظة', 'Recordings in this note')) + '"' +
           ' data-ar-title="تسجيلاتُ هذه الملاحظة"' +
@@ -1302,6 +1303,12 @@
     return v || L('تسجيل', 'Recording');
   }
 
+  /*@3.AUNJ.106*/
+  function titleOf(x) {
+    var v = String((x && x.nm) || '').trim();
+    return v || shortName(x && x.n);
+  }
+
   /*@3.AUNJ.46*/
   function openList() {
     view = 'list';
@@ -1354,26 +1361,28 @@
       var can = part.every(function (y) { return !!(y.aup || y.lo || y.gd); });
       var ms = sum(part, 'ms');
       var bytes = sum(part, 'b');
-      var more = part.length > 1;
       return '<div class="nrr' + (can ? '' : ' nrr--gone') + '" data-ref="' + esc(x.i) + '">' +
         '<button type="button" class="nrr-hit nrec-play"' + (can ? '' : ' disabled') +
-          ' aria-label="' + esc(can ? L('شغّلْ أو أوقفْ ', 'Play or pause ') + shortName(x.n)
+          ' aria-label="' + esc(can ? L('شغّلْ أو أوقفْ ', 'Play or pause ') + titleOf(x)
                                     : w.t) + '"' +
-          ' title="' + esc(shortName(x.n) + ' — ' + w.t + ' · ' +
+          ' title="' + esc(titleOf(x) + ' — ' + w.t + ' · ' +
                             size(bytes) + ' · ' + stamp(x.t)) + '">' +
           '<span class="nrr-p" aria-hidden="true">' +
             '<i class="fa-solid ' + (can ? 'fa-play' : 'fa-link-slash') + '"></i></span>' +
           '<span class="nrr-txt">' +
-            '<span class="nrr-n">' + esc(shortName(x.n)) + '</span>' +
+            '<span class="nrr-n">' + esc(titleOf(x)) + '</span>' +
             '<span class="nrr-m">' +
               '<i class="' + w.i + '" aria-hidden="true"></i>' +
               esc(w.s) + ' · <span dir="ltr">' + esc(size(bytes)) + '</span>' +
               ' · <span dir="ltr">' + esc(shortStamp(x.t)) + '</span>' +
-              (more ? ' · ' + esc(L('في ', 'in ')) + '<span dir="ltr">' + part.length +
-                      '</span>' + esc(L(' مقاطع', ' parts')) : '') + '</span>' +
+              '</span>' +
           '</span>' +
           '<span class="nrr-d">' + esc(clock(ms / 1000)) + '</span>' +
         '</button>' +
+        '<button type="button" class="nrr-x nrec-ren" aria-label="' +
+          esc(L('أعِدْ تسميةَ التسجيل', 'Rename recording')) + '"' +
+          ' data-ar-title="أعِدْ تسميةَ التسجيل" data-en-title="Rename recording">' +
+          '<i class="fa-solid fa-pen" aria-hidden="true"></i></button>' +
         '<button type="button" class="nrr-x nrec-del" aria-label="' +
           esc(L('حذفُ التسجيل', 'Delete recording')) + '"' +
           ' data-ar-title="حذفُ التسجيل" data-en-title="Delete recording">' +
@@ -1416,6 +1425,11 @@
     Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (row) {
       var ref = row.getAttribute('data-ref');
       /*@3.AUNJ.70*/
+      var ren = row.querySelector('.nrec-ren');
+      if (ren) ren.addEventListener('click', function (e) {
+        e.stopPropagation();
+        askName(row, ref);
+      });
       var del = row.querySelector('.nrec-del');
       if (del) del.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -1487,6 +1501,51 @@
   function stopRow(row) {
     var slot = row && row.querySelector('.nrec-row-p');
     if (slot && slot._audio) { try { slot._audio.pause(); } catch (e) {} }
+  }
+
+  /*@3.AUNJ.108*/
+  function askName(row, ref) {
+    if (!row || row.getAttribute('data-ask')) return;
+    var it = items().filter(function (x) { return x.i === ref; })[0];
+    var slot = row.querySelector('.nrec-row-p');
+    if (!it || !slot) return;
+    row.setAttribute('data-ask', '1');
+    stopRow(row);
+    row.classList.add('on', 'nrr--ask');
+    slot.innerHTML = '<input type="text" class="nrr-name" maxlength="80"' +
+      ' aria-label="' + esc(L('اسمُ التسجيل', 'Recording name')) + '"' +
+      ' placeholder="' + esc(shortName(it.n)) + '" value="' +
+      esc(String(it.nm || '')) + '">' +
+      '<button type="button" class="gsf-btn gsf-btn--sm nrr-name-ok">' +
+      esc(L('احفظْ', 'Save')) + '</button>' +
+      '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrr-name-no">' +
+      esc(L('تراجعْ', 'Cancel')) + '</button>';
+    var box = slot.querySelector('.nrr-name');
+    var shut = function () {
+      row.removeAttribute('data-ask');
+      row.classList.remove('on', 'nrr--ask');
+      slot.innerHTML = '';
+      drawList();
+    };
+    var save = function () {
+      var v = String(box.value || '').trim().slice(0, 80);
+      if (v) it.nm = v; else delete it.nm;
+      touch(true);
+      shut();
+    };
+    slot.querySelector('.nrr-name-ok').addEventListener('click', function (e) {
+      e.stopPropagation(); save();
+    });
+    slot.querySelector('.nrr-name-no').addEventListener('click', function (e) {
+      e.stopPropagation(); shut();
+    });
+    box.addEventListener('click', function (e) { e.stopPropagation(); });
+    box.addEventListener('keydown', function (e) {
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      else if (e.key === 'Escape') { e.preventDefault(); shut(); }
+    });
+    try { box.focus(); box.select(); } catch (e) {}
   }
 
   /*@3.AUNJ.71*/
