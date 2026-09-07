@@ -97,7 +97,9 @@
     this.stream = null;
     this.raw = [];
     this.t0 = 0;
-    this.paused = 0;
+    /*@3.AURJ.15*/
+    this.held = 0;
+    this.heldAt = 0;
   }
 
   Recorder.prototype.open = function () {
@@ -134,6 +136,7 @@
   /*@3.AURJ.14*/
   Recorder.prototype.level = function () {
     if (!this._an) return -1;
+    if (this.paused()) return { rms: 0, peak: 0, held: true };
     this._an.getByteTimeDomainData(this._buf);
     var i, v, sum = 0, peak = 0;
     for (i = 0; i < this._buf.length; i++) {
@@ -162,6 +165,10 @@
       if (!e.data || !e.data.size) return;
       self.chunks.push(e.data);
       self.bytes += e.data.size;
+      /*@3.AURJ.16*/
+      if (self.onData) {
+        try { self.onData(e.data, self.chunks.length - 1); } catch (e2) {}
+      }
       if (onTick) onTick(self.stats());
     };
     this.t0 = Date.now();
@@ -170,8 +177,28 @@
     return this;
   };
 
+  Recorder.prototype.paused = function () {
+    return !!(this.rec && this.rec.state === 'paused');
+  };
+
+  Recorder.prototype.hold = function () {
+    if (!this.rec || this.rec.state !== 'recording') return false;
+    try { this.rec.pause(); } catch (e) { return false; }
+    this.heldAt = Date.now();
+    return true;
+  };
+
+  Recorder.prototype.resume = function () {
+    if (!this.rec || this.rec.state !== 'paused') return false;
+    try { this.rec.resume(); } catch (e) { return false; }
+    if (this.heldAt) { this.held += Date.now() - this.heldAt; this.heldAt = 0; }
+    return true;
+  };
+
   Recorder.prototype.stats = function () {
-    var sec = (Date.now() - this.t0) / 1000;
+    var off = this.held + (this.heldAt ? Date.now() - this.heldAt : 0);
+    var sec = (Date.now() - this.t0 - off) / 1000;
+    if (sec < 0) sec = 0;
     return {
       sec: sec,
       bytes: this.bytes,

@@ -49,6 +49,10 @@
   }
 
   function A() { return window.GardenAudioRec || null; }
+  function stayAwake() {
+    var f = F();
+    return (f && f.awake) ? f.awake() : function () {};
+  }
   function F() { return window.GardenFiles || null; }
   function GDx() {
     var g = window.GardenDrive;
@@ -68,6 +72,43 @@
     if (b) b.classList.toggle('na-icb--has', items().length > 0);
   }
   function items() { var d = doc(); return (d && d.aud) || []; }
+
+  /*@3.AUNJ.98*/
+  function byK(a, b) { return (a.k || 0) - (b.k || 0); }
+
+  function partsOf(refId) {
+    var list = items();
+    var me = null, i;
+    for (i = 0; i < list.length; i++) if (list[i].i === refId) { me = list[i]; break; }
+    if (!me) return [];
+    if (!me.g) return [me];
+    return list.filter(function (x) { return x.g === me.g; }).sort(byK);
+  }
+
+  function rows() {
+    var list = items();
+    var out = [], seen = {};
+    list.forEach(function (x) {
+      if (!x.g) { out.push([x]); return; }
+      if (seen[x.g]) return;
+      seen[x.g] = 1;
+      out.push(list.filter(function (y) { return y.g === x.g; }).sort(byK));
+    });
+    return out;
+  }
+
+  function sum(part, key) {
+    return part.reduce(function (a, x) { return a + (Number(x[key]) || 0); }, 0);
+  }
+
+  function weakest(part) {
+    var w = part[0];
+    part.forEach(function (x) {
+      var rank = function (y) { return y.aup ? 3 : (y.gd ? 2 : (y.lo ? 1 : 0)); };
+      if (rank(x) < rank(w)) w = x;
+    });
+    return w;
+  }
 
   /*@3.AUNJ.3*/
   function addItem(it) {
@@ -175,7 +216,7 @@
       P.place(panel, b, host());
       unsettle = P.settle(panel, b, host());
       guard = P.watch(panel, {
-        locked: function () { return busy || !!rec; },
+        locked: function () { return busy; },
         skip: function (x) { return !!(b && b.contains(x)); },
         close: function () {
           if (view === 'list' && !rec) { view = 'main'; render(); return; }
@@ -233,6 +274,7 @@
   /*@3.AUNJ.5*/
   function drawIdle() {
     var s = A() ? A().support() : { mic: false };
+    var wip = wipOffer();
     if (!s.secure) {
       panel.className = 'gsf-pop nrp nrp--bad';
       msg('<b class="nrp-t">' + esc(L('التسجيلُ يحتاج اتّصالاً آمناً',
@@ -267,7 +309,8 @@
           esc(L('كلاهما', 'Both')) + '</button>' +
         '</div>'
       : '';
-    msg('<b class="nrp-t">' + esc(L('سجّلِ المحاضرة', 'Record the lecture')) + '</b>' +
+    msg(wip +
+        '<b class="nrp-t">' + esc(L('سجّلِ المحاضرة', 'Record the lecture')) + '</b>' +
         '<span class="nrp-s">' +
         esc(L('يُحفظ مع الملاحظةِ حتى نهايةِ الفصل.',
               'Kept with the note until the term ends.')) + '</span>' +
@@ -280,6 +323,7 @@
          '<i class="fa-solid fa-file-import" aria-hidden="true"></i> ' +
          esc(L('من جهازك', 'From your device')) + '</button>');
     bindList();
+    wipBind();
     var fb = panel.querySelector('.nrp-file');
     if (fb) fb.addEventListener('click', pickExternal);
     var chips = panel.querySelectorAll('.nrp-seg button');
@@ -328,39 +372,169 @@
   /*@3.AUNJ.6*/
   /*@3.AUNJ.28*/
   /*@3.AUNJ.44*/
+  /*@3.AUNJ.84*/
+  var open1 = false;
+
+  function dockOpen(on) {
+    open1 = !!on;
+    if (cap) cap.setAttribute('data-open', open1 ? '1' : '0');
+  }
+
   function drawLive() {
-    close();
     var r = anchorRect();
     if (!r) return;
-    if (!cap) {
-      cap = document.createElement('div');
-      cap.className = 'nrc';
-      cap.setAttribute('role', 'status');
-      cap.setAttribute('aria-label', L('يجري التسجيل', 'Recording'));
-      document.body.appendChild(cap);
-    }
-    place(cap, r, 'cap');
-    var st = rec.stats();
+    if (cap && cap.parentNode) { beat(); return; }
+    cap = document.createElement('div');
+    cap.className = 'nrc';
+    cap.setAttribute('role', 'group');
+    cap.setAttribute('data-open', open1 ? '1' : '0');
+    cap.setAttribute('aria-label', L('يجري التسجيل', 'Recording'));
     var i, bars = '';
     for (i = 0; i < 14; i++) bars += '<i style="--h:.10"></i>';
     cap.innerHTML =
-      '<span class="nrc-dot" aria-hidden="true"></span>' +
-      '<b class="nrec-clock">' + esc(clock(st.sec)) + '</b>' +
-      '<span class="nrec-wave" role="img" aria-label="' +
-        esc(L('مستوى الصوت', 'Audio level')) + '"' +
-        ' data-ar-title="مستوى الصوت" data-en-title="Audio level">' + bars + '</span>' +
+      '<button type="button" class="nrc-face" aria-label="' +
+        esc(L('تفاصيلُ التسجيل', 'Recording details')) + '"' +
+        ' data-ar-title="تفاصيلُ التسجيل" data-en-title="Recording details">' +
+        '<span class="nrc-dot" aria-hidden="true"></span>' +
+        '<b class="nrec-clock">0:00</b>' +
+        '<span class="nrec-wave" role="img" aria-label="' +
+          esc(L('مستوى الصوت', 'Audio level')) + '"' +
+          ' data-ar-title="مستوى الصوت" data-en-title="Audio level">' + bars + '</span>' +
+      '</button>' +
+      /*@3.AUNJ.96*/
       '<span class="nrc-more">' +
         '<span class="nrc-sep"></span>' +
         '<span class="nrec-say">' + esc(srcName()) + '</span>' +
-        '<span class="nfo-dim nrec-meta">' + esc(size(st.bytes)) + '</span>' +
+        '<span class="nfo-dim nrec-meta"></span>' +
         '<span class="nrc-sep"></span>' +
-        '<button type="button" class="gsf-btn gsf-btn--ghost nrec-kill">' +
-          esc(L('ألغِ', 'Discard')) + '</button>' +
-        '<button type="button" class="gsf-btn gsf-btn--pri nrec-stop">' +
-          esc(L('أوقفْ واحفظ', 'Stop & save')) + '</button>' +
-      '</span>';
-    cap.querySelector('.nrec-stop').addEventListener('click', function () { stop(true); });
-    cap.querySelector('.nrec-kill').addEventListener('click', function () { stop(false); });
+        '<button type="button" class="nrc-ic nrec-hold" aria-label="' +
+          esc(L('أوقفْ مؤقّتاً', 'Pause')) + '"' +
+          ' data-ar-title="أوقفْ مؤقّتاً" data-en-title="Pause">' +
+          '<i class="fa-solid fa-pause" aria-hidden="true"></i></button>' +
+        '<button type="button" class="nrc-ic nrec-kill" aria-label="' +
+          esc(L('ألغِ التسجيل', 'Discard the recording')) + '"' +
+          ' data-ar-title="ألغِ التسجيل" data-en-title="Discard the recording">' +
+          '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+        '<span class="nrc-gap"></span>' +
+        '<button type="button" class="nrc-ic nrc-ic--stop nrec-stop" aria-label="' +
+          esc(L('أنهِ التسجيلَ واحفظْ', 'End the recording and save')) + '"' +
+          ' data-ar-title="أنهِ التسجيلَ واحفظْ"' +
+          ' data-en-title="End the recording and save">' +
+          '<i class="fa-solid fa-stop" aria-hidden="true"></i></button>' +
+        '<span class="nrc-gap"></span>' +
+        '<button type="button" class="nrc-ic nrec-list" aria-label="' +
+          esc(L('تسجيلاتُ هذه الملاحظة', 'Recordings in this note')) + '"' +
+          ' data-ar-title="تسجيلاتُ هذه الملاحظة"' +
+          ' data-en-title="Recordings in this note">' +
+          '<i class="fa-solid fa-list-ul" aria-hidden="true"></i></button>' +
+      '</span>' +
+      '<div class="nrc-ask" hidden></div>';
+    document.body.appendChild(cap);
+    place(cap, r, 'cap');
+    cap.querySelector('.nrec-stop').addEventListener('click', function (e) {
+      e.stopPropagation();
+      askEnd(true);
+    });
+    cap.querySelector('.nrec-kill').addEventListener('click', function (e) {
+      e.stopPropagation();
+      askEnd(false);
+    });
+    cap.querySelector('.nrc-face').addEventListener('click', function () {
+      dockOpen(!open1);
+    });
+    cap.querySelector('.nrec-hold').addEventListener('click', function (e) {
+      e.stopPropagation();
+      holdToggle();
+    });
+    cap.querySelector('.nrec-list').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (panel && panel.parentNode && view === 'list') { close(); return; }
+      openList();
+    });
+    beat();
+  }
+
+  /*@3.AUNJ.97*/
+  var HUSH_LS = '__audioStopHush';
+
+  function hushed() {
+    try { return localStorage.getItem(HUSH_LS) === '1'; } catch (e) { return false; }
+  }
+
+  function askEnd(keep) {
+    if (!cap || !rec) return;
+    if (keep && hushed()) { stop(true); return; }
+    var box = cap.querySelector('.nrc-ask');
+    if (!box) { stop(keep); return; }
+    dockOpen(true);
+    var st = rec.stats();
+    box.innerHTML =
+      '<b>' + esc(keep ? L('أُنهي التسجيل؟', 'End the recording?')
+                       : L('أُلغي التسجيل؟', 'Discard the recording?')) + '</b>' +
+      '<span class="nfo-dim">' +
+        (keep
+          ? esc(L('ما سُجّل ', 'Recorded so far ')) +
+            '<span dir="ltr">' + esc(clock(st.sec)) + '</span>' +
+            esc(L(' — يُحفظ ولا يُحذف.',
+                  ' — it will be saved, not deleted.'))
+          : '<span dir="ltr">' + esc(clock(st.sec)) + '</span>' +
+            esc(L(' يُمحى ولا رجوع.', ' will be erased. No undo.'))) +
+      '</span>' +
+      '<span class="nrc-ask-a">' +
+        '<button type="button" class="gsf-btn gsf-btn--sm nrc-ask-go">' +
+          esc(keep ? L('أنهِ التسجيل', 'End it')
+                   : L('ألغِ', 'Discard')) + '</button>' +
+        '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrc-ask-no">' +
+          esc(L('تراجعْ', 'Keep recording')) + '</button>' +
+      '</span>' +
+      (keep
+        ? '<label class="nrc-ask-h"><input type="checkbox" class="nrc-ask-hush">' +
+          '<span>' + esc(L('لا تسألني ثانيةً', "Don't ask me again")) +
+          '</span></label>'
+        : '');
+    box.hidden = false;
+    cap.setAttribute('data-ask', '1');
+    box.querySelector('.nrc-ask-go').addEventListener('click', function (e) {
+      e.stopPropagation();
+      var h = box.querySelector('.nrc-ask-hush');
+      if (h && h.checked) { try { localStorage.setItem(HUSH_LS, '1'); } catch (e2) {} }
+      shutAsk();
+      stop(keep);
+    });
+    box.querySelector('.nrc-ask-no').addEventListener('click', function (e) {
+      e.stopPropagation();
+      shutAsk();
+    });
+  }
+
+  function shutAsk() {
+    if (!cap) return;
+    var box = cap.querySelector('.nrc-ask');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    cap.removeAttribute('data-ask');
+  }
+
+  /*@3.AUNJ.87*/
+  function holdToggle() {
+    if (!rec || !rec.hold) return;
+    if (rec.paused()) rec.resume(); else rec.hold();
+    paintHold();
+    beat();
+  }
+
+  function paintHold() {
+    if (!cap || !rec) return;
+    var off = !!(rec.paused && rec.paused());
+    var b = cap.querySelector('.nrec-hold');
+    cap.setAttribute('data-held', off ? '1' : '0');
+    if (!b) return;
+    b.innerHTML = '<i class="fa-solid fa-' + (off ? 'play' : 'pause') +
+                  '" aria-hidden="true"></i>';
+    var ar = off ? 'تابعِ التسجيل' : 'أوقفْ مؤقّتاً';
+    var en = off ? 'Resume' : 'Pause';
+    b.setAttribute('aria-label', L(ar, en));
+    b.setAttribute('data-ar-title', ar);
+    b.setAttribute('data-en-title', en);
   }
 
   function srcName() {
@@ -370,9 +544,12 @@
     return L('الميكروفون', 'Microphone');
   }
 
+  /*@3.AUNJ.88*/
   function capGone() {
+    shutAsk();
     if (cap && cap.parentNode) cap.parentNode.removeChild(cap);
     cap = null;
+    open1 = false;
   }
 
   function beat() {
@@ -382,6 +559,7 @@
     var m = cap.querySelector('.nrec-meta');
     if (c) c.textContent = clock(st.sec);
     if (m) m.textContent = size(st.bytes);
+    paintHold();
     wave();
     if (st.sec >= MAX_SEC) stop(true);
   }
@@ -402,15 +580,25 @@
         bars[i - 1].style.getPropertyValue('--h') || '.10');
     }
     if (bars[0]) bars[0].style.setProperty('--h', (0.10 + v * 0.90).toFixed(3));
+    /*@3.AUNJ.85*/
+    var held = !!lv.held;
+    var lvl = held ? 'held'
+            : (lv.peak < 0.02 ? 'hush'
+              : (lv.peak > 0.86 ? 'hot' : (v > 0.55 ? 'loud' : 'talk')));
+    w.setAttribute('data-lv', lvl);
+    cap.setAttribute('data-lv', lvl);
     /*@3.AUNJ.31*/
-    hush = lv.peak < 0.008 ? hush + 1 : 0;
+    hush = (!held && lv.peak < 0.008) ? hush + 1 : 0;
     var quiet = hush > 24;
     w.setAttribute('data-hush', quiet ? '1' : '0');
     cap.setAttribute('data-hush', quiet ? '1' : '0');
     var say = cap.querySelector('.nrec-say');
     if (!say) return;
-    if (quiet) {
-      say.textContent = L('لا أسمع شيئاً', 'No sound');
+    var word = held ? L('موقوفٌ مؤقّتاً', 'Paused')
+             : (quiet ? L('لا أسمع شيئاً', 'No sound')
+               : (lvl === 'hot' ? L('الصوتُ عالٍ جدّاً', 'Too loud') : ''));
+    if (word) {
+      say.textContent = word;
       say.setAttribute('data-warn', '1');
     } else if (say.getAttribute('data-warn')) {
       say.textContent = srcName();
@@ -445,25 +633,174 @@
     return (out && out.length) ? out : null;
   }
 
+  /*@3.AUNJ.91*/
+  var WIP_LS = '__audioWip';
+  var wipId = '';
+
+  function noteNow() {
+    var A2 = App();
+    return (A2 && A2.noteId) ? String(A2.noteId() || '') : '';
+  }
+  function wipRead() {
+    try { return JSON.parse(localStorage.getItem(WIP_LS) || 'null'); }
+    catch (e) { return null; }
+  }
+  function wipWrite(o) {
+    try {
+      if (o) localStorage.setItem(WIP_LS, JSON.stringify(o));
+      else localStorage.removeItem(WIP_LS);
+    } catch (e) {}
+  }
+  function wipKey(id, k) { return 'wip_' + id + '_' + k; }
+
+  function wipBegin(src, mime) {
+    wipId = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    wipWrite({ id: wipId, n: 0, t0: Date.now(), src: src || 'mic',
+               m: mime || 'audio/webm', note: noteNow() });
+  }
+  function wipPut(blob, i) {
+    var st = D();
+    var o = wipRead();
+    if (!st || !o || o.id !== wipId) return;
+    st.put(wipKey(wipId, i), blob, { name: 'wip' })['catch'](function () {});
+    o.n = i + 1;
+    o.at = Date.now();
+    wipWrite(o);
+  }
+  function wipClear(o) {
+    var st = D();
+    var w = o || wipRead();
+    wipId = '';
+    wipWrite(null);
+    if (!st || !w) return;
+    for (var i = 0; i < (w.n || 0); i++) {
+      st.drop(wipKey(w.id, i))['catch'](function () {});
+    }
+  }
+  function wipJoin(w) {
+    var st = D();
+    if (!st || !w || !w.n) return Promise.resolve(null);
+    var parts = [], i = 0;
+    var next = function () {
+      if (i >= w.n) {
+        return parts.length ? new Blob(parts, { type: w.m || 'audio/webm' }) : null;
+      }
+      return st.get(wipKey(w.id, i++)).then(function (b) {
+        if (b && b.size) parts.push(b);
+        return next();
+      }, next);
+    };
+    return Promise.resolve(next());
+  }
+
+  /*@3.AUNJ.92*/
+  function wipOffer() {
+    var w = wipRead();
+    if (!w || !w.n || rec || busy) return '';
+    var secs = Math.max(0, Math.round(((w.at || w.t0) - w.t0) / 1000));
+    var mine = !w.note || w.note === noteNow();
+    return '<div class="nrp-wip" data-mine="' + (mine ? '1' : '0') + '">' +
+      '<b>' + esc(L('تسجيلٌ لم يُختم', 'An unfinished recording')) + '</b>' +
+      '<span class="nfo-dim"><span dir="ltr">' + esc(clock(secs)) + '</span>' +
+      ' · ' + esc(stamp(w.t0)) +
+      (mine ? '' : ' · ' + esc(L('من ملاحظةٍ أخرى', 'from another note'))) + '</span>' +
+      '<span class="nrp-wip-a">' +
+      /*@3.AUNJ.103*/
+      '<button type="button" class="gsf-btn gsf-btn--sm gsf-btn--pri nrp-wip-on">' +
+      '<i class="fa-solid fa-microphone" aria-hidden="true"></i> ' +
+      esc(L('أكملِ التسجيل', 'Continue recording')) + '</button>' +
+      '<button type="button" class="gsf-btn gsf-btn--sm nrp-wip-yes">' +
+      esc(L('احفظْه', 'Save it')) + '</button>' +
+      '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrp-wip-no">' +
+      esc(L('ألغِه', 'Discard')) + '</button></span></div>';
+  }
+
+  function wipBind() {
+    if (!panel) return;
+    var yes = panel.querySelector('.nrp-wip-yes');
+    var on = panel.querySelector('.nrp-wip-on');
+    var no = panel.querySelector('.nrp-wip-no');
+    if (no) no.addEventListener('click', function () { wipClear(); render(); });
+    if (yes) yes.addEventListener('click', function () {
+      wipTake(yes, L('يُجمع…', 'Assembling…'), function (blob, secs, w) {
+        upload({ blob: blob, sec: secs, bytes: blob.size, type: w.m || 'audio/webm' });
+      });
+    });
+    /*@3.AUNJ.105*/
+    if (on) on.addEventListener('click', function () {
+      wipTake(on, L('يُهيَّأ…', 'Preparing…'), function (blob, secs, w) {
+        var gid = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        var it = newItem({ blob: blob, sec: secs, type: w.m || 'audio/webm' });
+        it.g = gid;
+        it.k = 0;
+        keepQuiet(it, blob).then(function () {
+          start(w.src || 'mic', { g: gid, k: 1 });
+        });
+      });
+    });
+  }
+
+  function wipTake(btn, word, use) {
+    var w = wipRead();
+    if (!w) { render(); return; }
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ' + esc(word);
+    wipJoin(w).then(function (blob) {
+      if (!blob || blob.size < 1024) { wipClear(w); render(); return; }
+      var secs = Math.max(1, Math.round(((w.at || w.t0) - w.t0) / 1000));
+      wipClear(w);
+      use(blob, secs, w);
+    })['catch'](function () { wipClear(w); render(); });
+  }
+
+  /*@3.AUNJ.104*/
+  function keepQuiet(it, blob) {
+    var st = D();
+    var held = st
+      ? st.put(it.i, blob, { name: it.n })['catch'](function () { return false; })
+      : Promise.resolve(false);
+    return held.then(function (okLocal) {
+      it.lo = okLocal ? 1 : 0;
+      addItem(it);
+      return okLocal;
+    });
+  }
+
   /*@3.AUNJ.7*/
-  function start(source) {
+  var starting = false;
+  var wake = null;
+  var pendGroup = null;
+  function start(source, grp) {
     var R = A();
-    if (!R || rec) return;
+    /*@3.AUNJ.89*/
+    if (!R || rec || starting) return;
+    starting = true;
+    pendGroup = grp || null;
     mode('nrp--busy');
     msg('<b>' + esc(L('يُطلب إذنُ الميكروفون…', 'Asking for microphone permission…')) + '</b>');
     acts('');
     /*@3.AUNJ.29*/
     var r = new R.Recorder({ bps: bpsFor(source), source: source || 'mic' });
     r.open().then(function () {
+      starting = false;
       rec = r;
       hush = 0;
+      /*@3.AUNJ.94*/
+      wipBegin(source || 'mic', r.type || '');
+      r.onData = wipPut;
       rec.start();
+      if (wake) wake();
+      wake = stayAwake();
+      wipWrite(Object.assign(wipRead() || {}, { m: r.type || 'audio/webm' }));
       markStart(rec.t0 || Date.now());
+      close();
+      dockOpen(false);
       render();
       timer = setInterval(beat, 500);
       var b = micBtn();
       if (b) b.classList.add('na-icb--rec');
     })['catch'](function (e) {
+      starting = false;
       var why = String((e && e.message) || e || '');
       /*@3.AUNJ.26*/
       var noSys = /no_system_audio/.test(why);
@@ -510,13 +847,17 @@
     var b = micBtn();
     if (b) b.classList.remove('na-icb--rec');
     capGone();
+    if (wake) { wake(); wake = null; }
     r.stop().then(function (out) {
+      wipClear();
+      var grp = pendGroup;
+      pendGroup = null;
       if (!keep || !out || !out.blob || out.blob.size < 1024) {
         /*@3.AUNJ.40*/
         markStop();
         render(); return;
       }
-      upload(out);
+      upload(out, grp);
     });
   }
 
@@ -633,17 +974,22 @@
   }
 
   /*@3.AUNJ.9*/
-  function upload(out) {
+  function newItem(out) {
     var refId = REF_PREFIX + Date.now().toString(36) + '_' +
                 Math.random().toString(36).slice(2, 8);
     /*@3.AUNJ.34*/
     /*@3.AUNJ.41*/
     var mk = markStop();
-    var it = { i: refId, n: nameFor(out.sec), t: Date.now(),
-               s0: Math.round(Date.now() - out.sec * 1000),
-               mk: mk,
-               ms: Math.round(out.sec * 1000), b: out.blob.size,
-               m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
+    return { i: refId, n: nameFor(out.sec), t: Date.now(),
+             s0: Math.round(Date.now() - out.sec * 1000),
+             mk: mk,
+             ms: Math.round(out.sec * 1000), b: out.blob.size,
+             m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
+  }
+
+  function upload(out, grp) {
+    var it = newItem(out);
+    if (grp && grp.g) { it.g = grp.g; it.k = grp.k || 0; }
     keep(it, out.blob);
   }
 
@@ -717,7 +1063,7 @@
               'and you can change it per recording from its list.')) +
         '<br><b>' +
         esc(L('عندنا: يبقى هذا الفصلَ الدراسيَّ ثمّ يُحذف مع بدايةِ الفصلِ الجديد، ' +
-              'وننبّهك قبلَه بثلاثةِ أيّام. وفي درايفك: في مجلّد «الحديقة الرقمية» ' +
+              'وننبّهك قبلَه بثلاثةِ أيّام. وفي درايفك: في مجلّد «Digital Garden» ' +
               'بحسابك، بلا حدٍّ منّا.',
               'With us: it stays for this term, then is removed when the new term ' +
               'starts — we warn you three days before. In your Drive: in the ' +
@@ -753,15 +1099,18 @@
   function send(it, blob) { sendThen(it, blob, null); }
 
   /*@3.AUNJ.64*/
-  function sendThen(it, blob, after) {
+  function sendThen(it, blob, after, quiet) {
     var f = F();
     var refId = it.i;
-    if (!f) { busy = false; render(); return; }
-    busy = true;
-    mode('nrp--busy');
-    msg('<b>' + esc(L('يُرفع التسجيل…', 'Uploading the recording…')) + '</b> ' +
-        '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>');
-    acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
+    if (!f) { if (!quiet) { busy = false; render(); } if (after) after(); return; }
+    /*@3.AUNJ.95*/
+    if (!quiet) {
+      busy = true;
+      mode('nrp--busy');
+      msg('<b>' + esc(L('يُرفع التسجيل…', 'Uploading the recording…')) + '</b> ' +
+          '<span class="nfo-dim">' + esc(size(blob.size)) + '</span>');
+      acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
+    }
 
     var on = function (e) {
       var d = e.detail || {};
@@ -775,7 +1124,7 @@
     f.upload(blob, { refId: refId, name: it.n + ext(it.m, it), mime: it.m })
       .then(function (r) {
         window.removeEventListener('garden:fileProgress', on);
-        busy = false;
+        if (!quiet) busy = false;
         it.aup = 1;
         it.b = r.bytes || it.b;
         /*@3.AUNJ.18*/
@@ -786,10 +1135,11 @@
         settled(refId);
       }, function (e) {
         window.removeEventListener('garden:fileProgress', on);
-        busy = false;
+        if (!quiet) busy = false;
         /*@3.AUNJ.10*/
         it.aup = 0;
         touch(true);
+        if (quiet) { if (after) after(); return; }
         render();
         mode('nrp--bad');
         /*@3.AUNJ.65*/
@@ -976,7 +1326,7 @@
           ' data-ar-title="رجوع" data-en-title="Back">' +
           '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>' +
         '<b class="nrp-t">' + esc(L('تسجيلاتُ هذه الملاحظة', 'Recordings in this note')) +
-        '</b><span class="nrp-n">' + list.length + '</span></div>' +
+        '</b><span class="nrp-n">' + rows().length + '</span></div>' +
         '<div class="nrp-list-box"></div>');
     acts('');
     var back = panel.querySelector('.nrp-back');
@@ -997,25 +1347,32 @@
       return;
     }
     /*@3.AUNJ.68*/
-    box.innerHTML = list.slice().reverse().map(function (x) {
-      var w = whereOf(x);
-      var can = !!(x.aup || x.lo || x.gd);
+    /*@3.AUNJ.100*/
+    box.innerHTML = rows().slice().reverse().map(function (part) {
+      var x = part[0];
+      var w = whereOf(weakest(part));
+      var can = part.every(function (y) { return !!(y.aup || y.lo || y.gd); });
+      var ms = sum(part, 'ms');
+      var bytes = sum(part, 'b');
+      var more = part.length > 1;
       return '<div class="nrr' + (can ? '' : ' nrr--gone') + '" data-ref="' + esc(x.i) + '">' +
         '<button type="button" class="nrr-hit nrec-play"' + (can ? '' : ' disabled') +
           ' aria-label="' + esc(can ? L('شغّلْ أو أوقفْ ', 'Play or pause ') + shortName(x.n)
                                     : w.t) + '"' +
           ' title="' + esc(shortName(x.n) + ' — ' + w.t + ' · ' +
-                            size(x.b) + ' · ' + stamp(x.t)) + '">' +
+                            size(bytes) + ' · ' + stamp(x.t)) + '">' +
           '<span class="nrr-p" aria-hidden="true">' +
             '<i class="fa-solid ' + (can ? 'fa-play' : 'fa-link-slash') + '"></i></span>' +
           '<span class="nrr-txt">' +
             '<span class="nrr-n">' + esc(shortName(x.n)) + '</span>' +
             '<span class="nrr-m">' +
               '<i class="' + w.i + '" aria-hidden="true"></i>' +
-              esc(w.s) + ' · <span dir="ltr">' + esc(size(x.b)) + '</span>' +
-              ' · <span dir="ltr">' + esc(shortStamp(x.t)) + '</span></span>' +
+              esc(w.s) + ' · <span dir="ltr">' + esc(size(bytes)) + '</span>' +
+              ' · <span dir="ltr">' + esc(shortStamp(x.t)) + '</span>' +
+              (more ? ' · ' + esc(L('في ', 'in ')) + '<span dir="ltr">' + part.length +
+                      '</span>' + esc(L(' مقاطع', ' parts')) : '') + '</span>' +
           '</span>' +
-          '<span class="nrr-d">' + esc(clock((x.ms || 0) / 1000)) + '</span>' +
+          '<span class="nrr-d">' + esc(clock(ms / 1000)) + '</span>' +
         '</button>' +
         '<button type="button" class="nrr-x nrec-del" aria-label="' +
           esc(L('حذفُ التسجيل', 'Delete recording')) + '"' +
@@ -1038,12 +1395,15 @@
     }).join('');
 
     /*@3.AUNJ.69*/
+    var groups = rows();
     var up = list.filter(function (x) { return !x.aup && !x.gd && x.lo; }).length;
     var tot = list.reduce(function (a, x) { return a + (Number(x.b) || 0); }, 0);
-    var upn = list.filter(function (x) { return x.aup || x.gd; }).length;
+    var upn = groups.filter(function (g) {
+      return g.every(function (x) { return x.aup || x.gd; });
+    }).length;
     acts('<span class="nrp-sum">' +
          esc(L('على أجهزتك جميعاً ', 'On all your devices ')) +
-         '<b dir="ltr">' + upn + '/' + list.length + '</b>' +
+         '<b dir="ltr">' + upn + '/' + groups.length + '</b>' +
          ' · <span dir="ltr">' + esc(size(tot)) + '</span></span>' +
          (up ? '<button type="button" class="gsf-btn gsf-btn--sm nrp-all">' +
                '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
@@ -1138,18 +1498,34 @@
     if (!slot) { remove(ref, row); return; }
     stopRow(row);
     row.classList.add('on', 'nrr--ask');
-    slot.innerHTML = '<span class="nrr-ask">' +
-      esc(it && it.aup
-        ? L('يُحذف من هنا ومن أجهزتك جميعاً. لا رجوع.',
-            'This deletes it here and on all your devices. No undo.')
-        : L('يُحذف من هذا الجهاز. لا رجوع.', 'This deletes it from this device. No undo.')) +
-      '</span>' +
+    /*@3.AUNJ.83*/
+    var part = partsOf(ref);
+    var onGd = part.some(function (x) { return !!x.gd; });
+    var say = onGd
+      ? L('لك نسخةٌ في درايف — أتبقى هناك؟',
+          'You have a copy in Drive — keep it there?')
+      : (part.length > 1
+          ? L('يُحذف بمقاطعِه كلِّها. لا رجوع.',
+              'This deletes it with all its parts. No undo.')
+          : (it && it.aup
+              ? L('يُحذف من هنا ومن أجهزتك جميعاً. لا رجوع.',
+                  'This deletes it here and on all your devices. No undo.')
+              : L('يُحذف من هذا الجهاز. لا رجوع.',
+                  'This deletes it from this device. No undo.')));
+    slot.innerHTML = '<span class="nrr-ask">' + esc(say) + '</span>' +
       '<button type="button" class="gsf-btn gsf-btn--sm nrr-yes">' +
-      esc(L('احذفْ', 'Delete')) + '</button>' +
+      esc(onGd ? L('من هنا فقط', 'Here only') : L('احذفْ', 'Delete')) +
+      '</button>' +
+      (onGd ? '<button type="button" class="gsf-btn gsf-btn--sm nrr-both">' +
+              esc(L('ومن درايف أيضاً', 'And from Drive')) + '</button>' : '') +
       '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrr-nope">' +
       esc(L('تراجعْ', 'Keep')) + '</button>';
     slot.querySelector('.nrr-yes').addEventListener('click', function (e) {
-      e.stopPropagation(); remove(ref, row);
+      e.stopPropagation(); remove(ref, row, false);
+    });
+    var both = slot.querySelector('.nrr-both');
+    if (both) both.addEventListener('click', function (e) {
+      e.stopPropagation(); remove(ref, row, true);
     });
     slot.querySelector('.nrr-nope').addEventListener('click', function (e) {
       e.stopPropagation();
@@ -1179,45 +1555,57 @@
   }
 
   /*@3.AUNJ.12*/
+  /*@3.AUNJ.101*/
+  function linkOne(it) {
+    var refId = it.i;
+    if (urls[refId]) return Promise.resolve(urls[refId]);
+    var st = D();
+    /*@3.AUNJ.21*/
+    if (!it.aup && it.lo && st) {
+      return st.get(refId).then(function (b) {
+        if (!b || !b.size) throw new Error('gone');
+        urls[refId] = URL.createObjectURL(b);
+        return urls[refId];
+      });
+    }
+    if (it.gd && !it.aup) {
+      return new Promise(function (ok, no) {
+        pullDrive(refId, function (blob) {
+          if (!blob) { no(new Error('gone')); return; }
+          urls[refId] = URL.createObjectURL(blob);
+          ok(urls[refId]);
+        });
+      });
+    }
+    var f = F();
+    if (!f) return Promise.reject(new Error('gone'));
+    return f.link(refId).then(function (l) { urls[refId] = l.url; return l.url; });
+  }
+
   function play_(refId, row) {
     var slot = row.querySelector('.nrec-row-p');
     if (!slot) return;
-    if (urls[refId]) { mountAudio(slot, urls[refId]); return; }
+    var part = partsOf(refId);
+    if (!part.length) return;
+    var ready = part.every(function (x) { return !!urls[x.i]; });
+    if (ready) {
+      mountAudio(slot, part.map(function (x) { return urls[x.i]; }), part);
+      return;
+    }
     slot.innerHTML = '<span class="nfo-dim">' + esc(L('يُجهَّز…', 'Preparing…')) + '</span>';
-    var it = items().filter(function (x) { return x.i === refId; })[0];
-    var st = D();
-    /*@3.AUNJ.21*/
-    if (it && !it.aup && it.lo && st) {
-      st.get(refId).then(function (b) {
-        if (!b || !b.size) throw new Error('gone');
-        urls[refId] = URL.createObjectURL(b);
-        mountAudio(slot, urls[refId]);
-      })['catch'](function () {
+    var out = [], k = 0;
+    var next = function () {
+      if (k >= part.length) { mountAudio(slot, out, part); return; }
+      linkOne(part[k++]).then(function (u) { out.push(u); next(); }, function () {
         slot.innerHTML = '<span class="nfo-dim">' +
-          esc(L('مضت نسختُه من هذا الجهاز.', 'The device copy is gone.')) + '</span>';
+          esc(part.length > 1
+            ? L('تعذّر جلبُ أحدِ المقاطع.', 'One of the parts could not be fetched.')
+            : L('تعذّر جلبُ التسجيل.', 'The recording could not be fetched.')) + '</span>';
       });
-      return;
-    }
-    if (it && it.gd && !it.aup) {
-      slot.innerHTML = '<span class="nfo-dim">' +
-        esc(L('يُجلب من درايف…', 'Fetching from Drive…')) + '</span>';
-      pullDrive(refId, function (blob) {
-        if (!blob) { slot.innerHTML = ''; return; }
-        urls[refId] = URL.createObjectURL(blob);
-        mountAudio(slot, urls[refId]);
-      });
-      return;
-    }
-    var f = F();
-    if (!f) { slot.innerHTML = ''; return; }
-    f.link(refId).then(function (l) {
-      urls[refId] = l.url;
-      mountAudio(slot, l.url);
-    })['catch'](function () {
-      slot.innerHTML = '<span class="nfo-dim">' +
-        esc(L('تعذّر جلبُ التسجيل.', 'The recording could not be fetched.')) + '</span>';
-    });
+    };
+    next();
   }
+
   /*@3.AUNJ.33*/
   var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
   var SPEED_LS = '__audioRate';
@@ -1233,8 +1621,53 @@
     return (Math.round(v * 100) / 100).toString().replace(/\.00?$/, '') + '\u00d7';
   }
 
+  /*@3.AUNJ.90*/
+  var MARK_GAP_S = 4;
+
+  function moments(part) {
+    var out = [], base = 0, last = -99;
+    part.forEach(function (it) {
+      var raw = it.mk || [];
+      var secs = Math.max(1, Math.round((it.ms || 0) / 1000));
+      raw.forEach(function (m) {
+        var at = Number(m && m[0]);
+        if (!(at >= 0) || at > secs) return;
+        var abs = base + at;
+        if (abs - last < MARK_GAP_S) return;
+        last = abs;
+        if (out.length < 60) out.push({ at: abs, page: (m[1] | 0) + 1 });
+      });
+      base += secs;
+    });
+    return out;
+  }
+
+  function markBar(part, total) {
+    var m = moments(part);
+    if (!m.length || !(total > 0)) return '';
+    return '<span class="nrec-pl-mk">' + m.map(function (x) {
+      var pc = Math.max(0, Math.min(100, x.at / total * 100));
+      return '<button type="button" class="nrec-mk" style="--at:' + pc.toFixed(2) + '%"' +
+        ' data-at="' + x.at + '" aria-label="' +
+        esc(L('انتقلْ إلى ', 'Jump to ') + clock(x.at) +
+            L(' — رسمٌ في صفحة ', ' \u2014 ink on page ') + x.page) + '"' +
+        ' title="' + esc(clock(x.at) + ' \u00b7 ' +
+                         L('صفحة ', 'page ') + x.page) + '"></button>';
+    }).join('') + '</span>';
+  }
+
   /*@3.AUNJ.79*/
-  function mountAudio(slot, url) {
+  /*@3.AUNJ.99*/
+  function mountAudio(slot, srcs, part) {
+    var list = [].concat(srcs || []);
+    var pcs = [].concat(part || []);
+    if (!list.length) return;
+    var durs = pcs.map(function (x) { return Math.max(0, (Number(x && x.ms) || 0) / 1000); });
+    while (durs.length < list.length) durs.push(0);
+    var base = [], run = 0, i;
+    for (i = 0; i < list.length; i++) { base.push(run); run += durs[i]; }
+    var total = run;
+
     slot.innerHTML =
       '<div class="nrec-pl">' +
         '<button type="button" class="nrec-pl-b nrec-pl-go" aria-label="' +
@@ -1244,15 +1677,16 @@
         '<input type="range" class="nrec-pl-seek" value="0" min="0" max="1000"' +
           ' step="1" aria-label="' + esc(L('موضعُ التشغيل', 'Playback position')) + '"' +
           ' data-ar-title="موضعُ التشغيل" data-en-title="Playback position">' +
+        markBar(pcs, total) +
         '<span class="nrec-pl-t">0:00 / 0:00</span>' +
         '<button type="button" class="nrec-pl-x" aria-label="' +
           esc(L('سرعةُ التشغيل', 'Playback speed')) + '"' +
           ' data-ar-title="سرعةُ التشغيل" data-en-title="Playback speed">' +
           esc(rateTxt(rateGet())) + '</button>' +
       '</div>';
+
     var a = new Audio();
     a.preload = 'metadata';
-    a.src = url;
     /*@3.AUNJ.35*/
     a.preservesPitch = true;
     a.mozPreservesPitch = true;
@@ -1265,15 +1699,51 @@
     var lbl = pl.querySelector('.nrec-pl-t');
     var xb = pl.querySelector('.nrec-pl-x');
     var held = false;
+    var ci = -1;
+    var want = 0;
+    var goOn = false;
 
+    function span() {
+      if (total > 0) return total;
+      return isFinite(a.duration) ? a.duration : 0;
+    }
+    function at() {
+      return (base[ci] || 0) + (isFinite(a.currentTime) ? a.currentTime : 0);
+    }
+    function load(k, off, play) {
+      if (k < 0 || k >= list.length) return;
+      goOn = !!play;
+      if (ci === k) {
+        try { a.currentTime = off || 0; } catch (e) {}
+        if (play) a.play()['catch'](function () {});
+        return;
+      }
+      ci = k;
+      want = off || 0;
+      a.src = list[k];
+      a.load();
+    }
+    a.addEventListener('loadedmetadata', function () {
+      if (want) { try { a.currentTime = want; } catch (e) {} want = 0; }
+      if (goOn) { goOn = false; a.play()['catch'](function () {}); }
+      time();
+    });
+    function seekTo(sec) {
+      var s = Math.max(0, sec);
+      var k = 0, off = s;
+      for (var q = list.length - 1; q >= 0; q--) {
+        if (s >= base[q]) { k = q; off = s - base[q]; break; }
+      }
+      load(k, off, !a.paused || goOn);
+    }
     function icon() {
       go.innerHTML = '<i class="fa-solid fa-' + (a.paused ? 'play' : 'pause') +
                      '" aria-hidden="true"></i>';
     }
     function time() {
-      var d = isFinite(a.duration) ? a.duration : 0;
-      lbl.textContent = clock(a.currentTime) + ' / ' + clock(d);
-      if (!held && d) seek.value = String(Math.round(a.currentTime / d * 1000));
+      var d = span();
+      lbl.textContent = clock(at()) + ' / ' + clock(d);
+      if (!held && d) seek.value = String(Math.round(at() / d * 1000));
     }
     go.addEventListener('click', function () {
       if (a.paused) { a.play()['catch'](function () {}); } else { a.pause(); }
@@ -1281,13 +1751,15 @@
     a.addEventListener('play', icon);
     a.addEventListener('pause', icon);
     a.addEventListener('timeupdate', time);
-    a.addEventListener('loadedmetadata', time);
-    a.addEventListener('ended', icon);
+    a.addEventListener('ended', function () {
+      if (ci + 1 < list.length) { load(ci + 1, 0, true); return; }
+      icon();
+    });
     seek.addEventListener('input', function () { held = true; });
     seek.addEventListener('change', function () {
       held = false;
-      var d = isFinite(a.duration) ? a.duration : 0;
-      if (d) a.currentTime = d * (Number(seek.value) / 1000);
+      var d = span();
+      if (d) seekTo(d * (Number(seek.value) / 1000));
     });
     xb.addEventListener('click', function (ev) {
       /*@3.AUNJ.36*/
@@ -1299,15 +1771,23 @@
         a.playbackRate = v; rateSet(v); xb.textContent = rateTxt(v);
         return;
       }
-      var i = SPEEDS.indexOf(a.playbackRate);
-      var nv = SPEEDS[(i < 0 ? SPEEDS.indexOf(1) : i) + 1] || SPEEDS[0];
+      var k2 = SPEEDS.indexOf(a.playbackRate);
+      var nv = SPEEDS[(k2 < 0 ? SPEEDS.indexOf(1) : k2) + 1] || SPEEDS[0];
       a.playbackRate = nv; rateSet(nv); xb.textContent = rateTxt(nv);
     });
+    Array.prototype.forEach.call(pl.querySelectorAll('.nrec-mk'), function (b) {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        goOn = true;
+        seekTo(Number(b.getAttribute('data-at')) || 0);
+        time();
+      });
+    });
     icon();
+    load(0, 0, true);
     time();
     slot._audio = a;
     live = a;
-    a.play()['catch'](function () {});
   }
 
   /*@3.AUNJ.81*/
@@ -1331,42 +1811,84 @@
     if (live.paused) { live.play()['catch'](function () {}); } else { live.pause(); }
   });
 
-  function remove(refId, row) {
+  function remove(refId, row, alsoDrive) {
     var f = F();
-    var it = items().filter(function (x) { return x.i === refId; })[0];
-    dropItem(refId);
-    if (urls[refId]) { try { URL.revokeObjectURL(urls[refId]); } catch (e0) {} }
-    delete urls[refId];
-    if (row && row.parentNode) row.parentNode.removeChild(row);
-    if (f && it && it.aup) { try { f.remove(refId); } catch (e) {} }
-    if (it && it.gd) { var g = GDx(); if (g && g.trash) { try { g.trash(it.gd); } catch (e2) {} } }
-    /*@3.AUNJ.22*/
     var st = D();
-    if (st && it && it.lo) st.drop(refId)['catch'](function () {});
+    var gd = GDx();
+    /*@3.AUNJ.102*/
+    var part = partsOf(refId);
+    if (row && row.parentNode) row.parentNode.removeChild(row);
+    part.forEach(function (it) {
+      var id = it.i;
+      dropItem(id);
+      if (urls[id]) { try { URL.revokeObjectURL(urls[id]); } catch (e0) {} }
+      delete urls[id];
+      if (f && it.aup) { try { f.remove(id); } catch (e) {} }
+      if (alsoDrive && it.gd && gd && gd.trash) { try { gd.trash(it.gd); } catch (e2) {} }
+      /*@3.AUNJ.22*/
+      if (st && it.lo) st.drop(id)['catch'](function () {});
+    });
     if (panel && view === 'list') drawList();
   }
 
   /*@3.AUNJ.13*/
   /*@3.AUNJ.47*/
   function toggle() {
+    /*@3.AUNJ.86*/
+    if (rec) {
+      if (panel && panel.parentNode) { close(); return; }
+      dockOpen(!open1);
+      return;
+    }
     /*@3.AUNJ.52*/
     if (panel && panel.parentNode) {
       if (busy) return;
-      /*@3.AUNJ.58*/
-      if (rec && view !== 'list') { openList(); return; }
       close();
       return;
     }
-    if (rec) { openList(); return; }
     render();
   }
 
   function wire() {
+    resumeSoon();
     var b = micBtn();
     if (!b || b.getAttribute('data-wired')) return;
     b.setAttribute('data-wired', '1');
     b.addEventListener('click', toggle);
   }
+
+  /*@3.AUNJ.93*/
+  var resumeT = 0;
+
+  function resumePending() {
+    if (rec || busy) return;
+    var want = homePref();
+    if (want !== 'us' && want !== 'gd') return;
+    var rest = items().filter(function (x) { return !x.aup && !x.gd && x.lo; });
+    if (!rest.length) return;
+    var it = rest[0];
+    var st = D();
+    if (!st) return;
+    var free = stayAwake();
+    st.get(it.i).then(function (b) {
+      if (!b || !b.size) { it.lo = 0; touch(true); free(); return; }
+      sendThen(it, b, function () {
+        free();
+        if (panel && view === 'list' && !rec && !busy) drawList();
+        badge();
+        resumeSoon();
+      }, true);
+    })['catch'](function () { free(); });
+  }
+
+  function resumeSoon() {
+    clearTimeout(resumeT);
+    resumeT = setTimeout(resumePending, 1500);
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') resumeSoon();
+  });
 
   /*@3.AUNJ.14*/
   function sync() {

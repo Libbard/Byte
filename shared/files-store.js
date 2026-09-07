@@ -105,6 +105,40 @@
   }
 
   /*@3.FISJ2.3*/
+  /*@3.FISJ2.13*/
+  var lockN = 0, lock = null;
+
+  function grab() {
+    if (lock || !lockN) return;
+    if (!navigator.wakeLock || !navigator.wakeLock.request) return;
+    if (document.visibilityState !== 'visible') return;
+    try {
+      navigator.wakeLock.request('screen').then(function (w) {
+        if (!lockN) { try { w.release(); } catch (e) {} return; }
+        lock = w;
+        w.addEventListener('release', function () { lock = null; });
+      }, function () {});
+    } catch (e) {}
+  }
+
+  function awake() {
+    lockN++;
+    grab();
+    var done = false;
+    return function () {
+      if (done) return;
+      done = true;
+      lockN = Math.max(0, lockN - 1);
+      if (lockN || !lock) return;
+      try { lock.release(); } catch (e) {}
+      lock = null;
+    };
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') grab();
+  });
+
   function upload(blob, opts) {
     var o = opts || {};
     var refId = o.refId || ('f_' + Date.now().toString(36) + '_' +
@@ -252,6 +286,7 @@
     mimes: MIMES,
     normMime: normMime,
     state: state,
+    awake: awake,
     upload: upload,
     list: list,
     link: link,

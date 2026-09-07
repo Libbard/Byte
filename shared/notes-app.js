@@ -6502,6 +6502,7 @@
     folders: foldersRead,
     /*@3.NOAJ.257*/
     doc: function () { return curDoc; },
+    noteId: function () { return edId || ''; },
     /*@3.NOAJ.273*/
     repaintCloud: cloudPaint,
     relinkPdf: function () {

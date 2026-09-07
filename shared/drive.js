@@ -69,8 +69,32 @@
 
   /*@3.DRIJ.3*/
   var tok = null, exp = 0, client = null;
+  /*@3.DRIJ.17*/
+  var KEEP = 'garden.gd.tok';
 
-  function fresh() { return !!(tok && Date.now() < exp - SLACK_MS); }
+  function vault() {
+    try { return window.sessionStorage || null; } catch (e) { return null; }
+  }
+  function recall() {
+    if (tok) return;
+    var s = vault();
+    if (!s) return;
+    try {
+      var j = JSON.parse(s.getItem(KEEP) || 'null');
+      if (j && j.t && Number(j.e) > Date.now() + SLACK_MS) { tok = j.t; exp = Number(j.e); }
+      else s.removeItem(KEEP);
+    } catch (e) {}
+  }
+  function stash() {
+    var s = vault();
+    if (!s) return;
+    try {
+      if (tok) s.setItem(KEEP, JSON.stringify({ t: tok, e: exp }));
+      else s.removeItem(KEEP);
+    } catch (e) {}
+  }
+
+  function fresh() { recall(); return !!(tok && Date.now() < exp - SLACK_MS); }
 
   function token(interactive) {
     if (fresh()) return Promise.resolve(tok);
@@ -96,6 +120,7 @@
           }
           tok = r.access_token;
           exp = Date.now() + (Number(r.expires_in) || 3600) * 1000;
+          stash();
           res(tok);
         };
         client.error_callback = function (e) {
@@ -117,7 +142,7 @@
     });
   }
 
-  function forget() { tok = null; exp = 0; }
+  function forget() { tok = null; exp = 0; stash(); }
 
   function err(code, why) {
     var e = new Error(code);
@@ -296,7 +321,8 @@
   function pick(opts) {
     var o = opts || {};
     if (!pickerEnabled()) return Promise.reject(err('picker_disabled'));
-    return token(true).then(function (t) {
+    /*@3.DRIJ.18*/
+    return token(false).then(function (t) {
       return script(GAPI, function () { return !!window.gapi; }).then(function (ok) {
         if (!ok) throw err('gapi_unavailable');
         return new Promise(function (res) {
@@ -310,14 +336,32 @@
           var b0key = '';
           var P = window.google.picker;
           if (pickerKey()) b0key = pickerKey();
-          var view = new P.DocsView(P.ViewId.DOCS);
-          view.setMimeTypes(o.mime || 'application/pdf');
-          view.setIncludeFolders(true);
+          /*@3.DRIJ.19*/
+          var mimes = o.mime || 'application/pdf';
+          var tree = new P.DocsView(P.ViewId.DOCS);
+          tree.setMimeTypes(mimes);
+          tree.setIncludeFolders(true);
+          tree.setSelectFolderEnabled(false);
+          try { tree.setParent('root'); } catch (e0) {}
+          try { tree.setLabel(L('درايفي', 'My Drive')); } catch (e0) {}
+          var mine = null;
+          var fid = o.folderId || folderId;
+          if (fid) {
+            mine = new P.DocsView(P.ViewId.DOCS);
+            mine.setMimeTypes(mimes);
+            mine.setIncludeFolders(true);
+            mine.setSelectFolderEnabled(false);
+            try { mine.setParent(fid); } catch (e0) { mine = null; }
+            if (mine) { try { mine.setLabel(FOLDER); } catch (e0) {} }
+          }
+          var flat = new P.DocsView(P.ViewId.DOCS);
+          flat.setMimeTypes(mimes);
+          try { flat.setLabel(L('بحثٌ في الكلّ', 'Search everything')); } catch (e0) {}
           var b = new P.PickerBuilder()
             .setOAuthToken(t)
             .setAppId(appId())
             .setLocale(isAr() ? 'ar' : 'en')
-            .addView(view)
+            .addView(tree)
             .setTitle(o.title || L('اخترْ ملفّاً من درايف', 'Pick a file from Drive'))
             .setCallback(function (d) {
               if (!d || !d.action) return;
@@ -343,6 +387,8 @@
           };
           shut = function () { fin(null); };
           try {
+            if (mine) b.addView(mine);
+            b.addView(flat);
             if (b0key) b.setDeveloperKey(b0key);
             pk = b.build();
             document.addEventListener('keydown', onKey, true);
@@ -388,6 +434,7 @@
 
   window.GardenDrive = {
     enabled: enabled,
+    folderName: function () { return FOLDER; },
     warm: warm,
     pickerEnabled: pickerEnabled,
     token: token,

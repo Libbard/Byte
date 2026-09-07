@@ -279,7 +279,7 @@
       '<div class="nfp-head">' + markIcon('drive') + '<b>' +
       esc(L('نسخةٌ في درايفك', 'A copy is in your Drive')) + '</b>' + shutBtn() + '</div>' +
       '<span class="nfp-sub">' +
-      esc(L('في مجلّد «الحديقة الرقمية» بحسابك — ولا نرى من درايفك إلا ما أنشأناه.',
+      esc(L('في مجلّد «Digital Garden» بحسابك — ولا نرى من درايفك إلا ما أنشأناه.',
             'In the "Digital Garden" folder in your account — we only ever see what '
             + 'we created there.')) + '</span>' +
       '<div class="nfp-acts">' +
@@ -356,7 +356,8 @@
     var refId = refIdOf(h);
     busy = true; prog = 0;
     repaint();
-    shut();
+    /*@3.FIPJ.35*/
+    sayUp();
     ac = window.AbortController ? new AbortController() : null;
 
     /*@3.FIPJ.10*/
@@ -408,7 +409,7 @@
       var h = cur.h;
       busy = true; prog = 0;
       repaint();
-      shut();
+      sayUp();
       ac = window.AbortController ? new AbortController() : null;
       gd.upload(file, {
         name: cur.name || file.name || 'file.pdf',
