@@ -133,6 +133,35 @@
   function host() { return document.getElementById('na-doc-body'); }
   function micBtn() { return document.getElementById('na-mic'); }
 
+  /*@3.AUNJ.109*/
+  var anchorFrom = 'bar';
+  function dockListBtn() { return cap ? cap.querySelector('.nrec-list') : null; }
+  function popAnchor() {
+    if (anchorFrom === 'dock') { var d = dockListBtn(); if (d) return d; }
+    return micBtn();
+  }
+
+  /*@3.AUNJ.110*/
+  var DOCK_LS = '__audioDockPos';
+  function dockPos() {
+    try {
+      var v = JSON.parse(localStorage.getItem(DOCK_LS) || 'null');
+      if (v && typeof v.x === 'number' && typeof v.y === 'number') return v;
+    } catch (e) {}
+    return null;
+  }
+  function dockSet(x, y) {
+    try { localStorage.setItem(DOCK_LS, JSON.stringify({ x: x, y: y })); } catch (e) {}
+  }
+  function dockPut(el, left, top) {
+    var w = el.offsetWidth || 160, h = el.offsetHeight || 34, pad = 8;
+    var mx = Math.max(pad, window.innerWidth - w - pad);
+    var my = Math.max(pad, window.innerHeight - h - pad);
+    el.style.left = Math.min(mx, Math.max(pad, left)) + 'px';
+    el.style.top = Math.min(my, Math.max(pad, top)) + 'px';
+    el.style.right = 'auto';
+  }
+
   /*@3.AUNJ.42*/
   function anchorRect() {
     var h = host();
@@ -145,17 +174,22 @@
     var pad = 12;
     if (side !== 'cap') {
       var P = window.GardenPop;
-      if (P) { P.place(el, micBtn(), host()); return; }
+      if (P) { P.place(el, popAnchor, host()); return; }
     }
     if (side === 'cap') {
       /*@3.AUNJ.50*/
+      var saved = dockPos();
+      if (saved) {
+        dockPut(el, saved.x * window.innerWidth, saved.y * window.innerHeight);
+        return;
+      }
       el.style.top = (r.top + pad) + 'px';
       if (rtl) { el.style.right = (window.innerWidth - r.right + pad) + 'px'; el.style.left = 'auto'; }
       else     { el.style.left = (r.left + pad) + 'px'; el.style.right = 'auto'; }
       return;
     }
     /*@3.AUNJ.49*/
-    var b = micBtn();
+    var b = popAnchor();
     var br = b ? b.getBoundingClientRect() : r;
     var w = el.offsetWidth || 256;
     var room = Math.max(8, window.innerWidth - w - 8);
@@ -213,13 +247,13 @@
     /*@3.AUNJ.61*/
     /*@3.AUNJ.43*/
     if (P) {
-      P.place(panel, b, host());
-      unsettle = P.settle(panel, b, host());
+      P.place(panel, popAnchor, host());
+      unsettle = P.settle(panel, popAnchor, host());
       guard = P.watch(panel, {
         locked: function () { return busy; },
-        skip: function (x) { return !!(b && b.contains(x)); },
+        skip: function (x) { var a = popAnchor(); return !!(a && a.contains(x)); },
         close: function () {
-          if (view === 'list' && !rec) { view = 'main'; render(); return; }
+          if (view === 'list' && !rec) { view = 'main'; render(); return false; }
           close();
         }
       });
@@ -251,8 +285,6 @@
     var row = panel && panel.querySelector('.nrr[data-ref="' + refId + '"]');
     if (!row) return;
     row.classList.add('on');
-    /*@3.AUNJ.107*/
-    askName(row, refId);
   }
 
   function msg(html) {
@@ -395,6 +427,10 @@
     var i, bars = '';
     for (i = 0; i < 14; i++) bars += '<i style="--h:.10"></i>';
     cap.innerHTML =
+      '<button type="button" class="nrc-grip" aria-label="' +
+        esc(L('اسحبْ لتحريكِ شريطِ التسجيل', 'Drag to move the recording bar')) + '"' +
+        ' data-ar-title="اسحبْ لتحريكِ شريطِ التسجيل"' +
+        ' data-en-title="Drag to move the recording bar"></button>' +
       '<button type="button" class="nrc-face" aria-label="' +
         esc(L('تفاصيلُ التسجيل', 'Recording details')) + '"' +
         ' data-ar-title="تفاصيلُ التسجيل" data-en-title="Recording details">' +
@@ -450,62 +486,108 @@
     cap.querySelector('.nrec-list').addEventListener('click', function (e) {
       e.stopPropagation();
       if (panel && panel.parentNode && view === 'list') { close(); return; }
+      anchorFrom = 'dock';
       openList();
     });
+    wireDrag(cap.querySelector('.nrc-grip'), cap);
     beat();
   }
 
-  /*@3.AUNJ.97*/
-  var HUSH_LS = '__audioStopHush';
+  function wireDrag(grip, el) {
+    if (!grip || !el) return;
+    var id = null, ox = 0, oy = 0, sx = 0, sy = 0, moved = false;
+    grip.addEventListener('pointerdown', function (e) {
+      if (e.button != null && e.button !== 0) return;
+      var r = el.getBoundingClientRect();
+      id = e.pointerId;
+      ox = e.clientX - r.left; oy = e.clientY - r.top;
+      sx = e.clientX; sy = e.clientY; moved = false;
+      el.setAttribute('data-drag', '1');
+      try { grip.setPointerCapture(id); } catch (e2) {}
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    grip.addEventListener('pointermove', function (e) {
+      if (id === null || e.pointerId !== id) return;
+      if (!moved && Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 3) return;
+      moved = true;
+      dockPut(el, e.clientX - ox, e.clientY - oy);
+      if (panel && panel.parentNode) place(panel, anchorRect(), 'pop');
+      e.preventDefault();
+    });
+    var end = function (e) {
+      if (id === null || (e && e.pointerId !== id)) return;
+      try { grip.releasePointerCapture(id); } catch (e2) {}
+      id = null;
+      el.removeAttribute('data-drag');
+      if (!moved) return;
+      var r = el.getBoundingClientRect();
+      dockSet(r.left / window.innerWidth, r.top / window.innerHeight);
+    };
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
+  }
 
-  function hushed() {
-    try { return localStorage.getItem(HUSH_LS) === '1'; } catch (e) { return false; }
+  /*@3.AUNJ.111*/
+  function defaultName(t) {
+    var d = new Date(Number(t) || Date.now());
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+           ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
   }
 
   function askEnd(keep) {
     if (!cap || !rec) return;
-    if (keep && hushed()) { stop(true); return; }
     var box = cap.querySelector('.nrc-ask');
     if (!box) { stop(keep); return; }
     dockOpen(true);
     var st = rec.stats();
     box.innerHTML =
-      '<b>' + esc(keep ? L('أُنهي التسجيل؟', 'End the recording?')
+      '<b>' + esc(keep ? L('أنهِ التسجيلَ واحفظْه', 'End and save the recording')
                        : L('أُلغي التسجيل؟', 'Discard the recording?')) + '</b>' +
+      (keep
+        ? '<span class="nrc-ask-l">' + esc(L('اسمُ التسجيل', 'Recording name')) + '</span>' +
+          '<input type="text" class="gsf-in nrc-ask-n" maxlength="80" dir="auto"' +
+          ' aria-label="' + esc(L('اسمُ التسجيل', 'Recording name')) + '"' +
+          ' value="' + esc(defaultName(Date.now())) + '">'
+        : '') +
       '<span class="nfo-dim">' +
         (keep
-          ? esc(L('ما سُجّل ', 'Recorded so far ')) +
-            '<span dir="ltr">' + esc(clock(st.sec)) + '</span>' +
-            esc(L(' — يُحفظ ولا يُحذف.',
-                  ' — it will be saved, not deleted.'))
+          ? '<span dir="ltr">' + esc(clock(st.sec)) + '</span>' +
+            esc(L(' — يُحفظ ولا يُحذف.', ' — it will be saved, not deleted.'))
           : '<span dir="ltr">' + esc(clock(st.sec)) + '</span>' +
             esc(L(' يُمحى ولا رجوع.', ' will be erased. No undo.'))) +
       '</span>' +
       '<span class="nrc-ask-a">' +
-        '<button type="button" class="gsf-btn gsf-btn--sm nrc-ask-go">' +
-          esc(keep ? L('أنهِ التسجيل', 'End it')
-                   : L('ألغِ', 'Discard')) + '</button>' +
-        '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrc-ask-no">' +
+        '<button type="button" class="gsf-btn gsf-btn--pri nrc-ask-go">' +
+          esc(keep ? L('أنهِ واحفظْ', 'End and save')
+                   : L('ألغِ ولا تحفظْ', 'Discard it')) + '</button>' +
+        '<button type="button" class="gsf-btn gsf-btn--ghost nrc-ask-no">' +
           esc(L('تراجعْ', 'Keep recording')) + '</button>' +
-      '</span>' +
-      (keep
-        ? '<label class="nrc-ask-h"><input type="checkbox" class="nrc-ask-hush">' +
-          '<span>' + esc(L('لا تسألني ثانيةً', "Don't ask me again")) +
-          '</span></label>'
-        : '');
+      '</span>';
     box.hidden = false;
     cap.setAttribute('data-ask', '1');
-    box.querySelector('.nrc-ask-go').addEventListener('click', function (e) {
-      e.stopPropagation();
-      var h = box.querySelector('.nrc-ask-hush');
-      if (h && h.checked) { try { localStorage.setItem(HUSH_LS, '1'); } catch (e2) {} }
+    var field = box.querySelector('.nrc-ask-n');
+    var go = function () {
+      var nm = field ? String(field.value || '').trim().slice(0, 80) : '';
       shutAsk();
-      stop(keep);
+      stop(keep, nm);
+    };
+    box.querySelector('.nrc-ask-go').addEventListener('click', function (e) {
+      e.stopPropagation(); go();
     });
     box.querySelector('.nrc-ask-no').addEventListener('click', function (e) {
-      e.stopPropagation();
-      shutAsk();
+      e.stopPropagation(); shutAsk();
     });
+    if (field) {
+      field.addEventListener('click', function (e) { e.stopPropagation(); });
+      field.addEventListener('keydown', function (e) {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); go(); }
+        else if (e.key === 'Escape') { e.preventDefault(); shutAsk(); }
+      });
+      try { field.focus(); field.select(); } catch (e) {}
+    }
   }
 
   function shutAsk() {
@@ -840,7 +922,7 @@
   }
 
   /*@3.AUNJ.8*/
-  function stop(keep) {
+  function stop(keep, nm) {
     if (!rec) return;
     var r = rec;
     rec = null;
@@ -858,7 +940,7 @@
         markStop();
         render(); return;
       }
-      upload(out, grp);
+      upload(out, grp, nm);
     });
   }
 
@@ -988,9 +1070,10 @@
              m: (out.blob.type || 'audio/webm').split(';')[0], aup: 0 };
   }
 
-  function upload(out, grp) {
+  function upload(out, grp, nm) {
     var it = newItem(out);
     if (grp && grp.g) { it.g = grp.g; it.k = grp.k || 0; }
+    if (nm) it.nm = String(nm).slice(0, 80);
     keep(it, out.blob);
   }
 
@@ -1027,9 +1110,10 @@
       /*@3.AUNJ.77*/
       var pref = homePref();
       if (!F() && !GDx()) { busy = false; settled(it.i); return; }
-      if (pref === 'us' && F()) { send(it, blob); return; }
-      if (pref === 'gd' && GDx()) { sendDrive(it, blob, null); return; }
-      if (pref === 'here') { busy = false; it.aup = 0; touch(true); settled(it.i); return; }
+      /*@3.AUNJ.112*/
+      if (pref === 'us' && F()) { vowSet(it, 'us'); send(it, blob); return; }
+      if (pref === 'gd' && GDx()) { vowSet(it, 'gd'); sendDrive(it, blob, null); return; }
+      if (pref === 'here') { busy = false; vowSet(it, 'here'); it.aup = 0; settled(it.i); return; }
       consent(it, blob);
     });
   }
@@ -1042,11 +1126,17 @@
     try {
       var v = localStorage.getItem(HOME_LS);
       if (v === 'us' || v === 'gd' || v === 'here') return v;
-      return localStorage.getItem(ASK_LS) === '1' ? 'us' : '';
-    } catch (e) { return ''; }
+    } catch (e) {}
+    return '';
   }
   function homeSet(v) {
     try { localStorage.setItem(HOME_LS, v); localStorage.setItem(ASK_LS, '1'); } catch (e) {}
+  }
+  function vowSet(it, v) {
+    if (!it) return;
+    it.vow = v;
+    it.tries = 0;
+    touch(true);
   }
 
   function consent(it, blob) {
@@ -1081,17 +1171,19 @@
     var bUs = panel.querySelector('.nrec-vow-up');
     if (bUs) bUs.addEventListener('click', function () {
       homeSet('us');
+      vowSet(it, 'us');
       send(it, blob);
     });
     var bGd = panel.querySelector('.nrec-vow-gd');
     if (bGd) bGd.addEventListener('click', function () {
       homeSet('gd');
+      vowSet(it, 'gd');
       sendDrive(it, blob, null);
     });
     panel.querySelector('.nrec-vow-no').addEventListener('click', function () {
       homeSet('here');
+      vowSet(it, 'here');
       it.aup = 0;
-      touch(true);
       settled(it.i);
     });
   }
@@ -1163,14 +1255,16 @@
   }
 
   /*@3.AUNJ.78*/
-  function sendDrive(it, blob, after) {
+  function sendDrive(it, blob, after, quiet) {
     var gd = GDx();
-    if (!gd) { busy = false; render(); return; }
-    busy = true;
-    mode('nrp--busy');
-    msg('<b>' + esc(L('يُرفع إلى درايفك…', 'Uploading to your Drive…')) + '</b> ' +
-        '<span class="nfo-dim" dir="ltr">' + esc(size(blob.size)) + '</span>');
-    acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
+    if (!gd) { if (!quiet) { busy = false; render(); } if (after) after(); return; }
+    if (!quiet) {
+      busy = true;
+      mode('nrp--busy');
+      msg('<b>' + esc(L('يُرفع إلى درايفك…', 'Uploading to your Drive…')) + '</b> ' +
+          '<span class="nfo-dim" dir="ltr">' + esc(size(blob.size)) + '</span>');
+      acts('<span class="nfo-track"><span class="nfo-fill nrec-fill"></span></span>');
+    }
     gd.upload(blob, {
       name: it.n + ext(it.m, it),
       mime: it.m,
@@ -1180,15 +1274,16 @@
         if (fill && of) fill.style.width = Math.round((at / of) * 100) + '%';
       }
     }).then(function (r) {
-      busy = false;
+      if (!quiet) busy = false;
       it.gd = (r && r.id) || '';
       it.aup = 0;
       touch(true);
       if (after) { after(); return; }
       settled(it.i);
     }, function (e) {
-      busy = false;
+      if (!quiet) busy = false;
       touch(true);
+      if (quiet) { if (after) after(); return; }
       render();
       mode('nrp--bad');
       msg('<b>' + esc(L('لم يُرفع إلى درايف', 'It was not uploaded to Drive')) + '</b> ' +
@@ -1213,6 +1308,7 @@
     if (!st || !it.lo) { gone(); return; }
     st.get(refId).then(function (b) {
       if (!b || !b.size) { it.lo = 0; touch(true); gone(); return; }
+      vowSet(it, 'gd');
       sendDrive(it, b, null);
     })['catch'](function () { it.lo = 0; touch(true); gone(); });
   }
@@ -1280,6 +1376,7 @@
     if (!st || !it.lo) { gone(); return; }
     st.get(refId).then(function (b) {
       if (!b || !b.size) { it.lo = 0; touch(true); gone(); return; }
+      vowSet(it, 'us');
       send(it, b);
     })['catch'](function () { it.lo = 0; touch(true); gone(); });
   }
@@ -1318,6 +1415,48 @@
   }
 
   function shutList() { if (view === 'list') { view = 'main'; render(); } }
+
+  /*@3.AUNJ.76*/
+  /*@3.AUNJ.113*/
+  function rowActs(x) {
+    var out = '';
+    var vowed = (x.vow === 'us' || x.vow === 'gd');
+    var waiting = vowed && !x.aup && !x.gd && x.lo;
+    var stopped = waiting && triesOf(x) >= TRIES.length;
+
+    if (waiting && !stopped) {
+      out += '<span class="nrr-say">' +
+        esc(x.vow === 'gd' ? L('بانتظارِ الرفعِ إلى درايف', 'Waiting to upload to Drive')
+                           : L('بانتظارِ الرفعِ إلينا', 'Waiting to upload to us')) +
+        ' · <span dir="ltr">' + (triesOf(x) + 1) + '/' + TRIES.length + '</span></span>' +
+        '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrec-halt">' +
+        esc(L('أوقفِ المحاولة', 'Stop trying')) + '</button>';
+      return out;
+    }
+    if (stopped) {
+      out += '<span class="nrr-say">' +
+        esc(x.vow === 'gd'
+          ? L('توقّفنا بعد ثلاثِ محاولات — درايفُ لم يستجب. وهو محفوظٌ على جهازك.',
+              'We stopped after three attempts — Drive did not respond. It is saved on your device.')
+          : L('توقّفنا بعد ثلاثِ محاولات — الخادمُ لم يستجب. وهو محفوظٌ على جهازك.',
+              'We stopped after three attempts — the server did not respond. It is saved on your device.')) +
+        '</span>';
+    }
+    if (!x.aup && !x.gd && x.lo) {
+      out += '<button type="button" class="gsf-btn gsf-btn--sm nrec-retry">' +
+        '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
+        esc(L('احفظْه عندنا', 'Keep it with us')) + '</button>' +
+        (GDx() ? '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrec-togd">' +
+                 '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+                 esc(L('في درايفي', 'In my Drive')) + '</button>' : '');
+    }
+    if (x.gd && !x.lo && !x.aup) {
+      out += '<button type="button" class="gsf-btn gsf-btn--sm nrec-link">' +
+        '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+        esc(L('اربطْ درايف هنا', 'Link Drive here')) + '</button>';
+    }
+    return out;
+  }
 
   /*@3.AUNJ.11*/
   /*@3.AUNJ.59*/
@@ -1387,20 +1526,7 @@
           esc(L('حذفُ التسجيل', 'Delete recording')) + '"' +
           ' data-ar-title="حذفُ التسجيل" data-en-title="Delete recording">' +
           '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>' +
-        '<div class="nrr-s nrec-row-p">' +
-          /*@3.AUNJ.76*/
-          ((x.aup || x.gd || !x.lo) ? '' :
-            '<button type="button" class="gsf-btn gsf-btn--sm nrec-retry">' +
-            '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
-            esc(L('احفظْه عندنا', 'Keep it with us')) + '</button>' +
-            (GDx() ? '<button type="button" class="gsf-btn gsf-btn--ghost gsf-btn--sm nrec-togd">' +
-                     '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
-                     esc(L('في درايفي', 'In my Drive')) + '</button>' : '')) +
-          ((x.gd && !x.lo && !x.aup)
-            ? '<button type="button" class="gsf-btn gsf-btn--sm nrec-link">' +
-              '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
-              esc(L('اربطْ درايف هنا', 'Link Drive here')) + '</button>' : '') +
-        '</div></div>';
+        '<div class="nrr-s nrec-row-p">' + rowActs(x) + '</div></div>';
     }).join('');
 
     /*@3.AUNJ.69*/
@@ -1440,6 +1566,15 @@
         e.stopPropagation();
         if (play.disabled) return;
         hit(ref, row, box);
+      });
+      var halt = row.querySelector('.nrec-halt');
+      if (halt) halt.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var it = items().filter(function (y) { return y.i === ref; })[0];
+        if (!it) return;
+        it.tries = TRIES.length;
+        touch(true);
+        drawList();
       });
       var again = row.querySelector('.nrec-retry');
       if (again) again.addEventListener('click', function (e) {
@@ -1512,7 +1647,7 @@
     row.setAttribute('data-ask', '1');
     stopRow(row);
     row.classList.add('on', 'nrr--ask');
-    slot.innerHTML = '<input type="text" class="nrr-name" maxlength="80"' +
+    slot.innerHTML = '<input type="text" class="nrr-name" maxlength="80" dir="auto"' +
       ' aria-label="' + esc(L('اسمُ التسجيل', 'Recording name')) + '"' +
       ' placeholder="' + esc(shortName(it.n)) + '" value="' +
       esc(String(it.nm || '')) + '">' +
@@ -1917,32 +2052,49 @@
   }
 
   /*@3.AUNJ.93*/
+  var TRIES = [5000, 20000, 60000];
   var resumeT = 0;
+
+  function triesOf(x) { return Number(x && x.tries) || 0; }
+
+  function pendingVowed() {
+    return items().filter(function (x) {
+      return !x.aup && !x.gd && x.lo &&
+             (x.vow === 'us' || x.vow === 'gd') &&
+             triesOf(x) < TRIES.length;
+    });
+  }
 
   function resumePending() {
     if (rec || busy) return;
-    var want = homePref();
-    if (want !== 'us' && want !== 'gd') return;
-    var rest = items().filter(function (x) { return !x.aup && !x.gd && x.lo; });
+    var rest = pendingVowed();
     if (!rest.length) return;
     var it = rest[0];
     var st = D();
     if (!st) return;
+    var want = it.vow;
+    if (want === 'us' && !F()) return;
+    if (want === 'gd' && !GDx()) return;
     var free = stayAwake();
+    var done = function () {
+      free();
+      if (it.aup || it.gd) { it.tries = 0; touch(true); }
+      else { it.tries = triesOf(it) + 1; touch(true); }
+      if (panel && view === 'list' && !rec && !busy) drawList();
+      badge();
+      if (it.aup || it.gd) { resumeSoon(1500); return; }
+      if (triesOf(it) < TRIES.length) resumeSoon(TRIES[triesOf(it)]);
+    };
     st.get(it.i).then(function (b) {
       if (!b || !b.size) { it.lo = 0; touch(true); free(); return; }
-      sendThen(it, b, function () {
-        free();
-        if (panel && view === 'list' && !rec && !busy) drawList();
-        badge();
-        resumeSoon();
-      }, true);
+      if (want === 'gd') sendDrive(it, b, done, true);
+      else sendThen(it, b, done, true);
     })['catch'](function () { free(); });
   }
 
-  function resumeSoon() {
+  function resumeSoon(ms) {
     clearTimeout(resumeT);
-    resumeT = setTimeout(resumePending, 1500);
+    resumeT = setTimeout(resumePending, Math.max(1500, Number(ms) || 1500));
   }
 
   document.addEventListener('visibilitychange', function () {

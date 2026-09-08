@@ -10,8 +10,12 @@
 
   /*@3.ANPJ.2*/
   /*@3.ANPJ.3*/
+  /*@3.ANPJ.5*/
+  function el0(x) { return (typeof x === 'function') ? x() : x; }
+
   function place(el, btn, fb) {
     if (!el) return false;
+    btn = el0(btn);
     var br = btn ? btn.getBoundingClientRect() : null;
     if (!br || (!br.width && !br.height)) {
       if (el.style.top) return true;
@@ -92,10 +96,11 @@
     };
 
     var dead = false;
+    /*@3.ANPJ.6*/
     function go(why) {
       if (dead) return;
+      if (shut(why) === false) return;
       off();
-      shut(why);
     }
     function off() {
       if (dead) return;
