@@ -357,9 +357,18 @@
           var flat = new P.DocsView(P.ViewId.DOCS);
           flat.setMimeTypes(mimes);
           try { flat.setLabel(L('بحثٌ في الكلّ', 'Search everything')); } catch (e0) {}
+          /*@3.DRIJ.20*/
+          var org = window.location.protocol + '//' + window.location.host;
+          /*@3.DRIJ.21*/
+          var vw = Math.max(320, window.innerWidth || 1024);
+          var vh = Math.max(400, window.innerHeight || 768);
+          var pw = Math.min(vw - 16, 1051);
+          var ph = Math.min(vh - 16, 650);
           var b = new P.PickerBuilder()
             .setOAuthToken(t)
             .setAppId(appId())
+            .setOrigin(org)
+            .setSize(pw, ph)
             .setLocale(isAr() ? 'ar' : 'en')
             .addView(tree)
             .setTitle(o.title || L('اخترْ ملفّاً من درايف', 'Pick a file from Drive'))

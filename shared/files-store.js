@@ -280,6 +280,20 @@
     });
   }
 
+  /*@3.FISJ2.14*/
+  function have(hashes) {
+    var one = !Array.isArray(hashes);
+    var list = one ? [hashes] : hashes;
+    return vaultId().then(function (id) {
+      if (!id) throw new Error('no_vault');
+      return jreq('POST', base(id) + '/have', id, { h: one ? list[0] : list })
+        .then(function (r) {
+          if (!r.ok) throw Object.assign(new Error(r.body.error || 'have_failed'), r.body);
+          return one ? r.body : (r.body.files || []);
+        });
+    });
+  }
+
   function available() { return state(); }
 
   window.GardenFiles = {
@@ -288,6 +302,7 @@
     state: state,
     awake: awake,
     upload: upload,
+    have: have,
     list: list,
     link: link,
     fetchBytes: fetchBytes,
