@@ -30,7 +30,7 @@ window.GardenEndpoints = {
   googlePickerKey: 'AIzaSyB1n7OkTaZbGkJjETggpQDzmJHawgzlO3s', // public-browser-key
 
   /*@3.ENDJ.15*/
-  googlePickerKeyOn: true,
+  googlePickerKeyOn: false,
 };
 
 /*@3.ENDJ.7*/
