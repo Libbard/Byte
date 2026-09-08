@@ -16,6 +16,41 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function G() { return window.GardenSync; }
+  function GD() { return window.GardenDrive || null; }
+
+  /*@3.SYPJ.50*/
+  var DRV_KEEP = '__driveKeep';
+  var DRV_OFFER = '__driveOffer';
+
+  function driveKeep() {
+    try {
+      var v = localStorage.getItem(DRV_KEEP);
+      return (v === 'local' || v === 'all') ? v : '';
+    } catch (e) { return ''; }
+  }
+  function driveKeepSet(v) {
+    try { localStorage.setItem(DRV_KEEP, v); } catch (e) {}
+  }
+  /*@3.SYPJ.51*/
+  function offerOn() {
+    try { return localStorage.getItem(DRV_OFFER) !== '0'; } catch (e) { return true; }
+  }
+  function offerSet(on) {
+    try { localStorage.setItem(DRV_OFFER, on ? '1' : '0'); } catch (e) {}
+  }
+  function driveOn() {
+    var g = GD();
+    try { return !!(g && g.enabled() && g.token && driveKeep()); } catch (e) { return false; }
+  }
+  function driveSub() {
+    if (!GD() || !GD().enabled()) {
+      return L('غيرُ مفعَّلٍ في هذا الحساب', 'Not enabled on this account');
+    }
+    var k = driveKeep();
+    if (k === 'all') return L('موصولٌ · على كلِّ أجهزتك', 'Connected · on all your devices');
+    if (k === 'local') return L('موصولٌ · هذا الجهازُ وحدَه', 'Connected · this device only');
+    return L('افتحْ ملفّاتِك من درايف', 'Open your files from Drive');
+  }
   function linked() { var g = G(); return !!(g && g.getKey && g.getKey()); }
   /*@3.SYPJ.2*/
   function everSynced() {
@@ -202,6 +237,7 @@
       : v === 'vouch'   ? this.vForm('vouch')
       : v === 'unlink'  ? this.vUnlink()
       : v === 'shield'  ? this.vShield()
+      : v === 'drive'   ? this.vDrive()
       : v === 'locked'  ? this.vLocked()
       : v === 'disarm'  ? this.vDisarm()
       :                   this.vHome();
@@ -286,6 +322,9 @@
            L('رمزٌ يظهر هنا وتمسحه بجوّالك — صالحٌ ثلاثَ دقائق', 'A code appears here; scan it with your phone — valid 3 minutes'), 'go') +
       door('key', 'fa-key', L('مفتاحي ونسخُه', 'My key and its copies'),
            L('انسخه أو نزّله أو اطبعه', 'Copy, download, or print it')) +
+      /*@3.SYPJ.49*/
+      door('drive', 'fa-brands fa-google-drive', L('درايفي', 'My Drive'),
+           driveSub()) +
       '</div>';
 
     /*@3.SYPJ.21*/
@@ -595,6 +634,91 @@
   };
 
   /*@3.SYPJ.15*/
+  Panel.prototype.vDrive = function () {
+    var gd = GD();
+    var armed = !!(this.guard && this.guard.armed);
+    var keep = driveKeep();
+
+    if (!gd || !gd.enabled()) {
+      return '<div class="sp-sec"><div class="sp-vouch"><b>' +
+        '<i class="fa-brands fa-google-drive"></i>' +
+        esc(L('درايفُ غيرُ مفعَّلٍ في هذا الحساب', 'Drive is not enabled on this account')) +
+        '</b><small>' +
+        esc(L('حين يُفعَّل، ستفتح ملفّاتِك من درايفك ولن نضغط منها شيئاً ولا نستضيف نسخةً —' +
+              ' مساحتُك هناك مساحتُك.',
+              'When enabled, you will open your files from your Drive. We compress nothing of it' +
+              ' and host no copy — your space there is yours.')) +
+        '</small></div></div>' + back('pick');
+    }
+
+    var head = '<div class="sp-sec"><div class="sp-vouch' + (keep ? ' sp-vouch--ok' : '') + '"><b>' +
+      '<i class="fa-brands fa-google-drive"></i>' +
+      esc(keep ? L('درايفُ موصول', 'Drive is connected')
+               : L('أين نحفظ إذنَ الوصول؟', 'Where should we keep the access permit?')) +
+      '</b><small>' +
+      esc(keep ? L('ونستعمله لفتحِ ما تشير إليه أنت وحدَه — ولا نسرد درايفَك ولا نقرأ ما لم تُشِرْ إليه.',
+                   'We use it only to open what you point at — we never list your Drive nor read what you did not choose.')
+               : L('اختر ما يريحك. والأضيقُ هو الافتراضيُّ عندنا.',
+                   'Choose what suits you. The narrower option is our default.')) +
+      '</small></div></div>';
+
+    var optLocal = '<button type="button" class="sp-door' +
+      (keep === 'local' ? ' sp-door--on' : '') + '" data-sp="drv-local">' +
+      '<span class="sp-door-i"><i class="fa-solid fa-mobile-screen-button"></i></span>' +
+      '<span class="sp-door-t">' + esc(L('هذا الجهازُ وحدَه', 'This device only')) +
+      '<small>' + esc(L('الإذنُ يعيش ساعةً في هذا المتصفّحِ ثمّ يزول. ولا نحتفظ بشيء.',
+                        'The permit lives one hour in this browser, then it is gone. We keep nothing.')) +
+      '</small></span></button>';
+
+    var optAll = '<button type="button" class="sp-door' +
+      (keep === 'all' ? ' sp-door--on' : '') + '" data-sp="drv-all"' +
+      (armed ? '' : ' disabled aria-disabled="true"') + '>' +
+      '<span class="sp-door-i"><i class="fa-solid fa-laptop-mobile"></i></span>' +
+      '<span class="sp-door-t">' + esc(L('كلُّ أجهزتي', 'All my devices')) +
+      '<small>' + esc(armed
+        ? L('نحفظ الإذنَ مشفَّراً في حسابك عندنا، فيفتح جوّالُك ما وصلتَه من حاسبك بلا تسجيلِ دخولٍ جديد. وتسحبه متى شئت من هنا أو من حسابك في قوقل.',
+            'We keep the permit encrypted in your account, so your phone opens what you connected on your computer with no new sign-in. Revoke it any time, here or from your Google account.')
+        : L('يحتاج حساباً محميّاً.', 'Requires a protected account.')) +
+      '</small></span></button>';
+
+    var body = head + '<div class="sp-sec"><div class="sp-doors">' + optLocal + optAll + '</div>';
+
+    if (!armed) {
+      body += '<div class="sp-vouch"><b><i class="fa-solid fa-lock"></i>' +
+        esc(L('لماذا هو مقفل؟', 'Why is it locked?')) + '</b><small>' +
+        esc(L('حسابُك عندنا يُفتح بمفتاحٍ وحدَه اليوم. ولا نحفظ إذنَ درايفك في حسابٍ' +
+              ' يستطيع أن يفتحه غيرُك — فمن قرأ مفتاحَك في لقطةِ شاشةٍ يقرأ ملفّاتِك أيضاً.',
+              'Your account here opens with a key alone today. We will not keep your Drive permit' +
+              ' in an account someone else could open — whoever reads your key in a screenshot' +
+              ' would reach your files too.')) +
+        '</small><div class="sp-acts">' +
+        btn('to-shield', 'fa-shield-halved', L('احمِ حسابي أوّلاً', 'Protect my account first'), 'go') +
+        '</div></div>';
+    }
+    body += '</div>';
+
+    body += '<div class="sp-sec"><p class="sp-sec-t">' +
+      esc(L('حين يكون الملفُّ عندنا سلفاً', 'When we already have the file')) + '</p>' +
+      '<div class="sp-vouch"><b>' +
+      '<i class="fa-solid fa-' + (offerOn() ? 'bell' : 'bell-slash') + '"></i>' +
+      esc(offerOn() ? L('نخبرك فتفتحه بلا رفع', 'We tell you, so it opens with no upload')
+                    : L('لا نخبرك — أنت أطفأتَه', 'We do not tell you — you turned this off')) +
+      '</b><small>' +
+      esc(L('ورسومُك وتعليقاتُك وتسجيلاتُك تبقى لك وحدَك: المزامَنُ هو الملفُّ الأصليُّ لا عملُك عليه.',
+            'Your drawings, comments and recordings stay yours alone: only the original file is synced, never your work on it.')) +
+      '</small><div class="sp-acts">' +
+      btn('drv-offer', offerOn() ? 'fa-bell-slash' : 'fa-bell',
+          offerOn() ? L('لا تخبرني', 'Do not tell me') : L('أخبرني', 'Tell me'), 'quiet') +
+      '</div></div></div>';
+
+    if (keep) {
+      body += '<div class="sp-acts" style="margin-top:1.1rem">' +
+        btn('drv-off', 'fa-link-slash', L('افصلْ درايف', 'Disconnect Drive'), 'danger wide') +
+        '</div>';
+    }
+    return body + back('pick');
+  };
+
   Panel.prototype.vUnlink = function () {
     return '<p class="sp-hint">' + esc(L(
       'ستُحذف النسخةُ المحفوظةُ من مفتاحك عندنا. بياناتُك ومفتاحُك يبقيان كما هما على هذا الجهاز، وتستطيع الحفظَ ثانيةً بحسابٍ آخر متى شئت.',
@@ -695,7 +819,44 @@
     if (a === 'skip') { if (this.opts.onSkip) this.opts.onSkip(); return; }
     if (a === 'have' || a === 'code' || a === 'recover' || a === 'paste' || a === 'vouch' ||
         a === 'key' || a === 'unlink' || a === 'shield' || a === 'disarm' ||
-        a === 'locked') return this.go(a);
+        a === 'drive' || a === 'locked') return this.go(a);
+
+    if (a === 'drv-local' || a === 'drv-all') {
+      var wantAll = (a === 'drv-all');
+      /*@3.SYPJ.52*/
+      if (wantAll && !(this.guard && this.guard.armed)) {
+        this.set({ err: L('فعّلْ حمايةَ الحسابِ أوّلاً — ثمّ يُفتح هذا الخيار.',
+                          'Turn on account protection first — then this option opens.') });
+        return;
+      }
+      var self = this;
+      var g = GD();
+      if (!g) return;
+      g.token(true).then(function () {
+        driveKeepSet(wantAll ? 'all' : 'local');
+        self.set({ msg: wantAll
+          ? L('حُفظ الإذنُ لكلِّ أجهزتك. تسحبه من هنا متى شئت.',
+              'The permit is kept for all your devices. Revoke it here any time.')
+          : L('لن نحتفظ بشيء — الإذنُ في هذا المتصفّحِ ساعةً ثمّ يزول.',
+              'We will keep nothing — the permit lives one hour in this browser.'),
+          err: '' });
+      })['catch'](function (e) {
+        self.set({ err: (g.reason && g.reason(e)) || L('تعذّر الوصولُ إلى درايف.',
+                                                       'Could not reach Drive.') });
+      });
+      return;
+    }
+    if (a === 'drv-offer') { offerSet(!offerOn()); this.render(); return; }
+    if (a === 'drv-off') {
+      var gg = GD();
+      driveKeepSet('');
+      try { localStorage.removeItem(DRV_KEEP); } catch (e) {}
+      if (gg && gg.forget) { try { gg.forget(); } catch (e) {} }
+      this.set({ msg: L('فُصل درايف. وملفّاتُك هناك لم تُمسّ — ولا رسومُك ولا تسجيلاتُك عندنا.',
+                        'Drive is disconnected. Your files there are untouched — and so are your drawings and recordings here.'),
+                 err: '' });
+      return;
+    }
     if (a === 'guard-retry') { this.set({ err: '', msg: '' }); this.loadGuard(); return; }
     if (a && a.indexOf('to-') === 0) return this.go(a.slice(3));
 
