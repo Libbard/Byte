@@ -15,7 +15,12 @@
   function E() { return window.GardenEndpoints || {}; }
   function clientId() { return E().googleClientId || ''; }
   /*@3.DRIJ.15*/
+  /*@3.DRIJ.24*/
+  function keyOff() {
+    try { return /[?&]nokey=1/.test(location.search); } catch (e) { return false; }
+  }
   function pickerKey() {
+    if (keyOff()) return '';
     return E().googlePickerKeyOn ? (E().googlePickerKey || '') : '';
   }
   function appId() { return String(clientId()).split('-')[0] || ''; }
