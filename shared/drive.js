@@ -381,6 +381,15 @@
       '&state=' + encodeURIComponent(state);
   }
 
+  /*@3.DRIJ.29*/
+  function standalone() {
+    try {
+      if (window.navigator && window.navigator.standalone) return true;
+      return !!(window.matchMedia &&
+                window.matchMedia('(display-mode: standalone)').matches);
+    } catch (e) { return false; }
+  }
+
   function pickTop(opts) {
     var o = opts || {};
     if (!enabled()) return Promise.reject(err('drive_disabled'));
@@ -388,9 +397,53 @@
     try {
       localStorage.setItem(TOP_LS, JSON.stringify({ s: st, t: Date.now() }));
     } catch (e) { return Promise.reject(err('no_store')); }
-    location.href = topUrl(o.mime, st);
-    /*@3.DRIJ.27*/
-    return new Promise(function () {});
+    var url = topUrl(o.mime, st);
+    var w = null;
+    if (!standalone()) {
+      try {
+        var ww = Math.min(560, (window.screen && screen.width) || 560);
+        var wh = Math.min(720, (window.screen && screen.height) || 720);
+        w = window.open(url, 'gardenDrivePick',
+                        'width=' + ww + ',height=' + wh + ',menubar=no,toolbar=no');
+      } catch (e) {}
+    }
+    if (!w) {
+      location.href = url;
+      /*@3.DRIJ.27*/
+      return new Promise(function () {});
+    }
+    return relay(st, w);
+  }
+
+  /*@3.DRIJ.30*/
+  function relay(st, w) {
+    return new Promise(function (res, rej) {
+      var done = false, tick = null;
+      var off = function () {
+        done = true;
+        window.removeEventListener('message', on);
+        if (tick) clearInterval(tick);
+      };
+      var on = function (e) {
+        if (e.origin !== window.location.origin) return;
+        var d = e.data;
+        if (!d || d.gd !== 'pick' || d.s !== st) return;
+        off();
+        try { w.close(); } catch (e2) {}
+        if (d.bad) {
+          rej(err(d.bad === 'access_denied' ? 'consent_denied' : 'pick_failed'));
+          return;
+        }
+        res({ id: d.ids[0], name: '', size: 0, mime: '', code: d.code || '' });
+      };
+      window.addEventListener('message', on);
+      tick = setInterval(function () {
+        if (done) return;
+        var shut = false;
+        try { shut = w.closed; } catch (e2) { return; }
+        if (shut) { off(); rej(err('consent_closed')); }
+      }, 700);
+    });
   }
 
   function topBack() {
@@ -403,8 +456,19 @@
     try { localStorage.removeItem(TOP_LS); } catch (e) {}
     try { history.replaceState(null, '', backTo()); } catch (e) {}
     if (!want || !want.s || want.s !== q.get('state')) return { error: 'state_mismatch' };
-    if (bad) return { error: String(bad) };
     var list = String(ids || '').split(',').filter(Boolean);
+    var op = null;
+    try { op = window.opener; } catch (e) {}
+    if (op) {
+      try {
+        op.postMessage({ gd: 'pick', s: want.s, ids: list,
+                         code: String(code || ''), bad: bad ? String(bad) : '' },
+                       window.location.origin);
+      } catch (e) {}
+      try { window.close(); } catch (e) {}
+      return { relayed: true };
+    }
+    if (bad) return { error: String(bad) };
     if (!list.length) return { error: 'no_pick' };
     return { ids: list, code: String(code || '') };
   }
@@ -540,14 +604,16 @@
           var bail = function () {
             if (gone) return;
             gone = true;
+            topPrefer(true);
+            /*@3.DRIJ.32*/
+            var pr = pickTop(o);
             document.removeEventListener('keydown', onKey, true);
             if (stop) stop();
             if (stopBar) stopBar();
             try { if (pk) { pk.setVisible(false); pk.dispose(); } } catch (e2) {}
-            topPrefer(true);
             note('done', 'mute→top');
             dsay('انتهى');
-            rej(err('picker_mute'));
+            pr.then(res, rej);
           };
           try {
             if (mine) b.addView(mine);
@@ -615,6 +681,15 @@
     }
     return L('تعذّر الوصولُ إلى درايف.', 'Drive could not be reached.');
   }
+
+  /*@3.DRIJ.31*/
+  (function () {
+    try {
+      if (!window.opener) return;
+      if (!/[?&](picked_file_ids|code|error)=/.test(window.location.search || '')) return;
+      topBack();
+    } catch (e) {}
+  })();
 
   window.GardenDrive = {
     enabled: enabled,
