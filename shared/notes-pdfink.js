@@ -388,6 +388,17 @@
     this.drawWet(s.p, L.el);
   };
 
+  /*@3.NOPJ8.69*/
+  Ink.prototype.mark = function (n, pt, tool) {
+    if (!pt || pt.x == null || pt.y == null) return;
+    try {
+      window.dispatchEvent(new CustomEvent('garden:inkMark', { detail: {
+        t: Date.now(), x: Math.round(pt.x), y: Math.round(pt.y),
+        page: n | 0, tool: tool || 'pen'
+      } }));
+    } catch (e) {}
+  };
+
   Ink.prototype.end = function (keep) {
     var L = this.live;
     this.live = null;
@@ -442,6 +453,7 @@
                              width: this.face.width, nib: this.face.nib, straight: 1 };
         }
         this.addMark(L.n, rects, tk.c);
+        this.mark(L.n, qa, 'hi');
         return true;
       }
     }
@@ -465,6 +477,7 @@
     }
     this.paint(L.n);
     this.touch(L.n);
+    this.mark(L.n, L.el.pts[0], L.el.hi ? 'hi' : 'pen');
     return true;
   };
 

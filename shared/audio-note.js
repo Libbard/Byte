@@ -714,12 +714,13 @@
   var marks = null;
   var markOn = null;
 
-  function markStart(t0) {
+  function markStart() {
     marks = [];
     markOn = function (e) {
       var d = (e && e.detail) || {};
-      if (!marks || !d.t) return;
-      var at = Math.round((d.t - t0) / 1000);
+      /*@3.AUNJ.118*/
+      if (!marks || !d.t || !rec || !rec.stats) return;
+      var at = Math.round(rec.stats().sec);
       if (at < 0) at = 0;
       if (marks.length >= MARK_MAX) marks.splice(MARK_MAX / 2, 1);
       marks.push([at, d.page | 0, d.x | 0, d.y | 0]);
@@ -894,7 +895,7 @@
       if (wake) wake();
       wake = stayAwake();
       wipWrite(Object.assign(wipRead() || {}, { m: r.type || 'audio/webm' }));
-      markStart(rec.t0 || Date.now());
+      markStart();
       close();
       dockOpen(false);
       render();
@@ -1848,7 +1849,8 @@
         var abs = base + at;
         if (abs - last < MARK_GAP_S) return;
         last = abs;
-        if (out.length < 60) out.push({ at: abs, page: (m[1] | 0) + 1 });
+        /*@3.AUNJ.117*/
+        if (out.length < 60) out.push({ at: abs, page: m[1] | 0 });
       });
       base += secs;
     });
@@ -1863,9 +1865,11 @@
       return '<button type="button" class="nrec-mk" style="--at:' + pc.toFixed(2) + '%"' +
         ' data-at="' + x.at + '" aria-label="' +
         esc(L('انتقلْ إلى ', 'Jump to ') + clock(x.at) +
-            L(' — رسمٌ في صفحة ', ' \u2014 ink on page ') + x.page) + '"' +
-        ' title="' + esc(clock(x.at) + ' \u00b7 ' +
-                         L('صفحة ', 'page ') + x.page) + '"></button>';
+            (x.page ? L(' — رسمٌ في صفحة ', ' \u2014 ink on page ') + x.page
+                    : L(' — رسمٌ', ' \u2014 ink'))) + '"' +
+        ' title="' + esc(clock(x.at) +
+                         (x.page ? ' \u00b7 ' + L('صفحة ', 'page ') + x.page
+                                 : '')) + '"></button>';
     }).join('') + '</span>';
   }
 

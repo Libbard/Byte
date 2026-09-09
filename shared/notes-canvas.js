@@ -2032,6 +2032,7 @@
         }
         self.push(self.snapshot());
         self.els.push(st);
+        markInk(st);
         /*@3.NOCJ.99*/
         if (st.ty === 'st') {
           self.used = { tool: st.hi ? 'hi' : 'pen', color: self.color,
@@ -2199,6 +2200,20 @@
     });
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (w || 100) + ' ' + (h || 100) +
       '" width="' + (w || 100) + '" height="' + (h || 100) + '">' + parts.join('') + '</svg>';
+  }
+
+  /*@3.NOCJ.114*/
+  function markInk(st) {
+    if (!st) return;
+    var p = (st.ty === 'st' && st.pts && st.pts.length)
+          ? st.pts[0] : { x: st.x1, y: st.y1 };
+    if (!p || p.x == null || p.y == null) return;
+    try {
+      window.dispatchEvent(new CustomEvent('garden:inkMark', { detail: {
+        t: Date.now(), x: Math.round(p.x), y: Math.round(p.y),
+        page: 0, tool: st.hi ? 'hi' : (st.ty === 'st' ? 'pen' : 'shape')
+      } }));
+    } catch (e) {}
   }
 
   window.GardenCanvas = {
