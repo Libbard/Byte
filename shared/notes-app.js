@@ -3170,6 +3170,7 @@
       shut();
       if (a === 'device') { fromDevice(); return; }
       if (a !== 'gd') return;
+      if (GD.topPreferred && GD.topPreferred()) { GD.pickTop({ mime: 'application/pdf' }); return; }
       GD.pick().then(function (pk) {
         /*@3.NOAJ.274*/
         if (!pk) { createPdf(); return; }
@@ -3184,12 +3185,50 @@
         });
       })['catch'](function (er) {
         /*@3.NOAJ.275*/
-        if (er && er.code === 'picker_mute') { fromDevice(); return; }
+        if (er && er.code === 'picker_mute') { GD.pickTop({ mime: 'application/pdf' }); return; }
         saveState('error', GD.reason(er));
         setTimeout(function () { saveState('', ''); }, 4000);
       });
     });
     try { dlg.showModal(); } catch (e2) { shut(); fromDevice(); }
+  }
+
+  /*@3.NOAJ.276*/
+  function takeDrive(id) {
+    var GD = window.GardenDrive;
+    if (!GD || !id) return;
+    setMob('doc');
+    saveState('saving', L('يُنزَّل من درايف…', 'Downloading from Drive…'));
+    GD.meta(id).then(function (m) {
+      return GD.download(id, function (at, of) {
+        if (!of) return;
+        saveState('saving', L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
+                  Math.round(at * 100 / of) + '%');
+      }).then(function (blob) {
+        adoptPdf(new File([blob], (m && m.name) || 'file.pdf',
+                          { type: 'application/pdf' }), id);
+      });
+    })['catch'](function (er) {
+      saveState('error', GD.reason(er));
+      setTimeout(function () { saveState('', ''); }, 4000);
+    });
+  }
+
+  function driveBack() {
+    var GD = window.GardenDrive;
+    if (!GD || !GD.topBack) return;
+    var r = null;
+    try { r = GD.topBack(); } catch (e) { return; }
+    if (!r) return;
+    if (r.error) {
+      if (r.error === 'no_pick' || r.error === 'access_denied') return;
+      saveState('error', L('تعذّرت العودةُ من درايف — أعِدِ المحاولة.',
+                           'Coming back from Drive failed — try again.'));
+      setTimeout(function () { saveState('', ''); }, 4000);
+      return;
+    }
+    GD.topPrefer(true);
+    takeDrive(r.ids[0]);
   }
 
   function adoptPdf(file, gdId) {
@@ -6204,6 +6243,7 @@
     var np = document.getElementById('na-new-pdf');
     if (np) np.addEventListener('click', function () { createPdf(); });
     bindDrop();
+    driveBack();
 
     /*@3.NOAJ.78*/
     if (els.docBody) els.docBody.addEventListener('click', function (e) {

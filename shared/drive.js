@@ -361,6 +361,65 @@
     return function () { clearInterval(t); };
   }
 
+  /*@3.DRIJ.26*/
+  var AUTH = 'https://accounts.google.com/o/oauth2/v2/auth';
+  var TOP_LS = 'garden.gd.top';
+  var TOP_PREF = '__gdTopOnly';
+
+  function backTo() { return location.origin + location.pathname; }
+
+  function topUrl(mimes, state) {
+    return AUTH +
+      '?client_id=' + encodeURIComponent(clientId()) +
+      '&redirect_uri=' + encodeURIComponent(backTo()) +
+      '&response_type=code' +
+      '&scope=' + encodeURIComponent(SCOPE) +
+      '&access_type=offline' +
+      '&prompt=consent' +
+      '&trigger_onepick=true' +
+      '&mimetypes=' + encodeURIComponent(mimes || 'application/pdf') +
+      '&state=' + encodeURIComponent(state);
+  }
+
+  function pickTop(opts) {
+    var o = opts || {};
+    if (!enabled()) return Promise.reject(err('drive_disabled'));
+    var st = String(Date.now()) + '.' + String(Math.random()).slice(2, 12);
+    try {
+      localStorage.setItem(TOP_LS, JSON.stringify({ s: st, t: Date.now() }));
+    } catch (e) { return Promise.reject(err('no_store')); }
+    location.href = topUrl(o.mime, st);
+    /*@3.DRIJ.27*/
+    return new Promise(function () {});
+  }
+
+  function topBack() {
+    var q;
+    try { q = new URLSearchParams(location.search || ''); } catch (e) { return null; }
+    var ids = q.get('picked_file_ids'), code = q.get('code'), bad = q.get('error');
+    if (!ids && !code && !bad) return null;
+    var want = null;
+    try { want = JSON.parse(localStorage.getItem(TOP_LS) || 'null'); } catch (e) {}
+    try { localStorage.removeItem(TOP_LS); } catch (e) {}
+    try { history.replaceState(null, '', backTo()); } catch (e) {}
+    if (!want || !want.s || want.s !== q.get('state')) return { error: 'state_mismatch' };
+    if (bad) return { error: String(bad) };
+    var list = String(ids || '').split(',').filter(Boolean);
+    if (!list.length) return { error: 'no_pick' };
+    return { ids: list, code: String(code || '') };
+  }
+
+  /*@3.DRIJ.28*/
+  function topPreferred() {
+    try { return localStorage.getItem(TOP_PREF) === '1'; } catch (e) { return false; }
+  }
+  function topPrefer(on) {
+    try {
+      if (on) localStorage.setItem(TOP_PREF, '1');
+      else localStorage.removeItem(TOP_PREF);
+    } catch (e) {}
+  }
+
   /*@3.DRIJ.25*/
   var MUTE_MS = 9000;
   function muteBar(seen, toDevice) {
@@ -377,11 +436,11 @@
         'border-top:1px solid #e6d5a0;color:#5a4708;text-align:center;' +
         'font:500 13px/1.65 system-ui,sans-serif';
       var msg = document.createElement('span');
-      msg.textContent = L('لم تستجبْ نافذةُ درايف على هذا المتصفّح.',
-                          'The Drive window did not respond in this browser.');
+      msg.textContent = L('لم تستجبْ هذه النافذةُ على متصفّحك.',
+                          'This window did not respond in your browser.');
       var go = document.createElement('button');
       go.type = 'button';
-      go.textContent = L('افتحْ من ملفّاتِ جهازي', 'Open from my device');
+      go.textContent = L('افتحْ درايف بصفحةٍ كاملة', 'Open Drive full page');
       go.style.cssText = 'appearance:none;border:0;border-radius:8px;cursor:pointer;' +
         'padding:.45rem .95rem;background:#1a73e8;color:#fff;' +
         'font:600 13px system-ui,sans-serif';
@@ -485,7 +544,8 @@
             if (stop) stop();
             if (stopBar) stopBar();
             try { if (pk) { pk.setVisible(false); pk.dispose(); } } catch (e2) {}
-            note('done', 'mute→device');
+            topPrefer(true);
+            note('done', 'mute→top');
             dsay('انتهى');
             rej(err('picker_mute'));
           };
@@ -561,6 +621,10 @@
     folderName: function () { return FOLDER; },
     warm: warm,
     pickerEnabled: pickerEnabled,
+    pickTop: pickTop,
+    topBack: topBack,
+    topPreferred: topPreferred,
+    topPrefer: topPrefer,
     token: token,
     forget: forget,
     pick: pick,
