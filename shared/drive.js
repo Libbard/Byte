@@ -151,6 +151,45 @@
     return e;
   }
 
+  /*@3.DRIJ.22*/
+  var DBG = (function () {
+    try {
+      if (/[?&]dgcheck=1/.test(location.search)) localStorage.setItem('__driveCheck', '1');
+      if (/[?&]dgcheck=0/.test(location.search)) localStorage.removeItem('__driveCheck');
+      return localStorage.getItem('__driveCheck') === '1';
+    } catch (e) { return false; }
+  })();
+  var dlog = [], dt0 = 0, dsaid = false;
+  function note(w, m) {
+    if (!DBG) return;
+    dlog.push(((Date.now() - dt0) / 1000).toFixed(1) + 's ' + w +
+              (m === undefined || m === null || m === '' ? '' : ' = ' + String(m).slice(0, 120)));
+  }
+  function dmsg(e) {
+    var o = String((e && e.origin) || '');
+    if (o.indexOf('google.com') < 0) return;
+    var d = e.data;
+    note('postMessage', o + ' | ' + (typeof d === 'string' ? d : Object.prototype.toString.call(d)));
+  }
+  function derr(e) {
+    note('ERROR', (e && (e.message || e.reason)) || 'unknown');
+  }
+  function dwatch(on) {
+    if (!DBG) return;
+    var f = on ? 'addEventListener' : 'removeEventListener';
+    window[f]('message', dmsg, true);
+    window[f]('error', derr, true);
+    window[f]('unhandledrejection', derr, true);
+  }
+  function dsay(why) {
+    if (!DBG || dsaid) return;
+    dsaid = true;
+    dwatch(false);
+    var txt = why + ' :: ' + dlog.join(' ¦ ');
+    try { console.log('[drive-check]', txt); } catch (e) {}
+    try { window.prompt('انسخْ هذا السطرَ كلَّه وأرسلْه', txt); } catch (e) {}
+  }
+
   /*@3.DRIJ.4*/
   function call(method, url, body, t, extra) {
     var h = { Authorization: 'Bearer ' + t };
@@ -373,6 +412,7 @@
             .addView(tree)
             .setTitle(o.title || L('اخترْ ملفّاً من درايف', 'Pick a file from Drive'))
             .setCallback(function (d) {
+              note('callback', d && d.action);
               if (!d || !d.action) return;
               if (d.action === P.Action.CANCEL) { fin(null); return; }
               if (d.action !== P.Action.PICKED) return;
@@ -392,6 +432,8 @@
             document.removeEventListener('keydown', onKey, true);
             if (stop) stop();
             try { if (pk) { pk.setVisible(false); pk.dispose(); } } catch (e2) {}
+            note('done', v ? 'picked' : 'null');
+            dsay('انتهى');
             res(v);
           };
           shut = function () { fin(null); };
@@ -399,13 +441,29 @@
             if (mine) b.addView(mine);
             b.addView(flat);
             if (b0key) b.setDeveloperKey(b0key);
+            /*@3.DRIJ.23*/
+            dlog = []; dt0 = Date.now(); dsaid = false; dwatch(true);
+            note('key', b0key ? 'sent(' + b0key.slice(0, 10) + '…)' : 'NONE');
+            note('appId', appId());
+            note('origin', org);
+            note('size', pw + 'x' + ph);
+            note('views', mine ? 3 : 2);
+            if (DBG) setTimeout(function () { dsay('مهلةٌ ٤٥ث'); }, 45000);
             pk = b.build();
             document.addEventListener('keydown', onKey, true);
             stop = wayOut(shut);
             pk.setVisible(true);
+            if (DBG) setTimeout(function () {
+              var dg = document.querySelector('.picker-dialog');
+              var fr = document.querySelector('.picker-dialog iframe');
+              note('dialog', dg ? 'found' : 'MISSING');
+              note('iframe', fr ? String(fr.src).slice(0, 90) : 'MISSING');
+            }, 3000);
           } catch (e) {
             if (stop) stop();
             document.removeEventListener('keydown', onKey, true);
+            note('build-threw', e && e.message);
+            dsay('فشلَ البناء');
             rej(err('picker_failed', e && e.message));
           }
         });
