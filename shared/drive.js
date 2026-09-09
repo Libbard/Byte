@@ -361,6 +361,39 @@
     return function () { clearInterval(t); };
   }
 
+  /*@3.DRIJ.25*/
+  var MUTE_MS = 9000;
+  function muteBar(seen, toDevice) {
+    var t = setTimeout(function () {
+      if (seen()) return;
+      var dlg = document.querySelector('.picker-dialog');
+      if (!dlg || dlg.getAttribute('data-garden-mute')) return;
+      dlg.setAttribute('data-garden-mute', '1');
+      var bar = document.createElement('div');
+      bar.setAttribute('dir', isAr() ? 'rtl' : 'ltr');
+      bar.style.cssText = 'position:absolute;inset-inline-start:0;inset-inline-end:0;' +
+        'bottom:0;z-index:4;display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;' +
+        'justify-content:center;padding:.75rem .9rem;background:#fff8e1;' +
+        'border-top:1px solid #e6d5a0;color:#5a4708;text-align:center;' +
+        'font:500 13px/1.65 system-ui,sans-serif';
+      var msg = document.createElement('span');
+      msg.textContent = L('لم تستجبْ نافذةُ درايف على هذا المتصفّح.',
+                          'The Drive window did not respond in this browser.');
+      var go = document.createElement('button');
+      go.type = 'button';
+      go.textContent = L('افتحْ من ملفّاتِ جهازي', 'Open from my device');
+      go.style.cssText = 'appearance:none;border:0;border-radius:8px;cursor:pointer;' +
+        'padding:.45rem .95rem;background:#1a73e8;color:#fff;' +
+        'font:600 13px system-ui,sans-serif';
+      go.addEventListener('click', toDevice);
+      bar.appendChild(msg);
+      bar.appendChild(go);
+      dlg.appendChild(bar);
+      note('mute-bar', 'shown');
+    }, MUTE_MS);
+    return function () { clearTimeout(t); };
+  }
+
   /*@3.DRIJ.8*/
   function pick(opts) {
     var o = opts || {};
@@ -417,6 +450,7 @@
             .addView(tree)
             .setTitle(o.title || L('اخترْ ملفّاً من درايف', 'Pick a file from Drive'))
             .setCallback(function (d) {
+              sawCb = true;
               note('callback', d && d.action);
               if (!d || !d.action) return;
               if (d.action === P.Action.CANCEL) { fin(null); return; }
@@ -428,6 +462,7 @@
             });
           /*@3.DRIJ.14*/
           var pk = null, shut = null, stop = null, gone = false;
+          var stopBar = null, sawCb = false;
           var onKey = function (e) {
             if (e.key === 'Escape' && shut) { e.stopPropagation(); shut(); }
           };
@@ -436,12 +471,24 @@
             gone = true;
             document.removeEventListener('keydown', onKey, true);
             if (stop) stop();
+            if (stopBar) stopBar();
             try { if (pk) { pk.setVisible(false); pk.dispose(); } } catch (e2) {}
             note('done', v ? 'picked' : 'null');
             dsay('انتهى');
             res(v);
           };
           shut = function () { fin(null); };
+          var bail = function () {
+            if (gone) return;
+            gone = true;
+            document.removeEventListener('keydown', onKey, true);
+            if (stop) stop();
+            if (stopBar) stopBar();
+            try { if (pk) { pk.setVisible(false); pk.dispose(); } } catch (e2) {}
+            note('done', 'mute→device');
+            dsay('انتهى');
+            rej(err('picker_mute'));
+          };
           try {
             if (mine) b.addView(mine);
             b.addView(flat);
@@ -457,6 +504,7 @@
             pk = b.build();
             document.addEventListener('keydown', onKey, true);
             stop = wayOut(shut);
+            stopBar = muteBar(function () { return sawCb; }, bail);
             pk.setVisible(true);
             if (DBG) setTimeout(function () {
               var dg = document.querySelector('.picker-dialog');
@@ -489,6 +537,10 @@
     if (k === 'consent_denied' || k === 'consent_closed') {
       return L('لم يُمنح الإذنُ لدرايف — أعِدِ المحاولةَ واسمحْ بالوصول.',
                'Drive access was not granted — try again and allow access.');
+    }
+    if (k === 'picker_mute') {
+      return L('تعذّر فتحُ نافذةِ درايف على هذا المتصفّح — يُفتح الملفُّ من ملفّاتِ جهازك.',
+               'The Drive window could not open in this browser — opening from your device instead.');
     }
     if (k === 'not_found') {
       return L('الملفُّ لم يعد في درايفك — رُبّما حُذف أو نُقل إلى المهملات.',

@@ -3183,6 +3183,8 @@
                             { type: 'application/pdf' }), pk.id);
         });
       })['catch'](function (er) {
+        /*@3.NOAJ.275*/
+        if (er && er.code === 'picker_mute') { fromDevice(); return; }
         saveState('error', GD.reason(er));
         setTimeout(function () { saveState('', ''); }, 4000);
       });
