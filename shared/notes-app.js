@@ -3170,36 +3170,39 @@
       shut();
       if (a === 'device') { fromDevice(); return; }
       if (a !== 'gd') return;
-      if (GD.topPreferred && GD.topPreferred()) { GD.pickTop({ mime: 'application/pdf' }); return; }
-      GD.pick().then(function (pk) {
-        /*@3.NOAJ.274*/
-        if (!pk) { createPdf(); return; }
-        saveState('saving', L('يُنزَّل من درايف…', 'Downloading from Drive…'));
-        return GD.download(pk.id, function (at, of) {
-          if (!of) return;
-          saveState('saving', L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
-                    Math.round(at * 100 / of) + '%');
-        }).then(function (blob) {
-          adoptPdf(new File([blob], pk.name || 'file.pdf',
-                            { type: 'application/pdf' }), pk.id);
-        });
-      })['catch'](function (er) {
-        /*@3.NOAJ.275*/
-        if (er && er.code === 'picker_mute') { GD.pickTop({ mime: 'application/pdf' }); return; }
+      /*@3.NOAJ.274*/
+      var got = function (pk) {
+        if (!pk) { saveState('', ''); createPdf(); return; }
+        takeDrive(pk.id, pk.name || '');
+      };
+      /*@3.NOAJ.275*/
+      var oops = function (er) {
+        var k = er && er.code;
+        if (k === 'consent_closed' || k === 'no_pick') { saveState('', ''); return; }
         saveState('error', GD.reason(er));
         setTimeout(function () { saveState('', ''); }, 4000);
-      });
+      };
+      /*@3.NOAJ.277*/
+      saveState('saving', L('يُفتح درايفُ…', 'Opening Drive…'));
+      if (GD.topPreferred && GD.topPreferred()) {
+        GD.pickTop({ mime: 'application/pdf' }).then(got, oops);
+        return;
+      }
+      GD.pick().then(got, oops);
     });
     try { dlg.showModal(); } catch (e2) { shut(); fromDevice(); }
   }
 
   /*@3.NOAJ.276*/
-  function takeDrive(id) {
+  function takeDrive(id, name) {
     var GD = window.GardenDrive;
     if (!GD || !id) return;
+    /*@3.NOAJ.278*/
     setMob('doc');
-    saveState('saving', L('يُنزَّل من درايف…', 'Downloading from Drive…'));
-    GD.meta(id).then(function (m) {
+    setReading(true);
+    renderOpening('pdf');
+    saveState('saving', L('يُجلب الملفُّ من درايف…', 'Fetching the file from Drive…'));
+    (name ? Promise.resolve({ name: name }) : GD.meta(id)).then(function (m) {
       return GD.download(id, function (at, of) {
         if (!of) return;
         saveState('saving', L('يُنزَّل من درايف… ', 'Downloading from Drive… ') +
