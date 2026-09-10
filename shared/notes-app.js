@@ -2699,6 +2699,26 @@
       if (hist) hist.reset();
       ed = GardenNotesEditor.mount(host, doc, {
         hist: hist,
+        extraItems: function (bb, at) {
+          var A = window.GardenAudioNote, out = [];
+          if (!A || !A.momentAt) return out;
+          var mm = bb ? A.momentAt(A.timeOfId(bb.id)) : null;
+          if (mm) out.push({ act: 'hear', icon: 'fa-play',
+            label: L('اسمعْ ما قيل عند كتابتها · ', 'Hear what was said as it was written · ') +
+                   momentClock(mm.at) });
+          var mb = boardMoment(at);
+          if (mb) out.push({ act: 'hearb', icon: 'fa-play',
+            label: L('اسمعْ ما قيل عند هذا الرسم · ', 'Hear what was said at this drawing · ') +
+                   momentClock(mb.at) });
+          return out;
+        },
+        onExtra: function (key, bid, at) {
+          var A = window.GardenAudioNote;
+          if (!A || !A.momentAt) return;
+          var mm = key === 'hear' ? A.momentAt(A.timeOfId(bid))
+                 : (key === 'hearb' ? boardMoment(at) : null);
+          if (mm) A.hear(mm.ref, mm.at, 0, 0, 0);
+        },
         onDirty: function () {
           saveState('saving', L('يُحفظ…', 'Saving…'));
           /*@3.NOAJ.177*/
@@ -2942,6 +2962,13 @@
     var h = '';
     var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
     var nSel = (ik && ik.pick && ik.pick.ids) ? ik.pick.ids.length : 0;
+    /*@3.NOAJ.280*/
+    pdfMoment = hearNearPoint(x, y, ik);
+    if (pdfMoment) {
+      h += ctxItem('phear', 'fa-play', L('اسمعْ ما قيل هنا · ', 'Hear what was said here · ') +
+                   momentClock(pdfMoment.at));
+      h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
+    }
     if (nSel) {
       h += ctxItem('psdup', 'fa-clone', L('كرِّرِ المحدَّد', 'Duplicate selection'));
       h += ctxItem('pscopy', 'fa-copy', L('انسخِ المحدَّد', 'Copy selection'));
@@ -2973,8 +3000,43 @@
     return true;
   }
 
+  var pdfMoment = null;
+  function boardMoment(at) {
+    var A = window.GardenAudioNote, cv = inkCv();
+    if (!A || !A.momentNear || !cv || !cv.wet || !at || inkHidden()) return null;
+    var r = cv.wet.getBoundingClientRect();
+    if (!(r.width > 0)) return null;
+    var w = cv.toWorld({ x: at.x - r.left, y: at.y - r.top });
+    return A.momentNear(0, w.x, w.y, 48 / Math.max(0.2, cv.cam.z || 1));
+  }
+  function momentClock(sec) {
+    var s = Math.max(0, Math.round(sec || 0));
+    var m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  function hearNearPoint(x, y, ik) {
+    var A = window.GardenAudioNote;
+    if (!A || !A.momentNear || !pdfOn() || !ik) return null;
+    var el = document.elementFromPoint(x, y);
+    var pg = el && el.closest ? el.closest('.gpv-page') : null;
+    var n = pg ? +pg.getAttribute('data-p') : 0;
+    if (!(n > 0)) return null;
+    if (ik.pick && ik.pick.ids && ik.pick.ids.length && ik.pick.n === n) {
+      var els = ik.els(n), first = els[ik.pick.ids[0]];
+      var p0 = first && first.pts && first.pts[0];
+      if (p0) { var mm = A.momentNear(n, p0.x, p0.y); if (mm) return mm; }
+    }
+    var r = pg.getBoundingClientRect();
+    if (!(r.width > 0) || !(r.height > 0)) return null;
+    return A.momentNearFrac(n, (x - r.left) / r.width, (y - r.top) / r.height);
+  }
   function pdfMenuAct(act) {
     var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    if (act === 'phear') {
+      var A = window.GardenAudioNote, mm = pdfMoment;
+      if (A && mm) A.hear(mm.ref, mm.at, mm.x, mm.y, mm.page);
+      return;
+    }
     if (act === 'psdup') { if (ik) ik.dupPick(); return; }
     if (act === 'pscopy') { if (ik) ik.copyPick(); return; }
     if (act === 'psrot') { if (ik) ik.rotatePick(15); return; }
@@ -3104,11 +3166,7 @@
       /*@3.NOAJ.235*/
       onInk: function () { if (pdfDial) { try { pdfDial.sync(); } catch (e) {} } },
       onExpand: function () { toggleFull(); },
-      /*@3.NOAJ.279*/
-      onPage: function () {
-        updatePgNav();
-        if (window.GardenAudioNote && GardenAudioNote.marginPaint) GardenAudioNote.marginPaint();
-      },
+      onPage: function () { updatePgNav(); },
       onZoom: function () { applyFs(); },
       onView: function () { applyFs(); },
       onReady: function () {
@@ -4767,9 +4825,6 @@
     var arm = on && !!pdfUi.drawing();
     var ar = arm ? 'أغلقِ القلم — عُد إلى القراءة' : 'القلم — ارسم فوق الصفحة';
     var en = arm ? 'Put the pen down — back to reading' : 'Pen — draw on the page';
-    var lb0 = document.getElementById('na-listen');
-    if (lb0) lb0.hidden = !on;
-    if (!on && window.GardenAudioNote && GardenAudioNote.listen) GardenAudioNote.listen(false);
     ['na-pdf-draw', 'na-draw-top'].forEach(function (k) {
       var b = document.getElementById(k);
       if (!b) return;
@@ -4798,24 +4853,8 @@
       });
     }
     if (pdfDial) pdfDial.show(arm, arm);
-    if (arm) listenSet(false);
     paintDrawBtn();
     return arm;
-  }
-
-  function listenSet(on) {
-    var A = window.GardenAudioNote;
-    if (!A || !A.listen) return false;
-    var b = document.getElementById('na-listen');
-    if (on && pdfOn() && pdfUi.drawing()) pdfUi.draw(false);
-    var v = A.listen(!!on && pdfOn());
-    if (b) {
-      b.hidden = !pdfOn();
-      b.classList.toggle('on', v);
-      b.setAttribute('aria-pressed', v ? 'true' : 'false');
-    }
-    if (v) paintDrawBtn();
-    return v;
   }
 
   function paintPdfBtns() {
@@ -6346,11 +6385,6 @@
     ['na-pdf-draw', 'na-draw-top'].forEach(function (k) {
       var b = document.getElementById(k);
       if (b) b.addEventListener('click', function () { pdfDraw(); });
-    });
-    var lb = document.getElementById('na-listen');
-    if (lb) lb.addEventListener('click', function () {
-      var A = window.GardenAudioNote;
-      listenSet(!(A && A.listening && A.listening()));
     });
     var ps = document.getElementById('na-pdf-side');
     if (ps) ps.addEventListener('click', function () {

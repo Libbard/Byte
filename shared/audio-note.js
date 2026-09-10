@@ -66,7 +66,6 @@
     var a = App();
     if (a && a.save) { try { a.save(quiet); } catch (e) {} }
     badge();
-    marginPaint();
   }
   function badge() {
     var b = document.getElementById('na-mic');
@@ -128,6 +127,7 @@
   }
 
   var rec = null, timer = null, panel = null, busy = false, urls = {};
+  var live = null;
   var cap = null, guard = null, unsettle = null;
   var view = 'main';
 
@@ -243,6 +243,7 @@
     if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
     panel = null;
     view = 'main';
+    if (live && !live.paused) miniShow();
     var b = micBtn();
     if (b) b.setAttribute('aria-expanded', 'false');
   }
@@ -1158,18 +1159,25 @@
   }
 
   /*@3.AUNJ.38*/
-  var ASK_LS = '__audioVow';
-  var HOME_LS = '__audioHome';
+  /*@3.AUNJ.125*/
+  var AUTO_LS = '__audioAuto';
+  (function () {
+    try { localStorage.removeItem('__audioHome'); localStorage.removeItem('__audioVow'); }
+    catch (e) {}
+  })();
 
   function homePref() {
     try {
-      var v = localStorage.getItem(HOME_LS);
-      if (v === 'us' || v === 'gd' || v === 'here') return v;
+      var v = localStorage.getItem(AUTO_LS);
+      if (v === 'us' || v === 'gd') return v;
     } catch (e) {}
     return '';
   }
   function homeSet(v) {
-    try { localStorage.setItem(HOME_LS, v); localStorage.setItem(ASK_LS, '1'); } catch (e) {}
+    try {
+      if (v === 'us' || v === 'gd') localStorage.setItem(AUTO_LS, v);
+      else localStorage.removeItem(AUTO_LS);
+    } catch (e) {}
   }
   function vowSet(it, v) {
     if (!it) return;
@@ -1187,10 +1195,10 @@
                       'The recording is saved on this device')) + '</b> ' +
         '<span class="nfo-dim" dir="ltr">' + esc(size(blob.size)) + '</span>' +
         '<span class="nfo-vow">' +
-        esc(L('أين تريد نسخةً تفتح على أجهزتك؟ نسألك مرّةً واحدة، وتغيّره لكلِّ ' +
-              'تسجيلٍ من قائمتِه.',
-              'Where would you like a copy that opens on your devices? We ask once, ' +
-              'and you can change it per recording from its list.')) +
+        esc(L('أين تريد نسخةً تفتح على أجهزتك؟ نسألك عند كلِّ تسجيل — وإن أردتَ ' +
+              'رفعاً تلقائيّاً فاختره من لوحةِ التسجيلات.',
+              'Where would you like a copy that opens on your devices? We ask each ' +
+              'time — choose automatic upload from the recordings panel if you prefer.')) +
         '<br><b>' +
         esc(L('عندنا: يبقى هذا الفصلَ الدراسيَّ ثمّ يُحذف مع بدايةِ الفصلِ الجديد، ' +
               'وننبّهك قبلَه بثلاثةِ أيّام. وفي درايفك: في مجلّد «Digital Garden» ' +
@@ -1209,18 +1217,15 @@
          esc(L('هذا الجهازُ وحدَه', 'This device only')) + '</button>');
     var bUs = panel.querySelector('.nrec-vow-up');
     if (bUs) bUs.addEventListener('click', function () {
-      homeSet('us');
       vowSet(it, 'us');
       send(it, blob);
     });
     var bGd = panel.querySelector('.nrec-vow-gd');
     if (bGd) bGd.addEventListener('click', function () {
-      homeSet('gd');
       vowSet(it, 'gd');
       sendDrive(it, blob, null);
     });
     panel.querySelector('.nrec-vow-no').addEventListener('click', function () {
-      homeSet('here');
       vowSet(it, 'here');
       it.aup = 0;
       settled(it.i);
@@ -1451,6 +1456,7 @@
     if (!panel) shell();
     drawList();
     reflow();
+    if (playerShown()) miniHide();
   }
 
   function shutList() { if (view === 'list') { view = 'main'; render(); } }
@@ -1585,9 +1591,10 @@
                '</b></button>' : ''));
     var all = panel.querySelector('.nrp-all');
     if (all) all.addEventListener('click', function () { sendRest(); });
-    marginOpt(box);
+    listOpts(box);
 
     reflow();
+    afterList();
     Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (row) {
       var ref = row.getAttribute('data-ref');
       /*@3.AUNJ.70*/
@@ -1925,13 +1932,12 @@
           esc(rateTxt(rateGet())) + '</button>' +
       '</div>';
 
-    var a = new Audio();
-    a.preload = 'metadata';
-    /*@3.AUNJ.35*/
-    a.preservesPitch = true;
-    a.mozPreservesPitch = true;
-    a.webkitPreservesPitch = true;
+    var a = engine();
     a.playbackRate = rateGet();
+    var key = list.join('|');
+    var same = (liveKey === key && !!a.src);
+    if (liveOff) { liveOff(); liveOff = null; }
+    if (!same) { try { a.pause(); } catch (e0) {} }
 
     var pl = slot.querySelector('.nrec-pl');
     var go = pl.querySelector('.nrec-pl-go');
@@ -1939,7 +1945,7 @@
     var lbl = pl.querySelector('.nrec-pl-t');
     var xb = pl.querySelector('.nrec-pl-x');
     var held = false;
-    var ci = -1;
+    var ci = same ? Math.max(0, list.indexOf(a.src)) : -1;
     var want = 0;
     var goOn = false;
 
@@ -1963,11 +1969,12 @@
       a.src = list[k];
       a.load();
     }
-    a.addEventListener('loadedmetadata', function () {
+    var onMeta = function () {
       if (want) { try { a.currentTime = want; } catch (e) {} want = 0; }
       if (goOn) { goOn = false; a.play()['catch'](function () {}); }
       time();
-    });
+    };
+    a.addEventListener('loadedmetadata', onMeta);
     function seekTo(sec) {
       var s = Math.max(0, sec);
       var k = 0, off = s;
@@ -1988,13 +1995,28 @@
     go.addEventListener('click', function () {
       if (a.paused) { a.play()['catch'](function () {}); } else { a.pause(); }
     });
+    var onEnd = function () {
+      if (ci + 1 < list.length) { load(ci + 1, 0, true); return; }
+      icon();
+      miniHide();
+    };
     a.addEventListener('play', icon);
     a.addEventListener('pause', icon);
     a.addEventListener('timeupdate', time);
-    a.addEventListener('ended', function () {
-      if (ci + 1 < list.length) { load(ci + 1, 0, true); return; }
-      icon();
-    });
+    a.addEventListener('ended', onEnd);
+    liveOff = function () {
+      a.removeEventListener('loadedmetadata', onMeta);
+      a.removeEventListener('play', icon);
+      a.removeEventListener('pause', icon);
+      a.removeEventListener('timeupdate', time);
+      a.removeEventListener('ended', onEnd);
+    };
+    liveKey = key;
+    liveRef = pcs[0] && pcs[0].i ? pcs[0].i : liveRef;
+    liveName = pcs[0] ? shortName(pcs[0].nm || pcs[0].n) : '';
+    liveTotal = total;
+    liveAt = at;
+    miniHide();
     seek.addEventListener('input', function () { held = true; });
     seek.addEventListener('change', function () {
       held = false;
@@ -2025,15 +2047,14 @@
       });
     });
     icon();
-    if (startAt > 0) { goOn = true; seekTo(startAt); } else load(0, 0, true);
+    if (startAt > 0) { goOn = true; seekTo(startAt); }
+    else if (!same) load(0, 0, true);
     time();
     slot._audio = a;
     slot._seek = function (sec) { goOn = true; seekTo(sec); time(); };
-    live = a;
   }
 
   /*@3.AUNJ.81*/
-  var live = null;
 
   function typing(el) {
     if (!el) return false;
@@ -2060,6 +2081,7 @@
     /*@3.AUNJ.102*/
     var part = partsOf(refId);
     if (row && row.parentNode) row.parentNode.removeChild(row);
+    if (liveRef === refId) { stopAll(); liveKey = ''; liveRef = ''; if (live) { try { live.removeAttribute('src'); live.load(); } catch (e9) {} } }
     part.forEach(function (it) {
       var id = it.i;
       dropItem(id);
@@ -2160,19 +2182,15 @@
   } else { wire(); }
 
   /*@3.AUNJ.121*/
-  var MARGIN_LS = '__audioMargin';
-  function marginOn() {
-    try { return localStorage.getItem(MARGIN_LS) !== '0'; } catch (e) { return true; }
-  }
-  function marginSet(on) {
-    try { if (on) localStorage.removeItem(MARGIN_LS); else localStorage.setItem(MARGIN_LS, '0'); }
-    catch (e) {}
-    marginPaint();
-  }
+  /*@3.AUNJ.126*/
   function pdfOf() {
     var a = App();
     var u = a && a.pdf ? a.pdf() : null;
     return (u && u.ready && u.ready() && u.ink && u.ink()) ? u : null;
+  }
+  function wrapOf(u) {
+    var v = u && u.view ? u.view() : null;
+    return (v && v.wrap) ? v.wrap : null;
   }
   function moms() {
     var out = [];
@@ -2180,59 +2198,74 @@
       var ref = part[0] && part[0].i;
       if (!ref) return;
       moments(part).forEach(function (m) {
-        if (m.page > 0) out.push({ ref: ref, at: m.at, page: m.page, x: m.x, y: m.y });
+        out.push({ ref: ref, at: m.at, page: m.page, x: m.x, y: m.y });
       });
     });
     return out;
   }
-  function wrapOf(u) {
-    var v = u && u.view ? u.view() : null;
-    return (v && v.wrap) ? v.wrap : null;
-  }
-  function marginClear() {
-    Array.prototype.forEach.call(document.querySelectorAll('.gam'), function (g) { g.remove(); });
-  }
-  function marginPaint() {
-    var u = pdfOf(), w = wrapOf(u);
-    if (!u || !w || !marginOn()) { marginClear(); return; }
-    var ink = u.ink();
-    var all = moms();
-    var pages = w.querySelectorAll('.gpv-page[data-p]');
-    Array.prototype.forEach.call(pages, function (pg) {
-      var n = +pg.getAttribute('data-p');
-      var mine = all.filter(function (m) { return m.page === n; });
-      var g = pg.querySelector('.gam');
-      if (!mine.length) { if (g) g.remove(); return; }
-      var html = mine.map(function (m) {
-        var w = ink.where(n, m.x, m.y);
-        if (!w) return '';
-        return '<button type="button" class="gam-t" style="--y:' + (w.y * 100).toFixed(2) + '%"' +
-          ' data-ref="' + esc(m.ref) + '" data-at="' + m.at + '"' +
-          ' data-x="' + m.x + '" data-y="' + m.y + '"' +
-          ' aria-label="' + esc(L('اسمعْ ما قيل هنا عند ', 'Hear what was said here at ') + clock(m.at)) + '"' +
-          ' title="' + esc(clock(m.at)) + '"></button>';
-      }).join('');
-      if (!g) {
-        g = document.createElement('div');
-        g.className = 'gam';
-        g.setAttribute('aria-label', L('هامشُ الصوت', 'Audio margin'));
-        pg.appendChild(g);
-      }
-      if (g.innerHTML !== html) g.innerHTML = html;
+  function nearest(n, p0, tol) {
+    var best = null, bd = Infinity;
+    var u = n > 0 ? pdfOf() : null;
+    var ink = u ? u.ink() : null;
+    var lim = tol > 0 ? tol : (n > 0 ? 0.06 : 40);
+    if (!p0 || (n > 0 && !ink)) return null;
+    moms().forEach(function (m) {
+      if (m.page !== n) return;
+      var q = (n > 0 && ink) ? ink.where(n, m.x, m.y) : { x: m.x, y: m.y };
+      if (!q) return;
+      var dx = q.x - p0.x, dy = q.y - p0.y, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = m; }
     });
+    if (!best || bd > lim * lim) return null;
+    return { ref: best.ref, at: best.at, page: best.page, x: best.x, y: best.y };
+  }
+  function momentNear(page, x, y, tol) {
+    var n = page | 0;
+    var u = n > 0 ? pdfOf() : null;
+    var p0 = (n > 0) ? (u ? u.ink().where(n, x, y) : null) : { x: x, y: y };
+    return nearest(n, p0, tol);
+  }
+  function momentNearFrac(page, fx, fy, tol) {
+    var n = page | 0;
+    if (!(n > 0)) return null;
+    return nearest(n, { x: fx, y: fy }, tol);
+  }
+  function momentAt(wallMs) {
+    var t = Number(wallMs) || 0;
+    if (!t) return null;
+    var hit = null;
+    rows().forEach(function (part) {
+      if (hit) return;
+      var base = 0;
+      part.forEach(function (it) {
+        if (hit) return;
+        var s0 = Number(it.s0) || 0, ms = Number(it.ms) || 0;
+        if (s0 && t >= s0 && t <= s0 + ms) {
+          hit = { ref: part[0].i, at: base + Math.round((t - s0) / 1000), page: 0, x: 0, y: 0 };
+        }
+        base += Math.max(1, Math.round(ms / 1000));
+      });
+    });
+    return hit;
+  }
+  function timeOfId(id) {
+    var m = /^[a-z]([0-9a-z]{8})/.exec(String(id || ''));
+    if (!m) return 0;
+    var t = parseInt(m[1], 36);
+    return (t > 1.5e12 && t < 4e12) ? t : 0;
   }
   function ring(n, x, y) {
     var u = pdfOf(), w = wrapOf(u);
-    if (!u || !w) return;
+    if (!u || !w || !(n > 0)) return;
     var pg = w.querySelector('.gpv-page[data-p="' + n + '"]');
-    var w = pg ? u.ink().where(n, x, y) : null;
-    if (!w) return;
+    var q = pg ? u.ink().where(n, x, y) : null;
+    if (!q) return;
     var old = pg.querySelector('.gam-ring');
     if (old) old.remove();
     var r = document.createElement('span');
     r.className = 'gam-ring';
-    r.style.setProperty('--x', (w.x * 100).toFixed(2) + '%');
-    r.style.setProperty('--y', (w.y * 100).toFixed(2) + '%');
+    r.style.setProperty('--x', (q.x * 100).toFixed(2) + '%');
+    r.style.setProperty('--y', (q.y * 100).toFixed(2) + '%');
     pg.appendChild(r);
     setTimeout(function () { if (r.parentNode) r.remove(); }, 2400);
   }
@@ -2242,80 +2275,145 @@
     if (u.page() !== n) u.goTo(n, 0);
     setTimeout(function () { ring(n, x, y); }, u.page() === n ? 0 : 350);
   }
-  function marginOpt(box) {
-    if (!box || !pdfOf()) return;
-    var o = document.createElement('label');
-    o.className = 'nrl-opt';
-    o.innerHTML = '<input type="checkbox"' + (marginOn() ? ' checked' : '') + '> ' +
-      '<span>' + esc(L('هامشُ الصوتِ بجانبِ الصفحة', 'Audio margin beside the page')) + '</span>';
-    o.querySelector('input').addEventListener('change', function (e) { marginSet(!!e.target.checked); });
-    box.appendChild(o);
-  }
 
   /*@3.AUNJ.122*/
   function hear(ref, at, x, y, n) {
     if (!panel || !panel.parentNode || view !== 'list') { anchorFrom = 'bar'; openList(); }
     var row = panel && panel.querySelector('.nrr[data-ref="' + ref + '"]');
-    if (!row) return;
+    if (!row) return false;
     if (n > 0) ring(n, x, y);
     var box = row.parentNode;
     var slot = row.querySelector('.nrec-row-p');
-    if (slot && slot._seek && row.classList.contains('on')) { slot._seek(at); return; }
+    if (slot && slot._seek && row.classList.contains('on')) { slot._seek(at); return true; }
     Array.prototype.forEach.call(box.querySelectorAll('.nrr'), function (o) {
       if (o !== row) { o.classList.remove('on'); stopRow(o); }
     });
     row.classList.add('on');
     play_(ref, row, at);
-  }
-
-  /*@3.AUNJ.123*/
-  var listening = false;
-  function listen(on) {
-    var h = host(), w = wrapOf(pdfOf());
-    listening = !!on;
-    if (h) h.setAttribute('data-listen', listening ? '1' : '0');
-    if (w) w.setAttribute('data-listen', listening ? '1' : '0');
-    return listening;
-  }
-  function hearAt(pg, fx, fy) {
-    var u = pdfOf();
-    if (!u) return false;
-    var n = +pg.getAttribute('data-p');
-    var ink = u.ink(), best = null, bd = 0.06 * 0.06;
-    moms().forEach(function (m) {
-      if (m.page !== n) return;
-      var w = ink.where(n, m.x, m.y);
-      if (!w) return;
-      var dx = w.x - fx, dy = w.y - fy, d = dx * dx + dy * dy;
-      if (d < bd) { bd = d; best = m; }
-    });
-    if (!best) return false;
-    hear(best.ref, best.at, best.x, best.y, n);
     return true;
   }
-  var wired = false;
-  function wireMargin() {
-    if (wired) return;
-    wired = true;
-    document.addEventListener('click', function (e) {
-      var t = e.target && e.target.closest ? e.target.closest('.gam-t') : null;
-      if (t) {
-        e.stopPropagation();
-        var pg = t.closest('.gpv-page');
-        hear(t.getAttribute('data-ref'), +t.getAttribute('data-at'),
-             +t.getAttribute('data-x'), +t.getAttribute('data-y'), pg ? +pg.getAttribute('data-p') : 0);
-        return;
-      }
-      if (!listening) return;
-      var page = e.target && e.target.closest ? e.target.closest('.gpv-page') : null;
-      if (!page) return;
-      var r = page.getBoundingClientRect();
-      if (!(r.width > 0) || !(r.height > 0)) return;
-      hearAt(page, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+
+  function listOpts(box) {
+    if (!box || (!F() && !GDx())) return;
+    var cur = homePref();
+    var o = document.createElement('div');
+    o.className = 'nrl-opt';
+    o.innerHTML = '<span class="nrl-opt-l">' +
+      esc(L('رفعُ كلِّ تسجيلٍ جديدٍ تلقائيّاً', 'Upload every new recording automatically')) +
+      '</span><span class="gsf-chips nrl-auto" role="group">' +
+      '<button type="button" class="gsf-chip' + (cur === '' ? ' on' : '') + '" data-auto="">' +
+        esc(L('اسألني كلَّ مرّة', 'Ask me each time')) + '</button>' +
+      (F() ? '<button type="button" class="gsf-chip' + (cur === 'us' ? ' on' : '') + '" data-auto="us">' +
+        esc(L('عندنا', 'With us')) + '</button>' : '') +
+      (GDx() ? '<button type="button" class="gsf-chip' + (cur === 'gd' ? ' on' : '') + '" data-auto="gd">' +
+        esc(L('في درايفي', 'In my Drive')) + '</button>' : '') +
+      '</span>';
+    o.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-auto]') : null;
+      if (!b) return;
+      homeSet(b.getAttribute('data-auto'));
+      Array.prototype.forEach.call(o.querySelectorAll('[data-auto]'), function (c) {
+        c.classList.toggle('on', c === b);
+      });
     });
+    box.appendChild(o);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireMargin);
-  else wireMargin();
+
+  /*@3.AUNJ.124*/
+  var liveKey = '', liveRef = '', liveName = '', liveOff = null, liveTotal = 0, liveAt = null;
+  var mini = null;
+  function engine() {
+    if (live) return live;
+    live = new Audio();
+    live.preload = 'metadata';
+    /*@3.AUNJ.35*/
+    live.preservesPitch = true;
+    live.mozPreservesPitch = true;
+    live.webkitPreservesPitch = true;
+    live.addEventListener('play', miniSync);
+    live.addEventListener('pause', miniSync);
+    live.addEventListener('timeupdate', miniTime);
+    return live;
+  }
+  function playerShown() {
+    return !!(panel && panel.parentNode && view === 'list' && liveRef &&
+              panel.querySelector('.nrr[data-ref="' + liveRef + '"] .nrec-pl'));
+  }
+  function miniShow() {
+    if (mini || !live || !live.src || rec) return;
+    if (playerShown()) return;
+    var r = anchorRect();
+    mini = document.createElement('div');
+    mini.className = 'nrc nrc--play';
+    mini.setAttribute('role', 'group');
+    mini.setAttribute('aria-label', L('مشغّلُ الصوت', 'Audio player'));
+    mini.innerHTML =
+      '<button type="button" class="nrc-grip" aria-label="' +
+        esc(L('اسحبْ لتحريكِ المشغّل', 'Drag to move the player')) + '"' +
+        ' data-ar-title="اسحبْ لتحريكِ المشغّل" data-en-title="Drag to move the player"></button>' +
+      '<button type="button" class="nrc-ic npl-go" aria-label="' + esc(L('إيقافٌ مؤقّت', 'Pause')) + '"' +
+        ' data-ar-title="إيقافٌ مؤقّت" data-en-title="Pause">' +
+        '<i class="fa-solid fa-pause" aria-hidden="true"></i></button>' +
+      '<button type="button" class="nrc-face npl-open" aria-label="' +
+        esc(L('افتحْ قائمةَ التسجيلات', 'Open the recordings list')) + '"' +
+        ' data-ar-title="افتحْ قائمةَ التسجيلات" data-en-title="Open the recordings list">' +
+        '<b class="nrec-clock npl-t">00:00</b>' +
+        '<span class="npl-n">' + esc(liveName) + '</span>' +
+      '</button>' +
+      '<button type="button" class="nrc-ic npl-x" aria-label="' + esc(L('أوقفْ وأغلق', 'Stop and close')) + '"' +
+        ' data-ar-title="أوقفْ وأغلق" data-en-title="Stop and close">' +
+        '<i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+    document.body.appendChild(mini);
+    if (r) place(mini, r, 'cap');
+    wireDrag(mini.querySelector('.nrc-grip'), mini);
+    mini.querySelector('.npl-go').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!live) return;
+      if (live.paused) { live.play()['catch'](function () {}); } else { live.pause(); }
+    });
+    mini.querySelector('.npl-open').addEventListener('click', function () {
+      anchorFrom = 'bar';
+      openList();
+    });
+    mini.querySelector('.npl-x').addEventListener('click', function (e) {
+      e.stopPropagation();
+      stopAll();
+    });
+    miniSync();
+    miniTime();
+  }
+  function miniHide() {
+    if (mini && mini.parentNode) mini.parentNode.removeChild(mini);
+    mini = null;
+  }
+  function miniSync() {
+    if (!mini || !live) return;
+    var b = mini.querySelector('.npl-go');
+    var on = !live.paused;
+    b.innerHTML = '<i class="fa-solid fa-' + (on ? 'pause' : 'play') + '" aria-hidden="true"></i>';
+    var ar = on ? 'إيقافٌ مؤقّت' : 'تابعِ التشغيل', en = on ? 'Pause' : 'Resume';
+    b.setAttribute('aria-label', L(ar, en));
+    b.setAttribute('data-ar-title', ar);
+    b.setAttribute('data-en-title', en);
+    mini.setAttribute('data-held', on ? '0' : '1');
+  }
+  function miniTime() {
+    if (!mini || !live) return;
+    var t = mini.querySelector('.npl-t');
+    var at = liveAt ? liveAt() : (isFinite(live.currentTime) ? live.currentTime : 0);
+    if (t) t.textContent = clockLive(at) + (liveTotal > 0 ? ' / ' + clockLive(liveTotal) : '');
+  }
+  function stopAll() {
+    if (live) { try { live.pause(); } catch (e) {} }
+    miniHide();
+  }
+  function afterList() {
+    if (!live || live.paused || !liveRef || !panel || view !== 'list') return;
+    var row = panel.querySelector('.nrr[data-ref="' + liveRef + '"]');
+    if (!row || row.querySelector('.nrec-pl')) return;
+    row.classList.add('on');
+    play_(liveRef, row);
+  }
 
   window.GardenAudioNote = {
     toggle: toggle,
@@ -2324,11 +2422,11 @@
     shutList: shutList,
     sync: sync,
     recording: function () { return !!rec; },
-    marginPaint: marginPaint,
-    marginOn: marginOn,
-    marginSet: marginSet,
-    listen: listen,
-    listening: function () { return listening; },
-    hear: hear
+    hear: hear,
+    momentNear: momentNear,
+    momentNearFrac: momentNearFrac,
+    momentAt: momentAt,
+    timeOfId: timeOfId,
+    stop: stopAll
   };
 })();

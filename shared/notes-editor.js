@@ -5206,6 +5206,14 @@
       var last = this.doc.blocks.length - 1;
       html += this.selHtml();
       html += this.lkHtml();
+      /*@3.NOEJ.355*/
+      var ext = this.opts.extraItems ? (this.opts.extraItems(bb0, anchor) || []) : [];
+      if (ext.length) {
+        html += '<div class="ne-menu-h">' + B().esc(L('الصوت', 'Audio')) + '</div>';
+        for (var xi = 0; xi < ext.length; xi++) {
+          html += mItem('ext:' + ext[xi].act, ext[xi].icon || 'fa-play', ext[xi].label);
+        }
+      }
       html += '<div class="ne-menu-h">' + B().esc(L('هذه الكتلة', 'This block')) + '</div>';
       html += mItem('up', 'fa-arrow-up', L('تحريك لأعلى', 'Move up'), i <= 0);
       html += mItem('down', 'fa-arrow-down', L('تحريك لأسفل', 'Move down'), i >= last);
@@ -5273,6 +5281,13 @@
         return mItem('turn:' + k, it.icon, L(it.ar, it.en));
       }).join('');
     } else if (mode === 'paper') {
+      var extP = this.opts.extraItems ? (this.opts.extraItems(null, anchor) || []) : [];
+      if (extP.length) {
+        html += '<div class="ne-menu-h">' + B().esc(L('الصوت', 'Audio')) + '</div>';
+        for (var xp = 0; xp < extP.length; xp++) {
+          html += mItem('ext:' + extP[xp].act, extP[xp].icon || 'fa-play', extP[xp].label);
+        }
+      }
       html += '<div class="ne-menu-h">' + B().esc(L('أضِفْ هنا', 'Add here')) + '</div>';
       html += INSERT.map(function (it, k) {
         return mItem('here:' + k, it.icon, L(it.ar, it.en), false, '',
@@ -5308,7 +5323,9 @@
       if (!btn || btn.disabled) return;
       var act = btn.getAttribute('data-act');
       self.closeMenu();
-      if (act.indexOf('here:') === 0) {
+      if (act.indexOf('ext:') === 0) {
+        if (self.opts.onExtra) self.opts.onExtra(act.slice(4), id, anchor);
+      } else if (act.indexOf('here:') === 0) {
         var itH = INSERT[Number(act.slice(5))];
         if (itH && pt) {
           var exH = itH.extra ? clone(itH.extra) : {};
