@@ -455,7 +455,7 @@
         esc(L('تفاصيلُ التسجيل', 'Recording details')) + '"' +
         ' data-ar-title="تفاصيلُ التسجيل" data-en-title="Recording details">' +
         '<span class="nrc-dot" aria-hidden="true"></span>' +
-        '<b class="nrec-clock">0:00</b>' +
+        '<b class="nrec-clock">00:00</b>' +
         '<span class="nrec-wave" role="img" aria-label="' +
           esc(L('مستوى الصوت', 'Audio level')) + '"' +
           ' data-ar-title="مستوى الصوت" data-en-title="Audio level">' + bars + '</span>' +
@@ -463,7 +463,7 @@
       /*@3.AUNJ.96*/
       '<span class="nrc-more">' +
         '<span class="nrc-sep"></span>' +
-        '<span class="nrec-say">' + esc(srcName()) + '</span>' +
+        '<span class="nrec-say" data-say="src">' + sayCell() + '</span>' +
         '<span class="nfo-dim nrec-meta"></span>' +
         '<span class="nrc-sep"></span>' +
         '<button type="button" class="nrc-ic nrec-hold" aria-label="' +
@@ -646,6 +646,26 @@
     return L('الميكروفون', 'Microphone');
   }
 
+  /*@3.AUNJ.119*/
+  function sayCell() {
+    var words = [['src', srcName()],
+                 ['held', L('موقوفٌ مؤقّتاً', 'Paused')],
+                 ['hush', L('لا أسمع شيئاً', 'No sound')],
+                 ['hot', L('الصوتُ عالٍ جدّاً', 'Too loud')]];
+    return words.map(function (w) {
+      return '<span data-w="' + w[0] + '">' + esc(w[1]) + '</span>';
+    }).join('');
+  }
+  var hot = 0, hotTil = 0;
+
+  /*@3.AUNJ.120*/
+  function clockLive(sec) {
+    var s = Math.max(0, Math.round(sec || 0));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return (h ? h + ':' : '') + p(m) + ':' + p(r);
+  }
+
   /*@3.AUNJ.88*/
   function capGone() {
     shutAsk();
@@ -659,7 +679,7 @@
     var st = rec.stats();
     var c = cap.querySelector('.nrec-clock');
     var m = cap.querySelector('.nrec-meta');
-    if (c) c.textContent = clock(st.sec);
+    if (c) c.textContent = clockLive(st.sec);
     if (m) m.textContent = size(st.bytes);
     paintHold();
     wave();
@@ -696,15 +716,13 @@
     cap.setAttribute('data-hush', quiet ? '1' : '0');
     var say = cap.querySelector('.nrec-say');
     if (!say) return;
-    var word = held ? L('موقوفٌ مؤقّتاً', 'Paused')
-             : (quiet ? L('لا أسمع شيئاً', 'No sound')
-               : (lvl === 'hot' ? L('الصوتُ عالٍ جدّاً', 'Too loud') : ''));
-    if (word) {
-      say.textContent = word;
-      say.setAttribute('data-warn', '1');
-    } else if (say.getAttribute('data-warn')) {
-      say.textContent = srcName();
-      say.removeAttribute('data-warn');
+    hot = (!held && lvl === 'hot') ? Math.min(hot + 1, 99) : 0;
+    if (hot >= 3) hotTil = Date.now() + 3000;
+    var key = held ? 'held' : (quiet ? 'hush' : (Date.now() < hotTil ? 'hot' : 'src'));
+    if (say.getAttribute('data-say') !== key) {
+      say.setAttribute('data-say', key);
+      if (key === 'src') say.removeAttribute('data-warn');
+      else say.setAttribute('data-warn', '1');
     }
   }
 
@@ -1891,10 +1909,12 @@
           esc(L('تشغيل', 'Play')) + '"' +
           ' data-ar-title="تشغيل" data-en-title="Play">' +
           '<i class="fa-solid fa-play" aria-hidden="true"></i></button>' +
+        '<span class="nrec-pl-track">' +
         '<input type="range" class="nrec-pl-seek" value="0" min="0" max="1000"' +
           ' step="1" aria-label="' + esc(L('موضعُ التشغيل', 'Playback position')) + '"' +
           ' data-ar-title="موضعُ التشغيل" data-en-title="Playback position">' +
         markBar(pcs, total) +
+        '</span>' +
         '<span class="nrec-pl-t">0:00 / 0:00</span>' +
         '<button type="button" class="nrec-pl-x" aria-label="' +
           esc(L('سرعةُ التشغيل', 'Playback speed')) + '"' +
