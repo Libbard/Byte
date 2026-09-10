@@ -3104,7 +3104,11 @@
       /*@3.NOAJ.235*/
       onInk: function () { if (pdfDial) { try { pdfDial.sync(); } catch (e) {} } },
       onExpand: function () { toggleFull(); },
-      onPage: function () { updatePgNav(); },
+      /*@3.NOAJ.279*/
+      onPage: function () {
+        updatePgNav();
+        if (window.GardenAudioNote && GardenAudioNote.marginPaint) GardenAudioNote.marginPaint();
+      },
       onZoom: function () { applyFs(); },
       onView: function () { applyFs(); },
       onReady: function () {
@@ -4763,6 +4767,9 @@
     var arm = on && !!pdfUi.drawing();
     var ar = arm ? 'أغلقِ القلم — عُد إلى القراءة' : 'القلم — ارسم فوق الصفحة';
     var en = arm ? 'Put the pen down — back to reading' : 'Pen — draw on the page';
+    var lb0 = document.getElementById('na-listen');
+    if (lb0) lb0.hidden = !on;
+    if (!on && window.GardenAudioNote && GardenAudioNote.listen) GardenAudioNote.listen(false);
     ['na-pdf-draw', 'na-draw-top'].forEach(function (k) {
       var b = document.getElementById(k);
       if (!b) return;
@@ -4791,8 +4798,24 @@
       });
     }
     if (pdfDial) pdfDial.show(arm, arm);
+    if (arm) listenSet(false);
     paintDrawBtn();
     return arm;
+  }
+
+  function listenSet(on) {
+    var A = window.GardenAudioNote;
+    if (!A || !A.listen) return false;
+    var b = document.getElementById('na-listen');
+    if (on && pdfOn() && pdfUi.drawing()) pdfUi.draw(false);
+    var v = A.listen(!!on && pdfOn());
+    if (b) {
+      b.hidden = !pdfOn();
+      b.classList.toggle('on', v);
+      b.setAttribute('aria-pressed', v ? 'true' : 'false');
+    }
+    if (v) paintDrawBtn();
+    return v;
   }
 
   function paintPdfBtns() {
@@ -6324,6 +6347,11 @@
       var b = document.getElementById(k);
       if (b) b.addEventListener('click', function () { pdfDraw(); });
     });
+    var lb = document.getElementById('na-listen');
+    if (lb) lb.addEventListener('click', function () {
+      var A = window.GardenAudioNote;
+      listenSet(!(A && A.listening && A.listening()));
+    });
     var ps = document.getElementById('na-pdf-side');
     if (ps) ps.addEventListener('click', function () {
       if (!pdfOn()) return;
@@ -6548,6 +6576,7 @@
     /*@3.NOAJ.257*/
     doc: function () { return curDoc; },
     noteId: function () { return edId || ''; },
+    pdf: function () { return pdfUi; },
     /*@3.NOAJ.273*/
     repaintCloud: cloudPaint,
     relinkPdf: function () {

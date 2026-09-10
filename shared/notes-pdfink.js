@@ -259,6 +259,16 @@
     return box[id];
   };
 
+  /*@3.NOPJ8.70*/
+  Ink.prototype.where = function (n, x, y) {
+    var p = this.pages[n];
+    if (!p || !p.page) return null;
+    var f = this.frameOf(p, 1);
+    if (!f || !(f.w > 0) || !(f.h > 0)) return null;
+    var q = f.toPx(x, y);
+    return { x: q.x / f.w, y: q.y / f.h };
+  };
+
   Ink.prototype.mapOf = function (p) {
     var k = p.scale * p.k;
     var f = this.frameOf(p, k);
