@@ -2710,11 +2710,35 @@
           if (mb) out.push({ act: 'hearb', icon: 'fa-play',
             label: L('اسمعْ ما قيل عند هذا الرسم · ', 'Hear what was said at this drawing · ') +
                    momentClock(mb.at) });
+          var lb = bb ? linkOffer(0, { id: bb.id }, mm) : null;
+          if (lb) out.push({ act: 'link', icon: 'fa-link',
+            label: L('اربطْ هذه الفقرةَ باللحظة · ', 'Link this paragraph to the moment · ') +
+                   momentClock(lb.at) });
+          var lk = boardEl ? linkOffer(0, boardEl, mb) : null;
+          if (lk) out.push({ act: 'linkb', icon: 'fa-link',
+            label: L('اربطْ هذا الرسمَ باللحظة · ', 'Link this drawing to the moment · ') +
+                   momentClock(lk.at) });
           return out;
         },
         onExtra: function (key, bid, at) {
           var A = window.GardenAudioNote;
           if (!A || !A.momentAt) return;
+          if (key === 'link') {
+            if (linkGo(linkOffer(0, { id: bid }, null))) {
+              var bn = els.docBody ? els.docBody.querySelector('[data-bid="' + bid + '"]') : null;
+              chipHide();
+              chipFlash(function () { return bn ? bn.getBoundingClientRect() : null; }, null);
+            }
+            return;
+          }
+          if (key === 'linkb') {
+            var b2 = boardHit(at);
+            if (b2 && b2.el && linkGo(linkOffer(0, b2.el, null))) {
+              chipHide();
+              chipFlash(boardRectOf(b2.cv, b2.el), boardPickChanged);
+            }
+            return;
+          }
           var mm = key === 'hear' ? A.momentAt(A.timeOfId(bid))
                  : (key === 'hearb' ? boardMoment(at) : null);
           if (mm) A.hear(mm.ref, mm.at, 0, 0, 0);
@@ -2826,6 +2850,7 @@
             growPages();
           },
           onPinch: docPinch,
+          onState: function () { boardPickChanged(); },
           onBand: function (r) {
             var b = toRootRect(r);
             if (b && ed) ed.blocksInRect(b, true);
@@ -2880,6 +2905,8 @@
   }
 
   function dropEditor() {
+    chipHide();
+    closeCtx();
     dropPdf();
     if (ed) { try { ed.destroy(); } catch (e) {} }
     ed = null;
@@ -2920,6 +2947,7 @@
   }
 
   function dropPdf() {
+    chipHide();
     if (window.GardenNotesFind) { try { GardenNotesFind.show(false); } catch (e0) {} }
     if (pdfDial) { try { pdfDial.destroy(); } catch (eD) {} pdfDial = null; }
     if (!pdfUi) return;
@@ -2957,6 +2985,7 @@
   /*@3.NOAJ.251*/
   function pdfMenu(x, y) {
     if (!pdfOn()) return false;
+    chipHide();
     var sel = '';
     try { sel = String(window.getSelection() || '').trim(); } catch (e) { sel = ''; }
     var h = '';
@@ -2967,8 +2996,14 @@
     if (pdfMoment) {
       h += ctxItem('phear', 'fa-play', L('اسمعْ ما قيل هنا · ', 'Hear what was said here · ') +
                    momentClock(pdfMoment.at));
-      h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
     }
+    /*@3.NOAJ.283*/
+    pdfLink = linkOffer(pdfHit ? pdfHit.n : 0, pdfHit ? pdfHit.el : null, pdfMoment);
+    if (pdfLink) {
+      h += ctxItem('plink', 'fa-link', L('اربطْ هذا الرسمَ باللحظة · ', 'Link this drawing to the moment · ') +
+                   momentClock(pdfLink.at));
+    }
+    if (pdfMoment || pdfLink) h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
     if (nSel) {
       h += ctxItem('psdup', 'fa-clone', L('كرِّرِ المحدَّد', 'Duplicate selection'));
       h += ctxItem('pscopy', 'fa-copy', L('انسخِ المحدَّد', 'Copy selection'));
@@ -3000,14 +3035,77 @@
     return true;
   }
 
-  var pdfMoment = null;
-  function boardMoment(at) {
-    var A = window.GardenAudioNote, cv = inkCv();
-    if (!A || !A.momentNear || !cv || !cv.wet || !at || inkHidden()) return null;
+  var pdfMoment = null, pdfLink = null, pdfHit = null, boardEl = null;
+  /*@3.NOAJ.282*/
+  function stampOf(el) {
+    var A = window.GardenAudioNote;
+    if (!el) return 0;
+    if (el.ts > 1e12) return el.ts;
+    return (A && A.timeOfId) ? A.timeOfId(el.id) : 0;
+  }
+  function elPoint(el) {
+    if (!el) return null;
+    if (el.pts && el.pts[0]) return { x: el.pts[0].x, y: el.pts[0].y };
+    if (el.r && el.r[0]) return { x: el.r[0].x, y: el.r[0].y };
+    if (el.x1 != null) return { x: el.x1, y: el.y1 };
+    return null;
+  }
+  function momentOfEl(n, el, tol) {
+    var A = window.GardenAudioNote;
+    if (!A || !el) return null;
+    var p0 = elPoint(el), ts = stampOf(el);
+    var mm = (ts && A.momentOfStamp) ? A.momentOfStamp(ts) : null;
+    if (mm) { mm.page = n | 0; if (p0) { mm.x = p0.x; mm.y = p0.y; } return mm; }
+    return (p0 && A.momentNear) ? A.momentNear(n | 0, p0.x, p0.y, tol) : null;
+  }
+  function linkOffer(n, el, mm, strict) {
+    var A = window.GardenAudioNote;
+    var np = (A && A.nowPlaying) ? A.nowPlaying() : null;
+    if (!np || !el || !stampOf(el)) return null;
+    if (mm && mm.ref === np.ref && (strict || !mm.an || Math.abs(mm.at - np.at) <= 2)) return null;
+    return { ref: np.ref, at: np.at, ts: stampOf(el), page: n | 0, p0: elPoint(el) };
+  }
+  function linkGo(lk) {
+    var A = window.GardenAudioNote;
+    if (!A || !A.anchor || !lk) return false;
+    var p0 = lk.p0 || { x: 0, y: 0 };
+    if (!A.anchor(lk.ref, lk.at, lk.ts, lk.page, p0.x, p0.y)) return false;
+    if (lk.page > 0 && A.ring) A.ring(lk.page, p0.x, p0.y);
+    return true;
+  }
+  function strokeAtPoint(x, y, ik) {
+    if (!ik || !ik.at) return null;
+    var s = ik.at(x, y);
+    if (!s || !(s.n > 0)) return null;
+    if (ik.pick && ik.pick.ids && ik.pick.ids.length && ik.pick.n === s.n) {
+      var pe = ik.els(s.n)[ik.pick.ids[0]];
+      if (pe) return { n: s.n, i: ik.pick.ids[0], el: pe };
+    }
+    var i = ik.hit(s.n, s.x, s.y, 10);
+    if (i < 0) return null;
+    var el = ik.els(s.n)[i];
+    return el ? { n: s.n, i: i, el: el } : null;
+  }
+  function boardHit(at) {
+    var cv = inkCv();
+    if (!cv || !cv.wet || !at || inkHidden()) return null;
     var r = cv.wet.getBoundingClientRect();
     if (!(r.width > 0)) return null;
     var w = cv.toWorld({ x: at.x - r.left, y: at.y - r.top });
-    return A.momentNear(0, w.x, w.y, 48 / Math.max(0.2, cv.cam.z || 1));
+    var el = null;
+    var sel = cv.selected ? cv.selected() : [];
+    if (sel.length) el = sel[0];
+    if (!el && cv.hit) el = cv.hit(w) || null;
+    return { el: el, w: w, cv: cv };
+  }
+  function boardMoment(at) {
+    var A = window.GardenAudioNote, b = boardHit(at);
+    boardEl = null;
+    if (!A || !A.momentNear || !b) return null;
+    boardEl = b.el;
+    var tol = 48 / Math.max(0.2, b.cv.cam.z || 1);
+    if (b.el) return momentOfEl(0, b.el, tol);
+    return A.momentNear(0, b.w.x, b.w.y, tol);
   }
   function momentClock(sec) {
     var s = Math.max(0, Math.round(sec || 0));
@@ -3016,16 +3114,20 @@
   }
   function hearNearPoint(x, y, ik) {
     var A = window.GardenAudioNote;
+    pdfHit = null;
     if (!A || !A.momentNear || !pdfOn() || !ik) return null;
-    var el = document.elementFromPoint(x, y);
-    var pg = el && el.closest ? el.closest('.gpv-page') : null;
-    var n = pg ? +pg.getAttribute('data-p') : 0;
-    if (!(n > 0)) return null;
-    if (ik.pick && ik.pick.ids && ik.pick.ids.length && ik.pick.n === n) {
-      var els = ik.els(n), first = els[ik.pick.ids[0]];
-      var p0 = first && first.pts && first.pts[0];
-      if (p0) { var mm = A.momentNear(n, p0.x, p0.y); if (mm) return mm; }
+    var sp = ik.at ? ik.at(x, y) : null;
+    var n = (sp && sp.hit) ? sp.n : 0;
+    var pg = n > 0 ? document.querySelector('.gpv-page[data-p="' + n + '"]') : null;
+    if (!pg) {
+      var el = document.elementFromPoint(x, y);
+      pg = el && el.closest ? el.closest('.gpv-page') : null;
+      n = pg ? +pg.getAttribute('data-p') : 0;
     }
+    if (!(n > 0) || !pg) return null;
+    pdfHit = strokeAtPoint(x, y, ik);
+    if (pdfHit && pdfHit.n !== n) pdfHit = null;
+    if (pdfHit) { var mm = momentOfEl(n, pdfHit.el); if (mm) return mm; }
     var r = pg.getBoundingClientRect();
     if (!(r.width > 0) || !(r.height > 0)) return null;
     return A.momentNearFrac(n, (x - r.left) / r.width, (y - r.top) / r.height);
@@ -3035,6 +3137,16 @@
     if (act === 'phear') {
       var A = window.GardenAudioNote, mm = pdfMoment;
       if (A && mm) A.hear(mm.ref, mm.at, mm.x, mm.y, mm.page);
+      return;
+    }
+    if (act === 'plink') {
+      if (linkGo(pdfLink) && ik && pdfHit) {
+        var hit0 = pdfHit;
+        chipHide();
+        chipFlash(rectOfEl(ik, hit0.n, hit0.el), function () {
+          if (ik.pick && ik.pick.ids && ik.pick.ids.length) pdfPickChanged({ n: ik.pick.n, ids: ik.pick.ids.slice() });
+        });
+      }
       return;
     }
     if (act === 'psdup') { if (ik) ik.dupPick(); return; }
@@ -3073,6 +3185,12 @@
     if (act === 'pfit') { pdfUi.refit('page'); applyFs(); return; }
   }
 
+  function pdfHoldOk() {
+    var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    var k = (ik && ik.kit) ? ik.kit() : null;
+    return !!k && (k.act === 'sel' || k.act === 'lasso' || k.act === 'hand');
+  }
+
   /*@3.NOAJ.252*/
   function bindPdfMenu() {
     var box = els.docBody;
@@ -3084,10 +3202,29 @@
       e.preventDefault();
       pdfMenu(e.clientX, e.clientY);
     });
+    var tapX = 0, tapY = 0, tapT = 0, tapId = -1, hovT = 0;
+    box.addEventListener('pointerdown', function (e) {
+      if (!pdfOn() || pdfUi.drawing()) { tapId = -1; return; }
+      tapX = e.clientX; tapY = e.clientY; tapT = Date.now(); tapId = e.pointerId;
+    }, { passive: true });
+    box.addEventListener('pointerup', function (e) {
+      if (e.pointerId !== tapId) return;
+      tapId = -1;
+      if (!pdfOn() || pdfUi.drawing()) return;
+      if (Math.abs(e.clientX - tapX) > 8 || Math.abs(e.clientY - tapY) > 8 || Date.now() - tapT > 450) return;
+      if (e.target.closest && e.target.closest('.gam-chip, .na-ctx, .nrc, .nrp')) return;
+      pdfTap(e.clientX, e.clientY, 'tap');
+    }, { passive: true });
+    box.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse' || hovT || !pdfOn() || pdfUi.drawing()) return;
+      var mx = e.clientX, my = e.clientY;
+      hovT = setTimeout(function () { hovT = 0; pdfTap(mx, my, 'hover'); }, 90);
+    }, { passive: true });
     var hold = null, hx = 0, hy = 0;
     box.addEventListener('pointerdown', function (e) {
       if (!pdfOn() || e.pointerType === 'mouse') return;
-      if (pdfUi.drawing()) return;
+      /*@3.NOAJ.284*/
+      if (pdfUi.drawing() && !pdfHoldOk()) return;
       hx = e.clientX; hy = e.clientY;
       if (hold) clearTimeout(hold);
       hold = setTimeout(function () {
@@ -3183,7 +3320,17 @@
         }
         doc.pdf = next;
         persist(id, doc, true);
-      }
+      },
+      /*@3.NOAJ.281*/
+      inkSeed: (doc.pink && doc.pink.p) || null,
+      onInkSave: function (n, rec, why) {
+        if (!rec || !(n > 0)) return;
+        if (!doc.pink || typeof doc.pink !== 'object') doc.pink = { v: 1, p: {} };
+        if (!doc.pink.p || typeof doc.pink.p !== 'object') doc.pink.p = {};
+        doc.pink.p[String(n)] = rec;
+        persist(id, doc, why !== 'edit');
+      },
+      onPick: function (pk) { if (edId === id) pdfPickChanged(pk); }
     });
   }
 
@@ -5634,6 +5781,197 @@
 
   function inkCv() { return (overlay && overlay.cv) ? overlay.cv : null; }
 
+  /*@3.NOAJ.285*/
+  var chip = null, chipRect = null, chipItems = null, chipRaf = 0, chipLast = '', chipBy = '', chipEl = null, chipT = 0;
+  function chipHideSoon() {
+    if (chipT) clearTimeout(chipT);
+    chipT = setTimeout(function () { chipT = 0; if (chipBy === 'hover') chipHide(); }, 520);
+  }
+  function chipHide() {
+    if (chipT) { clearTimeout(chipT); chipT = 0; }
+    if (chip) { chip.remove(); chip = null; }
+    chipRect = null; chipItems = null; chipLast = ''; chipBy = ''; chipEl = null;
+    if (chipRaf) { cancelAnimationFrame(chipRaf); chipRaf = 0; }
+  }
+  function chipPlace() {
+    if (!chip || !chipRect) return;
+    var r = null;
+    try { r = chipRect(); } catch (e) { r = null; }
+    var sig = r ? [r.left | 0, r.top | 0, r.right | 0, r.bottom | 0].join(',') : '';
+    if (sig === chipLast) return;
+    chipLast = sig;
+    if (!r || !(r.width >= 0)) { chip.hidden = true; return; }
+    chip.hidden = false;
+    var w = chip.offsetWidth, h = chip.offsetHeight;
+    var cx = r.left + r.width / 2;
+    var x = Math.max(8, Math.min(window.innerWidth - w - 8, cx - w / 2));
+    var y = r.top - h - 10;
+    if (y < 8) y = r.bottom + 10;
+    if (y > window.innerHeight - h - 8) y = Math.max(8, r.top - h - 10);
+    chip.style.left = Math.round(x) + 'px';
+    chip.style.top = Math.round(y) + 'px';
+  }
+  function chipTick() {
+    chipRaf = 0;
+    if (!chip) return;
+    chipPlace();
+    chipRaf = requestAnimationFrame(chipTick);
+  }
+  function chipShow(items, rectFn) {
+    if (!items || !items.length || !rectFn) { chipHide(); return; }
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.className = 'gam-chip';
+      chip.setAttribute('role', 'toolbar');
+      chip.setAttribute('aria-label', L('الصوتُ عند هذا الرسم', 'Audio at this drawing'));
+      chip.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); });
+      chip.addEventListener('pointerenter', function () { if (chipT) { clearTimeout(chipT); chipT = 0; } });
+      chip.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && chipBy === 'hover') chipHideSoon(); });
+      chip.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-act]') : null;
+        if (!b || !chipItems) return;
+        var act = b.getAttribute('data-act');
+        for (var i = 0; i < chipItems.length; i++) {
+          if (chipItems[i].act === act && chipItems[i].run) { chipItems[i].run(); break; }
+        }
+      });
+      document.body.appendChild(chip);
+    }
+    chipItems = items; chipRect = rectFn; chipLast = '';
+    chip.innerHTML = items.map(function (it) {
+      return '<button type="button" class="gam-chip-b" data-act="' + esc(it.act) + '"' +
+        ' aria-label="' + esc(it.aria || it.label) + '" title="' + esc(it.aria || it.label) + '">' +
+        '<i class="fa-solid ' + esc(it.icon) + '" aria-hidden="true"></i><span>' + esc(it.label) + '</span></button>';
+    }).join('');
+    chipPlace();
+    if (!chipRaf) chipRaf = requestAnimationFrame(chipTick);
+  }
+  function chipFlash(rectFn, then) {
+    if (!chip) {
+      chipShow([{ act: 'done', icon: 'fa-check', label: L('رُبط', 'Linked') }], rectFn);
+    } else {
+      chip.innerHTML = '<span class="gam-chip-b gam-chip-done"><i class="fa-solid fa-check" aria-hidden="true"></i><span>' +
+        esc(L('رُبط', 'Linked')) + '</span></span>';
+    }
+    chipBy = 'flash'; chipLast = '';
+    chipPlace();
+    setTimeout(function () { if (chipBy === 'flash') { chipHide(); if (then) then(); } }, 1400);
+  }
+  function chipItemsFor(n, el, tol, onLinked) {
+    var A = window.GardenAudioNote, items = [];
+    if (!A || !el) return items;
+    var mm = momentOfEl(n, el, tol);
+    if (mm) {
+      items.push({ act: 'hear', icon: 'fa-play', label: momentClock(mm.at),
+        aria: L('اسمعْ ما قيل عند هذا الرسم · ', 'Hear what was said at this drawing · ') + momentClock(mm.at),
+        run: function () { A.hear(mm.ref, mm.at, mm.x, mm.y, mm.page); } });
+    }
+    var lk = linkOffer(n, el, mm, true);
+    if (lk) {
+      items.push({ act: 'link', icon: 'fa-link', label: L('اربطْ · ', 'Link · ') + momentClock(lk.at),
+        aria: L('اربطْ هذا الرسمَ باللحظة · ', 'Link this drawing to the moment · ') + momentClock(lk.at),
+        run: function () { if (linkGo(lk)) { if (chipRect) chipFlash(chipRect, onLinked); else if (onLinked) onLinked(); } } });
+    }
+    return items;
+  }
+  function rectOfEl(ik, n, el) {
+    return function () {
+      var pg = document.querySelector('.gpv-page[data-p="' + n + '"]');
+      if (!pg || !el) return null;
+      var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, i;
+      if (el.pts) {
+        for (i = 0; i < el.pts.length; i++) {
+          var q = el.pts[i];
+          if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x; if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y;
+        }
+      } else if (el.r) {
+        for (i = 0; i < el.r.length; i++) {
+          var b = el.r[i];
+          if (b.x < x0) x0 = b.x; if (b.x + b.w > x1) x1 = b.x + b.w; if (b.y < y0) y0 = b.y; if (b.y + b.h > y1) y1 = b.y + b.h;
+        }
+      }
+      if (!(x0 <= x1) || !(y0 <= y1)) return null;
+      var a = ik.where(n, x0, y0), c = ik.where(n, x1, y1);
+      if (!a || !c) return null;
+      var r = pg.getBoundingClientRect();
+      var l = r.left + Math.min(a.x, c.x) * r.width, rr = r.left + Math.max(a.x, c.x) * r.width;
+      var t = r.top + Math.min(a.y, c.y) * r.height, bt = r.top + Math.max(a.y, c.y) * r.height;
+      return { left: l, top: t, right: rr, bottom: bt, width: rr - l, height: bt - t };
+    };
+  }
+  function pdfTap(x, y, how) {
+    var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    if (!ik || inkHidden()) { if (how !== 'hover') chipHide(); return; }
+    var hit = strokeAtPoint(x, y, ik);
+    if (!hit) {
+      if (how === 'hover') { if (chipBy === 'hover') chipHideSoon(); }
+      else chipHide();
+      return;
+    }
+    if (chipT) { clearTimeout(chipT); chipT = 0; }
+    if (how === 'hover' && chip && chipBy !== 'hover') return;
+    if (chipEl === hit.el && chip) return;
+    var items = chipItemsFor(hit.n, hit.el, 0, function () { chipEl = null; pdfTap(x, y, 'tap'); });
+    if (!items.length) { if (how !== 'hover' || chipBy === 'hover') chipHide(); return; }
+    chipShow(items, rectOfEl(ik, hit.n, hit.el));
+    chipBy = how; chipEl = hit.el;
+  }
+  function pdfPickChanged(pk) {
+    var ik = (pdfUi && pdfUi.ink) ? pdfUi.ink() : null;
+    if (!pk || !ik || !pk.ids || !pk.ids.length || inkHidden()) { chipHide(); return; }
+    var el = ik.els(pk.n)[pk.ids[0]];
+    if (!el) { chipHide(); return; }
+    var rect = function () {
+      var b = ik.pickBox();
+      var pg = document.querySelector('.gpv-page[data-p="' + pk.n + '"]');
+      if (!b || !pg) return null;
+      var a = ik.where(pk.n, b.x0, b.y0), c = ik.where(pk.n, b.x1, b.y1);
+      if (!a || !c) return null;
+      var r = pg.getBoundingClientRect();
+      var x0 = r.left + Math.min(a.x, c.x) * r.width, x1 = r.left + Math.max(a.x, c.x) * r.width;
+      var y0 = r.top + Math.min(a.y, c.y) * r.height, y1 = r.top + Math.max(a.y, c.y) * r.height;
+      return { left: x0, top: y0, right: x1, bottom: y1, width: x1 - x0, height: y1 - y0 };
+    };
+    chipShow(chipItemsFor(pk.n, el, 0, function () { pdfPickChanged(pk); }), rect);
+    chipBy = 'pick'; chipEl = el;
+  }
+  function boardElBox(el) {
+    if (!el) return null;
+    if (el.pts && el.pts.length) {
+      var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (var i = 0; i < el.pts.length; i++) {
+        var q = el.pts[i];
+        if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x; if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y;
+      }
+      return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }
+    if (el.x1 != null && el.x2 != null) {
+      return { x: Math.min(el.x1, el.x2), y: Math.min(el.y1, el.y2),
+               w: Math.abs(el.x2 - el.x1), h: Math.abs(el.y2 - el.y1) };
+    }
+    return null;
+  }
+  function boardRectOf(cv, el) {
+    return function () {
+      var b = (cv._handle && cv._handle.box) || boardElBox(el);
+      if (!b || !cv.wet) return null;
+      var r = cv.wet.getBoundingClientRect();
+      var a = cv.toScreen({ x: b.x, y: b.y }), c = cv.toScreen({ x: b.x + b.w, y: b.y + b.h });
+      return { left: r.left + a.x, top: r.top + a.y, right: r.left + c.x, bottom: r.top + c.y,
+               width: c.x - a.x, height: c.y - a.y };
+    };
+  }
+  function boardPickChanged() {
+    var cv = inkCv();
+    if (!cv || !cv.wet || !cv.setSelExtra) return;
+    var sel = cv.selected ? cv.selected() : [];
+    if (!sel.length || inkHidden()) { cv.setSelExtra([]); return; }
+    var el = sel[0];
+    cv.setSelExtra(chipItemsFor(0, el, 48 / Math.max(0.2, cv.cam.z || 1), function () {
+      chipFlash(boardRectOf(cv, el), boardPickChanged);
+    }));
+  }
+
   /*@3.NOAJ.61*/
   function inkHidden() { return ui().inkOff === 1; }
 
@@ -6608,7 +6946,8 @@
     state: S,
     folders: foldersRead,
     /*@3.NOAJ.257*/
-    doc: function () { return curDoc; },
+    /*@3.NOAJ.286*/
+    doc: function () { return ed ? ed.doc : curDoc; },
     noteId: function () { return edId || ''; },
     pdf: function () { return pdfUi; },
     /*@3.NOAJ.273*/
@@ -6617,7 +6956,9 @@
       if (pdfUi && pdfUi.pick) { try { pdfUi.pick(); } catch (e) {} }
     },
     save: function (quiet) {
-      if (edId && curDoc) persist(edId, curDoc, !!quiet);
+      if (!edId) return;
+      if (ed && ed.doc) persist(edId, ed.doc, !!quiet);
+      else if (curDoc) persist(edId, curDoc, !!quiet);
     }
   };
 

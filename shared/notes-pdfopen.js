@@ -693,7 +693,10 @@
       st.ink = K.create({
         id: sp.h || '',
         view: st.view,
-        t0: Date.now(),
+        /*@3.NOPJ5.37*/
+        seed: o.inkSeed || null,
+        onSave: o.onInkSave || null,
+        onPick: o.onPick || null,
         onState: function (s2) { if (o.onInk) o.onInk(s2); },
         onZoom: function (z) { setScale(z); },
         onFit: function () { refit('page'); },

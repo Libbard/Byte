@@ -46,11 +46,89 @@
     }).catch(function () { return null; });
   }
 
+  /*@3.NOPJ8.72*/
   function write(id, page, row) {
     return idbDo('readwrite', function (s) {
-      if (row && row.els && row.els.length) s.put(row, key(id, page));
-      else s.delete(key(id, page));
+      var k = key(id, page);
+      if (row && row.els && row.els.length) { s.put(row, k); return; }
+      var rq = s.get(k);
+      rq.onsuccess = function () {
+        if (rq.result) s.put({ els: [], t: (row && row.t) || Date.now() }, k);
+      };
     }).then(function () { return true; }, function () { return false; });
+  }
+
+  /*@3.NOPJ8.74*/
+  function packPage(els, t) {
+    var C = window.GardenInkCodec;
+    var list = els || [], st = [], hl = [], i;
+    for (i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (!e) continue;
+      if (e.ty === 'hl') { hl.push({ c: e.c, r: e.r || [], ts: e.ts || 0 }); continue; }
+      if (e.ty !== 'st' || !e.pts || !e.pts.length) continue;
+      st.push({ tool: e.hi ? 'hi' : 'pen', color: e.c, w: e.w, nib: e.nib, pts: e.pts, ts: e.ts || 0 });
+    }
+    var rec = { t: t || Date.now() };
+    if (hl.length) rec.h = hl;
+    if (!st.length || !C || !C.pack) return Promise.resolve(rec);
+    return C.pack(st).then(function (packed) {
+      if (packed) rec.s = packed;
+      return rec;
+    }).catch(function () { return rec; });
+  }
+
+  function unpackPage(rec) {
+    var C = window.GardenInkCodec;
+    var out = [], i;
+    var hl = (rec && rec.h) || [];
+    for (i = 0; i < hl.length; i++) {
+      if (!hl[i] || !hl[i].r || !hl[i].r.length) continue;
+      var m = { ty: 'hl', c: hl[i].c || 'amber', r: hl[i].r };
+      if (hl[i].ts) m.ts = hl[i].ts;
+      out.push(m);
+    }
+    if (!rec || !rec.s || !C || !C.unpack) return Promise.resolve(out);
+    return C.unpack(rec.s).then(function (list) {
+      (list || []).forEach(function (s) {
+        var e = { ty: 'st', pts: s.pts || [], c: s.color || 'ink', w: s.w || 2,
+                  nib: s.nib || 'round', o: 1, hi: s.tool === 'hi' ? 1 : 0 };
+        if (s.ts) e.ts = s.ts;
+        out.push(e);
+      });
+      return out;
+    }).catch(function () { return out; });
+  }
+
+  /*@3.NOPJ8.73*/
+  function merge(id, seed) {
+    var pages = (seed && typeof seed === 'object') ? seed : {};
+    var newer = [];
+    if (!id) return Promise.resolve({ newer: newer });
+    var jobs = Object.keys(pages).map(function (k) {
+      var n = +k, inc = pages[k];
+      if (!(n > 0) || !inc || typeof inc !== 'object') return Promise.resolve();
+      var it = Number(inc.t) || 0;
+      return read(id, n).then(function (row) {
+        var lt = row ? (Number(row.t) || 0) : 0;
+        if (row && lt > it) { newer.push(n); return null; }
+        if (row && lt === it) return null;
+        if (!row && !(inc.s || (inc.h && inc.h.length))) return null;
+        return unpackPage(inc).then(function (els) { return write(id, n, { els: els, t: it }); });
+      });
+    });
+    return Promise.all(jobs).then(function () {
+      return pagesOf(id).then(function (list) {
+        var more = list.filter(function (n) { return !pages[n] && newer.indexOf(n) < 0; });
+        return Promise.all(more.map(function (n) {
+          return read(id, n).then(function (row) {
+            if (row && row.els && row.els.length) newer.push(n);
+          });
+        }));
+      });
+    }).then(function () {
+      return { newer: newer.sort(function (a, b) { return a - b; }) };
+    }).catch(function () { return { newer: newer }; });
   }
 
   function pagesOf(id) {
@@ -144,6 +222,11 @@
     this.armed = false;
     this.dead = false;
     this.saveT = {};
+    var self = this;
+    this.ready = merge(this.id, this.o.seed).then(function (res) {
+      if (self.dead || !self.o.onSave) return;
+      (res.newer || []).forEach(function (n) { self.repack(n); });
+    });
     paper(true);
   }
 
@@ -234,7 +317,7 @@
   Ink.prototype.load = function (n) {
     var self = this;
     if (!this.id) return Promise.resolve(null);
-    return read(this.id, n).then(function (row) {
+    return this.ready.then(function () { return read(self.id, n); }).then(function (row) {
       var p = self.pages[n];
       if (!p || self.dead) return null;
       p.loaded = true;
@@ -364,8 +447,9 @@
     if (tilt) { pt.tz = tilt.tz; pt.az = tilt.az; }
     this.live = {
       n: s.n,
+      /*@3.NOPJ8.71*/
       el: { ty: 'st', pts: [pt], c: t.c, w: t.w, nib: t.nib, o: t.o, hi: t.hi ? 1 : 0,
-            ts: Date.now() - (this.o.t0 || 0) }
+            ts: Date.now() }
     };
     this.drawWet(s.p, this.live.el);
     return true;
@@ -598,6 +682,8 @@
     }
     if (pk) this.paintPick();
     if (this.face) this.face.selection = pk ? pk.ids.length : 0;
+    /*@3.NOPJ8.76*/
+    if (this.o.onPick) this.o.onPick(pk ? { n: pk.n, ids: pk.ids.slice() } : null);
   };
 
   /*@3.NOPJ8.40*/
@@ -758,7 +844,7 @@
     var list = this.pickEls(), ids = [];
     for (var i = 0; i < list.length; i++) {
       var c = deep([list[i]])[0];
-      if (c.ts != null) c.ts = Date.now() - (this.o.t0 || 0) + i;
+      c.ts = Date.now() + i;
       K.eachPoint(c, function (x, y) { return [x + 12, y - 12]; });
       ids.push(p.els.length);
       p.els.push(c);
@@ -865,7 +951,7 @@
     var ids = [];
     for (var i = 0; i < list.length; i++) {
       var c = deep([list[i]])[0];
-      c.ts = Date.now() - (this.o.t0 || 0) + i;
+      c.ts = Date.now() + i;
       K.eachPoint(c, function (x, y) { return [x + 16, y - 16]; });
       ids.push(p.els.length);
       p.els.push(c);
@@ -1029,8 +1115,10 @@
           }
         }
       }
-      void 0;
-      return write(self.id, a.n, { els: els, t: Date.now() });
+      var t = Date.now();
+      return write(self.id, a.n, { els: els, t: t }).then(function () {
+        if (self.o.onSave) packPage(els, t).then(function (rec) { self.o.onSave(a.n, rec, 'edit'); });
+      });
     });
   };
 
@@ -1069,6 +1157,7 @@
   /*@3.NOPJ8.9*/
   Ink.prototype.touch = function (n) {
     var self = this;
+    if (this.pages[n]) this.pages[n].dirty = true;
     if (this.saveT[n]) clearTimeout(this.saveT[n]);
     this.saveT[n] = setTimeout(function () {
       self.saveT[n] = 0;
@@ -1080,8 +1169,35 @@
   Ink.prototype.flush = function (n) {
     if (this.saveT[n]) { clearTimeout(this.saveT[n]); this.saveT[n] = 0; }
     var p = this.pages[n];
-    if (!p || !this.id || !p.loaded) return Promise.resolve(false);
-    return write(this.id, n, { els: p.els, t: Date.now() });
+    if (!p || !this.id || !p.loaded || !p.dirty) return Promise.resolve(false);
+    p.dirty = false;
+    var self = this, t = Date.now();
+    return write(this.id, n, { els: p.els, t: t }).then(function (done) {
+      if (self.o.onSave) {
+        packPage(p.els, t).then(function (rec) { self.o.onSave(n, rec, 'edit'); });
+      }
+      return done;
+    });
+  };
+
+  Ink.prototype.repack = function (n) {
+    var self = this;
+    if (!this.id || !this.o.onSave) return Promise.resolve(false);
+    return read(this.id, n).then(function (row) {
+      if (!row) return false;
+      return packPage(row.els || [], Number(row.t) || Date.now()).then(function (rec) {
+        self.o.onSave(n, rec, 'merge');
+        return true;
+      });
+    });
+  };
+
+  /*@3.NOPJ8.75*/
+  Ink.prototype.at = function (cx, cy) {
+    var v = this.view;
+    if (!v || !v.scroller || !v.x || !v.y) return null;
+    var r = v.scroller.getBoundingClientRect();
+    return this.spot(v.x() + (cx - r.left), v.y() + (cy - r.top));
   };
 
   Ink.prototype.flushAll = function () {
@@ -1510,7 +1626,7 @@
       if (over > mine * 0.85 && over > his * 0.85) { twin = true; keep.push(e); continue; }
       merged = foldRects(merged.concat(e.r));
     }
-    keep.push({ ty: 'hl', c: colour, r: merged });
+    keep.push({ ty: 'hl', c: colour, r: merged, ts: Date.now() });
     void twin;
     p.els = keep;
     this.push({ act: 'set', n: n, before: before, after: p.els.slice() });
@@ -1745,6 +1861,9 @@
     read: read,
     write: write,
     pagesOf: pagesOf,
-    wipe: wipe
+    wipe: wipe,
+    merge: merge,
+    packPage: packPage,
+    unpackPage: unpackPage
   };
 })();

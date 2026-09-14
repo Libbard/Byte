@@ -2230,9 +2230,25 @@
     if (!(n > 0)) return null;
     return nearest(n, { x: fx, y: fy }, tol);
   }
+  /*@3.AUNJ.127*/
+  function anchorAt(an, sec) {
+    if (!an || !an.length) return null;
+    var a = an[0], b = an[1], k = 1;
+    if (!a || a.length < 2 || !(a[1] > 0)) return null;
+    if (b && b.length >= 2 && b[1] !== a[1]) {
+      k = (b[0] - a[0]) / (b[1] - a[1]);
+      if (!(k > 0.5 && k < 2)) return null;
+    }
+    return a[0] + k * (sec - a[1]);
+  }
+  function rowSecs(part) {
+    var total = 0;
+    part.forEach(function (it) { total += Math.max(1, Math.round((Number(it.ms) || 0) / 1000)); });
+    return total;
+  }
   function momentAt(wallMs) {
     var t = Number(wallMs) || 0;
-    if (!t) return null;
+    if (!(t > 1e12)) return null;
     var hit = null;
     rows().forEach(function (part) {
       if (hit) return;
@@ -2245,8 +2261,50 @@
         }
         base += Math.max(1, Math.round(ms / 1000));
       });
+      if (hit) return;
+      var total = rowSecs(part);
+      var at = anchorAt(part[0].an, t / 1000);
+      if (at != null && at >= -2 && at <= total + 2) {
+        hit = { ref: part[0].i, at: Math.max(0, Math.min(total, Math.round(at))), page: 0, x: 0, y: 0, an: 1 };
+      }
     });
     return hit;
+  }
+  /*@3.AUNJ.128*/
+  function anchor(ref, atSec, stampMs, page, x, y) {
+    var part = partsOf(ref), head = part[0];
+    var sec = Math.round((Number(stampMs) || 0) / 1000);
+    var at = Math.max(0, Math.round(Number(atSec) || 0));
+    if (!head || !(sec > 1e9)) return false;
+    var an = (head.an || []).filter(function (a) { return a && a.length >= 2 && a[1] !== sec && a[0] !== at; });
+    if (an.length >= 2) {
+      an.sort(function (p, q) { return Math.abs(p[0] - at) - Math.abs(q[0] - at); });
+      an = [an[1]];
+    }
+    an.push([at, sec]);
+    an.sort(function (p, q) { return p[0] - q[0]; });
+    head.an = an;
+    var base = 0, k;
+    for (k = 0; k < part.length; k++) {
+      var secs = Math.max(1, Math.round((Number(part[k].ms) || 0) / 1000));
+      if (at < base + secs || k === part.length - 1) {
+        var it = part[k], rel = Math.max(0, Math.min(secs, at - base));
+        var had = (it.mk || []).some(function (m) { return Math.abs(Number(m[0]) - rel) < 1 && (m[1] | 0) === (page | 0); });
+        if (!had) { if (!it.mk) it.mk = []; it.mk.push([rel, page | 0, x | 0, y | 0]); }
+        break;
+      }
+      base += secs;
+    }
+    touch();
+    sync();
+    return true;
+  }
+  /*@3.AUNJ.129*/
+  function nowPlaying() {
+    if (!live || !live.src || !liveRef) return null;
+    if (!items().some(function (x) { return x.i === liveRef; })) return null;
+    var at = liveAt ? liveAt() : (isFinite(live.currentTime) ? live.currentTime : 0);
+    return { ref: liveRef, at: Math.max(0, Math.round(at)), paused: !!live.paused, total: liveTotal };
   }
   function timeOfId(id) {
     var m = /^[a-z]([0-9a-z]{8})/.exec(String(id || ''));
@@ -2404,11 +2462,16 @@
     if (t) t.textContent = clockLive(at) + (liveTotal > 0 ? ' / ' + clockLive(liveTotal) : '');
   }
   function stopAll() {
-    if (live) { try { live.pause(); } catch (e) {} }
+    if (live) {
+      try { live.pause(); } catch (e) {}
+      if (liveOff) { liveOff(); liveOff = null; }
+      liveKey = ''; liveRef = '';
+      try { live.removeAttribute('src'); live.load(); } catch (e2) {}
+    }
     miniHide();
   }
   function afterList() {
-    if (!live || live.paused || !liveRef || !panel || view !== 'list') return;
+    if (!live || !live.src || !liveRef || !panel || view !== 'list') return;
     var row = panel.querySelector('.nrr[data-ref="' + liveRef + '"]');
     if (!row || row.querySelector('.nrec-pl')) return;
     row.classList.add('on');
@@ -2426,6 +2489,10 @@
     momentNear: momentNear,
     momentNearFrac: momentNearFrac,
     momentAt: momentAt,
+    momentOfStamp: momentAt,
+    anchor: anchor,
+    nowPlaying: nowPlaying,
+    ring: ring,
     timeOfId: timeOfId,
     stop: stopAll
   };

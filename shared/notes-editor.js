@@ -474,6 +474,8 @@
 
   Editor.prototype.swapDoc = function (next) {
     var site = '';
+    /*@3.NOEJ.356*/
+    if (next && this.doc && this.doc.aud) next.aud = this.doc.aud;
     try { site = this.diffSite(this.doc.blocks, next.blocks); } catch (eS) { site = ''; }
     if (!this.applyDoc(next)) {
       this.doc = next;

@@ -29,6 +29,7 @@
     this.onBand = o.onBand || function () {};
     this.onTap = o.onTap || function () {};
     this.onPinch = o.onPinch || null;
+    this.onState = o.onState || null;
     /*@3.NOOJ.14*/
     this.bound = o.bound !== false;
     this.hist = o.hist || null;
@@ -57,6 +58,7 @@
 
   Overlay.prototype.sync = function () {
     if (this.dial) this.dial.sync();
+    if (this.onState) this.onState();
   };
 
   /*@3.NOOJ.2*/

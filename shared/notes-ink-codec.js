@@ -2,7 +2,7 @@
 ;(function () {
   'use strict';
 
-  var VER = 4;
+  var VER = 5;
   /*@3.NOICJ.8*/
   var AZ_Q = 64, TZ_Q = 31;
   var NIBS = ['round', 'fine', 'marker', 'flat', 'pencil', 'chalk'];
@@ -84,14 +84,18 @@
     var w = new Writer();
     /*@3.NOICJ.7*/
     /*@3.NOICJ.9*/
-    var need = 2, z, hasTilt = [];
+    var need = 2, z, hasTilt = [], tsOf = [];
     for (z = 0; z < strokes.length; z++) {
       hasTilt[z] = tiltIn(strokes[z]);
-      if (hasTilt[z]) need = 4;
+      tsOf[z] = stampSec(strokes[z]);
+      /*@3.NOICJ.17*/
+      if (tsOf[z]) need = 5;
+      else if (hasTilt[z] && need < 4) need = 4;
       else if (need < 3 && colorIndex(strokes[z].color) === HEX_MARK) need = 3;
     }
     w.raw(need);
     w.u(strokes.length);
+    var prevTs = 0;
 
     for (var s = 0; s < strokes.length; s++) {
       var st = strokes[s];
@@ -100,7 +104,9 @@
       /*@3.NOICJ.4*/
       w.raw(Math.max(0, NIBS.indexOf(st.nib || 'round')));
       /*@3.NOICJ.10*/
-      if (need >= 4) w.raw(hasTilt[s] ? 1 : 0);
+      if (need >= 5) w.raw((hasTilt[s] ? 1 : 0) | (tsOf[s] ? 2 : 0));
+      else if (need >= 4) w.raw(hasTilt[s] ? 1 : 0);
+      if (tsOf[s]) { w.s(tsOf[s] - prevTs); prevTs = tsOf[s]; }
       w.u(Math.round((st.w || 2) * 4));
       /*@3.NOICJ.6*/
       var ci = colorIndex(st.color);
@@ -145,12 +151,16 @@
     if (ver < 1 || ver > VER) return [];
     var n = r.u();
     var out = [];
+    var prevTs = 0;
 
     for (var s = 0; s < n; s++) {
       var tool = TOOLS[r.raw()] || 'pen';
       var nib = (ver >= 2) ? (NIBS[r.raw()] || 'round') : 'round';
       /*@3.NOICJ.11*/
-      var tilt = (ver >= 4) ? !!r.raw() : false;
+      var flags = (ver >= 4) ? r.raw() : 0;
+      var tilt = !!(flags & 1);
+      var ts = 0;
+      if (ver >= 5 && (flags & 2)) { prevTs += r.s(); ts = prevTs; }
       var width = r.u() / 4;
       var cidx = r.u();
       var color;
@@ -180,7 +190,9 @@
           pts[i].az = (pa / AZ_Q) * Math.PI * 2;
         }
       }
-      out.push({ tool: tool, nib: nib, w: width, color: color, pts: pts });
+      var st = { tool: tool, nib: nib, w: width, color: color, pts: pts };
+      if (ts) st.ts = ts * 1000;
+      out.push(st);
     }
     return out;
   }
@@ -190,6 +202,12 @@
   function qa(v) {
     var n = Math.round(((v || 0) / (Math.PI * 2)) * AZ_Q) % AZ_Q;
     return n < 0 ? n + AZ_Q : n;
+  }
+
+  function stampSec(st) {
+    var t = Number(st && st.ts) || 0;
+    if (!(t > 1e12 && t < 4e12)) return 0;
+    return Math.round(t / 1000);
   }
 
   /*@3.NOICJ.15*/
@@ -325,7 +343,7 @@
     HEX_MARK: HEX_MARK,
     NIBS: NIBS,
     VER: VER,
-    VER: VER,
+    stampSec: stampSec,
     RDP_EPS: RDP_EPS
   };
 })();

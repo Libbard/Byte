@@ -184,8 +184,15 @@
     if (!K || typeof K.canCarry !== 'function' || K.canCarry(el.c)) return el.c;
     return inkHex(el);
   }
-  function uid() {
-    return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  function uid(at) {
+    return 'e' + (at > 1e12 ? Math.round(at) : Date.now()).toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  /*@3.NOCJ.115*/
+  function stampOf(e) {
+    if (e && e.ts > 1e12) return e.ts;
+    var m = /^[a-z]([0-9a-z]{8})/.exec(String((e && e.id) || ''));
+    var t = m ? parseInt(m[1], 36) : 0;
+    return (t > 1.5e12 && t < 4e12) ? t : 0;
   }
 
   var INK_KEY = 'garden_ink_last';
@@ -438,6 +445,13 @@
     });
     this.selbar.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     this.selbar.addEventListener('click', function (e) {
+      var xb = e.target && e.target.closest ? e.target.closest('[data-x]') : null;
+      if (xb) {
+        e.stopPropagation();
+        var xk = xb.getAttribute('data-x'), xs = selfB._selX || [];
+        for (var xi = 0; xi < xs.length; xi++) if (xs[xi].act === xk && xs[xi].run) { xs[xi].run(); break; }
+        return;
+      }
       var btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
       if (!btn) return;
       e.stopPropagation();
@@ -450,6 +464,33 @@
     this.wrap.appendChild(this.selbar);
     this.host.innerHTML = '';
     this.host.appendChild(this.wrap);
+  };
+
+  /*@3.NOCJ.116*/
+  Canvas.prototype.setSelExtra = function (items) {
+    var bar = this.selbar;
+    if (!bar) return;
+    var old = bar.querySelector('.nc-sb-x');
+    if (old) old.remove();
+    this._selX = items || [];
+    if (!this._selX.length) return;
+    var g = document.createElement('span');
+    g.className = 'nc-sb-x';
+    this._selX.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'nc-sb nc-sb--x';
+      b.setAttribute('data-x', it.act);
+      b.setAttribute('aria-label', it.aria || it.label || it.act);
+      b.title = it.aria || it.label || '';
+      var ic = document.createElement('i');
+      ic.className = 'fa-solid ' + (it.icon || 'fa-play');
+      ic.setAttribute('aria-hidden', 'true');
+      b.appendChild(ic);
+      if (it.label) { var sp = document.createElement('span'); sp.textContent = it.label; b.appendChild(sp); }
+      g.appendChild(b);
+    });
+    bar.insertBefore(g, bar.firstChild);
   };
 
   /*@3.NOCJ.41*/
@@ -1280,7 +1321,7 @@
     this.sel = {};
     for (var i = 0; i < picked.length; i++) {
       var copy = JSON.parse(JSON.stringify(picked[i]));
-      copy.id = uid();
+      copy.id = uid(); delete copy.ts;
       eachPoint(copy, function (x, y) { return [x + 14, y + 14]; });
       this.els.push(copy);
       this.sel[copy.id] = 1;
@@ -1331,7 +1372,7 @@
     this.sel = {};
     for (var i = 0; i < this.clip.length; i++) {
       var copy = JSON.parse(JSON.stringify(this.clip[i]));
-      copy.id = uid();
+      copy.id = uid(); delete copy.ts;
       eachPoint(copy, function (x, y) { return [x + dx, y + dy]; });
       this.els.push(copy);
       this.sel[copy.id] = 1;
@@ -1552,7 +1593,8 @@
     var shapes = this.els.filter(function (e) { return e.ty !== 'st'; });
     /*@3.NOCJ.45*/
     return C().pack(strokes.map(function (e) {
-      return { tool: e.hi ? 'hi' : 'pen', color: inkSafe(e), w: e.w, nib: e.nib, o: e.o, pts: e.pts };
+      return { tool: e.hi ? 'hi' : 'pen', color: inkSafe(e), w: e.w, nib: e.nib, o: e.o, pts: e.pts,
+               ts: stampOf(e) };
     })).then(function (packed) {
       self.onChange({ ink: packed, shapes: shapes, w: self.w, h: self.pageH,
                       ch: Math.round(self.contentH()) }, quiet);
@@ -1607,11 +1649,13 @@
     return C().unpack(packed).then(function (strokes) {
       for (var k = 0; k < strokes.length; k++) {
         var st = strokes[k];
-        self.els.push({
-          id: uid(), ty: 'st', c: st.color || 'ink', w: st.w || 2.4,
+        var el = {
+          id: uid(st.ts), ty: 'st', c: st.color || 'ink', w: st.w || 2.4,
           nib: st.nib || 'round', o: st.tool === 'hi' ? 0.32 : (st.o == null ? 1 : st.o),
           hi: st.tool === 'hi' ? 1 : 0, pts: st.pts
-        });
+        };
+        if (st.ts) el.ts = st.ts;
+        self.els.push(el);
       }
       self.w = 0;
       self.resize();
@@ -1870,6 +1914,7 @@
           id: uid(), ty: 'st', c: self.color, w: hi ? self.width / NIBS.marker.scale : self.width,
           /*@3.NOCJ.82*/
           nib: hi ? 'marker' : self.nib, o: hi ? 0.8 : self.opacity, hi: hi ? 1 : 0,
+          ts: Date.now(),
           pts: [tiltPt(wp.x, wp.y, pt)]
         };
         self.paintWet();
