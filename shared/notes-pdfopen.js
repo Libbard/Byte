@@ -258,6 +258,11 @@
               'This file is not on this device — it is in your Drive.')
           : L('هذا الملفُّ ليس على هذا الجهاز — اخترْه من جهازك ليُفتح.',
               'This file is not on this device — pick it to open it.')) +
+        /*@3.NOPJ5.38*/
+        (sp.gd && window.GardenDrive && !(window.GardenDrive.linked && window.GardenDrive.linked())
+          ? '<br><span class="npo-hint">' + esc(L('لم يُجلب تلقائيّاً لأن هذا الجهازَ بلا إذنِ درايف — اضغطْ «افتحْ من درايف» وسيطلب قوقلُ إذنَك مرّة. ولفتحِه على كلِّ أجهزتك بلا سؤال: الإعدادات ← المزامنة ← درايفي ← «كلُّ أجهزتي».',
+                'It was not fetched automatically because this device has no Drive permission — tap “Open from Drive” and Google will ask once. To open on every device without asking: Settings → Sync → My Drive → “All my devices”.')) + '</span>'
+          : '') +
         (sp.sz ? '<br>' + num(size(sp.sz)) +
           (sp.pg ? ' · ' + num(String(sp.pg)) + ' ' + esc(L('صفحة', 'pages')) : '') : ''),
         dd +

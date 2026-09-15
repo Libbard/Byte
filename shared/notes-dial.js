@@ -428,7 +428,7 @@
       h += favRow('add', 'fa-star', 'أضِفْ إلى المفضّلة', 'Add to favourites');
     } else if (ix >= 0 && list[ix]) {
       h += '<div class="ndl-favp-h">' + esc(favName(list[ix])) + '</div>';
-      h += favRow('put', 'fa-arrow-down-to-line',
+      h += favRow('put', 'fa-arrows-rotate',
                   'ضَعِ الأداةَ الحاليّةَ مكانَها', 'Replace with current tool', !cur);
       h += favRow('back', 'fa-arrow-right-long', 'حرّكْ قبلَها', 'Move earlier', ix <= 0);
       h += favRow('fwd', 'fa-arrow-left-long', 'حرّكْ بعدَها', 'Move later',

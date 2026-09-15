@@ -105,12 +105,14 @@
   function token(interactive) {
     if (fresh()) return Promise.resolve(tok);
     if (!enabled()) return Promise.reject(err('drive_disabled'));
-    if (tokNet) return tokNet;
+    if (tokNet) return interactive ? tokNet.then(function (t) { return t; }, function () { return token(true); }) : tokNet;
     /*@3.DRIJ.35*/
     var ask = linked() || (!interactive && !linkKnown());
     var via = ask ? serverToken().then(function (t) { return t; }, function () { return null; }) : Promise.resolve(null);
     tokNet = via.then(function (t0) {
       if (t0) return t0;
+      /*@3.DRIJ.39*/
+      if (!interactive && !activated()) throw err('no_gesture');
       /*@3.DRIJ.36*/
       if (codeFirst()) return codeToken(interactive);
       return gisToken(interactive).then(function (t1) {
@@ -119,6 +121,10 @@
       });
     }).then(function (t) { tokNet = null; return t; }, function (e) { tokNet = null; throw e; });
     return tokNet;
+  }
+  function activated() {
+    var ua = navigator.userActivation;
+    return !ua || typeof ua.isActive !== 'boolean' || ua.isActive;
   }
   function codeFirst() {
     return !!apiBase() && linkKnown() && !linked() && !askDeclined() && !askLater();
@@ -344,22 +350,22 @@
         dlg.innerHTML =
           '<div class="gsf-body"><div class="gsf-head">' +
             '<h2 class="gsf-title">' + esc(L('درايف على كلِّ أجهزتك؟', 'Drive on all your devices?')) + '</h2>' +
-            '<p class="gsf-sub">' + esc(L('يمكننا حفظُ إذنِ درايف في حسابك — مشفَّراً عندنا، ولا يُقرأ منه شيءٌ في المتصفّح — فتفتح ملفّاتِك من أيِّ جهازٍ بلا دخولٍ جديد. أو يبقى الإذنُ على هذا الجهاز لساعة.',
-              'We can keep your Drive permission in your account — encrypted on our side, never readable in the browser — so you open your files from any device without signing in again. Or it stays on this device for an hour.')) + '</p></div>' +
+            '<p class="gsf-sub">' + esc(L('نحفظ إذنَ درايف في حسابك مشفَّراً — فتفتح ملفّاتِك من أيِّ جهازٍ بلا دخولٍ جديد. أو يبقى على هذا الجهاز لساعة.',
+              'We keep your Drive permission encrypted in your account — so your files open on any device with no new sign-in. Or it stays on this device for an hour.')) + '</p></div>' +
             (armed ? '' :
               '<div class="gdl-warn"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><div><b>' +
-              esc(L('احمِ حسابَك أوّلاً', 'Protect your account first')) + '</b><p>' +
-              esc(L('لحفظِ الإذن في حسابك اربطْه ببريدٍ وكلمةِ سرّ أو بحسابِ قوقل — كي لا يستطيع أحدٌ الدخولَ إليه سواك.',
-                    'To keep the permission in your account, link it to an email and password or to Google — so nobody but you can get in.')) + '</p>' +
-              '<a class="gsf-btn gsf-btn--sm gdl-protect" href="' + esc(settingsHref) + '">' + esc(L('احمِ حسابي', 'Protect my account')) + '</a></div></div>') +
+              esc(L('لحفظِه في حسابك احمِ حسابَك أوّلاً', 'To keep it in your account, protect it first')) + '</b><p>' +
+              esc(L('ببريدٍ وكلمةِ سرّ أو بحسابِ قوقل — كي لا يدخلَه أحدٌ سواك.',
+                    'With an email and password or with Google — so nobody but you can get in.')) + '</p>' +
+              '<a class="gsf-btn gsf-btn--sm gsf-btn--pri gdl-protect" href="' + esc(settingsHref) + '">' + esc(L('احمِ حسابي', 'Protect my account')) + '</a></div></div>') +
             '<div class="gsf-rows">' +
               '<button type="button" class="gsf-row gdl-all"' + (armed ? '' : ' disabled') + '><i class="fa-solid fa-cloud" aria-hidden="true"></i><span>' +
                 esc(L('احفظْه في حسابي — كلُّ أجهزتي', 'Keep it in my account — all my devices')) + '</span><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>' +
               '<button type="button" class="gsf-row gdl-here"><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i><span>' +
                 esc(L('على هذا الجهاز فقط — لساعة', 'This device only — for an hour')) + '</span><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>' +
             '</div>' +
-            '<p class="gdl-note">' + esc(L('تستطيع الفصلَ في أيِّ وقتٍ من لوحةِ التسجيلات، أو من إعداداتِ حسابِ قوقل.',
-              'You can disconnect any time from the recordings panel, or from your Google account settings.')) + '</p>' +
+            '<p class="gdl-note">' + esc(L('الفصلُ في أيِّ وقتٍ من الإعدادات ← المزامنة ← درايفي.',
+              'Disconnect any time from Settings → Sync → My Drive.')) + '</p>' +
           '</div>' +
           '<div class="gsf-foot"><div class="gsf-acts"><button type="button" class="gsf-btn gsf-btn--ghost gdl-no">' + esc(L('لاحقاً', 'Later')) + '</button></div></div>';
         document.body.appendChild(dlg);
@@ -375,10 +381,11 @@
         }
         /*@3.DRIJ.37*/
         var swapping = null;
-        function swap() {
+        function swap(row) {
           if (!o.code) return Promise.resolve();
           if (!swapping) {
             dlg.classList.add('gdl-busy');
+            if (row) { row.setAttribute('data-busy', '1'); row.querySelector('span').textContent = L('لحظةً…', 'One moment…'); }
             swapping = linkWith(o.code, o.redirect, false).then(function () {}, function () {});
           }
           return swapping;
@@ -389,7 +396,7 @@
         dlg.querySelector('.gdl-no').addEventListener('click', later);
         dlg.querySelector('.gdl-here').addEventListener('click', function () {
           askDecline(true);
-          swap().then(function () { finish('here'); });
+          swap(dlg.querySelector('.gdl-here')).then(function () { finish('here'); });
         });
         dlg.querySelector('.gdl-all').addEventListener('click', function () {
           var b = dlg.querySelector('.gdl-all');
@@ -962,6 +969,10 @@
       return L('لم يُمنح الإذنُ لدرايف — أعِدِ المحاولةَ واسمحْ بالوصول.',
                'Drive access was not granted — try again and allow access.');
     }
+    if (k === 'no_gesture') {
+      return L('يحتاج درايفُ إذنَك على هذا الجهاز — اضغطْ «افتحْ من درايف» ليطلبه قوقل.',
+               'Drive needs your permission on this device — tap “Open from Drive” so Google can ask.');
+    }
     if (k === 'picker_mute') {
       return L('تعذّر فتحُ نافذةِ درايف على هذا المتصفّح — يُفتح الملفُّ من ملفّاتِ جهازك.',
                'The Drive window could not open in this browser — opening from your device instead.');
@@ -1010,6 +1021,8 @@
     linkedEmail: linkedEmail,
     linkStatus: linkStatus,
     linkKnown: linkKnown,
+    declined: askDeclined,
+    declineLink: askDecline,
     linkNow: linkNow,
     askLink: askLink,
     afterPick: afterPick,
