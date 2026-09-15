@@ -2712,31 +2712,29 @@
                    momentClock(mb.at) });
           var lb = bb ? linkOffer(0, { id: bb.id }, mm) : null;
           if (lb) out.push({ act: 'link', icon: 'fa-link',
-            label: L('اربطْ هذه الفقرةَ باللحظة · ', 'Link this paragraph to the moment · ') +
-                   momentClock(lb.at) });
+            label: L('اربطْ هذه الفقرةَ بالصوت…', 'Link this paragraph to the audio…') });
           var lk = boardEl ? linkOffer(0, boardEl, mb) : null;
           if (lk) out.push({ act: 'linkb', icon: 'fa-link',
-            label: L('اربطْ هذا الرسمَ باللحظة · ', 'Link this drawing to the moment · ') +
-                   momentClock(lk.at) });
+            label: L('اربطْ هذا الرسمَ بالصوت…', 'Link this drawing to the audio…') });
           return out;
         },
         onExtra: function (key, bid, at) {
           var A = window.GardenAudioNote;
           if (!A || !A.momentAt) return;
           if (key === 'link') {
-            if (linkGo(linkOffer(0, { id: bid }, null))) {
+            linkGo(linkOffer(0, { id: bid }, null), function () {
               var bn = els.docBody ? els.docBody.querySelector('[data-bid="' + bid + '"]') : null;
               chipHide();
               chipFlash(function () { return bn ? bn.getBoundingClientRect() : null; }, null);
-            }
+            });
             return;
           }
           if (key === 'linkb') {
             var b2 = boardHit(at);
-            if (b2 && b2.el && linkGo(linkOffer(0, b2.el, null))) {
+            if (b2 && b2.el) linkGo(linkOffer(0, b2.el, null), function () {
               chipHide();
               chipFlash(boardRectOf(b2.cv, b2.el), boardPickChanged);
-            }
+            });
             return;
           }
           var mm = key === 'hear' ? A.momentAt(A.timeOfId(bid))
@@ -3000,8 +2998,7 @@
     /*@3.NOAJ.283*/
     pdfLink = linkOffer(pdfHit ? pdfHit.n : 0, pdfHit ? pdfHit.el : null, pdfMoment);
     if (pdfLink) {
-      h += ctxItem('plink', 'fa-link', L('اربطْ هذا الرسمَ باللحظة · ', 'Link this drawing to the moment · ') +
-                   momentClock(pdfLink.at));
+      h += ctxItem('plink', 'fa-link', L('اربطْ هذا الرسمَ بالصوت…', 'Link this drawing to the audio…'));
     }
     if (pdfMoment || pdfLink) h += '<div class="na-ctx-sep" aria-hidden="true"></div>';
     if (nSel) {
@@ -3058,20 +3055,45 @@
     if (mm) { mm.page = n | 0; if (p0) { mm.x = p0.x; mm.y = p0.y; } return mm; }
     return (p0 && A.momentNear) ? A.momentNear(n | 0, p0.x, p0.y, tol) : null;
   }
+  /*@3.NOAJ.287*/
   function linkOffer(n, el, mm, strict) {
     var A = window.GardenAudioNote;
-    var np = (A && A.nowPlaying) ? A.nowPlaying() : null;
-    if (!np || !el || !stampOf(el)) return null;
-    if (mm && mm.ref === np.ref && (strict || !mm.an || Math.abs(mm.at - np.at) <= 2)) return null;
-    return { ref: np.ref, at: np.at, ts: stampOf(el), page: n | 0, p0: elPoint(el) };
+    if (!A || !A.linkAsk || !A.hasRecordings || !A.hasRecordings()) return null;
+    if (!el || !stampOf(el)) return null;
+    if (strict && mm) return null;
+    var np = A.nowPlaying ? A.nowPlaying() : null;
+    return { ref: np ? np.ref : '', at: np ? np.at : 0, ts: stampOf(el), page: n | 0, p0: elPoint(el), kind: el.kind || '' };
   }
-  function linkGo(lk) {
+  function linkGo(lk, done) {
     var A = window.GardenAudioNote;
-    if (!A || !A.anchor || !lk) return false;
+    if (!A || !A.linkAsk || !lk) return false;
     var p0 = lk.p0 || { x: 0, y: 0 };
-    if (!A.anchor(lk.ref, lk.at, lk.ts, lk.page, p0.x, p0.y)) return false;
-    if (lk.page > 0 && A.ring) A.ring(lk.page, p0.x, p0.y);
+    A.linkAsk({ stamp: lk.ts, page: lk.page, x: p0.x, y: p0.y, ref: lk.ref, gather: gatherStamps }).then(function (ok) {
+      if (!ok) return;
+      if (lk.page > 0 && A.ring) A.ring(lk.page, p0.x, p0.y);
+      if (done) done();
+    });
     return true;
+  }
+  function gatherStamps() {
+    var out = [], A = window.GardenAudioNote, d = curDoc, K = window.GardenPdfInk;
+    var push = function (e, page, kind) {
+      var ts = stampOf(e); if (!ts) return;
+      var p0 = elPoint(e) || { x: 0, y: 0 };
+      out.push({ s: ts, page: page | 0, x: p0.x, y: p0.y, kind: kind || '' });
+    };
+    if (d && Array.isArray(d.blocks)) d.blocks.forEach(function (b) { if (b && b.id) push({ id: b.id }, 0, 'block'); });
+    var cv = inkCv();
+    if (cv && cv.els) cv.els.forEach(function (e) { push(e, 0, 'board'); });
+    var h = d && d.pdf && d.pdf.h;
+    if (!h || !K || !K.pagesOf) return Promise.resolve(out);
+    return K.pagesOf(h).then(function (pages) {
+      return Promise.all(pages.map(function (n) {
+        return K.read(h, n).then(function (row) {
+          ((row && row.els) || []).forEach(function (e) { push(e, n, 'ink'); });
+        }, function () {});
+      }));
+    }).then(function () { return out; }, function () { return out; });
   }
   function strokeAtPoint(x, y, ik) {
     if (!ik || !ik.at) return null;
@@ -3140,13 +3162,13 @@
       return;
     }
     if (act === 'plink') {
-      if (linkGo(pdfLink) && ik && pdfHit) {
-        var hit0 = pdfHit;
-        chipHide();
+      var hit0 = pdfHit;
+      chipHide();
+      if (ik && hit0) linkGo(pdfLink, function () {
         chipFlash(rectOfEl(ik, hit0.n, hit0.el), function () {
           if (ik.pick && ik.pick.ids && ik.pick.ids.length) pdfPickChanged({ n: ik.pick.n, ids: ik.pick.ids.slice() });
         });
-      }
+      });
       return;
     }
     if (act === 'psdup') { if (ik) ik.dupPick(); return; }
@@ -5868,9 +5890,13 @@
     }
     var lk = linkOffer(n, el, mm, true);
     if (lk) {
-      items.push({ act: 'link', icon: 'fa-link', label: L('اربطْ · ', 'Link · ') + momentClock(lk.at),
-        aria: L('اربطْ هذا الرسمَ باللحظة · ', 'Link this drawing to the moment · ') + momentClock(lk.at),
-        run: function () { if (linkGo(lk)) { if (chipRect) chipFlash(chipRect, onLinked); else if (onLinked) onLinked(); } } });
+      items.push({ act: 'link', icon: 'fa-link', label: L('اربطْ', 'Link'),
+        aria: L('اربطْ هذا الرسمَ بالصوت', 'Link this drawing to the audio'),
+        run: function () {
+          var rectNow = chipRect;
+          chipHide();
+          linkGo(lk, function () { if (rectNow) chipFlash(rectNow, onLinked); else if (onLinked) onLinked(); });
+        } });
     }
     return items;
   }

@@ -100,6 +100,8 @@
     /*@3.AURJ.15*/
     this.held = 0;
     this.heldAt = 0;
+    /*@3.AURJ.17*/
+    this.holds = [];
   }
 
   Recorder.prototype.open = function () {
@@ -185,13 +187,18 @@
     if (!this.rec || this.rec.state !== 'recording') return false;
     try { this.rec.pause(); } catch (e) { return false; }
     this.heldAt = Date.now();
+    this.holds.push([this.heldAt, 0]);
     return true;
   };
 
   Recorder.prototype.resume = function () {
     if (!this.rec || this.rec.state !== 'paused') return false;
     try { this.rec.resume(); } catch (e) { return false; }
-    if (this.heldAt) { this.held += Date.now() - this.heldAt; this.heldAt = 0; }
+    if (this.heldAt) {
+      this.held += Date.now() - this.heldAt; this.heldAt = 0;
+      var lastH = this.holds[this.holds.length - 1];
+      if (lastH && !lastH[1]) lastH[1] = Date.now();
+    }
     return true;
   };
 
@@ -222,7 +229,8 @@
     return {
       blob: new Blob(this.chunks, { type: (this.type || 'audio/webm').split(';')[0] }),
       sec: st.sec, bytes: st.bytes, kbps: st.kbps,
-      mbPerHour: st.mbPerHour, type: this.type
+      mbPerHour: st.mbPerHour, type: this.type,
+      t0: this.t0, holds: this.holds.map(function (h) { return [h[0], h[1] || Date.now()]; })
     };
   };
 
