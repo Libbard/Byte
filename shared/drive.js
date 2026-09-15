@@ -101,15 +101,33 @@
 
   function fresh() { recall(); return !!(tok && Date.now() < exp - SLACK_MS); }
 
+  var tokNet = null;
   function token(interactive) {
     if (fresh()) return Promise.resolve(tok);
     if (!enabled()) return Promise.reject(err('drive_disabled'));
-    var via = linked() ? serverToken().then(function (t) { return t; }, function () { return null; }) : Promise.resolve(null);
-    return via.then(function (t0) {
+    if (tokNet) return tokNet;
+    /*@3.DRIJ.35*/
+    var ask = linked() || (!interactive && !linkKnown());
+    var via = ask ? serverToken().then(function (t) { return t; }, function () { return null; }) : Promise.resolve(null);
+    tokNet = via.then(function (t0) {
       if (t0) return t0;
+      /*@3.DRIJ.36*/
+      if (codeFirst()) return codeToken(interactive);
       return gisToken(interactive).then(function (t1) {
         setTimeout(function () { maybeOffer(); }, 400);
         return t1;
+      });
+    }).then(function (t) { tokNet = null; return t; }, function (e) { tokNet = null; throw e; });
+    return tokNet;
+  }
+  function codeFirst() {
+    return !!apiBase() && linkKnown() && !linked() && !askDeclined() && !askLater();
+  }
+  function codeToken(interactive) {
+    return requestCode().then(function (c) {
+      return askLink({ code: c.code, redirect: c.redirect }).then(function () {
+        if (fresh()) return tok;
+        return gisToken(interactive);
       });
     });
   }
@@ -173,6 +191,16 @@
     try { if (v) localStorage.setItem(LINK_LS, JSON.stringify(v)); else localStorage.removeItem(LINK_LS); } catch (e) {}
   }
   function linked() { var c = linkCache(); return !!(c && c.on); }
+  var KNOWN_MS = 10 * 60 * 1000;
+  function linkKnown() { var c = linkCache(); return !!(c && (c.on || Date.now() - Number(c.t || 0) < KNOWN_MS)); }
+  function linkOff() { linkRemember({ on: 0, t: Date.now() }); }
+  var LATER_SS = '__gdLinkLater';
+  function askLater() { try { return sessionStorage.getItem(LATER_SS) === '1'; } catch (e) { return false; } }
+  function askLaterSet(on) { try { if (on) sessionStorage.setItem(LATER_SS, '1'); else sessionStorage.removeItem(LATER_SS); } catch (e) {} }
+  function linkWarm() {
+    if (!apiBase() || linkKnown()) return;
+    vaultOf().then(function (vid) { if (vid) linkStatus(); });
+  }
   function linkedEmail() { var c = linkCache(); return (c && c.e) || ''; }
   function askDeclined() { try { return localStorage.getItem(ASK_LS) === 'no'; } catch (e) { return false; } }
   function askDecline(on) { try { if (on) localStorage.setItem(ASK_LS, 'no'); else localStorage.removeItem(ASK_LS); } catch (e) {} }
@@ -203,7 +231,7 @@
   function linkStatus() {
     return api('GET', '').then(function (r) {
       if (!r.ok) return { linked: linked(), email: linkedEmail(), armed: false, unknown: true };
-      linkRemember(r.j.linked ? { on: 1, e: r.j.email || '', t: Date.now() } : null);
+      if (r.j.linked) linkRemember({ on: 1, e: r.j.email || '', t: Date.now() }); else linkOff();
       return { linked: !!r.j.linked, email: r.j.email || '', armed: !!r.j.armed };
     }, function () { return { linked: linked(), email: linkedEmail(), armed: false, unknown: true }; });
   }
@@ -216,9 +244,10 @@
         tok = r.j.access_token;
         exp = Date.now() + (Number(r.j.expires_in) || 3600) * 1000;
         stash();
+        if (!linked()) linkRemember({ on: 1, e: linkedEmail(), t: Date.now() });
         return tok;
       }
-      if (r.status === 404 || r.status === 410) linkRemember(null);
+      if (r.status === 404 || r.status === 410) linkOff();
       throw err(r.status === 410 ? 'link_revoked' : 'link_failed', r.j && r.j.error);
     }).then(function (t) { linkNet = null; return t; }, function (e) { linkNet = null; throw e; });
     return linkNet;
@@ -344,13 +373,23 @@
           if (askDlg === dlg) askDlg = null;
           resolve(v);
         }
-        dlg.addEventListener('cancel', function (e) { e.preventDefault(); finish('later'); });
-        dlg.addEventListener('click', function (e) { if (e.target === dlg) finish('later'); });
-        dlg.querySelector('.gdl-no').addEventListener('click', function () { finish('later'); });
+        /*@3.DRIJ.37*/
+        var swapping = null;
+        function swap() {
+          if (!o.code) return Promise.resolve();
+          if (!swapping) {
+            dlg.classList.add('gdl-busy');
+            swapping = linkWith(o.code, o.redirect, false).then(function () {}, function () {});
+          }
+          return swapping;
+        }
+        function later() { askLaterSet(true); swap().then(function () { finish('later'); }); }
+        dlg.addEventListener('cancel', function (e) { e.preventDefault(); later(); });
+        dlg.addEventListener('click', function (e) { if (e.target === dlg) later(); });
+        dlg.querySelector('.gdl-no').addEventListener('click', later);
         dlg.querySelector('.gdl-here').addEventListener('click', function () {
           askDecline(true);
-          if (o.code) linkWith(o.code, o.redirect, false).catch(function () {});
-          finish('here');
+          swap().then(function () { finish('here'); });
         });
         dlg.querySelector('.gdl-all').addEventListener('click', function () {
           var b = dlg.querySelector('.gdl-all');
@@ -393,7 +432,7 @@
     }).then(function (st) {
       if (!st || st.unknown) return null;
       if (linked()) return p.code ? linkWith(p.code, p.redirect, true).catch(function () { return null; }) : null;
-      if (askDeclined()) return p.code ? linkWith(p.code, p.redirect, false).catch(function () { return null; }) : null;
+      if (askDeclined() || askLater()) return p.code ? linkWith(p.code, p.redirect, false).catch(function () { return null; }) : null;
       return askLink(p.code ? { code: p.code, redirect: p.redirect } : {});
     });
   }
@@ -626,14 +665,15 @@
 
   function backTo() { return location.origin + location.pathname; }
 
+  /*@3.DRIJ.38*/
+  function topOffline() { return !linked() && !askDeclined() && !askLater(); }
   function topUrl(mimes, state) {
     return AUTH +
       '?client_id=' + encodeURIComponent(clientId()) +
       '&redirect_uri=' + encodeURIComponent(backTo()) +
       '&response_type=code' +
       '&scope=' + encodeURIComponent(SCOPE) +
-      '&access_type=offline' +
-      '&prompt=consent' +
+      (topOffline() ? '&access_type=offline&prompt=consent' : '') +
       '&trigger_onepick=true' +
       '&mimetypes=' + encodeURIComponent(mimes || 'application/pdf') +
       '&state=' + encodeURIComponent(state);
@@ -949,6 +989,11 @@
     } catch (e) {}
   })();
 
+  (function () {
+    var go = function () { setTimeout(linkWarm, 1200); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+  })();
+
   window.GardenDrive = {
     enabled: enabled,
     folderName: function () { return FOLDER; },
@@ -964,6 +1009,7 @@
     linked: linked,
     linkedEmail: linkedEmail,
     linkStatus: linkStatus,
+    linkKnown: linkKnown,
     linkNow: linkNow,
     askLink: askLink,
     afterPick: afterPick,
