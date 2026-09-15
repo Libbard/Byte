@@ -3404,7 +3404,8 @@
       /*@3.NOAJ.274*/
       var got = function (pk) {
         if (!pk) { saveState('', ''); createPdf(); return; }
-        takeDrive(pk.id, pk.name || '');
+        var after = GD.afterPick ? GD.afterPick(pk) : Promise.resolve(pk);
+        after.then(function () { takeDrive(pk.id, pk.name || ''); });
       };
       /*@3.NOAJ.275*/
       var oops = function (er) {
@@ -3462,7 +3463,8 @@
       return;
     }
     GD.topPrefer(true);
-    takeDrive(r.ids[0]);
+    var after = GD.afterPick ? GD.afterPick({ id: r.ids[0], code: r.code || '' }) : Promise.resolve();
+    after.then(function () { takeDrive(r.ids[0]); });
   }
 
   function adoptPdf(file, gdId) {

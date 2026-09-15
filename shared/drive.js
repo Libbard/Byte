@@ -104,6 +104,16 @@
   function token(interactive) {
     if (fresh()) return Promise.resolve(tok);
     if (!enabled()) return Promise.reject(err('drive_disabled'));
+    var via = linked() ? serverToken().then(function (t) { return t; }, function () { return null; }) : Promise.resolve(null);
+    return via.then(function (t0) {
+      if (t0) return t0;
+      return gisToken(interactive).then(function (t1) {
+        setTimeout(function () { maybeOffer(); }, 400);
+        return t1;
+      });
+    });
+  }
+  function gisToken(interactive) {
     return script(GSI, gsiReady).then(function (ok) {
       if (!ok) throw err('gsi_unavailable');
       return new Promise(function (res, rej) {
@@ -149,6 +159,254 @@
 
   function forget() { tok = null; exp = 0; stash(); }
 
+  /*@3.DRIJ.33*/
+  var LINK_LS = '__gdLink';
+  var ASK_LS = '__gdLinkAsk';
+  var linkNet = null;
+
+  function G() { return window.GardenSync || null; }
+  function apiBase() { return E().sync || ''; }
+  function linkCache() {
+    try { return JSON.parse(localStorage.getItem(LINK_LS) || 'null'); } catch (e) { return null; }
+  }
+  function linkRemember(v) {
+    try { if (v) localStorage.setItem(LINK_LS, JSON.stringify(v)); else localStorage.removeItem(LINK_LS); } catch (e) {}
+  }
+  function linked() { var c = linkCache(); return !!(c && c.on); }
+  function linkedEmail() { var c = linkCache(); return (c && c.e) || ''; }
+  function askDeclined() { try { return localStorage.getItem(ASK_LS) === 'no'; } catch (e) { return false; } }
+  function askDecline(on) { try { if (on) localStorage.setItem(ASK_LS, 'no'); else localStorage.removeItem(ASK_LS); } catch (e) {} }
+
+  function vaultOf() {
+    var g = G();
+    if (!g || !g.vaultId) return Promise.resolve('');
+    try { return Promise.resolve(g.vaultId()).then(function (v) { return v || ''; }, function () { return ''; }); }
+    catch (e) { return Promise.resolve(''); }
+  }
+  function api(method, tail, body) {
+    if (!apiBase()) return Promise.reject(err('no_endpoint'));
+    return vaultOf().then(function (vid) {
+      if (!vid) throw err('no_vault');
+      var g = G();
+      var h = body ? { 'Content-Type': 'application/json' } : {};
+      if (g && g.vaultHeaders) { try { h = g.vaultHeaders(vid, h); } catch (e) {} }
+      return fetch(apiBase() + '/v1/drive/' + encodeURIComponent(vid) + tail, {
+        method: method, headers: h, body: body ? JSON.stringify(body) : undefined
+      }).then(function (r) {
+        return r.json().catch(function () { return null; }).then(function (j) {
+          return { ok: r.ok, status: r.status, j: j || {} };
+        });
+      });
+    });
+  }
+
+  function linkStatus() {
+    return api('GET', '').then(function (r) {
+      if (!r.ok) return { linked: linked(), email: linkedEmail(), armed: false, unknown: true };
+      linkRemember(r.j.linked ? { on: 1, e: r.j.email || '', t: Date.now() } : null);
+      return { linked: !!r.j.linked, email: r.j.email || '', armed: !!r.j.armed };
+    }, function () { return { linked: linked(), email: linkedEmail(), armed: false, unknown: true }; });
+  }
+
+  /*@3.DRIJ.34*/
+  function serverToken() {
+    if (linkNet) return linkNet;
+    linkNet = api('POST', '/token').then(function (r) {
+      if (r.ok && r.j.access_token) {
+        tok = r.j.access_token;
+        exp = Date.now() + (Number(r.j.expires_in) || 3600) * 1000;
+        stash();
+        return tok;
+      }
+      if (r.status === 404 || r.status === 410) linkRemember(null);
+      throw err(r.status === 410 ? 'link_revoked' : 'link_failed', r.j && r.j.error);
+    }).then(function (t) { linkNet = null; return t; }, function (e) { linkNet = null; throw e; });
+    return linkNet;
+  }
+
+  function requestCode() {
+    if (!enabled()) return Promise.reject(err('drive_disabled'));
+    return script(GSI, gsiReady).then(function (ok) {
+      if (!ok) throw err('gsi_unavailable');
+      return new Promise(function (res, rej) {
+        var done = false;
+        var cc = window.google.accounts.oauth2.initCodeClient({
+          client_id: clientId(),
+          scope: SCOPE,
+          ux_mode: 'popup',
+          access_type: 'offline',
+          prompt: 'consent',
+          callback: function (r) {
+            if (done) return;
+            done = true;
+            if (!r || r.error || !r.code) {
+              rej(err(r && r.error === 'access_denied' ? 'consent_denied' : 'no_code', r && r.error_description));
+              return;
+            }
+            res({ code: r.code, redirect: 'postmessage' });
+          },
+          error_callback: function (e) {
+            if (done) return;
+            done = true;
+            var t = (e && e.type) || '';
+            rej(err(t === 'popup_closed' ? 'consent_closed' : t === 'popup_failed_to_open' ? 'popup_blocked' : 'no_code', e && e.message));
+          }
+        });
+        try { cc.requestCode(); } catch (e) { done = true; rej(err('no_code', e && e.message)); }
+      });
+    });
+  }
+
+  function linkWith(code, redirect, keep) {
+    return api('POST', '/link', { code: code, redirect: redirect || 'postmessage', keep: keep !== false }).then(function (r) {
+      if (r.ok && !r.j.linked && r.j.access_token) {
+        tok = r.j.access_token; exp = Date.now() + (Number(r.j.expires_in) || 3600) * 1000; stash();
+        return { ok: true, linked: false };
+      }
+      if (r.ok && r.j.linked) {
+        linkRemember({ on: 1, e: r.j.email || '', t: Date.now() });
+        askDecline(false);
+        if (r.j.access_token) {
+          tok = r.j.access_token; exp = Date.now() + (Number(r.j.expires_in) || 3600) * 1000; stash();
+        }
+        return { ok: true, email: r.j.email || '' };
+      }
+      var why = (r.j && r.j.error) || ('http_' + r.status);
+      if (why === 'no_refresh' && r.j.access_token) {
+        tok = r.j.access_token; exp = Date.now() + (Number(r.j.expires_in) || 3600) * 1000; stash();
+      }
+      throw err(why);
+    });
+  }
+
+  function linkNow() {
+    return requestCode().then(function (c) { return linkWith(c.code, c.redirect); });
+  }
+
+  function unlink() {
+    return api('DELETE', '').then(function (r) {
+      linkRemember(null);
+      return { ok: r.ok, revoked: !!(r.j && r.j.revoked) };
+    }, function () { linkRemember(null); return { ok: false }; });
+  }
+
+  function guardArmed() {
+    var g = G();
+    if (!g || !g.lockInfo) return Promise.resolve(false);
+    try {
+      var li = g.lockInfo();
+      if (li && li.armed) return Promise.resolve(true);
+    } catch (e) {}
+    if (!g.guardState) return Promise.resolve(false);
+    try { return Promise.resolve(g.guardState()).then(function (s) { return !!(s && s.armed); }, function () { return false; }); }
+    catch (e) { return Promise.resolve(false); }
+  }
+
+  var askDlg = null;
+  function askLink(opts) {
+    var o = opts || {};
+    if (askDlg) { try { askDlg.close(); } catch (e0) {} if (askDlg.parentNode) askDlg.parentNode.removeChild(askDlg); askDlg = null; }
+    return guardArmed().then(function (armed) {
+      return new Promise(function (resolve) {
+        var dlg = document.createElement('dialog');
+        dlg.className = 'gsf gsf--snug gdl';
+        dlg.setAttribute('aria-label', L('درايف على كلِّ أجهزتك', 'Drive on all your devices'));
+        var settingsHref = (/\/hub\//.test(location.pathname) ? 'settings.html' : 'hub/settings.html') + '#sync-panel-host';
+        dlg.innerHTML =
+          '<div class="gsf-body"><div class="gsf-head">' +
+            '<h2 class="gsf-title">' + esc(L('درايف على كلِّ أجهزتك؟', 'Drive on all your devices?')) + '</h2>' +
+            '<p class="gsf-sub">' + esc(L('يمكننا حفظُ إذنِ درايف في حسابك — مشفَّراً عندنا، ولا يُقرأ منه شيءٌ في المتصفّح — فتفتح ملفّاتِك من أيِّ جهازٍ بلا دخولٍ جديد. أو يبقى الإذنُ على هذا الجهاز لساعة.',
+              'We can keep your Drive permission in your account — encrypted on our side, never readable in the browser — so you open your files from any device without signing in again. Or it stays on this device for an hour.')) + '</p></div>' +
+            (armed ? '' :
+              '<div class="gdl-warn"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><div><b>' +
+              esc(L('احمِ حسابَك أوّلاً', 'Protect your account first')) + '</b><p>' +
+              esc(L('لحفظِ الإذن في حسابك اربطْه ببريدٍ وكلمةِ سرّ أو بحسابِ قوقل — كي لا يستطيع أحدٌ الدخولَ إليه سواك.',
+                    'To keep the permission in your account, link it to an email and password or to Google — so nobody but you can get in.')) + '</p>' +
+              '<a class="gsf-btn gsf-btn--sm gdl-protect" href="' + esc(settingsHref) + '">' + esc(L('احمِ حسابي', 'Protect my account')) + '</a></div></div>') +
+            '<div class="gsf-rows">' +
+              '<button type="button" class="gsf-row gdl-all"' + (armed ? '' : ' disabled') + '><i class="fa-solid fa-cloud" aria-hidden="true"></i><span>' +
+                esc(L('احفظْه في حسابي — كلُّ أجهزتي', 'Keep it in my account — all my devices')) + '</span><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>' +
+              '<button type="button" class="gsf-row gdl-here"><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i><span>' +
+                esc(L('على هذا الجهاز فقط — لساعة', 'This device only — for an hour')) + '</span><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>' +
+            '</div>' +
+            '<p class="gdl-note">' + esc(L('تستطيع الفصلَ في أيِّ وقتٍ من لوحةِ التسجيلات، أو من إعداداتِ حسابِ قوقل.',
+              'You can disconnect any time from the recordings panel, or from your Google account settings.')) + '</p>' +
+          '</div>' +
+          '<div class="gsf-foot"><div class="gsf-acts"><button type="button" class="gsf-btn gsf-btn--ghost gdl-no">' + esc(L('لاحقاً', 'Later')) + '</button></div></div>';
+        document.body.appendChild(dlg);
+        askDlg = dlg;
+        var done = false;
+        function finish(v) {
+          if (done) return;
+          done = true;
+          try { dlg.close(); } catch (e1) {}
+          if (dlg.parentNode) dlg.parentNode.removeChild(dlg);
+          if (askDlg === dlg) askDlg = null;
+          resolve(v);
+        }
+        dlg.addEventListener('cancel', function (e) { e.preventDefault(); finish('later'); });
+        dlg.addEventListener('click', function (e) { if (e.target === dlg) finish('later'); });
+        dlg.querySelector('.gdl-no').addEventListener('click', function () { finish('later'); });
+        dlg.querySelector('.gdl-here').addEventListener('click', function () {
+          askDecline(true);
+          if (o.code) linkWith(o.code, o.redirect, false).catch(function () {});
+          finish('here');
+        });
+        dlg.querySelector('.gdl-all').addEventListener('click', function () {
+          var b = dlg.querySelector('.gdl-all');
+          b.disabled = true;
+          b.querySelector('span').textContent = L('يُربط…', 'Linking…');
+          (o.code ? linkWith(o.code, o.redirect, true) : linkNow()).then(function (r) {
+            finish({ linked: true, email: r.email });
+          }, function (e) {
+            b.disabled = false;
+            b.querySelector('span').textContent = L('احفظْه في حسابي — كلُّ أجهزتي', 'Keep it in my account — all my devices');
+            var p = dlg.querySelector('.gdl-err') || document.createElement('p');
+            p.className = 'gdl-err';
+            p.textContent = linkReason(e);
+            dlg.querySelector('.gsf-rows').after(p);
+          });
+        });
+        try { dlg.showModal(); } catch (e2) { dlg.setAttribute('open', ''); }
+        if (o.onOpen) o.onOpen(dlg);
+      });
+    });
+  }
+
+  function linkReason(e) {
+    var k = (e && e.code) || '';
+    if (k === 'protect_first') return L('احمِ حسابَك أوّلاً ثمّ أعِدِ المحاولة.', 'Protect your account first, then try again.');
+    if (k === 'no_vault') return L('لا حسابَ مزامنةٍ على هذا الجهاز بعد — أنشئْه من الإعدادات.', 'No sync account on this device yet — create one in Settings.');
+    if (k === 'vault_locked') return L('حسابُك مقفلٌ على هذا الجهاز — افتحْه من الإعدادات ثمّ أعِد.', 'Your account is locked on this device — unlock it in Settings, then retry.');
+    if (k === 'no_refresh') return L('قوقلُ لم تعطِ إذناً دائماً هذه المرّة — أعِدِ المحاولةَ ووافقْ على الوصولِ الدائم.', 'Google did not grant a lasting permission this time — try again and allow ongoing access.');
+    if (k === 'consent_denied' || k === 'consent_closed') return reason(e);
+    if (k === 'popup_blocked') return reason(e);
+    return L('تعذّر حفظُ الإذن — أعِدِ المحاولة.', 'Could not keep the permission — try again.');
+  }
+
+  function maybeOffer(pick) {
+    var p = pick || {};
+    if (!apiBase()) return Promise.resolve(null);
+    return vaultOf().then(function (vid) {
+      if (!vid) return null;
+      return linkStatus();
+    }).then(function (st) {
+      if (!st || st.unknown) return null;
+      if (linked()) return p.code ? linkWith(p.code, p.redirect, true).catch(function () { return null; }) : null;
+      if (askDeclined()) return p.code ? linkWith(p.code, p.redirect, false).catch(function () { return null; }) : null;
+      return askLink(p.code ? { code: p.code, redirect: p.redirect } : {});
+    });
+  }
+  function afterPick(pk) {
+    if (!pk || !pk.code) return Promise.resolve(pk);
+    return maybeOffer({ code: pk.code, redirect: backTo() }).then(function () { return pk; }, function () { return pk; });
+  }
+
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
   function err(code, why) {
     var e = new Error(code);
     e.code = code;
@@ -702,6 +960,15 @@
     topPrefer: topPrefer,
     token: token,
     forget: forget,
+    backTo: backTo,
+    linked: linked,
+    linkedEmail: linkedEmail,
+    linkStatus: linkStatus,
+    linkNow: linkNow,
+    askLink: askLink,
+    afterPick: afterPick,
+    unlink: unlink,
+    linkReason: linkReason,
     pick: pick,
     meta: meta,
     download: download,

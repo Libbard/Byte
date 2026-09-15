@@ -2459,6 +2459,43 @@
       });
     });
     box.appendChild(o);
+    driveRow(box);
+  }
+
+  /*@3.AUNJ.133*/
+  function driveRow(box) {
+    var GD = GDx();
+    if (!GD || !GD.linkStatus || !box) return;
+    var row = document.createElement('div');
+    row.className = 'nrl-opt nrl-gd';
+    box.appendChild(row);
+    var paint = function (st) {
+      var on = !!(st && st.linked);
+      row.innerHTML = '<span class="nrl-opt-l"><i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
+        esc(on ? L('درايف على كلِّ أجهزتك', 'Drive on all your devices') + (st.email ? ' · ' + st.email : '')
+               : L('درايف على هذا الجهاز فقط', 'Drive on this device only')) + '</span>' +
+        '<button type="button" class="gsf-btn gsf-btn--sm nrl-gd-b" data-gd="' + (on ? 'off' : 'on') + '">' +
+        esc(on ? L('افصلْ', 'Disconnect') : L('احفظْه في حسابي', 'Keep it in my account')) + '</button>';
+    };
+    row.hidden = true;
+    GD.linkStatus().then(function (st) {
+      if (!st || st.unknown) { row.remove(); return; }
+      row.hidden = false;
+      paint(st);
+    });
+    row.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-gd]') : null;
+      if (!b) return;
+      b.disabled = true;
+      if (b.getAttribute('data-gd') === 'off') {
+        GD.unlink().then(function () { paint({ linked: false }); });
+        return;
+      }
+      GD.askLink().then(function (r) {
+        if (r && r.linked) paint({ linked: true, email: r.email });
+        else b.disabled = false;
+      });
+    });
   }
 
   /*@3.AUNJ.124*/
