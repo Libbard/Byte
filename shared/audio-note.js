@@ -790,10 +790,12 @@
   }
   function wipKey(id, k) { return 'wip_' + id + '_' + k; }
 
-  function wipBegin(src, mime) {
+  function wipBegin(src, mime, grp) {
     wipId = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    wipWrite({ id: wipId, n: 0, t0: Date.now(), src: src || 'mic',
-               m: mime || 'audio/webm', note: noteNow() });
+    var w = { id: wipId, n: 0, t0: Date.now(), src: src || 'mic',
+              m: mime || 'audio/webm', note: noteNow() };
+    if (grp && grp.g) { w.g = grp.g; w.k = grp.k | 0; }
+    wipWrite(w);
   }
   function wipPut(blob, i) {
     var st = D();
@@ -860,18 +862,20 @@
     if (no) no.addEventListener('click', function () { wipClear(); render(); });
     if (yes) yes.addEventListener('click', function () {
       wipTake(yes, L('يُجمع…', 'Assembling…'), function (blob, secs, w) {
-        upload({ blob: blob, sec: secs, bytes: blob.size, type: w.m || 'audio/webm' });
+        upload({ blob: blob, sec: secs, bytes: blob.size, type: w.m || 'audio/webm' },
+               w.g ? { g: w.g, k: w.k | 0, last: true } : null);
       });
     });
     /*@3.AUNJ.105*/
     if (on) on.addEventListener('click', function () {
       wipTake(on, L('يُهيَّأ…', 'Preparing…'), function (blob, secs, w) {
-        var gid = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        var gid = w.g || ('g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+        var k0 = w.g ? (w.k | 0) : 0;
         var it = newItem({ blob: blob, sec: secs, type: w.m || 'audio/webm' });
         it.g = gid;
-        it.k = 0;
+        it.k = k0;
         keepQuiet(it, blob).then(function () {
-          start(w.src || 'mic', { g: gid, k: 1 });
+          start(w.src || 'mic', { g: gid, k: k0 + 1 });
         });
       });
     });
@@ -924,7 +928,7 @@
       rec = r;
       hush = 0;
       /*@3.AUNJ.94*/
-      wipBegin(source || 'mic', r.type || '');
+      wipBegin(source || 'mic', r.type || '', pendGroup);
       r.onData = wipPut;
       rec.start();
       if (wake) wake();
@@ -990,6 +994,7 @@
       wipClear();
       var grp = pendGroup;
       pendGroup = null;
+      if (grp) grp.last = true;
       if (!keep || !out || !out.blob || out.blob.size < 1024) {
         /*@3.AUNJ.40*/
         markStop();
@@ -1132,7 +1137,7 @@
 
   function upload(out, grp, nm) {
     var it = newItem(out);
-    if (grp && grp.g) { it.g = grp.g; it.k = grp.k || 0; }
+    if (grp && grp.g) { it.g = grp.g; it.k = grp.k || 0; if (grp.last) it.gl = 1; }
     if (nm) it.nm = String(nm).slice(0, 80);
     keep(it, out.blob);
   }
@@ -1279,7 +1284,8 @@
     window.addEventListener('garden:fileProgress', on);
 
     /*@3.AUNJ.63*/
-    f.upload(blob, { refId: refId, name: it.n + ext(it.m, it), mime: it.m })
+    f.upload(blob, { refId: refId, name: it.n + ext(it.m, it), mime: it.m,
+                     join: it.g ? { g: it.g, k: it.k | 0, last: !!it.gl } : undefined })
       .then(function (r) {
         window.removeEventListener('garden:fileProgress', on);
         if (!quiet) busy = false;
@@ -1289,6 +1295,7 @@
         var st = D();
         if (st && local(it)) { st.drop(refId)['catch'](function () {}); it.lo = 0; }
         touch(true);
+        if (it.g && it.gl) sendGroupRest(it.g);
         if (after) { after(); return; }
         settled(refId);
       }, function (e) {
@@ -1817,6 +1824,76 @@
     next();
   }
 
+  function sendGroupRest(gid) {
+    var rest = items().filter(function (x) { return x.g === gid && !x.aup && !x.gd && local(x); });
+    var st = D();
+    if (!rest.length || !st || !F()) return;
+    var i = 0;
+    var next = function () {
+      if (i >= rest.length) { joinAt = 0; return; }
+      var it = rest[i++];
+      st.get(it.i).then(function (b) {
+        if (!b || !b.size) { next(); return; }
+        sendThen(it, b, next, true);
+      })['catch'](next);
+    };
+    next();
+  }
+
+  /*@3.AUNJ.136*/
+  var joinAt = 0;
+  function joinScan() {
+    var f = F();
+    if (!f || !f.list) return;
+    if (!items().some(function (x) { return x.g && x.aup; })) return;
+    if (Date.now() - joinAt < 60000) return;
+    joinAt = Date.now();
+    f.list().then(function (r) {
+      var changed = false;
+      ((r && r.files) || []).forEach(function (row) {
+        if (!row || !row.joined_from) return;
+        var head = items().filter(function (x) { return x.i === row.ref_id && x.g; })[0];
+        if (head && collapse(head, row)) changed = true;
+      });
+      if (changed) { touch(true); render(); }
+    }, function () {});
+  }
+
+  function collapse(head, row) {
+    var part = partsOf(head.i);
+    if (part.length < 2 || part[0] !== head) return false;
+    var s0 = Number(head.s0) || 0;
+    var base = 0, mk = [], hz = [], endPrev = null, st = D();
+    part.forEach(function (x, j) {
+      var secs = Math.max(1, Math.round((Number(x.ms) || 0) / 1000));
+      (Array.isArray(x.mk) ? x.mk : []).forEach(function (m) {
+        var c = m.slice(); c[0] = Number(c[0]) + base; mk.push(c);
+      });
+      var off = (Number(x.s0) || 0) - s0, held = 0;
+      if (j > 0 && endPrev != null && off > endPrev) hz.push([endPrev, off]);
+      (Array.isArray(x.hz) ? x.hz : []).forEach(function (h) {
+        var a = (Number(h[0]) || 0) + off, b = (Number(h[1]) || 0) + off;
+        if (b > a) { hz.push([a, b]); held += b - a; }
+      });
+      endPrev = off + (Number(x.ms) || 0) + held;
+      base += secs;
+    });
+    head.ms = sum(part, 'ms');
+    head.mk = mk;
+    if (hz.length) head.hz = hz; else delete head.hz;
+    head.b = Number(row.stored_bytes) || head.b;
+    head.m = row.mime || head.m;
+    head.aup = 1; head.lo = 0;
+    delete head.g; delete head.k; delete head.gl;
+    part.slice(1).forEach(function (x) {
+      dropItem(x.i);
+      if (st) st.drop(x.i)['catch'](function () {});
+      delete urls[x.i];
+    });
+    delete urls[head.i];
+    return true;
+  }
+
   /*@3.AUNJ.12*/
   /*@3.AUNJ.101*/
   function linkOne(it) {
@@ -2183,6 +2260,7 @@
     badge();
     if (panel && panel.parentNode && !rec && !busy) render();
     hereScan(function (changed) { if (changed && panel && panel.parentNode && !rec && !busy) render(); });
+    joinScan();
   }
 
   if (document.readyState === 'loading') {
@@ -3051,6 +3129,7 @@
     sync: sync,
     recording: function () { return !!rec; },
     hear: hear,
+    joinScan: joinScan, collapse: collapse,
     momentNear: momentNear,
     momentNearFrac: momentNearFrac,
     momentAt: momentAt,

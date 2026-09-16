@@ -187,9 +187,11 @@
         })
         .then(function (st) {
           stage('commit');
+          /*@3.FISJ2.15*/
           return jreq('POST', base(id) + '/commit', id, {
             h: st.h, ref_id: refId, name: name, mime: mime,
-            course: o.course || null, over: !!o.over
+            course: o.course || null, over: !!o.over,
+            join: (o.join && o.join.g) ? { g: String(o.join.g), k: o.join.k | 0, last: !!o.join.last } : undefined
           }).then(function (r) {
             if (!r.ok) throw Object.assign(new Error(r.body.error || 'commit_failed'), r.body);
             stage('done', { deduped: !!r.body.deduped, bytes: r.body.bytes });
