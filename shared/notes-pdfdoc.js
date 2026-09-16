@@ -190,13 +190,25 @@
 
   /*@3.NOPJ4.2*/
   /*@3.NOPJ4.7*/
+  /*@3.NOPJ4.8*/
   function put(h, blob, extra) {
     return writeBytes(h, blob).then(function (t) {
       return index().then(function (o) {
-        o[h] = { size: blob.size, at: Date.now(), n: (extra && extra.name) || '', w: t };
+        var was = o[h] || {};
+        var row = { size: blob.size, at: Date.now(), n: (extra && extra.name) || was.n || '', w: t };
+        if (extra && extra.sq) row.sq = 1;
+        o[h] = row;
         return saveIndex(o);
       }).then(function () { return true; });
     }).catch(function () { return false; });
+  }
+
+  function stat(h) {
+    return index().then(function (o) {
+      var r = o[h];
+      if (!r) return null;
+      return { hash: h, size: r.size || 0, at: r.at || 0, name: r.n || '', sq: r.sq ? 1 : 0 };
+    });
   }
 
   function get(h) {
@@ -216,7 +228,7 @@
   function list() {
     return index().then(function (o) {
       var out = [];
-      for (var k in o) out.push({ hash: k, size: o[k].size || 0, at: o[k].at || 0, name: o[k].n || '' });
+      for (var k in o) out.push({ hash: k, size: o[k].size || 0, at: o[k].at || 0, name: o[k].n || '', sq: o[k].sq ? 1 : 0 });
       out.sort(function (a, b) { return b.at - a.at; });
       return out;
     });
@@ -290,6 +302,7 @@
     put: put,
     get: get,
     has: has,
+    stat: stat,
     list: list,
     drop: drop,
     adopt: adopt,

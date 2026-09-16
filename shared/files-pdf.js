@@ -63,6 +63,47 @@
     })['catch'](function () { return null; });
   }
 
+  /*@3.FIPJ.36*/
+  var slimBusy = Object.create(null);
+
+  function slimOk() {
+    var c = navigator.connection;
+    if (c && (c.saveData || /(^|-)2g$/.test(String(c.effectiveType || '')))) return false;
+    return true;
+  }
+
+  function slimPlan(row) {
+    if (!row || Number(row.squeeze) !== 1) return null;
+    var want = Number(row.stored_bytes) || 0, orig = Number(row.orig_bytes) || 0;
+    if (!(want > 0) || !(orig > want)) return null;
+    return { want: want, orig: orig };
+  }
+
+  function slim(h, name, plan) {
+    var f = F();
+    var D = window.GardenPdfDoc;
+    if (!f || !D || !D.stat || !h || !plan || slimBusy[h] || !slimOk()) return Promise.resolve(false);
+    slimBusy[h] = 1;
+    var was = 0;
+    return D.stat(h).then(function (s) {
+      if (!s || !(s.size > plan.want)) return false;
+      was = s.size;
+      return f.fetchBytes(refIdOf(h)).then(function (got) {
+        if (!got || !got.blob || got.blob.size !== plan.want) return false;
+        if (cur && cur.h === h) return false;
+        var file = new File([got.blob], got.name || name || 'file.pdf', { type: 'application/pdf' });
+        return D.put(h, file, { name: file.name, sq: 1 }).then(function (ok) {
+          if (!ok) return false;
+          try {
+            window.dispatchEvent(new CustomEvent('garden:fileSlimmed',
+              { detail: { h: h, ref_id: refIdOf(h), from: was, to: plan.want } }));
+          } catch (e) {}
+          return true;
+        });
+      });
+    })['catch'](function () { return false; }).then(function (r) { delete slimBusy[h]; return r; });
+  }
+
   /*@3.FIPJ.13*/
   var cur = null;
   var pop = null;
@@ -254,14 +295,17 @@
   }
 
   /*@3.FIPJ.33*/
-  function cardUs(bytes, when, both) {
+  /*@3.FIPJ.37*/
+  function cardUs(bytes, when, both, orig) {
     paint('nfp--card',
       '<div class="nfp-head">' + markIcon(both ? 'us' : 'us') + '<b>' +
       esc(both ? L('محفوظٌ عندنا وفي درايفك', 'Kept with us and in your Drive')
                : L('نسخةٌ محفوظةٌ عندنا', 'A copy is kept with us')) + '</b>' +
       shutBtn() + '</div>' +
       '<span class="nfp-sub">' +
-      (bytes ? '<span dir="ltr">' + esc(size(bytes)) + '</span> · ' : '') +
+      (bytes ? '<span dir="ltr">' + esc(size(bytes)) + '</span>' +
+               (orig > bytes ? ' ' + esc(L('مضغوطٌ من ', 'squeezed from ')) +
+                               '<span dir="ltr">' + esc(size(orig)) + '</span>' : '') + ' · ' : '') +
       (when ? esc(L('منذ ', 'since ')) + '<span dir="ltr">' + esc(day(when)) + '</span> · ' : '') +
       esc(L('يفتح على أجهزتك جميعاً.', 'it opens on all your devices.')) + '</span>' +
       '<div class="nfp-acts">' +
@@ -572,7 +616,12 @@
       var row = (a.files || []).filter(function (x) {
         return x.ref_id === refIdOf(mine.h);
       })[0];
-      if (row) { cardUs(row.stored_bytes, row.created_at, !!gdId); return; }
+      if (row) {
+        mine.slim = slimPlan(row);
+        cardUs(row.stored_bytes, row.created_at, !!gdId,
+               Number(row.squeeze) === 1 ? Number(row.orig_bytes) || 0 : 0);
+        return;
+      }
       if (gdId) { cardDrive(); return; }
       sayDevice();
     })['catch'](function (e) {
@@ -584,8 +633,12 @@
 
   /*@3.FIPJ.25*/
   function forget() {
+    var was = cur;
     shut();
     cur = null;
+    if (was && was.slim) {
+      setTimeout(function () { slim(was.h, was.name, was.slim); }, 1500);
+    }
     busy = false;
     prog = 0;
     clearTimeout(doneT);
@@ -612,7 +665,7 @@
       if (!cur || cur.h !== h) return;
       if (!a.ok) return;
       var mine = (a.files || []).filter(function (x) { return x.ref_id === refIdOf(h); })[0];
-      if (mine) { markSeen(h); repaint(); return; }
+      if (mine) { cur.slim = slimPlan(mine); markSeen(h); repaint(); return; }
       if (cur.gd) return;
       if (seen()[refIdOf(h)]) return;
       markSeen(h);
@@ -629,6 +682,7 @@
     restore: restore, offer: offer, refIdOf: refIdOf,
     ask: ask, state: state, forget: forget, close: shut,
     busy: function () { return busy; },
+    slim: slim, slimPlan: slimPlan,
     drive: function (id) { if (cur) cur.gd = id || null; }
   };
 })();
