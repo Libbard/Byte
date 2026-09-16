@@ -378,7 +378,6 @@
   /*@3.NORJ.2*/
   function hexOf(tone) {
     if (window.GardenCanvas && GardenCanvas.hexOf) return GardenCanvas.hexOf(tone);
-    if (window.GardenInk && GardenInk.hexOf) return GardenInk.hexOf(tone);
     return '#888';
   }
 

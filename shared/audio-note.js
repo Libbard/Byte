@@ -1824,7 +1824,8 @@
     if (urls[refId]) return Promise.resolve(urls[refId]);
     var st = D();
     /*@3.AUNJ.21*/
-    var mine = (local(it) && st)
+    /*@3.AUNJ.135*/
+    var mine = (it.lo && st)
       ? st.get(refId).then(function (b) { return (b && b.size) ? b : null; }, function () { return null; })
       : Promise.resolve(null);
     return mine.then(function (b) {
