@@ -72,6 +72,20 @@
     if (b) b.classList.toggle('na-icb--has', items().length > 0);
   }
   function items() { var d = doc(); return (d && d.aud) || []; }
+  /*@3.AUNJ.134*/
+  var here = {}, hereAt = 0;
+  function hereScan(then) {
+    var st = D();
+    if (!st || !st.list) { if (then) then(); return; }
+    st.list().then(function (rows) {
+      var next = {};
+      (rows || []).forEach(function (r) { if (r && r.hash) next[r.hash] = 1; });
+      var changed = JSON.stringify(Object.keys(next).sort()) !== JSON.stringify(Object.keys(here).sort());
+      here = next; hereAt = Date.now();
+      if (then) then(changed);
+    }, function () { if (then) then(false); });
+  }
+  function local(it) { return !!(it && it.lo && (!hereAt || here[it.i])); }
 
   /*@3.AUNJ.98*/
   function byK(a, b) { return (a.k || 0) - (b.k || 0); }
@@ -104,7 +118,7 @@
   function weakest(part) {
     var w = part[0];
     part.forEach(function (x) {
-      var rank = function (y) { return y.aup ? 3 : (y.gd ? 2 : (y.lo ? 1 : 0)); };
+      var rank = function (y) { return y.aup ? 3 : (y.gd ? 2 : (local(y) ? 1 : 0)); };
       if (rank(x) < rank(w)) w = x;
     });
     return w;
@@ -884,6 +898,7 @@
       : Promise.resolve(false);
     return held.then(function (okLocal) {
       it.lo = okLocal ? 1 : 0;
+      if (okLocal) here[it.i] = 1;
       addItem(it);
       return okLocal;
     });
@@ -1150,6 +1165,7 @@
         return;
       }
       it.lo = okLocal ? 1 : 0;
+      if (okLocal) here[it.i] = 1;
       if (!addItem(it)) { busy = false; return; }
       /*@3.AUNJ.37*/
       /*@3.AUNJ.77*/
@@ -1271,7 +1287,7 @@
         it.b = r.bytes || it.b;
         /*@3.AUNJ.18*/
         var st = D();
-        if (st && it.lo) { st.drop(refId)['catch'](function () {}); it.lo = 0; }
+        if (st && local(it)) { st.drop(refId)['catch'](function () {}); it.lo = 0; }
         touch(true);
         if (after) { after(); return; }
         settled(refId);
@@ -1287,12 +1303,12 @@
         /*@3.AUNJ.65*/
         msg('<b>' + esc(L('لم يُرفع التسجيل', 'The recording was not uploaded')) + '</b> ' +
             esc(sendWhy(e)) + ' ' +
-            esc(it.lo
+            esc(local(it)
               ? L('وهو محفوظٌ على هذا الجهازِ وحدَه — أعِدِ الرفعَ متى شئت.',
                   'It is stored on this device only — retry whenever you like.')
               : L('ولم يُحفظ على الجهازِ أيضاً — التسجيلُ ضاع.',
                   'And it was not stored on this device either — the recording is lost.')));
-        acts((it.lo
+        acts((local(it)
               ? '<button type="button" class="gsf-btn gsf-btn--pri nrec-again2">' +
                 '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> ' +
                 esc(L('أعِدِ الرفع', 'Retry')) + '</button>'
@@ -1337,11 +1353,11 @@
       mode('nrp--bad');
       msg('<b>' + esc(L('لم يُرفع إلى درايف', 'It was not uploaded to Drive')) + '</b> ' +
           esc(gd.reason(e)) + ' ' +
-          esc(it.lo ? L('وهو محفوظٌ على هذا الجهازِ — أعِدِ الرفعَ متى شئت.',
+          esc(local(it) ? L('وهو محفوظٌ على هذا الجهازِ — أعِدِ الرفعَ متى شئت.',
                         'It is stored on this device — retry whenever you like.')
                     : L('ولم يُحفظ على الجهازِ أيضاً — التسجيلُ ضاع.',
                         'And it was not stored on this device either — it is lost.')));
-      acts((it.lo ? '<button type="button" class="gsf-btn gsf-btn--pri nrec-again3">' +
+      acts((local(it) ? '<button type="button" class="gsf-btn gsf-btn--pri nrec-again3">' +
                     '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> ' +
                     esc(L('أعِدِ الرفع', 'Retry')) + '</button>' : '') + shutBtn());
       bindShut();
@@ -1354,7 +1370,7 @@
     var st = D();
     var it = items().filter(function (x) { return x.i === refId; })[0];
     if (!it) return;
-    if (!st || !it.lo) { gone(); return; }
+    if (!st || !local(it)) { gone(); return; }
     st.get(refId).then(function (b) {
       if (!b || !b.size) { it.lo = 0; touch(true); gone(); return; }
       vowSet(it, 'gd');
@@ -1374,6 +1390,7 @@
                     : Promise.resolve(false);
       return held.then(function (okLocal) {
         it.lo = okLocal ? 1 : 0;
+        if (okLocal) here[refId] = 1;
         it.b = blob.size || it.b;
         touch(true);
         if (then) then(blob);
@@ -1422,7 +1439,7 @@
     var st = D();
     var it = items().filter(function (x) { return x.i === refId; })[0];
     if (!it) return;
-    if (!st || !it.lo) { gone(); return; }
+    if (!st || !local(it)) { gone(); return; }
     st.get(refId).then(function (b) {
       if (!b || !b.size) { it.lo = 0; touch(true); gone(); return; }
       vowSet(it, 'us');
@@ -1471,7 +1488,7 @@
   function rowActs(x) {
     var out = '';
     var vowed = (x.vow === 'us' || x.vow === 'gd');
-    var waiting = vowed && !x.aup && !x.gd && x.lo;
+    var waiting = vowed && !x.aup && !x.gd && local(x);
     var stopped = waiting && triesOf(x) >= TRIES.length;
 
     if (waiting && !stopped) {
@@ -1492,7 +1509,7 @@
               'We stopped after three attempts — the server did not respond. It is saved on your device.')) +
         '</span>';
     }
-    if (!x.aup && !x.gd && x.lo) {
+    if (!x.aup && !x.gd && local(x)) {
       out += '<button type="button" class="gsf-btn gsf-btn--sm nrec-retry">' +
         '<i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> ' +
         esc(L('احفظْه عندنا', 'Keep it with us')) + '</button>' +
@@ -1500,7 +1517,7 @@
                  '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
                  esc(L('في درايفي', 'In my Drive')) + '</button>' : '');
     }
-    if (x.gd && !x.lo && !x.aup) {
+    if (x.gd && !local(x) && !x.aup) {
       out += '<button type="button" class="gsf-btn gsf-btn--sm nrec-link">' +
         '<i class="fa-brands fa-google-drive" aria-hidden="true"></i> ' +
         esc(L('اربطْ درايف هنا', 'Link Drive here')) + '</button>';
@@ -1547,7 +1564,7 @@
     box.innerHTML = rows().slice().reverse().map(function (part) {
       var x = part[0];
       var w = whereOf(weakest(part));
-      var can = part.every(function (y) { return !!(y.aup || y.lo || y.gd); });
+      var can = part.every(function (y) { return !!(y.aup || local(y) || y.gd); });
       var ms = sum(part, 'ms');
       var bytes = sum(part, 'b');
       return '<div class="nrr' + (can ? '' : ' nrr--gone') + '" data-ref="' + esc(x.i) + '">' +
@@ -1581,7 +1598,7 @@
 
     /*@3.AUNJ.69*/
     var groups = rows();
-    var up = list.filter(function (x) { return !x.aup && !x.gd && x.lo; }).length;
+    var up = list.filter(function (x) { return !x.aup && !x.gd && local(x); }).length;
     var tot = list.reduce(function (a, x) { return a + (Number(x.b) || 0); }, 0);
     var upn = groups.filter(function (g) {
       return g.every(function (x) { return x.aup || x.gd; });
@@ -1656,10 +1673,10 @@
     }
     if (x.gd) {
       return { i: 'fa-brands fa-google-drive', s: L('في درايفك', 'In your Drive'),
-               t: x.lo ? L('في درايفك وعلى هذا الجهاز', 'In your Drive and on this device')
+               t: local(x) ? L('في درايفك وعلى هذا الجهاز', 'In your Drive and on this device')
                        : L('في درايفك — على جهازٍ آخر', 'In your Drive — on another device') };
     }
-    if (x.lo) {
+    if (local(x)) {
       return { i: 'fa-solid fa-mobile-screen', s: L('هذا الجهاز', 'This device'),
                t: L('على هذا الجهازِ وحدَه — لا يفتح على غيره',
                     'On this device only — will not open elsewhere') };
@@ -1784,7 +1801,7 @@
 
   /*@3.AUNJ.73*/
   function sendRest() {
-    var rest = items().filter(function (x) { return !x.aup && !x.gd && x.lo; });
+    var rest = items().filter(function (x) { return !x.aup && !x.gd && local(x); });
     if (!rest.length || busy) return;
     var i = 0;
     var next = function () {
@@ -1807,25 +1824,26 @@
     if (urls[refId]) return Promise.resolve(urls[refId]);
     var st = D();
     /*@3.AUNJ.21*/
-    if (!it.aup && it.lo && st) {
-      return st.get(refId).then(function (b) {
-        if (!b || !b.size) throw new Error('gone');
-        urls[refId] = URL.createObjectURL(b);
-        return urls[refId];
-      });
-    }
-    if (it.gd && !it.aup) {
-      return new Promise(function (ok, no) {
-        pullDrive(refId, function (blob) {
-          if (!blob) { no(new Error('gone')); return; }
-          urls[refId] = URL.createObjectURL(blob);
-          ok(urls[refId]);
+    var mine = (local(it) && st)
+      ? st.get(refId).then(function (b) { return (b && b.size) ? b : null; }, function () { return null; })
+      : Promise.resolve(null);
+    return mine.then(function (b) {
+      if (b) { urls[refId] = URL.createObjectURL(b); return urls[refId]; }
+      var f = F();
+      var ours = (it.aup && f) ? f.link(refId).then(function (l) { return l && l.url ? l.url : null; }, function () { return null; })
+                               : Promise.resolve(null);
+      return ours.then(function (u) {
+        if (u) { urls[refId] = u; return u; }
+        if (!it.gd) throw new Error('gone');
+        return new Promise(function (ok, no) {
+          pullDrive(refId, function (blob) {
+            if (!blob) { no(new Error('gone')); return; }
+            urls[refId] = URL.createObjectURL(blob);
+            ok(urls[refId]);
+          });
         });
       });
-    }
-    var f = F();
-    if (!f) return Promise.reject(new Error('gone'));
-    return f.link(refId).then(function (l) { urls[refId] = l.url; return l.url; });
+    });
   }
 
   function play_(refId, row, startAt) {
@@ -2077,7 +2095,7 @@
       if (f && it.aup) { try { f.remove(id); } catch (e) {} }
       if (alsoDrive && it.gd && gd && gd.trash) { try { gd.trash(it.gd); } catch (e2) {} }
       /*@3.AUNJ.22*/
-      if (st && it.lo) st.drop(id)['catch'](function () {});
+      if (st && local(it)) st.drop(id)['catch'](function () {});
     });
     if (panel && view === 'list') drawList();
   }
@@ -2101,6 +2119,7 @@
   }
 
   function wire() {
+    hereScan();
     resumeSoon();
     var b = micBtn();
     if (!b || b.getAttribute('data-wired')) return;
@@ -2116,7 +2135,7 @@
 
   function pendingVowed() {
     return items().filter(function (x) {
-      return !x.aup && !x.gd && x.lo &&
+      return !x.aup && !x.gd && local(x) &&
              (x.vow === 'us' || x.vow === 'gd') &&
              triesOf(x) < TRIES.length;
     });
@@ -2162,6 +2181,7 @@
   function sync() {
     badge();
     if (panel && panel.parentNode && !rec && !busy) render();
+    hereScan(function (changed) { if (changed && panel && panel.parentNode && !rec && !busy) render(); });
   }
 
   if (document.readyState === 'loading') {

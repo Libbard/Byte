@@ -624,6 +624,7 @@
   };
 
   /*@3.SYPJ.15*/
+  /*@3.SYPJ.54*/
   Panel.prototype.vDrive = function () {
     var gd = GD();
     var armed = !!(this.guard && this.guard.armed);
@@ -651,7 +652,7 @@
               ' مساحتُك هناك مساحتُك.',
               'When enabled, you will open your files from your Drive. We compress nothing of it' +
               ' and host no copy — your space there is yours.')) +
-        '</small></div></div>' + back('pick');
+        '</small></div></div>' + back('home');
     }
 
     var head = '<div class="sp-sec"><div class="sp-vouch' + (linked ? ' sp-vouch--ok' : '') + '"><b>' +
@@ -726,7 +727,7 @@
         btn('drv-off', 'fa-link-slash', L('افصلْ درايف', 'Disconnect Drive'), 'danger wide') +
         '</div>';
     }
-    return body + back('pick');
+    return body + back('home');
   };
 
   Panel.prototype.vUnlink = function () {
