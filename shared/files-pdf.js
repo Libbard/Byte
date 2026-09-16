@@ -264,6 +264,34 @@
     bind('.nfp-gd', toDrive);
   }
 
+  /*@3.FIPJ.38*/
+  var TELL_LS = '__driveOffer';
+  function tellOn() {
+    try { return localStorage.getItem(TELL_LS) !== '0'; } catch (e) { return true; }
+  }
+
+  function askHave(h, then) {
+    var f = F();
+    if (!f || !f.have || !h || !tellOn()) { then(null); return; }
+    f.have(h).then(function (r) { then(r && r.hit ? r : null); }, function () { then(null); });
+  }
+
+  function sayHave(hit) {
+    var n = hit && Number(hit.stored_bytes) || 0;
+    paint('nfp--say',
+      markIcon('us') +
+      '<div class="nfp-txt"><b>' +
+      esc(L('هذا الملفُّ عندنا سلفاً', 'We already have this file')) + '</b>' +
+      '<span>' + esc(L('اربطْه بحسابك فيفتح على أجهزتك — بلا رفع',
+                       'Link it to your account and it opens on your devices — no upload')) +
+      (n ? ' · <span dir="ltr">' + esc(size(n)) + '</span>' : '') + '</span></div>' +
+      '<button type="button" class="gsf-btn gsf-btn--pri nfp-us">' +
+      '<i class="fa-solid fa-link" aria-hidden="true"></i> ' +
+      esc(L('اربطْه', 'Link it')) + '</button>' +
+      shutBtn());
+    bind('.nfp-us', function () { toUs(false); });
+  }
+
   /*@3.FIPJ.11*/
   function sayUp() {
     var pc = Math.round(prog * 100);
@@ -623,7 +651,10 @@
         return;
       }
       if (gdId) { cardDrive(); return; }
-      sayDevice();
+      askHave(mine.h, function (hit) {
+        if (mine !== cur || !pop) return;
+        if (hit) sayHave(hit); else sayDevice();
+      });
     })['catch'](function (e) {
       if (mine !== cur || !pop) return;
       bad(reason(e));
@@ -668,12 +699,16 @@
       if (mine) { cur.slim = slimPlan(mine); markSeen(h); repaint(); return; }
       if (cur.gd) return;
       if (seen()[refIdOf(h)]) return;
-      markSeen(h);
-      /*@3.FIPJ.18*/
-      /*@3.FIPJ.20*/
-      /*@3.FIPJ.29*/
-      sayDevice();
-      if (guard) guard.ttl(9000);
+      askHave(h, function (hit) {
+        if (!cur || cur.h !== h || busy) return;
+        markSeen(h);
+        /*@3.FIPJ.18*/
+        /*@3.FIPJ.20*/
+        /*@3.FIPJ.29*/
+        if (hit) { sayHave(hit); if (guard) guard.ttl(14000); return; }
+        sayDevice();
+        if (guard) guard.ttl(9000);
+      });
     })['catch'](function () {});
   }
 
